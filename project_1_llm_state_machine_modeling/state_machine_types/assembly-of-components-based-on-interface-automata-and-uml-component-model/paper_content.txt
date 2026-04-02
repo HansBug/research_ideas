@@ -1,0 +1,499 @@
+--- Page 1 ---
+Assembly of components based on interface automata and UML
+component model
+Samir Chouali, Sebti Mouelhi, Hassan Mountassir
+Laboratoire d’Informatique de l’université de Franche-Comté, LIFC
+{schouali, smouelhi, hmountassir }@lifc.univ-fcomte.fr
+Abstract. We propose an approach which combines component UML model and interface
+automata in order to assemble components and to verify their interoperability. We spe-
+cify component based system architecture with component UML model, and component
+interfaces with interface automata. Interface automata is a common Input Output (I/O)
+automata-based formalism intended to specify the signature and the protocol level of com-
+ponent interfaces. We improve interface automata approach by component UML model,
+in order to consider system architecture, in component composition and interoperability
+veriﬁcation methods. Therefore, we handle in interface automata, the connection between
+components, and the hierarchical connections between composite components and their
+subcomponents.
+1 Introduction
+Component based systems are made up of collection of interacting entities, called components. The
+idea in component based software engineering (CBSE) is to develop software applications not from
+scratch but by assembling various library components, Szyperski (1999); Heineman et Councill (2001).
+This development approach allows, to extend component based systems via plug and play components,
+and to reuse components. Therefore one saves on development costs and time.
+A component is a unit of composition with contractually speciﬁed interfaces and explicit dependen-
+cies, Szyperski (1999). An interface describes the services offered and required by a component without
+disclosing the component implementation. It is the only access to the information of a component. In-
+terfaces may describe component infomation at signature (method names and their types), behaviour or
+protocol (scheduling of method calls), semantic (method semantics), and quality of services levels. The
+success of applying the component based approach depends on the interoperability (we say also com-
+ponent compatibility) of the connected components. The interoperability can be deﬁned as the ability of
+two or more entities to communicate and cooperate despite differences in their implementation language,
+the execution environment, or the model abstraction, Konstantas (1995); Wegner (1996). The interopera-
+bility holds between components when their interfaces are compatible.
+In this paper, we focus on assembling components described by interface automata. The interface
+automata based approach was proposed by L.Alfaro and T.Henzinger, Alfaro et Henzinger (2001, 2005);
+Alfaro et al. (2002). They have proposed to specify component interfaces with automata, which are la-
+belled by input, output, and internal actions. These automata allow to describe component information at
+signature and protocol levels. An interesting veriﬁcation approach was also proposed to detect incompa-
+tibilities at signature and protocol levels between two component interfaces. The veriﬁcation is based on
+the composition of interfaces, which is achieved by synchronizing component actions.
+The essential drawback of the interface automata approach is that, it is unable to accept as an input a
+set of interface automata, more than two, associated to all components composing a component based sys-
+
+--- Page 2 ---
+Assembly of components based on interface automata and UML component model
+tem, and also consider system architecture. In fact, interface automata are proposed to specify component
+behaviour only and therefore are unable to describe, the connection between primitives components and
+composites (composed of others components), and the hierarchical connections between composites and
+their subcomponents, which also inﬂuences component behaviors. Therefore, we propose to enrich this
+approach by exploiting the component UML model which speciﬁes the component based system architec-
+ture. The point we want to address in our paper is to show how to combine UML and interface automata
+to verify interoperability in component based systems.
+The paper is organized as follows : In section 2, we describe the approach based on interface automata
+to verify component iteroperability. In section 3, we describe our approach which combines UML com-
+ponent model an interface automata in order to assemble components and to verify their interoperability,
+according to system architecture. The approach was illustrated on the vehicle CyCab use case. Related
+works are presented in section 4. We conclude our work and present perspectives in section 5.
+2 Interface Automata
+Interface automata (IAs) have been deﬁned in Alfaro et Henzinger (2001), to model the temporal
+behavior of software and hardware component interfaces. These models are non-input-enabled1like I/O
+automata in Lynch et Tuttle (1987) . Every component interface is described by one interface automaton
+where input actions (assigned by ?) are used to model methods that can be called, and the end of recei-
+ving messages from communication channels, as well as the return values from such calls. Output actions
+(assigned by !) are used to model method calls, message transmissions via communication channels, and
+exceptions that occur during the method execution. Hidden actions (assigned by ;) describe the local ope-
+rations of the component.
+Deﬁnition 1 (Interface Automata). Aninterface automaton A =hSA, IA,I
+A,O
+A,H
+A,Aiconsists of
+–a ﬁnite set S Aof states ;
+–a subset of initial states IASA. Its cardinality card (IA)1 and ifIA=;then A is called
+empty ;
+–three disjoint sets I
+A;O
+AandH
+Aof inputs, output, and hidden actions ;
+–a setASAASAof transitions between states .
+The composition operation may take effect only if their actions are disjoint, except shared input and out-
+put actions between them. When we compose them, shared actions are synchronized and all the others
+are interleaved asynchronously.
+Deﬁnition 2 (Composition Condition). Two interface automata A1andA2arecomposable if
+I
+A1\I
+A2= O
+A1\O
+A2= H
+A1\A2= H
+A2\A1=;
+Shared (A1,A2) =(I
+A1\O
+A2)[(I
+A2\O
+A1)is the set of shared actions between A1andA2. We can
+now deﬁne the product automaton A1
+A2properly.
+Deﬁnition 3 (Synchronized product). LetA1andA2be two composable interface automata. The pro-
+ductA1
+A2is deﬁned by
+–SA1
+A2=SA1SA2andIA1
+A2=IA1IA2;
+–I
+A1
+A2= (I
+A1[I
+A2)nShared (A1;A2);
+–O
+A1
+A2= (O
+A1[O
+A2)nShared (A1;A2);
+–H
+A1
+A2= H
+A1[H
+A2[Shared (A1;A2);
+1input actions are not enabled at every state of one automaton
+
+--- Page 3 ---
+S. Chouali, S.Mouelhi, et H.Mountassir.
+–((s1;s2);a;(s0
+1;s0
+2))2A1
+A2if
+–a62Shared (A1;A2)^(s1;a;s0
+1)2A1^s2=s0
+2
+–a62Shared (A1;A2)^(s2;a;s0
+2)2A2^s1=s0
+1
+–a2Shared (A1;A2)^(s1;a;s0
+1)2A1^(s2;a;s0
+2)2A2.
+The incompatibility between two composable interface automata is due to the existence of some states
+(s1,s2) in the product where one of the automata outputs a shared action safrom the state s1which is not
+accepted as input from the state s2or vice versa. These states are called illegal states .
+Deﬁnition 4 (Illegal States). Given two composable interface automata A1andA2, the set of ille-
+gal states Illegal (A1;A2)SA1SA2ofA1
+A2is deﬁned byf(s1;s2)2SA1SA2j9a2
+Shared (A1;A2):(a2O
+A1(s1)^a62I
+A2(s2))_(a2O
+A2(s2)^a62I
+A1(s1))g.
+The reachability of states in Illegal (A1;A2) do not implies that A1andA2are not compatible. The exis-
+tence of an environment Ethat produces appropriate inputs for the product A1
+A2ensures that illegal
+states will not be entered and then A1andA2can be used together. The compatible states, denoted by
+Comp (A1,A2), are states from which the environment can prevent entering illegal states. The compatibi-
+lity can be deﬁned differently, A1andA2arecompatible if and only if their initial state is compatible.
+Deﬁnition 5 (Composition). Given two compatible interface automata A1andA2. The compostion
+A1kA2is an interface automaton deﬁned by : (i)SA1kA2=Comp (A1,A2),(ii)the initial state is
+IA1kA2=IA1
+A2\Comp (A1,A2),(iii)A1kA2= A1
+A2, and (iv)the set of transitions is A1kA2=
+A1
+A2\(Comp (A1,A2)A1kA2Comp (A1,A2)).
+In this approach, the veriﬁcation of the compatibility between a component C1and a component C2
+is obtained by verifying the compatibility between their interface automata A1andA2. The veriﬁcation
+steps of the compatibility between A1andA2are listed below.
+–Algorithm
+–Input : interface automata A1,A2.
+–Output :A1kA2.
+–Algorithm steps :
+1. verify that A1andA2are composable,
+2. calculate the product A1A2,
+3. calculate the set of illegal in A1A2,
+4. calculate the bad states in A1A2: the states from which the illegal state are reachable by
+enabling only the internal action or the output actions (one suppose the existence of a helpful
+environment),
+5. Calculate A1kA2by eliminating from the automaton A1A2, the illegal state, the bad state,
+and the unreachable states from the initial states,
+6. after performing the above step, if the automaton A1kA2is empty then the interface auto-
+mataA1,A2are not compatible, therefore C1andC2can not be assembled correctly in any
+environment. Otherwise A1andA2are compatible.
+The complexity of this approach is in time linear on jA1jandjA2jAlfaro et Henzinger (2001).
+
+--- Page 4 ---
+Assembly of components based on interface automata and UML component model
+3 Assembling components according to their IAs speciﬁcation and
+an UML-based architecture
+UML 2.0 offers concepts to well-design CBS architectures and interactions between their components.
+These concepts are based on required and provided interfaces to model interactions between components
+without giving any information about the protocol speciﬁcation of components. UML 2.0 speciﬁes a
+component as reusable modular unit, which interacts with its environment. Interfaces describe component
+operations annotated by their pre and post-conditions and they may also describe component data models.
+In this paper, we specify component interfaces by interface automata in order to strengthen UML
+component models by checking formally the component compatibility at the protocol level. We propose
+a fully algorithmic approach that exploits a component UML model to improve interface automata ap-
+proach, in order to verify component composition.
+3.1 Improvement of interface automata approach based on component UML mo-
+del
+We specify the UML architecture as a graph where nodes are the components of the system and edges
+represent both the hierarchical relations between composite components and their subcomponents and
+the connections between subcomponents within a composite component in the model. The nodes of the
+graph can be seen as tree if we consider only hierarchical relations. For an UML architecture M, we
+denote byAMall the interface automata speciﬁcations of all the primitive components constructing the
+UML architecture Mand byCMall the (composite and primitive) components constructing M.ACis the
+interface automaton of a component C.
+Deﬁnition 6 (Graph Representation of an UML Architecture). AGraph Representation GM=hNGM,
+CpGM, CnGMiof an UML architecture M, consists of
+–a ﬁnite set N GMof nodes representing CM;
+–a ﬁnite set Cp GMof edges representing the relations between the nodes representing composite
+components and their subcomponents ;
+–a ﬁnite set Cn GMof edges representing the connections between the nodes representing subcom-
+ponents within a same component .
+By traversing this graph, we propose an algorithm that can at the same time, (i) check the compatibility
+between connected components at the level of a subcomponent and (ii) construct progressively the IAs
+speciﬁcation of the ﬁnal system. In the case where incompatibilities is detected at most between two in-
+terfaces, it returns an empty interface automata. In order to specify this algorithm, We propose to improve
+interface automata of a each component C, with the set of components connect to C(neighbors of C).
+This set is deducted from the graph deﬁning component UML model.
+The following deﬁnitions show the adaptation to introduce in interface automata approach in order to
+handle the component UML model.
+Deﬁnition 7 (Improved interface automata). An interface automaton A, which describes a component
+CA, is deﬁned by a tuple, hSA, IA,I
+A,O
+A,H
+A,A,UAi, such that :
+– a ﬁnite set SAof states ;
+– a subset of initial states IASA. Its cardinality card (IA)1 and ifIA=;then A is called empty ;
+– three disjoint sets I
+A;O
+AandH
+Aof inputs, output, and hidden actions ;
+– a setASAASAof transitions between states.
+–UAis the set of the components connected to the component CA, according to the UML model of
+the component based system architecture
+We adapt also the synchronized product of two interface automata.
+
+--- Page 5 ---
+S. Chouali, S.Mouelhi, et H.Mountassir.
+Deﬁnition 8 (Improved sychronized product). LetA1andA2be two composable interface automata
+corresponding respectively to the components CA1andCA2. The product A1
+A2is deﬁned byhSA1
+A2,
+IA1
+A2,I
+A1
+A2,O
+A1
+A2,H
+A1
+A2,A1
+A2,UA1
+A2i, such that :
+–SA1
+A2=SA1SA2andIA1
+A2=IA1IA2;
+–I
+A1
+A2= (I
+A1[I
+A2)nShared (A1;A2);
+–O
+A1
+A2= (O
+A1[O
+A2)nShared (A1;A2);
+–H
+A1
+A2= H
+A1[H
+A2[Shared (A1;A2);
+–((s1;s2);a;(s0
+1;s0
+2))2A1
+A2if
+–a62Shared (A1;A2)^(s1;a;s0
+1)2A1^s2=s0
+2
+–a62Shared (A1;A2)^(s2;a;s0
+2)2A2^s1=s0
+1
+–a2Shared (A1;A2)^(s1;a;s0
+1)2A1^(s2;a;s0
+2)2A2.
+–UA1
+A2=fUA1[UA2gnfCA1;CA2g.
+When we compose two components C1, andC2, by their respective interface automata A1andA2,
+the setUA1kA2corresponding the the interface automata, A1k2, which describes the composite C1kC2,
+is deﬁned by : UA1
+A2. And, for each set UAi, belonging to an interface automaton Ai, we replace each
+occurrence of C1orC2byC1kC2.
+Remark : The other steps to verify the compatibility between two components, with the interface
+automata approach, are not affected by the adaptation. They are the same as those explained in the section
+3 : after calculating the synchronized product, we calculate the composition by eliminating the illegal
+states.
+3.2 CyCab use case :
+FIG. 1 – The UML 2.0 architecture of a basic CyCab CBS.
+
+--- Page 6 ---
+Assembly of components based on interface automata and UML component model
+As an example, we consider a CyCab car component-based system (in Baille Gérard et Pissard-
+Gibollet (1999)). The CyCab car is a new electrical means of transportation conceived essentially for
+free-standing transport services allowing users to displace through pre-installed set of stations.
+In Figure 1, we describe the CyCab architecture with UML component model. The CyCab system
+is composed of two main composites : Station and Vehicle. The Vehicle sends signals spos ! to inform
+the upcoming station about its positions and it receives as consequence signals ( far! orhalt!) to know
+if it steels far from the station or not. The two automata Sensor (Ss) and ComputingUnit (Cu) are the
+subcomponents of the station. The sensor detects a position signal sent from the vehicle and converts
+it to geographic coordinates ( pos!) which will be used by the ComputingUnit to compute the distance
+between the vehicle and the station and decide if they steel far from each other or not. The vehicle is
+composed from three primitive components : the VehicleCore (Vc), the Starter (Sr), and the embedded
+EmergencyHalt (Eh) device.
+We depict so the CyCab UML architecture as shown in Figure 2. The continuous edges represent
+the hierarchical relations between composite components and their subcomponents. The dashed edges
+represent the connections between components at the level of composite components. Two components
+are connected if and only if there is at least one interaction between their interfaces.
+FIG. 2 – The graph representation of the CyCab car system.
+3.3 The algorithm :
+We present the algorithm allowing the component composition and the veriﬁcation of component
+interoperability, based on improved interface automata approach and component UML Model.
+This algorithm is based on traversing the graph which speciﬁes system architecture, in order to check
+the compatibility between connected components at the level of a subcomponent, and to construct pro-
+gressively the IAs speciﬁcation of the ﬁnal system. In the case where incompatibility is detected at most
+between two interfaces, it returns an empty interface automata.
+
+--- Page 7 ---
+S. Chouali, S.Mouelhi, et H.Mountassir.
+The algorithm, is based on DFS (depth ﬁrst search ) algorithm, and we explain this algorithm by three
+steps.
+We consider a graph GMwhich speciﬁes an UML component model M.
+3.3.1 First Step
+This step consists in traversing the graph in order to :
+– ﬁnd the sets UAi(neighbors of each components in a system architecture) of each interface au-
+tomataAicorresponding to a primitives components in a system. These sets will be used in the
+second step.
+– ﬁnd the sets of child nodes for each node associated to composite components. These sets will be
+used in the third step.
+3.3.2 Second Step (see algorithm 1)
+In this step, we deﬁne a function Compos( C1,...,Cn) which accepts as input a set of components and
+as output, the interface automata of the resulting composite or the empty set (empty interface automaton)
+if there is incompatibility between two components. The function is described by Algorithm 1 .
+Algorithm 1 : Compos
+Input :A set of components C CMfor a given UML architecture M.
+Output :The IA of the composition of all c 2C.
+begin
+c1 (C) ; /*c1is selected form C*/
+repeat
+c2 (Uc1); /*c2is selected form the set of neighbors of c1,Uc1*/
+Verify the compatibility between, Ac1andAc2, with the interface automata approach (see section 2 and 3.1)
+ifAc1andAc2are compatible then
+C fCnfc1; c2gg[f c1kc2g;
+Ac1 Ac1kAc2;
+else
+return emptyIA ;
+until card(C)=1;
+return Ac1;
+end
+3.3.3 Third Step (see algorithm2)
+In this step, we deﬁne the main function, MainCompos(root), which traverses the graph recursively
+and calculates the composition of interface automata by calling the function deﬁned in algorithm 1. This
+function, accepts as input, a node of the graph GMcorresponding to a composite. At the initial state,
+this function accepts the node corresponding to the whole system (the root of the graph). It returns as
+output the interface automata of the whole system or the empty set if there is incompatibility between
+components.
+We note bySetChild the set of child nodes corresponding to subcomponents in a composite Ci. We
+note bySettoCompose , the set of components to compose by the function Compos (). At the initial
+state, we associate to each leaf node in GM, corresponding to a primitive components C, an interface
+AC. However, nodes corresponding to composites are not associated to interface automata. The function
+is described by Algorithm 2 .
+
+--- Page 8 ---
+Assembly of components based on interface automata and UML component model
+Algorithm 2 : MainCompos
+Input : the node root corresponding to the whole system in the graph GM.
+Output :The interface automaton of the whole system.
+begin
+SetChild ={the set of child nodes of the node root } /* this set is calculated in the ﬁrst step */ while (SetChild is
+not empty) do
+LetNa node in SetChild , and corresponding to the component C;
+if(the interface automaton associated to Nexists, because Nis a leaf node or it is a node corresponding to
+composite which is associated to an interface automaton by this function) then
+SettoCompose =SettoCompose[fCg;
+SetChild =SetChildnfNg
+else
+IAC=MainCompos (N)/* calculate the interface automaton IACcorresponding to N*/
+IAC=Compos (C1; ::Cn), where SettoCompose =fC1; :::; C ng; /* call to the function Compos in algorithm
+1 in order to compose the components in the set SettoCompose */
+return IAc;
+end
+Remark : Since the proposed algorithms are based on traversing graph GM, corresponding to system
+architecture M, with the complexity in time linear on the set of components composing the system, then
+our method does not augment the complexity of the interface automata approach, which is time linear of
+the the size of the composed interface automata.
+3.3.4 Illustration on the CyCab
+Lets take our previous example, the interface automata of the primitive components of the CyCab car
+system are presented in Figure 3 and Figure 4. The algorithm starts ﬁrst by constructing the Station and
+theVehicle composite components. from their subcomponents.
+The algorithm starts ﬁrst by constructing the Station and the Vehicle composite components from
+their subcomponents. The reader can easily verify that the two interface automata Station andVehicle are
+not empty. Then, We construct the whole composite system representing the communication between the
+Vehicle and the Station . Figure 5 represents the IAs speciﬁcation of the composite component Vehicle .
+4 Related works
+As some related works, we can mention the model in Allen et Garlan (1997) where the protocols are
+associated to the component connectors. In Brim et al. (2006) the authors proposed a new approach to
+component interaction speciﬁcation and veriﬁcation process which combines the advantages of architec-
+ture description languages and formal veriﬁcation oriented model. So, they proposed component interac-
+tion automata to specify component interfaces and verify their compatibility. In Poizat et Royer (2006) the
+authors proposed an ADL based the Korrigan language which enables to describe the component based
+systems architectures formally. This ADL supports : integration of fully formal behaviors and data types,
+expressive component composition mechanisms through the use of modal logic, speciﬁcation readability
+through graphical notations, and dedicated architectural analysis techniques.
+Others works as the ones in Steffen et al. (2004), the authors proposed a comparison between models
+at three grades of interoperability using the operation signatures, the interfaces protocols and the quality
+of service. The protocols in Magee et al. (1999) based on transitions systems and concurrency including
+
+--- Page 9 ---
+S. Chouali, S.Mouelhi, et H.Mountassir.
+FIG. 3 – The interface automata of the Vehicule subcomponent
+FIG. 4 – The interface automata of the Station subcomponent
+
+--- Page 10 ---
+Assembly of components based on interface automata and UML component model
+FIG. 5 – The interface automaton of the Vehicule composite
+the reachability analysis. The composition operation is essential to deﬁne assembly and check the su-
+rety and vivacity properties. The approach in Moisan et al. (2003) aims to endow the UML components
+to specify interaction protocols between components. The behavioral description language is based on
+hierarchical automata inspired from StateCharts. It supports composition and reﬁnement mechanisms of
+system behaviors. The system properties are speciﬁed in temporal logic. In Chouali et al. (2006), the
+authors proposed to specify component interface and to verify their compatibility with B method. Howe-
+ver component protocols are not considered in the interfaces. In André et al. (2005), the authors deﬁne
+a component-based model Kmelia with abstract services, which does not take into account the data du-
+ring the interaction. The behavior described by automata associated to services. This environment uses
+the tool MEC model-checker to verify the compatibility of components. Other works consider real-time
+constraints Etienne et Bouzefrane (2006). The idea is to determine the component characteristics and
+deﬁne certain criteria to verify the compatibility of their speciﬁcations using the tool Kronos .
+The contribution of our approach, compared the related works, is the speciﬁcation of component
+interfaces with interface automata (which is an interesting approach to express component behaviors) and
+the expression of a component based system architecture in the interface automata method, thanks to the
+UML component model which speciﬁes the architecture. So, we exploit UML component model and the
+interface automata method to verify the component composition.
+5 Conclusion
+In this paper, we present a new formal approach to assemble components and to verify their interope-
+rability, according to a system architecture, speciﬁed by component UML model. This approach is based
+on interface automata method to specify component interfaces and to verify interface compatibility. We
+have improved this approach by exploiting component UML model, in order to specify , connection bet-
+ween components and composites, and hierarchical connection in composites. Component UML model
+
+--- Page 11 ---
+S. Chouali, S.Mouelhi, et H.Mountassir.
+corresponding to system architecture is speciﬁed formally by a graph, where nodes correspond to com-
+ponents and edges specify connections between components. From this graph, we deduce information to
+improve interface automata approach in order to verify interface compatibility. So, we have proposed an
+algorithm to assembles components and composites, based on a both, system architecture and component
+interface automata.
+Actually, we develop a tool in order to implement the proposed approach. This tool will allow to
+specify component based system architecture with component UML model, and component interfaces
+with enhanced interface automata. As future work, we plan to specify component interfaces, only with
+UML models, because UML is more expressive for most of people, and then propose an approach to
+translate this models automatically to interfaces automata in order to verify component interoperability.
+References
+Alfaro, L. et T. A. Henzinger (2001). Interface automata. In 9 th Annual Aymposium on Foundations of
+Software Engineering, FSE , pp. 109–120. ACM Press.
+Alfaro, L. et T. A. Henzinger (2005). Interface-based design. In Engineering Theories of Software-
+intensive Systems , V olume 195 of NATO Science Series: Mathematics, Physics, and Chemistry , pp.
+83–104. Springer: M. Broy, J. Gruenbauer, D. Harel, and C.A.R. Hoare.
+Alfaro, L., T. A. Henzinger, et M. Stoelinga (2002). Timed interfaces. In EMSOFT ’02: Proceedings
+of the Second International Conference on Embedded Software , London, UK, pp. 108–122. Springer-
+Verlag.
+Allen, R. et D. Garlan (1997). A formal basis for architectural connection. ACM Transactions on Software
+Engineering and Methodology 6 (3), 213–249.
+André, P., G. Ardourel, et C. Attiogbé (2005). Behavioural Veriﬁcation of Service Composition. In
+ICSOC Workshop on Engineering Service Compositions, WESC’05 , Amsterdam, The Netherlands, pp.
+77–84. IBM Research Report RC23821.
+Baille Gérard, Garnier Philippe, M. H. et Pissard-Gibollet (1999). The INRIA Rhône-Alpes CyCab .
+Technical report, INRIA. Describes the package natbib.
+Brim, L., I. ˇCerná, P. Va ˇreková, et B. Zimmerova (2006). Component-interaction automata as a
+veriﬁcation-oriented component-based system speciﬁcation. SIGSOFT Softw. Eng. Notes 31 (2), 4.
+Chouali, S., M. Heisel, et J. Souquières (2006). Proving component interoperability with b reﬁnement.
+Electr. Notes Theor. Comput. Sci. 160 , 157–172.
+Etienne, J.-P. et S. Bouzefrane (2006). Vers une approche par composants pour la modélisation
+d’applications temps réel. In (MOSIM’06) 6ème Conférence Francophone de Modélisation et Sim-
+ulation , Rabat, pp. 1–10. Lavoisier.
+Heineman, G. et W. Councill (2001). Component Based Software Engineering . Addison Wesley.
+Konstantas, D. (1995). Interoperation of object oriented application. In O. Nierstrasz et D. Tsichritzis
+(Eds.), Object-Oriented Software Composition , pp. 69–95. Prentice Hall.
+Lynch, N. et M. Tuttle (1987). Hierarchical correctness proofs for distributed algorithms. In 6th ACM
+Symp. on Principles of Distributed Computing , pp. 137–151. ACM Press.
+Magee, J., J. Kramer, et D. Giannakopoulou (1999). Behaviour analysis of software architectures. In
+WICSA1: Proceedings of the TC2 First Working IFIP Conference on Software Architecture (WICSA1) ,
+Deventer, The Netherlands, The Netherlands, pp. 35–50. Kluwer, B.V .
+Moisan, S., A. Ressouche, et J. Rigault (2003). Behavioral substitutability in component frameworks: A
+formal approach.
+
+--- Page 12 ---
+Assembly of components based on interface automata and UML component model
+Poizat, P. et J.-C. Royer (2006). A formal architectural description language based on symbolic transition
+systems and temporal logic. J. UCS 12 (12), 1741–1782.
+Steffen, B., O. Sven, et R. Ralf (2004). Classifying software component interoperability errors to support
+component adaption. In C. Ivica, S. Judith, S. Heinz, et W. Kurt (Eds.), Component Based Software En-
+gineering, 7th International Symposium, CBSE 2004, Edinburgh, UK, May 24-25, 2004, Proceedings ,
+pp. 68–83. Springer.
+Szyperski, C. (1999). Component Software . ACM Press, Addison-Wesley.
+Wegner, P. (1996). Interoperability. ACM Computing Survey 28 (1), 285–287.
+Résumé
+Donner la traduction anglaise du résumé dans le préambule avec la commande nsummary{Your
+abstract ...}

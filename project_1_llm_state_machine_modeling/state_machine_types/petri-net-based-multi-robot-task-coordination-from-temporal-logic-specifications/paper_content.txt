@@ -1,0 +1,1565 @@
+--- Page 1 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic
+Speciﬁcations
+Bruno Lacerdaa,<,Pedro U. Limab
+aOxford Robotics Institute, University of Oxford, UK
+bInstitute for Systems and Robotics, Instituto Superior Técnico, Portugal
+ARTICLE INFO
+Keywords :
+Multi-robot coordination
+Linear temporal logic
+Supervisory control
+Petri netsABSTRACT
+We propose a methodology for enforcing a set of coordination rules onto a multi-robot system, based
+on the use of Petri nets to model the team of robots, safe linear temporal logic to specify a set of
+coordination rules to be enforced, and supervisory control theory to synthesise a supervisor that
+enforces the coordination rules. We introduce a composition algorithm that allows us to build a Petri
+net that represents the largest restriction of the team behaviour that still satisﬁes the speciﬁcation. Such
+a Petri net can be interpreted as a candidate for a supervisor, for which one needs to verify admissibility.
+We present a general veriﬁcation procedure for this problem. We also present a syntactic restriction
+to safe linear temporal logic that guarantees admissibility of the composition a priori. We ﬁnish by
+providing an illustrative example, where we show how the use of temporal logic allows the designer to
+write the speciﬁcations intuitively, and the use of Petri nets allows us to tackle the large state spaces
+and high concurrency associated with multi-robot systems.
+1. Introduction
+A wide range of applications, such as logistics, environ-
+mental monitoring, and smart transportation systems require
+ﬂeets of autonomous mobile robots. For such systems, formal
+guarantees concerning aspects such as safety, predictability,
+performance, robustness and reliability are essential to sup-
+port the acceptability of the systems. However, in the ﬁeld
+of robotics innovation is often associated with non-formal
+approaches. Novel ideas and concepts are typically intro-
+duced for particular applications, through well-engineered
+systems, but lack the ability to provide formal guarantees.
+A particularly important class of guarantee is safety , which
+allow for specifying that something “bad” never happens.
+Safety properties include requirements that must be satisﬁed
+in all states (e.g., robots should avoid collisions) or can dy-
+namically change depending on observations (e.g., robots
+should change from a surveillance to a evacuation behaviour
+if a ﬁre is detected).
+In this work, we introduce a framework, based on a com-
+bination of concepts from discrete event systems and formal
+veriﬁcation, that allows a designer to enforce a set of safety
+requirements on a multi-robot team. The framework pro-
+poses the use of Petri nets (PNs) to model the uncontrolled
+behaviour of the robot team, and safe linear temporal logic
+(LTL) for the speciﬁcation of the coordination requirements.
+Then, we build upon concepts from supervisory control (SC)
+to synthesise a PN representation of a supervisor that restricts
+the behaviours of the team such that the coordination require-
+ments are met. With this approach, we exploit the ability
+of PNs to compactly model systems with high concurrency
+and the powerful and intuitive ability to specify behaviours
+bruno@robots.ox.ac.uk (B. Lacerda);
+pedro.lima@tecnico.ulisboa.pt (P.U. Lima)
+ORCID (s): 0000-0003-0862-331X (B. Lacerda); 0000-0002-8962-8050
+(P.U. Lima)naturally provided by LTL.
+Figure 1depicts a diagram illustrating the methodology.
+To summarise, we start with a PN model of the team and a
+syntactically safe LTL formula written over the set of events
+of the system plus linear constraints on the markings of the
+PN. We translate the safe LTL formula into a deterministic
+ﬁnite automaton (DFA) that represents it. The DFA is then
+appropriately composed with the PN. This composition pro-
+vides a structure that represents the smallest restriction – in
+the sense that any restriction which is more permissive in the
+events that can be ﬁred by the system will not comply with
+the speciﬁcation – of the behaviour of the system that satis-
+ﬁes the LTL formula. Then, one needs to guarantee that the
+composition is admissible. Intuitively, admissibility means
+that the supervisor will not attempt to disable events it cannot
+control. We provide two approaches to ensure admissibility.
+The ﬁrst, more general approach is based on the veriﬁcation
+procedure described in Subsection 5.1. With this approach,
+if the composition is found to be admissible, then it can be
+used to supervise the PN. However, if it is not admissible,
+and since PNs are not closed under the supremal controllable
+sublanguage operator [ 13], the designer has to re-write the
+speciﬁcation and re-check the new composition, which in
+practical terms is not satisfactory. Given this fact, along with
+the signiﬁcant complexity of checking for admissibility, in
+Subsection 5.2we present a syntactic restriction that ensures
+composition admissibility by design. Thus, if the speciﬁca-
+tion is written according to this restriction, the composition
+is guaranteed to be an appropriate supervisor. As we will see,
+in practical terms using the restriction provided in Subsec-
+tion5.2is a better approach, as it allows for the supervision of
+larger systems, and does not require formula re-writing. How-
+ever, we also present the general algorithm for admissibility
+check in Section 5.1due to its theoretical interest.
+Figure 1also includes the paper organisation, referring
+each of the required operations to the section where it is de-
+Lacerda and Lima: Preprint submitted to Elsevier Page 1 of 15
+
+--- Page 2 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic SpeciﬁcationsModel the system as a PNG(3.2)
+<latexit sha1_base64="D9twvCpUODbUd65akeXv3iZuEME=">AAACDHicbVC7TgJBFJ3FF+ILtbSZCCbYkF0opCSx0EaDiTwS2JDZ4QITZnc2M7MmZMMH2PgrNhYaY+sH2Pk3zsIWCp5kkpNzzs2de7yQM6Vt+9vKrK1vbG5lt3M7u3v7B/nDo5YSkaTQpIIL2fGIAs4CaGqmOXRCCcT3OLS9yWXitx9AKiaCez0NwfXJKGBDRok2Uj9fuBED4FiPAaup0uBjojDBjVtcvCriUrVcOc+ZlF2258CrxElJAaVo9PNfvYGgkQ+Bppwo1XXsULsxkZpRDrNcL1IQEjohI+gaGhAflBvPj5nhM6MM8FBI8wKN5+rviZj4Sk19zyR9osdq2UvE/7xupIc1N2ZBGGkI6GLRMDK3C5w0gwdMAtV8agihkpm/YjomklBt+ktKcJZPXiWtStmplu27SqFeS+vIohN0ikrIQReojq5RAzURRY/oGb2iN+vJerHerY9FNGOlM8foD6zPH46NmAY=</latexit>BuildG, by composingGandA(4)
+<latexit sha1_base64="uV+0JN0MQp0yZ/yxDo4bByyzcIk=">AAACIHicbVDLSgMxFM3UV62vUZdugq1QQcpMFdpl1YUuK9gHtEPJpJk2NJMMSaZQhn6KG3/FjQtFdKdfY/pAtPVA4HDOudzc40eMKu04n1ZqZXVtfSO9mdna3tnds/cP6krEEpMaFkzIpo8UYZSTmqaakWYkCQp9Rhr+4HriN4ZEKir4vR5FxAtRj9OAYqSN1LFLVzFlXZi76bSHSEZ9mjuD/ghiEUZCUd4zTg4ibhKXPwmYvzjt2Fmn4EwBl4k7J1kwR7Vjf7S7Asch4RozpFTLdSLtJUhqihkZZ9qxIhHCA9QjLUM5ConykumBY3hilC4MhDSPazhVf08kKFRqFPomGSLdV4veRPzPa8U6KHsJ5VGsCcezRUHMoBZw0hbsUkmwZiNDEJbU/BXiPpIIa9NpxpTgLp68TOrFgntecO6K2Up5XkcaHIFjkAcuKIEKuAVVUAMYPIAn8AJerUfr2Xqz3mfRlDWfOQR/YH19AwsjoFY=</latexit>IsGadmissible? (5)
+<latexit sha1_base64="nD/YOM82GsiZjZCgSMj636jAf2M=">AAACCHicbVDLSsNAFJ3UV62vqEsXDrZC3ZSkInZnwYW6q2Af0IYwmUzboZNJmJkUSujSjb/ixoUibv0Ed/6NkzYLbT0wcDjnHu7c40WMSmVZ30ZuZXVtfSO/Wdja3tndM/cPWjKMBSZNHLJQdDwkCaOcNBVVjHQiQVDgMdL2Rtep3x4TIWnIH9QkIk6ABpz2KUZKS655fCdh6cbtjZGIhrQEkR9QKamOX8HyxVnBNYtWxZoBLhM7I0WQoeGaXz0/xHFAuMIMSdm1rUg5CRKKYkamhV4sSYTwCA1IV1OOAiKdZHbIFJ5qxYf9UOjHFZypvxMJCqScBJ6eDJAaykUvFf/zurHq15yE8ihWhOP5on7MoAph2gr0qSBYsYkmCAuq/wrxEAmEle4uLcFePHmZtKoV+7xi3VeL9VpWRx4cgRNQBja4BHVwCxqgCTB4BM/gFbwZT8aL8W58zEdzRpY5BH9gfP4AjCqXsw==</latexit>SuperviseGusingG(3.3)
+<latexit sha1_base64="Z5WgzQa1I4ZXElhQquf4Us32llk=">AAACEHicbZC7TgJBFIZnveJ6W7W0mQhGbMguFFKSWGiJUS4JEDI7nIUJs7ObmVkSQngEG1/FxkJjbC3tfBsH2ELBP5nky3/OyZnz+zFnSrvut7W2vrG5tZ3ZsXf39g8OnaPjuooSSaFGIx7Jpk8UcCagppnm0IwlkNDn0PCH17N6YwRSsUg86HEMnZD0BQsYJdpYXefiPolBjpgCnLvJ4UQx0TfUbY+IjAcsh/OlQunStrtO1i24c+FV8FLIolTVrvPV7kU0CUFoyolSLc+NdWdCpGaUw9RuJwpiQoekDy2DgoSgOpP5QVN8bpweDiJpntB47v6emJBQqXHom86Q6IFars3M/2qtRAflzoSJONEg6GJRkHCsIzxLB/eYBKr52AChkpm/YjogklBtMpyF4C2fvAr1YsErFdy7YrZSTuPIoFN0hvLIQ1eogm5RFdUQRY/oGb2iN+vJerHerY9F65qVzpygP7I+fwABBZnv</latexit>Build DFAA(3.5)
+<latexit sha1_base64="w+jhDYzX9wn0bezxK0DJAY9DLH8=">AAACBnicbVDLSsNAFJ34rPEVdSnCYCvUTUhaxC5bFXFZwT6gDWEymbRDJw9mJoUSunLjr7hxoYhbv8Gdf2PSZqGtBy4czrmXe+9xIkaFNIxvZWV1bX1js7Clbu/s7u1rB4dtEcYckxYOWci7DhKE0YC0JJWMdCNOkO8w0nFG15nfGRMuaBg8yElELB8NAupRjGQq2drJVUyZC29uG7DUsPtjxKMhLcFyVb84V1VbKxq6MQNcJmZOiiBH09a++m6IY58EEjMkRM80ImkliEuKGZmq/ViQCOERGpBeSgPkE2Elszem8CxVXOiFPK1Awpn6eyJBvhAT30k7fSSHYtHLxP+8Xiy9mpXQIIolCfB8kRczKEOYZQJdygmWbJIShDlNb4V4iDjCMk0uC8FcfHmZtCu6WdWN+0qxXsvjKIBjcArKwASXoA7uQBO0AAaP4Bm8gjflSXlR3pWPeeuKks8cgT9QPn8AJmOVpw==</latexit>G<latexit sha1_base64="+2i0+G4rbOAFukRocXB6VS44qvw=">AAAB6nicbVA9TwJBEJ3DL8Qv1NJmI5hYkTsspCSx0BKjfCRwIXvLHGzY27vs7pkQwk+wsdAYW3+Rnf/GBa5Q8CWTvLw3k5l5QSK4Nq777eQ2Nre2d/K7hb39g8Oj4vFJS8epYthksYhVJ6AaBZfYNNwI7CQKaRQIbAfjm7nffkKleSwfzSRBP6JDyUPOqLHSQ/m23C+W3Iq7AFknXkZKkKHRL371BjFLI5SGCap113MT40+pMpwJnBV6qcaEsjEdYtdSSSPU/nRx6oxcWGVAwljZkoYs1N8TUxppPYkC2xlRM9Kr3lz8z+umJqz5Uy6T1KBky0VhKoiJyfxvMuAKmRETSyhT3N5K2IgqyoxNp2BD8FZfXietasW7qrj31VK9lsWRhzM4h0vw4BrqcAcNaAKDITzDK7w5wnlx3p2PZWvOyWZO4Q+czx9QhY0d</latexit><latexit sha1_base64="sEK5AYzmOBXROegEmaCPAOeneGg=">AAAB8HicbVA9TwJBEJ3DL8SvU0ubjWBiRe6wkJLExhIT+TBwIXvLHmzY3bvs7pGQC7/CxkJjbP05dv4bF7hCwZdM8vLeTGbmhQln2njet1PY2t7Z3Svulw4Oj45P3NOzto5TRWiLxDxW3RBrypmkLcMMp91EUSxCTjvh5G7hd6ZUaRbLRzNLaCDwSLKIEWys9FTpT7FKxqwycMte1VsCbRI/J2XI0Ry4X/1hTFJBpSEca93zvcQEGVaGEU7npX6qaYLJBI9oz1KJBdVBtjx4jq6sMkRRrGxJg5bq74kMC61nIrSdApuxXvcW4n9eLzVRPciYTFJDJVktilKOTIwW36MhU5QYPrMEE8XsrYiMscLE2IxKNgR//eVN0q5V/Zuq91ArN+p5HEW4gEu4Bh9uoQH30IQWEBDwDK/w5ijnxXl3PlatBSefOYc/cD5/ADNpj/g=</latexit>A
+<latexit sha1_base64="mOyAp52pfZd+KsDHBYusxp2DqoU=">AAAB8nicbVA9TwJBEN3DL8Qv1NJmI5hYkTsspMTYWGIiH8lxIXvLHmzY273szpGQCz/DxkJjbP01dv4bF7hCwZdM8vLeTGbmhYngBlz32ylsbe/s7hX3SweHR8cn5dOzjlGppqxNlVC6FxLDBJesDRwE6yWakTgUrBtO7hd+d8q04Uo+wSxhQUxGkkecErCSX70b9KdEJ2NeHZQrbs1dAm8SLycVlKM1KH/1h4qmMZNABTHG99wEgoxo4FSweamfGpYQOiEj5lsqScxMkC1PnuMrqwxxpLQtCXip/p7ISGzMLA5tZ0xgbNa9hfif56cQNYKMyyQFJulqUZQKDAov/sdDrhkFMbOEUM3trZiOiSYUbEolG4K3/vIm6dRr3k3NfaxXmo08jiK6QJfoGnnoFjXRA2qhNqJIoWf0it4ccF6cd+dj1Vpw8plz9AfO5w91a5Cs</latexit>G
+<latexit sha1_base64="jMBSehq6p1Q5MPeHcoBuU7198gc=">AAAB8nicbVA9SwNBEN2LXzF+RS1tFhPBKtzFwpQBCy0jmA+4HGFvs5cs2ds9ducC4cjPsLFQxNZfY+e/cZNcoYkPBh7vzTAzL0wEN+C6305ha3tnd6+4Xzo4PDo+KZ+edYxKNWVtqoTSvZAYJrhkbeAgWC/RjMShYN1wcrfwu1OmDVfyCWYJC2IykjzilICV/Or9oD8lOhnz6qBccWvuEniTeDmpoBytQfmrP1Q0jZkEKogxvucmEGREA6eCzUv91LCE0AkZMd9SSWJmgmx58hxfWWWII6VtScBL9fdERmJjZnFoO2MCY7PuLcT/PD+FqBFkXCYpMElXi6JUYFB48T8ecs0oiJklhGpub8V0TDShYFMq2RC89Zc3Sade825q7mO90mzkcRTRBbpE18hDt6iJHlALtRFFCj2jV/TmgPPivDsfq9aCk8+coz9wPn8AfrmQsg==</latexit>Yes
+<latexit sha1_base64="fvYvAySa32NL8NPIp/hAyDoUTBo=">AAAB63icbVBNS8NAEJ34WetX1aOXxSJ4Kkk92GPBi8cK9kPaUDbbSbt0Nwm7G6GE/gUvHhTx6h/y5r9x0+agrQ8GHu/NMDMvSATXxnW/nY3Nre2d3dJeef/g8Oi4cnLa0XGqGLZZLGLVC6hGwSNsG24E9hKFVAYCu8H0Nve7T6g0j6MHM0vQl3Qc8ZAzanLpETUZVqpuzV2ArBOvIFUo0BpWvgajmKUSI8ME1brvuYnxM6oMZwLn5UGqMaFsSsfYtzSiErWfLW6dk0urjEgYK1uRIQv190RGpdYzGdhOSc1Er3q5+J/XT03Y8DMeJanBiC0XhakgJib542TEFTIjZpZQpri9lbAJVZQZG0/ZhuCtvrxOOvWad11z7+vVZqOIowTncAFX4MENNOEOWtAGBhN4hld4c6Tz4rw7H8vWDaeYOYM/cD5/AJ09jek=</latexit>No<latexit sha1_base64="Ey44iFcugZd97onEF/LpJuD+oMw=">AAAB6XicbVBNSwMxEJ3Ur1q/qh69BIvgqezWgz0WvHiSKvYD2qVk02wbmk2WJCuUpf/AiwdFvPqPvPlvTNs9aOuDgcd7M8zMCxPBjfW8b1TY2Nza3inulvb2Dw6PyscnbaNSTVmLKqF0NySGCS5Zy3IrWDfRjMShYJ1wcjP3O09MG67ko50mLIjJSPKIU2Kd9HCnBuWKV/UWwOvEz0kFcjQH5a/+UNE0ZtJSQYzp+V5ig4xoy6lgs1I/NSwhdEJGrOeoJDEzQba4dIYvnDLEkdKupMUL9fdERmJjpnHoOmNix2bVm4v/eb3URvUg4zJJLZN0uShKBbYKz9/GQ64ZtWLqCKGau1sxHRNNqHXhlFwI/urL66Rdq/pXVe++VmnU8ziKcAbncAk+XEMDbqEJLaAQwTO8whuaoBf0jj6WrQWUz5zCH6DPH3EWjUE=</latexit>Write safe LTL speciﬁcation(3.4, 3.5)
+<latexit sha1_base64="bTNYjNrhCd7XH9E9vVTYvO8XjrI=">AAACG3icbZBLS8NAFIUn9VXrK+rSzWArVJCQtIpdFty46KJCX9CGMpnetEMnD2YmhRL6P9z4V9y4UMSV4MJ/Y9IW0eqBgY9z7mW4xwk5k8o0P7XM2vrG5lZ2O7ezu7d/oB8etWQQCQpNGvBAdBwigTMfmoopDp1QAPEcDm1nfJPm7QkIyQK/oaYh2B4Z+sxllKjE6uultmAKsCQu4FqjhmUI9DvGhd6EiHDECrhYNi4vcNm4Os/19bxpmHPhv2AtIY+Wqvf1994goJEHvqKcSNm1zFDZMRGKUQ6zXC+SEBI6JkPoJugTD6Qdz2+b4bPEGWA3EMnzFZ67Pzdi4kk59Zxk0iNqJFez1Pwv60bKrdgx88NIgU8XH7kRxyrAaVF4wARQxacJEJqUxCimIyIIVUmdaQnW6sl/oVUyrLJh3pXy1cqyjiw6QaeoiCx0jaroFtVRE1F0jx7RM3rRHrQn7VV7W4xmtOXOMfol7eMLECueLA==</latexit>
+Figure 1: The proposed methodology, along with pointers to
+the sections where each operation is described.
+scribed. Our contributions are mainly on the steps described
+in Sections 4and5. Broadly speaking, these are:
+1.The deﬁnition of a semantics to evaluate state/event
+LTL formulas over PNs, where one can reason both
+about linear combinations of the number of tokens in
+each place plus the labels of transitions;
+2.A novel composition algorithm between a PN and a
+DFA representing the safe state/event LTL formula;
+3.A general procedure to verify supervisor admissibil-
+ity for the result of our composition algorithm, thus
+proving decidability of the problem;
+4.A syntactic restriction to the speciﬁcation language
+that guarantees admissibility by design, and can be
+used in practical terms.
+In Section 6, we present an illustrative example that shows
+how our approach allows for the speciﬁcation of intricate be-
+haviours and the control of systems with large state spaces.
+While the procedure we present can be computationally ex-
+pensive, all the heavy computations are performed o -line.
+Thus, the execution of the supervisor resulting from our
+methodology requires very little in terms of computational
+resources at run-time. This is crucial, given that the supervi-
+sor is used in a feedback-loop with the system, hence it needs
+to quickly react to changes in the system state.
+2. Related Work
+PNs have been used as a modelling formalism in sev-
+eral sub-ﬁelds of robotics. For example, [ 53] use PNs to
+model robot plans which support robust execution strategies
+and [ 6] use generalised stochastic PNs (GSPNs) to model
+and analyse the closed-loop execution of robot behaviour in
+its environment. However, in these works behaviours are not
+synthesised from the PN, as we do here. PN models have
+also been proposed for human-robot collaboration [ 5].
+Given their clear semantics and ability to compactly model
+systems with high levels of concurrency, the application ofPNs to model the behaviour of multi-robot systems has at-
+tracted particular interest. The work in [ 26] maps a homo-
+geneous robot team to tokens in a PN to provide a compact
+representation of interchangeable robots in order to generate
+multi-robot paths that reach certain target locations in the
+environment. This is extended in [ 38] to allow for synthesis
+of multi-robot plans that satisfy a boolean team speciﬁcation.
+Finally, [ 39] uses GSPNs to coordinate a team of robots under
+navigation duration uncertainty such that a reward represent-
+ing system performance is maximised whilst maintaining a
+global constraint on team behaviour. These works exploit the
+mapping of robots to tokens to maintain a compact represen-
+tation of the environment. Whilst this is not a requirement of
+the work we present here, our application example uses the
+same idea to keep the model compact.
+In recent years, the use of formal methods for robotics, in
+particular temporal logics for robot behaviour speciﬁcation
+and correct-by-construction synthesis have been advocated in
+several works and tackling a range of di erent problems, such
+as motion planning [ 27,9,8], partial satisﬁability [ 35,30]
+or multi-objective planning [ 34,36]. Furthermore, many of
+these methods have been used as the basis for extensions that
+deal with multi-robot systems, both with local speciﬁcations
+for each robot [ 19,42] or global, team-level, speciﬁcation
+for which parts of the speciﬁcation must be assigned to each
+robot [ 51,47,10]. All these works are based on a model
+that explicitly enumerates the possible states of the system.
+In our work, by using structural analysis of PNs, we strive
+to mitigate the scalability issues associated with state space
+enumeration. Furthermore, we show how our approach can
+be applied to task assignment for a team of robots. This
+problem has been addressed by several authors, and tackled
+using di erent techniques such as auctioning [ 7,43], hybrid
+systems [ 17,52], and fuzzy logic [ 50]. These solutions, how-
+ever, are speciﬁc to the problem of task assignment, whilst
+the approach we formalise here is more general and can be
+applied to di erent problems, with task assignment being an
+instance of a problem our approach is particularly well suited
+for.
+Supervisory control (SC) of discrete event systems (DES)
+modelled as DFA models and language speciﬁcations was in-
+troduced in the seminal work [ 45], being currently known in
+the community as the Ramadge-Wonham (R-W) framework.
+This work introduced the idea, also used here, of obtaining a
+supervisor by composing the system model with the speciﬁ-
+cation model, and then analysing such composition in order
+to check for controllability. A fairly complete introduction
+to DES and SC is avaiable in [ 4]. The R-W framework was
+then extended to PN models of DES in [ 14,12,15]. This
+work shows some undesirable properties of PN languages
+that hinder their usability as models on the R-W framework.
+For example, general PN languages are not closed under
+thesupremal controllable sublanguage operator [13], which
+makes it impossible to deﬁne general methods to ﬁnd PN
+representations of the least restrictive admissible supervisor
+(i.e., the supervisor that is admissible, satisﬁes the speciﬁca-
+tion, and disables the minimal amount of transitions to do
+Lacerda and Lima: Preprint submitted to Elsevier Page 2 of 15
+
+--- Page 3 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+so). In spite of this limitation, one can still check if a given
+supervisor candidate is admissible. See [ 11] for a thorough
+compilation of these results. The work presented here extends
+the speciﬁcation language from a solely event-based language
+to a state/event-based language. This introduces a new chal-
+lenge in terms of how to compose the plant model with the
+supervisor model. Furthermore, we introduce safe LTL as
+a speciﬁcation language. We discuss these points further
+in Subsection 4.4. Alternative to using language speciﬁca-
+tions is the so called supervision based on place invariants
+(SBPI) or generalised mutual exclusion constraints (GMEC)
+[16,21,22,40]. In this approach, the speciﬁcations are writ-
+ten as linear constraints on the reachable markings of the
+system and the number of ﬁrings of each transition. This line
+of work is based on a linear algebraic approach that deals
+with several relevant notions for SC, such as admissibility [ 3],
+observability [ 41], deadlock avoidance [ 23] and liveness [ 20].
+We will further discuss the relation between our approach
+and GMEC in Subsection 4.4.
+The use of temporal logic for SC has mostly focused on
+modelling both system and speciﬁcation as a temporal logic
+formula [ 24,25] or in state-based models such as DFA [ 18,
+48,31]. The work presented here builds on [ 32], where LTL-
+based approaches for SC was deﬁned for PNs. Here, we
+extend the semantics of LTL in order to reason directly over
+markings. This not only enriches the speciﬁcation language,
+but also reduces the size of the supervisors, as we will show
+in Section 6.
+3. Preliminaries
+3.1. Notation
+LetAbe a set. We deﬁne the set A<as the set of all ﬁnite
+sequences that can be built from A(including the empty string
+✏), and A!as the set of all inﬁnite sequences that can be built
+from A. For sÀA<andÀA!, we deﬁne s.ÀA!as
+the concatenation of sand. IfAis ﬁnite, we denote the
+number of elements of AasA. The set of relations between
+positive integers is denoted ⇤={<,f,=,ë,g,>}. Finally,
+letM,M®ÀNn. We write MfM®ifM(k)fM®(k)for
+allkÀ{1, ...,n}.
+3.2. Petri Nets
+We will model our system as a Petri net (PN) with event
+labels associated with the transitions. The alphabet for our
+temporal logic speciﬁcations will be the union of the event
+set and linear constraints on the markings of the system.
+Deﬁnition 1 (Petri Net) .A PN is a bipartite graph deﬁned
+asG=ÍP,T,W+,W*,M0,E,lÎ. The two types of nodes
+are given by sets P(places) and T(transitions). Matrices
+W*,W+ÀNPùTrepresent, respectively, the arc weights
+from places to transitions, and the arc weights from transi-
+tions to places. The vector M0ÀNPis the initial marking,
+setErepresents the events associated to the ﬁring of transi-
+tions, with labelling function l:TôEassigning to each
+transition a label from E.A marking is a distribution of tokens among places and
+represents a state of the system. Intuitively, places represent
+dierent components of the system, e.g., number of robots
+in a location or number of jobs in a queue. Transitions re
+labelled with an associated event, and represent the dynamics
+of the states of the system, i.e., changes in the marking of the
+PN. Changes of state can be due to the triggering of actions
+sent to the robots or the observation of a state update. These
+map to controllable and uncontrollable events as we will see
+later.
+Deﬁnition 2 (Input and Output Weights) .LettÀT.W e
+deﬁne the vectors÷tÀNP(input weights of t) and t÷À
+NP(output weights of t) as÷t(p)=W*(p,t)andt÷(p)=
+W+(p,t).
+We say that pis an input place, or an output place, of tif
+÷t(p)>0, ort÷(p)>0, respectively.
+Deﬁnition 3 (Enabled Transition) .LetMÀNPandtÀT.
+We say that tis enabled if÷tfM.
+An enabled transition can ﬁre, updating the marking of
+the PN according to the input and output weight vectors.
+Deﬁnition 4 (Transition Firing) .Lettbe an enabled transi-
+tion in marking M. The ﬁring of tevolves the marking to
+M®=M*÷t+t÷. This is denoted MtôM®.
+The notion of ﬁring of a transition can be extended to
+sequences of transitions.
+Deﬁnition 5 (Firing Sequences) .Let⌧=t1...tnÀT<.W e
+write M⌧ôM®if exists M1, ...,Mn*1ÀNPsuch that
+Mt1ôM1t2ô...tn*1ôMn*1tnôM®.
+We can now deﬁne the set of reachable markings as the
+set of reachable markings in G, starting in M0and following
+the ﬁring rule.
+Deﬁnition 6 (Reachable Markings) .The set of reachable
+markings for PN Gis deﬁned as:
+R(G)={ MÀNPexists ⌧ÀT<such that M0⌧ôM}
+(1)
+Furthermore, we represent the behaviour of the PN as
+sets of generated languages .
+Deﬁnition 7 (Generated Languages) .We deﬁne the follow-
+ing two languages generated by a labelled PN G:
+LE
+fin(G)={ l(t1)...l(tn)ÀE<exists M1, ...,Mn
+such that M0t1ôM1t2ô...tnôMn}(2)
+L(G) = {( l(t1),M1)(l(t2),M2)...À(EùR(G))!
+M0t1ôM1t2ôM2t3ô...}(3)
+Lacerda and Lima: Preprint submitted to Elsevier Page 3 of 15
+
+--- Page 4 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+As we will see later, the elements of LE
+fin(G)will be
+used in the supervisory control loop, and the elements of
+L(G)will be used to evaluate the LTL speciﬁcations. Also,
+note that M1must be reachable from the initial marking M0
+through the ﬁring of t1, but M0is not included in L(G). This
+is because we assume, without loss of generality, that Ghas
+place initÀPgand an initialise_systemtransition. The init
+place has initial marking equal to 1, while all other places
+have initial markings equal to 0. Also, the initplace is not
+an output place on any transition. The system always starts
+by ﬁring the initialise_systemtransition, which consumes
+the token of the initplace and distributes tokens to the other
+places of G, according to the real initial state of the system.
+This ensures that the initial marking of the system will be
+taken into account by our composition algorithm. We require
+the PNs in this work to be deterministic, to ensure that the
+supervisor can keep track of the current marking of the PN
+model of the system during execution while only observing
+the generated sequence of events.
+Deﬁnition 8 (Deterministic PN) .LetGbe a PN. We say
+thatGis deterministic if in all of its reachable markings
+MÀR(G), ifMtôM®,Mt®
+ôM®®andM®ëM®®, then
+l(t)ël(t®).
+Finally, we assume that Pis partitioned into P!‰Pb,
+where P!is the set of unbounded places and Pbis the set of
+bounded places.
+Deﬁnition 9 (Bounded Place) .LetpÀP. We say that p
+is bounded, with bound (p), if for all MÀR(G),M(p)f
+(p).
+We also assume that, for each pÀPb, its complement
+place pis also in Pb.
+Deﬁnition 10 (Complement Place) .LetpÀPbbe a bounded
+place. We deﬁne its complement place as the place psuch
+thatM(p)+M(p)= (p)for all MÀR(G). Note that
+(p)=(p)andp=p.
+Note that if we know the bound for a place, we can add its
+complement place to the PN without changing its behaviour
+[46]. Thus, we do not lose generality with our assumption.
+Example 1. We introduce the multi-robot coordination ex-
+ample that will be built throughout the paper. Assume a
+team of nRrobots that are in charge of performing a set
+J={j1, ...,jnJ}of dierent types of jobs. We assume that
+there is a maximum number njiof jobs of type jithat are
+allowed to be processed by the system at any given time. Fur-
+thermore, robots might fail while executing tasks. When this
+happens, the robot gets into a broken state, and the task goes
+to a queue of incomplete tasks. The PN is Figure 2represents
+this system, for task ji.
+Also, when a robot breaks, other robots can repair it.
+When doing so, robots might be successful (leading to both
+robots being able to continue executing tasks), fail (leading
+to both robots being considered broken), or discover that the
+Figure 2: PN model for job allocation. Complement places
+that do not restrict the language of the model as omitted for
+readability. Transitions in red are uncontrollable.
+Figure 3: PN model for robot repair. Complement places
+that do not restrict the language of the model as omitted for
+readability. Transitions in red are uncontrollable.
+broken robot is not repairable (leading to a state where the
+broken robot needs to be replaced). This repair module of
+the system is represented by the PN in Figure 3. The overall
+model is obtained by merging places with the same name in
+Figs. 2and3.
+For simplicity, we do not depict all the complement places.
+Furthermore, we deﬁne E=T, and l(t)=t, i.e., we will
+refer the transitions by the event they represent, since all
+events are unique. Also, for clarity, we depict the models
+without the initplace and initialise_systemtransition. The
+initialise_systemtransition would put nRtokens in place
+idle_robots , and njitokens in ji_in_system, for each j1, ...,jnJ.
+3.3. Supervisory Control
+The purpose of supervisory control (SC), as introduced
+in [45] is, given a model of the uncontrolled behaviour of a
+system, to restrict its behaviour to an admissible language
+La”L(G), through a feedback loop. In this subsection, we
+provide a brief overview on SC with language speciﬁcations
+for PNs (see [ 11,33] for further details).
+One starts by partitioning the event set Einto controllable
+and uncontrollable transitions.
+Deﬁnition 11 (Controllable and Uncontrollable Events) .We
+split the set of events Einto two disjoint subsets E=Ec‰Euc.
+We call Ecthe set of controllable events and Eucthe set of
+uncontrollable events.
+Lacerda and Lima: Preprint submitted to Elsevier Page 4 of 15
+
+--- Page 5 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+Ecis the set of events that can be prevented from hap-
+pening by the supervisor and Eucis the events that cannot be
+prevented from happening. This partition is due to the fact
+that, in general, there are events that make a system change
+its state that are not of the “responsibility” of the system itself
+(e.g., failures in execution). The set of uncontrollable events
+induces a set of uncontrollable transitions for G.
+Deﬁnition 12 (Uncontrollable Transitions) .We deﬁne the set
+of uncontrollable transitions as Tuc={tÀTl(t)ÀEuc}.
+Example 2. In the PN models depicted in Figs. 2and3,
+controllable transitions, corresponding to actions that can
+be taken on the system are depicted in black, and uncontrol-
+lable transitions, corresponding to events that represent the
+arrival of new jobs or a given action being successful, or
+unsuccessful, are depicted in red.
+Deﬁnition 13 (Supervisor) .Asupervisor forGis a function
+S:LE
+fin(G)ô2Ethat, given sÀLE
+fin(G), outputs the set
+of enabled events, i.e., the set of events that Gcan execute
+next.
+A supervisor restricts the language generated by Gsuch
+that some behaviour speciﬁcation for the system is fulﬁlled.
+Deﬁnition 14 (Controlled Language) .The language gener-
+ated by Gwhen controlled by Sis then given by:
+L(S_G) = {( e1,M1)(e2,M2)...ÀL(G)
+ei+1ÀS(e1...ei)for all iÀN}(4)
+The supervisor controls the system by, after the ﬁring of
+an event by G, “reading” the string sexecuted by Gso far,
+and outputting a set of enabled events S(s). When executing
+the next event, Gcan only execute an event which is enabled
+in its current state and which is enabled by S.
+For analysis and implementation purposes, it is impor-
+tant to represent the supervisor in a convenient way. In this
+work, we will use a PN G'to represent the supervisor. In
+order for G'to be implementable in the real system, we need
+to guarantee that it is admissible . Intuitively, admissibility
+means that the supervisor never disables enabled uncontrol-
+lable events. We will discuss admissibility in Section 5. If the
+composition is admissible, then it can be used to control the
+system, i.e., we can directly represent the supervisor as a PN,
+using G'. The feedback loop is then implemented as follows:
+at each step, Gexecutes an event e, according to the enabled
+events in its current state and the current enabled events by
+G', evolving to a new marking. This event is then sent to G',
+which passively executes e, also evolving to a new marking.
+The set of enabled events after the execution of eis the set of
+enabled events of G'in the new marking. Representing su-
+pervisors with the same formalism used to model for system
+modelling also gives us analysis beneﬁts. These beneﬁts stem
+from the fact that, for this case, L(S_G)=L(G'), i.e., G'
+also models the closed-loop behaviour of the system. Thus,
+we can use all the analysis techniques available for PNs on
+the controlled system.3.4. Linear Temporal Logic
+Linear temporal logic (LTL) is an extension of proposi-
+tional logic developed as a means for formal reasoning about
+concurrent systems [ 44]. It provides a convenient and power-
+ful way to formally specify a variety of qualitative properties
+of a system.
+Deﬁnition 15 (Syntax) .The syntax of LTL is deﬁned over a
+set of atomic propositions ⇧using the grammar below.
+'::=true⇡¬''·'X''U',where ⇡À⇧ (5)
+We evaluate LTL formulas over !-strings =012...À
+L(G). Thus, we deﬁne the set of atomic propositions as
+⇧=E‰(ZPbù⇤ù N).
+Deﬁnition 16 (Atomic Propositions Satisfaction) .Leti=
+(ei,Mi)ÀEùNPbe an (event/marking) pair. i=(ei,Mi)
+satisﬁes ⇡À⇧if (i) ⇡=eiÀE; or (ii) ⇡=(v,,b)with
+vÀZPb,À⇤andbÀN, and≥
+pÀPbv(p)Mi(p)b.
+Intuitively, ⇡=emeans that the last event to occur
+was e, and ⇡=(v,,b)is a linear constraint requiring≥
+pÀPbv(p)M(p)bto hold for the current marking M.
+Note that we are allowing the writing of state/event speciﬁca-
+tions, i.e., we allow reasoning over both events andmarkings
+generated by the system.
+Now that we know how to evaluate atomic propositions
+onÀL(G), we can deﬁne the LTL operators in the usual
+way (see, for example, [ 44] for a formal semantics): The X
+operator is read “next”, meaning that the formula it precedes
+will be true in the next state. The Uoperator is read “until”,
+meaning that its second argument will eventually become
+true in some state, and the ﬁrst argument will be continuously
+true until that state is reached. We write ˆ'to denote
+thatsatisﬁes '.
+Other useful LTL operators can be derived: (i) the “even-
+tually” operator F', which requires that 'is satisﬁed in some
+future state: F'ítrueU'; (ii) the “always” operator G',
+which requires that 'is satisﬁed in all states: G'í¬F¬';
+and (iii) the “weak until” operator 'W which relaxes the un-
+til operator to include !-strings for which  is never satisﬁed
+but'is always satisﬁed: 'W í('U )‚(G').
+Example 3. For the PN model depicted in Figs. 2and3, one
+might want to specify that if the number of working robots is
+greater or equal than the current number of jobs in the system,
+then we should not require dead robot replacement, as this
+requires human intervention and should only be done when
+the resources start becoming low. This can be written as the
+following LTL speciﬁcation:
+'1=G((nR*M(broken_robots)*M(dead_robots)
+g(…
+jiÀJM(ji_in_system)))Ÿ(X(¬replace_robot)))(6)
+Note that nR*M(broken_robots)*M(dead_robots)g
+(≥
+jiÀJM(ji_in_system))is a linear constraint on the system.
+Lacerda and Lima: Preprint submitted to Elsevier Page 5 of 15
+
+--- Page 6 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+We write it using this form for readability. The formal speciﬁ-
+cation is (v,f,nR), where v(p)=1 if
+pÀ{broken_robots,dead_robots,ji_in_systemjiÀJ},
+andv(p)=0 otherwise.
+3.5. Safe LTL and Deterministic Automata
+In SC theory, we are generally interested in restricting the
+behaviour of a system so that it satisﬁes a given speciﬁcation,
+i.e., we are interested in avoiding sequences of execution that
+are considered “bad”. The class of LTL that speciﬁes prop-
+erties that state that something “bad” will never happen is a
+well-deﬁned class, called safe LTL [ 28,49]. These are for-
+mulas for which the non-satisfying inﬁnite sequences always
+have a ﬁnite bad preﬁx .
+Deﬁnition 17 (Bad Preﬁx) .Let'be an LTL formula and
+=01...ÀL(G)such that ˚'. We say has a bad
+preﬁx if there exists nÀNfor which the truncated ﬁnite
+sequence n=01...nis such that n®˚'for all
+inﬁnite sequences ®À(2⇧)!.
+Deﬁnition 18 (Safe LTL) .We say that the LTL formula '
+is safe if allthe inﬁnite sequences such that ˚'have a
+bad preﬁx.
+Intuitively, a safe LTL formula is a formula that can al-
+ways be falsiﬁed in a ﬁnite horizon. It is known that formulas
+in the positive normal form (i.e., where negation is only ap-
+plied directly to atomic propositions) which only use the
+temporal operators X,GandWare safe. We will keep our
+speciﬁcations within this syntactic restriction.
+Safe LTL formulas 'can be translated into deterministic
+ﬁnite automata (DFA)1.
+Proposition 1 ([28]).Let'be a safe LTL formula. There
+exists a DFA A'=⇣Q,2⇧,,q0,Qf⌘where (i) Qis a set
+of states; (ii) :Qù2⇧ôQis a (partial) deterministic
+transition function; (iii) q0is an initial state; and (iv) Qfis
+a set of accepting states; that accepts exactly the sequences
+that are nota bad preﬁx for '.
+The fact that 'is safe also allows us to assume, without
+loss of generality, that (i) A'ispruned , i.e., there are no
+sink states from which all accepting states are unreachable;
+and (ii) Qf=Q. Furthermore, in order to describe the
+transition labels (elements of 2⇧) in a more compact way,
+we use DNF transition labels , i.e., we label the transitions
+with propositional formulas over ⇧, in the disjunctive normal
+form (DNF). A propositional formula is said to be in the DNF
+if it is a disjunction of conjunctive clauses. A conjunctive
+clause is the conjunction of positive and negative literals. The
+labels of the transition are then the pairs (e,M)À2⇧that
+satisfy the DNF formula. We write (e,M)ˆ when  is
+a DNF formula satisﬁed by (e,M). Also, the satisfaction of
+conjunctive clauses  Ewritten only over Eonly depends on
+e. Thus, we write eˆ Eifesatisﬁes  E.
+1Note that, given the semantics over inﬁnite sequences, in general one
+needs automata that accept inﬁnite strings (such as Büchi automata) to
+represent LTL formulas. However, for the safety fragment of LTL DFA
+suce, and make the presentation clearer.
+Figure 4: DFA for formula '1. States are labelled q1andq2.
+Example 4. The LTL formula in Ex. 3 is syntactically safe.
+The DFA A'1that only accepts the sequences which are not
+a bad preﬁx for '1is depicted in Figure 4.
+All atomic propositions (e,M)such that
+nR*M(broken_robots)*M(dead_robots) g
+(≥
+jiÀJM(ji_in_system))are transition labels of the tran-
+sition from q1toq2, while only atomic propositions that
+satisfy the same condition over Mand are such that eë
+replace_robotare transition labels of the self-loop from q2
+toq2.
+4. Composition of PN System Model with DFA
+In this section, we present the composition algorithm
+between a PN system model Gand the DFA obtained from a
+safe LTL speciﬁcation '. The result of this composition is a
+PNG'whose generated language is the generated language
+ofGrestricted to the !-strings that satisfy '. Formally, we
+will tackle the following problem:
+Problem 1. LetG=ÍPb‰P!,T,W*,W+,M0,E,lÎbe
+a PN and 'be a safe state/event LTL formula written over
+⇧=E‰(ZPbù⇤ù N). Build a PN G'such that:
+ÀL(G')if and only if ÀL(G)andˆ'(7)
+4.1. From General Linear Constraints to
+SP-GEQ-Cs
+We start by showing how one can translate arbitrary lit-
+erals of the form (v,,b)tosingle place greater-or-equal
+constraints (SP-GEQ-Cs). An SP-GEQ-C is of the form
+(vs,g,b), where vsis a vector with exactly one entry equal to
+1, and all other entries equal to 0. We will represent all DNF
+labels in the DFA obtained for the safe LTL formulas using
+SP-GEQ-Cs, as this representation is required to deﬁne the
+notion of minimal satisfying transition , which will be central
+to the composition algorithm. We split the translation into 4
+steps. These steps are more or less straightforward and use
+known properties of bounded PNs and of complement places
+so, for the sake of brevity, we omit the details. We refer the
+reader to [ 29] for a thorough description of the translation.
+4.1.1. From Negative Literals to Positive Literals
+Firstly, we convert any negative literal into a positive lit-
+eral over (ZPBù⇤ù N), by noting that the negation of a
+linear constraint can always be transformed in an equivalent
+“positive” linear constraint by changing the relation accord-
+ingly. For example, ¬(v,g,b)can be re-written as (v, <,b).
+Lacerda and Lima: Preprint submitted to Elsevier Page 6 of 15
+
+--- Page 7 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+4.1.2. From General Constraints to GEQ and LEQ
+Constraints
+One can now convert any positive literal (v,,b)into
+greater-or-equal (GEQ) or less-or-equal (LEQ) constraints,
+by taking into account that these are constraints over integers.
+For example, one can write≥
+pÀPbv(p)M(p)gb+1instead
+of≥
+pÀPbv(p)M(p)>b.
+4.1.3. From GEQ and LEQ Constraints to Positive
+GEQ Constraints
+After preforming the two conversion steps described above,
+all the literals in the DFA transition labels are of the form
+(v,,b)ÀZPBù{f,g}ùN. We can now convert each
+constraint to a positive GEQ constraint , i.e., a constraint
+(v®,g,b®)ÀNPBù{g}ùNequivalent to (v,,b). This
+can be done by re-writing the LEQ constraints and the neg-
+ative weights in v, using the relations between places and
+their complement places, and using the corresponding place
+bounds. For example, if (p)=3 a constraint that imposes
+M(p)f2can be re-written as M(p)g1.
+4.1.4. From Positive GEQ Constraints to SP-GEQ-Cs
+We can now assume that we are dealing with constraints
+(v,g,b)ÀNPBù{g}ùN. In order to re-write these con-
+straints as SP-GEQ-Cs, we add, for each (v,g,b), an extra
+place pvin the PN. We call this place counter place , as it is
+used to “count” the sum of tokens in Mweighted by v, i.e.,
+for all MÀR(G):
+M(pv)=…
+pÀPbv(p)M(p). (8)
+Deﬁnition 19 (Counter Place) . Let
+G=ÍPb‰P!,T,W*,W+,M0,E,lÎbe a PN and (v,g
+,b)ÀNPBù{g}ùNa constraint. The addition of a counter
+place for vto G, yields the PN
+Gv=ÍP‰{pv},T,Mv
+0,Wv*,Wv+,E,lÎ, where, for pv:
+•Mv
+0(pv)=vTM0=…
+pÀPbv(p)M0(p);
+•FortÀT,Wv*(pv,t) = max{ *Wv(pv,t),0}and
+Wv+(pv,t) = max{ Wv(pv,t),0}, where:
+Wv(pv,t)=…
+pÀPbv(p)(W+(p,t)*W*(p,t))(9)
+Furthermore Wv*(p,t)=W*(p,t)andWv+(p,t)=
+W+(p,t)for all pÀP,tÀT.
+Note that the addition of the counter place does not change
+the behaviour of the PN, and one can see Gvas an extension
+ofGthat keeps track of the sum of the number of tokens in
+certain places.
+Thus, after the counter place pvis built, (v,g,b)can be
+re-written as an SP-GEQ-C (vpv,g,b), where vpv(pv)=1
+andvpv(p)=0 for all other pÀP. For simplicity we will
+denote SP-GEQ-Cs as (pv,g,b)in the remainder of the paper.
+Figure 5: Illustration of the counter place construction.
+Example 5. Consider the linear constraint ¬(v1,f,nR), where
+v1is deﬁned in Ex. 3, and the PN models of Ex. 1. We illus-
+trate the full conversion procedure:
+1.Convert the constraint into a positive literal (v1, >,nR);
+2.Convert the constraint into a GEQ constraint
+(v1,g,nR*1);
+3.Since v1is already in NPBand the constraint is already
+a GEQ constraint, we do not need to modify it;
+4.Build the counter place pv1forv1. The construction
+is depicted in blue in Figure 5, where we assume two
+types of jobs, and only depict the relevant places and
+transitions of the model. The ﬁnal SP-GEQ-C, equiva-
+lent to the initial constraint, is (pv1,g,nR*1).
+4.2. Adding Minimal Satisfying Transitions
+We now describe the construction of minimal satisfying
+transitions for conjunctive clauses of the form  = E· P,
+where  E=l1·...·lkEis a conjunctive clause over E, and
+ P=(p1,g,b1)·...·(pkP,g,bkP)is a conjunctive clause,
+where all the literals are SP-GEQ-Cs.
+Deﬁnition 20 (Minimal Satisfying Transition) .Let =
+ E· P, where  E=l1·...·lkE. We deﬁne the set
+of places associated with  asP =∑kP
+i=1piand the func-
+tionb:P ôNthat maps each pito the corresponding bi,
+i.e.,b(pi)=bi,i=1, ...,kP. If(p)*÷t(p)+t÷(p)gb(p)for
+allpÀP andl(t)ˆ E, the minimal satisfying transition
+tt, obtained from tand is deﬁned as:
+÷tt, (p)=<÷t(p) ifpÃP orb(p)ft÷(p)
+b(p)+÷t(p)*t÷(p)otherwise
+(10)
+t÷
+t, (p)=<t÷(p)ifpÃP orb(p)ft÷(p)
+b(p)otherwise(11)
+Lacerda and Lima: Preprint submitted to Elsevier Page 7 of 15
+
+--- Page 8 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+In the cases where l(t)˚ E, or exists pÀP such that
+(p)*÷t(p)+t÷(p)<b(p), we say that the minimal satisfying
+transition is undeﬁned.
+The minimal satisfying transition for tand is enabled
+if and only if (i) tis enabled; (ii) l(t)satisﬁes the conjunctive
+clause  E; and (iii) the ﬁring of tdrives the PN to a marking
+that satisﬁes all the SP-GEQ-Cs in  P. Furthermore, when
+the minimal satisfying transition is not deﬁned, then either
+(i)l(t)does not satisfy the conjunctive clause  E; or (ii) all
+the ﬁrings of twill drive the PN to a marking Mwhere at least
+one SP-GEQ-C (pi,g,bi)is not satisﬁed, i.e., M(pi)<bi.
+Proposition 2. LetGbe a PN, tÀT, and  = E· P,
+where  Eis a conjunctive clause written over Eand Pis
+a conjunctive clause of SP-GEQ-Cs. The minimal satisfying
+transition tt, has the following properties:
+1.For all MÀR(G),Mtt, ôM®if and only if MtôM®,
+l(t)ˆ Eand M®(p)gb(p)for all pÀP , i.e.,
+(M,l(t))ˆ ;
+2.Iftt, is undeﬁned, then either l(t)˚ E, or for
+allM®ÀR(G)for which there exists MÀR(G)
+such that MtôM®, there exists pÀP such that
+M®(p)<b(p), i.e., (M,l(t))˚ .
+Proof. We note that the part of the result concerning l(t)and
+ Efollows directly from the deﬁnition. Thus, we just need to
+analyse  Pand the possible markings obtained immediately
+after the ﬁring of t.
+1.We start by noting that the input and output weights
+oftandtt, coincide for all places psuch that pÃ
+P orb(p)ft÷(p). Hence, we only need to analyse
+places psuch that pÀP andb(p)>t÷(p).
+ŸFor all MÀR(G), ifMtt, ôM®then MtôM®
+andM®(p)gb(p)for all pÀP .
+To prove that MtôM®, we need to prove that:
+(i)tis enabled in M, i.e., Mg÷t.
+For all pÀP such that b(p)>t÷(p), we have:
+M(p)g÷tt, (p)=b(p)+÷t(p)*t÷(p)>÷t(p)
+(12)
+(ii)M*÷t+t÷=M*÷tt, +t÷
+t, .
+For all pÀP such that b(p)>t÷(p), we have:
+M(p)*÷tt, (p)+t÷
+t, (p)=
+M(p)*b(p)*÷t(p)+t÷(p)+b(p)=
+M(p)*÷t(p)+t÷(p)(13)
+To prove that M®(p)gb(p)for all pÀP , we start by
+noting that, according to the PN ﬁring rule, if Mtt, ô
+M®, then M®(p)gt÷
+t, (p)for all pÀP. Furthermore,
+by construction of tt, ,t÷
+t, (p)gb(p)for all pÀP .
+Hence, it is clear that M®(p)gb(p)for all pÀP .◊For all MÀR(G), ifMtôM®andM®(p)g
+b(p)for all pÀP , then Mtt, ôM®. We need to prove
+that:
+(i)tt, is enabled in M, i.e., Mg÷tt, .
+For all pÀP such that b(p)>t÷(p), we have:
+M®(p)=
+M(p)*÷t(p)+t÷(p)=
+M(p)*÷tt, (p)+b(p)*t÷(p)+t÷(p)=
+M(p)*÷tt, (p)+b(p)(14)
+Given that, by hypothesis, M®(p)gb(p), we can
+conclude that M(p)*÷tt, (p)+b(p)gb(p), thus
+M(p)g÷tt, (p).
+(ii)M*÷tt, +t÷
+t, =M*÷t+t÷.
+This was already proven in point (ii) above.
+2.Since tt, is undeﬁned, let pÀP such that (p)*
+÷t(p)+t÷(p)<b(p), i.e., *÷t(p)+t÷(p)<b(p)*(p).
+LetM,M®ÀR(G)such that MtôM®. We have
+that:
+M®(p)=M(p)*÷t(p)+t÷(p)<
+M(p)+b(p)*(p)fb(p)(15)
+Hence the proof is completed.
+Example 6. Let=¬ replace_robot·(pv1,g,nR*1),
+where pv1is the counter place deﬁned in Ex. 5. We assume
+nR>1, otherwise the SP-GEQ-C is trivially satisﬁed in
+all markings. We will analyse transitions replace_robotand
+help_robot. For transition replace_robot,replace_robot˚
+¬replace_robot, thus treplace_robot,is not deﬁned. For tran-
+sition help_robot,help_robot ˆ¬replace_robot. Further-
+more, we have help_robot÷(pv1)=0 æb(pv1)= nR*1,
+so we change the arc weights to÷thelp_robot,(pv1)=b(pv1)+
+÷help_robot(pv1)*help_robot÷(pv1)=( nR*1)+1 *0=nR
+andt÷
+help_robot,(pv1)=b(pv1)=nR*1. Figure 6depicts the
+result of the minimal satisfying transition thelp_robot,, as just
+described. We only depict the relevant places and transitions
+for its construction. The transitions with arc changes are
+depicted in blue. For this example, the places and arcs de-
+picted in green are to be ignored, as they are related to the
+composition algorithm that will be described next.
+4.3. Composition Algorithm
+To solve Problem 1, we deﬁne a composition function
+that, given the PN Gand the DFA A', builds a PN G'that
+simulates the run of the PN and the DFA in parallel, such
+thatGonly ﬁres a transition tif the ﬁring of tsatisﬁes one
+of the enabled DNF transition labels in the current state of
+A'. The construction of this PN follows Algorithm 1. The
+algorithm is based on the notion of minimal satisfying transi-
+tion, so we assume that all the DNF formulas labelling the
+DFA transitions have either literals over Eor SP-GEQ-Cs,
+Lacerda and Lima: Preprint submitted to Elsevier Page 8 of 15
+
+--- Page 9 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+Figure 6: Synchronising transition help_robotwith the self-
+loop of state q2of the DFA depicted in Figure 4.
+Algorithm 1 DFA/PN Composition
+Input: PNG=ÍP,T,W+,W*,M0,E,lÎ, and syntactically safe LTL
+formula ', written over ⇧
+Output: PNG'=ÍP',T',W+
+',W*
+',M',0,E,l'Î
+1:A'=⇣Q,2⇧,,q0,Qf⌘
+2:P'}P;M',0}M0
+3:queue.push(q0)
+4:add place pwith label q0toP';M',0(p)}1
+5:while queueëÁdo
+6: q}queue.pop()
+7: for all tÀTdo
+8: for all ( ,q®)such that (q, )=q®do
+9: for all conjunctive clauses in do
+10: iftt,is deﬁned then
+11: if»pÀP'with label q®then
+12: queue.push(q®)
+13: add place p®with label q®toP';M',0(p®)}0
+14: end if
+15: add transition tt,toT';l'(tt,)}l(t)
+16:÷tt,(p)}1, where pÀP'is labelled q
+17: t÷
+t,(p®)}1, where p®ÀP'is labelled q®
+18: end if
+19: end for
+20: end for
+21: end for
+22:end while
+and that the corresponding counter places have already been
+added to G.
+We start by analysing the initial state q0of the DFA, and
+only analyse states that are attained during the execution of
+the algorithm, i.e., states added to queue(lines 11–14). These
+states are added as places to G'. At each marking of G', the
+“DFA place” representing the current state of the DFA has
+one token and all other “DFA places” have zero tokens. This
+can be seen as representing the DFA as a PN structure, and
+allows us to represent the result of the composition as a PN.
+When analysing a state q, taken from queue, we iterate
+over all DNF formulas  labelling transitions from qand, for
+each transition of the input PN, build the minimal satisfying
+transition for each conjunctive clause in . For each of
+these conjunctive clauses, if the minimal satisfying transition
+tt,is deﬁned, we add it to G'. Furthermore, to ensure that
+we keep the DFA evolution encoded in G', we add the place
+representing qas an input place, and the place representing
+(q, )as an output place to tt,(lines 7–21). Note that if the
+minimal satisfying transition is not deﬁned, it means that the
+original transition cannot be executed without falsifying ',
+hence we do not add anything to G'.To summarise, for each transition tt,added to the output
+PN, there are 3types of arcs:
+1.System arcs , i.e., the same arcs as in t. These arcs take
+into account the evolution of the system after tis ﬁred;
+2.DFA arcs , i.e., arcs that consume a token from the
+place representing the current state of the DFA and put
+one token in the place representing the next state of
+the DFA. These arcs take into account the evolution of
+the DFA;
+3.Constraint arcs , obtained from the minimal satisfying
+transition construction. These arcs do not change the
+token ﬂow (with respect to the original PN) in the
+places they are related to. Furthermore, they guarantee
+that any marking obtained immediately after the ﬁring
+oftt,satisﬁes (according to the properties of minimal
+satisfying transitions proved in Proposition 3).
+Hence, the result of the composition simulates the run-
+ning in parallel of the PN and the DFA, where we add transi-
+tions that represent all the possible ﬁrings of transitions in
+the PN that can satisfy a DNF label in the DFA, evolving
+both structures accordingly. Given that we synchronise all
+transitions in both models (as in the parallel composition
+of PNs where transition synchronisation is done using the
+events of each model, see for example [ 11]), and the notion of
+minimal satisfying transition is ocrrect as proved in Prop. 3,
+we can ensure the correctness of the composition algorithm.
+Proposition 3. Algorithm 1solves Problem 1.
+Proof. The counter place represents a linear constraint (v,
+,b)while maintaining the language of the PN. Thus, after
+building counter places for all linear constraints in ', one
+just needs to ensure that the corresponding SP-GEQ-Cs over
+the counter places are kept valid according to the transitions
+ofA', while not restricting the ﬁring of transitions more
+than needed to guarantee that validity. The minimal satis-
+fying transitions exactly represent the minimal restriction
+over a transition such that its ﬁring is guaranteed to evolve
+the PN to a marking such that the SP-GEQ-C is satisﬁed,
+as proved in Proposition 2. Algorithm 1generalises the no-
+tion of event-based parallel composition of PNs as described
+in [11], synchronising all transitions between the PN and
+the DFA, using the minimal satisfying transition notion, and
+keeping track of the marking evolution of Gand the state
+evolution of A'. Thus, the result follows.
+Example 7. Algorithm 1needs to synchronise all transitions
+ofGwith all transitions from DFA states that are queued
+(lines 6 and 12). Consider the PN model Gin Figs. 2and
+3, and the DFA A'in Figure 4. Assume that all transitions
+from state q1ofA'have been processed, and we are currently
+processing transition help_robotofG, and the transition in
+A'from q2toq1, labelled by ¬replace_robot·¬(v1,f,nR).
+As seen in Ex. 5, this label is equivalent to ¬replace_robot·
+(pv1,g,nR*1), where pv1is the associated counter place.
+The construction of the minimal satisfying transition for
+Lacerda and Lima: Preprint submitted to Elsevier Page 9 of 15
+
+--- Page 10 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+help_robotand¬replace_robot·(pv1,g,nR*1)was illus-
+trated in Ex. 6. Thus, we just need to add arcs representing
+the evolution of the DFA from q2toq1, as depicted in green
+in Figure 6.
+4.4. Additional Remarks
+4.4.1. Complexity of the Composition
+It is known that for an LTL formula ', the number of
+states of the deterministic automaton A'is, in the worst-
+case, doubly exponential on the size of ', i.e., Q=22'
+[28]. Furthermore, the number of transitions is at most
+Q2⇧', where ⇧'”⇧is the set of atomic proposition
+that occur in '. This is because the maximum number of
+transitions from a state is the size of the DFA’s alphabet.
+Thus, in the worst-case, P'=P+22'andT'=
+TQ2⇧'=T2(2'+⇧'). Thus, the composition has
+complexity O(P+T2(2'+⇧')). We note that the expo-
+nential blow-up on the size of the formula is unavoidable
+as it stems from the translation of the formula to the DFA.
+However, in general the size of the LTL speciﬁcations can
+be kept small, with our semantics based on linear constraints
+being an extra factor for such an argument, as we discuss
+next. Furthermore, the worst-case scenario for the automaton
+size is rarely attained, with state-of-the-art LTL to automaton
+translators generating automata that are much smaller than
+the worst-case for most LTL formulas.
+4.4.2. Dead Transitions
+The use of a structural approach allows us to avoid the
+state space explosion. However, our composition requires
+synchronising alltransitions in the PN with alltransitions in
+the DFA, to ensure that the DFA component of the composi-
+tion evolves according to all the events ﬁred in the original
+PN. Several of these transitions might not be enabled by any
+of the reachable markings in the PN. However, this cannot
+be analysed at composition time because it would require
+building the state space. In general, the computational sav-
+ings of not generating the state space of the PN outweigh
+the impact of the generation of these dead transitions. Their
+presence does not a ect the overall qualitative behaviour of
+the system, i.e., the generated controlled language is still the
+same. Hence, their main impact is on execution and analy-
+sis terms, as there is a large subset of transitions which, if
+not pruned, impact the process of ﬁnding the enabled transi-
+tions in a certain marking. In order to perform the pruning
+of dead transitions, one can use several techniques. Exam-
+ples are building the coverability graph of the composition,
+and remove transitions that do not appear there, or using an
+incomplete structural approach, based on the notion of ﬁr-
+ing count vector , as described in [ 32]. In future work, we
+will investigate more involved approaches for removing dead
+transition, e.g., [ 1].
+4.4.3. Complexity Beneﬁt of Linear Constraints
+In other works relating LTL and PNs, the proposed se-
+mantics of LTL is more restrictive than the one we present
+here. In general, LTL formulas are evaluated over PN modelsby associating a set of atomic propositions Dto a subset of
+1-bounded places (i.e., places psuch that (p)=1 ). Then, d
+is satisﬁed in a marking MiM(pd)=1 , where pdis the 1-
+bounded place associated to d. Our approach is not only more
+general but also can yield smaller supervisors, by allowing
+the representation of some propositional connectives by lin-
+ear constraints. For example, let D®={d1, ...,dn}”Dand
+vD®a vector such that vD®(p)=1 ifp=pdifor some diÀD®
+and0otherwise. A formulaµ
+diÀD®di, can be represented
+by(vD®,g,1); a formula¥
+diÀD®di, can be represented by
+(vD®,g,n); more generally, consider the so-called cardinality
+constraints , i.e., constraints of the form “at least mof the n
+atomic propositions in D®need to be satisﬁed” or “at most
+mof the natomic proposition in D®can be satisﬁed”. To the
+best of our knowledge, the best lower-bound for the length
+of a propositional logic formula encoding such a constraint
+is in O(nlog2m)[2]. We can represent “at least” constraints
+by(vD®,g,m) and “at most” constraints by (vD®,f,m) , i.e.,
+by a single atomic proposition.
+4.4.4. Generalised Mutual Exclusion Constraints
+The inspiration to use linear constraints came from the
+so called generalised mutual exclusion constraints (GMEC)
+approach [ 16,21,40,22]. The GMEC approach is a form
+ofstate-based supervision, based on the addition of places
+– called monitors – that create place invariants in the PN.
+These monitors allow the designer to write speciﬁcations
+similar to ours. In fact, the construction of the counter place
+we presented here has similarities with the basic construc-
+tion of monitors. Loosely speaking, a “GMEC speciﬁcation”
+(v,,b)is equivalent to the safe LTL speciﬁcation G(v,,b).
+Thus, our approach can be seen as an alternative to GMECs,
+that deals with speciﬁcations of the same ﬂavour but, instead
+of only allowing for “static” linear restrictions that must al-
+ways hold, allows for the speciﬁcation of “dynamic” safe
+LTL relations between GMECs that can change due to the
+sequence of markings and/or events already executed. The
+GMEC approach has the advantage of being able to deal with
+unbounded places. This is because GMEC always keeps the
+number of tokens in the places above or below a given con-
+stant, being only applicable when the initial marking already
+satisﬁes the linear constraint. In our case, we must check the
+number of tokens in certain places, because we always need
+to know what is the marking after the ﬁring of a transition
+in order to make the DFA evolve to the correct state. Since
+being able to check whether an unbounded place has 0tokens
+increases the modelling power of the PN to the equivalent
+of a Turing machines (which is not desirable as most prob-
+lems become undecidable), we cannot hope to reason directly
+about unbounded places.
+4.4.5. Event Based DFA and PN Language
+Speciﬁcations
+Our approach builds over the more traditional event based
+language speciﬁcation approaches, by allowing for state/event
+speciﬁcations, where the state speciﬁcations are “GMEC-
+like”. Hence, our composition algorithm can be seen as
+Lacerda and Lima: Preprint submitted to Elsevier Page 10 of 15
+
+--- Page 11 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+bringing together ideas from two well established techniques
+for SC of PNs: GMECs and language speciﬁcations. We
+also note that, while our algorithm receives a safe state/event
+LTL speciﬁcations as input, it can be easily generalised to
+speciﬁcations given directly as a DFA or a PN, as it follows
+the idea of concurrent composition for PNs, as presented for
+example in [ 11].
+5. Supervisor Admissibility
+5.1. Checking Admissibility
+In this subsection we provide a general procedure to check
+admissibility of the composition G'obtained from Algo-
+rithm 1. This procedure is based on the notion of partially
+covering markings [11,33].
+Deﬁnition 21 (Partially Covering Marking) .Given a set of
+places P, a marking MÀNP, and P=”P, the set of
+partially covering markings is deﬁned as:
+S(M,P=)=
+{M®ÀNPM®(p)=M(p)for all pÀP=and
+M®(p)gM(p)for all pÀP‰P=}(16)
+Partially covering markings represent the set of markings
+which are equal to Mfor places in P=and greater or equal
+than Mfor all other places. In spite of being a set of inﬁnite
+cardinality, it is shown in [ 33] that checking the reachability
+of an element in this set is decidable.
+Deﬁnition 22 (Modiﬁed Input Places) .Given tÀTuc, let
+Tt
+'={t1, ...,tr}be the set of transitions of the form tt, 
+created by Algorithm 1fortÀT. We deﬁne the set of
+combinations (Cartesian product) of input places that were
+modiﬁed for Tt
+'as:
+Pt
+'=r«
+i=1{p'ÀP'÷ti(p')*÷t(p')>0} (17)
+For places pQÀP'‰P, i.e., places representing DFA states,
+we consider÷t(pQ)=0 .
+We can now deﬁne the set of tokens for input places
+oftfor which twould be enabled in Gbut none of the its
+corresponding transitions created in G'would be enabled.
+Deﬁnition 23 (Inadmissible Token Distribution) .Letp=
+(p1, ...,pr)ÀPt
+'. We deﬁne the set of inadmissible k’s for
+tÀTucas:
+Kt,p= {(k1, ...,kr)ÀNrfor all i,j=1, ...,r,
+÷t(pi)fki<÷ti(pi)and if pi=pjthen ki=kj}(18)
+Example 8. Figure 7depicts (a) a system model G; and
+(b) a composition G'for a safe LTL formula '. Note that
+places q0andq1represent DFA places. We exemplify how
+to construct some instances of the sets deﬁned above: Tt1'=
+Figure 7: (a) A PN system model G.( b )AP N / D F Ac o m p o s i -
+tion G'.
+{tt1, 1,tt1, 2};Pt1'={ p1,q1}ù{p2,q0}=
+{(p1,p2),(p1,q0),(q1,p2),(q1,q0)}; and Kt1,(p1,p2)=
+{(1,0),(2,0),(1,1),(2,1)}.
+Note that, for the job allocation model in Figs. 2and
+3, and the self-loop of q2of the DFA A'1in Figure 4,w e
+have calculated one element of Thelp_robot
+'1. However, this set
+has4elements, one for each transition of the DFA. Thus,
+exemplifying this construction for Thelp_robot
+'1is not possible,
+due to spacing constraints. This illustrates the ﬁrst problem
+with this approach: one needs to take into account all possible
+combinations of k-tuples over a Cartesian product, which can
+become unmanageable very quickly.
+The proposition below is a straightforward adaptation of
+the result in [ 33] to our composition algorithm.
+Proposition 4. Checking if G'is admissible for Gcan be
+reduced to checking reachability of a ﬁnite union of partially
+covering markings in G'.
+Proof. LettÀTuc,p=(p1, ...,pr)ÀPt
+',Pp={p1}‰...‰
+{pr}andk=(k1, ...,kr)ÀKt,p, and consider the marking
+following markings, deﬁned over P':
+Mt,p,k(p)=h
+n
+l
+njkiifp=piÀPp
+÷t(p)ifpÀPandpÃPp
+0 otherwise(19)
+Mt(p)=<÷t(p)ifpÀP
+0 otherwise(20)
+All possible uncontrollable markings for G'can be rep-
+resented by the following:
+Õ
+tÀTucÕ
+pÀPt'Õ
+kÀKt,kSMt,p,k,Pp‰Õ
+tÀTucTt'=ÁS(Mt,Á)(21)
+This result has the importance of showing that admissi-
+bility checking is decidable for G'. However, in practical
+terms, applying it is not e cient, as checking for reachability
+Lacerda and Lima: Preprint submitted to Elsevier Page 11 of 15
+
+--- Page 12 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+of a partially covering marking relies on building a PN G®
+'.
+The state space growth associated with the construction of
+G®
+'makes the procedure infeasible for PNs with state spaces
+larger than a few hundred states. In our experiences, we could
+only check a PN with less that 50reachable markings, and
+G®
+'had more than 100,000 reachable markings.
+5.2. Speciﬁcation Language Restriction
+Given the ine ciency of checking for admissibility, we
+present an extra syntactic restriction to safe LTL that guaran-
+tees supervisor admissibility a priori.
+Deﬁnition 24 (Controllable SP-GEQ-Cs) .The set of con-
+trollable SP-GEQ-Cs for Gis deﬁned as:
+spgecqc= {(p,g,b)for all tÀTuc,
+ift÷(p)*÷t(p)<0then t÷(p)gb}(22)
+Maintaining (p,g,b)Àspgecqctrue between consecu-
+tive markings does not entail disabling uncontrollable tran-
+sitions. Note that, given that our marking constraints are of
+the same form as GMECs, one can use known approaches
+for transforming uncontrollable SP-GEQ-Cs into controllable
+SP-GEQ-Cs, such as the approach in [ 41].
+Example 9. In the PN of Figs. 2and3,(idle_robots ,g,b)is
+controllable for all bÀ {0, ...,kR}, because
+÷t(idle_robots )=0 for all tÀTuc. Conversely,
+(ji_in_system,g,b)is uncontrollable for all bÀN,
+because÷ﬁnished _ji(idle_robots )=1 , and
+÷ﬁnished _ji(idle_robots )*ﬁnished _ji÷(idle_robots )=
+*1<0, and ﬁnished _jiis an uncontrollable transition.
+Deﬁnition 25 (Syntactic Restriction) .We deﬁne the class of
+guaranteed admissible safe LTL formulas as a conjunction of
+formulas of the following types:
+1.G , where  is a propositional formula in the DNF
+where only SP-GEQ-Cs in spgecqcthat are satisﬁed in
+the initial state, or literals ¬ewith eÀEccan occur.
+2.G(ŸX ), where is any propositional formula in
+the DNF and  is a propositional formula in the DNF
+where only SP-GEQ-Cs in spgecqcthat also appear in
+, or literals ¬ewith eÀEccan occur.
+3.G(ŸX( W®)), where and®are any proposi-
+tional formulas in the DNF and  is a propositional
+formula in the DNF where only SP-GEQ-Cs in spgecqc
+that also appear in , or literals ¬ewith eÀEccan
+occur.
+Formulas of type 1 specify propositional logic relations
+between state descriptions and controllable events that should
+always be satisﬁed in all markings of the supervised PN.
+Formulas of type 2 specify that  must be satisﬁed im-
+mediately after condition is met. Since is a condition, it
+can have occurrences of all atomic propositions. To ensure
+admissibility, only SP-GEQ-Cs in spgecqcthat occur in , or
+the negation of controllable events can occur in  .Formulas of type 3 specify that immediately after condi-
+tionis satisﬁed,  must keep being satisﬁed until condition
+®is met. The restrictions for the SP-GEQ-Cs in  are the
+same as for formulas of type 2. Note that we can use formulas
+of type 3 to encode that an event eÀEcmust occur as soon
+as possible:
+G(ŸX(( 
+e®ÀEc‰{e}¬e®)We)) (23)
+The restriction to formulas of the types above ensures
+admissibility of the supervisor because:
+•We never enforce the occurrence of an event or set of
+events, we only enforce that a given subset of Ecmust
+not happen at a given moment.
+•We do not enforce that a certain place must remain with
+bor more tokens when the ﬁring of an uncontrollable
+transition removes tokens from that place and does not
+put at least btokens back on it.
+Finally it is clear that if 'and yields admissible super-
+visors, then '· must also yield an admissible supervisor.
+6. Application to Multi-Robot Coordination
+In this section, we illustrate and evaluate our approach
+on the running example scenario. We will use the PN repre-
+sented in Figs. 2and3, and write a speciﬁcations according
+to Subsection 5.2to control it.
+First, formula '1, introduced in Ex. 3.
+Second, if the number of broken and dead robots gets
+above a threshold kbroken, then we should prioritise the use
+of the available robots for repair jobs.
+'2=G((M(broken_robots)+
+M(dead_robots)gkbroken)Ÿ
+(X( 
+jiÀJ(¬assign_new_ji·¬assign_failed_ji))))(24)
+Third, jobs that have failed should be given priority over
+new jobs, as they have been in the system for more time.
+'3=G((…
+jiÀJM(failed_ji_queue)g1)Ÿ
+(X( 
+jiÀJ¬assign_new_ji)))(25)
+The above rules are general, regardless of the number J
+of types of job. One can also deﬁne prioritisation between
+dierent jobs. For example, between jobs 1and2, we might
+want to provide higher priority for job 1, such that we do not
+allow for allocation of jobs of type 2if either there are less
+jobs of type 2in the queue, or there are at least three jobs of
+type 1queueing.
+'4=G(((M(new_j1_queue)gM(new_j2_queue))
+‚(M(new_j1_queue)g3))Ÿ(X(¬assign_new_j2)))
+Lacerda and Lima: Preprint submitted to Elsevier Page 12 of 15
+
+--- Page 13 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+(26)
+However, in the cases where there are more jobs of type
+2queueing, and there is at most one job of type 1queueing,
+we do not allow for allocation of jobs of type 1. This allows
+the system to balance the distribution of jobs, and ensuring
+that when the load for jobs of type 1is low, jobs of type 2
+will be processed.
+'5=G(((M(new_j1_queue)<M(new_j2_queue))·
+(M(new_j1_queue)f1))Ÿ(X(¬assign_new_j1)))(27)
+We note that the above rules involve both linear con-
+straints and events, and are intuitively written from their nat-
+ural language speciﬁcation. This means that they cannot be
+directly stated as GMECs (which is based on place invariants
+that need to hold in allmarkings of the system, and here we
+are deﬁning “conditional” rules that have to be enforced only
+in a subset of the markings of the system), nor as language
+speciﬁcations only using the set of events.
+The overall speciﬁcation is '='1·...·'5. In or-
+der to translate the LTL formulas into a DFA, we use the
+Spot !-automaton library2, which implements state-of-the-
+art translation methods. Given that the overall speciﬁcation
+is a conjunction of ﬁve rules, one has two di erent options
+of building the supervisor PN:
+1.Build A'for the conjunction of all the rules, and apply
+Algorithm 1to the PN model and A', building G'; or
+2.For each rule 'i, build A'i, and incrementally apply
+Algorithm 1to compose each A'iwith the PN model,
+building G'1,...,'5.
+Given that our composition represents the largest restric-
+tion of the PN behaviour that satisﬁes the speciﬁcation, op-
+tions 1) and 2) are equivalent in terms of the language of the
+resulting supervisor. We will investigate the pros and cons
+of these 2 approaches throughout this section. The imple-
+mentation of our approach is available online3. To generate
+the reachability graph, we used the Tina toolbox4, which
+provides tools for e cient generation of large state spaces.
+The DFA for each 'ihas2states and 4DNF transition
+labels, while the DFA for the conjunction 'has10states and
+1000 DNF transition labels.
+In Table 1, we report on the number of places and transi-
+tions of the PNs, along with the number of reachable mark-
+ings, for the original model, and both the PN G'built using
+a conjunction of the speciﬁcations and the PN G'1,...,'5build
+incrementally. In the cases where the reachability graph
+could not be generated within 15 minutes5we write timeout
+in the corresponding table entry. These results show that we
+can compactly represent large state spaces using PNs. Fur-
+thermore, as the number of jobs increases, the size of the
+2https://spot.lrde.epita.fr/
+3https://github.com/bfalacerda/ltl_sup_con
+4http://projects.laas.fr/tina/
+5The experiments were performed on a laptop computer equipped with
+an Intel®CoreTMi7 CPU @ 2.70GHz x 8, and 16GB of RAM.PN model increases linearly, and if the number of robots or
+number of speciﬁc jobs allowed in the system increase, the
+size of the PN remains constant. We now analyse the size
+of the supervisors. One can see that we are able to control
+systems with very large state spaces, and generate compact
+PN representations of their supervisors. This would not be
+possible using approaches based on state space enumeration.
+For the models where we could generate the reachability
+graph, we can observe that a large percentage of the transi-
+tions generated by Algorithm 1is dead, a discussed in 4.4.2 .
+By removing these transitions identiﬁed as dead, we ﬁnish
+with a compact model representing the controlled system.
+We also note the di erence in terms of number of tran-
+sitions in the ﬁnal supervisor, for the 2 di erent supervisor
+construction approaches. The construction of the supervi-
+sors for the conjunction of the speciﬁcations mitigates the
+exponential growth of the transitions. Thus, when there are
+many speciﬁcations, the best approach is doing the conjunc-
+tion of subsets of speciﬁcations such that each conjunction
+does not have more than 20 atomic propositions and can be
+translated in feasible time. Then, for those conjunctions, use
+the incremental approach to generate the ﬁnal supervisor.
+Finally, we note that for a ﬁxed number of job types,
+increasing the number of robots or of allowed job of a given
+type does not increase the size of the supervisor structure, as
+it simply corresponds to adding more tokens to the model.
+Furthermore, note that we manage to scale up to a team of
+32 robots, with a maximum of Jùnji=6ù16 = 96 tasks
+in the system. This is a substantially sized model: a state-
+based approach already has an order of one million states
+for 8 robots and 16 tasks, as shown in Table 1. For the 32
+robot case, we could not generate the state space. However,
+note that 32robots with 2possible states already generates
+232>109states. Our system is much more complex than
+that, including more possible states for robots and also task
+states. We also note that the computation of the supervisor
+is done only once before deployment, and it can then be run
+online very e ciently following the feedback loop described
+in Subsection 3.3.
+7. Conclusions and Further Work
+We described a method for multi-robot coordination based
+on the construction of PN supervisors that are guaranteed to
+fulﬁl state/event safe LTL speciﬁcations. We provided a novel
+semantics for LTL in PNs, where atomic propositions can be
+linear constraints on the markings of the system; showed how
+we can compose the PN with the DFA obtained from the safe
+LTL formula, obtaining a PN representation of a supervisor
+candidate; and discussed how admissibility can be checked,
+or guaranteed a priori by using a restriction to the speciﬁca-
+tion language. This work develops a framework where both
+the multi-robot system and the speciﬁcations are represented
+in suitable and well-accepted formalisms, which allow for
+the automatic synthesis of supervisors from the speciﬁcation
+of complex coordination rules, along with formal guarantees
+on the overall behaviour of the team.
+Further work includes dealing with other relevant issues
+Lacerda and Lima: Preprint submitted to Elsevier Page 13 of 15
+
+--- Page 14 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+nrJnjiPTR(G)P'T'Tlive
+'P'1,...,'5T'1,...,'5Tlive
+'1,...,'5 R(G')
+42 4 35 17 11,316 45 2,540 414 45 24,192 978 10,998
+62 4 35 17 31,162 45 2,540 475 45 24,192 1,162 45,010
+82 4 35 17 66,932 45 2,540 475 45 24,192 1,162 111,160
+82 6 35 17 295,536 45 2,540 475 45 24,192 1,162 441,512
+82 8 35 17 886,664 45 2,540 475 45 24,192 timeout 1.05ù106
+83 8 43 22 timeout 53 3,872 timeout 53 30,848 timeout timeout
+86 8 67 37 timeout 77 6,536 timeout 77 50,816 timeout timeout
+32 6 16 67 37 timeout 77 6,536 timeout 77 50,816 timeout timeout
+Table 1
+Model and supervisor sizes for di ﬀerent values of nr(number of robots), J(number of
+job classes), and nji(maximum number of jobs of each class that can be in the system).
+kbroken=nr_2.
+in the the theory of SC, such as liveness or observability,
+and investigating more e cient approaches for admissibil-
+ity checking such as [ 37]. Furthermore, we just described
+techniques for checking admissibility. We did not tackle the
+problem of ﬁnding least restrictive supervisors from the PN
+resulting of our composition. This is because in general PNs
+are not closed under this operation [ 4]. An interesting and
+relevant line of research is investigating subclasses of PNs
+for which one can verify admissibility more e ciently and
+build least restrictive supervisors for our composition. Fur-
+thermore, it is worth investigating how one can extend the
+language restriction to ensure admissibility, both looking at
+a less restrictive deﬁnition of controllable SP-GEQ-C, and to
+other types of safe LTL speciﬁcations where a priori admis-
+sibility can be guaranteed. Finally, we intend to implement
+our approach on real robots in order to further illustrate its
+suitability for multi-robot coordination, and extend it to also
+include optimisation of quantitative metrics of performance,
+along with the qualitative behaviour speciﬁcation presented
+in this work.
+Acknowledgements
+This work was supported in part by the FCT ISR/LARSyS
+strategic funding UID/EEA/5009/2013, FCT grant
+FRH/BD/45046/2008, and by UK Research and Innovation
+and EPSRC through the Robotics and Artiﬁcial Intelligence
+for Nuclear (RAIN) research hub [EP/R026084/1].
+References
+[1]Abdulla, P.A., Iyer, S., Nylén, A., 2004. SAT-solving the coverability
+problem for Petri nets. Formal Methods in System Design 24.
+[2]Asín, R., Nieuwenhuis, R., Oliveras, A., Rodríguez-Carbonell, E.,
+2011. Cardinality networks: a theoretical and empirical study. Con-
+straints 16.
+[3]Basile, F., Chiacchio, P., Giua, A., 2006. Suboptimal supervisory con-
+trol of petri nets in presence of uncontrollable transitions via monitor
+places. Automatica 42.
+[4]Cassandras, C.G., Lafortune, S., 2006. Introduction to Discrete Event
+Systems. Springer-Verlag New York, Inc.
+[5]Chao, C., Thomaz, A., 2016. Timed Petri nets for ﬂuent turn-taking
+over multimodal interaction resources in human-robot collaboration.
+The International Journal of Robotics Research 35, 1330–1353.[6]Costelha, H., Lima, P., 2012. Robot task plan representation by
+Petri nets; Modelling, identiﬁcation, analysis and execution. Au-
+tonomous Robots 33, 337–360. URL: https://doi.org/10.1007/
+s10514-012-9288-x , doi: 10.1007/s10514-012-9288-x .
+[7]Dias, M.B., Zlot, R., Kalra, N., Stentz, A., 2006. Market-based multi-
+robot coordination: A survey and analysis. Proceedings of the IEEE
+94, 1257–1270.
+[8]Ding, X.C., Smith, S.L., Belta, C., Rus, D., 2014. Optimal control
+of Markov decision processes with linear temporal logic constraints.
+IEEE Trans. on Automatic Control 59.
+[9]Fainekos, G.E., Girard, A., Kress-Gazit, H., Pappas, G.J., 2009. Tem-
+poral logic motion planning for dynamic robots. Automatica 45, 343–
+352.
+[10] Faruq, F., Lacerda, B., Hawes, N., Parker, D., 2018. Simultane-
+ous task allocation and planning under uncertainty, in: Proc. of the
+2018 IEEE/RSJ Int. Conf. on Intelligent Robots and Systems (IROS),
+Madrid, Spain.
+[11] Giua, A., 2013. Supervisory control of Petri nets with language speci-
+ﬁcations, in: Seatzu, C., Silva, M., van Schuppen, J.H. (Eds.), Control
+of Discrete-Event Systems – Lecture Notes in Control and Information
+Sciences. Springer. volume 433. chapter 12.
+[12] Giua, A., DiCesare, F., 1991. Supervisory design using Petri nets, in:
+30th IEEE Conf. on Decision and Control.
+[13] Giua, A., DiCesare, F., 1994a. Blocking and controllability of Petri
+nets in supervisory control. IEEE Trans. on Automatic Control 39.
+[14] Giua, A., DiCesare, F., 1994b. Petri net structural analysis for supervi-
+sory control. IEEE Trans. on Robotics and Automation 10.
+[15] Giua, A., DiCesare, F., 1995. Decidability and closure properties
+of weak Petri net languages in supervisory control. IEEE Trans. on
+Automatic Control 40.
+[16] Giua, A., DiCesare, F., Silva, M., 1992. Generalized mutual exclusion
+contraints on nets with uncontrollable transitions, in: IEEE Int. Conf.
+on Systems, Man and Cybernetics.
+[17] Glocker, M., Reinl, C., Von Stryk, O., 2006. Optimal task alloca-
+tion and dynamic trajectory planning for multi-vehicle systems using
+nonlinear hybrid optimal control. IFAC Proceedings Volumes 39,
+38–43.
+[18] Gromyko, A., Pistore, M., Traverso, P., 2006. A tool for controller
+synthesis via symbolic model checking, in: 8th Int. Workshop on
+Discrete Event Systems.
+[19] Guo, M., Dimarogonas, D.V., 2015. Multi-agent plan reconﬁguration
+under local ltl speciﬁcations. The International Journal of Robotics
+Research 34, 218–235.
+[20] Iordache, M., Antsaklis, P., 2003. Design of T-liveness enforcing
+supervisors in Petri nets. IEEE Trans. on Automatic Control 48.
+[21] Iordache, M., Antsaklis, P., 2006a. Supervision based on place invari-
+ants: A survey. Discrete Event Dynamic Systems 16.
+[22] Iordache, M., Antsaklis, P., 2006b. Supervisory Control of Concurrent
+Systems: A Petri Net Structural Approach. Birkhäuser Boston.
+[23] Iordache, M., Moody, J., Antsaklis, P., 2002. Synthesis of deadlock
+Lacerda and Lima: Preprint submitted to Elsevier Page 14 of 15
+
+--- Page 15 ---
+Petri Net Based Multi-Robot Task Coordination from Temporal Logic Speciﬁcations
+prevention supervisors using Petri nets. IEEE Trans. on Robotics and
+Automation 18.
+[24] Jiang, S., Kumar, R., 2006a. Diagnosis of repeated failures for discrete
+event systems with linear-time temporal-logic speciﬁcations. IEEE
+Trans. on Automation Science and Engineering 3.
+[25] Jiang, S., Kumar, R., 2006b. Supervisory control of discrete event
+systems with CTL* temporal logic speciﬁcations. SIAM Journal on
+Control and Optimization 44.
+[26] Kloetzer, M., Mahulea, C., 2014. A petri net based approach for multi-
+robot path planning. Discrete Event Dynamic Systems 24, 417–445.
+[27] Kress-Gazit, H., Fainekos, G.E., Pappas, G.J., 2009. Temporal logic-
+based reactive mission and motion planning. IEEE Trans. on Robotics
+25.
+[28] Kupferman, O., Vardi, M., 2001. Model checking of safety properties.
+Formal Methods in System Design 19.
+[29] Lacerda, B., 2013. Supervision of Discrete Event Systems Based
+on Temporal Logic Speciﬁcations. Ph.D. thesis. Instituto Superior
+Técnico.
+[30] Lacerda, B., Faruq, F., Parker, D., Hawes, N., 2019. Probabilistic
+planning with formal performance guarantees for mobile service robots.
+International Journal of Robotics Research .
+[31] Lacerda, B., Lima, P.U., 2009. LTL plan speciﬁcation for robotic tasks
+modelled as ﬁnite state automata, in: Workshop ADAPT at AAMAS
+’09 - Agent Design: Advancing from Practice to Theory.
+[32] Lacerda, B., Lima, P.U., 2011. Designing Petri net supervisors from
+LTL speciﬁcations, in: Robotics: Science and Systems VII.
+[33] Lacerda, B., Lima, P.U., 2014. On the notion of uncontrollable marking
+in supervisory control of Petri nets. IEEE Trans. on Automatic Control
+59.
+[34] Lacerda, B., Parker, D., Hawes, N., 2017. Multi-objective policy gen-
+eration for mobile robots under probabilistic time-bounded guarantees,
+in: Proc. of the 27th Int. Conf on Automated Planning and Scheduling
+(ICAPS), Pittsburgh, PA, USA.
+[35] Lahijanian, M., Maly, M.R., Fried, D., Kavraki, L.E., Kress-Gazit,
+H., Vardi, M.Y., 2016. Iterative temporal planning in uncertain envi-
+ronments with partial satisfaction guarantees. IEEE Transactions on
+Robotics 32, 583–599.
+[36] Lahijanian, M., Svorenová, M., Morye, A.A., Yeomans, B., Rao, D.,
+Posner, I., Newman, P., Kress-Gazit, H., Kwiatkowska, M., 2018.
+Resource-performance tradeo analysis for mobile robots. IEEE
+Robotics and Automation Letters 3, 1840–1847.
+[37] Ma, Z., Li, Z., Giua, A., 2015. A method to verify the controllability of
+language speciﬁcations in Petri nets based on basis marking analysis,
+in: 54th IEEE Conf. on Decision and Control.
+[38] Mahulea, C., Kloetzer, M., 2018. Robot planning based on boolean
+speciﬁcations using Petri net models. IEEE Transactions on Automatic
+Control 63, 2218–2225. doi: 10.1109/TAC.2017.2760249 .
+[39] Mansouri, M., Lacerda, B., Hawes, N., Pecora, F., 2019. Multi-robot
+planning under uncertain travel times and safety constraints, in: Proc.
+of the 28th Int. Joint Conf. on Artiﬁcial Intelligence (IJCAI).
+[40] Moody, J., Antsaklis, P., 1998. Supervisory control of discrete event
+systems using Petri nets. Springer.
+[41] Moody, J., Antsaklis, P., 2000. Petri net supervisors for DES with un-
+controllable and unobservable transitions. IEEE Trans. on Automatic
+Control 45.
+[42] Nikou, A., Boskos, D., Tumova, J., Dimarogonas, D.V., 2018. On
+the timed temporal logic planning of coupled multi-agent systems.
+Automatica 97, 339–345.
+[43] Nunes, E., Gini, M., 2015. Multi-robot auctions for allocation of
+tasks with temporal constraints, in: Proceedings of the 29th AAAI
+Conference on Artiﬁcial Intelligence (AAAI).
+[44] Pnueli, A., 1981. The temporal semantics of concurrent programs.
+Theoretical Computer Science 13.
+[45] Ramadge, P., Wonham, W., 1989. The control of discrete event systems.
+Proc. of the IEEE 77. doi: 10.1109/5.21072 .
+[46] Reisig, W., Rozenberg, G., 1998. Lectures on Petri Nets Part I: Basic
+Models: Advances in Petri Nets. Springer.
+[47] Schillinger, P., Bürger, M., Dimarogonas, D.V., 2018. Simultaneoustask allocation and planning for temporal logic goals in heterogeneous
+multi-robot systems. The international journal of robotics research 37,
+818–838.
+[48] Seow, K.T., 2007. Integrating temporal logic as a state-based speci-
+ﬁcation language for discrete-event control design in ﬁnite automata.
+IEEE Trans. on Automation Science and Engineering 4.
+[49] Sistla, A., 1994. Safety, liveness and fairness in temporal logic. Formal
+Aspects of Computing 6.
+[50] Tsalatsanis, A., Yalcin, A., Valavanis, K.P., 2012. Dynamic task
+allocation in cooperative robot teams. Robotica 30, 721–730.
+[51] Ulusoy, A., Smith, S.L., Ding, X.C., Belta, C., Rus, D., 2013. Op-
+timality and robustness in multi-robot path planning with temporal
+logic constraints. The International Journal of Robotics Research 32,
+889–911.
+[52] Zavlanos, M.M., Pappas, G.J., 2008. Dynamic assignment in dis-
+tributed motion planning with local coordination. IEEE Transactions
+on Robotics 24, 232–242.
+[53] Ziparo, V.A., Iocchi, L., Lima, P.U., Nardi, D., Palamara, P.F., 2011.
+Petri net plans: A framework for collaboration and coordination in
+multi-robot systems. Journal of Autonomous Agents and Multi-Agent
+Systems 23.
+Bruno Lacerda received his Ph.D. in Electrical and
+Computing Engineering from the Instituto Superior
+Técnico, University of Lisbon, Portugal, in 2013.
+Between 2013 and 2017, he was a Research Fel-
+low at the School of Computer Science, University
+of Birmingham, UK. Currently, he is a Senior Re-
+searcher at the Oxford Robotics Institute, Univer-
+sity of Oxford, UK. His research interests lie in the
+use of formal approaches to specify and synthesise
+high-level robot controllers. To achieve this goal, he
+his particularly interested in using temporal logics,
+Petri nets, supervisory control theory and planning
+under uncertainty.
+Pedro U. Lima received his Ph.D. in Electrical En-
+gineering from the Rensselaer Polytechnic Institute,
+Troy, NY, USA, in 1994. Currently, he is a Full
+Professor at Instituto Superior Técnico, Universi-
+dade de Lisboa, Portugal. He is also a researcher
+at the Institute for Systems and Robotics, where
+he is coordinator of the Intelligent Robots and Sys-
+tems group. His research interests lie in the areas
+of discrete event systems and decision-making un-
+der uncertainty, namely their applications to multi-
+robot systems. Pedro Lima was a Trustee of the
+RoboCup Federation (2003-2011), and was the Gen-
+eral Chair of RoboCup2004, held in Lisbon. He was
+the President of the Portuguese Robotics Society
+(2009-2011), and is a senior member of the IEEE.
+He is the co-author of two books. Pedro Lima was
+awarded a 6-month Chair of Excellence at the Uni-
+versidad Carlos III de Madrid, Spain, by its Board
+of Governors. He has also been very active in the
+promotion of Science and Technology to the soci-
+ety, through the organization of Robotics events in
+Portugal, including the Portuguese Robotics Open
+since 2001.
+Lacerda and Lima: Preprint submitted to Elsevier Page 15 of 15
