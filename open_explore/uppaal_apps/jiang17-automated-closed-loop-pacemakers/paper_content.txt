@@ -1,0 +1,977 @@
+--- Page 1 ---
+Automated Closed-Loop Model Checking of
+Implantable Pacemakers using Abstraction Trees
+Zhihao Jiang1, Houssam Abbas1, Pieter J. Mosterman2, and Rahul Mangharam1
+1Department of Electrical & System Engineering, University of Pennsylvania
+2School of Computer Science, McGill University, Canada and MathWorks, USA
+ABSTRACT
+Autonomous medical devices such as implantable cardiac
+pacemakers are capable of diagnosing the patient condition
+and delivering therapy without human intervention. Their
+ability to autonomously aect the physiological state of the
+patient makes them safety-critical. Sucient evidence for
+the safety and ecacy of the device software, which makes
+these autonomous decisions, should be provided before these
+devices can be released on the market. Formal methods
+like model checking can provide safety evidence that the de-
+vices can safely operate under a large variety of physiological
+conditions. The challenge is to develop physiological mod-
+els that are general enough to cover the large variability of
+human physiology, and also expressive enough to provide
+physiological contexts to counter-examples returned by the
+model checker. In this paper, the authors develop a set of
+physiological abstraction rules that introduce physiological
+constraints to heart models. By applying these abstraction
+rules to a initial set of heart models, an abstraction tree is
+created. The root model covers all possible inputs to a pace-
+maker and derived models cover inputs from dierent heart
+conditions. If a counter-example is returned by the model
+checker, the abstraction tree is traversed so that the most
+concrete counter-example(s) with physiological contexts can
+be returned to the domain experts for validity check. The
+abstraction tree framework replaces the manual abstraction
+and renement framework, which reduced the amount of
+domain knowledge required to perform closed-loop model
+checking. It encourages the use of model checking during
+the development of autonomous medical devices, and iden-
+ties safety risks earlier in the design process.1
+1. INTRODUCTION
+1This work was supported in part by the TerraSwarm Re-
+search Center, one of six centers supported by the STAR-
+net phase of the Focus Center Research Program (FCRP)
+a Semiconductor Research Corporation program sponsored
+by MARCO and DARPA.
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for proﬁt or commercial advantage and that copies bear this notice and the full cita-
+tion on the ﬁrst page. Copyrights for components of this work owned by others than
+ACM must be honored. Abstracting with credit is permitted. To copy otherwise, or re-
+publish, to post on servers or to redistribute to lists, requires prior speciﬁc permission
+and/or a fee. Request permissions from permissions@acm.org.
+c2016 ACM. ISBN 978-1-4503-2138-9.
+DOI: 10.1145/1235Medical devices are developed for diagnostic ortherapeutic
+applications to infer and treat specic health issues. For in-
+stance, an X-ray machine takes images of dense tissue in the
+body, which is useful for diagnostic purposes. An infusion
+pump delivers a pre-programmed amount of uid into the
+patient for treatment. There is an emerging category of med-
+ical devices that have both the diagnostic and therapeutic
+functionality which are capable of operating autonomously
+without intervention from medical professionals. We refer to
+these devices as Autonomous Medical Devices . For instance,
+an implantable cardiac pacemaker monitors the electrical
+activities of the heart with two leads and delivers electrical
+pacing to manage the heart rate (Fig. 1).
+1.1 Challenges for Safe Autonomous Medical
+Devices
+Developing safe and eective autonomous medical devices
+has the following challenges:
+1.Physiological Complexity: Human physiology is
+complex and only partially understood. For instance,
+the functionality of the heart can be interpreted from
+multiple perspectives : from its electrical activity, me-
+chanical contractions of the heart muscles, and dynam-
+ics of blood ow. The physiology of the heart can also
+be analyzed with multiple scales : from the molecular
+level to cellular level all the way to the organ and sys-
+tem level. It is impossible to encode all these con-
+texts into the device, hence inappropriate diagnosis
+and therapy are observed due to the lack of physio-
+logical contexts [16, 5].
+Atrial lead signalVentricularlead signalEvents detectedin pacemakerASVSAPVS
+Right Ventricle LeadRight Atrium LeadPacemaker PulseGenerator
+Right AtriumLeft AtriumLeft VentricleRight VentricleSensingPacing
+Figure 1: A dual chamber pacemaker has one lead in
+the right atrium and the other in the right ventricle.
+It thresholds local electrical activities into sensed events
+(AS,VS) and delivers electrical pacing (AP,VP) when the
+heart rate is low.
+
+--- Page 2 ---
+AVI
+VSAS AS AS
+VP VP VPAVI AVIPVCInappropriate
+A channel
+V channel
+A channel
+V channelEvents
+Appropriate
+Figure 2: Two event traces of a dual chamber pacemaker. In the "appropriate" case, heart rate is controlled by the
+natural pacemaker of the heart in the right atrium. Electrical signals are traveling from the atria to the ventricles
+(indicated by the purple arrows). The pacemaker paces the ventricle (VP) after each sensed atrial contraction (AS) to
+maintain appropriate timing (AVI) between atrial and ventricular contraction. In the "inappropriate"case, a Premature
+Ventricular Contraction (PVC) triggers retrograde conduction from the ventricles to the atria (indicated by the orange
+arrows), triggering a sensed event (AS) in the pacemaker. The pacemaker paces the ventricle with the same AVI delay
+(VP). The pace triggers another retrograde conduction and the feedback loop continues without interruption. The
+two cases may look exactly the same to a pacemaker, as highlighted by the gray region, causing ambiguity. In the
+appropriate case the heart rate is changing according to physiological needs, while in the inappropriate case the heart
+is xed to a fast rate.
+2.Physiological Variability: Physiological conditions
+and parameters demonstrate dierent levels of variabil-
+ity both within the individual at dierent times, lev-
+els of exertion and under the inuence of medication
+and also across individuals. For instance, a segment of
+the population may have additional conduction path-
+ways within their heart, which makes them vulnerable
+to certain heart diseases. Consequently, autonomous
+medical devices should be able to safely operate un-
+der a large variety of physiological conditions. This
+is dicult to guarantee, as the device designer must
+consider all possible physiological conditions (includ-
+ing rare conditions) during the design of the device.
+3.Limited Observability: Autonomous medical de-
+vices normally rely on minimally invasive measure-
+ment of the physiological parameters in order to al-
+low the patients to live their normal life. For example,
+implantable pacemakers and debrillators commonly
+have just two leads and therefore two points of obser-
+vation for the whole heart. The limited observability
+inevitably leads to ambiguities as dierent physiologi-
+cal conditions can map to the same input sequence to
+the device, resulting in inaccurate diagnosis.
+Consider the example in Fig. 2. The middle trace
+shows the events detected by the pacemaker: (a) Ven-
+tricular Sense (VS) indicates the pacemaker has de-
+tected a depolarization of the ventricles; (b) Atrial
+Sense (AS) indicates the pacemaker has detected a de-
+polarization of the atria; (c) Ventricular Pacing (VP)
+indicates the pacemaker has paced the heart in re-
+sponse to a perceived missing beat. This event trace
+can be generated in two dierent ways, one of which
+is healthy and the other unhealthy. The lower trace
+shows a healthy situation in which the electrical depo-larizations originate from the right atrium (detected
+as an AS by the pacemaker) but do not make it to
+the ventricles. The pacemaker paces the ventricles
+(indicated as VPs) after a programmed delay to main-
+tain heart rate. The heart rate in this situation is
+the normal one (e.g. 60bpm) as set by the heart's
+own pacemaker in the right atrium. The upper trace
+shows an unhealthy situation: a Premature Ventricu-
+lar Contraction (PVC) is transmitted to the atria via
+ventricle-to-atrium conduction and triggers an atrial
+contraction (AS). Even though the heart was oper-
+ating within the normal heart rate and does not re-
+quire pacing , the pacemaker paces the ventricles after
+a programmed delay, which again triggers ventricle-to-
+atrium conduction. This AS-VP pattern persists at a
+rate set by the implanted pacemaker itself and is higher
+than the normal heart rate. This condition is known
+as Endless Loop Tachycardia (ELT). As can be seen,
+the pacemaker cannot distinguish these two situations,
+causing inappropriate therapy.
+The capability of cardiac pacemakers to autonomously af-
+fect the physiological state of the patient makes it safety-
+critical, and sucient evidence for the software's safety and
+ecacy should be provided before these devices can be re-
+leased on the market. In particular, they are classied as a
+High Risk Device by the Food and Drug Administration in
+the U.S. Such autonomous medical devices increasingly rely
+on software, and device function and clinical performance
+can be aected by seemingly minor changes to software. The
+current form of closed-loop validation of medical devices is
+clinical trials, in which the devices are evaluated on a small
+group of patients before they can be released to the mar-
+ket. Clinical trials are costly to perform and revising device
+design at this late stage is very expensive.
+
+--- Page 3 ---
+1.2 Evaluating the Device Design with Formal
+Methods
+Formal methods such as model checking explore the en-
+tire state space of a model for property violations. Model
+checking can be used to evaluate the device design early
+in the development process. The safety and ecacy of au-
+tonomous medical devices have to be evaluated within their
+physiological context. We identify three challenges for devel-
+oping physiological models for closed-loop model checking of
+autonomous medical devices:
+1.Model Interpretability: How much detail should
+the physiological models have in order to unambigu-
+ously describe a physiological behavior? In particu-
+lar, if the model checker returns an execution trace as
+counter-example, how much detail should the physio-
+logical model have so that the execution traces can be
+interpreted by medical domain experts?
+2.Behavior Coverage: What approach must we use
+for physiological models to cover the large variability
+of human physiology? How can these models cover
+rare physiological cases and those that are unknown
+to us?
+3.Model Ambiguity: As seen in the ELT example,
+multiple physiological conditions can map to the same
+event trace due to the limited observability of the de-
+vice. How can we eliminate only the healthy execution
+from the model so that it would not cause a false-
+positive?
+1.3 The need for Domain Expertise with CE-
+GAR
+In previous work [10], we performed closed-loop model
+checking of an implantable pacemaker design in order to
+tackle the 3 challenges mentioned above.
+First, based on clinical electrophysiology, we developed a
+timed-automata [1] heart structure which models the electri-
+cal conduction and propagation. The model structure pro-
+vides sucient complexity to represent a variety of heart
+conditions, and the executions of the model output signals
+which are interpretable by medical domain experts.
+Next, over-approximation and non-determinism are used
+to create a Random Heart Model (RHM) that is able to pro-
+duce all possible input sequences to the pacemaker. Prop-
+erties satised under the RHM are satised under all heart
+conditions. However, the RHM also contains behaviors that
+are physiologically invalid which should not be considered
+as safety violations. For instance, in the ELT case, with
+the RHM the healthy execution is not distinguishable from
+ELT, which can potentially be returned as counter-example,
+causing a false-positive, or spurious counter-example .
+In order to eliminate behaviors which are not physiologi-
+cally relevant, a Counter-Example Guided Abstraction Re-
+nement (CEGAR) framework [3] was adopted. The closed-
+loop system including the RHM and the pacemaker model is
+rst veried against physiological properties in model checker
+UPPAAL. If the property is satised, the pacemaker model
+satises the property under all heart conditions. If a prop-
+erty is violated, an abstract counter-example is returned by
+the model checker. The counter-example is manually ex-
+amined for potential physiological invalid behaviors, and
+Heart
+Condition 2Heart
+Condition 3Heart
+Condition 1Abstraction 
+1.2Abstraction 
+1.1Abstraction 
+2.1
+Heart
+Condition x𝑅1𝑅1
+𝑅2Abstraction Tree of Heart Models
+Closed -loop
+Model Checking
+Abstraction
+Refinement
+Concretized counter -examples with 
+Physiological contextPhysicianBugs
+Pacemaker1 2
+3Figure 3: Automated Closed-loop Model Checking with
+Abstraction Tree
+all possible physiological conditions that can produce the
+counter-example to avoid false-positives.
+If ambiguities or invalid behaviors exist, the user must cre-
+ate a more rened heart model so that these false-positive
+behaviors are eliminated in the new model. The property
+is then veried again with the rened model and the pace-
+maker model, till there is no counter-example and the system
+is considered safe, or the counter-example is both physiolog-
+ically valid and unambiguously representing a safety viola-
+tion.
+For instance, in the ELT example in Fig. 2, the input-
+output sequence is returned as counter-example from the
+RHM. The distinction between the healthy execution and
+ELT is the direction of electrical conduction. By adding a
+conduction direction into the heart model, the ambiguity is
+resolved.
+Note also that in this process, domain expertise is required
+during 1) heart modeling, 2) manual model renement, and
+3) checking the physiological validity of counter-examples
+returned by the model checker. While domain expertise
+will always be required when building a model of any phe-
+nomenon, it is desirable to minimize the need for it in the
+verication process itself as this opens up opportunities for
+future automation.
+Thus the previous work left the following questions open:
+How can a variety of cardiac conditions be modeled in
+an ecient manner and yet not require manual rene-
+ment and analysis of counter-examples?
+How can heart models be built in such a way that the
+subsequent model checking procedure does not require
+domain expertise?
+1.4 Automated Model Checking with Abstrac-
+tion Tree
+The contributions of this eort are to automate the man-
+ual counter-example analysis and model renement approach.
+The details of the method are provided in the following sec-
+tions while a brief overview is presented here.
+We start out with a set of heart models covering dierent
+conditions such as atrial utter, bradycardia, etc. However,
+having multiple models is not sucient to cover all relevant
+behaviors that might be produced by a heart, not to men-
+tion possible combinations of several conditions. Thus, we
+develop abstraction rules that automatically add new be-
+havior to a given model. The key point is that the rules
+are designed such that the new behavior is mostly physi-
+ologically valid, that is, it might actually be produced by
+a human heart. Thus a counter-example found only in an
+
+--- Page 4 ---
+Figure 4: Electrical signal generated by the sino-atrial
+(SA) node which propagates throughout the heart. Note
+the dierent signal morphology and conduction delays
+between dierent locations of the heart [6]
+abstracted model (but not in the more concrete one) is not
+automatically considered to be \spurious" the way it is in
+traditional abstraction/renement frameworks. By apply-
+ing these rules to the various initial models and in dierent
+sequences, a tree of models is obtained, each of which are
+related by abstraction/renement relations. This is referred
+to as an Abstraction Tree (see Fig. 7 for an illustration).
+Model checking proceeds from the root of the tree (which
+is the most abstract model) to its leaves. If the pacemaker
+model is found to satisfy the physiological property, model
+checking stops. If a counter-example is found, verication
+proceeds to the model's children and so on, till it reaches
+the leaves or a child-model is found to satisfy the property.
+See Fig. 3. This constitutes a form of automatic renement,
+but over a tree of models. The most concrete model still
+evidence a counter-example is then analyzed to determine
+whether the counter-example is physiologically valid or not.
+In this procedure, domain expertise is needed only when
+building the initial set of models and physiological abstrac-
+tion rules. Constructing the more abstract and behavior-rich
+models, model checking, and renement are automated.
+The abstraction tree approach achieves the following im-
+provements over the manual CEGAR framework in [10]:
+Property specication: In previous work [10], fairly
+constrained properties have to be specied that de-
+scribed specic ways in which an unhealthy condition
+might develop. This was done to avoid a large num-
+ber of spurious or irrelevant counter-examples. In the
+abstraction tree approach, this is no longer a concern
+since ambiguities can be resolved by automatically re-
+ning the counter-examples. Therefore the properties
+can be more general, which increases the probability
+to identify unknown safety violations.
+Counter-example Analysis : Counter-examples re-
+turned from an abstract model are dicult to analyze
+because of the lack of physiological context. In this
+case, the abstraction tree provides the most concrete
+counter-example as guidance for checking validity and
+possible renements, which is a huge improvement over
+the manual process in [10].
+The paper is organized as follows: Section 2 introduces a
+dual chamber pacemaker design and the physiological prop-
+erties that should be satised. Section 3 introduces the
+timed-automata heart model structure that can be used to
+
+
+
+Figure 5: Basic timers for a dual chamber pacemaker.
+AS: Atrial Sense, VS: Ventricular Sense, AP: Atrial Pac-
+ing, VP: Ventricular Pacing.
+model dierent heart conditions. Section 4 discusses the
+construction of an abstraction tree by applying a set of phys-
+iological rules on an initial set of heart models. Section 5
+is a case study in which the abstraction tree of heart mod-
+els is used for automated closed-loop model checking of an
+implantable pacemaker design.
+2. IMPLANTABLE PACEMAKER
+This section rst introduces a physiological basis for im-
+plantable pacemakers. Next, a dual chamber pacemaker de-
+sign is provided that is to be validated with model checking.
+2.1 Electrophysiology Basics
+A healthy heart generates periodic electrical impulses with
+specialized tissue called SA node to control heart rates ac-
+cording to physiological needs. These impulses propagate
+through the heart, triggering coordinated muscle contrac-
+tions, and pump blood to the rest of the body. Fig. 4 shows
+how electrical impulse generated by the SA node propagates
+throughout the heart and triggers electrical activities at dif-
+ferent locations of the heart. The underlying pattern and
+timing of these impulses determine the heart's rhythm and
+are the key to proper heart functions. Derangements in
+this rhythm are referred to as arrhythmia , which impair the
+heart's ability to pump blood and compromise the patients'
+health. Arrhythmias are categorized into so-called Tachy-
+cardia and Bradycardia. Tachycardia features undesirable
+fast heart rate which results in inecient blood pumping.
+Bradycardia features slow heart rate which results in in-
+sucient blood supply. Dierent heart conditions can be
+distinguished by the timing of the electrical conduction and
+thetopology of the electrical conduction system of the heart,
+which are researched in clinical setting referred to as Elec-
+trophysiology (EP) [11].
+2.2 Model of a Dual Chamber Pacemaker
+A dual chamber pacemaker has two leads, one anchored to
+right atrium and the other to the right ventricle. The leads
+are able to sense electrical activities of local tissue, which
+is referred to as intra-cadiac electrogram (EGM). When the
+voltage exceed a pre-programmed threshold, the pacemaker
+will register a sensed event (AS, VS). Heart conditions are in-
+ferred from the temporal relationship between sensed events,
+and the pacemaker can deliver electrical pacing (AP, VP)
+through the leads to trigger heart contraction if the heart
+rate is low.
+
+--- Page 5 ---
+A dual chamber pacemaker has several basic timers that
+are shown in Fig. 5:
+Atrial Escape Interval (AEI) denes the maximum in-
+terval between the most recent ventricular event (VS,VP) to
+an atrial event (AS,AP). If no AS happened before the AEI
+timer expires, atrial pacing (AP) is delivered to the heart
+(Marker 1 in Fig. 5).
+Atrio-Ventricular Interval (AVI) denes the maximum
+interval between the most recent atrial event (AS,AP) to a
+ventricular event (VS,VP). If no VS happened before the
+AVI timer expires, and the time since the most recent ven-
+tricular event (VS,VP) is no less than URI, ventricular pac-
+ing (VP) is delivered to the heart (Marker 3 in Fig. 5).
+Post-Ventricular Atrial Refractory Period (PVARP)
+and Ventricular Refractory Period (VRP) dene the
+minimum period that an AS or VS can happen since the
+most recent ventricular event (VS,VP).
+The pacemaker operates according to the timing among
+discrete events, therefore can be intuitively modeled as timed
+automata [1]. The detailed UPPAAL timed automata im-
+plementation of the pacemaker design can be found in [10].
+2.3 Physiological Requirements
+A dual chamber pacemaker is designed to increase the
+heart rate during bradycardia, but it should also not increase
+the heart rate inappropriately. Inappropriate increase of
+heart rate by the pacemaker is referred to as Pacemaker Me-
+diated Tachycardia (PMT) . Previous work [10] used model
+checking to identify two known PMT conditions. However,
+in order to avoid ambiguities in the counter-examples, the
+properties for the two PMTs were specied very specically,
+which abandoned the advantage of model checking to nd
+unknown safety violations.
+With the abstraction tree approach, the ambiguities can
+potentially be resolved since the abstraction tree consid-
+ers all known heart conditions. Therefore the property for
+PMTs can be specied more generally. In this paper, we
+specify a property such that
+Property 1: The interval between ventricular events (Vget,
+VP) should not be shorter than TURI for 30 consecutive
+beats
+which means that the ventricular rate should not be faster
+than the upper rate interval (TURI) for too long, either
+intrinsically or because of pacemaker interaction. Counter-
+example because of intrinsic fast ventricular rates can be re-
+moved from results after analysis from the abstraction tree.
+A UPPAAL monitor Mconfor the property is shown in
+Fig. 6, and the TCTL property is specied as:
+A[] not Mcon.err
+Figure 6: UPPAAL monitor for Property 13. HEART MODELING FOR CLOSED-LOOP
+MODEL-CHECKING OF IMPLANTABLE
+PACEMAKER
+A pacemaker design should be able to satisfy safety prop-
+erties under all possible heart conditions. In closed-loop
+model checking of implantable pacemaker, behaviors of these
+heart conditions must be covered by models of the heart.
+3.1 Related Works
+Electrical properties of the heart have been studied and
+models have been developed at dierent levels. Cellular
+models ([15]) have been developed and by combining these
+cellular models with the structural models, the electrical ac-
+tivities of the whole heart are studied, especially the mecha-
+nism of dierent arrhythmia ([17], [4], [13]). Intrinsic heart
+rate variability has been modeled to synthesize optimal con-
+trol of pacemaker pacing. ([2]) Abstraction of the electri-
+cal cellular model has also been attempted by [7] to reduce
+model complexity without sacricing accuracy. The electri-
+cal properties and the mechanical properties of the heart are
+closely coupled. Models combining both of these aspects are
+also developed to study the eects of dierent arrhythmia
+on cardiac outputs ([17], [14]).
+The aforementioned models were developed for under-
+standing the physiological behaviors. In the application of
+closed-loop model checking of implantable pacemakers, the
+heart models should not only provide behavior coverage in
+terms of device inputs, but also be able to provide physio-
+logical context to the execution. The physiological context
+will not only resolve ambiguities caused by abstract counter-
+examples, but also provide interpretability for domain ex-
+perts.
+3.2 Electro-Physiology Heart Model Structure
+The pacemaker under study only has two leads into the
+heart and only uses onset of electrical activities for decision
+making. The limited observability can be exploited and su-
+peruous detail ignored during modeling. In previous work
+[10] a timed automata heart model structure has been devel-
+oped that models the generation and conduction of electrical
+events throughout the heart. With non-determinism , the
+heart models can cover behaviors of large varieties of heart
+conditions. By doing so the heart models sacrice accuracy
+for coverage, and may include behaviors that are physiolog-
+ically invalid. Fortunately, these invalid behaviors are only
+relevant when they are returned as counter-examples to cer-
+tain property. The physicians are the nal judges for the
+validity of the counter-examples.
+At cellular level, heart tissue can be activated by an ex-
+ternal voltage. Certain tissues also has the capability to
+self-activate, which contributes to natural heart beats. Once
+activated (Marker 1 in Fig. 7), the voltage outside the tissue
+changes over time, which is referred to as Action Potential
+(Fig. 7(a)). The action potential can be divided into two
+functional timing periods: The Eective Refractory Period
+(ERP) , during which the tissue cannot be triggered by an-
+other activation; and the Rest period, during which the tis-
+sue can be activated and at the end of which the tissue will
+self-activate. The timing behaviors of the action potential
+are modeled as node automaton (Fig. 7(b)).
+Anode automaton initializes with the Rest state. From
+theRest state, the node can either self-activate or be acti-
+
+--- Page 6 ---
+Retro
+t<=Tcond_maxAnte
+t<=Tcond_maxIdle
+t>Tcond_min
+Act_node_1!t>Tcond_min
+Act_node_2!Act_path_1? Act_path_2?Act_path_2?
+t=0Act_path_1?
+t=0ERP
+t<=Terp_maxtempRest
+t<=Trest_maxt>Trest_min
+t=0
+t>Terp_min
+t=0
+Act_path!Act_node?
+t=0Refractory  
+Time Vout 
+ERP   Rest Rest  
+ERP   Rest Rest  (b) Node Automaton N0
+(c) Path Automaton P0SALA
+(d) Graph of timed automata
+(a)12
+RAAVHis
+RV
+RVALVALVFigure 7: Node and Path Automata which models the
+timing properties of the heart tissue. A network of node
+and path automata models the generation and conduc-
+tion of electrical activities of a heart
+vated by external activations (indicated by Act node). Upon
+activation the node transitions to the ERP state and acti-
+vates all the paths connecting to the node (indicated by
+Actpath). In the ERP state the node does not respond to
+external activations. At the end of the ERP state the node
+transition to the Rest state. The duration a node automa-
+ton can stay in the Rest state is in the range [ Trest min;
+Trest max], and the duration it can stay in ERP is in the
+range [ Terp min; Terp max]. For heart tissue without the
+capability to self-activate, the parameters Trest min and
+Trest max are set to1.Trest andTerp are referred to as
+parameters of the node automaton.
+The voltage change of the heart tissue will activate the
+tissue nearby with certain delay (Marker 2 in Fig. 7). This
+timing delay between heart tissue is modeled using path au-
+tomata Ae(Fig. 7(c)). The initial state of a path automa-
+tonisIdle, which corresponds to no conduction. A path has
+two conduction directions, forward and backward. These are
+represented by the states Ante andRetro , named after their
+standard physiological terms Antegrade and Retrograde. If
+Actpath event is received from one of the nodes (1 or 2) con-
+nected to the path, the transition to Ante orRetro will occur
+in the path automaton. At the end of Ante andRetro the
+path will transition to Idleand send Act node signal to the
+node automaton connected to the other end of the path (2
+or 1). The spatial and temporal properties of a given human
+heart condition can be modeled by a network of node and
+path automata with dierent parameters (i.e., Fig. 7(d)).
+To interact with the pacemaker, the Act path events in
+node SA and RVA correspond to the inputs to the atrial
+and ventricular channel, respectively. The atrial and ven-
+tricular pacing (AP and VP) from the pacemaker will trigger
+Actnode events in node SA and RVA.
+4. ABSTRACTION TREE OF HEART MOD-
+ELS
+The ideal heart model for closed-loop model checking of
+an implantable pacemaker not only covers all possible inputs
+to the pacemaker, but also has physiological explanations to
+all known heart conditions. However, no single heart model
+can satisfy both requirements. Therefore, a set of heart mod-
+els must be employed where the dierent abstraction levels
+of the models strike a balance between coverage and expres-
+siveness. More importantly, the heart models should have
+rigorous relationships among each other to provide formalguarantees.
+In this section we present the abstraction tree framework
+that maintains formal Timed Simulation relationships be-
+tween heart models and enables automated closed-loop model
+checking of implantable pacemaker.
+4.1 Initial Set of Heart Models
+The heart model structure described in the previous sec-
+tion is based on clinical electrophysiology, with state vari-
+ables and parameters directly corresponding to physiological
+parameters. Therefore, domain experts from clinical electro-
+physiology can construct models of dierent heart conditions
+with their domain expertise and literature.
+An example set of initial heart models is shown in Fig. 8.
+The dierent topologies of node and path automata repre-
+sent the mechanism of dierent heart diseases. These heart
+models represent the current knowledge for heart condition
+variability, thus the set is inherintly incomplete, meaning
+there is no guarantee for 100% safety even if a property is
+satised in all of these models. These models are mostly used
+for providing physiological contexts for counter-examples re-
+turned by the model checker. Domain experts can always
+expand the set with knowledge of new heart conditions.
+Normal Sinus
+RhythmBradycardiaAtrial
+FlutterAVNRT
+Atrial
+FibrillationPVCVentricular
+TachycardiaVentricular
+Fibrillation
+Figure 8: Examples of the initial set of heart mod-
+els. The models are dierent in node and path topology
+and/or timing parameters.
+4.2 Physiological Abstraction Rules
+The initial set of heart models only represents a subset of
+all possible conditions. There always exists conditions that
+beyond our knowledge or that are combinations of known
+conditions. By using over-approximation , heart models can
+be created that cover the observable behaviors of the initial
+set and that introduce behaviors that were not captured in
+the initial set. Inevitably, some of the introduced behaviors
+will be physiologically invalid. This problem can be alle-
+viated by carefully designing the abstraction rules so that
+behaviors introduced are mostly physiologically valid. The
+physiologically invalid behaviors can be eliminated during a
+validity check in the abstraction tree.
+Physiological abstraction rules are developed to cover ob-
+servable behaviors of heart models. Applying one abstrac-
+tion rule to heart model(s) H1; Hi: : : H n; n1 yields an
+abstract heart model H0such that all observable behaviors
+ofHiare covered by H0. For each heart model Hi,H0is a
+timed simulation ofHi. To illustrate, a subset of abstraction
+rules is described intuitively. The complete set of abstrac-
+tion rules and the proofs of timed simulation relationship
+can be found in the tech report [8].
+
+--- Page 7 ---
+4.2.1 Rule R1: Convert Reentry Circuits to Activa-
+tion Nodes
+Within the conduction network of the heart, there can
+be multiple pathways between two locations, forming con-
+duction loops. If the timing parameters of the tissue along
+the loop satisfy certain properties, there can be scenarios in
+which a depolarization wave circling along the circuit. The
+circuits are referred to as Reentry Circuits . Since the time
+interval for an activation wave to circle a reentry circuit is
+usually less than the intrinsic heart cycle length, the heart
+rate will be "`hijacked"' by the reentry circuit once the cy-
+cling is triggered, causing tachycardia. Reentry is the most
+common mechanism for tachycardia, which can be captured
+by our heart models that are used in [9].
+The eect of reentry tachycardia is that activation signals
+coming out of the circuit with a given cycle length equal
+the sum of conduction delays along the circuit. It is there-
+fore reasonable to model a reentry circuit as a self-activation
+node with the self-activation range equal to the sum of con-
+duction delays.
+Applicable Condition: The rule only aects the topol-
+ogy of the model, and therefore can be applied without pre-
+liminaries.
+Output model: The "essential structure" of a heart model
+is the shortest paths (in terms of conduction delay) connect-
+ing self-activation nodes and/or sensing nodes. First detect
+all circles in the input graph. For each circle with nodes
+Ni; i2[1: : : n] and paths Pj; j2[1: : : m ], remove all "non-
+essential" nodes and paths, create a node automaton Nsand
+connect to the nearest sensing node with a path automaton
+Ps.
+Eect on parameters: For the new node automaton Ns,
+the minimum of the Trest parameter is set to the minimum
+of the sum of the conduction delays within the reentry cir-
+cuit, and the maximum is set to innity
+Eect on behaviors: The new model captures the behav-
+ior of the original model when the reentry circuit is active
+and inactive. Additionally, the new model captures the be-
+haviors of other heart conditions in which the rate of the
+reentry circuit is lower.
+Fig. 9 shows an example in which a circle is replaced by a
+self-activation node.
+R1
+Figure 9: Rule 1: Remove reentry circuits from the
+model
+4.2.2 Rule R2: Remove Irrelevant Structures
+After the circles within the topology are removed, the
+topology of the heart model is in the form of a tree. Since
+the "non-essential"structures do not aect the activation sig-
+nals from and/or to the sensing nodes, all the "non-essential"
+structures can be removed.
+Applicable Conditions: The rule can only be applied af-
+ter Rule 1 has been applied.
+Output model: Trimmed topology with only the essen-
+tial structure remaining.
+Eects on parameters: There are no eects on param-
+eters of the node and path automata.
+Eects on behaviors: Applying this rule does not aect
+the observable behaviors of the model.Fig. 11 shows an example in which non-essential structures
+are removed.
+R2
+Figure 11: Rule 2: Remove non-essential structures
+4.2.3 Rule R4: Merge Parameter Ranges
+Timing periods of heart tissue, such as Rest and ERP, are
+modeled as locations in the node and path automata. The
+minimum and maximum time an automaton can remain in
+a location is governed by the parameters in the guards and
+invariants. By merging and expanding these periods, new
+behaviors are introduced where a heart model may remain
+longer in Rest, activate or self-activate a node faster, and-
+soforth.
+Applicable Conditions: This rule applies to heart mod-
+els with the same node and path topology but possibly with
+dierent parameters.
+Output Model: The abstract model has the same topol-
+ogy as the original models.
+Eects on parameters: The parameter ranges in the new
+model are a super-set of the parameter ranges in the old
+models.
+Eects on behaviors: The abstract model captures all
+behaviors of the original models. In addition, heart condi-
+tions with parameters outside of the ranges of the original
+models are covered.
+SA.Trest =[a1,b1]
+SA.Trest =[a2,b2]
+SA.Trest =[a3,b3]SA.Trest =[min(a1,a2,a3),max(b1,b2,b3)]
+R4
+Figure 12: Rule 4: Merging parameter ranges
+4.3 Abstraction Tree
+By applying the abstraction rules to the initial set of heart
+models, an abstraction tree is created. Fig. 10 shows an
+example of an abstraction tree with the root model cap-
+turing all possible input sequences to the pacemaker. Self-
+activating nodes are marked as red and the Trest parameters
+are specied next to them. Note that this abstraction tree
+is not unique. With a dierent initial set of heart mod-
+els and/or dierent rule application orders the abstraction
+tree can be very dierent. The abstraction tree can also
+be extended at any time if new heart conditions are spec-
+ied. The following section demonstrates the use of this
+abstraction tree during the closed-loop model checking of
+the pacemaker design.
+5. CASE STUDY: CLOSED-LOOP MODEL
+CHECKING OF IMPLANTABLE PACE-
+MAKER
+
+--- Page 8 ---
+H0[20,2000]
+[20,2000]
+H1[200,2000]
+[200,2000][200,300]
+[1000,2000][1000,2000]
+[1000,2000]
+[200,2000][200,300]
+[1000,2000][1000,2000]
+[1000,2000]
+[200,2000]
+[1000,2000]
+[200,2000]H2_1
+H2_2
+H2_3
+H2_4H3_1
+H3_2
+H3_3
+H3_4 H4_4R7R4
+R4
+R4
+R4R3
+R3
+R5 R3
+[400,2000] [400,2000]
+H2_5 H3_5R3R4[1000,2000]
+[200,2000]
+[1000,2000]
+H5_4
+[400,2000]
+H4_5[1000,2000]
+H4_1
+[200,300]
+H4_2[1000,2000]
+[200,300]
+H5_2[1000,2000]
+[1000,2000]
+[200,2000]R3R2
+R2
+R2
+R2
+R2R5R5 [1000,2000]
+R1
+[1000,2000]
+R1
+H4_3 H5_3H6_2
+H6_3Normal
+Sinus
+Rhythm
+Atrial
+Flutter
+Ventricular
+Tachycardia
+Premature
+Ventricular
+Contraction
+Sinus
+TachycardiaFigure 10: One example of abstraction tree of heart models
+The model checker UPPAAL[12] was used to check Prop-
+erty 1 on the pacemaker model using the abstraction tree
+of heart models. The property is violated in H0jjPM, thus
+thus the abstraction tree is followed to select pair H1 with
+the pacemaker model and Property 1 is veried again. The
+process continues till either the leaves of the tree are reached
+of the property is satised. The result is shown in Fig. 13,
+which demonstrates 5 dierent scenarios that can happen
+when using the abstraction tree. The shaded area marks
+the heart models with counter-examples.
+Case 1: Property 1 is violated in H21jjPM but is sat-
+ised in its children H31jjPM. Careful examination of the
+counterexample nds it to be spurious and so it is success-
+fully eliminated by model renement.
+Case 2: CE afis returned by H32jjPM and corresponds
+to intrinsic atrial tachycardia with fast atrial rate, which is
+a sub-optimal but non-lethal condition. The AV node of the
+heart will block a subset of the electrical events and maintain
+a normal ventricular rate. However, despite the lters in the
+pacemaker, the pacemaker still paces the ventricle for every
+3 atrial activations, which extends fast atrial rate to more
+dangerous fast ventricular rate. The condition is referred
+to as Atrial Tachycardia Response in which the ventricular
+rate is increased inappropriately, thus requires revision of
+the pacemaker design.
+Case 3: CE vtis returned by H33jjPM and corresponds
+to intrinsic ventricular tachycardia with fast ventricular rate.
+The counter-example is physiologically valid but the fast
+ventricular rate is due to the heart itself and is beyond
+pacemaker functionality. Therefore this scenario demands
+no revision of the pacemaker design.
+Case 4: CE stis returned by H35jjPM and corresponds
+to sinus tachycardia, for instance, when the patient is exer-
+cising. The pacemaker improved the open-loop heart con-
+dition by pacing the ventricles AV I after each atrial event,
+which is a correct operation of the pacemaker despite the
+requirement violation.Case 5: CE pvcis returned by H44jjPM and has a very
+similar input-output relationship to CE n. However, the ac-
+tivations of the atrial node are triggered by retrograde con-
+duction from ventricular paces (marker cond). The atrial ac-
+tivations trigger another ventricular pace after AV I, which
+will trigger another retrograde conduction. In this case the
+heart rate is inappropriately high, which corresponds to a
+dangerous closed-loop behavior referred to as Endless Loop
+Tachycardia .
+From the above result, it can be seen that abstraction
+tree is able to 1) rene a heart model to eliminate spurious
+counter-examples as in Case 1; 2) provide (multiple) phys-
+iological explanations to a counter-example as in Case 2-5;
+and 3) resolve ambiguities caused by abstraction as in Case
+4 and 5.
+6. CONCLUSION
+This paper demonstrated the use of an abstraction tree
+to automate the abstraction and renement of heart models
+during closed-loop model checking of implantable pacemak-
+ers. Similar approaches can potentially be used for other
+autonomous medical devices to promote the use of model
+checking and formal methods during the development and
+certication of medical devices.
+References
+[1] R. Alur and D. L. Dill. A Theory of Timed Automata.
+Theoretical Computer Science , 126:183{235, 1994.
+[2] P. Bogdan, S. Jain, and R. Marculescu. Pacemaker con-
+trol of heart rate variability: A cyber physical system
+perspective. ACM Transactions on Embedded Comput-
+ing Systems , 12(1s):50:1{50:22, 2013.
+[3] E. Clarke, O. Grumberg, S. Jha, Y. Lu, and H. Veith.
+Counter Example-Guided Abstraction Renement for
+Symbolic Model Checking. J. ACM , 50(5):752{794,
+2003.
+
+--- Page 9 ---
+H0[20,2000]
+[20,2000]
+H1[200,2000]
+[200,2000][200,300]
+[1000,2000]
+[1000,2000][1000,2000]
+[1000,2000]
+[200,2000][200,300]
+[1000,2000]
+[1000,2000][1000,2000]
+[1000,2000]
+[200,2000]
+[1000,2000]
+[200,2000]AVI AVI AVI
+VP VP VP<500
+𝐂𝐄𝐚𝐟Heart
+Pacemaker
+PVCAV
+IAVI AVI AVI
+<500
+VP VP VPcond cond cond
+𝐂𝐄𝑷𝑽𝑪Heart
+PacemakerVS𝐂𝐄𝒗𝒕Heart
+Pacemaker
+VSVSVSVSVSH2_1
+H2_2
+H2_3
+H2_4H3_1
+H3_2
+H3_3
+H3_4 H4_4R7R4
+R4
+R4
+R4R3
+R3
+R3
+R5 R3
+AV
+IAVI AVI AVI
+<500
+VP VP VP 𝐂𝐄𝒔𝒕Heart
+Pacemaker[400,2000 ] [400,2000 ]
+H2_5 H3_5R3R4Figure 13: Four dierent physiological conditions in which Property 1 is violated. In CEafthe pacemaker extends
+a fast atrial rate to a dangerously fast ventricular rate; in CEvtthe ventricular rate is intrinsically fast; in CEstthe
+pacemaker appropriately maintained A-V conduction delay; in CEpvcthe pacemaker inappropriately increased the
+ventricular rate, causing Endless Loop Tachycardia
+[4] R. Grosu, G. Batt, F. H. Fenton, J. Glimm, C. Le Guer-
+nic, S. Smolka, and E. Bartocci. From cardiac cells to
+genetic regulatory networks. In Computer Aided Veri-
+cation , volume 6806 of Lecture Notes in Computer Sci-
+ence, pages 396{411. Springer Berlin Heidelberg, 2011.
+[5] R. G. Hauser and B. J. Maron. "lessons from the
+failure and recall of an implantable cardioverter-
+debrillator". "American Heart Association, Circula-
+tion" , pages 2040{2042, 2005.
+[6] Ihor Gussak and Charles Antzelevitch and Arthur A.M.
+Wilde and Brian D. Powell and Michael J. Ackerman
+and Win-Kuang Shen. Electrical Diseases of the Heart:
+Volume 1: Basic Foundations and Primary Electrical
+Diseases . Springer, 2013.
+[7] M. A. Islam, A. Murthy, A. Girard, S. A. Smolka, and
+R. Grosu. Compositionality results for cardiac cell dy-
+namics. In Proceedings of the 17th International Con-
+ference on Hybrid Systems: Computation and Control ,
+(HSCC '14), pages 243{252, 2014.
+[8] Z. Jiang, H. Abbas, P. Mosterman, and R. Mang-
+haram. Abstraction-Tree For Closed-loop Model
+Checking of Medical Devices. Tech Report:
+http://repository.upenn.edu/mlab papers/73 , 2015.
+[9] Z. Jiang, A. Connolly, and R. Mangharam. Using the
+Virtual Heart Model to Validate the Mode-Switch Pace-
+maker Operation. IEEE Engineering in Medicine and
+Biology Society , pages 6690 {6693, 2010.
+[10] Z. Jiang, M. Pajic, R. Alur, and R. Mangharam.
+Closed-loop verication of medical devices with model
+abstraction and renement. International Journal onSoftware Tools for Technology Transfer , pages 1{23,
+2013.
+[11] M. Josephson. Clinical Cardiac Electrophysiology . Lip-
+pincot Williams and Wilkins, 2008.
+[12] K. Larsen, P. Pettersson, and W. Yi. Uppaal in a Nut-
+shell. International Journal on Software Tools for Tech-
+nology Transfer (STTT) , 1997.
+[13] A. Murthy, E. Bartocci, F. H. Fenton, J. Glimm, R. A.
+Gray, E. M. Cherry, S. A. Smolka, and R. Grosu.
+Curvature analysis of cardiac excitation wavefronts.
+IEEE/ACM Transactions on Computational Biology
+and Bioinformatics , 10(2):323{336, 2013.
+[14] S. Rossi, R. Ruiz-Baier, L. F. Pavarino, and A. Quar-
+teroni. Active strain and activation models in cardiac
+electromechanics. Proceedings in Applied Mathematics
+and Mechanics (PAMM) , 11(1):119{120, 2011.
+[15] F. B. Sachse, A. P. Moreno, and J. A. Abildskov. Elec-
+trophysiological modeling of broblasts and their inter-
+action with myocytes. Annals of Biomedical Engineer-
+ing, 36(1):41{56, 2008.
+[16] K. Sandler, L. Ohrstrom, and R. McVay. Killed by
+Code: Software Transparency in Implantable Medical
+Devices. Software Freedom Law Center , 2010.
+[17] N. A. Trayanova and P. M. Boyle. Advances in modeling
+ventricular arrhythmias: from mechanisms to the clinic.
+Wiley Interdisciplinary Reviews: Systems Biology and
+Medicine , 6(2):209{224, 2014.

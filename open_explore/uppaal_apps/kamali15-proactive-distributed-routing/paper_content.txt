@@ -1,0 +1,662 @@
+--- Page 1 ---
+Formal Analysis of Proactive, Distributed
+Routing
+Mojgan Kamali1, Peter H¨ ofner2,3, Maryam Kamali4, and Luigia Petre1
+1˚Abo Akademi University, Finland
+2NICTA, Australia
+3University of New South Wales, Australia
+4University of Liverpool, UK
+Abstract. As (network) software is such an omnipresent component of
+contemporary mission-critical systems, formal analysis is requi red to pro-
+videthe necessarycertiﬁcationoratleastformal assurancesfor t hesesys-
+tems. In this paper we focus on modelling and analysing the Opt imised
+Link State Routing (OLSR) protocol, a distributed, proactive ro uting
+protocol. It is recognised as one of the standard ad-hoc routing p rotocols
+for Wireless Mesh Networks (WMNs). WMNs are instrumental in crit-
+ical systems, such as emergency response networks and smart elec trical
+grids. We use the model checker Uppaal for analysing safety prope rties
+of OLSR as well as to point out a case of OLSR malfunctioning.
+1 Introduction
+Routing is at the centre of network communication, which in turn, is p art of
+the backbone for numerous safety-critical systems. Examples are net works for
+telecommunicationsystems,foremergencyresponse,orforelectric alsmartgrids.
+In these and other examples, the communication is often truly distri buted, with-
+outdependingonanycentralentity(router)forcoordination.Anotheri mportant
+characteristics of these networks is that the network topology can change: in the
+case of emergency networks nodes might just fail; in case of telecommun ication
+systems nodes such as laptops and mobile phones can move within the ne twork,
+and even enter or leave a network. In this paper we focus on distribu ted routing
+mechanisms in such wireless networks; due to their wide-spread usage in critical
+systems, we aim at a formal model, which paves the way for a formal analys is.
+A routing protocol enables node communication in a network by dissemi -
+nating information enabling the selection of routes. In this way, nod es are able
+to send data packets to arbitrary (previously unknown) destination s in the net-
+work. Shortcomings in the routing protocol immediately decrease the p erfor-
+mance and reliability of the entire network. Due to the possibility of topology
+changes information has to constantly be updated to maintain the latest rou ting
+information within the network. In this paper we focus on such self- organising
+wireless multi-hop networks which provide support for communicat ion without
+relying on a wired infrastructure. They bear the beneﬁt of rapid and low-cost
+network deployment. The Optimised Link State Routing (OLSR) proto col [4], a
+proactive routing protocol, is identiﬁed as one of the standard routing p rotocol
+
+--- Page 2 ---
+for Wireless Mesh Networks (WMNs) by the IETF MANET working group.5
+By distributing control messages throughout the network, proactive pr otocols
+maintain a list of all destinations together with routes to them.
+Traditionally, common methods used to evaluate and validate network pro-
+tocols are test-bed experiments and simulation in ‘living lab’ cond itions. Such
+an analysis is usually limited to very few topologies [7]. In such exper iments not
+only the routing protocol is simulated, but also all other layers of the network
+stack. When a shortcoming is found, it is therefore often unclear whe ther the
+limitation is a consequence of the routing protocol chosen, or of another l ayer,
+such as the underlying link layer. In this paper, we abstract from t he underly-
+ing link layer; hence a shortcoming found is deﬁnitely a problem of the routing
+protocol.
+Another problem with speciﬁcations in general and with the descripti on of
+OLSR in particular is that speciﬁcations are usually given in English pr ose.
+Although this makes them easy to understand, it is well known that te xtual
+descriptionscontainambiguities,contradictionsandoftenlackspeci ﬁcdetails.As
+a consequence, this might yield diﬀerent interpretations of the s ame speciﬁcation
+and to diﬀerent implementations [9]. In the worst case, implementat ions of the
+same routing protocol are incompatible.
+One approach to address these problems is using formal methods in gene ral
+and model checking in particular. Formal methods provide valuable t ools for the
+design, evaluation, and veriﬁcation of WMN routing protocols; they compl ement
+alternatives such as test-bed experiments and simulation. These m ethods have
+a great potential on improving the correctness and precision of design an d de-
+velopment, as they produce reliable results. Formal methods allow the formal
+speciﬁcation of routing protocols and the veriﬁcation of the desired be haviour
+by applying mathematics and logics [3]. In this way, stronger and more gene ral
+assurances about protocol behaviour can be achieved.
+In this paper we present a concise and unambiguous model for the OLSR
+protocol. The model is based on extended timed automata as they are used by
+themodelcheckerUppaal.Asaconsequencewereportalsoonresultsofap plying
+model checking techniques to explore the behaviour of OLSR. Mode l checking
+(e.g. [3]) is a powerful approach used for validating key correctness p roperties in
+ﬁnite representations of a formal system model.
+The paper is structured as follows: in Section 2, we overview the OLS R
+protocol and in Section 3 we shortly discuss the Uppaal model of OLSR based
+on RFC 3626 [4]. Section 4 is the core of our paper where we present the resu lts
+of our analysis. We review related work in Section 5 and propose future re search
+directions in Section 6.
+2 Optimized Link State Routing—An Overview
+The Optimised Link State Routing (OLSR) protocol [4] is a proactive rout ing
+protocol particularly designed for Wireless Mesh Networks (WMNs) and M obile
+5http://datatracker.ietf.org/wg/manet/charter/
+
+--- Page 3 ---
+Ad hoc Networks (MANETs). The proactive nature of OLSR implies the beneﬁ t
+of having the routes available at time needed. The underlying mech anism of this
+protocol consists in the periodic exchange of messages to establish rou tes to pre-
+viously unknown destinations, and to update routing information about k nown
+destinations. OLSR works in a completely distributed manner withou t depend-
+ing on any central entity. The protocol minimises ﬂooding of control m essages
+in the network by selecting so-called Multipoint Relays (MPRs). Informally, an
+MPR takes over the communication for a set of nodes that are one-hop neigh-
+bours of this node; these one-hop neighbours receive all the routing i nformation
+from the MRPs and hence do not need to send and receive routing inform ation
+from other parts of the network.
+Nodes running OLSR are not restricted to any kind of start-up synchron i-
+sation. Every node broadcasts a HELLO message every 2 seconds and detects
+its direct neighbour nodes by receiving these messages. Since HELLO messages
+contain information about all one-hop neighbours of the originator, receiving
+nodes can establish routes to their two-hop neighbours, too. HELLO message s
+traverse only one wireless link (a single hop), and are not forwarded by any node.
+After receiving HELLO messages from direct neighbours, every node sel ects
+a particular one-hop neighbour, its MPR, and selected MPRs are aware of t hose
+nodes that have selected them as an MPR. MPRs broadcast Topology Control
+(TC) messages every 5 seconds to build and update topological information.
+These messages are retransmitted (forwarded) through the entire net work by
+MPRs. This means that if a node is not an MPR and receives TC messages, i t
+processes those messages, but will not forward them. Every TC message contains
+the routing information provided by the originator. While receiving control mes-
+sages from other nodes, every node updates its routing table according to the
+information received. After broadcasting and forwarding control messages via
+nodes, routes to all reachable destinations should be established by all nodes.
+Nodes can use the established routes to send data packets through the n etwork.
+Information stemming from HELLO messages is considered valid for 6 sec-
+onds (three times the interval between sending HELLO messages); inf ormation
+from TC messages for 15 seconds (three times the interval between sen ding TC
+messages). Routing table entries are marked as invalid if these times have passed.
+More details about OLSR can be found in its speciﬁcation [4]; a concrete
+example of OLSR running on a topology of 5 nodes can be found in [13].
+3 Modelling OLSR in Uppaal
+Uppaal [1,15] is a well-established model checker for modelling, simu lating and
+verifying real-time systems. It is designed for systems that can b e modelled as
+networksof(extended)timedautomata.WeuseUppaalforthefollowingre asons:
+i) it provides two synchronisation mechanisms: broadcast and binary sy nchroni-
+sation;ii) it provides common data structures, such as structs and arrays, and a
+C-like programming language—these features are used to model routing tab les
+and update-operations on such tables; last, but not least, iii) Uppaal provides
+
+--- Page 4 ---
+mechanismsandtoolsforconsideringtimedvariables—thisisneeded sinceOLSR
+highly depends on on-time broadcasting of control messages. In the remain der,
+we describe Uppaal to the extent needed in this paper.
+3.1 Uppaal’s timed automata
+ThemodellinglanguageofUppaalextendstimedautomatawithvariousfeatur es,
+such as types and data structures [1]. A system state is deﬁned as the value of
+all local and global variables. Every automaton can be presented as a graph with
+locations (nodes) and edges between these locations together with guar ds, clock
+constraints, updates and invariants. Clocks are variables that evaluate to real
+numbers and that are used in order to measure the time progression.
+Each location may have an invariant, and each edge may have a guard, a
+synchronisation label, and/or an update of some variables. Guards on transiti ons
+are used to restrict the availability (enabledness) of transitions . Synchronisation
+happens via channels; for every channel athere is one label a! to identify the
+sender, and a? to identify receivers. Transitions without a label are internal; all
+other transitions use one of the two following types of synchronisation [1].
+Inbinary handshake synchronisation, one automaton that has an edge with
+a !-label synchronises with another automaton with the edge having a ?- label.
+These two transitions synchronise only when both guards hold in the cu rrent
+state. When the transition is taken, both locations will change, and the updates
+on transitions will be applied to the variables; ﬁrst the updates wil l be done on
+the !-edge, then the updates occur on the ?-edge. When having more t han one
+possible pair, the transition is selected non-deterministically [1].
+Inbroadcast synchronisation, one automaton with an !-edge synchronises
+with several other automata that all have an edge with a relevant ?-label. The
+initiating automaton is able to change its location, and apply its update if and
+only if the guard on its edge is satisﬁed. It does not need a second automaton
+to synchronise with. Matching ?-edge automata must synchronise if t heir guards
+evaluate to true in the current state. They will change their locati on and update
+their states. First the automaton with the !-edge updates its state, t hen the other
+automata follow. When more than one automaton can initiate a transition on
+an !-edge, the process of choosing occurs non-deterministically [ 1].
+Uppaal’s veriﬁer uses Computation Tree Logic (CTL) (e.g. [6]) to model
+system properties. CTL oﬀers two types of formulas: state formulas and path
+formulas. State formulas describe individual states of the model, wh ile path for-
+mulas quantify over paths in the model. A path contains an (inﬁnite) s equence
+of states. In this paper we employ the path quantiﬁer Aand the temporal op-
+eratorG.Aφmeans that the formula φholds for all paths starting from the
+current state. Gφmeans all future states (including the current one) satisfy φ.
+Formulas combine the path quantiﬁes and the temporal operators, e.g. AGφ
+holds ifφholds on all states in all paths originating from the current state. This
+is also denoted as A[]φin Uppaal [1].
+
+--- Page 5 ---
+isconnected(sip,ip)
+(nextmsg()!=NONE)&&
+idle[ip]isconnected(sip,ip)
+imsg[ip]!sip:IP
+dip:IPsip:IP
+addmsg(msgglobal) addmsg(msgglobal)
+create_add_packet(ip,dip)htc[sip]?
+packet[ip][dip]?
+msgglobal=msglocal[0],
+deletemsg()pkt[sip][ip]?
+Fig.1: The Queueautomaton.
+3.2 A Uppaal model of OLSR
+We now present an overview of our OLSR model. The model is describe d in
+detail in [13] and can be downloaded at hoefner-online.de/sefm15/. We mode l
+OLSR in Uppaal as a parallel composition of identical processes describin g the
+behaviour of single nodes of the network. Each of these processes is i tself a
+parallel composition of two timed automata, QueueandOLSR.
+TheQueueautomaton (depicted in Fig. 1) has been chosen to store incoming
+messages from other (directly connected) nodes. In other words, it d enotes the
+inputbuﬀerofanode.Thereceivedmessagesarebuﬀeredandthen,i nturn,send
+to theOLSRautomaton for processing. Both actions on the top of Fig. 1 receive
+messages from other nodes in the network while the action on the lower r ight of
+Fig. 1 receives data messages from the same node. Messages can only be rec eived
+if a node ipis connected to the sender sip. The channel htc[sip] receives a
+broadcasted message (HELLO or TC) from sipand stores the message to a local
+data queue, using the function addmsg. Bothpktandpacketare handshake
+synchronisations and handle data messages travelling through the netw ork and
+new messages injected by a client, respectively. Whenever the message-handling
+routineOLSRis ready to handle a message ( idle[ip] ), a message is moved from
+the message queue to OLSR, using the channel imsg.
+OLSRmodels the complete behaviour of the routing protocol as described
+in [4]. It consists of 14 locations and 36 transitions precisely modelli ng the
+broadcasting and handling of the diﬀerent types of messages. OLSRis busy while
+sending messages, and can accept a new message from Queueonly once it has
+completely ﬁnished handling a message. Whenever it is not process ing a mes-
+sage and there are messages stored in Queue,QueueandOLSRsynchronise on
+the channel imsg[ip] , transferring the relevant data from QueuetoOLSR. The
+automaton uses a local data structure to model the routing table of a nod e.
+Routing tables provide all information required for delivering pack ets. A routing
+tablertis an array of entries, one entry for each possible destination. An entry
+is modelled by the data type rtentry:
+typedef struct {
+IP dip; //destination address
+int hops; //distance (number of hops) to the destination dip
+IP nhopip; //next hop address along the path to the destination dip
+SQN dsn; //destination dip sequence number
+}rtentry;
+
+--- Page 6 ---
+IPdenotes a data type for all addresses and SQNa data type for sequence num-
+bers. OLSR uses sequence numbers to check whether received me ssages are new
+or have already been processed. In our model, integers are used for th ese types.
+The predicate isconnected[i][j] denotes a node-to-node communication,
+i.e., the nodes are in transmission range of each other. Communication be tween
+nodes happens via channels. The broadcast channel htc[ip] models the prop-
+agation of HELLO and TC messages where a message can be received by all
+one-hop neighbours. Each node has a broadcast channel, and every node in
+the range may synchronise on this channel. We also use the binary chann el
+packet[i][j] to model the unicast sending of a data packet from itoj; this
+packet is generated by the user layer.
+To model rigorous timing behaviour, we deﬁne 3 diﬀerent clocks for every
+OLSRautomaton: thelloandttcare used to model on-time broadcasting
+HELLO and TC messages, and tsendmodels the time consumption for sending
+messages. According to the speciﬁcation of OLSR, Hello messages are sent e very
+2000 milliseconds. Considering a sending time of 500 milliseconds (in our model
+timesending = 500), nodes have to broadcast a new message 1500 milliseconds
+after the last message was successfully distributed. For each OLSRautomaton,
+we use two clock arrays tresetrtandtresetrttopoof sizeN(the number
+of nodes in the network) to indicate the expiry time of one-hop and two- hop
+neighbours, and the expiry time of nodes which are more than two hops aw ay,
+respectively.
+To provide a realistic network set up, we model each node to send i ts ﬁrst
+HELLO message non-deterministically between [0 ,timebetween hello). After-
+wards, whenever thelloreachestimebetween hello,OLSRresetsthelloand
+tsendto 0 before the HELLO message is broadcast.
+Nodes receiving a HELLO message, update their routing tables for the orig-
+inator of the message, learn about their two-hop neighbours and select thei r
+MPRs and MPR selectors using the functions updatehello ,updatetwohop and
+setmpr, respectively. Furthermore, tresetrtis reset for originator of the mes-
+sage and its one-hop neighbours, which shows that new information has been
+received and this information is valid for 6000 milliseconds.
+After MPR nodes have been selected, each of them prepares for broadcas ting
+TC messages to the connected nodes. TC messages are sent every 5000 mil-
+liseconds. When ttcreachestimebetween tc,ttcandtsendare reset to
+0. Then, a TC message is generated by createtc function and is broadcast to
+other nodes.
+While transferring a TC message from Queue,tresetrttopois reset to
+0 for the originator of the message and its MPR selectors, and if the message
+is considered for processing, the routing table is updated for the TC genera-
+tor and its MPR selectors, using updatetc andupdatemprselector functions,
+respectively.
+If the receiver is an MPR then the TC messages can be forwarded. Forward -
+ing messages also takes time in our model, namely timesending. We note that
+OLSR might have to broadcast diﬀerent messages at the same time. As an ex-
+
+--- Page 7 ---
+ample, at some point a HELLO, a TC and maybe a TC to be forwarded are
+supposed to be broadcast; the sending time timesending is counted only once
+and these messages are broadcast simultaneously. We consider this beha viour
+in our model as well. The full model, showing all details, is availab le online at
+hoefner-online.de/sefm15/.
+4 Analysis
+We analyse properties of the OLSR protocol in two diﬀerent settings. F irst, we
+assume static network topologies, and then we allow changes in the networ k.
+The ﬁrst series of experiments focuses on three properties:
+(1)route establishment for all topologies up to 5 nodes;
+(2)packet delivery in all topologies up to 5 nodes;
+(3)route optimality in topologies of up to 7 nodes.
+We will show that OLSR does not always ﬁnd optimal routes and propose a
+modiﬁcation of OLSR that addresses this problem.
+For the second series of experiments we assume dynamic network topologi es
+where an arbitrary link fails. We focus on another property:
+(4) theroute discovery time , i.e., we investigate the time during which there is
+no guaranteed packet delivery.
+Afteranalysingtheroutediscoverytime,weproposeamodiﬁcationth atshortens
+this time; this modiﬁcation will be analysed as well (Property (5)).
+Due to the proactive nature of OLSR, our Uppaal model is pretty complex
+and contains several clocks, next to a complex data structure. As a con sequence,
+state space explosion is a problem for our experiments. To address thi s problem,
+weapplydiﬀerenttechniquessupportedbyUppaaltominimisethes tatespaceof
+our system model [5,16,17]. In particular, our model makes use of priority chan-
+nels. By this we can order ‘internal actions’, i.e., actions that are ru nning on a
+single node, and that are independent of other nodes and hence the orde r of the
+actions does not matter. For Properties (1), (2), (4) and (5), we give the hi ghest
+priority to channels of node a1and the lowest priority to channels of node a5.
+Wealsotakeintoaccountsymmetriesoftopologies,i.e.,incasetwotopol ogies
+are isomorphic (up to renaming of nodes), we only analyse one. As a consequ ence
+we can reduce the number of experiments, by assuming, for Propertie s (1)–(5),
+thattheoriginatorisalwaysthesamenode,denotedby OIP1,andthedestination
+is always DIP1.
+For the experiments we use the following set up: 3.2 GHz Intel Core i 5, with 8
+GB memory, running the Mac OS X 10.9.5 operating system. For all experim ents
+we use Uppaal 4.0.13.
+4.1 Static Topologies
+Set Up. In this ﬁrst series of experiments, we deﬁne another automaton, calle d
+Tester1, which injects a data packet to OIP1to be delivered at destination
+
+--- Page 8 ---
+DIP1. It is depicted in Fig. 2. It provides a local clock clk, which is used for
+invariants and guards. The location-invariant clk <= 3*time_between_tc in
+combination with the transition-guard clk >= 3*time_between_tc guarantees
+that the packet is injected at time point 3*time_between_tc ; hence a couple
+of control messages (HELLO and TC) have already been sent and most of the
+routes should have been established. The packet is injected to no deOIP1via the
+channelpacket[OIP1][DIP1] .
+clk<=3*time_between_tcclk>=3*(time_between_tc)
+finalpacket[OIP1][DIP1]!
+drop_link
+Fig.2: The Tester1 automaton.
+Theﬁrstpropertywearegoingtoanalyse(Property1)isrouteestablish ment.
+It states that if the packet has been injected ( Tester1 is in location final), and
+all messages have been handled by all nodes ( emptybuffers() ) then OLSR
+has established a route between OIP1andDIP1. This safety property using the
+Uppaal syntax is expressed as
+A[]((Tester1.final&&emptybuffers ())imply
+node(OIP1).rt[DIP1].nhopip!=0)(1)
+Remember that the CTL formula A[]φis satisﬁed iﬀ φholds on all states along
+all paths. The variable node(OIP1).rtrepresents the routing table of the orig-
+inator node OIP1andnode(OIP1).rt[DIP1].nhopipexpresses the next hop for
+the destination DIP1; if the next hop is not 0a route is established.
+The second property, packet delivery, is that if a packet is inject ed to the
+system, it is eventually delivered to the destination DIP1. In Uppaal this can be
+expressed as
+A[]((Tester1.final&&emptybuffers ())imply
+node(DIP1).delivered !=0)(2)
+Here,node(DIP1).delivered indicates whether the injected data packet is re-
+ceived by the destination DIP1. Property 2 is stronger than Property 1 in the
+sense that the route is not only established, but it must be correct an d used.
+Moreover this property implies loop freedom of OLSR, meaning that no p acket
+is sent in cycles forever, without ever reaching the ﬁnal destinat ion.
+The ﬁrst two experiments are performed for all topologies up to ﬁve nod es,
+up to isomorphism and renaming. There are 444 of such topologies.
+The third property, route optimality, checks if OLSR establishes op timal
+routes, after broadcasting, forwarding and processing TC messages. In ou r ex-
+periments we measure optimality with regards to shortest routes. Si nce we have
+full control over the topologies we are running the experiments with , we can
+determine the shortest possible route. We investigate this proper ty for a ring
+
+--- Page 9 ---
+topology of 7 nodes, as shown in Table 1.6Property 3 is expressed as
+A[]((Tester1.final&&node(OIP1).a!=0)imply
+node(OIP1).rt[DIP1].hops==3)(3)
+Here,node(OIP1).a! =0indicates whether OIP1has sent its packet to the next
+node along the path to DIP1;node(OIP1).rt[DIP1].hopsshows the number of
+hops from the originator OIP1to the destination DIP1which must be equal to 3.
+We also checked Property 3 on all topologies up to 5 nodes. The results, however,
+are not of real interest, since not much can go wrong w.r.t. shortest rout es. As
+a consequence we picked topologies of size 7 to analyse route optimality.
+Results. To analyse and verify OLSR, we evaluate Properties (1) and (2) in all
+network topologies up to 5 nodes. Property (1) is satisﬁed for all these n etworks:
+when the Tester1 is in location final, nodeOIP1has established a route to
+nodeDIP1. This property conﬁrms the propagation of HELLO and TC messages
+and also the correctness of the MPR selection mechanism. Hence, node OIP1is
+ready to send data packets to node DIP1.
+As mentioned before, Property (2) is stronger than Property (1). It mode ls
+that all nodes have the information about all other nodes in the network, to
+deliver their data packets. In theory, the originator node OIP1could have a
+routing table entry for the destination node DIP1, stating that it should send a
+packet to its immediate next neighbour along the path to the destinati onDIP1;
+the next node itself might have no information about the destination DIP1, so
+all packets for the destination DIP1stemming from the originator OIP1would
+be lost. However, Property (2) is also satisﬁed for all topology up to size 5: all
+nodes have updated their routing tables in the network; therefore , they are able
+to deliver data packets to the arbitrary destination node DIP1.
+While performing the analysis of Properties (1) and (2), we also perform ed
+some statistics: the Uppaal veriﬁer analysed in average 1868996 states for each
+experiment; the largest one has 5314328 states, and the median is 1688368.
+Exploring these state spaces took on average 56 minutes.
+Property (3), which analysis route optimality in topologies of size 7, is not
+satisﬁed. This proves that OLSR is not always able to ﬁnd optimal routes .
+Table 1 illustrates this phenomenon with an example found by Uppaal. In
+this example, Tester1 synchronises with the Queueof nodea1, which is the
+originator OIP1of the packet. The packet is intended for node a5. At some
+point,a5broadcasts a TC message (here indicated by TC5) to its neighbours
+a4anda6. Whilea4forwards the message to a3,a6is busy working on other
+stuﬀ and the message is kept in the message queue of a6. The TC message is
+forwarded subsequently via nodes a3anda2(Table 1: Step 2). As a consequence,
+nodea1, updates its routing table entry for node a5(Table 1: Step 3). When
+a1receives TC5 via node a7, it has already updated its table for this node, and
+drops this message, since it has seen TC5 before. (Table 1: Step 4). By d ropping
+6There are too many topologies of that size, so we cannot analyse all topologies.
+
+--- Page 10 ---
+Step 1: Broadcast TC Step 2: Forward TC
+a1a2a3
+a4
+a5
+a6 a7TC5
+TC5a1a2a3
+a4
+a5
+a6 a7TC5
+TC5TC5TC5
+Step 3: Update a1.rt[5] Step 4: Drop TC5
+a1a2a3
+a4
+a5
+a6 a7TC5
+TC5TC5TC5
+TC5
+a1a2a3
+a4
+a5
+a6 a7TC5 TC5 TC5
+Table 1: Establishment of non-optimal routes in a 7 node topology
+this message a1misses out the chance TC5 to establish a shorter route. Similar
+examples are found for other routing protocols for WMNs [18].
+Droppingamessagewiththesame sequencenumber followsthespeci ﬁcation:
+“if there exists a tuple in the duplicate set, where:
+Daddr == Originator Address,
+AND
+Dseqnum == Message Sequence Number
+then the message has already been completely processed and M UST not be
+processed again.” [RFC3626, page 17]
+This text snippet, copied from the RFC, shows that our model reﬂec ts the
+intention of OLSR; any message which is received and has already been hand led
+(same sequence number) should be dropped. The idea is that the ﬁrs t message
+received must have travelled via the optimal path, which is not th e case. A
+simple solution to this problem is to compare the potentially new rout e versus
+the routing table, in case the sequence numbers are the same. To red uce message
+ﬂooding the message is only forwarded if the routing table is updated, i.e., if the
+hop count is strictly smaller.
+4.2 Dynamic Topologies
+Set Up. In the second series of experiments, we investigate the behaviour of
+OLSR after an arbitrary link is removed. Removing a link reﬂects a c hange in
+the topology. We deﬁne an automaton, called Tester2 and depicted in Fig. 3,
+which drops the link between the two nodes id_1andid_2. We assume that
+the link breaks after 3*(time between tc + time sending) (in our model at
+
+--- Page 11 ---
+15000 milliseconds), a time when all nodes have received information ab out all
+other nodes in the network (all routing tables have been updated for al l nodes).
+Upon link breakage there is no connectivity between these two nodes ; yet, each
+of them has the information about the other one. The packet, which should b e
+sent from OIP1toDIP1is injected later on. By this we can analyse how quickly
+OLSR recovers from topology changes.
+clk<=3*(time_between_tc + time_sending) clk<=7*(time_between_tc + time_sending)clk>=3*(time_between_tc + time_sending)
+delivery testdrop(id_1, id_2)
+clk>=7*(time_between_tc + time_sending)packet[OIP1][DIP1]!
+drop_link
+Fig.3: The Tester2 automaton.
+Based on RFC 3626 (see box below), the information about one-hop and
+two-hop neighbours of a node is valid for 3*REFRESH INTERVAL , which equals
+6000 milliseconds; information about nodes which are more than two hops awa y
+from that node is valid for 3*TCINTERVAL , that equals 15000 miliseconds.
+“NEIGHB HOLDTIME = 3*REFRESH INTERVAL
+TOPHOLDTIME = 3*TC INTERVAL” [RFC3626, page 64]
+This means information about one-hop and two-hop neighbours of a node is not
+available any longer if their corresponding clocks in the routing tabl e have not
+been refreshed during 6000 milliseconds; this indicates the break age of a link.
+Also, if a node has not received TC messages from other MPR nodes for more
+than 15 seconds, information about those nodes is removed from the table.
+We consider one desirable property of this protocol which indicates w hether
+or not the injected packet is delivered at the destination if one link has been
+removed. In Uppaal syntax this safety property can be expressed as
+A[]((Tester2.delivery &&emptybuffers ())imply
+node(DIP1).delivered !=0)(4)
+After the topology has been changed and the packet has been injected, the
+automaton Tester2 is in location delivery . If then the message buﬀers are
+empty (similar to the experiments described before) then we ch eck if the packet
+has been delivered. ( node(DIP1).delivered ! =0).
+Results. Property (4) is only satisﬁed for those topologies up to 5 nodes where
+the dropped link is not critical. In our model, a link is said to be cr itical if after
+link breakage there is no other link from that node to the other nodes al ong the
+path to the destination to be substituted with the broken one.
+This experiment shows that the recovery in these topologies takes ar ound 20
+seconds(between15000–35000milliseconds),whichisalongperiod;inpart icular
+
+--- Page 12 ---
+since we only consider networks of small size. As a consequence, this means that
+only after 35 seconds, the packet can certainly be delivered. The reas ons for this
+long period are as following:
+–After a link break occurred, some nodes might broadcast control message s
+(HELLO or TC) with incorrect (old) information, since nodes have not res et
+their tables for those nodes aﬀected by link breakage. Based on RFC 3626,
+nodes reset their tables for the nodes from whom no control message is
+received after 6 and 15 seconds, respectively.
+–At the time a link breaks, there are usually messages in the queue wh ich
+need to be processed. These messages contain again out-dated information .
+So, the routing table is updated for the originator and one-hop neighbours
+of the message when receiving a HELLO, and for the originator and MPR
+selectors of the messages originator upon receiving a TC, even if the li nk
+does not exist anymore.
+–Even when some nodes learn about the link breakage and reset the corre-
+sponding information in the routing table, it needs time to distrib ute this
+new knowledge.
+Modiﬁcations. A solution to decrease the long recovery time of OLSR is
+to reduce NEIGHBHOLDTIMEandTOPHOLDTIMEto2*REFRESH INTERVAL and
+2*TCINTERVAL , respectively. To verify our proposal, we consider Property (5).
+This property states that refreshing routing tables in our proposed t iming helps
+to reduce the recovery time.
+A[]((Tester3.delivery &&emptybuffers ())imply
+node(DIP1).delivered !=0)(5)
+Similarly as for Property (4), Property (5) is satisﬁed for all topologies up to
+5nodeswherethedroppedlinkisnotacriticallink.After25000milli seconds,the
+packet is deﬁnitely delivered at the destination. Therefore, it i s feasible to reduce
+the recovery time of OLSR about 10000 milliseconds (the diﬀerence betw een
+35000 and 25000) using our proposed timing.
+An alternative solution would be the introduction of error messages. As so on
+as a link break is identiﬁed, an error message should be sent to MPRs to inform
+thenodesandtocorrecttheinformationintheroutingtablesassoonasp ossible.
+This modiﬁcation would be in the same spirit as error messages used for ot her
+routing protocols, such as the AODV routing protocol. However, the anal ysis of
+this improvement is left for future work.
+5 Related Work
+While modelling and verifying protocols is not a new research topic , attempts to
+analyse routing protocols for dynamic networks are still rather new and r emain
+a challenging task. Model checking techniques have been applie d to analyse pro-
+tocols for decades, but there are only a few papers that use these tech niques in
+
+--- Page 13 ---
+the context of mobile ad-hoc networks, e.g. [2]. In the area of WMNs, Uppaal
+has been used to model and analyse the routing protocols AODV and DYMO,
+see [7,8,10]. However, to the best of our knowledge, our study is the ﬁrs t aiming
+at a formal model of OLSR core functionality considering time variables.
+Clausen et al. [4] specify the OLSR protocol in English prose. This pape r is
+the oﬃcial description currently standardised by the IETF. Jacque t et al. [12]
+also provide a high-level description of OLSR describing the advant ages of this
+protocol, when compared to the others. However, none of these papers pr ovide
+a formal model or a formal analysis of the protocol.
+Steele and Andel [20] provide a study of OLSR using the model checker
+Spin[11].TheydesignamodelofOLSRinwhichLinearTemporalLogic(LTL)i s
+usedtoanalysethecorrectfunctionalityofthisprotocol.Theyveri fytheirsystem
+forcorrectroutediscovery,correctrelayselection,andloopfree dom.Duetostate
+space explosion their analysis is limited to four node topologies only. W hen
+taking symmetries into account they analyse 17 topologies. Moreover, a t iming
+analysis is not possible by Spin. Hence the model given by Steele and An del
+abstracts from timing; as we have shown analysing OLSR with time variabl es
+reveales more shortcomings.
+Fehnker et al. [8] describe a formal and rigorous model of the Ad hoc On-
+Demand Distance Vector (AODV) routing protocol in Uppaal; the model is
+derived from a precise process-algebraic speciﬁcation that reﬂect s a common
+and unambiguous interpretation of the RFC [19]. Their model is also a net work
+of timed automata and they analyse network topologies up to 5 nodes. However ,
+in their original analysis they abstract from time, which was added later on [10].
+AlthoughthetwoprotocolsAODVandOLSRbehavediﬀerently,weuseth esame
+modelling techniques and experiments as for AODV, to make the compar ison
+study of these two protocols feasible for our future work.
+Kamali et al. [14] use reﬁnement techniques for modelling and analysin g
+wireless sensor-actor networks. They prove that failed actor links c an be tem-
+porarily replaced by communication via the sensor infrastructure, gi ven some
+assumptions. They use an Event-B formalisation based on theorem provin g and
+their proofs are carried out in the RODIN tool platform. There is a str ong sim-
+ilarity between the nature of the distributed OLSR protocol and the n ature of
+distributed sensor-based recovery. However, the tools employe d for analysis in
+the two frameworks are diﬀerent in nature (model checking vs. the orem prov-
+ing). Our decision to use Uppaal is based on the fact that it provides mod elling
+means for time constraints and fully automatic reasoning. The treatment of time
+in Event-B is still incipient, involving a rather diﬀerent per spective of treating
+variables as continuous functions of time.
+6 Conclusions and Outlook
+Inthispaperwehaveprovidedaformalanalysisforthedistributed andproactive
+routing protocol OLSR. Our analysis is performed using the model che cker Up-
+paal. We have provided a Uppaal model which is in accordance with the OLS R
+
+--- Page 14 ---
+standard. It models all core functionalities, including sophistic ated timers. To
+validateourmodelwecomparedourmodelwithexamplesfoundinthelit erature.
+UsingUppaalwewereabletoﬁndshortcomingsoftheprotocol:insomecases,
+an optimal route for message delivery cannot be established and the recov ery
+time in case of link breakage is huge. For both shortcomings we have sketch ed
+improvements that can easily be implemented. A more careful analysi s for link
+breaks on critical paths is left for future work.
+We see these results as the starting point for further research. Fi rst, our
+analysis is restricted to small networks (of 5 and 7 nodes), due to th e nature
+of model checking. Wireless Mesh Networks draw their strength from employing
+potentially dozens (maybe hundreds) of nodes. Hence, we need to ex tend our
+analysis to larger networks. This can be achieved by working with stati stical
+model checking, where simulation concepts are combined with model checking
+to establish the statistical evidence of satisfying hypotheses. W hile this does not
+guarantee a correct result w.r.t. the hypothesis, the probability of error can be
+made vanishingly small. Another approach suitable to deal with larger net works
+is that of theorem-proving, where, e.g. we can prove the required sy stem prop-
+erties as invariants for all systems (of all sizes) that verify certain assumptions.
+Second, our model for the proactive, distributed OLSR can be generalis ed
+to distributed control. The latter is a concept with high relevance for systems
+where, e.g. self-repairing is important, as it can enable the indepe ndence of
+the system from central coordinators. Even maintaining proactively t he optimal
+communication routes, as OLSR does, is instrumental in this. The appl icability
+of distributed control to critical systems such as emergency respon se networks
+or smart electrical grids is very relevant, as these are complex syste ms, for which
+global solutions cannot be provided.
+Acknowledgements This research belongs to the Academy of Finland FResCo
+project (grant number 263925, FResCo: High-quality Measurement Infrastru c-
+ture for Future Resilient Control Systems). NICTA is funded by th e Australian
+Government through the Department of Communications and the Australian
+Research Council through the ICT Centre of Excellence Program.
+References
+1. Behrmann, G., David, A., Larsen, K.G.: A tutorial on Uppaal. In : International
+School on Formal Methods for the Design of Computer, Communicati on, and
+Software Systems, SFM-RT 2004. Revised Lectures. pp. 200–236. Springer Ver-
+lag (2004)
+2. Chiyangwa, S., Kwiatkowska, M.Z.: A timing analysis of AO DV. In: FMOODS.
+Lecture Notes in Computer Science, vol. 3535, pp. 306–321. Sp ringer (2005)
+3. Clarke, E.M., Emerson, E.A., Sifakis, J.: Model checking: Al gorithmic veriﬁcation
+and debugging. Commun. ACM 52(11), 74–84 (2009)
+4. Clausen, T., Jacquet, P.: Optimized link state routing prot ocol (OLSR). RFC 3626
+(Experimental) (2003), http://www.ietf.org/rfc/rfc3626
+5. David, A., H˚ akansson, J., Larsen, K.G., Pettersson, P.: Mod el checking timed au-
+tomata with priorities using DBM subtraction. In: 4th Internatio nal Conference on
+
+--- Page 15 ---
+Formal Modelling and Analysis of Timed Systems (FORMATS06). Lecture Notes
+in Computer Science, vol. 4202, pp. 128–142. Springer Berlin H eidelberg (2006)
+6. Emerson, E.A.: Temporal and modal logic. In: Handbook of Theo retical Computer
+Science (vol. B): Formal Models and Semantics, pp. 995–1072. MIT (1995)
+7. Fehnker, A., van Glabbeek, R., H¨ ofner, P., McIver, A., Portman n, M., Tan, W.L.:
+Modelling and analysis of AODV in UPPAAL. In: 1st Internation al Workshop on
+Rigorous Protocol Engineering. pp. 1–6. Vancouver (2011)
+8. Fehnker, A., van Glabbeek, R., H¨ ofner, P., McIver, A., Portman n, M., Tan, W.L.:
+Automated analysis of AODV using UPPAAL. In: 18th Internatio nal Conference
+on Tools and Algorithms for the Construction and Analysis of Sy stems (TACAS
+2012). pp. 173–187. Springer, Tallinn, Estonia (2012)
+9. van Glabbeek, R., H¨ ofner, P., Portmann, M., Tan, W.L.: Seque nce numbers do not
+guarantee loop freedom —AODV can yield routing loops—. In: Model ing, Analysis
+and Simulation of Wireless and Mobile Systems (MSWiM’13). pp . 91–100. ACM
+(2013)
+10. H¨ ofner, P., McIver, A.: Statistical model checking of wirel ess mesh routing pro-
+tocols. In: 5th NASA Formal Methods Symposium (NFM 2013). vol. 7871, pp.
+322–336. Springer, Moﬀett Field, CA, USA (2013)
+11. Holzmann, G.J.: The model checker spin. IEEE Trans. Softw. Eng. 23(5), 279–295
+(1997)
+12. Jacquet, P., M¨ uhlethaler, P., Clausen, T., Laouiti, A., Qayyum, A., Viennot, L.:
+Optimized Link State Routing Protocol for Ad Hoc Networks. In: M ulti Topic
+Conference, 2001. IEEE INMIC 2001. pp. 62 – 68. IEEE (2001)
+13. Kamali, M., Kamali, M., Petre, L.: Formally analyzing proac tive, distributed rout-
+ing. Tech. Rep. 1125, TUCS – Turku Centre for Computer Science (2 014)
+14. Kamali, M., Laibinis, L., Petre, L., Sere, K.: Formal develo pment of wireless sensor-
+actor networks. Science of Computer Programming 80, Part A(0), 2 5 – 49 (2014)
+15. Larsen, K.G., Pettersson, P., Yi, W.: Uppaal in a nutshell. International Journal
+on Software Tools for Technology Transfer (STTT) 1(1), 134–152 (1 997)
+16. Larsen, K.G., Larsson, F., Pettersson, P., Yi, W.: Compact d ata structures and
+state-space reduction for model-checking real-time systems. Real-Time Systems
+25(2-3), 255–275 (2003)
+17. Larsen, K.G., Pettersson, P., Yi, W.: Model-checking for rea l-time systems. In:
+FCT. pp. 62–88 (1995)
+18. Miskovic, S., Knightly, E.W.: Routing primitives for wirel ess mesh networks: De-
+sign, analysis and experiments. In: Conference on Information Co mmunications
+(INFOCOM ’10). pp. 2793–2801. IEEE (2010)
+19. Perkins, C., Belding-Royer, E., Das, S.: Ad hoc On-Demand Dis-
+tance Vector (AODV) Routing. RFC 3561 (Experimental) (2003) ,
+http://www.ietf.org/rfc/rfc3561
+20. Steele, M.F., Andel, T.R.: Modeling the optimized link- state routing protocol for
+veriﬁcation.In:SpringSim(TMS-DEVS).pp.35:1–35:8.Societ yforComputerSim-
+ulation International (2012)
