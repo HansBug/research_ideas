@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：HSM（层次状态机） / FSM（普通离散状态机）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：层次
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
 - 简要判断：三步 box-fill 过程和外层 auto/standby 控制都可直接写成自然语言流程。
 
 ## 条目 1: Three-state box fill FSM
 - 控制对象：PLC 控制的 box fill 子过程
+- 状态机类型：FSM（普通离散状态机）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：-（无额外结构标签）
+- 原文细节充实度：🟢 A（细节完备）
+- 描述细节充实度：🟢 A（细节完备）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -91,6 +102,13 @@ During automatic box filling, the conveyor first looks for an empty box, then ke
 
 ## 条目 2: Auto/standby permissive around the sequence
 - 控制对象：PLC 子过程外层的 auto/standby 控制
+- 状态机类型：HSM（层次状态机）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：层次
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 

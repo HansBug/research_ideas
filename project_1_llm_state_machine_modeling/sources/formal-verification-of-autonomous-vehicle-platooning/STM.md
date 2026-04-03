@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：Protocol（协议/交互状态机）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：协议交互
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
 - 简要判断：加入和离队流程都给出了逐步的控制约束与安全条件。
 
 ## 条目 1: Joining procedure for a follower vehicle
 - 控制对象：车队控制中的 follower joining procedure
+- 状态机类型：Protocol（协议/交互状态机）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：协议交互
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：🪫 降采样保留
+- 趋同标签：🔁 强趋同（G7 车队编入流程）
 
 ### 0. 条目识别与判定
 
@@ -75,6 +86,13 @@ To join a platoon, a non-member vehicle sends a joining request to the leader, w
 
 ## 条目 2: Leaving procedure for a platoon member
 - 控制对象：车队控制中的 follower leaving procedure
+- 状态机类型：Protocol（协议/交互状态机）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：协议交互
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 

@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：🪫 主要用于降采样池
+- 代表状态机类型：Resource-flow（资源流/并发网模型）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：资源互斥
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：route set/release、冲突进路和入口信号开放条件的文字依据很充分。
 
 ## 条目 1: Route locking and release rules from an interlocking table
 - 控制对象：铁路联锁表中的 route locking / release logic
+- 状态机类型：Resource-flow（资源流/并发网模型）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：资源互斥
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：🪫 降采样保留
+- 趋同标签：🔁 强趋同（G1 铁路联锁进路生命周期）
 
 ### 0. 条目识别与判定
 

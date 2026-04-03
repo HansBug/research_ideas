@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：HSM（层次状态机）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：层次
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文直接描述了 flight guidance system 的 lateral/vertical 模式、armed/active/capture/track 子状态及其约束，非常适合作为飞行控制模式逻辑样本。
 
 ## 条目 1: Armed-active-capture-track logic in a flight guidance system
 - 控制对象：飞机飞行引导系统（FGS）模式逻辑
+- 状态机类型：HSM（层次状态机）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：层次
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
