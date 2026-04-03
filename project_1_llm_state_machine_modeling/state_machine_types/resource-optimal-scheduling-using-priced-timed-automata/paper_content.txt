@@ -1,0 +1,692 @@
+--- Page 1 ---
+Resource-Optimal Scheduling Using Priced
+Timed Automata
+J.I. Rasmussen1, K.G. Larsen1, and K. Subramani⋆2
+1Department of Computer Science, Aalborg University, Denmark,
+{illum,kgl }@cs.auc.dk
+2Department of Computer Science and Electrical Engineering, West Virginia
+University, USA, ksmani@csee.wvu.edu
+Abstract. In this paper, we show how the simple structure of the linear
+programs encountered during symbolic minimum-cost reachability anal-
+ysis of priced timed automata can be exploited in order to substantially
+improve the performance of the current algorithm. The idea is rooted in
+duality of linear programs and we show that each encountered linear pro-
+gram can be reduced to the dual problem of an instance of the min-cost
+ﬂow problem. Thus, we only need to solve instances of the much sim-
+pler min-cost ﬂow problem during minimum-cost reachability analysis.
+Experimental results using Uppaal show a 70-80 percent performance
+gain. As a main application area, we show how to solve energy-optimal
+task graph scheduling problems using the framework of priced timed
+automata.
+1 Introduction
+Recently, solving real-time planning and scheduling problems using veriﬁcation
+tools such as Kronos , [9], and Uppaal , [16], has shown promising results, [1,
+6].
+For addressing optimality constraints other than time (e.g. cost) priced timed
+automata (PTA) have been put forward, independently, as linearly priced timed
+automata in [15] and as weighted timed automata in [4]. The necessity for other
+optimality constraints is especially important within embedded systems where,
+for example, minimizing the overall energy consumption by embedded devices is
+imperative for their applicability.
+One such problem of minimizing energy consumption is that of energy-
+optimal task graph scheduling (TGS). This is the problem of scheduling a number
+of interdependent tasks onto a number heterogeneous processors that commu-
+nicate through a single bus while minimizing the overall energy requirement
+and meeting an overall deadline. The interdependencies state that a task cannot
+execute until the results of all predecessors in the graph have been computed.
+Moreover, the results should be available in the sense that either each of the
+⋆This research was conducted in part at Aalborg University, where the author was
+supported by a CISS Faculty Fellowship.
+K. Jensen and A. Podelski (Eds.): TACAS 2004, LNCS 2988, pp. 220–235, 2004.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2004
+
+--- Page 2 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 221
+predecessors have been computed on the same processor, or on a diﬀerent pro-
+cessor and the result has been broadcasted on the bus. An example task graph
+taken from [12] with three tasks is depicted in Figure 1. The task t3cannot start
+executing until the results of both tasks t1andt2are available. The available
+resources are two processors, p1andp2, and a single bus with energy consump-
+tionsπ1=4 ,π2= 3, and πbus= 10 per time unit when operating and 1 when
+idle.1The nodes in Figure 1 are annotated with their execution times on the
+processors, that is, t1can only execute on p1,t2only on p2, and t3can execute
+on both p1andp2.
+The energy-optimal schedule is achieved by letting t1andt2execute on p1
+andp2, respectively, broadcast the result of t2on the bus, and execute t3onp1,
+which consumes the total of 121 energy units. On the other hand, broadcasting
+the result of t1on the bus and executing t3onp2requires 141 energy units. Both
+schedules are depicted as Gantt charts in Figure 2.
+Legend
+i jκi(δi1,... ,δ im)
+T={t1,t2,t3},P={p1,p2}
+pre(t1)=pre(t2)=∅
+pre(t3)={t1,t2}
+π1=4,π2=3 ,πbus=1 0
+τ1=1,τ2=1 ,τbus=1t1(1,−)
+t2(−,2)
+t3 (10,7)8 4
+Fig. 1. Example of an energy task graph with three tasks, two processors and a single
+bus.
+Time-optimal task graph scheduling has received much attention in the re-
+search community as it is important in static, optimal scheduling of data inde-
+pendent algorithms onto digital signal processing architectures. For an overview
+of the proposed algorithms, an extensive comparison, evaluation, and bench-
+marks are provided in [13]. Recently, timed automata have in [1] been shown to
+be an eﬃcient framework for modeling and solving TGS problems.
+0 4 8 12 16p2p1bus
+0 4 8 12 16p2p1bus
+t3t2t1idle
+Fig. 2. a.) optimal schedule. b.) sub-optimal schedule
+1We leave out units in this paper, but for real applications energy-consumption is,
+usually, measured in mW and execution times in ms.
+
+--- Page 3 ---
+222 J.I. Rasmussen, K.G. Larsen, and K. Subramani
+For scheduling with cost extensions, timed automata are no longer suﬃciently
+expressive. For cost-optimization problems, constraint programming, such as
+mixed integer linear programming (MILP), has been the preferred framework
+in the research community given the existence of eﬃcient branch and bound al-
+gorithms for solving performance problems, [5,12]. Previously, the PTA approach
+to scheduling has shown to compete favorably with MILP for some problem in-
+stances, [15]. In this paper, we show how energy-optimal task graph problems
+can be modeled and solved using PTA.
+The core of solving scheduling problems with PTA is symbolic minimum-
+cost reachability analysis. Within the reachability algorithm we frequently solve
+small, simple structured linear programs (LPs). As hinted in [15], reachability
+analysis might beneﬁt signiﬁcantly from exploiting the simple structure of these
+LPs since experimental results indicate that the current implementation in Up-
+paal, using the simplex method [8,11] spends 50-80 percent of the time during
+minimum-cost reachability, solving these LP problems.
+In this paper, we show how to exploit the simple structure of the LPs in
+order to achieve an optimized algorithm. The idea comes from duality of linear
+programs and we show that each encountered LP can be reduced to the dual
+problem of an instance of the well-known min-cost ﬂow problem, [2]. Thus, for
+each LP we can instead solve a min-cost ﬂow problem using the much faster
+network simplex algorithm, [10]. Experimental results using a network simplex
+algorithm implementation [17] within Uppaal reduces the overall running-time
+of minimum-cost reachability analysis by 70-80 percent.
+The rest of this paper is organized as follows. Section 2 gives a short intro-
+duction to the theory of PTA. The model for expressing energy-optimal TGS
+problems as PTA is covered in Section 3. Section 4 provides symbolic seman-
+tics for PTA and gives a branch and bound algorithm for performing symbolic
+minimum-cost reachability analysis. In Section 5 we show how the LP encoun-
+tered during minimum-cost reachability analysis are reduced to dual min-cost
+ﬂow problems. Section 6 provides experimental results. Finally, we conclude the
+paper and reﬂect on future work in Section 7.
+2 Priced Timed Automata
+Priced timed automata, [15,7,6,4], are extensions of timed automata, [3], with
+prices added to edges and locations. The interpretation of the price label is, that
+we associate a ﬁxed price with taking transitions and a ﬁxed price rate per time
+unit while delaying in locations. Intuitively, PTA are timed automata where each
+ﬁnite trace has an overall accumulated price.
+Formally, let C be a set of real-valued clocks with power set 2C. Then B(C)
+is the set of formulae obtained as conjunctions of atomic constraints of the form
+xi⊿/triangleleft nandxi−xj⊿/triangleleft m, where xi,xj∈C,n∈IN ,m∈ZZand⊿/triangleleft∈{<,≤,=,≥,
+>}. We refer to the elements of B(C) as clock constraints.
+Deﬁnition 1 (Priced Timed Automata). A priced timed automaton over
+clocks Cand actions Actis a 5-tuple (L, l 0,E,I, P)where Lis a ﬁnite set of
+
+--- Page 4 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 223
+locations, l0is the initial location, E⊆L×B(C)×Act×2C×Lis the set of
+edges, I:L→B(C)assigns invariants to locations, and P:(L∪E)→IN
+assigns prices to edges and locations. When (l, g, a, r, l/prime)∈Ewe write lg,a,r−−−→l/prime.
+Actual clock values are represented as functions from C to the set of non-negative
+reals, I R ≥0, called clock valuations. The set of all clock valuations is denoted by
+IRC, and single clock valuations are ranged over by u, u/primeetc.
+For a clock valuation, u∈IRC, and a clock constraint, g∈B(C), we write
+u∈gwhen usatisﬁes all the constraints of g.F o r d∈IR≥0, we deﬁne the
+operation u+dto be the clock valuation that assigns u(x)+dto all clocks, and
+the operation u[r→0] to be the clock valuation that agrees with ufor all clocks
+inC\rand assigns zero to all clocks in r. Furthermore, u0is deﬁned to be the
+clock valuation that assigns zero to all clocks.
+The semantics of a PTA A=(L, l 0,E,I, P) is given in terms of a labeled
+transition system with state set L×IRC, initial state ( l0,u0), and label set
+(E∪{δ})×IR≥0, with the transition relation deﬁned as:
+–(l,u)δ,p−−→(l,u+d)i f∀0≤d/prime≤d.u+d/prime∈I(l), and p=d·P(l),
+–(l,u)e,p−−→(l/prime,u/prime)i fe=(l, g, a, r, l/prime)∈E,u∈g,u/prime=u[r→0], and p=P(e).
+In other words, δ-transitions correspond to delays, and e-transition correspond
+to edges of the automaton. The associated value, p, gives the price of the action.
+When performing minimum-cost reachability analysis of PTA, we are interested
+in ﬁnite executions of the form α=(l0,u0)a1,p1−−−→(l1,u1)a2,p2−−−→ ···an,pn−−−→
+(ln,pn), where lnis some goal location. The cost of the execution αis the sum
+of all prices on the path,/summationtextn
+i=1pi. The minimum cost of reaching a location lis
+deﬁned to be the inﬁmum cost of all ﬁnite executions ending in a state of the
+form ( l,u).
+3 Energy-Optimal Task Graph Scheduling Using PTA
+In this section we formalize the model of energy-optimal task graph scheduling
+and show how to translate such an instance into a PTA.
+Deﬁnition 2 (Energy Task Graph). An energy task graph is a tuple (T,P,
+pre, δ, κ, π, τ, d )where T={t1,... ,t n}is a set of tasks, P={p1,... ,p m}is a
+set of processors, pre:T→2Tdetermines the set of predecessors of every task,
+δ:T×P/arrowhookleft→INis the execution time for tasks on p rocessors, κ:T→INis the
+bus transfer time for every task, π:P∪{bus}→INis the energy consumption
+rate per time unit when p rocessing/transferring for the p rocessors and bus, τ:
+P∪{bus}→INis the energy consumption rate when being idle, and dis the
+deadline.
+We use the shorthand notations δij,κi,{π,τ}i, and {π,τ}busforδ(ti,pj),
+κ(ti),{π,τ}(pi), and {π,τ}(bus), respectively.
+
+--- Page 5 ---
+224 J.I. Rasmussen, K.G. Larsen, and K. Subramani
+Deﬁnition 3 (Feasible Schedule). A feasible schedule, S, for an energy task
+graph (T, P, pre, δ, κ, π, τ, d )is a function S:T→P×IR≥0×IR≥0∪ {∞} , such
+that:
+1.∀ti∈T.S(ti)=(pk,s ,c)⇒δikis deﬁned and c≥s+δik
+2.∀ti,tj∈TwithS(ti)=(pk,s ,c),S(tj)=(pl,s/prime,c/prime).
+a)tj∈pre(ti)∧c=∞⇒ pk=pl
+b)tj∈pre(ti)⇒s≥/braceleftBigg
+s/prime+δjl+κj:pk/negationslash=pl
+s/prime+δjl:pk=pl
+c)pk=pl∧s/prime≥s⇒s/prime≥s+δik
+d)c/prime≥c⇒c/prime≥c+κi
+3.len(S)<=d
+where len(S)=max{s+δik,c+κi|(ti,pk,s ,c)∈S }.
+We will often use the notation ( ti,pk,s ,c)∈Swhen S(ti)=(pk,s ,c). Given a
+feasible schedule, S, the intuitive understanding of an element ( ti,pk,s ,c) is that
+the execution of task tistarted on processor pkat time sand was broadcasted on
+the bus at time c.I fc=∞the result was never broadcasted. The interpretation
+of the constraints are (1) tasks can only execute on allowed processors and the
+result cannot be broadcasted until execution has terminated. (2 a) when a task
+depends on the result of another task, these are either executed on the same
+machine or the result has been broadcasted. (2 b) no task can begin executing
+until the results of all dependent tasks are available. (2 cd) each processor/bus
+can only execute/transfer one task/result at any time and such operations cannot
+be preempted. (3) the schedule should meet the deadline. The processing time,
+proc(pk), of a processor pk∈Pis deﬁned as/summationtext
+{i|(ti,pk,s,c)∈S}δikand similarly
+for the bus. The idle time, idle(pk), is then given as len(S)−proc(pk). Now, we
+can deﬁne the cost of schedule as:
+Cost(S)=/summationdisplay
+pk∈P/parenleftbig
+πk·proc(pk)+τk·idle(pk)/parenrightbig
++πbus·proc(bus)+τbus·idle(bus) (1)
+A feasible schedule, S∗, is optimal if for all feasible schedules, S,Cost(S∗)≤
+Cost(S).
+Example 1. The optimal schedule (Figure 2a) for the energy task graph in Fig-
+ure 1 corresponds to S={(t1,p1,0,∞),(t2,p2,0,2),(t3,p1,6,∞)}.
+In the following we describe how to take any energy-optimal task graph prob-
+lem instance and convert it into a network of priced timed automata. Following
+Uppaal syntax, we express a timed automaton as a composition of automata
+synchronizing on binary channels and using shared variables that can be com-
+pared in guards and updated on transitions. Consequently, each state in the
+global state space is associated with a location vector, variable assignment, and
+clock valuation. Here, we indicate by the binary variables ﬁn[ti] whether tihas
+ﬁnished execution, by act[pj] whether pj(orbus) is being used, and by res[pj][ti]
+whether the result of tiis available at pj. The integer variable d[pj] expresses
+the time pj(orbus) is occupied.
+For a given energy task graph ( T, P, pre, δ, κ, π, d ) we construct a PTA for
+each task, processor, and the bus.
+
+--- Page 6 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 225
+Deﬁnition 4 (Processor/Bus Automaton). Given a p rocessor pk∈Pof an
+energy task graph (T, P, pre, δ, κ, π, d ), the automaton for pkhas a local clock c,
+action {pk}and is deﬁned as (L, l 0,E,I, P)where L={s0,s1},l0=s0,I(s0)=
+∅,I(s1)=c≤d[pk],P(s0)=τk,P(s1)=πk, and e={(s0,∅,{pk},{c:=
+0,act[pk]: =1},s1),(s1,c=d[pk],{pk},{act[pk]: =0},s0)}.
+The PTA for the bus is similar to the one for the processor and will not
+be deﬁned explicitly. For simplicity we assign values to variables together with
+resetting clocks.
+1
+2 3 4
+5
+6bus ?
+res[p1][t3]:=1
+res[p2][t3]:=1res[p1][t1]==1
+∧res[p1][t2]==1
+∧act[p1]==0
+p1!, d[p1]:=δ31res[p2][t1]==1
+∧res[p2][t2]==1
+∧act[p2]==0
+p2!, d[p1]:=δ32
+p1?
+ﬁn[t3]:=1, res[ p1][t3]:=1p2?
+ﬁn[t3]:=1, res[ p2][t3]:=1
+act[bus ]==0, bus !
+d[bus ]:=κ31
+2p1?
+c:=0
+act[p1]:=1act[p1]:=0
+p1!
+c==d[ p1]
+c≤d[p1]
+cost’:= π1cost’:= τ1
+1
+2bus ?
+c:=0
+act[bus ]:=1act[bus ]:=0
+bus !
+c==d[ bus ]
+c≤d[bus ]
+cost’:= πbuscost’:= τbus
+a.)b.)
+c.)
+Fig. 3. Priced timed automata models for a.) task t3b.) processor p1c.) the bus.
+Deﬁnition 5 (Task Automaton). Given a task ti∈Tof an energy task graph
+(T, P, pre, δ, κ, π, d ), the automaton for tiwithAct={pk|δikis deﬁned }∪{bus}
+and is deﬁned as (L, l 0,E,I, P)where L={s0, done, bcing, bced }∪Act,l0=
+s0,I(l)=∅andP(l)=0 for all l∈L.Ehas the following transition
+for handling broadcast (done, act[bus]=0 ,{bus},{d[bus]: = κi}, bcing )and
+(bcing, ∅,{bus},{res[pk][ti]: =1 |pk∈P}, bced)and for each pk∈Actwe have
+the following two transitions:
+–(s0,act[pk]=0∧/logicalandtext
+tj∈pre(ti)res[pk][tj]=1,{pk},{d[pk]: =δik},pk)
+–(pk,∅,{pk},{ﬁn[ti]: =1,res[pk][ti]: =1}, done )
+Now, the PTA for a energy task graph is the parallel composition of the
+bus automata, all task automata, and all processor automata. Furthermore, the
+cost of the optimal schedule is the minimum cost of reaching a location where/logicalandtext
+ti∈Tﬁn[ti]=1 .
+Example 2. Figure 3 depicts PTA models for task t3, processor p1, and the bus
+of the energy task graph of Figure 1. The two outgoing transitions from the
+initial state (double circle state) of Figure 3a indicates that task t3can execute
+on both machines. The guard on transition (1,2) states that the result of both
+
+--- Page 7 ---
+226 J.I. Rasmussen, K.G. Larsen, and K. Subramani
+t1andt2should reside at p1, and that p1should be inactive. In such case, the
+automaton can synchronize with p1and set the occupation time of p1toδ31.
+When p1has ﬁnished execution and is ready to synchronize, the automaton will
+set the ﬁnish ﬂag for t3, update ressuch that the result of t3resides at p1and
+proceed to state 4. From here the result can be broadcasted in a similar way by
+synchronizing with the bus. The result of this is that resis updated such that
+the result of t3resides at all processors.
+Processor p1of Figure 3b has price (cost) τ1in the initial state (1) and π1
+is the processing state (2). When p1synchronizes with a task, it resets the local
+clock and sets its processing ﬂag. The processor will remain in the processing
+state until the clock reaches the value of the occupation time variable for p1.A t
+this point, p1will synchronize with the occupying task and set the processing
+ﬂag to false.
+4 Symbolic Minimum-Cost Reachability Analysis
+The semantics of PTA is an inﬁnite state transition system. In order to eﬀectively
+handle inﬁnite state systems we require symbolic techniques, which operate on
+sets of states simultaneously.
+Usually, reachability analysis is performed on symbolic states of the form
+(l,Z) where lis a location and Z∈B(C) is a zone. Semantically, ( l,Z)i st h e
+collection of states ( l,u) with u∈Z. We need two operations on a zone, Z,
+delay, Z↑, and reset with respect to a set of clocks r,{r}Z. The operations are
+deﬁned as Z↑={u+d|u∈Z,d∈IR≥0}and{r}Z={u[r/mapsto→0]|u∈Z}.
+Given a symbolic state ( l,Z), we deﬁne the delay successor to be post δ(l,Z)=
+(l,(Z∧I(l))↑∧I(l)) and for any edge, e=(l, g, a, r, l/prime)∈E, the successor
+with respect to eis deﬁned as post e(l,Z)=(l/prime,{r}(Z∧g)). Let Post(l,Z)=
+{post δ(l/prime,Z/prime)|(l/prime,Z/prime)=post e(l,Z),e∈E}be the set of successors of ( l,Z)b y
+following an edge in the automaton and delaying in that state. The symbolic
+semantics of a timed automaton ( L, l 0,E,I,P ) can then be given as a transition
+system with state set of the form ( l,Z), initial state post δ(l0,u0), and transition
+relation ( l,Z)→(l/prime,Z/prime) if and only if ( l/prime,Z/prime)∈Post(l,Z).
+In the core of cost-optimal reachability analysis for PTAs, we apply a sym-
+bolic semantics on a priced extension of zones, [7]. For this purpose we deﬁne
+the oﬀset, ∆Z∈Z, of a zone Zas the unique clock valuation, in the closure of
+the zone, with ∆Z(xi)≤u(xi) for all xi∈C and u∈Z.
+Deﬁnition 6 (Priced Zone). A priced zone, Z, is a tuple (Z, c, r ), where Z
+is a zone, c∈INis the price of the oﬀset, ∆Z, and r:C→ZZassigns a cost
+rate,r(x), to each clock, x∈C. For any u∈Z, the cost of uinZ,Cost(u,Z),
+is deﬁned as k+/summationtext
+x∈Cr(x)·u(x)where k=c−/summationtext
+x∈Cr(x)·∆Z(x).
+For a priced zone Z=(Z, c, r ) and a clock valuation u, we write u∈Zwhen
+u∈Z.
+
+--- Page 8 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 227
+Example 3. Figure 4 depicts a priced zone Z=(Z,8,r) over clocks {x1,x2}, with
+r(x1)=3a n d r(x2)=−2,∆Z(x1)=∆Z(x2) = 1, cost function 3 x1−2x2+7 ,
+and constraints x1−x2≤1,1≤x2≤3,x1≥1.
+01230123
+Z
+x1x2
+8
+3-2cost = 3 x1−2x2+7
+Fig. 4. A priced zone.
+Fig. 5. Branch and bound algorithm.
+Obviously, priced symbolic states should be pairs ( l,Z) where lis a location
+andZis priced zone. Furthermore, we want the a-successor ( a∈{e, δ})o fa
+priced symbolic state ( l,Z) to be a state ( l/prime,Z/prime) such that whenever u∈Zand
+(l,u)a,p−−→(l/prime,u/prime) then u/prime∈Z/primeand Cost(u/prime,Z/prime)=inf{Cost(u,Z)+p|(l,u)a,p−−→
+(l/prime,u/prime)}.
+Unfortunately, under these conditions, priced symbolic states are not directly
+closed under the post δ,post e, and Post operations. However, by applying the
+method outlined in [15], the above successor criteria can be met in a way such
+that both post δandpost eon priced zones result in a ﬁnite union of priced
+zones. Post on priced zones is then deﬁned in the obvious way, Post(l,Z)=
+{post δ(l/prime,Z/prime)|(l/prime,Z/prime)∈post e(l,Z),e∈E}.
+The symbolic semantics for PTA can be stated similarly to the symbolic
+semantics for timed automata with Postdetermining the transition relation and
+(l0,Z0)=post δ(l0,(u0,0,r0)) as the initial state where r0has rate zero for all
+clocks.
+Letmincost (Z)=inf{Cost(u,Z)|u∈Z } denote the inﬁmum cost over all
+clock valuations in Z. The cheapest way of reaching some goal location lgis then
+given as the minimum cost of all mincost (Z) where there exists a ﬁnite path in
+the priced symbolic state space from the initial state to a state ( lg,Z).
+Now, we are ready to provide an algorithm for symbolic minimum-cost reach-
+ability analysis. The algorithm searches the symbolic state space based on a
+branch and bound approach and returns the minimum cost of reaching a loca-
+tion in a set of goal locations, G. The algorithm is depicted in Figure 5.
+The algorithm uses a list of explored states, Passed , and a list of states
+waiting to be explored, W aiting . Initially, the waiting list contains the initial
+state ( l0,Z0). For every iteration of the while loop, we remove one element,
+
+--- Page 9 ---
+228 J.I. Rasmussen, K.G. Larsen, and K. Subramani
+(l,Z), from the list in some order. If none of the states in the passed list have
+the same location and are larger and cheaper ( /subsetsqequal, deﬁned below), we add ( l,Z)t o
+the passed list. Then, if lis a goal locations and the minimum cost of the priced
+zone is the smallest encountered, we update the cheapest cost and skip to the
+next iteration2. We assume remain (l,Z) to provide lower bound estimates on
+the cost of reaching a goal location from ( l,Z). We only compute the successors
+of (l,Z) if there is a chance that we reach a goal location with a lower cost than
+previously encountered.
+The algorithm terminates when there are no more states to explore and
+Cost will hold the lowest cost of reaching a goal location. Termination of the
+algorithm depends on the symbolic state space being well-quasi ordered under
+/subsetsqequal, [15]. Formally, the notion of ’bigger and cheaper’ between priced symbolic
+states is deﬁned as follows, ( l/prime,Z/prime)/subsetsqequal(l,Z) if and only if l=l/prime,Z⊆Z/prime, and for
+allu∈Z,Cost(u,Z/prime)≤Cost(u,Z) where ZandZ/primeare the zone parts of Zand
+Z/prime, respectively.
+Given two priced zones Z=(Z, c, r ) and Z/prime=(Z/prime,c/prime,r/prime) where Z⊆Z/primewe
+can decide whether ( l,Z/prime)/subsetsqequal(l,Z) by computing mincost (Z/prime/prime) over a priced
+zoneZ/prime/primewith zone part Zand Cost(u,Z/prime/prime)= Cost(u,Z)−Cost(u,Z/prime) for all
+u∈Z. If the result is larger than zero we know that ( l,Z/prime)/subsetsqequal(l,Z).
+Thus, solving mincost (Z) becomes a central aspect of the algorithm for sym-
+bolic minimum-cost reachability and the solution corresponds to the following
+linear program over clock variables.
+Deﬁnition 7 ( mincost LP).Given a priced zone Z=(Z, c, r ), with all strong
+inequalities relaxed, over clock variables C, themincost LP is deﬁned as:
+Minimize: subject to:
+k+/summationdisplay
+x∈Cr(x)·xZ and∀x∈C.x∈IR≥0, (2)
+Solutions to the mincost LP are given in terms of clock valuations and the
+objective function value of a given solution, u, is denoted by z(u).
+Themincost LP, when ﬁrst described in [15], was solved using the simplex
+algorithm3, [11]. As noted in [15], the mincost LP’s occurring through minimum-
+cost reachability of practical problems are often very small, since the number of
+variables equals the number of clocks. Furthermore, the constraints of the LP’s
+can be stated solely as clock diﬀerence constraints when using the diﬀerence
+bound matrix representation (DBM) outlined in, [14]4. The simplex package
+applied, on the other hand, is tailored towards large, general LP’s with up to
+30000 variables and 50000 constraints, [8]. Experimental results show that, in the
+current implementation, 50-80 percent of the time spent during minimum-cost
+2We are not concerned with the successors given the monotonicity of cost evolution.
+3The implementation used the lpsolve package by Michel Berkelaar,
+ftp://ftp.es.ele.tue.nl/pub/lp solve .
+4By introducing a clock, x0, whose value is always zero, any constraint of the form
+xi⊿/triangleleft ncan be written as xi−x0⊿/triangleleft n,⊿/triangleleft∈{ ≤,≥,=,< ,> }.
+
+--- Page 10 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 229
+reachability is used for solving mincost LP’s. Thus, we may beneﬁt signiﬁcantly
+by exploiting the simple structure and/or the small size of the mincost LP’s.
+5 Minimum Cost Flow and Duality
+In this section we describe a problem that is closely related to the mincost LP,
+namely the minimum cost ﬂow problem (or min-cost ﬂow). At the end of the
+section we show how the two problems relate through duality of linear programs.
+Deﬁnition 8 (Min-Cost Flow Problem). LetG=/angbracketleftN,A/angbracketrightbe a directed
+graph with node set Nand arc set A⊆N× N . With each node i∈Nwe
+associate a value bi∈IN, such that/summationtext
+i∈Nbi=0, with each arc (i, j)∈Awe
+associate a cost cijand a variable yij. The min-cost ﬂow problem is deﬁned as:
+Minimize: subject to:
+/summationdisplay
+(i,j)∈Acijyij ∀i∈N./summationdisplay
+{j:(i,j)∈A}yij−/summationdisplay
+{j:(j,i)∈A}yji=bi,(3)
+∀(i, j)∈A.yij∈IR≥0. (4)
+We call a node i∈N a supply node, demand node, or transshipment node
+depending on whether bi>0,bi<0, or bi= 0, respectively. The intuitive
+interpretation of the min-cost ﬂow problem is to ﬁnd the cheapest assignment
+of ﬂow to arcs, such that for each node the outﬂow minus the inﬂow equals the
+supply/demand of that node.
+Example 4. Figure 6 depicts a min-cost ﬂow problem with nodes {0,1,2}and
+arcs{(0,1),(0,2),(1,2),(2,0)}. The supply/demand of the nodes are b0=1,b2=
+2, and b1=−3. The arc costs are c01=c02=−1,c12= 1, and c20= 3. One
+(non-optimal) solution that satisﬁes Equation 3 is to assign 4 units ﬂow to arcs
+(0,1) and (2 ,0), and 1 to arcs (0 ,2) and (1 ,2). The cost of this solution is 8.
+Legend
+i jcijbi bj
+Non-optimal solution:
+y01=y20= 4 and y02=y12=1
+Cost: 801
+1-322
+-1-1
+3
+1
+Fig. 6. Example min-cost ﬂow problem. Node 1 is a demand node and nodes 0 and 2
+are supply nodes.
+
+--- Page 11 ---
+230 J.I. Rasmussen, K.G. Larsen, and K. Subramani
+For the solution of min-cost ﬂow problems, a special and considerably faster
+adaptation of the general simplex algorithm, the network simplex algorithm,
+[10], has been proposed. Despite the worst-case exponential running-time of the
+network simplex algorithm it is often, in practice, faster than its polynomial time
+counterparts, [2].
+Now, we show that instead of solving mincost LP’s as general linear pro-
+grams, we can instead solve related instances of the min-cost ﬂow problem. The
+relation comes through duality of linear programming. For every linear program,
+called the primal, there is a closely related linear program, called the dual, and
+such primal/dual pairs share a number of properties. The property we exploit
+in this paper is the so-called strong duality theorem, [11,2]:
+Theorem 1 (Strong Duality Theorem). For every pair of primal/dual prob-
+lems, if either problem has a bounded optimal solution, then so does the other
+and the optimal objective function values are identical.
+In other words, to obtain the optimal objective function value of a linear pro-
+gram, we can instead solve the dual problem since the optimal objective function
+values agree.
+Deﬁnition 9 (Min-Cost Flow Dual). Given a min-cost ﬂow problem as
+stated in Deﬁnition 8, the dual problem is deﬁned, over variables xiwhere i∈N,
+as:
+Maximize: subject to:
+/summationdisplay
+i∈Nbixi ∀(i, j)∈A.xi−xj≤cij (5)
+∀i∈N.xi∈I R (6)
+Obviously, the min-cost ﬂow dual resembles the mincost LP using the DBM rep-
+resentation of zones. The diﬀerences are that the min-cost ﬂow dual is a max-
+imization problem, the decision variables range, unrestrictedly, over the reals,
+and the cost rates of all clocks must sum to zero. However, we can accommodate
+for these discrepancies by rewriting the mincost LP.
+For this purpose we derive a linear program that is identical to the mincost
+LP in the sense, that for every solution to the mincost LP there is a solution in
+the new LP, which achieves the same objective function value, and vice versa.
+Deﬁnition 10 (Relaxed mincost LP).Given a priced zone Z=(Z, c, r )over
+a set of clock variables C∪{x0}, the relaxed mincost LP is deﬁned as5
+Minimize: subject to:
+k+/summationdisplay
+x∈Cr(x)·(x−x0) Z∗and∀x∈C∪{x0}.x∈I R (7)
+5Z∗denotes the representation of a zone, Z, using only diﬀerence constraints by
+introducing a clock, x0. [14]. Furthermore, all strong inequalities have been relaxed.
+
+--- Page 12 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 231
+Solutions to the relaxed mincost LP are given in terms of an assignment
+function v:C∪{x0}→I R. The objective function value of a given solution, v,i s
+denoted by z(v). The relaxed mincost LP has a number of interesting properties.
+The proofs of these properties are straight forward and can be found in, [18]
+Property 1. Ifuis a solution to the mincost LP, then vis a solution to the
+relaxed mincost LP, where v(x)=u(x) for all x∈C and v(x0) = 0. Furthermore,
+z(u)=z(v).
+Property 2. Ifvis a solution to the relaxed mincost LP, then uis a solution
+to the mincost LP, where u(x)=v(x)−v(x0) for all x∈C. Furthermore,
+z(v)=z(u).
+As a consequence of Properties 1 and 2 the optimal objective function values
+of the mincost LP and the relaxed mincost LP agree. In other words, when
+determining the lowest price of a priced zone, we can choose to solve either LP.
+In order for the relaxed mincost LP to be a min-cost ﬂow dual, we need to
+change it into a maximization problem. However, this is trivial as minimizing a
+function corresponds to maximizing the negated function. That is, we can negate
+the objective function of the relaxed mincost LP, solve it as a maximization
+problem, and negate the result.
+Finally, we need to verify that the sum of all supply/demand in the primal
+min-cost ﬂow problem sum to zero. This fact follows immediately from the ob-
+jective function of the relaxed mincost LP, as the factor of x0is the negated
+sum of all cost rates of xi∈C.
+We conclude that instead of solving the mincost LP, we can solve the primal
+min-cost ﬂow problem of the maximization version of the relaxed mincost LP.
+This technique requires us to negate the result received from the min-cost ﬂow
+problem and add the constant kin order to obtain the correct solution.
+Theorem 2. Given a priced zone Z=(Z, c, r ), the corresponding min-cost ﬂow
+problem is obtained as: For each clock xi∈Ccreate a node xiand set bxi=
+−r(xi),c r e a t ean o d e x0for the zero clock with bx0=/summationtext
+xi∈Cr(xi), and for
+every constraint xi−xj≤minZ∗make an arc from node xitoxjwith cost
+cxixj=m. The solution to the mincost LP is the negated solution to the min-cost
+ﬂow problem plus k.
+Example 5. To illustrate the above technique we show that the min-cost ﬂow
+problem of Figure 6 is, in fact, the primal problem of the relaxed mincost LP
+over the priced zone in Figure 4. For each of the clock variables x0,x1, and x2
+we have the nodes 0 ,1, 2, respectively. The constraints of Z∗arex0−x1≤
+−1,x0−x2≤−1,x2−x0≤3, and x1−x2≤1, each of which corresponds to
+an arc with appropriate cost in the graph. The supply/demands of the nodes
+are given as 1 ,−3, and 2, respectively, which obviously equals the negated cost
+rates and sum to zero.
+Furthermore, the optimal solution to the min-cost ﬂow graph is x20=
+2,x01= 3, and x02=x12= 0 and has cost 3. By negating the result and adding
+
+--- Page 13 ---
+232 J.I. Rasmussen, K.G. Larsen, and K. Subramani
+the constant k= 7, we obtain the optimal solution (i.e. 4) to the mincost LP
+given in Example 3.
+Note that when solving the mincost LP, the number of variables equals the
+number of clocks, and when solving the dual min-cost ﬂow problem, the number
+of variables equals the number of clock constraints. Thus, we are interested
+in reducing the number of constraints. For this purpose, we use the algorithm
+provided in [14] that computes a zone representation with a minimal set of
+constraints.
+6 Experimental Results
+In this section we provide the experimental results obtained for energy-optimal
+task graph scheduling using PTA.
+For conducting the experiments we have taken the Standard Task Graph
+Set6of [19] and added communication costs, energy consumptions, and restrict-
+ing task execution to a subset of the processors. The results are summarized in
+Table 1. The missing entries indicate that we were unable to create a problem
+instance that could be solved within the available memory. Simplex and Net-
+Simplex refer to the running-times using the standard simplex algorithm [8] and
+network simplex algorithm [17], respectively. The performance gain is given as
+Speedup and Threshold shows the time needed to compute a feasible schedule
+within 10 percent of the optimal.
+The results in Table 1 show that the running-time of symbolic minimum-cost
+reachability can be improved by 70-80 percent7by solving the min-cost ﬂow dual
+problem instead of the mincost LP. The results are similar when performing the
+same experiments on the examples reported in [15].
+Given the computational complexity of (energy-optimal) task graph schedul-
+ing the, key to solving large problem instances is to guide the search towards ap-
+proximate solutions as fast as possible, [13]. Unfortunately, we have been unable
+to ﬁnd energy task graphs with known optimal solutions to use for experiment-
+ing with heuristic-based guiding techniques. However, using a random-depth ﬁrst
+search order, Table 1 shows that even for most problems, we can obtain a so-
+lution within a 10 percent margin using only a fraction of the time need for
+obtaining the optimum.
+Since we were unable ﬁnd comparable results using other algorithms, it is
+hard to conclude on the competitiveness energy-optimal TGS using PTA. How-
+ever, the results in [15] show that the PTA approach to cost-optimal scheduling
+is competitive with MILP. Furthermore, [1] provides results showing that we
+can eﬃciently ﬁnd approximate solutions to TGS with timed automata using
+guiding heuristics. For these reasons, we are positive that using more involved
+6The STG set is available at http://www.kasahara.elec.waseda.ac.jp/schedule/ .
+7We disregard the results where both algorithms terminate within one second, since
+there is an overhead at startup where the input is passed and converted before
+execution begins.
+
+--- Page 14 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 233
+Table 1. Experimental results for 19 energy task graph instances. The results were
+obtained on a PentiumM 1.2GHz with 512MB RAM. Done indicates that the algorithm
+found the optimal and terminated within 1 sec.
+Processors Tasks 5 7 9 10 11 12
+2 Simplex 0.438s 2.734s 24.889s 127.318s 15.345s 844.804s
+NetSimplex 0.205s 0.592s 4.565s 27.890s 3.041s 181.997s
+Speedup (%) 53.2 78.3 81.7 78.1 80.1 78.5
+Threshold done done 2.730s 0.694s 1.297s 9.663s
+3 Simplex 0.466s 10.850s 27.039s 155.823s 197.141s
+NetSimplex 0.159s 2.618s 5.235s 36.403s 56.270s
+Speedup (%) 65.9 75.9 80.6 76.6 71.5
+Threshold done 0.392s 5.768s 1.121s 0.141s
+4 Simplex 1.827s 15.049s 31.080s 450.859s 302.062s
+NetSimplex 0.426s 3.583s 7.006s 106.804s 87.685s
+Speedup (%) 76.7 76.2 77.5 76.3 71.0
+Threshold done 0.593s 0.779s 4.616s 17.85s
+5 Simplex 4.122s 20.603s 44.882s
+NetSimplex 0.896s 5.104s 10.690s
+Speedup (%) 78.3 75.2 76.2
+Threshold done 0.476s 5.099s
+guiding heuristics together with good remain estimates, PTA will be a compet-
+itive approach to solving energy-optimal TGS problems.
+7 Conclusions and Future Work
+In this paper we have shown how to exploit the structure of the LPs solved
+during symbolic minimum-cost reachability through a reduction to the min-cost
+ﬂow problem, thus providing an answer to the question put forward in [15]. The
+current implementation in Uppaal uses a simplex algorithm to solve these LPs.
+Experimental results show that solving the related min-cost ﬂow instances with
+a network simplex algorithm instead, reduces the overall running-time of the
+reachability algorithm by 70-80 percent. In particular, we have shown how to
+solve energy-optimal TGS problems with PTA, and through initial experimental
+results we believe that PTA is a competitive approach to solving such problems.
+Additional experiments on e.g. the aircraft landing problem, [15], indicate that
+the performance gain generalizes to all PTA minimum-cost reachability prob-
+lems.
+To improve the competitiveness of PTA in energy-optimal TGS, we need to
+develop more elaborate guiding heuristics and remaining estimates in order to
+eﬃciently guide the search in the direction of approximate solutions.
+An interesting alternative, which can potentially provide considerable
+speedup, is to identify abstractions that are exact w.r.t. optimal reachability,
+e.g. a suitable adaption of the domination points techniques used in [1].
+
+--- Page 15 ---
+234 J.I. Rasmussen, K.G. Larsen, and K. Subramani
+Another promising approach is be to develop a compositional technique for
+ﬁnding either approximate or exact optimal solutions. The idea is to exploit the
+(in)dependency structure often found in large scale real problems.
+References
+1. Yasmina Abdeddaim, Abdelkarim Kerbaa, and Oded Maler. Task graph scheduling
+using timed automata. Procee dings of the International Parallel and Distributed
+Processing Symposium (IPDPS) , 2003.
+2. Ravindra K. Ahuja, Thomas L. Magnanti, and James B. Orlin. Network Flows -
+Theory, Algorithms, and Applications . Prentice Hall, 1993.
+3. R. Alur and D. Dill. Automata for modelling real-time systems. In Proc. of Int.
+Colloquium on Algorithms, Languages and Programming , number 443, pages 322–
+335, July 1990.
+4. Rajeev Alur, Salvatore La Torre, and George J. Pappas. Optimal paths in weighted
+timed automata. Lecture Notes in Computer Science , 2034:pp. 49–??, 2001.
+5. J. E. Beasley, M. Krishnamoorthy, Y. M. Sharaiha, and D. Abramson. Scheduling
+aircraft landings - the static case. Transportation Science , 34(2):pp. 180–197, 2000.
+6. Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim Larsen, Paul Petterson, and
+Judi Romijn. Eﬃcient guiding towards cost-optimality in UPPAAL. Lecture Notes
+in Computer Science , 2031:pp. 174+, 2001.
+7. Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim Larsen, Paul Pettersson,
+Judi Romijn, and Frits Vaandrager. Minimum-cost reachability for priced timed
+automata. Lecture Notes in Computer Science , 2034:pp. 147+, 2001.
+8. Michel Berkelaar.
+http://www.cs.sunysb.edu/˜algorith/implement/lpsolve/implement.shtml ,
+Oct. 2003.
+9. M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S. Yovine. Kronos: A
+model-checking tool for real-time systems. In A. J. Hu and M. Y. Vardi, editors,
+Proc. 10th International Conference on Computer Aided Veriﬁcation, Vancouver,
+Canada , volume 1427, pages 546–550. Springer-Verlag, 1998.
+10. W. H. Cunningham. A network simplex method. Mathematical Programming ,
+11:pp. 105–106, 1976.
+11. George B. Dantzig. Linear Programming and Extensions . Princeton University
+Press, Princeton, New Jersey, 1963.
+12. Flavius Gruian and Krzysztof Kuchcinski. Low-energy directed architecture selec-
+tion and task scheduling. Procee dings of the 25th EuroMICRO Conference , 1:pp.
+296–302, 1999.
+13. Yu-Kwong Kwok and Ishfaq Ahmad. Benchmarking and comparison of the task
+graph scheduling algorithms. Journal of Parallel and Distributed Computing ,
+59(3):pp. 381–422, 1999.
+14. K. Larsen, F. Larsson, P. Pettersson, and W. Yi. Eﬃcient veriﬁcation of real-time
+systems: Compact data structure and state space reduction. In Proc. Real-Time
+Systems Symposium , pages pp. 14–24, 1997.
+15. Kim Larsen, Gerd Behrmann, Ed Brinksma, Ansgar Fehnker, Thomas Hune, Paul
+Pettersson, and Judi Romijn. As cheap as possible: Eﬃcient cost-optimal reach-
+ability for priced timed automata. Lecture Notes in Computer Science , 2102:pp.
+493+, 2001.
+
+--- Page 16 ---
+Resource-Optimal Scheduling Using Priced Timed Automata 235
+16. Kim Guldstrand Larsen, Paul Pettersson, and Wang Yi. UPPAAL in a nutshell.
+Int. Journal on Software Tools for Technology Transfer , 1(1-2):134–152, 1997.
+17. Andreas L¨ obel.http://www.zib.de/Optimization/Software/Mcf/ , Oct. 2003.
+18. Jacob Illum Rasmussen. Priced timed automata and duality - available at
+http://www.cs.auc.dk/˜illum/pubs/ptaduality.html , 2003.
+19. T. Tobita, M. Kouda, and H. Kasahara. Performance evaluation of minimum
+execution time multiprocessor scheduling algorithms using standard task graph
+set. Proc. of PDPTA’00 , pages 745–751, 2000.

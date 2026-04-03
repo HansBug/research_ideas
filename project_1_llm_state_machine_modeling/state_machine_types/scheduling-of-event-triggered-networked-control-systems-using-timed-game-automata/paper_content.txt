@@ -1,0 +1,1218 @@
+--- Page 1 ---
+arXiv:1610.03729v1  [cs.SY]  12 Oct 2016Scheduling of Event-Triggered Networked Control
+Systems using Timed Game Automata
+Dieky Adzkiya1and Manuel Mazo, Jr.2
+1Department of Mathematics, Institut Teknologi Sepuluh
+Nopember, Indonesia. Part of this work was done in the Delft
+Center for Systems and Control, TU Delft, The Netherlands.
+(e-mail: dieky@matematika.its.ac.id)
+2Delft Center for Systems and Control, TU Delft - Delft University
+of Technology, The Netherlands. (e-mail: m.mazo@tudelft.nl).
+Abstract
+We discuss the scheduling of a set of networked control syste ms im-
+plemented over a shared communication network. Each contro l loop is
+described by a linear-time-invariant (LTI) system with an e vent-triggered
+implementation. We assume the network can be used by at most o ne
+control loop at any time instant and after each controller up date, a pre-
+deﬁned channel occupancy time elapses before the network is available. In
+our framework we oﬀer the scheduler two options to avoid conﬂ icts: using
+the event-triggering mechanism, where the scheduler can ch oose the trig-
+gering coeﬃcient; or forcing controller updates at an earli er pre-deﬁned
+time. Our objective is avoiding communication conﬂict whil e guarantee-
+ing stability of all control loops. We formulate the origina l scheduling
+problem as a control synthesis problem over a network of time d game au-
+tomata (NTGA)with asafety objective. The NTGA is obtained b ytaking
+the parallel composition of the timed game automata (TGA) as sociated
+with the network and with all control loops. The constructio n of TGA
+associated with control loops leverages recent results on t he abstraction of
+timing models of event-triggered LTI systems. In our proble m, the safety
+objective is to avoid that update requests from a control loo p happen
+while the network is in use by another task. We showcase the re sults in
+some examples.
+1 Introduction
+Networked control systems (NCSs) are spatially distributed syst ems in which
+the communication between sensors, actuators and controllers o ccurs through a
+shared band-limited digital communication network, as shown in Fig. 1 . Such
+1
+
+--- Page 2 ---
+Sensor 1 Plant 1 Actuator 1 ... SensorN PlantN Actuator N
+Controller 1 Controller NNetwork
+Scheduler
+Figure 1: Topology of a set of Nnetworked control systems.
+structures bring many advantages, for instance reduced wiring a nd maintenance
+costs as well as an increased ﬂexibility and reconﬁgurability. NCSs oc cur in
+numerous applications, including power systems [1], aircrafts and au tomobiles
+[2], and process control [3].
+Notice that NCSs are implemented over shared communication resou rces,
+most often over digital channels. The impact of such communication infras-
+tructures on control systems has been studied in the last decade [4, 5, 6, 7].
+In particular the applicability of wireless communications in NCSs has be en
+discussed in [8, 9, 10] among others. The delays introduced by thes e shared
+resources on the feedback loops are critical to guarantee stabilit y and perfor-
+mance. Furthermore, when several control loops are implemente d over a shared
+communication channel, bandwidth becomes a scarce resource, th e usage of
+which needs to be minimized by each controller.
+For these reasons, the traditional time-triggered controller imple mentations,
+i.e. based on periodic sampling, are not suitable anymore. With the obj ective
+of minimizing the bandwidth usage, event-based approaches result ing in aperi-
+odic controller updates have been proposed in [11, 12, 13, 14, 15, 16]. These
+aperiodic paradigms introduce a new challenge in the design: the sche duling of
+transmissions.
+A communication network has ﬁnitely many channels. The number of c han-
+nels represents the maximum number of messages that can be sent simultane-
+ously over the network. If the number of channels equals the numb er of control
+loops, we do not need any scheduler because every control loop ha s its own
+communication channel. However in practice, the number of channe ls is smaller
+than the number of control loops. Thus we need a scheduler to dec ide which
+control loop has access to the network at any time instant while gua ranteeing
+stability of all control loops. Additionally the scheduler can optimize a certain
+combination of control performance and bandwidth usage. In the context of
+periodic traﬃc sources, or aperiodic with known deadlines a-priori, t here are
+well-studied scheduling techniques that are capable of guaranteein g certain de-
+lay bounds for the traﬃc [17, 18, 19]. In the event-based context , i.e. sporadic
+traﬃc with unknown deadlines, the problem has been less studied and becomes
+more challenging [20, 21, 22, 23]. In [21, 22, 23], the authors propo se a joint de-
+sign (codesign) of a control law and a scheduling law for several typ es of NCSs.
+Although the co-design strategy can improve the control perfor mance signiﬁ-
+2
+
+--- Page 3 ---
+cantly, if a new control loop is introduced to the NCSs, the whole co- design
+procedure has to be executed again, which can be extremely time co nsuming.
+In orderto mitigate this issue, we proposean approachthat separ atesthe design
+of controllers and schedulers.
+In this paper, we design a scheduler for a set of NCSs over a shared commu-
+nication network (cf. Fig. 1). Our objective is avoiding communicatio n conﬂict
+while guaranteeing stability of all NCSs. Each NCS is a linear-time-invar iant
+(LTI) system. The controllers are implemented in an event-trigger ed fashion
+where the delays between reading the state and updating the actu ators are ig-
+nored [12]. With respect to the shared communication network, we a ssume it
+has a single communication channel. Furthermore after each contr oller update,
+a pre-deﬁned channel occupancy time elapses before the networ k is available.
+We consider schedulers that after each transmission of measurem ents, decide
+the policy for the next update. These policies can be to either let the next
+update be decided based on a triggering mechanism (to be chosen am ong a
+set of them guaranteeing diﬀerent performances) or forced to b e at an earlier
+pre-deﬁned time. If we do not allow the scheduler to force earlier co ntroller
+updates, the bandwidth usage is decreased at the cost of worse c ontrol perfor-
+mance (or slower convergence). On the other hand if we allow the sc heduler
+to force earlier controller updates, we obtain a better control pe rformance (or
+faster convergence) at the cost of increased bandwidth usage. In this case, noth-
+ing prevents the scheduler from always using earlier updates and ne ver use the
+event-triggering mechanism. This may result in an undesired over-u se of the
+communication channel, and could be prevented by introducing cost s to the
+model, which would result in priced timed game automata (PTGA). Unfo rtu-
+nately to the best of our knowledge, no results are available in the lite rature
+allowing the synthesis of strategies over PTGA with safety objectiv es. Only the
+synthesis of strategies over PTGA with a reachability objective are available
+[24, 25]. Thus we propose an alternative approach to prevent the u ndesired
+schedule by limiting the consecutive earlier updates.
+The scheduling problem can be formulated as a timed safety game: giv en
+a model and a set of bad states, we seek to construct a strategy such that
+the model supervised by the strategy constantly avoids the bad s tates. In our
+problem, the safety problem at hand is to avoid that update reques ts from a
+control loop happen while the network is in use by another task. We f ocus
+our attention to the design of a scheduler by leveraging techniques originally
+developed for network of timed game automata (NTGA) [26]. An NTGA is the
+parallel composition of timed game automata (TGA), which are timed s afety
+automata (TSA) in with the set of actions is partitioned into controlla ble and
+uncontrollable actions. We choose NTGA modeling framework becaus e of the
+following two reasons. First of all, it allows us to extend the methods in [27].
+The authors of [27] discuss formal abstraction of the timing behav ior of LTI sys-
+tems with event-triggered implementation as TSA. The second reas on is that
+the solution of timed safety game over NTGA can be computed by usin g back-
+ward algorithms [28, 26] or on-the-ﬂy algorithms [29]. Moreover the algorithms
+have been implemented in some freely available software tools [30, 29]. The
+3
+
+--- Page 4 ---
+procedure to generate the scheduler (or the strategy) is as follo ws. First, we
+construct an NTGA from a set of NCSs. The NTGA is obtained by takin g
+the parallel composition of the TGA associated with the network and with all
+control loops. Then we characterize the bad states, i.e. states c orresponding
+to a communication conﬂict. Finally the scheduler is deﬁned as the solu tion of
+timed safety game over the NTGA.
+Timed automata (TA) [31] are a general modeling framework for a wid e
+range of real-time systems, such as in web services [32], audio/vide o protocols
+[33], bounded retransmission protocols [34], collision avoidance proto cols [35,
+36] and commercial ﬁeld bus protocols [37]. Timed safety automata ( TSA)
+[38] are a simpliﬁed version of TA. In order to enforce progress pro perties,
+TSA use local invariant conditions whereas TA use B¨ uchi or Muller ac cepting
+conditions. The scheduling problem over TA and its variants has been already
+studied in the literature e.g. applied to the scheduling of a steel plant , a job shop
+and a task graph in [39], [40], and [41], respectively. Furthermore the optimal
+scheduling of a production w.r.t. a predeﬁned cost for a ﬁnite time ho rizon has
+been investigated in [42, 43]. In this case, the models are TA with weigh ts (or
+costs) on both locations and edges, so called priced timed automata in [44] and
+weighted timed automata in [45]. Finally the optimal scheduling for inﬁnit e
+time horizon is discussed in [46].
+The rest of this manuscript is structured as follows. Section 2 reca lls some
+modeling frameworks and preliminaries. Section 3 proposes a proced ure to
+synthesize a conﬂict-free scheduler. Two experimental results a re discussed in
+Section 4. The ﬁrst experiment allows the scheduler to force earlier controller
+updates where the number of consecutive earlier updates is limited t o 4. The
+second experiment does not allow the scheduler to force earlier con troller up-
+dates. In this experiment, the scheduler can choose the triggerin g coeﬃcient
+among three choices. Finally the conclusions and possible future res earch direc-
+tions are summarized in Section 5.
+2 Models and Preliminaries
+2.1 Timed Automata
+A timed automaton (TA) [31] is a ﬁnite automaton (namely, a directed graph
+containing ﬁnitely many nodes and ﬁnitely many labeled edges) extend ed with
+real-valued variables, which is usually employed to model real-time sys tems.
+The real-valued variables model logical clocks, that are initialized to z ero when
+the system is started and thereafter increase synchronously at the same rate.
+We shall refer to these variables as simply “clocks”. Clock constrain ts are used
+to restrictthe behaviorofthe automaton. An edge transitioncan be taken when
+the edge is enabled. Edges are enabled if the values of the clocks sat isfy the
+guard conditions associated with the edge. Additionally, some clocks may be
+reset to zero when an edge is taken. Originally, B¨ uchi and Muller acc epting con-
+ditions are used to enforce progress properties [31]. A simpliﬁed ver sion called
+4
+
+--- Page 5 ---
+timed safety automata [38] uses local invariant conditions to specif y progress
+properties. In this work, we focus on timed safety automata and r efer them as
+timed automata for simplicity.
+We deﬁne Cas the set of ﬁnitely many clocks, Actas the set of ﬁnitely many
+actions and N0as the set of natural numbers including zero {0,1,...}. A clock
+constraint is a conjunctive formula of atomic constraints of the fo rmx ⊲⊳ nor
+x−y ⊲⊳ nforx,y∈C,⊲⊳∈ {≤,<,=,>,≥}andn∈N0. Clock constraints will
+be used as guards on edges and location invariants. We use B(C) to denote the
+set of clock constraints.
+Deﬁnition 1 (Timed Automaton) .A timed automaton TAis a sextuple
+(L,ℓ0,Act,C,E,Inv)where
+•Lis a set of ﬁnitely many locations (or nodes);
+•ℓ0∈Lis an initial location;
+•Actis a set of ﬁnitely many actions;
+•Cis a set of ﬁnitely many real-valued clocks;
+•E⊆L×B(C)×Act×2C×Lis a set of edges;
+•Inv:L→ B(C)assigns invariants to locations.1
+Location invariants are restricted to constraints that are downwards closed, in
+the form: c≤norc < nwherecis a clock and n∈N0.
+Sometimes we write ℓg,a,r✲ℓ′when (ℓ,g,a,r,ℓ′)∈E. Furthermore we write
+ℓ✲ℓ′to denote the existence of an edge from ℓtoℓ′with arbitrary labels.
+The semantics of a TA are deﬁned as a transition system where a sta te
+consists of the current location and the current value of clocks. T here are
+two types of transitions between states depending on whether th e automaton:
+delays for some time (a delay transition), or takes an enabled edge ( a discrete
+transition).
+To keep track of clock values, we use functions known as clock assig nments
+u:C→R≥0and we employ u/satisfiesg(usatisﬁesg) to denote that the clock values
+ofusatisfy the guard g. Ford∈R≥0, letu+ddenote the clock assignment
+that maps all c∈Ctou(c)+d. For a set of clocks c⊆C, letu[c] denote the
+clock assignment that maps all clocks in cto 0 and agrees with ufor the rest
+of clocks in C\c.
+Deﬁnition 2 (Operational Semantics) .The semantics of a timed automaton is
+a transition system (also known as a timed transition system ) in which states
+are pairs of location ℓand clock assignment u, and transitions are deﬁned by
+the rules:
+•Delay transition: (ℓ,u)d
+TS✲(ℓ,u+d)ifu/satisfiesInv(ℓ)and(u+d)/satisfiesInv(ℓ)
+for a non-negative real number d∈R≥0;
+1Recall that 2Cdenotes the power set of C.
+5
+
+--- Page 6 ---
+•Discrete transition: (ℓ,u)a
+TS✲(ℓ′,u′)ifℓg,a,r✲ℓ′,u/satisfiesg,u′=u[r]and
+u′/satisfiesInv(ℓ′).
+A run of a timed automaton is a sequence of alternating delay a nd discrete
+transitions in the transition system.
+We denote by Runs(TA) the set of runs of timed automaton TAstarting from
+the initial state ( ℓ0,u0) whereu0is a clock assignment that maps all c∈Cto 0.
+Additionally, if ρis a ﬁnite run, the last state of the run is denoted by last(ρ).
+The set of actions Act(cf. Deﬁnition 1) is assumed to consists of symbols
+for input actions a?, output actions a! and internal actions ∗. Synchronous
+communication between diﬀerent TA is done by hand-shake synchro nization
+using input and output actions.
+To model concurrent systems, several TAs can be extended with parallel
+composition that takes into account the synchronous communicat ion. Parallel
+composition of TAs is also called network of timed automata (NTA). Es sentially
+the parallel composition of a set of TAs is the product of the TAs. Bu ilding
+the product timed automaton is an entirely syntactical but comput ationally
+expensive operation. The reader is referred to [47, Sec. 5] for an example on the
+composition of two TAs.
+The semantics of an NTA are deﬁned as a transition system where a s tate
+consists of a vector of current locations and the current value of clocks in all
+TAs [48].
+2.2 Timed Game Automata
+A timed game automaton is a timed automaton in which the set of action s
+is partitioned into controllable and uncontrollable actions. The forme r are ac-
+tions that can be triggered by the controller, whereas the latter o nly by the
+environment/opponent.
+Deﬁnition 3 (Timed Game Automaton) .A timed game automaton TGAis a
+septuple (L,ℓ0,Actc,Actu,C,E,Inv)where
+•(L,ℓ0,Actc∪Actu,C,E,Inv)is a timed automaton;
+•Actcis a set of controllable actions;
+•Actuis a set of uncontrollable actions;
+•Actc∩Actu=∅.
+Similar to TA, TGA can also be extended with parallel composition (esse n-
+tially the synchronized cartesian product of TGA). The parallel com position of
+TGAs is called a “network of timed game automata” (NTGA) which is for mally
+deﬁned as:
+6
+
+--- Page 7 ---
+Deﬁnition4 (ParallelComposition) .LetTGAi= (Li,ℓi
+0,Acti
+c,Acti
+u,Ci,Ei,Invi)
+be a timed game automaton for i∈ {1,...,n}. The parallel composition of
+TGA1,...,TGAndenoted by TGA1| ··· |TGAnis a timed game automaton
+TGA= (L,ℓ0,Actc,Actu,C,E,Inv)where
+•L=L1×···×Ln;
+•ℓ0= (ℓ1
+0,...,ℓn
+0);
+•Actc={∗}∪/uniontextn
+i=1{a∈Acti
+c|ais an internal action };
+•Actu={⊛}∪/uniontextn
+i=1{a∈Acti
+u|ais an internal action };
+•C=C1∪···∪Cn;
+•Eis deﬁned according to the following two rules:
+–a TA makes a move on its own via its internal action: the edge is
+controllable iﬀ the internal action is controllable;
+–two TAs move simultaneously via a synchronizing action: the edge is
+controllable iﬀ both input and output actions are controlla ble (i.e. the
+environment has priority over the controller);
+•Inv((ℓ1,...,ℓ n)) =Inv1(ℓ1)∧···∧Invn(ℓn).
+In the parallel composition of TGAs, a pair of input and output action s is
+denoted asa single action. Thus the sets ActcandActudo not containanyinput
+and output actions. A synchronizing action should be deﬁned as an e lement
+ofActcif it is controllable and an element of Actuif it is not controllable. In
+Deﬁnition 4, let usremarkthat both ActcandActudonot containsynchronizing
+actions for simplicity. Any controllable synchronizing action is denote d by∗,
+whereas any uncontrollable synchronizing action is denoted by ⊛.
+Given an NTGA, we are interested in solving the following safety objec tive:
+is it possible to ﬁnd a strategy for the triggering of controllable actio ns guaran-
+teeing that a set of pre-speciﬁed bad states are never reached r egardless of what
+and when uncontrollableactionstake place? More formallygiven an NT GA and
+a set of bad states A, we seek to construct a strategy fsuch that the NTGA
+supervised by fconstantly avoids A.
+A strategy [26] is a function that during the course of a game const antly
+gives information about what the controller should do in order to win t he game.
+At any given situation, the strategy could suggest the controller t o either “take
+a particular controllableaction”or “do nothing at this point in time”, i.e . delay,
+which will be denoted by the symbol (controllable action) λ.
+Deﬁnition5 (Strategy[29,Deﬁnition3]) .LetTGA= (L,ℓ0,Actc,Actu,C,E,Inv)
+be a timed game automaton. We deﬁne TA= (L,ℓ0,Actc∪Actu,C,E,Inv)as
+the timed automaton derived from the timed game automaton. A strategyfover
+TGAis a partial function from Runs(TA)toActc∪{λ}s.t. for every ﬁnite run
+ρ, iff(ρ)∈Actcthen last (ρ)f(ρ)
+TS✲(ℓ′,u′)for some (ℓ′,u′).
+7
+
+--- Page 8 ---
+Astrategy foverTGAiscalledstate-basedormemorylesswhenever last(ρ) =
+last(ρ′) implies f(ρ) =f(ρ′), for each ρ,ρ′∈Runs(TA). The restricted behavior
+ofan NTGA controlledwith somestrategy fis deﬁned by the notion of outcome
+[28].
+A strategy fis winning from a state if all maximal runs [29, p. 70] in the
+outcomeoriginatedfromthatstatearewinning. Astateiswinningift hereexists
+a winning strategy ffrom that state. The winning states can be computed by
+using backward algorithms [28, 26] or on-the-ﬂy algorithms [29]. Sof tware tools
+are also available that solve safety control problems, e.g. the implem entation
+from Verimag [30] or UPPAAL-Tiga [29], which implement the backward a nd
+on-the-ﬂy algorithms respectively.
+2.3 Event Triggered Control Systems
+We consider linear-time-invariant (LTI) systems of the form
+˙ξ(t) =Aξ(t)+Bυ(t), ξ(t)∈Rn, υ(t)∈Rm(1)
+whereAandBarematricesofappropriatedimensions. Weassumetheexistence
+of linear state-feedback laws υ(t) =Kξ(t) rendering the closed-loop system
+globally asymptotically stable, where Kis a matrix of appropriate dimensions.
+Assume a sample-and-hold implementation of the control law is in place
+keeping the input signal constant between update times, i.e.
+υ(t) =Kξ(tk), t∈[tk,tk+1[, (2)
+wheret0,t1,...isadivergentsequenceofupdatetimes. Forsimplicityofpresen-
+tation, we ignore the presence of delays between reading the stat e and updating
+theactuators. Theinterestedreaderisreferredto[12]formor edetails, including
+accounting for delays.
+In event-triggered implementations, the sequence of update time s is decided
+onrun-timebasedonthestateoftheplant[12]. Let ξ(t)representthesolutionof
+(1)-(2). We deﬁne an auxiliary variable e(t) representing the diﬀerence between
+the sampled state ξ(tk) and the current state ξ(t) of the system:
+e(t) =ξ(tk)−ξ(t), t∈[tk,tk+1[, k∈N0.
+Theevent-triggeringapproachin[12], proposesthefollowingsamplin gtriggering
+law:
+tk+1= min{t|t > tkand|e(t)|2≥σ|ξ(t)|2}, (3)
+whereσ∈]0,¯σ[⊂R+is the triggering coeﬃcient, which establishes a trade oﬀ
+between quality ofcontrol (convergencerate to the equilibrium) a nd the amount
+of transmissions triggered. The inter-sample time of the state x, denoted by
+τσ(x), is deﬁned as the time between consecutive updates when the sam pled
+state isx:
+τσ(x) = min{t| |e(t)|2≥σ|ξ(t)|2andξ(0) =x}. (4)
+8
+
+--- Page 9 ---
+2.4 Abstraction of Event Triggered Control Systems as
+Timed Automata
+In [27], the authors propose an approach to characterize the sam pling behavior
+of LTI systems with event-triggered implementation as TAs. The ap proach
+abstracts the spatial and temporal dependencies of the original system. The
+following deﬁnitions summarize the approach.
+Deﬁnition 6 (Flow Pipe) .The set of reachable states or the ﬂow pipe at the
+time interval [t1,t2]from a set of initial states X0is denoted by
+X[t1,t2](X0) =/uniondisplay
+t∈[t1,t2]{ξ(t)|ξ(0)∈X0}.
+Deﬁnition 7 ([27]).A timed automaton abstracting the triggering timing be-
+havior of system (1)-(2)with triggering coeﬃcient σis given by
+TAσ= (Lσ,ℓσ
+0,Actσ,Cσ,Eσ,Invσ)where
+•Lσ={Rσ
+1,...,Rσ
+q};
+•ℓσ
+0=Rσ
+ssuch that ξ(0)∈ Rσ
+s;
+•Actσ={∗};
+•Cσ={c};
+•(Rσ
+s,τ¯σ
+s≤c≤¯τσ
+s,∗,{c},Rσ
+t)∈EσifX[τ¯σs,¯τσs](Rσ
+s)∩Rσ
+t/\e}atio\slash=∅;
+•Invσ(Rσ
+s) ={c|0≤c≤¯τσ
+s}for alls∈ {1,...,q}.
+Each location Rσ
+sof this TA, is associated with a set of possible states x
+of the system (1). We abuse slightly notation denoting both the loca tion and
+the associated region with the same symbol Rσ
+s. The suggestion in [27] is to
+partition the state space of the control system in conic regions po inted at the
+origin, each of which would be associated to a location of the TA. The T A
+has one clock variable cthat represents the time elapsed since the last update.
+According to [12], given a ﬁxed sampled state, the inter-sample time is uniquely
+deﬁned, i.e. it is deterministic. In general, when the sampled state is d iﬀerent,
+the inter-sample time is also diﬀerent. The notation τ¯σ
+sand ¯τσ
+srepresents the
+lower and upper bounds of the inter-sample time for sampled states inRσ
+s.
+In [27] it is shown formally that the TA abstracts the timing behavior o f the
+event-triggered system, implying that:
+∀s∈ {1,...,q},∀x∈ Rσ
+s:τσ(x)∈[τ¯σ
+s,¯τσ
+s].
+Remark 1. In principle it could happen that τσ(x) =∞for some states x
+of the system. In practice, one would always impose a maximum time between
+transmissions to maintain a minimum level of feedback. This practical solution
+is suggested in [27] to guarantee having always ¯τσ
+s<∞, as otherwise the TA
+model would become useless for scheduling purposes.
+9
+
+--- Page 10 ---
+Rσ
+1
+0≤c≤¯τσ
+1Rσ
+2
+0≤c≤¯τσ
+2τ¯σ
+1≤c≤¯τσ
+1
+c:= 0
+τ¯σ
+2≤c≤¯τσ
+2
+c:= 0τ¯σ
+1≤c≤¯τσ
+1
+c:= 0τ¯σ
+2≤c≤¯τσ
+2
+c:= 0
+Figure 2: A timed automaton modeling a control loop with event-trigg ered im-
+plementation. The unsourced arrow indicates the initial location. Th e internal
+action∗is omitted in the ﬁgure.
+From Deﬁnition 7 it is also trivial to see that if ξ(t) =x∈ Rσ
+sthenξ(t+
+τσ(x))∈ Rσ
+j, withRσ
+jbeing one of the end locations in the set of edges with
+starting location Rσ
+s. The outgoing edges of Rσ
+sare enabled if the time elapsed
+since the last update is between τ¯σ
+sand ¯τσ
+s. Only one action denoted by ∗is
+present in this model, and since taking any edge is interpreted as upd ating the
+input value, all edges are labeled with action ∗and reset the clock variable.
+Note that the system may remain in location Rσ
+sfor at most ¯ τσ
+stime units,
+as a triggering event is guaranteed to happen before that instant . A graphical
+representation of a simple TA of the form of those from Deﬁnition 7 is shown
+in Fig. 2.
+3 Scheduling of Event-Triggered Control Sys-
+tems
+Consider a set of event-triggered networked control systems ( NCSs) sharing
+a common communication channel (cf. Fig. 1). Each control loop co nsists of
+a sensor, a plant, an actuator, and a controller, interconnected through the
+shared communication network. Assume that the network can be u sed by at
+most one control loop at any time instant. If severalcontrol loop s request access
+to the channel while the network is in use a conﬂict arises, and at mos t one
+control loop will be chosen nondeterministically to access the netwo rk. While
+in time-triggered control systems these type of problems can be p revented by
+appropriate scheduling, when one or several control-loops are ev ent-triggered
+a-priori scheduling is a much more challenging task because of the un known
+update times.
+In this section, we propose an approach based on NTGA to avoid suc h con-
+ﬂicts. We consider schedulers that after each update of a contro l loop (trans-
+mission of measurements, computation of control and transmissio n of actuation
+signal to actuators) decide whether the next update time of each control loop
+should:
+•be based on a triggering mechanism selected from a set of ﬁnitely man y
+triggering coeﬃcients {σ1,...,σ p}; or
+10
+
+--- Page 11 ---
+•forced to be at a pre-deﬁned time (earlier than the minimum expecte d
+inter-sample time).
+We synthesize scheduling strategies by: constructing an NTGA fro m a set of
+NCSs (cf. Section 3.1), characterizingthe bad states, i.e. states correspondingto
+a communication conﬂict (cf. Section 3.2), and ﬁnally synthesizing a s upervising
+strategy ensuring that the NTGA avoids the bad states.
+3.1 Model: Network of Timed Game Automata
+In what follows, we describe the procedure employed to construct an NTGA
+from a given set of event-based NCSs. We start constructing a TG A associated
+with the shared communication network. Next, for each event-tr iggered control
+loop, we generate a TGA as a modiﬁcation of the TA described in Sectio n 2.4.
+Finally, the NTGA is obtained by taking the parallel composition of the T GA
+associated with the network and with all control loops.
+3.1.1 Communication Network
+DenotetheTGAcorrespondingtothesharedcommunicationnetwo rkbyTGAnet
+(cf. Deﬁnition 8). TGAnethas three locations Idle,InUseandBad, where the
+initial location is Idle(cf. Fig. 3). The location Idlerepresents the network
+being available, InUserepresents the network being used by a control loop and
+Badrepresents a conﬂict occured. The active location changes from Idleto
+InUsewhen a control loop requests access to the channel to perform a n update,
+which also forces the reset of the clock variable c. The channel is occupied
+for ∆ time units before the network is freed again to service the con trol tasks.
+During this time, the active location is InUse, and after that time the active lo-
+cation changes to Idle. When the active location is InUseand another control
+loop requests access then the active location changes to Bad. Once the net-
+work enters the location Bad, the network cannot leave the location, i.e. Bad
+is an absorbing location. Notice that this is a somewhat conservative model,
+as we consider every control loop occupies the channel the whole t ime ∆. One
+could trivially adjust this simple model, and the subsequent work, to a ssociate
+diﬀerent occupancy times to diﬀerent control loops.
+Deﬁnition 8. Let∆represent the maximum channel occupancy time, a timed
+game automaton associated with the communication network i s given by TGAnet=
+(Lnet,ℓnet
+0,Actnet
+c,Actnet
+u,Cnet,Enet,Invnet)where
+•Lnet={Idle,InUse,Bad};
+•ℓnet
+0=Idle;
+•Actnet
+c={∗};
+•Actnet
+u={up?};
+•Cnet={c};
+11
+
+--- Page 12 ---
+Idle InUse
+0≤c≤∆Badup?
+c:= 0
+c== ∆up?up?
+Figure 3: A timed game automaton modeling the shared communication net-
+work. The solid and dashed arrows represent controllable and unco ntrollable
+edges, respectively.
+•Enet={(Idle,true,up?,{c},InUse),(InUse,c= ∆,∗,∅,Idle),
+(InUse,true,up?,∅,Bad),(Bad,true,up?,∅,Bad)};
+•Invnet(InUse) ={c|0≤c≤∆},
+Invnet(Idle) ={c|c≥0},Invnet(Bad) ={c|c≥0}.
+The guard true represents a condition that is always satisﬁe d, for example c≥0.
+3.1.2 Control Loops
+Given a control loop, we construct the timed game automata TGAclallowing
+a supervisor (scheduler) to either: force earlier controller updat es than those
+dictated by the event-triggering mechanism, or choose a triggerin g coeﬃcient
+for the event-triggering mechanism.
+Deﬁnition9. Consider a set of timedautomata TAσj= (Lσj,ℓσj
+0,Actσj,Cσj,Eσj,Invσj)
+generated from an event-triggered control loop with trigge ring coeﬃcient σj∈
+]0,¯σ[forj∈ {1,...,p}and assume that Rσ1s=···=Rσpsfor alls∈ {1,...,q}.
+Consider also a set of earlier update time parameters {d¯1,¯d1,...,d¯q,¯dq}, such
+that
+∀s∈ {1,...,q}∃j∈ {1,...,p}:¯ds≤τ¯σj
+s.
+Then, the timed game automata TGAclis given by
+TGAcl= (Lcl,ℓcl
+0,Actcl
+c,Actcl
+u,Ccl,Ecl,Invcl)where
+•Lcl=/uniontextp
+j=1Lσj∪/uniontextq
+s=1{Rs,Ears};
+•ℓcl
+0=Rssuch that ξ(0)∈ Rσ1s;
+•Actcl
+c=Actσ1∪/uniontextp
+j=1{acl
+j};
+•Actcl
+u={up!};
+•Ccl=Cσ1;
+•Ecl=/uniontextq
+s=1/uniontext
+t∈Es{(Ears,c= 0,up!,∅,Rt)}∪/uniontextq
+s=1/uniontextp
+j=1{(Rs,c= 0,acl
+j,∅,Rσj
+s),
+(Rσjs,d¯s≤c≤¯ds,∗,{c},Ears)}∪/uniontextq
+s=1/uniontextp
+j=1/uniontext
+{t|(Rs→Rt)∈Eσj}
+{(Rσj
+s,τ¯σj
+s≤c≤¯τσj
+s,up!,{c},Rt)};
+12
+
+--- Page 13 ---
+Rσ
+1 R1
+R2 Ear1Ear2
+Rσ
+2
+Figure 4: A timed game automaton modeling a control loop with an even t-
+triggered implementation. The labels over edges and location invarian ts are not
+shown for simplicity.
+•Invcl(Rσj
+s) ={c|c≤¯τσj
+s},Invcl(Rs) ={c|c= 0},
+Invcl(Ears) ={c|c= 0}.
+In model just introduced, we use separate locations associated t o each trig-
+gering coeﬃcient and introduce the additional locations RsandEarsfors∈
+{1,...,q}. Both the locations RsandRσj
+srepresent that the sampled state is
+inRσ1s. In location Rsthe scheduler has not chosen the triggering coeﬃcient,
+whereas in location Rσjsthe scheduler has chosen triggering coeﬃcient σj. Since
+the scheduler can choose the triggeringcoeﬃcient, the edges fro mRstoRσj
+sare
+labeled with the controllable action aj. After choosing the triggeringcoeﬃcient,
+the scheduler is allowed to either: force earlier controller updates, or use the
+event-triggering mechanism (based on the chosen triggering coeﬃ cient).
+If the scheduler decides to use the event-triggeringmechanism, w hile staying
+in location Rσj
+s, the strategy is “do nothing”. This ensures that the outgoing
+edgetoEarsisnottaken. Whenthevalueof cisbetween τ¯σj
+sand ¯τσj
+s, theevent-
+triggeringmechanismisactivated. Inthiscase,theedgesfrom RσjstoRtlabeled
+with the uncontrollableaction up! are enabled. Recall that the scheduler cannot
+choose the exact update time when using the event-triggering mec hanism. This
+also implies that the scheduler cannot choose the region containing t he next
+sampled state.
+If the scheduler decides to force earlier controller updates, the s cheduler will
+take the edge to Earswhen that edge is enabled. In this case, the scheduler is
+able to choose the exact update time. Thus, the edges from Rσj
+stoEarsare
+labeled with the controllable action ∗. In location Ears, the time cannot elapse
+and one of the outgoing edges has to be taken immediately. Since the scheduler
+cannot choose the region containing the next sampled state, the o utgoing edges
+ofEarsare labeled with the uncontrollable action up!. The outgoing edges
+are deﬁned as follows: there exists an edge from EarstoRtift∈ Es:={t|
+X[d¯s,¯ds](Rσ1s)∩ Rσ1
+t/\e}atio\slash=∅}. A graphical representation of a TGA generated by
+Deﬁnition 9 is shown in Fig. 4.
+In this subsection, we assume the initial conditions of the LTI syste m are a
+subset of a region. If the initial conditions are intersected with a se t of regions
+Rinit⊆ {Rσ1
+1,...,Rσ1q}, we can modify the TGA generated by Deﬁnition 9 as
+follows. Introduce a new location called R0with invariant {c= 0}and deﬁne
+13
+
+--- Page 14 ---
+R0R1
+R2Rσ
+1
+Ear1Ear2
+Rσ
+2
+Figure 5: A timed game automaton modeling a control loop where the in itial
+statesareintersectedwithbothconicregions. Thelabelsoveredg esandlocation
+invariants are not shown for simplicity.
+R0as the initial location. Then, deﬁne edges from R0to every location in Rinit
+with guard c= 0, action ⊛and without resetting the clock. Finally, action ⊛is
+deﬁned as an uncontrollable action. In the above modiﬁcation, the e nvironment
+has to choose one of the locations corresponding to initial condition s when the
+system is started. A graphical representation of the TGA repres enting this
+situation is depicted in Fig. 5.
+Proposition 1. Switching between diﬀerent triggering coeﬃcients or trigg ering
+earlier does not hinder stability.
+Proof.ConsiderLyapunovfunction V:Rn→R≥0satisfying ˙V(ξ(t))≤ −λcV(ξ(t)),
+withλc>0 for the system (1) with continuous feedback u(t) =Kξ(t). It has
+beenshownin[12]thatselectingatriggeringcoeﬃcient0 < σ <¯σ, with ¯σanap-
+propriate constant depending on the LTI dynamics and the state- feedback gain,
+the event-triggered controller implementation (2)-(3) satisﬁes ∀t:˙V(ξ(t))≤
+−λe(σ)V(ξ(t)), withλc> λe(σ1)> λe(σ2)>0 for 0< σ1< σ2<¯σ.
+In fact, the triggering mechanism guarantees that ˙V(ξ(t))≤ −λe(σ)V(ξ(t))
+in the interval t∈[tk,tk+τσ(x)], for all x=ξ(tk). Since σj<¯σfor all
+j∈ {1,...,p}, switching between diﬀerent triggering coeﬃcients guarantees
+that∀t:˙V(ξ(t))≤ −λe˜σV(ξ(t)), with ˜σ:= max j∈{1,...,p}σj.
+Finally, if the system is forced to employ earlier triggering the assump tion:
+∀s∈ {1,...,q}∃j∈ {1,...,p}:¯ds≤τ¯σj
+sguarantees that the update occurs
+in the interval [ tk,tk+τ˜σ(x)], and thus ∀t:˙V(ξ(t))≤ −λe˜σV(ξ(t)), which
+concludes the proof.
+As it was mentioned in the beginning of Section 3.1, the NTGA associate d
+with a set of NCSs, denoted by TGANCSs, is obtained by taking the parallel
+composition of the TGA associated with the network and with all cont rol loops.
+In other words, TGANCSs:=TGAnet|TGAcl1| ··· |TGAclNwhereTGAcli,i∈
+{1,...,N}, represents the TGA associated with the i-th control loop. The state
+ofTGANCSsis described by a (2 N+2)-tuple ( ℓnet,ℓ1,...,ℓ N,unet,u1,...,u N)
+whereℓnetis the location of TGAnet,ℓiis the location of TGAcli,unetis the
+14
+
+--- Page 15 ---
+clock assignment of TGAnetanduiis the clock assignment of TGAcli, fori∈
+{1,...,N}.
+3.2 Speciﬁcation: Safety
+We are interested in ﬁnding a strategy such that the trajectories of the NTGA
+never enter the states corresponding to a conﬂict. Recall that a conﬂict corre-
+sponds to the following situation: a control loop is requesting updat es when the
+communication network is busy. In our NTGA model, conﬂicts are cap tured by
+the active location of TGAnetbecoming Bad. Thus the set of states we aim at
+avoiding Acontains all states such that the location of TGAnetisBad, i.e.
+A={(ℓnet,ℓ1,...,ℓ N,unet,u1,...,u N)|ℓnet=Bad}.
+3.3 Limiting the Consecutive Earlier Updates
+Ifwe allow the scheduler to forceearliercontrollerupdates, nothin g preventsthe
+scheduler from always using such type of updates and never employ the event-
+triggering mechanism. In this section, we discuss an approach to pr event the
+undesiredschedule bylimiting the consecutiveearlierupdates. In th is approach,
+once a pre-speciﬁed limit has been reached, the scheduler is forced to use an
+event-triggering mechanism.
+For this purpose we employ global integer variables, which are an ext ended
+feature of UPPAAL-Tiga modeling language to ease the modeling task but not
+part of the standard deﬁnition of TGA (cf. Deﬁnition 3). We deﬁne a global
+integer constant earMaxrepresenting the maximum consecutive earlier updates,
+and a global integer variable earNumto be used as a counter of consecutive
+earlier updates. A variable is global if it can be accessed by all TGAs. F inally,
+the resulting TGA is deﬁned as follows.
+Deﬁnition10. Consider a set of timedautomata TAσj= (Lσj,ℓσj
+0,Actσj,Cσj,Eσj,Invσj)
+generated from an event-triggered control loop with trigge ring coeﬃcient σj∈
+]0,¯σ[forj∈ {1,...,p}and assume that Rσ1s=···=Rσpsfor alls∈ {1,...,q}.
+Consider also some constant earMaxand a set of earlier update time parameters
+{d¯1,¯d1,...,d¯q,¯dq}, such that
+∀s∈ {1,...,q}∃j∈ {1,...,p}:¯ds≤τ¯σj
+s.
+Then, the timed game automata with options for earlier updat e, choice of trigger-
+ing coeﬃcients and limiting the consecutive earlier update s is given by TGAclim=
+(Lclim,ℓclim
+0,Actclim
+c,Actclim
+u,Cclim,Eclim,Invclim)where
+•Lclim=/uniontextp
+j=1Lσj∪/uniontextq
+s=1{Rs,Ears};
+•ℓclim
+0=Rssuch that ξ(0)∈ Rσ1s;
+•Actclim
+c={up!}∪Actσ1∪/uniontextp
+j=1{aclim
+j};
+15
+
+--- Page 16 ---
+•Actclim
+u=∅;
+•Cclim=Cσ1;
+•Eclim=/uniontextq
+s=1/uniontext
+t∈Es{(Ears,c= 0,up!,∅,Rt)}∪/uniontextq
+s=1/uniontextp
+j=1{(Rs,c= 0,aclim
+j,∅,Rσj
+s),
+(Rσj
+s,(d¯s≤c≤¯ds)∧(earNum<earMax),∗,
+{c}∧(earNum:=earNum+1),Ears)}∪/uniontextq
+s=1/uniontextp
+j=1/uniontext
+{t|(Rs→Rt)∈Eσj}
+{(Rσj
+s,τ¯σj
+s≤c≤¯τσj
+s,up!,{c}∧(earNum:= 0),Rt)};
+•Invclim(Rσj
+s) ={c|c≤¯τσj
+s},Invclim(Rs) ={c|c= 0}.
+There are two diﬀerences between Deﬁnition 10 and Deﬁnition 9. Firs t, in
+the edges from Rσj
+stoEars, we add condition earNum<earMaxto the guard
+and add statement earNum:=earNum+1 to the reset. The additional condition
+is used to guarantee that the counter of consecutive earlier upda tes is always
+smaller than or equal to its maximum. The statement on the reset is u sed to
+increasethecountervariablebyone, onceanearlierupdatehappe ns. Recallthat
+an earlier update happens when one of these edges is taken (cf. Se ction 3.1.2).
+Second, in the edges from Rσj
+stoRt, we add the statement earNum:= 0 to the
+reset. Recall that taking these edges represents the event-tr iggering mechanism
+is used (cf. Section 3.1.2). Thus the counter of consecutive earlier updates is
+reset to zero. Notice that the variable earNumtakes values in {0,1,...,earMax}.
+Remark 2. Note that with the presented implementation, either of the c ontrol
+loops may exhibit an arbitrary number of consecutive earlie r triggerings. This
+is because the maximum number of consecutive earlier trigge rings being a global
+counter. The counter is reset to zero whenever any of the cont rol loops runs in
+event-triggered fashion. By employing more counters, one c ould easily generalize
+this idea to limit the number of consecutive earlier trigger ings for each loop.
+After these modiﬁcations, the NTGA associated to the set of NCSs be-
+comesTGANCSs:=TGAnet|TGAclim1| ··· |TGAclimNwhereTGAclimi
+represents the TGA associated with the i-th control loop for i∈ {1,...,N}.
+In this new NTGA, the state of TGANCSsis described by a (2 N+ 3)-tuple
+(ℓnet,ℓ1,...,ℓ N,unet,u1,...,u N,earNum) which includes the additional counter
+earNum. It follows that the bad states Aare now given by
+{(ℓnet,ℓ1,...,ℓ N,unet,u1,...,u N,earNum)|ℓnet=Bad}.
+3.4 Scheduler Operation
+Formally, a scheduler implements a strategy f, see Deﬁnition 5, for the NTGA
+TGANCSs. The strategy fis applied to TGANCSsproviding, based on the run ρ
+ofTGANCSsup to that time instant the controllable action f(ρ) that guarantees
+the satisfaction of the desired speciﬁcation.
+This means in practice that after each discrete transition of the NT GA, i.e.
+every time a transmission is placed on the network, ﬁrst the strate gy chooses a
+16
+
+--- Page 17 ---
+triggering coeﬃcient. Then the strategy decides which control loo p is updated
+andalsoits update mechanism: earlyoreventtriggered. After suc ha transition,
+and possibly after some time elapses, the environment chooses the conic region
+containing the next sampled state, which results in a discrete trans ition of the
+NTGA, and the procedure is repeated.
+Example 1. Let us illustrate the use of strategies on an example consist ing of
+two control loops, two triggering coeﬃcients {σ1,σ2}and an option for earlier
+updates. The initial location of the ﬁrst and second control loop isR1andR2,
+respectively. Initially the run of TGANCSsis
+ρ0= (Idle,R1,R2,0,0,0).
+After each update, the scheduler selects a triggering coeﬃc ient, according to the
+strategyf. Suppose that the scheduler chooses σ2for the ﬁrst control loop, i.e.
+f(ρ0) =acl1
+2. The resulting run is
+ρ1=ρ0acl1
+2
+TS✲(Idle,Rσ2
+1,R2,0,0,0).
+If the scheduler chooses σ1for the second control loop, i.e. f(ρ1) =acl2
+1, the run
+becomes
+ρ2=ρ10
+TS✲(Idle,Rσ2
+1,R2,0,0,0)acl2
+1
+TS✲(Idle,Rσ2
+1,Rσ1
+2,0,0,0).
+Then the scheduler follows the strategy to decide which cont rol loop is updated
+and also its update mechanism: early or event triggered. Sup pose that the strat-
+egy decides to update the ﬁrst control loop earlier at time d¯1. First, the scheduler
+delays the system
+ρ3=ρ2d¯1
+TS✲(Idle,Rσ2
+1,Rσ1
+2,d¯1,d¯1,d¯1).
+Then an earlier update is performed, i.e. f(ρ3) =∗. Notice that action ∗is the
+internal action associated with the ﬁrst control loop. We ha ve run
+ρ4=ρ3∗
+TS✲(Idle,Ear1,Rσ1
+2,d¯1,0,d¯1).
+Since time cannot elapse in Ear 1, the environment has to choose the conic region
+containing the next sampled state immediately. If the envir onment chooses R3,
+the result is run
+ρ5=ρ40
+TS✲(Idle,Ear1,Rσ1
+2,d¯1,0,d¯1)up
+TS✲(InUse,R3,Rσ1
+2,0,0,d¯1).
+Notice that TGAnetand the TGA associated with the ﬁrst control loop move
+simultaneously via synchronizing action up. Input action u p?belongs to TGAnet,
+whereas output action up !belongs to the TGA corresponding to the ﬁrst control
+loop. Then the scheduler follows the strategy to select a tri ggering coeﬃcient for
+17
+
+--- Page 18 ---
+the ﬁrst control loop, for example σ1, i.e.f(ρ5) =acl1
+1. The network is available
+again after ∆time units, resulting in the runs:
+ρ6=ρ50
+TS✲(InUse,R3,Rσ1
+2,0,0,d¯1)acl1
+1
+TS✲
+(InUse,Rσ1
+3,Rσ1
+2,0,0,d¯1)∆
+TS✲(InUse,Rσ1
+3,Rσ1
+2,∆,∆,d¯1+∆),
+while the network is being used, and
+ρ7=ρ6∗
+TS✲(Idle,Rσ1
+3,Rσ1
+2,∆,∆,d¯1+∆)
+once the network is released. Notice that action ∗is the internal action associ-
+ated with TGAnet.
+Notethatthiskindofschedulerisacentralizedschedulerthatneed stohavea
+perfectoverviewofthetransmissionsplacedonthenetwork,and thecontrolloop
+responsible for it. Furthermore, given that the locations of TGANCSsare related
+totheactualsampledstatestransmittedthroughthenetwork, thescheduleralso
+needs to be able to read the content of the transmitted data.
+4 Case Study
+We showcase the results in an example comprising two event-trigger ed NCSs
+sharing the same communication network. The ﬁrst control loop is g iven by
+[12, p. 1683]
+˙ξ=/bracketleftbigg0 1
+−2 3/bracketrightbigg
+ξ+/bracketleftbigg0
+1/bracketrightbigg
+υ,
+υ=/bracketleftbig
+1−4/bracketrightbig
+ξ.(5)
+The second control loop is given by [49, p. 1699]
+˙ξ=/bracketleftbigg
+−0.5 0
+0 3.5/bracketrightbigg
+ξ+/bracketleftbigg
+1
+1/bracketrightbigg
+υ,
+υ=/bracketleftbig1.02−5.62/bracketrightbig
+ξ.(6)
+In the sequel, we discuss two experimental results for the above e xample.
+Each experiment is characterized by four parameters: the numbe r of conic
+regionsq, the set of triggering coeﬃcients {σ1,...,σ q}, the set of earlier up-
+date parameters {d¯1,¯d1,...,d¯q,¯dq}and maximum consecutive earlier triggering
+earMax.
+4.1 Limiting the Consecutive Earlier Updates
+In this experiment, the minimum channel occupancy time is ∆ = 0 .005, the
+number of conic regions is q= 200 and there is one triggering coeﬃcient σ1=
+0.05. The input value can be updated 0.005 time units before the lower b ound
+18
+
+--- Page 19 ---
+0 2 4 6 8 10
+0 2 4 6 8 10
+Figure 6: Status of the shared communication network up to 10 time units. The
+bars on the top and on the bottom of the xaxis represent the network is being
+used by (6) and (5), respectively. The top and bottom plots repre sent the result
+of experiments discussed in Sections 4.1 and 4.2, respectively.
+in all regions, i.e. d¯s=τ¯s−0.005 and ¯ds=τ¯sfor alls∈ {1,...,q}. The
+maximum consecutive earlier triggering is earMax= 4.
+We create a model in UPPAAL-Tiga according to Deﬁnition 10: the TGA
+for (5), (6) and the shared communication network are denoted tgaT,tgaHand
+net, respectively. The speciﬁcation is given by
+control: A[] not( net.Bad )
+A strategy is generated with UPPAAL-Tiga to satisfy this speciﬁcat ion. To
+illustrate the type of strategies synthesized, we show in the followin g a frag-
+ment of the strategy generated by UPPAAL-Tiga for the situation in which the
+locations of tgaT,tgaHandnetareRσ1
+1,Rσ1
+1andIdle, respectively.
+State: ( tgaT.R1a1 tgaH.R1a1 net.Idle )
+earNum=3
+When you are in (25<=tgaH.c && tgaT.c<65 && tgaH.c-tgaT.c<= -35)
+|| (85<tgaT.c && 25<=tgaH.c && tgaT.c<105 && tgaH.c<=30)
+|| (38<tgaT.c && 25<=tgaH.c && tgaT.c-tgaH.c<=30 && tgaH.c <=30)
+|| (25<=tgaH.c && tgaT.c<31 && tgaH.c-tgaT.c<=-5)
+|| (25<=tgaH.c && tgaT.c-tgaH.c<=-5 && tgaH.c<=30),
+take transition tgaH.R1a1->tgaH.Ear1
+{ c >= 25 && c <= 30 && earNum < earMax, up!, 1 }
+net.Idle->net.InUse { 1, up?, c := 0 }
+When you are in (105<=tgaT.c && tgaT.c <=111 && tgaH.c<25),
+take transition tgaT.R1a1->tgaT.Ear1
+{ c >= 105 && c <= 111 && earNum < earMax, up!, 1 }
+net.Idle->net.InUse { 1, up?, c := 0 }
+As shown above, two diﬀerent conditions, based on the clock values oftgaT,
+clock values of tgaHand the diﬀerence of clock values in tgaTandtgaH, can be
+appreciated: if the ﬁrst one is satisﬁed, an early update is forced f ortgaHwhere
+the inter-sample time is between 25 and 30; if the second condition is s atisﬁed,
+an early update is forced for tgaTwhere the inter-sample time is between 105
+and 111. If none of the conditions are satisﬁed, no early update is f orced, i.e.
+the strategy is to let time elapses for both loops.
+19
+
+--- Page 20 ---
+2 4 6 8 10
+−100t ξ1
+2 4 6 8 10
+−5050100
+tξ2
+2 4 6 8 10−200200400
+tυ
+Figure 7: The state and input trajectories for the experiment in Se ction 4.1.
+The solid and dashed lines are the trajectories of (6) and (5), resp ectively.
+The strategy generated by UPPAAL-Tiga was applied to the two NCS s (5)-
+(6), with both systems initialized at the state [1 ,100]T, corresponding to R1in
+both of the timing abstractions for the systems. The network sta tus is shown
+in Fig. 6 (top), where long and short bars represent event-trigge red and earlier
+updatemechanisms,respectively. Notethatwhileeitherofthecon trolloopsmay
+exhibit an arbitrary number of consecutive triggerings, the maximu m number
+of consecutive earlier triggerings is respected to be below 4 as this c ounter is
+a shared (global) one that is reset to zero whenever any of the two loops run
+in event-triggered fashion. During the time horizon of 10, the input of (5)
+is updated 63 times consisting of 50 earlier updates and 13 event-tr iggering
+mechanisms. For (6), the input is updated 152 times consisting of 12 1 earlier
+updates and 31 event-triggering mechanisms. The state and input trajectories
+are shown in Fig. 7.
+4.2 Choice of Triggering Coeﬃcients
+In this experiment, the minimum channel occupancy time is ∆ = 0 .005, the
+number of conic regions is q= 200 and there are three triggering coeﬃcients
+σ1= 0.01,σ2= 0.03 andσ3= 0.09.
+We create again a model in UPPAAL-Tiga according to Deﬁnition 9: the
+TGAfor(5), (6) andthe sharedcommunicationnetworkaredenot edtgaT,tgaH
+andnet, respectively. The speciﬁcation is the same as in Section 4.1 and again
+we generate a strategy using UPPAAL-Tiga. The following is a fragme nt of the
+strategy generated by UPPAAL-Tiga when the location of tgaT,tgaHandnet
+isR37,Rσ1
+38andIdle, respectively.
+20
+
+--- Page 21 ---
+2 4 6 8 10
+−100t ξ1
+2 4 6 8 10
+−5050100
+tξ2
+2 4 6 8 10−200200400
+tυ
+Figure 8: The state and input trajectories for the experiment in Se ction 4.2.
+The solid and dashed lines are the trajectories of (6) and (5), resp ectively.
+State: ( tgaT.R37 tgaH.R38a1 net.Idle )
+When you are in (tgaT.c==0 && 145<tgaH.c && tgaH.c<=154),
+take transition tgaT.R37->tgaT.R37a1 { c == 0, tau, 1 }
+When you are in (tgaT.c==0 && 65<=tgaH.c && tgaH.c<=102),
+take transition tgaT.R37->tgaT.R37a2 { c == 0, tau, 1 }
+When you are in (tgaT.c==0 && 102<tgaH.c && tgaH.c<=145)
+|| (tgaT.c==0 && 5<=tgaH.c && tgaH.c<65),
+take transition tgaT.R37->tgaT.R37a3 { c == 0, tau, 1 }
+Notice that now there are three conditions: if the i-th condition is satisﬁed, the
+location of tgaTis forced to transit to Rσi
+37fori∈ {1,2,3}.
+The strategy generated by UPPAAL-Tiga is applied to the NCSs (5)- (6),
+both with the state initialized at [1 ,100]T, corresponding in both cases with
+the initial location is R1. The network status is shown in Fig. 6 (bottom).
+Short, medium and long bars represent event-triggered with trigg ering coeﬃ-
+cient equals σ1,σ2andσ3, respectively. During the ﬁrst 10 time units, the input
+of (5) is updated 84 times consisting of 56 updates using σ1, 6 updates using σ2
+and 22 updates using σ3. For (6), the input is updated 182 times consisting of
+106 updates using σ1, 26 updates using σ2and 50 updates using σ3. The state
+and input trajectories are shown in Fig. 8.
+5 Discussion and Future Work
+We have provided an approach to synthesize conﬂict-free schedu ling policies for
+sets of networked control systems (NCSs) with the possibilities of updating the
+21
+
+--- Page 22 ---
+input value according to an event-triggering mechanism, selectable from a set
+of them, or earlier than the time dictated by such an event-trigger ing rule. As
+indicated in Section 3.3 the main limitations of this proposed scheduling s cheme
+is its centralized nature, and the fact that the scheduler needs to be able to read
+the content of the messagessent through the network. The app roachis nonethe-
+less applicable to many setups encountered in practice in which diﬀere nt control
+systems are interconnected through a bus, e.g. CAN, EtherCAT o r FlexRay. In
+such systems, every element connected to the bus can see the tr aﬃc ﬂowing
+through the network. While it may be the case that the precise cont ent of
+messages is not available (e.g. for potential security reasons), it is worth noting
+that for the scheduler only the abstracted state, i.e. the region Rs, is relevant.
+Therefore we can envisage implementations or practical application s in which
+this sort of scheduling could be easily adopted.
+In wireless settings, the event-triggered paradigm oﬀers great b eneﬁts for
+energy consumption reduction, but network topologies can be in ge neral more
+complex than a simple bus type of conﬁguration. Therefore, intere sting exten-
+sions of this work to allow decentralized scheduling, possibly including n etwork
+topological constraints, would enable broader applicability of these techniques.
+Current and future work is focusing on these issues, extensions o f the abstrac-
+tion of the timing of event-triggered systems beyond LTI systems with state-
+feedback, and on the implementation of a tool-box automating the w hole timing
+abstraction and scheduler synthesis proposed in [27] and the curr ent paper re-
+spectively.
+References
+[1] J. Liu, A. Gusrialdi, D. Obradovic, and S. Hirche, “Study on the eﬀ ect of
+time delay on the performance of distributed power grids with netwo rked
+cooperative control,” in Proceedings of the 1st IFAC Workshop on Estima-
+tion and Control of Networked Systems , 2009, pp. 168–173.
+[2] H. A. Thompson, “Wireless and internet communications technolo gies for
+monitoring and control,” Control Engineering Practice , vol. 12, no. 6, pp.
+781–791, 2004.
+[3] D. Lehmann and J. Lunze, “Extension and experimental evaluat ion of
+an event-based state-feedback approach,” Control Engineering Practice ,
+vol. 19, no. 2, pp. 101–112, 2011.
+[4] P. Antsaklis and J. Baillieul, “Special issue on technology of networ ked
+control systems,” Proceedings of the IEEE , vol. 95, no. 1, pp. 5–8, Jan.
+2007.
+[5] G. Nair, F. Fagnani, S. Zampieri, and R. Evans, “Feedback contr ol under
+datarateconstraints: Anoverview,” Proceedings of the IEEE ,vol.95,no.1,
+pp. 108–137, Jan. 2007.
+22
+
+--- Page 23 ---
+[6] J. P. Hespanha, P. Naghshtabrizi, and Y. Xu, “A survey of rece nt results in
+networked control systems,” Proceedings of the IEEE , vol. 95, pp. 138–162,
+Jan. 2007.
+[7] D. Hristu-Varsakelis and W. S. Levine, Eds., Handbook of networked
+and embedded control systems , ser. Control Engineering. Boston, MA:
+Birkh¨ auser Boston Inc., 2005.
+[8] K.-E. ˚Arz´ en,A.Bicchi,S.Hailes, K.Johansson,andJ.Lygeros,“Onth ede-
+sign and control of wireless networked embedded systems,” in IEEE Com-
+puter Aided Control System Design, , Oct. 2006, pp. 440–445.
+[9] M. Rabi and K. H. Johansson, “Event-triggered strategies fo r industrial
+control over wireless networks,” in Proc. 4th Annual Int. Conf. Wireless
+Internet. ICST (Institute for Computer Sciences, Social-Informatics and
+Telecommunications Engineering), 2008, p. 34.
+[10] M. Mazo Jr. and P. Tabuada, “Decentralized event-triggered control over
+wirelesssensor/actuatornetworks.” IEEE Transactions on Automatic Con-
+trol, Special issue on Wireless Sensor Actuator Networks , vol. 56, no. 10,
+pp. 2456–2461, Oct. 2011.
+[11] K.˚Astr¨ om and B. Bernhardsson, “Comparison of Riemann and Lebes gue
+samplingforﬁrstorderstochasticsystems,”in Proceedings of the 41th IEEE
+Conference on Decision and Control (CDC’02) , vol.2, Dec. 2002,pp. 2011–
+2016.
+[12] P. Tabuada, “Event-triggered real-time scheduling of stabilizin g control
+tasks,”IEEE Transactions on Automatic Control , vol. 52, no. 9, pp. 1680–
+1685, Sep. 2007.
+[13] M.Velasco,J.Fuertes, andP.Marti, “Theselftriggeredtask modelforreal-
+time control systems,” in Proceedings of the 24th IEEE Real-Time Systems
+Symposium (Work in Progress) , 2003, pp. 67–70.
+[14] W. Heemels, J. Sandee, and P. van den Bosch, “Analysis of even t-driven
+controllers for linear systems,” International Journal of Control , vol. 81,
+no. 4, pp. 571–590, 2008.
+[15] A. Anta and P. Tabuada, “To sample or not to sample: Self-trigg ered
+control for nonlinear systems,” IEEE Transactions on Automatic Control ,
+vol. 55, pp. 2030–2042, Sep. 2010.
+[16] M. Mazo Jr., A. Anta, and P. Tabuada, “An ISS self-triggered im plemen-
+tation of linear controller,” Automatica , vol. 46, pp. 1310–1314, Aug. 2010.
+[17] B. Sprunt, L. Sha, and J. Lehoczky, “Aperiodic task schedulin g for hard-
+real-time systems,” Real-Time Systems , vol. 1, no. 1, pp. 27–60, 1989.
+23
+
+--- Page 24 ---
+[18] G. C. Buttazzo, Hard real-time computing systems: predictable scheduling
+algorithms and applications . Springer, 2011, vol. 24.
+[19] G. C. Walsh and H. Ye, “Scheduling of Networked Control Syste ms,”IEEE
+Control Systems Magazine , 2001.
+[20] A. Cervin and T. Henningsson, “Scheduling of event-triggered controllers
+on a shared network,” in Proceedings of the 47th IEEE Conference on De-
+cision and Control (CDC’08) , Dec. 2008, pp. 3601–3606.
+[21] S. Al-Areqi, D. Gorges, S. Reimann, and S. Liu, “Event-based c ontrol and
+scheduling codesign of networked embedded control systems,” in Proceed-
+ings of the 32nd American Control Conference (ACC’13) , Jun. 2013, pp.
+5299–5304.
+[22] S. Al-Areqi, D. Gorges, and S. Liu, “Stochastic event-based c ontrol and
+scheduling of large-scale networked control systems,” in Proceedings of the
+European Control Conference , Jun. 2014, pp. 2316–2321.
+[23] S. Reimann, S. Al-Areqi, and S. Liu, “An event-based online sche duling
+approach for networked embedded control systems,” in Proceedings of the
+32nd American Control Conference (ACC’13) , Jun. 2013, pp. 5326–5331.
+[24] P. Bouyer, F. Cassez, E. Fleury, and K. Larsen, “Optimal str ategies in
+priced timed game automata,” in Foundations of Software Technology and
+Theoretical Computer Science (FSTTCS’04) , ser. Lecture Notes in Com-
+puter Science, K. Lodaya and M. Mahajan, Eds. Springer, Heidelbe rg,
+2005, vol. 3328, pp. 148–160.
+[25] ——, “Synthesis of optimal strategies using HyTech ,”Electronic Notes in
+Theoretical Computer Science , vol. 119, no. 1, pp. 11–31, 2005.
+[26] O. Maler, A. Pnueli, and J. Sifakis, “On the synthesisof discrete controllers
+fortimedsystems,”in Proc. 12th Symp. on Theoretical Aspects of Computer
+Science (STACS’95) , ser. Lecture Notes in Computer Science, E. Mayr and
+C. Puech, Eds. Springer, Heidelberg, 1995, vol. 900, pp. 229–242 .
+[27] A. Shariﬁ Kolarijani and M. Mazo Jr., “A formal traﬃc characte rization of
+LTI event-triggered control systems,” CoRR, vol. abs/1503.05816, 2015.
+[28] L. De Alfaro, T. Henzinger, and R. Majumdar, “Symbolic algorith ms for
+inﬁnite-state games,” in Concurrency Theory (CONCUR’01) , ser. Lecture
+Notes in Computer Science, K. Larsen and M. Nielsen, Eds. Springer ,
+Heidelberg, 2001, vol. 2154, pp. 536–550.
+[29] F. Cassez, A. David, E. Fleury, K. Larsen, and D. Lime, “Eﬃcien t on-the-
+ﬂy algorithms for the analysis of timed games,” in Concurrency Theory
+(CONCUR’05) , ser. Lecture Notes in Computer Science, M. Abadi and
+L. de Alfaro, Eds. Springer, Heidelberg, 2005, vol. 3653, pp. 66–8 0.
+24
+
+--- Page 25 ---
+[30] E. Asarin, O. Maler, A. Pnueli, and J. Sifakis, “Controller synthe sis for
+timed automata,” in Proc. IFAC Symp. on System Structure & Control ,
+1998, pp. 469–474.
+[31] R. Alur and D. Dill, “A theory of timed automata,” Theoretical Computer
+Science, vol. 126, no. 2, pp. 183–235, 1994.
+[32] A. Ravn, J. Srba, and S. Vighio, “Modellingand veriﬁcationofweb services
+business activity protocol,” in Tools and Algorithms for the Construction
+and Analysis of Systems (TACAS’11) , ser. Lecture Notes in Computer Sci-
+ence, P. Abdulla and K. Leino, Eds. Springer, Heidelberg, 2011, vol. 6605,
+pp. 357–371.
+[33] K. Havelund, A. Skou, K. Larsen, and K. Lund, “Formal modelin g and
+analysis of an audio/video protocol: an industrial case study using U P-
+PAAL,” in Proceedings of the 18th IEEE Real-Time Systems Symposium
+(RTSS’97) , Dec. 1997, pp. 2–13.
+[34] P. D’Argenio, J.-P. Katoen, T. Ruys, and J. Tretmans, “The bo unded
+retransmission protocol must be on time!” in Tools and Algorithms for
+the Construction and Analysis of Systems (TACAS’97) , ser. Lecture Notes
+in Computer Science, E. Brinksma, Ed. Springer, Heidelberg, 1997, vol.
+1217, pp. 416–431.
+[35] L. Aceto, A. Burgue˜ no, and K. Larsen, “Model checking via r eachability
+testing for timed automata,” in Tools and Algorithms for the Construction
+and Analysis of Systems (TACAS’98) , ser. Lecture Notes in Computer Sci-
+ence, B. Steﬀen, Ed. Springer, Heidelberg, 1998, vol. 1384, pp. 2 63–280.
+[36] H. Jensen, K. Larsen, and A. Skou, “Modelling and analysis of a c olli-
+sion avoidance protocol using SPIN and UPPAAL,” BRICS Report Series ,
+vol. 3, no. 24, 1996.
+[37] A. David and W. Yi, “Modelling and analysis of a commercial ﬁeld bus
+protocol,” in 12th Euromicro Conference on Real-Time Systems , 2000, pp.
+165–172.
+[38] T. Henzinger, X.Nicollin, J.Sifakis, andS.Yovine, “Symbolicmode lcheck-
+ing for real-time systems,” Information and Computation , vol. 111, no. 2,
+pp. 193–244, 1994.
+[39] A. Fehnker, “Scheduling a steel plant with timed automata,” in Proc. 6th
+Int. Conf. Real-Time Computing Systems and Applications (R TCSA’99) ,
+1999, pp. 280–286.
+[40] Y. Abdedda¨ ım and O. Maler, “Job-shop scheduling using timed au -
+tomata?” in Computer Aided Veriﬁcation (CAV’01) , ser. Lecture Notes
+in Computer Science, G. Berry, H. Comon, and A. Finkel, Eds. Spring er,
+Heidelberg, 2001, vol. 2102, pp. 478–492.
+25
+
+--- Page 26 ---
+[41] Y. Abdedda¨ ım, A. Kerbaa, and O. Maler, “Task graph schedulin g using
+timed automata,” in Proc. Int. Parallel and Distributed Processing Sympo-
+sium (IPDPS’03) , Apr. 2003, pp. 8 pp.–.
+[42] G. Behrmann, E. Brinksma, M. Hendriks, and A. Mader, “Sched uling lac-
+quer production by reachability analysis – a case study,” in Proceedings of
+the 16th IFAC World Congress . Elsevier, 2005.
+[43] ——, “Production scheduling by reachability analysis - a case stud y,”
+inProc. 19th IEEE Int. Parallel and Distributed Processing Sy mposium
+(IPDPS’05) , Apr. 2005, pp. 140a–140a.
+[44] G. Behrmann, A. Fehnker, T. Hune, K. Larsen, P. Pettersso n, J. Romijn,
+and F.Vaandrager,“Minimum-costreachabilityforpriced timeauto mata,”
+inHybrid Systems: Computation and Control (HSCC’01) , ser. Lec-
+ture Notes in Computer Science, M. Di Benedetto and A. Sangiovan ni-
+Vincentelli, Eds. Springer, Heidelberg, 2001, vol. 2034, pp. 147–16 1.
+[45] R. Alur, S. La Torre, and G. Pappas, “Optimal paths in weighted timed
+automata,” in Hybrid Systems: Computation and Control (HSCC’01) , ser.
+Lecture Notes in Computer Science, M. Di Benedetto and A. Sangio vanni-
+Vincentelli, Eds. Springer, Heidelberg, 2001, vol. 2034, pp. 49–62.
+[46] P. Bouyer, E. Brinksma, and K. Larsen, “Optimal inﬁnite sched uling for
+multi-priced timed automata,” Formal Methods in System Design , vol. 32,
+no. 1, pp. 3–23, 2008.
+[47] J. Bengtsson and W. Yi, “Timed automata: Semantics, algorithm s and
+tools,” in Lectures on Concurrency and Petri Nets , ser. Lecture Notes in
+Computer Science, J. Desel, W. Reisig, and G. Rozenberg, Eds. Spr inger,
+Heidelberg, 2004, vol. 3098, pp. 87–124.
+[48] G.Behrmann, A.David, andK.Larsen,“Atutorialon Uppaal,”inFormal
+Methods for the Design of Real-Time Systems (SFM-RT’04) , ser. Lecture
+Notes in Computer Science, M. Bernardoand F. Corradini, Eds., vol. 3185.
+Springer, Heidelberg, Sep. 2004, pp. 200–236.
+[49] L. Hetel, A. Kruszewski, W. Perruquetti, and J.-P. Richard, “D iscrete and
+intersample analysis of systems with aperiodic sampling,” IEEE Transac-
+tions on Automatic Control , vol. 56, no. 7, pp. 1696–1701, Jul. 2011.
+26
