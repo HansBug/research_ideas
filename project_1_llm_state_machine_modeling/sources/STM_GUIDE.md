@@ -87,6 +87,7 @@
 2. 可以做**合理转接**，把原文中分散的句子整理成连续描述，但不能加入找不到原文依据的新信息。
 3. 如果原文有 OCR 噪声，摘录时允许保留噪声；不要为了“更顺”而擅自改写引文内容。
 4. 如果控制逻辑只出现在图题、图注、变量表、公式说明中，这些也可以作为证据，但仍需写清出处。
+5. 如果控制语义主要落在**输出编码、模式名、模块职责、参数表、映射示例或计算实例**里，也必须把这些内容直接摘出来；不要只摘“系统会进行控制”这类概括句。
 
 ### 3.3 统一底线要求
 
@@ -321,24 +322,26 @@
 1. **显式状态名与阶段名**
    - 例如 `idle / Entry / CalcSlipRate / Exit`、`idle / commanded / proved / occupied`、`LRI / AVI / URI / PVARP / VRP`。
    - 若状态名承载行为语义，不要只摘“系统经历若干阶段”这种概括句。
-2. **精确 guard、比较式、阈值区间与赋值**
-   - 例如 `v<5*(v-w*R)`、`v==0 [torqueABS=0]`、`0-30% -> 90 seconds`、`LT(i,T)` 这类显式计算式。
+2. **精确 guard、比较式、阈值区间、输出编码与赋值**
+   - 例如 `v<5*(v-w*R)`、`v==0 [torqueABS=0]`、`0-30% -> 90 seconds`、`LT(i,T)`、`TTC <= t0TTC`、`signal = 0 / 1 / 2`、`controller output = -1 / 0 / 1`、`Tgi = 0` 这类显式判定和控制结果。
    - 对 `EFSM / Hybrid` 条目，这类内容通常必须有至少一段原文直引支撑。
 3. **clock / timer / 周期触发 / timing-constraint 名称与边界**
-   - 例如 `clk`、`clk_AnSw`、`exec = 2`、`period = 10 ms`、`event function T`、`BrakeDelayAtMasterNode = 130 ms`、`TLRI-TAVI / TAVI / TURI`。
-   - 不能只摘“存在时间约束”，还要摘“谁触发计时、何时开始计时、何时复位、上界/下界是多少、超时后做什么”。
+   - 例如 `clk`、`clk_AnSw`、`exec = 2`、`period = 10 ms`、`event function T`、`BrakeDelayAtMasterNode = 130 ms`、`TLRI-TAVI / TAVI / TURI`、`3 seconds delay`、`1.5 s` warning window、`Tgmax = 120 s`。
+   - 不能只摘“存在时间约束”，还要摘“谁触发计时、何时开始计时、何时复位、上界/下界是多少、超时后做什么、是否停止重算或保持当前输出”。
 4. **异常、降级、恢复与 fallback 链**
-   - 例如 retry 计数、priority tier、alarm、manual fallback、mode switch、释放条件、lock/release 条件。
+   - 例如 retry 计数、priority tier、alarm、manual fallback、mode switch、释放条件、lock/release 条件、进入高风险级后持续输出同一控制信号、错位停放后通知 driver/admin、紧急车辆通过后恢复 normal。
    - 这类内容常散落在 requirement list、图注和正文段落中，必要时应多摘几块。
-5. **接口读写节拍、端口映射与同步开始/停止**
+5. **感知-处理-决策-执行/通知链、接口读写节拍与同步开始/停止**
    - 对构件级 TA / FunctionPrototype / block behavior，若原文区分 `read / execute / write`、`behstart / behstop`、`READ(Pin) / WRITE(Pout)`、输入/输出端口映射、更新阶段、`committed/urgent` 位置，应把这些执行节拍和接口语义单独摘出来。
+   - 对工程控制条目，也要把 `push button -> RF -> controller`、`sensor/camera -> processing unit -> cloud verify -> notify`、`wheel sensor -> ECU -> valve/pump` 这类控制链摘完整，不能只摘最后的“系统做了某动作”。
 6. **层次 / 并行 / 子模块 / 调度顺序 / 资源关系**
-   - 例如四个 sibling movement machines、父子职责边界、`Thread A / Thread B`、`D1 / D2`、`mc=<ac,ts>`、printer 子模块、资源锁闭/释放条件、共享锁变量。
+   - 例如四个 sibling movement machines、父子职责边界、上下层控制器、`sensing / early warning / control / execution` 这类模块分工、`Thread A / Thread B`、`D1 / D2`、`mc=<ac,ts>`、printer 子模块、资源锁闭/释放条件、共享锁变量、`TP / DA / MO` 这类模式集合。
    - 不能只摘顶层摘要，而把真正决定结构的子机名、并发分支、调度顺序和资源规则漏掉。
 7. **离散映射表、规则参数与计算/调度链**
    - 若控制逻辑是“输入区间/模式 -> 输出动作/持续时间”，要把整张映射补齐，不要只摘其中一两个 bucket。
    - 若控制语义主要由规则参数或约束结构承载，例如 `r / p1 / p2 / d1 / d2` 这类 route-rule 参数、typed state domain、lock/free 约束，也应把这些参数角色与状态域一并摘出来。
    - 若控制语义主要由“触发后计算下一步决策”的算法链承载，例如相位选择、绿灯时长分配、候选组合筛选、平均时长计算与时间到期后重触发，则应把触发点、输入快照、候选生成/过滤、最终输出和 retrigger 条件成链摘出，不要只留下“控制器自适应调整”的结果句。
+   - 若原文给了道路容量、队列优先级定义、完整输出集合、实例化持续时间、轨迹参数或误差统计，也应保留这些能把控制语义钉实的实例，不要只留抽象规则名。
 
 ### 5.5 `### 2. 基于原文整理后的自然语言描述`
 
@@ -362,12 +365,12 @@
    - 否则后续在 [SUMMARY.md](./SUMMARY.md) 中很容易出现“原文细节充实度够，但描述细节充实度降级”的问题。
 7. 正式写描述前，应先把当前条目的 `状态机类型 / 时间级别 / 结构标签` 当作一张保真 checklist，至少补核以下项目：
    - `FSM`：阶段划分、触发事件、阶段动作。
-   - `EFSM`：关键变量、阈值、guard 比较关系、变量更新或控制动作；若决策是通过显式计算链得出，还要保住输入量、计算式、筛选逻辑和最终输出。
-   - `HSM`：高层模式、低层子状态/子机、父子关系、跨层触发或层间职责边界。
-   - `Protocol`：参与角色、消息/命令、请求-授权-确认-返还的顺序，以及控制权变化。
-   - `Resource-flow`：资源对象、占用/释放条件、冲突互斥关系、阻塞原因或使能条件；若原文主要通过 typed state domain、invariant、rule parameter 表达控制语义，这些结构事实也必须保住。
-   - `Hybrid`：连续变量、连续量物理含义、离散切换与连续侧的耦合关系，必要时保住控制律或演化方向。
-   - `T1`：timer 的存在、启动/复位时点、时长、超时后的迁移影响；若控制器采用“时间到期后重算下一相位/下一方案”的闭环，也要写清 trigger、hold 和 retrigger 的关系。
+   - `EFSM`：关键变量、阈值、guard 比较关系、变量更新、控制输出值或控制动作；若决策是通过显式计算链得出，还要保住输入量、计算式、筛选逻辑、最终输出及其取值语义。
+   - `HSM`：高层模式、低层子状态/子机、父子关系、跨层触发或层间职责边界；若原文区分“工作区/风险级/手动-自动模式”，这些模式名本身就应保住。
+   - `Protocol`：参与角色、消息/命令、请求-授权-确认-返还的顺序、消息载体或链路，以及控制权变化。
+   - `Resource-flow`：资源对象、分配/占用/核验/释放条件、冲突互斥关系、阻塞原因或使能条件；若原文主要通过 typed state domain、invariant、rule parameter 或核位/告警链表达控制语义，这些结构事实也必须保住。
+   - `Hybrid`：连续变量、连续量物理含义、离散切换与连续侧的耦合关系，必要时保住控制律、输出编码、执行器语义或保持/latch 条件。
+   - `T1`：timer 的存在、启动/复位时点、时长、超时后的迁移影响；若控制器采用“时间到期后重算下一相位/下一方案”的闭环，也要写清 trigger、hold 和 retrigger 的关系；若有切换延时、采样周期、最大绿灯或 warning 窗口，也要显式写出。
    - `T2`：显式时间窗口、最小/最大持续时间、deadline / refractory、clock reset 点、多个 timer 的比较关系。
    - `T3`：连续时间演化本身，以及它与离散迁移共同决定系统语义这一事实。
    - `层次 / 并行 / 协议交互 / 资源互斥 / 显式时钟 / 连续耦合`：若条目带这些标签，描述里必须显式保住对应结构事实，不能在改写时压平成普通顺序流程，也不能把“约束型控制语义”压成只有背景说明的安全总结。
@@ -386,23 +389,25 @@
    - 若状态名本身承载语义，应直接保留，而不是改写成“进入某阶段”“完成计算后退出”。
    - 特别是 lifecycle state、timing cycle、父子子机名、read/write stage。
 2. **guard 被压成模糊条件**
-   - 若原文给了精确 guard、阈值、区间边界或变量赋值，描述中也应尽量保留数值、比较方向和动作结果。
-   - 不要把 `v<5*(v-w*R)` 写成“滑移过大时”，也不要把 `0-30% -> 90s` 写成“低密度时延长绿灯”。
+   - 若原文给了精确 guard、阈值、区间边界、输出编码或变量赋值，描述中也应尽量保留数值、比较方向和动作结果。
+   - 不要把 `v<5*(v-w*R)` 写成“滑移过大时”，也不要把 `0-30% -> 90s` 写成“低密度时延长绿灯”，更不要把 `signal = 0 / 1 / 2`、`output = -1 / 0 / 1` 这类控制含义压成“系统发出适当信号”。
 3. **时间语义只剩“带定时器”**
-   - 若原文给了 clock 名、周期触发参数、delayConstraint 名称与边界、reset 点、hold/restart 规则、deadline / refractory / execution time，描述中必须写清这些时间事实如何影响迁移。
+   - 若原文给了 clock 名、周期触发参数、delayConstraint 名称与边界、reset 点、hold/restart 规则、deadline / refractory / execution time、切换 delay、warning window、max duration，描述中必须写清这些时间事实如何影响迁移。
 4. **异常/降级/恢复链缺失**
-   - 若原文有 retry、priority tier、alarm、manual fallback、release condition、mode switch、恢复返回路径，描述里不能只保 nominal path。
+   - 若原文有 retry、priority tier、alarm、manual fallback、release condition、mode switch、恢复返回路径、进入高风险级后的持续输出或停止重算规则，描述里不能只保 nominal path。
 5. **结构被压平成单线流程**
    - 对 `HSM / 并行 / Resource-flow / Protocol` 条目，描述里应保住子机、角色、资源或并发事实。
-   - 不要把四个 sibling 子机、共享资源锁闭、请求-授权-确认链压成一句“系统执行相应动作”。
+   - 不要把四个 sibling 子机、上下层控制器、共享资源锁闭、`TP / DA / MO` 模式集、请求-授权-确认链压成一句“系统执行相应动作”。
    - 对以 invariant、typed state domain、rule parameter 承载控制语义的条目，也不要把它们压成“系统满足若干安全约束”这种空泛总结；状态域、锁闭关系、规则参数职责本身就是建模关键件。
-6. **接口节拍与更新阶段缺失**
+6. **感知-处理-决策-执行/通知链、接口节拍与更新阶段缺失**
    - 对构件级 `EFSM / Hybrid`，若原文有 `read / execute / write` 节拍、输入/输出端口、变量映射、同步开始/停止、`committed/urgent` 位置或专门的变量更新阶段，应在描述中保住。
+   - 对工程系统条目，若原文明确给了 sensing -> controller -> actuator / cloud / notification 的链，也不能压成“系统检测后采取动作”。
 7. **并行链与调度顺序被压扁**
    - 对带 `并行` 标签的条目，若原文区分线程名、子模块名、局部调度表、时间戳命令或分支并发推进关系，描述里不能只写成“系统随后执行若干动作”。
-8. **离散映射被压成“自适应调整”**
+8. **离散映射、示例参数与输出集合被压成“自适应调整”**
    - 对 bucket-to-action / bucket-to-duration 逻辑，描述中应保住完整映射或至少保住全部关键 bucket，不能只剩泛泛结论。
    - 对相位规划、调度决策、下一步方案生成类控制器，描述中还应保住 `何时触发计算 -> 读取哪些输入 -> 如何生成/过滤候选 -> 如何选中输出 -> 如何确定持续时间 -> 何时再次触发` 这条闭环，而不是只写“控制器根据交通情况/资源情况自动选择下一状态”。
+   - 若原文明确给了 `RO1/RO2`、`R1/G1/Y1/R2/G2/Y2`、道路容量、`45.9 s / 27.6 s / 4 s` 这类实例配时，或给了轨迹半径、速度、角度、误差值等控制参数，不应在描述里被压成“系统根据结果执行相应控制”。
 
 如果原文按当前口径可达 `🟢 A / 🟡 B`，但描述中仍丢了上述任一关键件，默认应视为**待继续补摘录或重写**，不应直接把该条目标成完成。
 

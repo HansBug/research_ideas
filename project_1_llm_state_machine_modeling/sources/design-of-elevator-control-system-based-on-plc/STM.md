@@ -55,15 +55,17 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information. If the elevator stops at a floor, the call buttons on that floor can trigger door-opening information, and the controller inserts a delay to keep the operation safe before continuing with movement. As the car travels, the corresponding call light is turned on and then cleared after the requested operation is completed, and a travel-controller switch at each floor confirms that the car has reached the commanded area. The system supports automatic execution of button-call commands together with a manual operation function for safety, keeps the door self-locking function unavailable during car movement, displays the current floor during operation, and provides an emergency call button for abnormal situations.
+When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information from the control system. If the elevator stops at a floor, the upper and lower call buttons on that floor can send door-opening information, and the controller inserts a delay operation to keep the door and movement sequence safe. During operation, the corresponding call light is turned on after the instruction is received and turned off after the requested operation is completed, and the travel controller at each floor confirms that the car has reached the commanded area. The system can receive another operation while one operation is already being executed, repeating the programmed instruction structure accordingly. It also provides automatic control together with a manual operation function for safety, keeps the door self-locking function unavailable during elevator motion, displays the current floor during travel, and provides an emergency call button with communication capability for abnormal situations.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information.
+1. 句子 1：When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information from the control system.
    对应摘录：A
-2. 句子 2：If the elevator stops at a floor, the call buttons on that floor can trigger door-opening information, and the controller inserts a delay to keep the operation safe before continuing with movement.
+2. 句子 2：If the elevator stops at a floor, the upper and lower call buttons on that floor can send door-opening information, and the controller inserts a delay operation to keep the door and movement sequence safe.
    对应摘录：A
-3. 句子 3：As the car travels, the corresponding call light is turned on and then cleared after the requested operation is completed, and a travel-controller switch at each floor confirms that the car has reached the commanded area.
+3. 句子 3：During operation, the corresponding call light is turned on after the instruction is received and turned off after the requested operation is completed, and the travel controller at each floor confirms that the car has reached the commanded area.
    对应摘录：A
-4. 句子 4：The system supports automatic execution of button-call commands together with a manual operation function for safety, keeps the door self-locking function unavailable during car movement, displays the current floor during operation, and provides an emergency call button for abnormal situations.
+4. 句子 4：The system can receive another operation while one operation is already being executed, repeating the programmed instruction structure accordingly.
+   对应摘录：A
+5. 句子 5：It also provides automatic control together with a manual operation function for safety, keeps the door self-locking function unavailable during elevator motion, displays the current floor during travel, and provides an emergency call button with communication capability for abnormal situations.
    对应摘录：A

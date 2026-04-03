@@ -49,13 +49,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC-based elevator controller receives floor-button requests and sensor inputs and uses relays and motors to drive door opening, door closing, and up-down motion. When a floor request is entered, the panel displays the requested floor, the car travels to the caller, opens the door for three seconds, closes the door, and then moves to the requested destination floor. After the car reaches the destination floor, the door opens again for three seconds and is then closed.
+The PLC-based elevator controller receives four call-button inputs and four proximity-sensor inputs and uses relays, motors, and displays to drive door opening, door closing, and up-down motion. As soon as a desired floor is pressed, the panel displays that floor, the car travels to the caller, opens the door, waits for 3 seconds, and then presses the close switch. After that, the car moves to the input destination floor. When the car reaches the desired floor, the door opens again for 3 seconds and is then closed.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The PLC-based elevator controller receives floor-button requests and sensor inputs and uses relays and motors to drive door opening, door closing, and up-down motion.
+1. 句子 1：The PLC-based elevator controller receives four call-button inputs and four proximity-sensor inputs and uses relays, motors, and displays to drive door opening, door closing, and up-down motion.
    对应摘录：B
-2. 句子 2：When a floor request is entered, the panel displays the requested floor, the car travels to the caller, opens the door for three seconds, closes the door, and then moves to the requested destination floor.
+2. 句子 2：As soon as a desired floor is pressed, the panel displays that floor, the car travels to the caller, opens the door, waits for 3 seconds, and then presses the close switch.
    对应摘录：A
-3. 句子 3：After the car reaches the destination floor, the door opens again for three seconds and is then closed.
+3. 句子 3：After that, the car moves to the input destination floor.
+   对应摘录：A
+4. 句子 4：When the car reaches the desired floor, the door opens again for 3 seconds and is then closed.
    对应摘录：A

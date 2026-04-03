@@ -57,13 +57,13 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC program for the four-floor elevator is organized into two main parts, upward traversal and downward traversal, and each part contains separate cases for moving across one floor, two floors, or three floors. The controller keeps a counter for the current floor and uses dedicated timers and outputs to drive upward and downward motor motion. After power-up, if the requested floor is the same as the current floor the motor does not run; if the car is below the requested floor the motor runs in the upward direction, and if it is above the requested floor the motor runs in the downward direction until the car reaches the required position.
+The PLC program for the four-floor elevator is organized into two main parts, upward traversal and downward traversal, and each part contains separate cases for moving across one floor, two floors, or three floors. A counter `C5:0.ACC` records the current floor, the equality block enables the case that matches the current counter value, six timers are used for the upward and downward motions, the `TT` bit runs the motor, and outputs `O:0/0` and `O:0/1` drive upward and downward motion respectively. After power-up, if the requested floor is the same as the current floor the motor does not run; if the car is below the requested floor the motor runs in the clockwise direction and moves upward, and if it is above the requested floor the motor runs in the anti-clockwise direction and moves downward until the required position is reached.
 
 ### 3. 逐句溯源
 
 1. 句子 1：The PLC program for the four-floor elevator is organized into two main parts, upward traversal and downward traversal, and each part contains separate cases for moving across one floor, two floors, or three floors.
    对应摘录：A
-2. 句子 2：The controller keeps a counter for the current floor and uses dedicated timers and outputs to drive upward and downward motor motion.
+2. 句子 2：A counter `C5:0.ACC` records the current floor, the equality block enables the case that matches the current counter value, six timers are used for the upward and downward motions, the `TT` bit runs the motor, and outputs `O:0/0` and `O:0/1` drive upward and downward motion respectively.
    对应摘录：A
-3. 句子 3：After power-up, if the requested floor is the same as the current floor the motor does not run; if the car is below the requested floor the motor runs in the upward direction, and if it is above the requested floor the motor runs in the downward direction until the car reaches the required position.
+3. 句子 3：After power-up, if the requested floor is the same as the current floor the motor does not run; if the car is below the requested floor the motor runs in the clockwise direction and moves upward, and if it is above the requested floor the motor runs in the anti-clockwise direction and moves downward until the required position is reached.
    对应摘录：B

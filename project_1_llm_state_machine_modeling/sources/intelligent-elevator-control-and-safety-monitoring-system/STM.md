@@ -29,28 +29,34 @@
 
 #### 摘录 A
 - 出处：第 2 页，Section 2.1，对 automatic induction of elevator doors 与 speech control 的描述，行 55-60
-> The elevator control system can achieve the following three objectives. 
-> 2.1.1. Automatic induction of elevator doors. Using infrared induction technology, users can only 
-> make a stop at the automatic sensing area in front of the elevator, and the doors of the elevator can be 
-> opened automatically without manual manipulation.  
-> 2.1.2. Speech control. After the user enters the elevator, the elevator door shut down automatically 
+> The elevator control system can achieve the following three objectives.
+> 2.1.1. Automatic induction of elevator doors. Using infrared induction technology, users can only
+> make a stop at the automatic sensing area in front of the elevator, and the doors of the elevator can be
+> opened automatically without manual manipulation.
+> 2.1.2. Speech control. After the user enters the elevator, the elevator door shut down automatically
 > triggers the elevator speech control system, voice guide users to select floor, according to user's voice
 
 #### 摘录 B
 - 出处：第 3 页，Section 2.2.2，对 speech control system workflow 的描述，行 108-110
-> 2.2.2. Speech control system.At the moment when the elevator door is closed, can trigger the elevator 
-> floor voice control system began to work, until you receive the two effective signal or close the door 
+> 2.2.2. Speech control system.At the moment when the elevator door is closed, can trigger the elevator
+> floor voice control system began to work, until you receive the two effective signal or close the door
 > after more than 20 seconds (mainly first come), elevator floor voice control system to stop working.
+
+#### 摘录 C
+- 出处：第 4 页，Section 3.1.2，对 voice module trigger position 的说明，行 174-176
+> 3.1.2. Speech control system. The circuit diagram of the speech control system is shown in fig.5. The
+> voice module can be triggered when the door of the elevator is closed (that is, the elevator door closed
+> on the first or second floor of the picture).
 
 ### 2. 基于原文整理后的自然语言描述
 
-When a user reaches the automatic sensing area in front of the elevator, the doors open automatically without manual manipulation. After the elevator door has closed, the speech control system is triggered so that the user can select the destination floor by voice. The speech control continues until two effective signals are received or until more than twenty seconds have passed after door closure.
+Using infrared induction technology, when a user stops in the automatic sensing area in front of the elevator, the doors open automatically without manual manipulation. In the intelligent elevator control system, the speech-control subsystem is docked to the original floor-selection system, and when the elevator door closes it triggers the floor voice-control system. The voice module can be triggered when the door is closed on the first or second floor, and the speech-control subsystem keeps working until it receives two effective signals or until more than 20 seconds have elapsed after door closure, whichever comes first.
 
 ### 3. 逐句溯源
 
 1. 句子 1：When a user reaches the automatic sensing area in front of the elevator, the doors open automatically without manual manipulation.
    对应摘录：A
-2. 句子 2：After the elevator door has closed, the speech control system is triggered so that the user can select the destination floor by voice.
+2. 句子 2：In the intelligent elevator control system, the speech-control subsystem is docked to the original floor-selection system, and when the elevator door closes it triggers the floor voice-control system.
    对应摘录：A, B
-3. 句子 3：The speech control continues until two effective signals are received or until more than twenty seconds have passed after door closure.
-   对应摘录：B
+3. 句子 3：The voice module can be triggered when the door is closed on the first or second floor, and the speech-control subsystem keeps working until it receives two effective signals or until more than 20 seconds have elapsed after door closure, whichever comes first.
+   对应摘录：B, C

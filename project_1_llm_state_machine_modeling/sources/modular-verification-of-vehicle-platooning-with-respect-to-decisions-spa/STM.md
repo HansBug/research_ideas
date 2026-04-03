@@ -48,13 +48,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The platooning architecture treats joining and leaving as explicit procedures carried out through communication between an individual vehicle and the platoon leader. For joining, the vehicle sends a request to the leader, waits for confirmation, initiates lane changing, switches its speed controller to automatic, and then switches the steering controller to automatic when it is close enough to the proceeding vehicle. After the joining procedure is successful, the vehicle confirms completion to the leader.
+The platooning architecture treats joining as an explicit communication procedure between an individual vehicle and the platoon leader. A vehicle that wants to join first sends a joining request to the leader and waits for confirmation; after receiving that confirmation, it instructs the vehicle to change lane and waits for a successful confirmation that the lane change has completed. Once the lane-change confirmation is received, the follower switches its speed controller to automatic, and when the joining vehicle is close enough to the proceeding follower within the platoon, the agent instructs the steering controller to switch to automatic as well. Finally, the joining vehicle confirms the successful joining procedure to the leader and waits for the leader's reply, after which it deduces that the joining goal has been achieved.
 
 ### 3. 逐句溯源
 
 1. 句子 1：The platooning architecture treats joining and leaving as explicit procedures carried out through communication between an individual vehicle and the platoon leader.
    对应摘录：A
-2. 句子 2：For joining, the vehicle sends a request to the leader, waits for confirmation, initiates lane changing, switches its speed controller to automatic, and then switches the steering controller to automatic when it is close enough to the proceeding vehicle.
+2. 句子 2：A vehicle that wants to join first sends a joining request to the leader and waits for confirmation; after receiving that confirmation, it instructs the vehicle to change lane and waits for a successful confirmation that the lane change has completed.
    对应摘录：B
-3. 句子 3：After the joining procedure is successful, the vehicle confirms completion to the leader.
+3. 句子 3：Once the lane-change confirmation is received, the follower switches its speed controller to automatic, and when the joining vehicle is close enough to the proceeding follower within the platoon, the agent instructs the steering controller to switch to automatic as well.
+   对应摘录：B
+4. 句子 4：Finally, the joining vehicle confirms the successful joining procedure to the leader and waits for the leader's reply, after which it deduces that the joining goal has been achieved.
    对应摘录：B

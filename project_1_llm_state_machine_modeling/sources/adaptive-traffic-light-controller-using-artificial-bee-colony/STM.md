@@ -2,22 +2,22 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 文件级角色：🧰 需清洗样本
+- 文件级角色：💎 含核心样本
 - 代表状态机类型：EFSM（扩展状态机）
 - 代表时间级别：T1（工程定时 / 局部定时）
 - 结构标签概况：-（无代表标签）
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
-- 简要判断：论文对自适应交通灯控制器的相位优先级选择和空车道跳过逻辑都有明确描述，可直接写成控制逻辑自然语言。
+- 简要判断：相位排序、队列优先级、绿灯时长与空车道跳过逻辑都已较清楚，其中相位调度条目已可进主样本。
 
 ## 条目 1: Queue-priority phase sequencing
 - 控制对象：自适应交通灯控制器中的相位调度逻辑
 - 状态机类型：EFSM（扩展状态机）
 - 时间级别：T1（工程定时 / 局部定时）
 - 结构标签：-（无额外结构标签）
-- 原文细节充实度：🟠 C（只有主链）
-- 描述细节充实度：🟠 C（只有主链）
-- 数据集角色：🧰 清洗后保留
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
 - 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
@@ -43,24 +43,39 @@
 > Scheduling Algorithm based  Vehicular Traffic Control
 > System is shown in  Fig. 1.
 
+#### 摘录 B
+- 出处：第 4-5 页，Scenario 3，对 maximum green time parameter 的说明，行 392-399
+> In
+> scenario three shown in Table 3 generates and discusses
+> all the features of the developed simulator. The
+> maximum green light timing duration was kept at 2
+> minutes (120 seconds) and simulated over a duration of 30 minutes (1800 seconds). The simulation was
+> initialized with t = 60 seconds, implying that vehicles
+> were allowed to queue -up for 1 minute across the entire
+> roads .
+
 ### 2. 基于原文整理后的自然语言描述
 
-The adaptive traffic-light controller regulates both the phase sequence and the green-time duration in real time using road data collected by the wireless sensor network. It orders candidate phases by descending priority, where the priority of each phase is determined from the maximum queue length associated with that phase, and then calculates the green time for the selected phase order.
+The adaptive dynamic scheduling algorithm regulates both the phase sequence and the green-time duration in real time using road data gathered by the wireless sensor network. It orders candidate phases in descending priority, and the priority of each phase is defined as the maximum queue length among the roads belonging to that phase. After the phase order is determined, the controller calculates the green time for that scheduled order. In the reported Scenario 3 setting, the maximum allowable green-light duration is kept at 120 seconds while the controller repeatedly reschedules phases over the simulation interval.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The adaptive traffic-light controller regulates both the phase sequence and the green-time duration in real time using road data collected by the wireless sensor network.
+1. 句子 1：The adaptive dynamic scheduling algorithm regulates both the phase sequence and the green-time duration in real time using road data gathered by the wireless sensor network.
    对应摘录：A
-2. 句子 2：It orders candidate phases by descending priority, where the priority of each phase is determined from the maximum queue length associated with that phase, and then calculates the green time for the selected phase order.
+2. 句子 2：It orders candidate phases in descending priority, and the priority of each phase is defined as the maximum queue length among the roads belonging to that phase.
    对应摘录：A
+3. 句子 3：After the phase order is determined, the controller calculates the green time for that scheduled order.
+   对应摘录：A
+4. 句子 4：In the reported Scenario 3 setting, the maximum allowable green-light duration is kept at 120 seconds while the controller repeatedly reschedules phases over the simulation interval.
+   对应摘录：B
 
 ## 条目 2: Empty-road skip logic
 - 控制对象：自适应交通灯控制器中的空车道跳过逻辑
 - 状态机类型：EFSM（扩展状态机）
 - 时间级别：T1（工程定时 / 局部定时）
 - 结构标签：-（无额外结构标签）
-- 原文细节充实度：🔴 D（摘要/背景级）
-- 描述细节充实度：🔴 D（摘要/背景级）
+- 原文细节充实度：🟠 C（只有主链）
+- 描述细节充实度：🟠 C（只有主链）
 - 数据集角色：🧰 清洗后保留
 - 趋同标签：✨ 未见强趋同
 
@@ -83,11 +98,13 @@ The adaptive traffic-light controller regulates both the phase sequence and the 
 
 ### 2. 基于原文整理后的自然语言描述
 
-When the adaptive controller detects that a road has no vehicles, it generates a green-light duration of zero for that road. In this cleared condition, the road is skipped instead of being assigned a normal green interval.
+When the adaptive controller detects that a road has no vehicles, it generates a green-light duration `Tgi` of zero for that road. This zero-duration case corresponds to a cleared condition, so the road is skipped instead of being assigned a normal green interval. In the reported simulation, this skip behavior appeared at approximately 500, 900, and 1700 seconds.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When the adaptive controller detects that a road has no vehicles, it generates a green-light duration of zero for that road.
+1. 句子 1：When the adaptive controller detects that a road has no vehicles, it generates a green-light duration `Tgi` of zero for that road.
    对应摘录：A
-2. 句子 2：In this cleared condition, the road is skipped instead of being assigned a normal green interval.
+2. 句子 2：This zero-duration case corresponds to a cleared condition, so the road is skipped instead of being assigned a normal green interval.
+   对应摘录：A
+3. 句子 3：In the reported simulation, this skip behavior appeared at approximately 500, 900, and 1700 seconds.
    对应摘录：A
