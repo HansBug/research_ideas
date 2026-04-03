@@ -8,27 +8,27 @@
 - 结构标签概况：显式时钟
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
-- 简要判断：ECC 驱动逻辑和系统示例都可追溯，但示例状态名主要在图中。
+- 简要判断：ECC 执行语义、事件时间窗口和任务链/资源关系都可追溯，但仍偏构件级控制语义样本。
 
 ## 条目 1: BFB execution control chart (ECC)
 - 控制对象：IEC 61499 分布式控制系统中的 Basic Function Block 控制器
 - 状态机类型：EFSM（扩展状态机）
 - 时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签：显式时钟
-- 原文细节充实度：🔴 D（摘要/背景级）
-- 描述细节充实度：🔴 D（摘要/背景级）
+- 原文细节充实度：🟠 C（只有主链）
+- 描述细节充实度：🟠 C（只有主链）
 - 数据集角色：🧰 清洗后保留
 - 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
-- 一句话说明：这是工业自动化与分布式控制领域的 IEC 61499 Basic Function Block 控制器，用于在接收输入事件后依据 ECC 执行算法并发出输出事件。
-- 判断：算，但属于控制软件构件级样本。它描述的是控制系统内部一个明确具有状态机语义的执行单元，而不是某个具体物理装置的整机需求。
+- 一句话说明：这是工业自动化与分布式控制领域的 IEC 61499 Basic Function Block 控制器，用于在输入事件到达后按 ECC 检查 guard、执行算法并在给定时间窗口内触发后续任务链。
+- 判断：算，但属于控制软件构件级样本。它描述的是控制系统内部一个明确具有状态机语义和实时语义的执行单元，而不是某个具体物理装置的整机需求。
 
 ### 1. 原文摘录
 
 #### 摘录 A
-- 出处：第 2 页，Background / IEC 61499，行 122-140
+- 出处：第 2 页，Background / IEC 61499，行 122-141
 > In common all FB types provide an interface deﬁning input
 > events with associated input data variables, and output events
 > with associated output variables.
@@ -48,22 +48,56 @@
 > events and local and output variable updates), the input event
 > is (conceptually) consumed, and further transition conditions
 > (from the target state) inspected transitively until no more
+> transitions are possible.
 
 #### 摘录 B
-- 出处：第 5 页，System model example，行 427-449
-> B. System model example
+- 出处：第 3-4 页，Real-Time For the Masses / RTFM-core，行 215-247, 372-417
+> Each event (e) is associated with an baseline bl(e)(absolute
+> point in time for the arrival of the event), a relative deadline
+> dl(e)(indicating the timing requirement), and a minimum
+> inter-arrival time ia(e). An event ei, is associated (triggers) a
+> corresponding task (instance) ti(can be seen as a job request
+> related to SRP).
+> The Permissible Execution Window (PEW) for (an instance
+> of)tiis the range in time from its baseline bl(ti) =bl(ei)to
+> its absolute deadline dl(ti) =bl(ei) +dl(ei), Figure 2.
+> A task ti, may emit further synchronous and asynchronous
+> events ej, which by default inherits the sender’s timing prop-
+> erties ( bl(ej) =bl(ei); dl(ej) =dl(ei)), and hence the corre-
+> sponding task tjexecutes under the sender’s PEW. On emitting
+> a synchronous event, the corresponding task is (directly) exe-
+> cuted and the sender is suspended until tjcompletes), while on
+> emitting an asynchronous event the sender continues execution.
+> ...
+> Event ::= async After? Before? Min?
+> j pend Before? Min?
+> j sync
+> After ::= after Int
+> Before ::= before Int
+> Min ::= min Int
+> Figure 4. RTFM event grammar for IEC 61499.
+> ...
+> Event chains: For (asynchronous) events we have the
+> option inherit or explicitly state timing constraints, (Figure 4).
+> Theafter option allows us to deﬁne complex timing patterns
+> (for which delays and periodic behavior are trivial cases),
+> without the need to infer special design elements.
+> ...
+> In order to satisfy both the component view and allow for
+> maximum ﬂexibility we propose that default event properties
+> should be stated as part of the FB event outputs, while allowing
+> to be over-ridden by properties given for the connections at
+> network level.
+
+#### 摘录 C
+- 出处：第 5 页，事件源、任务链、资源与执行子任务说明，行 427-489
 > IEC 61499 System model: Figure 5, depicts an IEC 61499
 > model developed in the 4DIAC IDE [19]. The SIFB instances
 > Ea1 andEc1 capture the external events from the underlying
 > platform (or platforms if deployed onto different devices) and
 > trigger the execution of actions associated to a1.i1 and
-> c1.i1 respectively. Figure 6 depicts the ECC of b1, showing
-> the associated actions (algorithms) taskb1 for input event
-> i1andtaskb3 for input event i3respectively. The mis
-> an FB (from the standard library) that merges (and serialize)
-> incoming events (and associated data).
-> Figure 5. Example IEC 61499 system model.
-> Figure 6. ECC of FB b1.
+> c1.i1 respectively.
+> ...
 > Example: Event source: Assuming we deploy the system
 > (application) onto a single device. The output events from
 > SIFBs Ea1 andEc1 are obvious event sources (to the IEC
@@ -72,42 +106,14 @@
 > originating from some ISR of the underlying hardware), or
 > emitted with the pend option. In either case for the analysis
 > the minimum inter-arrival should be stated using the min
-> option. Figure 7, depicts the timing property of the event
-> Ea1.o1 -> a1.i1 at the network level.
-
-#### 摘录 C
-- 出处：第 5 页，事件链、资源与执行子任务说明，行 451-489
-> Example: Event chains: If not explicitly stated, events are
-> considered to be synchronous, i.e. the event chains originating
-> from event sources will be treated as synchronous task chains
-> in the model and for execution. For the example, this amounts
-> to the set of tasks and resources depicted in Figure 8.Example: Resources: The assumption that dl(t)ia(t)
-> (and that the system is schedulable), only the RTFM resources
-> that are shared between tasks chains triggered by different
-> event sources needs to be protected. For the example, this
+> option.
+> ...
+> For the example, this
 > gives us the (reduced) set of protected resources r(m)(for the
 > ECC of m), its data output r(o)(for the connection m.OUT_1
-> -> b1.di1 ) and the r(b)(for the ECC of b1). Notice here,
-> that the ECC of b1triggers an output event o1only on a
-> incoming i3event, which in turn occurs on behalf of the
-> single source event Ec1.o1 , thus neither the state of b2nor
-> the data connection b1.d -> b2.d1 needs protection.
-> a1 b1
-> b2b3 a2
-> c1c2ea1
-> ec1m1
-> m2r(b) r(m)r(o)c(a1)=50c(m1)=1c(b1)=1
-> c(b2)=2 c(a2)=5
-> c(m2)=1c(b3)=5
-> c(c1)=5c(c2)=3
-> Figure 8. Example RTFM system model. We have the (external) events
-> ea1andec1, triggering the task chains headed by a1andc1respectively.
-> Asynchronous events are marked as dashed, tasks are denoted by circles, boxes
-> r(m),r(b)are resources for the corresponding FBs, while r(o)is a resource
-> for a shared connection.
-> Example: Scheduling: At device level, RTFM models
-> can be scheduled efﬁciently by the RTFM-kernel, exploiting
-> the underlying interrupt hardware[15]. Each synchronous task
+> -> b1.di1 ) and the r(b)(for the ECC of b1).
+> ...
+> Each synchronous task
 > chain, amounts to a RTFM task. For the example, the task chain
 > triggered by ea1(with the sub-tasks a1:m1:b1) and task
 > chain triggered by ec1(with the sub-tasks (c1) :a2:m2:b1,
@@ -119,13 +125,17 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-A basic function block in IEC 61499 is organized by an Execution Control Chart that reacts to input events, checks transition conditions, and then executes the algorithms and output events attached to the selected branch. In the example model, external events from Ea1 and Ec1 trigger the associated actions, and the ECC of b1 provides the behavior for its i1 and i3 inputs. At execution time, only the proper subset of sub-tasks corresponding to the current ECC specifications and FB states is carried out on behalf of the source events that have occurred.
+A basic function block in IEC 61499 exposes input events with associated input data and output events with associated output data, and its ECC uses input events, Boolean guards, or combinations of both to trigger transitions. When an input event arrives, the block first samples the connected input data, checks the outgoing transition conditions of the current state in XML order, executes the algorithms of the target state sequentially, emits any output events, updates local and output variables, and then keeps firing further enabled transitions transitively until no transition remains possible. In the real-time semantics, every triggering event defines a task with a baseline, deadline, and minimum inter-arrival time, so execution is constrained by a permissible execution window; synchronous emissions inherit the sender timing and suspend the sender, whereas asynchronous emissions may use `after`, `before`, `min`, or `pend` to create explicit timing constraints. In the system example, Ea1 and Ec1 are event sources, `ea1` can trigger the synchronous task chain `a1:m1:b1`, and `ec1` can trigger `(c1):a2:m2:b1`, `(c1):b3:b2`, or `(c1):c2`, while the shared ECC/data resources `r(m)`, `r(o)`, and `r(b)` must be protected across chains. The concrete execution for an occurred source event is therefore only a proper subset of the upper-bound sub-task set, because it still depends on the current ECC specification and the current FB states.
 
 ### 3. 逐句溯源
 
-1. 句子 1：A basic function block in IEC 61499 is organized by an Execution Control Chart that reacts to input events, checks transition conditions, and then executes the algorithms and output events attached to the selected branch.
+1. 句子 1：A basic function block in IEC 61499 exposes input events with associated input data and output events with associated output data, and its ECC uses input events, Boolean guards, or combinations of both to trigger transitions.
    对应摘录：A
-2. 句子 2：In the example model, external events from Ea1 and Ec1 trigger the associated actions, and the ECC of b1 provides the behavior for its i1 and i3 inputs.
+2. 句子 2：When an input event arrives, the block first samples the connected input data, checks the outgoing transition conditions of the current state in XML order, executes the algorithms of the target state sequentially, emits any output events, updates local and output variables, and then keeps firing further enabled transitions transitively until no transition remains possible.
+   对应摘录：A
+3. 句子 3：In the real-time semantics, every triggering event defines a task with a baseline, deadline, and minimum inter-arrival time, so execution is constrained by a permissible execution window; synchronous emissions inherit the sender timing and suspend the sender, whereas asynchronous emissions may use `after`, `before`, `min`, or `pend` to create explicit timing constraints.
    对应摘录：B
-3. 句子 3：At execution time, only the proper subset of sub-tasks corresponding to the current ECC specifications and FB states is carried out on behalf of the source events that have occurred.
+4. 句子 4：In the system example, Ea1 and Ec1 are event sources, `ea1` can trigger the synchronous task chain `a1:m1:b1`, and `ec1` can trigger `(c1):a2:m2:b1`, `(c1):b3:b2`, or `(c1):c2`, while the shared ECC/data resources `r(m)`, `r(o)`, and `r(b)` must be protected across chains.
+   对应摘录：C
+5. 句子 5：The concrete execution for an occurred source event is therefore only a proper subset of the upper-bound sub-task set, because it still depends on the current ECC specification and the current FB states.
    对应摘录：C
