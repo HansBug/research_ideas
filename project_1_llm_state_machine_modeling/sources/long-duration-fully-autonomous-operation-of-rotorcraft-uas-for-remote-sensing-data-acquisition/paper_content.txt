@@ -1,0 +1,924 @@
+--- Page 1 ---
+Long-Duration Fully Autonomous Operation of
+Rotorcraft UAS for Remote-Sensing Data Acquisition
+Danylo Malyuta
+Autonomous Control Lab
+University of Washington
+Seattle, WA 98195
+danylo@uw.eduChristian Brommer
+Control of Networked Systems Group
+Alpen-Adria-Universit at Klagenfurt
+Klagenfurt, Austria 9020
+christian.brommer@ieee.orgDaniel Hentzen
+Jet Propulsion Laboratory
+California Institute of Technology
+Pasadena, CA 91109-8099
+daniel.r.hentzen@jpl.nasa.gov
+Thomas Stastny
+Autonomous Systems Lab
+ETH Z urich
+Z urich, Switzerland 8092
+thomas.stastny@mavt.ethz.chRoland Siegwart
+Autonomous Systems Lab
+ETH Z urich
+Z urich, Switzerland 8092
+rsiegwart@ethz.chRoland Brockers
+Jet Propulsion Laboratory
+California Institute of Technology
+Pasadena, CA 91109-8099
+brockers@jpl.nasa.gov
+Abstract
+Recent applications of unmanned aerial systems (UAS) to precision agriculture have shown
+increased ease and eciency in data collection at precise remote locations. However, further
+enhancement of the eld requires operation over long periods of time, e.g. days or weeks.
+This has so far been impractical due to the limited ight times of such platforms and
+the requirement of humans in the loop for operation. To overcome these limitations, we
+propose a fully autonomous rotorcraft UAS that is capable of performing repeated ights
+for long-term observation missions without any human intervention. We address two key
+technologies that are critical for such a system: full platform autonomy to enable mission
+execution independently from human operators and the ability of vision-based precision
+landing on a recharging station for automated energy replenishment. High-level autonomous
+decision making is implemented as a hierarchy of master and slave state machines. Vision-
+based precision landing is enabled by estimating the landing pad's pose using a bundle
+of AprilTag ducials congured for detection from a wide range of altitudes. We providearXiv:1908.06381v1  [cs.RO]  18 Aug 2019
+
+--- Page 2 ---
+an extensive evaluation of the landing pad pose estimation accuracy as a function of the
+bundle's geometry. The functionality of the complete system is demonstrated through two
+indoor experiments with a duration of 11 and 10.6 hours, and one outdoor experiment
+with a duration of 4 hours. The UAS executed 16, 48 and 22 ights respectively during
+these experiments. In the outdoor experiment, the ratio between ying to collect data and
+charging was 1 to 10, which is similar to past work in this domain. All ights were fully
+autonomous with no human in the loop. To our best knowledge this is the rst research
+publication about the long-term outdoor operation of a quadrotor system with no human
+interaction.
+1 Introduction
+1.1 Motivation
+The Food and Agriculture Organization of the United Nations predicts that food production will have to
+increase by 70 percent by the year 2050 in order to feed a projected additional 2.2 billion people (Food
+and Agriculture Organization of the United Nations, 2009). Precision agriculture, also known as smart
+farming, is a data-driven approach that helps to address this challenge by using sensing technology to
+increase farming eciency. Data is collected for variables like plant and animal health, crop yields, organic
+matter content, moisture, nitrogen and pH levels. To complement sensors mounted on farming vehicles, xed-
+wing and rotorcraft Unmanned Aerial Systems (UAS) can be equipped with RGB, thermal and hyperspectral
+cameras and own over elds in order to create cost-eective and on-demand orthomosaic maps of biophysical
+parameters. The market for such robots is projected to be the second-largest in the commercial drone sector
+(Goldman Sachs, 2017).
+Rotorcraft UAS are ideal assets for deploying sensors and instruments in a 3D environment. Because they can
+hover and y slowly, rotorcraft enable pin-point data gathering and can be operated in dense environments
+such as under tree canopies that are inaccessible to traditional xed-wing platforms. In the agricultural
+domain, an important application is the repeated acquisition of the same target to capture changes in
+environmental properties such as plant water usage over the diurnal cycle. This is of increasing importance
+for ecosystem monitoring applications where accurate measurements of plant health parameters are desired
+down to leaf-level resolution of individual plants.
+
+--- Page 3 ---
+Figure 1: Example deployment of a hexacopter UAS (a) with a hyperspectral camera (b) to collect data for
+NDVI calculation with centimeter accuracy (c). The autonomy engine in this paper can be deployed on such
+a system as a future application.
+To validate the feasibility of UAS remote sensing of relevant data at high spatial resolutions, extensive data
+acquisition trials were carried out in collaboration with NASA's Jet Propulsion Laboratory environmental
+scientists. Figures 1a and 1b show a hexarotor with a six-band visible and near-infrared (VNIR) camera and
+a thermal infrared camera payload that was used during several campaigns at the West Side Research and
+Extension Center (WSREC) at Five Points, California, to capture the diurnal cycle of plant water usage.
+Figure 1c illustrates a stitched map of the normalized dierence vegetation index (NDVI) as an example data
+product of one ight. The map's pixel resolution of approximately 5 cm is beyond what can be currently
+achieved with orbital or traditional airborne instruments. The autonomy engine developed in this paper can
+be deployed on such a quadrotor as a potential future application.
+1.2 Contributions
+Because the typical ight endurance of a quadrotor system with payload is relatively short (typically 10-
+20 min), long-term operation currently requires humans in the loop for energy replenishment (e.g. battery
+charging). This makes continuous observations over long periods of time impractical. To solve this issue,
+we propose a system that is capable of fully autonomous repeated mission execution, including automated
+recharging to replenish its batteries after a data collection ight is completed.
+Our main contribution is the development and outdoor deployment of a high-level autonomy engine that
+is executed on-board the UAS and which implements the capability of robust fully autonomous repeated
+data acquisition. This includes ight control for take-o and landing, GPS-inertial state estimation, system
+health monitoring including the execution of emergency behaviors, recharging and mission data handling.
+
+--- Page 4 ---
+Once the autonomy engine is started, the system has the logic and software-hardware interfaces necessary
+to operate indenitely without humans in the loop.
+The system is novel by being human-independent andoperating outdoors . To the best of our knowledge,
+there have been no publications to date on quadrotor-type UAS platforms capable of autonomous recharging
+which have been own outdoors for extended periods of time. Hence, prior work that demonstrates UAS
+recharging has relied on the idealistic state estimation accuracy oered by indoor motion capture systems.
+Since GPS-only localization is not suciently accurate for precision landing on a charging pad, our work
+augments the sensor suite with a monocular camera. In this context, we present an extensive analysis seeking
+to nd a landing pad ducial marker layout that maximizes landing accuracy.
+1.3 Notation
+The following notation is used throughout the report. Scalars are lowercase (e.g. a), vectors are lowercase
+bold (e.g. a) and matrices are uppercase (e.g. A). The position of frame fbgin framefagis written pb
+a.
+The quaternion active rotation from fagtofbgis written qb
+aand the corresponding rotation matrix is Cqba.
+The homogeneous transformation matrix Tabtakes homogeneous vectors in fbgtofag. Raw measurement
+quantities carry a hat, e.g. ^pb
+a, while ltered quantities carry a tilde, e.g. ~pb
+a.
+1.4 Outline
+This paper is organized as follows. Section 2 surveys existing work on long-duration autonomy and vision-
+based landing, the two key enabling technologies for our system. The hardware and software architectures
+are then described in Section 3. Sections 4, 5 and 6 detail the navigation, guidance and control subsystems
+respectively which enable the UAS to execute ight tasks. The autonomy engine itself is presented in
+Section 7. Field tests with the system in environments of increasing complexity, up to real world conditions,
+are then given in Section 8, followed by a discussion of future work and conclusion in Sections 9 and 10.
+2 Related Work
+In this section we review related work in our two main areas of contribution, the ability to replenish energy
+for long-duration autonomy and vision-based precision landing.
+
+--- Page 5 ---
+2.1 Long-duration Autonomy
+Several rotorcraft UAS that are capable of autonomous, long-duration mission execution in benign indoor
+(VICON) environments have previously appeared in literature. Focusing on the recharging solution to extend
+individual platform ight time and a multi-agent scheme for constant operation, impressive operation times
+have been demonstrated ((Valenti et al., 2007): 24 h single vehicle experiment; (Mulgaonkar and Kumar,
+2014): 9.5 h with multiple vehicles). Recharging methods vary from wireless charging (Aldhaher et al., 2017)
+to contact-based charging pads (Mulgaonkar and Kumar, 2014) to battery swap systems (Toksoz et al., 2011;
+Suzuki et al., 2011). While wireless charging oers the most exibility since no physical contact has to be
+made, charging currents are low resulting in excessively long charging times and are hence not an option for
+quick redeployment. However, interesting results have been shown in (Aldhaher et al., 2017) demonstrating
+wireless powering of a 35 g/10 W micro drone in hover ight. On the other end of the spectrum, battery
+swap systems oer immediate redeployment of a UAS, but require sophisticated mechanisms to be able to
+hot swap a battery, and a pool of charged batteries that are readily available. This makes such systems less
+attractive for maintenance free and cost eective long-term operation.
+2.2 Vision-based Landing
+Our work uses a downward-facing monocular camera to estimate the pose of the landing pad in the world
+frame using AprilTag visual ducial markers (Wang and Olson, 2016). We believe that a monocular camera is
+the cheapest, most lightweight and power ecient sensor choice. Alternatively, GPS and RTK-GPS systems
+suer from precision degradation and signal loss in occluded urban or canyon environments (Jin et al., 2016).
+Laser range nder systems are heavy and consume considerable amounts of energy. Last but not least, stereo
+camera setups have limited range as a function of their baseline versus vehicle-to-pad distance.
+Several landing approaches exist in literature for labeled and unlabeled landing sites. (Yang et al., 2012)
+present a monocular visual landing method based on estimating the 6 DOF pose of a circled H marker.
+The same authors extend this work to enable autonomous landing site search by using a scale-corrected
+PTAM algorithm (Klein and Murray, 2007) and relax the landing site structure to an arbitrary but feature-
+rich image that is matched using the ORB algorithm (Rublee et al., 2011). (Forster et al., 2014; Forster
+et al., 2015) use SVO to estimate motion from a downfacing monocular camera to build a probabilistic 2
+dimensional elevation map of unstructured terrain and to detect safe landing spots based on a score function.
+(Brockers et al., 2011; Brockers et al., 2012) develop a fully self-contained visual landing navigation pipeline
+
+--- Page 6 ---
+using a single camera. With application to landing in urban environments, the planar character of a rooftop
+is leveraged to perform landing site detection via a planar homography decomposition using RANSAC to
+distinguish the ground and elevated landing surface planes.
+However, landing algorithms which build elevation maps and perform generic landing spot detection trade
+their robustness for the ability to land in unlabeled environments. By placing visual ducial markers at or
+near the landing zone, one can use visual ducial detector algorithms to estimate the landing pad pose more
+reliably, i.e. with less false positives and negatives.
+Currently one of the most popular visual ducial detectors and patterns is the AprilTag algorithm (Olson,
+2011) which is renowned for its speed, robustness and extremely low false positive detection rates. The
+algorithm was updated by (Wang and Olson, 2016) to further improve computational eciency and to
+enable the detection of smaller tags. AprilTag has been applied multiple times for MAV landing (Brommer
+et al., 2018; Ling, 2014; Kyristsis et al., 2016; Borowczyk et al., 2017; Chaves et al., 2015). Similar visual
+ducials are seen around the landing zones of both Amazon and Google delivery drones (Amazon, 2016;
+Vincent, 2017) as well as of some surveying drones (Wingtra, 2017). Our approach is the same as that of
+(Brommer et al., 2018). We improve over (Ling, 2014; Kyristsis et al., 2016) by using a bundle of several
+tags for improved landing pad pose measurement accuracy. (Borowczyk et al., 2017; Chaves et al., 2015)
+appear to also use a tag bundle, however they deal with a moving landing platform and feed individual tag
+pose detections into a Kalman lter. Our approach is to use a perspective- n-point solution to obtain a single
+pose measurement using all tags at once.
+After obtaining raw tag pose estimates from the AprilTag detector, our approach uses a recursive least squares
+(RLS) lter to obtain a common tag bundle pose estimate. A relevant previous work on this topic is (Nissler
+et al., 2016) in which a particle lter is applied to raw tag detections and RLS is compared to RANSAC for
+bundle pose estimation. Because the demonstrated accuracy improvement is marginal (about 1 cm in mean
+position and negligible in mean attitude) and RANSAC has disadvantages like ad hoc threshold settings and
+a non-deterministic runtime, we prefer RLS for its simplicity. Nevertheless, RANSAC and its more advanced
+variations (Hast et al., 2013) can be substituted into our implementation. Other work investigated fusing tag
+measurements in RGB space with a depth component (Jin et al., 2017) with impressive gains in accuracy.
+One can imagine this approach beneting landing accuracy at low altitudes, however downward-facing stereo
+camera mounting on drones raises several concerns like weight, vibration eects and space availability.
+Our approach, however, is not limited to AprilTags, which can be substituted or combined with other
+
+--- Page 7 ---
+Figure 2: Autonomous UAS data acquisition cycle. 1: the vehicle is placed on the landing station to start the
+operation. 2: takeo to safe altitude. 3: mission execution. 4: vision-based precision landing. 5: recharging
+and data downloading.
+markers for specic applications. A vast number of markers is available targeting dierent use-cases (Jin
+et al., 2016; Yang et al., 2012; Fiala, 2005; Olson, 2011). Patterns include letters, circles, concentric circles
+and/or polygons, letters, 2 dimensional barcodes and special patterns based on topological (Bencina et al.,
+2005), detection range maximizing (Xu and Dudek, 2011) and blurring/occlusion robustness considerations
+(Bergamasco et al., 2016).
+3 System Overview
+Our system consists of two major components: the aerial vehicle with its on-board autonomy software
+(autonomy engine) and a landing station which integrates a charging pad, a base station computer for
+downloading data, and a wireless router for communication with the UAS while landed. To deploy the
+system, a user connects the landing station to a power outlet and places the UAS on top of the landing
+surface as shown in Figures 2 and 3. After providing a waypoint based mission prole, a start command
+commences the operation of the system. All actions of the UAS from then on are fully autonomous with
+no human involvement. The autonomy engine implements various mission specic behaviors to guide the
+vehicle, including health monitoring and emergency response that are explained in Section 7.
+
+--- Page 8 ---
+Figure 3: Landing station with visual bundle (left), charging pad (right), and UAS. The recharging process
+starts automatically when the quadrotor makes contact with the 90 90 cm charging surface.
+1(Navigation camera) USB 2.0 mvBlueFOXMLC200wG downfacing camera with a 100FOV lens
+2(Payload) FLIR Ax5-series thermal camera
+35 GHz dual band WiFi module
+4Trimble BD930-UHF GPS receiver
+53-axis magnetometer
+6UHF antenna
+7GPS antenna
+8RC receiver
+9Leg charging contacts
+10 CRC C6S LiPo balance charger
+11 Odroid XU4 navigation computer
+12 3S1P 6200 mAh LiPo battery holder
+13 AscTec AutoPilot Board
+14 AscTec Power Board
+Figure 4: Hardware elements on our test UAS (modied AscTec Pelican).
+
+--- Page 9 ---
+Figure 5: On-board hardware architecture and information ow. Solid and dashed lines represent information
+and energy ows respectively. Communication protocols are labelled where known.
+3.1 Hardware Architecture
+Figure 4 illustrates the main hardware elements of our test UAS. Figure 5 displays the quadrotor on-board
+hardware architecture. Solid lines represent information ow and are labelled whenever the communication
+protocol is known, and dashed lines represent energy ow. The gray blocks in Figure 5 label the components
+that host the ight software developed in this work.
+To minimize recharging time, we use a contact-based, commercially available charging solution (Skysense,
+2018) to provide ample charging current to the on-board charging electronics. The charging pad consists
+of an array of individual contact patches that cover a 90 90 cm at area. Charging is triggered by the
+charging pad electronics once contact to the charger on-board the UAS is made via leg contacts. Charging
+status is monitored online by the autonomy engine, which prepares for the next ight once the battery is
+suciently charged. While landed, the vehicle connects to the base station computer via WiFi to downlink
+mission data and to receive eventually updated mission plans (e.g. mission-end command from a user).
+3.2 Software Architecture
+Figure 6 illustrates the full autonomy system as an information ow diagram. Sensors feed information to
+the Single Sensor Fusion (SSF) state estimator (Weiss et al., 2012), modied to handle multiple sensors, and
+to the visual landing navigation subsystems. These supply the control, guidance and autonomy algorithms
+
+--- Page 10 ---
+Figure 6: Sensor and software system block diagram. Gray blocks are part of the software subsystem.
+with navigational information necessary for stabilization, trajectory generation and state machine transitions.
+The control subsystem is then responsible for trajectory tracking and desired motor speed computation.
+3.3 Mission Architecture
+The UAS executes a mission prole depicted in Figure 2. Before each take-o, the system initializes the
+on-board state estimator and passes a series of pre-ight checks that include testing for an adequate battery
+voltage level and motor nominal performance. The vehicle then performs a take-o maneuver by issuing
+a vertical velocity command to its low-level velocity controller to climb to an initial altitude. Once a safe
+altitude is reached, the mission execution module within the autonomy engine takes over. A mission is dened
+as a set of waypoints connected by individual trajectory segments that are calculated using polynomial
+trajectories following the approach of (Mellinger and Kumar, 2011; Richter et al., 2016). A trajectory
+tracking module plays the mission trajectory forward in time by issuing position references to the low-level
+position controller. During mission execution, a system health observer monitors all critical components
+of the UAS and issues emergency messages to the autonomy engine to implement fail-safe behaviors (e.g.
+return-to-home, emergency-landing on low battery or state estimation failure).
+After the mission is completed, the UAS returns to the vicinity of the landing station using the recorded GPS
+position of the take-o location. Our vision-based landing navigation algorithm then detects the landing
+station AprilTag ducials with its downfacing camera. Once the landing location is accurately detected, a
+landing maneuver is executed by rst hovering over the landing location and then issuing a trajectory with
+a xed descent velocity that passes through the center of the charging pad surface. Touchdown is triggered
+
+--- Page 11 ---
+Figure 7: Vision-based landing navigation block diagram. A downfacing camera feeds images to a radial
+undistorter. AprilTag markers are detected in the resulting images and their pose is jointly estimated via a
+perspective- n-point solution. An RLS estimator smoothens the resulting signal based on a current estimate
+of the measurement variance.
+by detecting zero velocity below a minimum altitude threshold.
+4 Navigation
+The navigation subsystem is responsible for estimating the UAS state and the landing pad pose in the world
+frame. The landing pad pose estimation is designed to provide a suciently accurate pose estimate to be able
+to land on a 9090 cm surface. The vehicle pose estimator is designed to work in an outdoor environment
+such as a crop eld.
+4.1 Visual Landing Navigation
+Figure 7 details our landing site detection algorithm. The downfacing camera feeds a distorted 752 480 px
+grayscale image,Iraw, into the image undistorter. The latter removes radial distortion in the image via the
+ideal sh-eye lens model (Devernay and Faugeras, 2001), producing the un-distorted image Ipinassumed to
+be produced by a pinhole camera with calibration matrix K2R33. The unmodied AprilTag 2 implemen-
+tation (APRIL Laboratory, 2016) identies AprilTag markers in Ipinand for each tag with ID iproduces
+a homography matrix Hi2R33. Assuming that at least one tag is detected, a perspective- n-point solver
+(OpenCV, 2017) produces an AprilTag bundle pose measurement ^pl
+w,^ql
+wof the landing pad in the world
+frame. This measurement is passed to a recursive least squares (RLS) estimator to output ~pl
+wand ~ql,yaw
+w
+where the latter is a pure yaw quaternion because we assume the landing pad to be level. The RLS outputs
+are then used for landing navigation. The algorithm is executed on a single core of an Odroid XU4, except
+for the AprilTag 2 detector which runs on two cores, and achieves a measurement frequency of approximately
+7 Hz as shown in Figure 8.
+Estimation of the landing pad pose using a tag bundle has several advantages. First, by providing more
+
+--- Page 12 ---
+Figure 8: Landing bundle pose measurement frequency. The median is 6.5 Hz.
+Figure 9: Rigid body transforms from each tag's local frame to the landing pad frame. Generic tags i,jand
+kare shown.
+points to compute the homography matrix, the landing pad pose measurement becomes more accurate and
+robust to eects like tag corner detection error. Furthermore, a bundle can be composed of larger and smaller
+tags such that it is visible from a wide range of altitudes (see Section 8.1.1).
+4.1.1 Bundle Calibration
+To compute ^pl
+wand^ql
+w, the transformation matrix from each tag to the landing pad frame must be known.
+This is shown in Figure 9 and the computation of these transforms is called landing bundle calibration.
+Because the landing pad pose directly aects the desired UAS landing pose (see Section 4.1.2), calibration
+is crucial for successful system operation.
+Our calibration approach is to place the UAS downfacing camera with the landing bundle visible, forming a
+rigid body transform triad as shown in Figure 10. For the calibration process, a \master" AprilTag marker is
+placed at the same position and yaw as desired for the UAS and the downfacing camera respectively during
+landing (see Figure 11). The unknown calibration transform Tltiis given by:
+Tlti=T 1
+cmTcti: (1)
+
+--- Page 13 ---
+Figure 10: Rigid transform triad formed during the calibration process between the camera frame, the master
+tag/landing pad frame and the i-th tag frame.
+However, every standalone tag pose measurement contains error due to eects from image blur, pixelation,
+etc. The result of single-measurement computation (1) is therefore not reliable. For this reason, a statistical
+approach is taken and a sequence of several hundred ^Tctiand ^Tcmis collected. These measurements are
+then combined into a geometric median position and a mean quaternion attitude of each tag relative to the
+landing pad frame. Computational details are provided in (Malyuta, 2018).
+4.1.2 Landing Alignment
+The UAS can align itself with the landing pad by using landing pad pose estimate ~pl
+wand ~ql,yaw
+w. For this
+purpose, consider the alignment scenario depicted in Figure 11. The desired attitude of the camera is to
+look straight down at the landing pad frame, hence ql
+cdescorresponds to a 180rotation about the x-axis.
+As shown in Figure 11, we have all the elements necessary to compute the desired body pose such that the
+UAS is center-aligned with the landing frame and the camera is facing down with a yaw implicitly dened
+by the master tag during the calibration step of Section 4.1.1:
+qalign= (ql
+cdes
+~qc
+b) 1
+~ql,yaw
+w; (2)
+palign=~pl
+w+ (halign ~pl
+w,z)ez; (3)
+
+--- Page 14 ---
+Figure 11: Frame setup for pad-aligned body frame pose computation during the initial part of the landing
+phase.
+
+--- Page 15 ---
+wherehalign is the desired altitude above the landing pad prior to nal descent and ez= (0;0;1). Once
+aligned, the landing autopilot descends the UAS until touchdown as described in Section 7.5.
+4.2 Vehicle Pose Estimation
+The state estimation subsystem computes the vehicle pose to be used for guidance and control. For this
+purpose the SSF algorithm (Weiss et al., 2012) is extended to fuse multiple sensors. In particular, we use
+an IMU, a GPS for position and velocity, a pressure sensor for improved height estimation, and a 3-axis
+magnetometer for yaw observability during hover and constant velocity ight. We denote by fbg,fgg,fmg
+andfpgthe body (i.e. IMU), GPS, magnetometer and pressure sensor frames respectively and use the
+following state vector:
+xstate= (pb
+w;vb
+w;qb
+w;b!;ba| {z }
+Core state;pg
+b;qm
+b;mw;bp;pp
+b); (4)
+where b!2R3,ba2R3andbp2Rare the gyroscope, accelerometer and pressure sensor biases and mw2R3
+is a normalized magnetic eld vector. The core state portion of (4) together with the raw gyroscope body
+rate measurement is used for control and guidance. During the landing phase, the landing pad pose estimate
+~pl
+wand~ql,yaw
+w is used to re-localize the landing pad in the world frame. This is necessary due to drift in the
+GPS sensor during long ights.
+5 Guidance
+The guidance subsystem is responsible for generating control reference signals with the aim of following
+a specic trajectory or arriving at a specic destination (Grewal et al., 2007). This section describes the
+guidance philosophy and main aspects, while further computational details are provided in (Malyuta, 2018).
+The guidance subsystem is designed with the objectives of being computationally lightweight and capable
+of generating predictable trajectories that are dynamically feasible and that enable the UAS to explore an
+obstacle-free 3D volume via point-to-point constant velocity segments. Among existing methods that mini-
+mize snap (Mellinger and Kumar, 2011; Richter et al., 2016; Burri et al., 2015; de Almeida and Akella, 2017),
+jerk (Mueller and D'Andrea, 2013; Mueller et al., 2015) and energy (A ckme se and Ploen, 2007; Blackmore
+et al., 2010), our approach is to compute the trajectories as fully constrained 9-th order polynomials that
+are smooth up to snap at their endpoints. This avoids online optimization and, in our experience, makes the
+planned trajectory much more readily predictable than the other approaches.
+
+--- Page 16 ---
+Figure 12: Illustration of a trajectory and polynomial interpolation points. All quadrotor trajectories are
+composed of sequences of either segment 1 or 2.
+5.1 Trajectory Segments
+A mission is comprised of a sequence of trajectory segments. As shown in Figure 12, there are two main
+types of trajectories. The rst, a transfer trajectory, interpolates all derivatives up to snap smoothly between
+any two values in a xed amount of time. The second, a mission trajectory, is a set of constant velocity
+segments between user-dened waypoints where transitions between dierent velocities are lleted by transfer
+trajectories. Figure 13 shows a typical example of a generated waypoint mission, with the UAS body frame
+sampled along its length. We also provide the ability to hover at any waypoint in the mission trajectory,
+which occurs at the rst and second to last waypoints in Figure 13. It can be seen that the trajectory
+consists mostly of constant velocity segments. Our approach ensures that these segments between user-
+dened waypoints are straight, which is desirable for most remote sensing applications.
+5.2 Trajectory Sequencer
+The trajectory sequencer aggregates individual trajectory segments into a continuous sequence of trajectories.
+This is implemented as a doubly-linked list where each element stores the trajectory segment, a timestamp
+and a type which is either single or cyclic where in the former case the trajectory is own only once and in
+the latter it is repeated until being aborted by other means such as a low battery charge ag. As described in
+Figure 14b, we additionally provide a volatile element which enables executing one-time transfer trajectories
+to correct for very large trajectory tracking errors.
+
+--- Page 17 ---
+Figure 13: An example waypoint trajectory. Corresponding UAS body frame, magenta velocity and black
+acceleration are shown at 2 second time intervals. Body frame attitude is obtained via the at output to
+state map (Mellinger and Kumar, 2011).
+6 Control
+We use a three-stage cascaded control architecture shown in Figure 15 to track the reference trajectories
+output by the trajectory sequencer. The stages are, from outer- to inner-most loop: translation, attitude and
+body rate controllers. A cascaded controller has the advantage that inner loops provide faster disturbance
+rejection and reduce the eect of nonlinearities (Skogestad and Postlethwaite, 2005), which is benecial for
+accurate tracking. The controller is executed on the AscTec HLP as shown in Figure 5.
+The guidance subsystem forms the outermost loop. It is executed at 20 Hz and outputs a reference position
+pref, a reference velocity vref, a reference yaw  refand optionally a feed-forward acceleration aand feed-
+forward body rates !. All quantities are obtainable from our polynomial trajectories via dierential atness
+theory (Mellinger and Kumar, 2011).
+Translation control forms the next inner loop and consists of a pre-ltered two degree of freedom PID
+controller (Skogestad and Postlethwaite, 2005) which outputs a desired vehicle acceleration aref. Since aref
+denes a reference thrust vector, the translation controller may be thought of as a thrust vector calculator.
+In order to prevent excessive tilt of the UAS, we limit the thrust vector to a 20cone half-angle about the
+vertical axis. Translation control loop bandwidth is between 1 and 2 rad/s. In the event of a loss of state
+
+--- Page 18 ---
+(a) A trajectory sequence with a cyclic segment.
+From (1) to (2), the sequence is played forward until
+the cyclic segment is entered. From (2) to (4), an
+arbitrary time may pass as each time that the cyclic
+element is nished, it gets rewound. Therefore, cur-
+rent never advances. In (5), the cyclic segment is
+aborted to move to the next element.
+(b) An example with a volatile element. Between
+(1) and (2), a volatile transfer trajectory is inserted.
+This pauses the original current segment while the
+volatile segment is tracked. In (3), the volatile ele-
+ment is nished. The list transitions back to the orig-
+inal element while the volatile element is removed.
+List evaluation continues in (4).
+Figure 14: Trajectory sequencing examples using a doubly-linked list which moves the reference quadrotor
+state from one segment to the next in Figure 12. Partial ll with a gray background is used to illustrate
+time along each segment.
+Figure 15: Cascaded control loop block diagram with the following nested loops: guidance, translation,
+attitude and body rates. Translation control generates a reference thrust vector, attitude control generates
+desired body rates to achieve it and body rate control generates the desired motor thrusts. Motor control is
+performed by AscTec ESCs in open loop.
+
+--- Page 19 ---
+estimation due to communication or sensor failure, a standby emergency landing controller can override the
+translation controller and land the UAS by inducing a  2 m/s vertical velocity in an open-loop fashion
+similar to (Mueller and D'Andrea, 2012; Lupashin et al., 2014). This event can occur as a result of serial
+communication cable failure, for example.
+The attitude control forms the next inner loop and tracks arefand refby generating a body rate reference
+!refand a collective thrust reference Treffor the body rate controller. Our implementation of the attitude
+controller is based on the globally asymptotically stable and robust to measurement noise quaternion-based
+controllers introduced in (Brescianini et al., 2013; Faessler et al., 2015). The attitude control loop bandwidth
+is between 5 and 10 rad/s.
+The body rate controller forms the inner-most loop of the cascaded ight control system. It tracks !refby
+computing reference body torques, following the feedback-linearizing control scheme presented in (Faessler
+et al., 2017). These along with Trefare then converted into individual reference motor thrusts frefthat
+are mapped to propeller speeds via a full quadratic motor calibration map. Our controller uses a thrust
+saturation scheme based on (Faessler et al., 2017) which prioritizes roll and pitch torques, which are the
+most important ones for stability. The body rate control loop bandwidth is approximately 40 rad/s.
+7 Autonomy Engine
+The autonomy engine subsystem implements the logic for long-duration fully autonomous operation with
+repeated data acquisition ights.
+7.1 Architecture Overview
+Figure 2 illustrates the overall concept of operation for repeated data acquisition. Each mission phase is
+implemented as a stand-alone state machine called an autopilot that executes the logic associated with the
+phase whenever it is activated via a Robot Operating System (ROS) action interface. To coordinate calls
+to each autopilot, an additional overarching logic is implemented as a high-level master state machine. The
+hierarchy of state machines and their interface to other major subsystems is shown in Figure 16. All state
+machines are executed in parallel threads at a frequency of 20 Hz.
+
+--- Page 20 ---
+Figure 16: Hierarchy of master state machine and autopilots (gray) and other subsystems. The autopilots
+execute the logic associated with the corresponding mission phase and their execution is synchronized by
+the master to perform a specic mission prole.
+7.2 Master State Machine
+The master state machine coordinates calls to the phase-specic autopilots and is illustrated in Figure 17. In
+contrast to the computation-heavy autopilots, the master performs no computations itself. Its sole respon-
+sibility is to initiate event-based state transitions. In the takeo, mission, landing and emergency landing
+states the master state machine activates the appropriate autopilot and waits for it to complete. If necessary,
+the master can also abort each autopilot in order to execute robust behaviors for cases like low battery charge
+in ight or abnormal motor performance before takeo. For example, if battery charge anomalously drops
+to critical levels, the mission and landing actions can be aborted mid-execution to perform an emergency
+landing action.
+7.3 Takeo Autopilot
+The takeo autopilot takes the UAS from a motors-o state on the charging pad to a hover at a target
+takeo altitude. The procedure is illustrated in Figure 18a. In summary, after successfully validating motor
+nominal performance, re-initializing the state estimator after the prolonged charging phase and memorizing
+the current horizontal location in permanent memory, the takeo autopilot commands a velocity-controlled
+takeo that takes it from the initial position on the charging pad to a target altitude.
+Two parts of the takeo procedure are of particular interest. The rst is a motor nominal performance check
+which occurs prior to takeo. Motors are spun at a low RPM, which is measured via zero crossing detection,
+and are veried to rotate within 400 RPM of the nominal value. Ten attempts to pass this check are allowed
+before the takeo is aborted. Our test ights had instances of this procedure saving the UAS e.g. when
+an I2C cable to one of the motors dislodged. The next important part of the takeo is saving the current
+
+--- Page 21 ---
+Figure 17: Master state machine diagram. The master state machine parses mission events (e.g. battery
+status and touchdown detection) and coordinates calls to the phase-specic autopilots, but performs no
+computations itself.
+location to a database in permanent memory. This gives the UAS knowledge of where to return to after the
+mission and also prevents this information from being lost in case a software reset is required.
+7.4 Mission Autopilot
+The mission autopilot is responsible for executing the actual data acquisition mission as dened by the user
+in the form of individual waypoints and hover times. The algorithm is illustrated in Figure 18b. The mission
+trajectory is performed either once or is re-own continuously until an event such as low battery charge
+requests the UAS to return to the charging pad.
+7.5 Landing Autopilot
+The landing autopilot safely takes the UAS from a hovering state in the vicinity of the landing pad to a
+motors-o state on the charging surface. The procedure is illustrated in Figure 18c. The rst action is
+to check if the landing pad is visible in the downfacing navigation camera image, i.e. if any AprilTag in
+the bundle is detected. If not, the UAS executes the spiral grid search trajectory until the landing bundle
+becomes visible. The vision-based landing navigation algorithm (Figure 7) then becomes activated. The
+
+--- Page 22 ---
+(a) Takeo autopilot. This takes the UAS from a motors-
+o state on the charging pad to a hover at a target takeo
+altitude.
+(b) Mission autopilot. This executes the actual data ac-
+quisition mission by interfacing with the guidance sub-
+system (Section 5).
+(c) Landing autopilot. This takes the UAS from a hover-
+ing state in the vicinity of the landing pad to a motors-o
+state on the charging surface.
+(d) Emergency landing autopilot. This brings the UAS
+to a soft touchdown at its current location when a criti-
+cally low battery event occurs.
+Figure 18: Autopilot logic in owchart representation.
+
+--- Page 23 ---
+estimated yaw is used to align the vehicle attitude such that the camera points towards the visual markers,
+while the landing position estimate is used to align the vehicle's lateral position over the center of the
+charging pad. The vehicle then performs a constant velocity descent until touchdown is detected based on
+0.3 m height and 0.1 m/s velocity thresholds:
+touchdown = (~ pb
+w,z ~pl
+w,z)<0:3^ j~vb
+w,zj<0:1: (5)
+7.6 Emergency Lander
+The emergency lander brings the UAS to a soft touchdown at its current location and is triggered in response
+to a critically low battery voltage. Note that this is a dierent behavior from the emergency landing controller
+in Figure 15, which handles state estimation failure. The emergency lander logic is illustrated in Figure 18d.
+The algorithm descends the UAS with a mild vertical velocity of 0.3 m/s until touchdown is detected based
+on a 0.1 m/s velocity threshold:
+touchdown =k~vb
+wk2<0:1: (6)
+8 Experimental Results
+The system was tested in four congurations of increasing complexity. These were software-in-the-loop
+(SITL) simulation (Furrer et al., 2016), indoor tethered ights with VICON-based state estimation, outdoor
+tethered ights with GPS-based state estimation and outdoor free ights. SITL simulation allows for rapid
+testing and debugging by removing most logistic concerns and by making it easier to identify algorithmic
+errors due to the absence of real-world noise. Indoor test ights under VICON allow to rene the guidance,
+control and autonomy subsystems independently of state estimation. Finally, outdoor ights validate that
+the system works in its real-world environment.
+8.1 Vision-based Landing Accuracy
+To design an AprilTag marker bundle for localizing the landing pad as explained in Section 4.1, we rst
+analyzed the detection accuracy in a stationary setting of the AprilTag 2 algorithm for single tags at various
+observation distances using the downfacing camera that is deployed on our UAS (see Figure 4).
+Figure 19 shows the standard deviation of the distance estimate for various tag sizes and distances. For a
+
+--- Page 24 ---
+Figure 19: Distance estimation error of AprilTag 2 detector for various tag sizes and heights. For a given tag
+size, accuracy decreases as distance increases. For large enough distances, smaller tags cease to be detected.
+Figure 20: Comparison of landing bundle height estimate with ground truth altitude during a test ight of
+the UAS above the landing station. Ground truth is provided by the RTK-GPS altitude reading.
+Figure 21: Landing bundle height error as a function of ight altitude. The error is approximately 0.32 m
+at the approach height of 4 m and decreases to below 0.1 m in the nal stage of descent.
+
+--- Page 25 ---
+given tag size, the estimation accuracy decreases with increasing distance. Large tag sizes (48 cm, 60 cm)
+are not detected at distances below 2 m, while small tag sizes (10 cm, 15 cm, 20 cm) cease to be detected
+above 4 m. For an initial approach height of 4 m, we selected a 48 cm tag for an expected 2 (i.e. 2 standard
+deviation) height estimation error of 4.5 cm and bundled it with three 15 cm tags for increased precision at
+lower altitudes, resulting in the bundle depicted in Figure 3 and the bottom left of Figure 23.
+Figure 20 illustrates an experiment where the quadrotor was own at various heights above the landing
+marker bundle shown in Figure 3. The statistics for the error between the height estimate using the AprilTag
+detector and the ground truth from RTK-GPS are plotted in Figure 21. At the approach height of 4 m the
+2height detection error is 0.32 m. The error decreases to below 0.1 m in the nal stage of the descent. We
+note that this estimation error variance is larger than for the individual tags in Figure 19. The increased
+error is most likely caused by image blur and latency eects due to the motion of the vehicle and a lever
+arm eect that amplies position errors at the desired landing location (the charging pad center) as a result
+of angular errors in the AprilTag detection. Section 8.1.1 provides a remedy to the lever arm eect.
+Figure 22 illustrates the accuracy of autonomous landing in three environments of increasing complexity.
+First, 200 landings were tested in SITL simulation with a random wind force averaging 30 km/h modeled
+as a random walk for the wind direction. The 2 landing error is 0.09 m (major half-axis) and 0.08 m
+(minor half-axis). Because simulation uses the ground-truth UAS pose for control, we may conclude that
+this is roughly the landing error that our control and landing navigation algorithms are able to maintain
+in severe wind conditions. Next, the UAS performed 27 landings indoors with VICON state estimation in
+near-optimal conditions. The resulting 2 landing error ellipse aggregates all detection and control errors.
+The lateral 2 error is 0.11 m (major half-axis) and the longitudinal 2 error is 0.08 m (minor half-axis).
+We see that the accuracy is similar to simulation, which indicates that real-world uncertainty sources like
+model inaccuracy and data signal latency degrade landing precision by a similar amount as severe wind
+conditions with an otherwise ideal system. Finally, 21 landings were performed outdoors using RTK-GPS
+for ground truth. The lateral 2 error is 0.37 m (major half-axis) and the longitudinal 2 error is 0.28 m
+(minor half-axis). While this is well within the charging surface dimensions, the increased landing error is
+representative of the less accurate outdoor vehicle pose estimate, camera exposure adjustment eects due
+to light conditions, more complex aerodynamic eects from wind than those modeled in simulation, etc.
+Because we required the downfacing camera to collect more pad pose measurements in order to initialize the
+RLS lter from Section 4.1, the outdoor landing trajectories have a visible hover period at the preset 4 m
+approach altitude in the bottom left of Figure 22.
+
+--- Page 26 ---
+Figure 22: Accuracy of touch-down position in SITL simulation with severe wind (top row), indoors in ideal
+conditions (middle row) and outdoors with light wind (bottom row). Ground truth is provided indoors by
+VICON and outdoors by RTK-GPS. SITL simulation uses a noise-free state.
+
+--- Page 27 ---
+Figure 23: Bundles for simulated measurement noise data collection. The goal is to see how individual tag
+size and bundle geometry aect detection accuracy. The last two landing bundles consist of 480 mm and
+150 mm tags.
+8.1.1 Optimizing the AprilTag Bundle Layout
+We carried out a simulated set of experiments in Gazebo (Koenig and Howard, 2004) to search for an AprilTag
+bundle geometry which minimizes the landing pad position measurement error. While many factors aect
+the AprilTag position measurement error, such as the camera-tag o-axis angle (Olson, 2011; Wang and
+Olson, 2016), our investigation considers only the camera-tag distance while keeping the o-axis angle zero.
+This choice is appropriate for our use case, since the dominant variable that changes during the landing
+phase is the quadrotor height and the camera is facing approximately straight down at the AprilTag bundle.
+Furthermore, the simulation environment allows to isolate the eect of bundle geometry since other variables
+(e.g. illumination, lens focus, etc.) are easily controlled for. Thus, bundle geometry and camera-tag distance
+are the only independent variables. Our simulation uses the downfacing camera parameters from Section 4.1,
+
+--- Page 28 ---
+Figure 24: Height detection noise variance for the simulated tag bundles. Each line corresponds to a tag in
+Figure 23. Larger tags decrease measurement noise and can be detected from afar. By bundling these with
+smaller tags, the bundle can also be detected from small distances. By distributing the tags symmetrically
+like for the improved landing bundle (blue curve), inaccuracies due to a lever arm eect are avoided.
+i.e. a 752480 px resolution and the same calibration matrix K2R33.
+Figure 23 shows the tag bundle geometries that were tested. Note that the rst two rows of bundles in
+Figure 23 are impractical to land on since they would obscure the charging surface. The bundles in the third
+row are therefore placed around the charging area.
+Figure 24 shows the output of our simulation for the height detection noise variance. We observe that a larger
+tag decreases measurement noise (as seen for the top row single-tag bundles of Figure 23). Importantly,
+the detection distance of larger tags is larger because they make a bigger pixel footprint in the image.
+Measurement noise for bundles in row 2 of Figure 23 is smaller than for the single-tag bundles, however
+the 5- and 9-tag bundles do not appear to reduce noise with respect to the 3-tag bundle. By using both
+large and small tags, the landing bundle we used in real-world experiments is able to be detected from large
+distances of up to 14 m as well as from small distances prior to touchdown. By osetting the tags to one side
+of the charging station, however, the detection accuracy is reduced by the aforementioned lever arm eect.
+An improved bundle, with tags distributed symmetrically about the target landing location, shows better
+detection performance. However, it is a less practical solution as it takes up a lot more space.
+8.2 Autonomy Engine
+Figure 25 shows the simultaneous operation of the master state machine and the four autopilots for takeo,
+mission, landing and emergency landing in four simulated modes of operation. The rst nominal ight
+is the one illustrated in Figure 2. In the second ight, a low battery charge aborts the mission and the
+
+--- Page 29 ---
+Figure 25: Autonomy engine states over four ights that are representative of the autonomy engine's domi-
+nant modes of operation. Dashed lines delimit individual ights (including on-pad time) and the ights are
+numbered in the bottom subplot. Flight (1) shows a nominal cycle, (2) shows an aborted mission due to
+a low battery, (3) shows a case where the landing pad is invisible upon returning home and (4) shows an
+emergency landing due to a critically low battery.
+UAS returns to the charging pad. In the third ight, the UAS spends some time executing the spiral grid
+search trajectory because the landing marker bundle is initially not visible. In the fourth and nal ight, a
+critically low battery charge forces the UAS to land in-place during the mission because it is now deemed
+too dangerous to make a safe return to the charging pad. This nal scenario is an important robustness
+mode which reduces the risk of the UAS crashing due to a battery malfunction.
+8.3 Long-Duration Autonomy and Recharging
+We tested the system during a set of indoor and outdoor deployments. For component verication, we
+initially performed indoor experiments in VICON to verify recharging only (11 h experiment with 16 ights)
+and then the full system (10.6 h with 48 ights). We then proceeded to test the system outdoors with a
+mission prole focused on maximizing the number of performed precision landings. This is because precision
+landing is the most dicult mission phase to execute when taking the UAS from the high-precision indoor
+motion capture environment to a much lower-precision camera, IMU and GPS-based navigation solution
+outdoors (see Section 4). The outdoor experiment was hence a mission cycle consisting of taking o, ying
+to several GPS-based waypoints for the duration of about 1 minute and then returning to the charging pad
+
+--- Page 30 ---
+Figure 26: Thermal images from the 4 h outdoor experiment as an example mission data product. Brighter
+pixels show higher temperatures. Left: rock formation in the morning. Right: same rock formation heated
+up at noon time.
+Figure 27: State transitions of the master state machine (top) and battery voltage level (bottom) during the
+4 h outdoor experiment. Left: full experiment. Right: two ights.
+Figure 28: Breakdown of time spent in each phase of the mission during the 4 h outdoor experiment. About
+10 % of the time was spent ying in the data collection mode.
+
+--- Page 31 ---
+for landing and recharging.
+Among multiple outdoor deployments, our system achieved a 6 h tethered and a 4 h free ight fully au-
+tonomous operation during which 22 ights were performed. Figure 27 illustrates the state transitions of the
+master state machine during the free ight outdoor experiment and the associated battery voltage reecting
+the individual charging cycles. Figure 28 shows a breakdown of the times spent in the individual mission
+phases, where it is seen that the UAS spent about 10 % of the time collecting data.
+Although the objective of the outdoor experiment was repeatable precision landing and not data collection,
+an on-board thermal camera monitored ground surface temperatures during the course of the experiment.
+Figure 26 shows an example mission data product monitoring the surface temperature of a rock formation
+at dierent times of day.
+8.3.1 Lessons Learned
+Outdoor operation posed several new challenges that are absent in an indoor environment. First, dirt and
+dust collecting on the charging pad has at several points prevented a proper contact with the charging pad,
+hence preventing recharging. Next, camera exposure becomes a crucial factor in outdoor operation where
+light conditions change throughout the day, sometimes very quickly as clouds block sunlight. As a result,
+automatic exposure control is important. Improvements can be made by adapting exposure control to the
+expected brightness level of the observed landing target, or by using a dierent technology like an event-based
+camera which has been shown to be less susceptible to exposure eects (Vidal et al., 2018).
+We also found that GPS accuracy is highly sensitive to electromagnetic interference from nearby emitters
+such as Wi-Fi dongle, on-board computer and USB connections (Davuluri and Chen, 2013). A careful
+hardware design must hence be performed to maximize outdoor state estimation accuracy and to prevent
+sudden GPS degradation due to signal interference in mid-ight. From a software perspective, we found the
+AscTec MAV framework (Achtelik et al., 2017), which interfaces the AscTec autopilot board in Figure 5 to
+ROS, to frequently crash after long periods of operation.
+From an operational standpoint, the ight time to charging time ratio in Figure 28 is rather low. Similar
+ratios have been observed before (Valenti et al., 2007). The main limiting factors here were the weight of the
+on-board power supply, which decreased ight times, and a need to guarantee safe LiPo battery operation,
+which limited the charging current and increased the charging times. A possible solution would be to re-
+engineer the battery/charging pad system or to adapt a battery swapping approach. Our software framework
+
+--- Page 32 ---
+can easily accommodate this change.
+In summary, long-term platform autonomy outdoors is hindered by minor issues like dust accumulation,
+camera exposure, GPS accuracy due to signal interference and software stability. We believe that each
+challenge can be solved by further hardware and software engineering, though such ne tuning is beyond the
+scope of this initial research and development. Nevertheless, due to its modular design, we believe that the
+autonomy engine presented herein can readily accommodate any such modication.
+9 Future Work
+Several future improvements are conceivable for our system. For navigation, a rigorous analysis of latency
+in the data signals is necessary to improve platform accuracy. For precision landing, AprilTag bundle pose
+measurement frequency may be increased from the current 7 Hz to gather more data and therefore to improve
+the estimate of the landing pad pose. To similar eect and to increase the maximum landing approach height,
+the downfacing camera resolution may be increased (e.g. (GoodRobots, 2019) report tag detection from a
+32 m altitude using 1080p images).
+Several improvements are possible for guidance and control. Current trajectories are simple fully constrained
+polynomials. To extend ight time, energy-minimizing optimal trajectories may be generated by solving an
+optimization problem. A potential avenue is to adapt existing research on using convex optimization to plan
+reliable minimum-fuel trajectories for planetary landers (A ckme se and Ploen, 2007). There is also more
+direct research for multirotor minimum-energy and minimum-time trajectory generation (Vicencio et al.,
+2015; Morbidi et al., 2016; Mueller et al., 2015). On the control side, our experience shows that closed-
+loop motor RPM control can benet trajectory tracking accuracy as it eectively renders the motor thrust
+characteristic independent of battery voltage. This makes the control system less dependent on integrators
+for error correction.
+Several improvements to the autonomy engine implementation are possible. More expandable behavior can
+likely be achieved by porting the existing state machines to a framework such as SMC (Rapp et al., 2017)
+which follows the open-closed design pattern of keeping software entities open for extension but closed for
+modication. In practice, this means that new autonomy engine states may be added without modifying
+source code for existing states. Furthermore, the current implementation is not robust to individual ROS
+node crashes. This creates single points of failure such as the AscTec HLP interface which, if it fails, will
+
+--- Page 33 ---
+prevent the state estimate from being sent to the HLP and will trigger the emergency landing controller. A
+potential solution is to implement a highly reliable supervisory software that is able to restart failed ROS
+nodes, or the entire ROS network if necessary.
+10 Conclusion
+In this work, we presented an architecture for a long-duration fully autonomous UAS for remote-sensing
+data acquisition missions. Such a system is crucial in enabling precision agriculture and other applications
+that require a long-term remote-sensing capability such as environmental monitoring and surveillance. Our
+system's two major components are a fully autonomous aerial vehicle and a landing station which integrates
+a charging pad. The aerial vehicle carries our autonomy software which enables it to perpetually execute a
+user-dened mission and to downlink collected data to a base station computer. We were able to operate
+this system in several environments of increasing complexity, culminating in a fully autonomous 4 h outdoor
+operation in which 10 % of the time was spent ying to collect data. This represents to the best of our
+knowledge the rst research publication on a UAS system that is capable of long-duration full autonomy
+outdoors.
+Acknowledgments
+This research was carried out at the Jet Propulsion Laboratory, California Institute of Technology, under a
+contract with the National Aeronautics and Space Administration. The authors would like to thank Stephan
+Weiss for his inputs on vehicle pose estimation in Section 4.2 and our JPL collaborators Darren Drewry and
+Debsunder Dutta for providing the NDVI data illustrated in Section 1.1.
+Copyright 2018, California Institute of Technology. U.S. Government sponsorship acknowledged.
+References
+Achtelik, M., Achtelik, M., Weiss, S., and Kneip, L. (2017). asctec mav framework. http://wiki.ros.org/
+asctec_mav_framework . Accessed: 2017-12-10.
+A ckme se, B. and Ploen, S. R. (2007). Convex programming approach to powered descent guidance for Mars
+landing. AIAA Journal of Guidance, Control, and Dynamics , 30(5):1353{1366.
+
+--- Page 34 ---
+Aldhaher, S., Mitcheson, P. D., Arteaga, J. M., Kkelis, G., and Yates, D. C. (2017). Light-weight wireless
+power transfer for mid-air charging of drones. In European Conference on Antennas and Propagation
+(EUCAP) .
+Amazon (2016). Amazon Prime Air's rst customer delivery. https://www.youtube.com/watch?v=
+vNySOrI2Ny8 . Accessed: 2017-12-11.
+APRIL Laboratory (2016). AprilTags visual ducial system. https://april.eecs.umich.edu/software/
+apriltag . Version 2015-03-18.
+Bencina, R., Kaltenbrunner, M., and Jorda, S. (2005). Improved topological ducial tracking in the reac-
+TIVision system. In IEEE Computer Society Conference on Computer Vision and Pattern Recognition
+(CVPR) .
+Bergamasco, F., Albarelli, A., Cosmo, L., Rodola, E., and Torsello, A. (2016). An accurate and robust
+articial marker based on cyclic codes. IEEE Transactions on Pattern Analysis and Machine Intelligence ,
+38(12):2359{2373.
+Blackmore, L., A ckme se, B., and Scharf, D. P. (2010). Minimum-landing-error powered-descent guidance
+for Mars landing using convex optimization. AIAA Journal of Guidance, Control, and Dynamics ,
+33(4):1161{1171.
+Borowczyk, A., Nguyen, D.-T., Nguyen, A. P.-V., Nguyen, D. Q., Saussi e, D., and Ny, J. L. (2017). Au-
+tonomous landing of a multirotor micro air vehicle on a high velocity ground vehicle. In 20th IFAC
+World Congress .
+Brescianini, D., Hehn, M., and D'Andrea, R. (2013). Nonlinear quadrocopter attitude control. Technical
+Report 009970340, ETH Z urich, Departement Maschinenbau und Verfahrenstechnik.
+Brockers, R., Bouard, P., Ma, J., Matthies, L., and Tomlin, C. (2011). Autonomous landing and ingress
+of micro-air-vehicles in urban environments based on monocular vision. In Micro- and Nanotechnology
+Sensors, Systems, and Applications III .
+Brockers, R., Susca, S., Zhu, D., and Matthies, L. (2012). Fully self-contained vision-aided navigation and
+landing of a micro air vehicle independent from external sensor inputs. In SPIE Unmanned Systems
+Technology XIV .
+Brommer, C., Malyuta, D., Hentzen, D., and Brockers, R. (2018). Long-duration autonomy for small
+rotorcraft UAS including recharging. In IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS) .
+
+--- Page 35 ---
+Burri, M., Oleynikova, H., Achtelik, M. W., and Siegwart, R. (2015). Real-time visual-inertial mapping,
+re-localization and planning onboard MAVs in unknown environments. In IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS) .
+Chaves, S. M., Wolcott, R. W., and Eustice, R. M. (2015). NEEC research: Toward GPS-denied landing of
+unmanned aerial vehicles on ships at sea. Naval Engineers Journal , 127(1):23{35.
+Davuluri, P. and Chen, C. (2013). Radio frequency interference due to USB3 connector radiation. In IEEE
+International Symposium on Electromagnetic Compatibility .
+de Almeida, M. M. and Akella, M. (2017). New numerically stable solutions for minimum-snap quadcopter
+aggressive maneuvers. In American Control Conference (ACC) .
+Devernay, F. and Faugeras, O. (2001). Straight lines have to be straight. Machine Vision and Applications ,
+13(1):14{24.
+Faessler, M., Falanga, D., and Scaramuzza, D. (2017). Thrust mixing, saturation, and body-rate control for
+accurate aggressive quadrotor ight. IEEE Robotics and Automation Letters , 2(2):476{482.
+Faessler, M., Fontana, F., Forster, C., and Scaramuzza, D. (2015). Automatic re-initialization and failure re-
+covery for aggressive ight with a monocular vision-based quadrotor. In IEEE International Conference
+on Robotics and Automation (ICRA) .
+Fiala, M. (2005). ARTag, a ducial marker system using digital techniques. In IEEE Computer Society
+Conference on Computer Vision and Pattern Recognition (CVPR) .
+Food and Agriculture Organization of the United Nations (2009). 2050: A third more mouths to feed.
+http://www.fao.org/news/story/en/item/35571/icode/ . Accessed: 2017-12-10.
+Forster, C., Faessler, M., Fontana, F., Werlberger, M., and Scaramuzza, D. (2015). Continuous on-board
+monocular-vision-based elevation mapping applied to autonomous landing of micro aerial vehicles. In
+IEEE International Conference on Robotics and Automation (ICRA) .
+Forster, C., Pizzoli, M., and Scaramuzza, D. (2014). SVO: Fast semi-direct monocular visual odometry. In
+IEEE International Conference on Robotics and Automation (ICRA) .
+Furrer, F., Burri, M., Achtelik, M., and Siegwart, R. (2016). RotorS { a modular gazebo MAV simulator
+framework. In Koubaa, A., editor, Robot Operating System (ROS) The Complete Reference , volume 1,
+chapter 23, pages 595{625. Springer.
+
+--- Page 36 ---
+Goldman Sachs (2017). Drones: Reporting for work. http://www.goldmansachs.com/our-thinking/
+technology-driving-innovation/drones/ . Accessed: 2017-12-10.
+GoodRobots (2019). vision landing. https://github.com/goodrobots/vision_landing . Accessed: 2019-
+05-01.
+Grewal, M. S., Weill, L. R., and Andrews, A. P. (2007). Global Positioning Systems, Inertial Navigation,
+and Integration . Wiley, Hoboken, NJ.
+Hast, A., Nysj o, J., and Marchetti, A. (2013). Optimal RANSAC { towards a repeatable algorithm for
+nding the optimal set. Journal of WSCG , 21(1):21{30.
+Jin, P., Matikainen, P., and Srinivasa, S. S. (2017). Sensor fusion for ducial tags: highly robust pose
+estimation from single frame RGBD. In IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS) .
+Jin, S., Zhang, J., Shen, L., and Li, T. (2016). On-board vision autonomous landing techniques for quadrotor:
+a survey. In Chinese Control Conference (CCC) .
+Klein, G. and Murray, D. (2007). Parallel tracking and mapping for small AR workspaces. In IEEE and
+ACM International Symposium on Mixed and Augmented Reality .
+Koenig, N. and Howard, A. (2004). Design and use paradigms for Gazebo, an open-source multi-robot
+simulator. In IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) .
+Kyristsis, S., Antonopoulos, A., Chanialakis, T., Stefanakis, E., Linardos, C., Tripolitsiotis, A., and Partsin-
+evelos, P. (2016). Towards autonomous modular UAV missions: the detection, geo-location and landing
+paradigm. Sensors , 16(11):1844.
+Ling, K. (2014). Precision landing of a quadrotor UAV on a moving target using low-cost sensors. Master's
+thesis, University of Waterloo, Waterloo.
+Lupashin, S., Hehn, M., Mueller, M. W., Schoellig, A. P., Sherback, M., and D'Andrea, R. (2014). A platform
+for aerial robotics research and demonstration: the ying machine arena. Mechatronics , 24(1):41{54.
+Malyuta, D. (2018). Guidance, navigation, control and mission logic for quadrotor full-cycle autonomy.
+Master's thesis, ETH Z urich, Z urich.
+Mellinger, D. and Kumar, V. (2011). Minimum snap trajectory generation and control for quadrotors. In
+IEEE International Conference on Robotics and Automation (ICRA) .
+
+--- Page 37 ---
+Morbidi, F., Cano, R., and Lara, D. (2016). Minimum-energy path generation for a quadrotor UAV. In
+IEEE International Conference on Robotics and Automation (ICRA) .
+Mueller, M. W. and D'Andrea, R. (2012). Critical subsystem failure mitigation in an indoor UAV testbed.
+InIEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) .
+Mueller, M. W. and D'Andrea, R. (2013). A model predictive controller for quadrocopter state interception.
+InEuropean Control Conference (ECC) .
+Mueller, M. W., Hehn, M., and D'Andrea, R. (2015). A computationally ecient motion primitive for
+quadrocopter trajectory generation. IEEE Transactions on Robotics , 31(6):1294{1310.
+Mulgaonkar, Y. and Kumar, V. (2014). Autonomous charging to enable long-endurance missions for small
+aerial robots. In Micro- and Nanotechnology Sensors, Systems, and Applications VI .
+Nissler, C., Buttner, S., Marton, Z.-C., Beckmann, L., and Thomasy, U. (2016). Evaluation and improvement
+of global pose estimation with multiple AprilTags for industrial manipulators. In IEEE International
+Conference on Emerging Technologies and Factory Automation (ETFA) .
+Olson, E. (2011). AprilTag: A robust and exible visual ducial system. In IEEE International Conference
+on Robotics and Automation (ICRA) .
+OpenCV (2017). cv::solvePnP(). https://docs.opencv.org/3.3.1/d9/d0c/group__calib3d.html#
+ga549c2075fac14829ff4a58bc931c033d . Accessed: 2017-12-10.
+Rapp, C., Suez, E., Perrad, F., Liscio, C., Arnold, T., and Krajcovic, G. (2017). SMC: The state machine
+compiler. http://smc.sourceforge.net/ . Accessed: 2017-12-10.
+Richter, C., Bry, A., and Roy, N. (2016). Polynomial trajectory planning for aggressive quadrotor ight
+in dense indoor environments. In Springer Tracts in Advanced Robotics , volume 114, pages 649{666.
+Springer.
+Rublee, E., Rabaud, V., Konolige, K., and Bradski, G. (2011). ORB: An ecient alternative to SIFT or
+SURF. In IEEE International Conference on Computer Vision (ICCV) .
+Skogestad, S. and Postlethwaite, I. (2005). Multivariable feedback control: analysis and design . Wiley, 2
+edition.
+Skysense (2018). Skysense charging pad. https://www.skysense.co/charging-pad-outdoor . Accessed:
+2018-10-08.
+
+--- Page 38 ---
+Suzuki, K. A. O., Filho, P. K., and Morrison, J. R. (2011). Automatic battery replacement system for UAVs:
+analysis and design. Journal of Intelligent & Robotic Systems , 65(1-4):563{586.
+Toksoz, T., Redding, J., Michini, M., Michini, B., How, J., Vavrina, M., and Vian, J. (2011). Automated
+battery swap and recharge to enable persistent UAV missions. In AIAA Infotech@Aerospace .
+Valenti, M., Dale, D., How, J., de Farias, D. P., and Vian, J. (2007). Mission health management for 24/7
+persistent surveillance operations. In AIAA Guidance, Navigation and Control Conference and Exhibit .
+Vicencio, K., Korras, T., Bordignon, K. A., and Gentilini, I. (2015). Energy-optimal path planning for
+six-rotors on multi-target missions. In IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS) .
+Vidal, A. R., Rebecq, H., Horstschaefer, T., and Scaramuzza, D. (2018). Ultimate SLAM? combining
+events, images, and IMU for robust visual SLAM in HDR and high-speed scenarios. IEEE Robotics and
+Automation Letters , 3(2):994{1001.
+Vincent, J. (2017). Google's Project Wing has successfully tested its air traf-
+c control system for drones. https://www.theverge.com/2017/6/8/15761220/
+google-project-wing-drone-air-traffic-control-tests . Accessed: 2017-12-10.
+Wang, J. and Olson, E. (2016). AprilTag 2: Ecient and robust ducial detection. In IEEE/RSJ Interna-
+tional Conference on Intelligent Robots and Systems (IROS) .
+Weiss, S., Achtelik, M. W., Chli, M., and Siegwart, R. (2012). Versatile distributed pose estimation and
+sensor self-calibration for an autonomous MAV. In IEEE International Conference on Robotics and
+Automation (ICRA) .
+Wingtra (2017). How it works. https://wingtra.com/workflow/ . Accessed: 2017-12-10.
+Xu, A. and Dudek, G. (2011). Fourier tag: A smoothly degradable ducial marker system with congurable
+payload capacity. In Canadian Conference on Computer and Robot Vision .
+Yang, S., Scherer, S. A., and Zell, A. (2012). An onboard monocular vision system for autonomous takeo,
+hovering and landing of a micro aerial vehicle. Journal of Intelligent & Robotic Systems , 69(1-4):499{515.
