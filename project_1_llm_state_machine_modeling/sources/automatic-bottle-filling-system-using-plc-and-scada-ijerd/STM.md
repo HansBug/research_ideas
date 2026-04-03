@@ -32,13 +32,13 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-When the operator starts the system with the normally open push button, the conveyor begins moving the bottle forward. As soon as the bottle reaches the proximity switch, the PLC stops the motor and opens the filling valve so that water filling can proceed. The system maintains this filling state for ten seconds, and then the motor starts again while the valve closes and the bottle is moved onward.
+When the operator starts the system with the normally open push button, the conveyor begins moving the bottle forward. As soon as the metal bottle reaches the proximity switch, the PLC stops the motor and opens the filling valve so that water filling can proceed for a fixed ten-second interval. After those ten seconds, the motor starts again while the valve closes and the bottle is moved onward, and the normally closed push button can stop the whole system in the event of a required shutdown.
 
 ### 3. 逐句溯源
 
 1. 句子 1：When the operator starts the system with the normally open push button, the conveyor begins moving the bottle forward.
    对应摘录：A
-2. 句子 2：As soon as the bottle reaches the proximity switch, the PLC stops the motor and opens the filling valve so that water filling can proceed.
+2. 句子 2：As soon as the metal bottle reaches the proximity switch, the PLC stops the motor and opens the filling valve so that water filling can proceed for a fixed ten-second interval.
    对应摘录：A
-3. 句子 3：The system maintains this filling state for ten seconds, and then the motor starts again while the valve closes and the bottle is moved onward.
+3. 句子 3：After those ten seconds, the motor starts again while the valve closes and the bottle is moved onward, and the normally closed push button can stop the whole system in the event of a required shutdown.
    对应摘录：A

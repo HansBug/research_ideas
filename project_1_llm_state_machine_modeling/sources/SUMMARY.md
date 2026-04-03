@@ -356,6 +356,7 @@
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-04-04 03:31:58 | 回刷 `#71-90` 并同步汇总统计 | 修正第 `4/6/7/8` 节与 `18` 个 `STM.md` 的条目/文件口径一致性 | 本轮已按 `paper_content.txt -> 必要时 paper.pdf -> STM.md` 顺序重读 `#71-90`，并把 `#72/#73/#75/#76/#79/#80/#86/#87/#88/#89` 的等级回升、`#79/#85` 的时间级别调整，以及 `#76` 的角色变化统一写回总账。 |
 | 2026-04-04 01:04:58 | 同步细节评级变更后的汇总表 | 修正第 `4/7/8` 节与 `2` 个 `STM.md` 的角色/统计一致性 | 由于 `#18` 与 `#25` 已回升到 `原文 = 描述 = 🟡 B` 且不再属于强趋同条目，本轮将其从 `🧰` 调整为 `💎`，并按 `108` 条正例现值重算总体统计。 |
 | 2026-04-03 20:08:04 | 按讨论稿新标准回刷 `STM` 盘点 | 新口径统计 / 总表 / 角色边界已替换 | 保留 `149` 个 `STM.md` 与 `108` 条正例的覆盖范围，统一改用 `状态机类型 / 时间级别 / 结构标签 / 原文细节充实度 / 描述细节充实度 / 数据集角色` 口径。 |
 | 2026-03-12 10:38:41 | 新增 10 篇航空航天文献的 STM 提取 | 🟢 6 篇 / 🟡 2 篇 / ⚪ 2 篇 | 新增 10 个 `STM.md`，补入 8 条控制逻辑，当前已完成 149/149 篇文献的 STM 盘点 |
@@ -391,45 +392,45 @@
 | 含正例条目的文件数 | 93 | 62.4% | 至少含 `1` 条正例条目 |
 | `⚪ 未收获` 文件数 | 56 | 37.6% | 当前不作正样本，但可转作 hard negative |
 | 正例条目总数 | 108 | 72.5% | 相对 `149` 个文件的规模参考值；折算为每个含正例文件平均 `1.16` 条 |
-| `原文 = 🟢 A / 🟡 B` 条目数 | 92 | 85.2% | 源材料本身达到主数据集候选下限 |
-| `描述 = 🟢 A / 🟡 B` 条目数 | 92 | 85.2% | 当前描述文本本身达到主数据集候选下限 |
+| `原文 = 🟢 A / 🟡 B` 条目数 | 93 | 86.1% | 源材料本身达到主数据集候选下限 |
+| `描述 = 🟢 A / 🟡 B` 条目数 | 93 | 86.1% | 当前描述文本本身达到主数据集候选下限 |
 | `🔁` 强趋同条目数 | 28 | 25.9% | 强趋同问题是真实存在的治理压力 |
 
 #### 4.2 原文细节充实度分布
 
 | 原文细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 18 | 16.7% |
-| `🟡 B` | 74 | 68.5% |
-| `🟠 C` | 14 | 13.0% |
+| `🟢 A` | 27 | 25.0% |
+| `🟡 B` | 66 | 61.1% |
+| `🟠 C` | 13 | 12.0% |
 | `🔴 D` | 2 | 1.9% |
-| `🟢 A + 🟡 B` | 92 | 85.2% |
-| `🟠 C + 🔴 D` | 16 | 14.8% |
+| `🟢 A + 🟡 B` | 93 | 86.1% |
+| `🟠 C + 🔴 D` | 15 | 13.9% |
 
-这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在本轮重读 `51-70` 并同步回刷此前未写回总表的 `51-56` 后，原文侧达到 `🟢 A / 🟡 B` 的条目已经提升到 `92` 条，但仍有 `16` 条（`14.8%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
+这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在本轮完成 `#71-90` 的逐条重读与回刷后，原文侧达到 `🟢 A / 🟡 B` 的条目已经提升到 `93` 条，但仍有 `15` 条（`13.9%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
 
 #### 4.3 描述细节充实度分布
 
 | 描述细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 18 | 16.7% |
-| `🟡 B` | 74 | 68.5% |
-| `🟠 C` | 15 | 13.9% |
+| `🟢 A` | 27 | 25.0% |
+| `🟡 B` | 66 | 61.1% |
+| `🟠 C` | 14 | 13.0% |
 | `🔴 D` | 1 | 0.9% |
-| `🟢 A + 🟡 B` | 92 | 85.2% |
-| `🟠 C + 🔴 D` | 16 | 14.8% |
+| `🟢 A + 🟡 B` | 93 | 86.1% |
+| `🟠 C + 🔴 D` | 15 | 13.9% |
 
-在本轮对 `51-70` 的逐条重读与补写，并补齐此前未同步的 `51-56` 后，描述侧的 `🟢 A + 🟡 B` 已经提升到 `92` 条，与原文侧**完全追平**；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
+在本轮对 `71-90` 的逐条重读与补写后，描述侧的 `🟢 A + 🟡 B` 已经提升到 `93` 条，与原文侧**完全追平**；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
 
 #### 4.4 原文细节充实度 vs 描述细节充实度二维对照
 
 | 原文 \\ 描述 | `🟢 A` | `🟡 B` | `🟠 C` | `🔴 D` | 行合计 |
 |---|---:|---:|---:|---:|---:|
-| `🟢 A` | `18 / 16.7%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `18 / 16.7%` |
-| `🟡 B` | `0 / 0.0%` | `74 / 68.5%` | `0 / 0.0%` | `0 / 0.0%` | `74 / 68.5%` |
-| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `14 / 13.0%` | `0 / 0.0%` | `14 / 13.0%` |
+| `🟢 A` | `27 / 25.0%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `27 / 25.0%` |
+| `🟡 B` | `0 / 0.0%` | `66 / 61.1%` | `0 / 0.0%` | `0 / 0.0%` | `66 / 61.1%` |
+| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 12.0%` | `0 / 0.0%` | `13 / 12.0%` |
 | `🔴 D` | `0 / 0.0%` | `0 / 0.0%` | `1 / 0.9%` | `1 / 0.9%` | `2 / 1.9%` |
-| 列合计 | `18 / 16.7%` | `74 / 68.5%` | `15 / 13.9%` | `1 / 0.9%` | `108 / 100.0%` |
+| 列合计 | `27 / 25.0%` | `66 / 61.1%` | `14 / 13.0%` | `1 / 0.9%` | `108 / 100.0%` |
 
 从二维表看，有三个直接结论：
 
@@ -441,11 +442,11 @@
 
 | 检查项 | 数量 | 占全部 `108` 条比例 | 占 `原文 = 🟢 A / 🟡 B` 子集比例 |
 |---|---:|---:|---:|
-| `原文 = 🟢 A / 🟡 B` 条目总数 | 92 | 85.2% | 100.0% |
-| 描述未降级 | 92 | 85.2% | 100.0% |
+| `原文 = 🟢 A / 🟡 B` 条目总数 | 93 | 86.1% | 100.0% |
+| 描述未降级 | 93 | 86.1% | 100.0% |
 | 描述降级或显著关键信息缺失 | 0 | 0.0% | 0.0% |
 
-继此前锁定的降级条目回刷之后，本轮又完成 `#53`、`#55`、`#56`、`#57`、`#58`、`#66`、`#67` 的等级回升与细节补齐；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
+继此前锁定的降级条目回刷之后，本轮又完成 `#72`、`#73`、`#75`、`#76`、`#79`、`#80`、`#86`、`#87`、`#88`、`#89` 的等级回升与细节补齐；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
 
 #### 4.6 状态机类型分布
 
@@ -464,8 +465,8 @@
 
 | 时间级别 | 条目数 | 占比 |
 |---|---:|---:|
-| `T0` | 42 | 38.9% |
-| `T1` | 39 | 36.1% |
+| `T0` | 40 | 37.0% |
+| `T1` | 41 | 38.0% |
 | `T2` | 15 | 13.9% |
 | `T3` | 12 | 11.1% |
 
@@ -477,13 +478,13 @@
 
 | 结构标签 | 条目数 | 占比 |
 |---|---:|---:|
-| `显式时钟` | 36 | 33.3% |
+| `显式时钟` | 37 | 34.3% |
 | `连续耦合` | 17 | 15.7% |
 | `资源互斥` | 14 | 13.0% |
 | `层次` | 13 | 12.0% |
 | `协议交互` | 9 | 8.3% |
 | `并行` | 4 | 3.7% |
-| `-`（无额外结构标签） | 32 | 29.6% |
+| `-`（无额外结构标签） | 31 | 28.7% |
 
 从标签覆盖率看，`显式时钟` 是最常见的额外结构信号；但 `层次 / 并行 / 协议交互 / 资源互斥 / 连续耦合` 这些更“非普通流程图”的语义仍然偏少，后续若想训练更复杂的结构恢复能力，仍需要专项补样。
 
@@ -491,19 +492,19 @@
 
 | 口径 | 类别 | 数量 | 占比 | 判定边界摘要 |
 |---|---|---:|---:|---|
-| 条目级 | `💎 核心保留` | 67 | 62.0% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
-| 条目级 | `🧰 清洗后保留` | 16 | 14.8% | 原文偏薄，尚不足以直接进主集 |
+| 条目级 | `💎 核心保留` | 68 | 63.0% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
+| 条目级 | `🧰 清洗后保留` | 15 | 13.9% | 原文偏薄，尚不足以直接进主集 |
 | 条目级 | `🪫 降采样保留` | 25 | 23.1% | `原文/描述均为 A/B`、未降级、但 `属于 🔁` |
 | 文件级 | `⛔ 不作正样本` | 56 | 37.6% | 对应 `56` 个 `⚪ 未收获` 文件 |
 
-如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `92` 条，占 `85.2%`；剩余 `16` 条（`14.8%`）应先停在 `🧰`，不能直接混入主训练集。
+如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `93` 条，占 `86.1%`；剩余 `15` 条（`13.9%`）应先停在 `🧰`，不能直接混入主训练集。
 
 再把角色与双细节充实度边界对照起来看：
 
 | 角色 | 条目数 | 原文 `A/B` | 原文 `C/D` | 描述 `A/B` | 描述 `C/D` |
 |---|---:|---:|---:|---:|---:|
-| `💎 核心保留` | 67 | `67 / 100.0%` | `0 / 0.0%` | `67 / 100.0%` | `0 / 0.0%` |
-| `🧰 清洗后保留` | 16 | `0 / 0.0%` | `16 / 100.0%` | `0 / 0.0%` | `16 / 100.0%` |
+| `💎 核心保留` | 68 | `68 / 100.0%` | `0 / 0.0%` | `68 / 100.0%` | `0 / 0.0%` |
+| `🧰 清洗后保留` | 15 | `0 / 0.0%` | `15 / 100.0%` | `0 / 0.0%` | `15 / 100.0%` |
 | `🪫 降采样保留` | 25 | `25 / 100.0%` | `0 / 0.0%` | `25 / 100.0%` | `0 / 0.0%` |
 
 这个切面把边界看得更清楚了：
@@ -574,20 +575,20 @@
 1. **真实控制对象多**：不是泛泛的 UML/工具论文，而是大量具体控制对象，如联锁、电梯、交通灯、液位、泊车、医疗装置、起落架、车队等。
 2. **绝大多数正例条目都写成了“可生成输出”的最终口吻**：这对做 `NL -> state machine` 的目标输出很友好。
 3. **正负样本边界已经开始显化**：`⚪ 未收获` 文件可以直接转化为 hard negative，而不必简单丢弃。
-4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **78** 条（**72.2%**），`描述 = 🟢 A / 🟡 B` 也有 **78** 条（**72.2%**），其中按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **78** 条（**72.2%**）。
+4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **93** 条（**86.1%**），`描述 = 🟢 A / 🟡 B` 也有 **93** 条（**86.1%**），其中按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **93** 条（**86.1%**）。
 
 #### 6.2 现在最需要警惕的问题
 
 1. **强趋同问题真实存在**：`🔁` 强趋同条目有 **28** 条，占正例条目的 **25.9%**。这不是“有点像”，而是足以污染训练分布。
 2. **系统级、构件级、语义级样本混在一起**：例如 IEC 61499、EAST-ADL、ViTAL、部分 SysML/ECC/构件执行语义条目，并不是坏样本，但如果不打标签，会让训练目标粒度漂移。
-3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **30** 条（**27.8%**），`描述 = 🟠 C / 🔴 D` 也有 **30** 条（**27.8%**）；此前那 **7** 条“原文够但描述降级”的条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
+3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **15** 条（**13.9%**），`描述 = 🟠 C / 🔴 D` 也有 **15** 条（**13.9%**）；此前锁定的“原文够但描述降级”条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
 4. **异常/恢复链仍然偏少**：很多条目保住了 nominal path，但没有把 fault、degraded、manual takeover、recovery 条件完整保住。
 5. **领域分布并不均匀**：交通灯、联锁、电梯、工业 PLC 占比较高，医疗、过程控制、真正的时间约束样本仍然偏少。
 
 #### 6.3 如果今天就拿它做数据集，我建议这样分桶
 
-1. `主训练集`：以当前 **54** 条 `💎 核心保留` 为主，并从 **24** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
-2. `待清洗正样本池`：全部 **30** 条 `🧰 清洗后保留` 条目。由于描述降级问题已清空，后续清洗重点应回到补原文可追溯细节，例如 guard、阈值、定时值、异常链、显式状态名。
+1. `主训练集`：以当前 **68** 条 `💎 核心保留` 为主，并从 **25** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
+2. `待清洗正样本池`：全部 **15** 条 `🧰 清洗后保留` 条目。由于描述降级问题已清空，后续清洗重点应回到补原文可追溯细节，例如 guard、阈值、定时值、异常链、显式状态名。
 3. `降采样补充池`：`🪫` 条目只用于增强鲁棒性，不作为主训练集主力。
 4. `hard negative / background`：全部 `⛔ 不作正样本` 文件，尤其是连续控制、工具流程和综述型条目。
 
@@ -604,7 +605,7 @@
 > 说明 1：文件级角色不是把整篇论文“平均打分”，而是按条目级结果做数据集入库路由聚合。
 > 说明 2：聚合顺序固定为：无正例条目则 `⛔`；只要存在 `💎` 条目就判 `💎 含核心样本`；若全部正例都只是 `🪫`，才判 `🪫 主要用于降采样池`；其余统一判 `🧰 需清洗样本`。
 > 说明 3：`代表状态机类型 / 代表时间级别 / 结构标签概况` 仅汇总该 `STM.md` 中已入账的正例条目，不对 `⚪ 未收获` 文件做臆测补齐。
-> 当前文件级分布：`💎 59`、`🧰 12`、`🪫 22`、`⛔ 56`。
+> 当前文件级分布：`💎 60`、`🧰 11`、`🪫 22`、`⛔ 56`。
 
 | # | 领域 | 文件级角色 | 代表状态机类型 | 代表时间级别 | 结构标签概况 | 原始评级 | 条目数 | 论文 | 跳转 | 文件级判断 |
 |---:|---|---|---|---|---|---|---:|---|---|---|
@@ -725,18 +726,18 @@
 | 115 | 🚦 | `🪫 主要用于降采样池` | `EFSM` | `T1` | `协议交互` | `🟢 直接可用` | 1 | [《Intelligent 3-Way Priority-Driven Traffic Light Control System for Emergency Vehicles》](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/STM.md) | [STM](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/STM.md) / [TXT](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/paper_content.txt) / [Bib](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/bibtex.bib) | 文件内正例条目均为 `🪫`，细节过线但属于强趋同簇；宜只保留少量代表样本。 |
 | 116 | 🚦 | `🪫 主要用于降采样池` | `EFSM` | `T1` | `显式时钟, 协议交互` | `🟢 直接可用` | 1 | [《Traffic Light Control System for Emergency Vehicles Using Radio Frequency》](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/STM.md) | [STM](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/STM.md) / [TXT](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/paper_content.txt) / [Bib](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/bibtex.bib) | 文件内正例条目均为 `🪫`，细节过线但属于强趋同簇；宜只保留少量代表样本。 |
 | 117 | 🅿️ | `💎 含核心样本` | `HSM` | `T3` | `层次, 连续耦合` | `🟢 直接可用` | 1 | [《Design and Development of Low Cost Automatic Parking Assistance System》](./design-and-development-of-low-cost-automatic-parking-assistance-system/STM.md) | [STM](./design-and-development-of-low-cost-automatic-parking-assistance-system/STM.md) / [TXT](./design-and-development-of-low-cost-automatic-parking-assistance-system/paper_content.txt) / [Bib](./design-and-development-of-low-cost-automatic-parking-assistance-system/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
-| 118 | 🚆 | `🧰 需清洗样本` | `EFSM` | `T1` | `显式时钟` | `🟡 可整理` | 1 | [《Development of an Automated Railway Level Crossing Gate Control System using PLC》](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) | [STM](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) / [TXT](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/paper_content.txt) / [Bib](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/bibtex.bib) | 文件内尚无 `💎` 条目；当前正例需先补原文或描述缺口后再决定是否入主集。 |
+| 118 | 🚆 | `💎 含核心样本` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 1 | [《Development of an Automated Railway Level Crossing Gate Control System using PLC》](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) | [STM](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) / [TXT](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/paper_content.txt) / [Bib](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/bibtex.bib) | 文件内正例条目均为 `💎`，并已保住到达/离开检测、障碍物覆盖、信号灯切换与闸门恢复链。 |
 | 119 | 🚆 | `💎 含核心样本` | `FSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《PLC BASED RAILWAY LEVEL CROSSING GATE CONTROL》](./plc-based-railway-level-crossing-gate-control/STM.md) | [STM](./plc-based-railway-level-crossing-gate-control/STM.md) / [TXT](./plc-based-railway-level-crossing-gate-control/paper_content.txt) / [Bib](./plc-based-railway-level-crossing-gate-control/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
 | 120 | 🏭 | `💎 含核心样本` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 1 | [《Monitoring and Controlling of Components in a Conveyor using PLC and SCADA》](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/STM.md) | [STM](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/STM.md) / [TXT](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/paper_content.txt) / [Bib](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
-| 121 | 🏭 | `💎 含核心样本` | `EFSM` | `T0 / T1` | `显式时钟` | `🟢 直接可用` | 2 | [《Automatic Washing Machine Control System Based on PLC》](./automatic-washing-machine-control-system-based-on-plc/STM.md) | [STM](./automatic-washing-machine-control-system-based-on-plc/STM.md) / [TXT](./automatic-washing-machine-control-system-based-on-plc/paper_content.txt) / [Bib](./automatic-washing-machine-control-system-based-on-plc/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
+| 121 | 🏭 | `💎 含核心样本` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 2 | [《Automatic Washing Machine Control System Based on PLC》](./automatic-washing-machine-control-system-based-on-plc/STM.md) | [STM](./automatic-washing-machine-control-system-based-on-plc/STM.md) / [TXT](./automatic-washing-machine-control-system-based-on-plc/paper_content.txt) / [Bib](./automatic-washing-machine-control-system-based-on-plc/bibtex.bib) | 文件内正例条目均为 `💎`，并且两条都已保住显式时长选择、洗漂脱水顺序与停机/终止控制。 |
 | 122 | 🌡️ | `🧰 需清洗样本` | `EFSM` | `T0` | `-` | `🟡 可整理` | 1 | [《Automatic irrigation system using PLC》](./automatic-irrigation-system-using-plc/STM.md) | [STM](./automatic-irrigation-system-using-plc/STM.md) / [TXT](./automatic-irrigation-system-using-plc/paper_content.txt) / [Bib](./automatic-irrigation-system-using-plc/bibtex.bib) | 文件内尚无 `💎` 条目；当前正例需先补原文或描述缺口后再决定是否入主集。 |
 | 123 | 🏭 | `🪫 主要用于降采样池` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 1 | [《Design and Implementation of Automatic Bottle Filling System Using PLC and SCADA》](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/STM.md) | [STM](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/STM.md) / [TXT](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/paper_content.txt) / [Bib](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/bibtex.bib) | 文件内正例条目均为 `🪫`，细节过线但属于强趋同簇；宜只保留少量代表样本。 |
 | 124 | 🏭 | `🪫 主要用于降采样池` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 1 | [《Automatic Bottle Filling System Using PLC and SCADA》](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/STM.md) | [STM](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/STM.md) / [TXT](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/paper_content.txt) / [Bib](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/bibtex.bib) | 文件内正例条目均为 `🪫`，细节过线但属于强趋同簇；宜只保留少量代表样本。 |
 | 125 | 🏭 | `💎 含核心样本` | `EFSM` | `T1` | `-` | `🟢 直接可用` | 1 | [《Automatic Bottle Filling System Using PLC/SCADA》](./automatic-bottle-filling-system-using-plc-scada/STM.md) | [STM](./automatic-bottle-filling-system-using-plc-scada/STM.md) / [TXT](./automatic-bottle-filling-system-using-plc-scada/paper_content.txt) / [Bib](./automatic-bottle-filling-system-using-plc-scada/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
-| 126 | 🅿️ | `💎 含核心样本` | `EFSM` | `T0` | `资源互斥` | `🟢 直接可用` | 1 | [《PLC Based Automatic Car Parking System》](./plc-based-automatic-car-parking-system/STM.md) | [STM](./plc-based-automatic-car-parking-system/STM.md) / [TXT](./plc-based-automatic-car-parking-system/paper_content.txt) / [Bib](./plc-based-automatic-car-parking-system/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
+| 126 | 🅿️ | `💎 含核心样本` | `EFSM` | `T1` | `资源互斥` | `🟢 直接可用` | 1 | [《PLC Based Automatic Car Parking System》](./plc-based-automatic-car-parking-system/STM.md) | [STM](./plc-based-automatic-car-parking-system/STM.md) / [TXT](./plc-based-automatic-car-parking-system/paper_content.txt) / [Bib](./plc-based-automatic-car-parking-system/bibtex.bib) | 文件内正例条目均为 `💎`，并保住了入口感应、指示灯切换、规定开门时长与自动复位链。 |
 | 127 | 🅿️ | `💎 含核心样本` | `Resource-flow` | `T0` | `资源互斥` | `🟢 直接可用` | 1 | [《PLC Based Tower Type Elevator Model for Automatic Car Parking System》](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/STM.md) | [STM](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/STM.md) / [TXT](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/paper_content.txt) / [Bib](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
-| 128 | 🏭 | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 2 | [《Development of Automatic Packaging System using PLC and SCADA for Industries》](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) | [STM](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / [TXT](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/paper_content.txt) / [Bib](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
-| 129 | 🚦 | `💎 含核心样本` | `EFSM` | `T1` | `-` | `🟡 可整理` | 1 | [《SMART TRAFFIC CONTROL SYSTEM USING PLC and SCADA》](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) | [STM](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) / [TXT](./smart-traffic-control-system-using-plc-and-scada-ijirset/paper_content.txt) / [Bib](./smart-traffic-control-system-using-plc-and-scada-ijirset/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
+| 128 | 🏭 | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 2 | [《Development of Automatic Packaging System using PLC and SCADA for Industries》](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) | [STM](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / [TXT](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/paper_content.txt) / [Bib](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/bibtex.bib) | 文件内正例条目均为 `💎`，前端清洗-灌装-封盖链与后端六瓶装箱-称重放行/剔除链都可直接入主集。 |
+| 129 | 🚦 | `💎 含核心样本` | `EFSM` | `T1` | `-` | `🟡 可整理` | 1 | [《SMART TRAFFIC CONTROL SYSTEM USING PLC and SCADA》](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) | [STM](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) / [TXT](./smart-traffic-control-system-using-plc-and-scada-ijirset/paper_content.txt) / [Bib](./smart-traffic-control-system-using-plc-and-scada-ijirset/bibtex.bib) | 文件内正例条目均为 `💎`，并已保住重量分流、`UP/DOWN` 计数器与红黄绿拥堵门控阈值。 |
 | 130 | 🚦 | `🧰 需清洗样本` | `EFSM` | `T1` | `-` | `🟡 可整理` | 1 | [《Smart Traffic Control System Using PLC And Scada》](./smart-traffic-control-system-using-plc-and-scada-ijsart/STM.md) | [STM](./smart-traffic-control-system-using-plc-and-scada-ijsart/STM.md) / [TXT](./smart-traffic-control-system-using-plc-and-scada-ijsart/paper_content.txt) / [Bib](./smart-traffic-control-system-using-plc-and-scada-ijsart/bibtex.bib) | 文件内尚无 `💎` 条目；当前正例需先补原文或描述缺口后再决定是否入主集。 |
 | 131 | 🚦 | `💎 含核心样本` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 1 | [《Solving Traffic Congestion at Jibowu Underbridge, Lagos Using PLC-Based Intelligent Traffic Controller System》](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/STM.md) | [STM](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/STM.md) / [TXT](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/paper_content.txt) / [Bib](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
 | 132 | 🚦 | `💎 含核心样本` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 1 | [《Design and Implementation of Intelligent Traffic Control System using Programmable Logic Controller》](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/STM.md) | [STM](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/STM.md) / [TXT](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/paper_content.txt) / [Bib](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
@@ -839,24 +840,24 @@
 | 69 | 🌡️ | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Perencanaan Control Valve Pada Head Tank PLTA Tulungagung Menggunakan PLC》](./perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc/STM.md) / Head-Tank Elevation Valve Control | 过程控制领域的水电站头水箱 PLC 控制阀系统 | [STM](./perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc/STM.md) / [TXT](./perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc/paper_content.txt) / [Bib](./perencanaan-control-valve-pada-head-tank-plta-tulungagung-menggunakan-plc/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 70 | 🚦 | `EFSM` | `T1` | `协议交互` | `🪫 降采样保留` | `🟡 B` | `🟡 B` | 🔁 G2 应急车辆交通灯优先 | [《Traffic Light Priority Control For Emergency Vehicle》](./traffic-light-priority-control-for-emergency-vehicle/STM.md) / Green-Corridor Priority Request | 道路交通信号领域的应急车辆优先信号控制器 | [STM](./traffic-light-priority-control-for-emergency-vehicle/STM.md) / [TXT](./traffic-light-priority-control-for-emergency-vehicle/paper_content.txt) / [Bib](./traffic-light-priority-control-for-emergency-vehicle/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 71 | 🚦 | `EFSM` | `T1` | `-` | `🧰 清洗后保留` | `🟠 C` | `🟠 C` | 🔁 G2 应急车辆交通灯优先 | [《Traffic Light Priority for Emergency Vehicle》](./traffic-light-priority-for-emergency-vehicle/STM.md) / Ambulance Detection Override | 道路交通信号领域的应急车辆优先模式控制器 | [STM](./traffic-light-priority-for-emergency-vehicle/STM.md) / [TXT](./traffic-light-priority-for-emergency-vehicle/paper_content.txt) / [Bib](./traffic-light-priority-for-emergency-vehicle/bibtex.bib) | 原文与描述都停在 `🟠 C`，只保住主链，仍缺 `guard/变量更新/阈值、timer 起止点与时长`。 |
-| 72 | 🅿️ | `Hybrid` | `T3` | `连续耦合` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Fuzzy Logic Control of Autonomous Vehicles for Parallel Parking Maneuver》](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/STM.md) / Three-Step Parallel Parking Process | 智慧停车领域的自主车辆并联泊车控制器 | [STM](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/STM.md) / [TXT](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/paper_content.txt) / [Bib](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 73 | 🚦 | `EFSM` | `T1` | `协议交互` | `🪫 降采样保留` | `🟡 B` | `🟡 B` | 🔁 G2 应急车辆交通灯优先 | [《Intelligent 3-Way Priority-Driven Traffic Light Control System for Emergency Vehicles》](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/STM.md) / RFID-Based Emergency Priority Sequence | 道路交通信号领域的三路口应急车辆优先控制器 | [STM](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/STM.md) / [TXT](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/paper_content.txt) / [Bib](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
+| 72 | 🅿️ | `Hybrid` | `T3` | `连续耦合` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Fuzzy Logic Control of Autonomous Vehicles for Parallel Parking Maneuver》](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/STM.md) / Three-Step Parallel Parking Process | 智慧停车领域的自主车辆并联泊车控制器 | [STM](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/STM.md) / [TXT](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/paper_content.txt) / [Bib](./fuzzy-logic-control-of-autonomous-vehicles-for-parallel-parking-maneuver/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住三步泊车、两个第 1 步子阶段、`xa1/yd1/θ -> θ˙` 与往返调整闭环。 |
+| 73 | 🚦 | `EFSM` | `T1` | `协议交互` | `🪫 降采样保留` | `🟢 A` | `🟢 A` | 🔁 G2 应急车辆交通灯优先 | [《Intelligent 3-Way Priority-Driven Traffic Light Control System for Emergency Vehicles》](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/STM.md) / RFID-Based Emergency Priority Sequence | 道路交通信号领域的三路口应急车辆优先控制器 | [STM](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/STM.md) / [TXT](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/paper_content.txt) / [Bib](./intelligent-3-way-priority-driven-traffic-light-control-system-for-emergency-vehicles/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住 RFID 检测、普通车道全红停止、应急优先放行与恢复常规灯序。 |
 | 74 | 🚦 | `EFSM` | `T1` | `协议交互, 显式时钟` | `🪫 降采样保留` | `🟢 A` | `🟢 A` | 🔁 G2 应急车辆交通灯优先 | [《Traffic Light Control System for Emergency Vehicles Using Radio Frequency》](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/STM.md) / RF-Triggered Emergency Sequence Override | 道路交通信号领域的应急车辆无线优先控制器 | [STM](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/STM.md) / [TXT](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/paper_content.txt) / [Bib](./traffic-light-control-system-for-emergency-vehicles-using-radio-frequency/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 75 | 🅿️ | `HSM` | `T3` | `层次, 连续耦合` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Design and Development of Low Cost Automatic Parking Assistance System》](./design-and-development-of-low-cost-automatic-parking-assistance-system/STM.md) / Two-Phase Parking Assistance Control | 智慧停车领域的自动泊车辅助控制器 | [STM](./design-and-development-of-low-cost-automatic-parking-assistance-system/STM.md) / [TXT](./design-and-development-of-low-cost-automatic-parking-assistance-system/paper_content.txt) / [Bib](./design-and-development-of-low-cost-automatic-parking-assistance-system/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 76 | 🚆 | `EFSM` | `T1` | `显式时钟` | `🧰 清洗后保留` | `🟠 C` | `🟠 C` | ✨ 未见强趋同 | [《Development of an Automated Railway Level Crossing Gate Control System using PLC》](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) / Sensor-Based Railway Crossing Gate Control | 铁路道口平交口的 PLC 门控系统 | [STM](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) / [TXT](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/paper_content.txt) / [Bib](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/bibtex.bib) | 原文与描述都停在 `🟠 C`，只保住主链，仍缺 `guard/变量更新/阈值、timer 起止点与时长、时钟比较点`。 |
+| 75 | 🅿️ | `HSM` | `T3` | `层次, 连续耦合` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Design and Development of Low Cost Automatic Parking Assistance System》](./design-and-development-of-low-cost-automatic-parking-assistance-system/STM.md) / Two-Phase Parking Assistance Control | 智慧停车领域的自动泊车辅助控制器 | [STM](./design-and-development-of-low-cost-automatic-parking-assistance-system/STM.md) / [TXT](./design-and-development-of-low-cost-automatic-parking-assistance-system/paper_content.txt) / [Bib](./design-and-development-of-low-cost-automatic-parking-assistance-system/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住 exploration/parking 两阶段、超声扫描、三点不等转弯半径轨迹与 shifting points 编码。 |
+| 76 | 🚆 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Development of an Automated Railway Level Crossing Gate Control System using PLC》](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) / Sensor-Based Railway Crossing Gate Control | 铁路道口平交口的 PLC 门控系统 | [STM](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/STM.md) / [TXT](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/paper_content.txt) / [Bib](./development-of-an-automated-railway-level-crossing-gate-control-system-using-plc/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住 arrival/departure/obstacle 三传感器、信号灯切换、关闸、障碍重开闸与清障后恢复链。 |
 | 77 | 🚆 | `FSM` | `T0` | `-` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《PLC BASED RAILWAY LEVEL CROSSING GATE CONTROL》](./plc-based-railway-level-crossing-gate-control/STM.md) / Vibration-Sensed Gate Open-Close Sequence | 铁路平交口的 PLC 道口栏杆控制器 | [STM](./plc-based-railway-level-crossing-gate-control/STM.md) / [TXT](./plc-based-railway-level-crossing-gate-control/paper_content.txt) / [Bib](./plc-based-railway-level-crossing-gate-control/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 78 | 🏭 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Monitoring and Controlling of Components in a Conveyor using PLC and SCADA》](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/STM.md) / Multi-Conveyor Detection and Delayed Transfer Logic | 离散制造场景下的三段输送带 PLC 控制系统 | [STM](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/STM.md) / [TXT](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/paper_content.txt) / [Bib](./monitoring-and-controlling-of-components-in-a-conveyor-using-plc-and-scada/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 79 | 🏭 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Automatic Washing Machine Control System Based on PLC》](./automatic-washing-machine-control-system-based-on-plc/STM.md) / Water-Level-Regulated Filling Sequence | 全自动洗衣机的进水控制逻辑 | [STM](./automatic-washing-machine-control-system-based-on-plc/STM.md) / [TXT](./automatic-washing-machine-control-system-based-on-plc/paper_content.txt) / [Bib](./automatic-washing-machine-control-system-based-on-plc/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 80 | 🏭 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Automatic Washing Machine Control System Based on PLC》](./automatic-washing-machine-control-system-based-on-plc/STM.md) / Wash-Rinse-Dehydrate Cycle | 全自动洗衣机的洗涤、排水、漂洗和脱水顺序控制 | [STM](./automatic-washing-machine-control-system-based-on-plc/STM.md) / [TXT](./automatic-washing-machine-control-system-based-on-plc/paper_content.txt) / [Bib](./automatic-washing-machine-control-system-based-on-plc/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
+| 79 | 🏭 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Automatic Washing Machine Control System Based on PLC》](./automatic-washing-machine-control-system-based-on-plc/STM.md) / Water-Level-Regulated Filling Sequence | 全自动洗衣机的进水控制逻辑 | [STM](./automatic-washing-machine-control-system-based-on-plc/STM.md) / [TXT](./automatic-washing-machine-control-system-based-on-plc/paper_content.txt) / [Bib](./automatic-washing-machine-control-system-based-on-plc/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住高/中/低水位选择、对应进水时长、水位检测与达到设定值后关阀。 |
+| 80 | 🏭 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Automatic Washing Machine Control System Based on PLC》](./automatic-washing-machine-control-system-based-on-plc/STM.md) / Wash-Rinse-Dehydrate Cycle | 全自动洗衣机的洗涤、排水、漂洗和脱水顺序控制 | [STM](./automatic-washing-machine-control-system-based-on-plc/STM.md) / [TXT](./automatic-washing-machine-control-system-based-on-plc/paper_content.txt) / [Bib](./automatic-washing-machine-control-system-based-on-plc/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住 `30s` 正转、`3s` 暂停、`30s` 反转、洗漂次数、脱水时长与停机/终止链。 |
 | 81 | 🌡️ | `EFSM` | `T0` | `-` | `🧰 清洗后保留` | `🟠 C` | `🟠 C` | ✨ 未见强趋同 | [《Automatic irrigation system using PLC》](./automatic-irrigation-system-using-plc/STM.md) / Humidity-Regulated Irrigation Valve Control | PLC 滴灌系统的土壤湿度与阀门控制逻辑 | [STM](./automatic-irrigation-system-using-plc/STM.md) / [TXT](./automatic-irrigation-system-using-plc/paper_content.txt) / [Bib](./automatic-irrigation-system-using-plc/bibtex.bib) | 原文与描述都停在 `🟠 C`，只保住主链，仍缺 `guard/变量更新/阈值`。 |
 | 82 | 🏭 | `EFSM` | `T1` | `显式时钟` | `🪫 降采样保留` | `🟢 A` | `🟢 A` | 🔁 G8 瓶装灌装短流程 | [《Design and Implementation of Automatic Bottle Filling System Using PLC and SCADA》](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/STM.md) / Photoelectric Detection and Valve-Controlled Filling Cycle | 瓶装液体灌装站的 PLC 与 SCADA 控制系统 | [STM](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/STM.md) / [TXT](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/paper_content.txt) / [Bib](./design-and-implementation-of-automatic-bottle-filling-system-using-plc-and-scada/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 83 | 🏭 | `EFSM` | `T1` | `显式时钟` | `🪫 降采样保留` | `🟢 A` | `🟢 A` | 🔁 G8 瓶装灌装短流程 | [《Automatic Bottle Filling System Using PLC and SCADA》](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/STM.md) / Proximity-Triggered Timed Filling Sequence | 带输送带的自动瓶装灌装控制系统 | [STM](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/STM.md) / [TXT](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/paper_content.txt) / [Bib](./automatic-bottle-filling-system-using-plc-and-scada-ijerd/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 84 | 🏭 | `EFSM` | `T1` | `-` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Automatic Bottle Filling System Using PLC/SCADA》](./automatic-bottle-filling-system-using-plc-scada/STM.md) / IR-and-Ultrasonic Bottle Filling Loop | PLC/SCADA 自动瓶装灌装产线 | [STM](./automatic-bottle-filling-system-using-plc-scada/STM.md) / [TXT](./automatic-bottle-filling-system-using-plc-scada/paper_content.txt) / [Bib](./automatic-bottle-filling-system-using-plc-scada/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 85 | 🅿️ | `EFSM` | `T0` | `资源互斥` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《PLC Based Automatic Car Parking System》](./plc-based-automatic-car-parking-system/STM.md) / Slot-Guided Entry Gate Control | 多层停车场的 PLC 入口门禁与车位引导控制系统 | [STM](./plc-based-automatic-car-parking-system/STM.md) / [TXT](./plc-based-automatic-car-parking-system/paper_content.txt) / [Bib](./plc-based-automatic-car-parking-system/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 86 | 🅿️ | `Resource-flow` | `T0` | `资源互斥` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《PLC Based Tower Type Elevator Model for Automatic Car Parking System》](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/STM.md) / Vacant-Slot Search and Token-Based Tower Parking | 塔式自动停车系统的 PLC 电梯与车位分配控制器 | [STM](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/STM.md) / [TXT](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/paper_content.txt) / [Bib](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 87 | 🏭 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Development of Automatic Packaging System using PLC and SCADA for Industries》](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / Bottle Cleaning-Filling-Capping Line | 包装产线前端的瓶清洗、灌装与封盖控制段 | [STM](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / [TXT](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/paper_content.txt) / [Bib](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 88 | 🏭 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Development of Automatic Packaging System using PLC and SCADA for Industries》](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / Six-Bottle Carton Packing and Quality Gate | 包装产线后端的装箱、封箱与称重放行/剔除控制段 | [STM](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / [TXT](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/paper_content.txt) / [Bib](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 89 | 🚦 | `EFSM` | `T1` | `-` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《SMART TRAFFIC CONTROL SYSTEM USING PLC and SCADA》](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) / Weight-Based Diversion and Congestion Gating | 道路交通分流与拥堵放行控制器 | [STM](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) / [TXT](./smart-traffic-control-system-using-plc-and-scada-ijirset/paper_content.txt) / [Bib](./smart-traffic-control-system-using-plc-and-scada-ijirset/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
+| 85 | 🅿️ | `EFSM` | `T1` | `资源互斥` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《PLC Based Automatic Car Parking System》](./plc-based-automatic-car-parking-system/STM.md) / Slot-Guided Entry Gate Control | 多层停车场的 PLC 入口门禁与车位引导控制系统 | [STM](./plc-based-automatic-car-parking-system/STM.md) / [TXT](./plc-based-automatic-car-parking-system/paper_content.txt) / [Bib](./plc-based-automatic-car-parking-system/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住车位盘点、入口感应、指示灯切换、开门保持规定时间与自动复位。 |
+| 86 | 🅿️ | `Resource-flow` | `T0` | `资源互斥` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《PLC Based Tower Type Elevator Model for Automatic Car Parking System》](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/STM.md) / Vacant-Slot Search and Token-Based Tower Parking | 塔式自动停车系统的 PLC 电梯与车位分配控制器 | [STM](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/STM.md) / [TXT](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/paper_content.txt) / [Bib](./plc-based-tower-type-elevator-model-for-automatic-car-parking-system/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住 `parkingin/parkingout`、逐层逐位空位搜索、token 编号与满位回退链。 |
+| 87 | 🏭 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Development of Automatic Packaging System using PLC and SCADA for Industries》](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / Bottle Cleaning-Filling-Capping Line | 包装产线前端的瓶清洗、灌装与封盖控制段 | [STM](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / [TXT](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/paper_content.txt) / [Bib](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住清洗、灌装、封盖、出站与下游装箱衔接顺序。 |
+| 88 | 🏭 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Development of Automatic Packaging System using PLC and SCADA for Industries》](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / Six-Bottle Carton Packing and Quality Gate | 包装产线后端的装箱、封箱与称重放行/剔除控制段 | [STM](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/STM.md) / [TXT](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/paper_content.txt) / [Bib](./development-of-automatic-packaging-system-using-plc-and-scada-for-industries/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住六瓶计数开门、自动装箱、贴带、称重放行/剔除、贴标与装车链。 |
+| 89 | 🚦 | `EFSM` | `T1` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《SMART TRAFFIC CONTROL SYSTEM USING PLC and SCADA》](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) / Weight-Based Diversion and Congestion Gating | 道路交通分流与拥堵放行控制器 | [STM](./smart-traffic-control-system-using-plc-and-scada-ijirset/STM.md) / [TXT](./smart-traffic-control-system-using-plc-and-scada-ijirset/paper_content.txt) / [Bib](./smart-traffic-control-system-using-plc-and-scada-ijirset/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住重量分流、`UP/DOWN` counter、`100/80/20/60/40` 阈值与红黄绿放行逻辑。 |
 | 90 | 🚦 | `EFSM` | `T1` | `-` | `🧰 清洗后保留` | `🟠 C` | `🟠 C` | ✨ 未见强趋同 | [《Smart Traffic Control System Using PLC And Scada》](./smart-traffic-control-system-using-plc-and-scada-ijsart/STM.md) / Density-Driven Priority Signal Control | 四岔路口交通灯优先控制器 | [STM](./smart-traffic-control-system-using-plc-and-scada-ijsart/STM.md) / [TXT](./smart-traffic-control-system-using-plc-and-scada-ijsart/paper_content.txt) / [Bib](./smart-traffic-control-system-using-plc-and-scada-ijsart/bibtex.bib) | 原文与描述都停在 `🟠 C`，只保住主链，仍缺 `guard/变量更新/阈值、timer 起止点与时长`。 |
 | 91 | 🚦 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Solving Traffic Congestion at Jibowu Underbridge, Lagos Using PLC-Based Intelligent Traffic Controller System》](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/STM.md) / Timed Operation with Congestion and Emergency Override | 城市路口 PLC 智能交通灯控制系统 | [STM](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/STM.md) / [TXT](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/paper_content.txt) / [Bib](./solving-traffic-congestion-at-jibowu-underbridge-using-plc-based-intelligent-traffic-controller-system/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 92 | 🚦 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Design and Implementation of Intelligent Traffic Control System using Programmable Logic Controller》](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/STM.md) / Primary Timing with One-Cycle Sensor Override | 四向环岛交通灯 PLC 控制器 | [STM](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/STM.md) / [TXT](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/paper_content.txt) / [Bib](./design-and-implementation-of-intelligent-traffic-control-system-using-programmable-logic-controller/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |

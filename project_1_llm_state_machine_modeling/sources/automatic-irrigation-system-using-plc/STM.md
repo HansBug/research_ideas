@@ -32,7 +32,7 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC-based drip-irrigation controller uses field-humidity sensing as the primary condition for watering different plants. Separate valves are assigned to the fields, and these valves are controlled by the PLC according to minimum and maximum humidity conditions. Through feedback control, the system maintains the soil-moisture level at the required value instead of relying on manual flooding irrigation.
+The PLC-based drip-irrigation controller uses field-humidity sensing as the primary condition for watering different plants. Each field is equipped with a separate valve, and the PLC drives these valves according to minimum and maximum humidity thresholds reported by the sensors. Through this feedback loop, the controller maintains the soil-moisture percentage at the required value instead of relying on manual flooding irrigation.
 
 ### 3. 逐句溯源
 

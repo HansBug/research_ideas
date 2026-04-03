@@ -15,8 +15,8 @@
 - 状态机类型：HSM（层次状态机）
 - 时间级别：T3（混成时间 / 连续时间耦合）
 - 结构标签：层次、连续耦合
-- 原文细节充实度：🟡 B（细节较充实）
-- 描述细节充实度：🟡 B（细节较充实）
+- 原文细节充实度：🟢 A（细节完备）
+- 描述细节充实度：🟢 A（细节完备）
 - 数据集角色：💎 核心保留
 - 趋同标签：✨ 未见强趋同
 
@@ -31,18 +31,20 @@
 > In APAS the parking slot availability is explored by the system and then the parking is done on its own, thus minimizing driver involvement. APAS operates in two phases namely exploration and parking. In exploration phase, the system evaluates the length and width of parking slot for parking and confirms. In the parking phase the system guides the vehicle to along a suitable trajectory and park in the identified slot without collision.
 
 #### 摘录 B
-- 出处：第 2 页，functional block description, 行 101-104, 121-134
-> APAS has sub-functions like gathering the driver inputs from switches, reading the sensor data, checking the necessary conditions, actuating the motors etc. ... Sensor blocks collect the sensor data ... This makes the system to work as closed loop and to add correction factors if there is an error inside the system. ... Once the parking path is designed for that specific vehicle, parking path shifting points are identified. This helps the controller to take decision while parking the vehicle.
+- 出处：第 1-4 页，Abstract / Functional block description / Flow diagram，行 14-20, 101-104, 180-218
+> stepper motor mounted ultrasonic sensor to scan the obstacles. 3-point unequal rotating radius algorithm is used to identify parking path shifting points and parking trajectory. Path shifting control algorithm based on timing and distance traversed is developed using MPLAB IDE. ... APAS has sub-functions like gathering the driver inputs from switches, reading the sensor data, checking the necessary conditions, actuating the motors etc. ... Once the parking path is designed for that specific vehicle, parking path shifting points are identified. This helps the controller to take decision while parking the vehicle. ... Overall travelled distance ... Time taken ... detailed breakup is shown in Table 3. Control logic is developed based on the parking pattern and algorithm chosen. Parking path shifting points found from the graph are coded to control the parking process.
 
 ### 2. 基于原文整理后的自然语言描述
 
-The automatic parking assistance system first explores whether a parking slot is available and then performs the parking maneuver on its own. During the exploration phase, the controller evaluates the slot length and width and confirms whether parking is possible. During the parking phase, the controller uses driver-input switches, sensor data, condition checking, motor actuation, and parking-path shifting points to guide the vehicle along a suitable trajectory into the identified slot without collision.
+The automatic parking assistance system is organized into two top-level phases: exploration and parking. During exploration, a stepper-motor-mounted ultrasonic sensor scans the candidate slot, the controller evaluates the slot length and width, makes the parking-slot fitment decision, and computes the three-point unequal-rotating-radius trajectory together with the parking-path shifting points. During the parking phase, driver-input switches, sensor data, condition checking, and motor actuation are coordinated so that the vehicle follows the designed path from the identified shifting points into the selected slot without collision. The implemented control logic encodes these shifting points together with the associated travelled distances and timing values so that the prototype can execute the parking maneuver and later be corrected in closed loop when steering or path errors appear.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The automatic parking assistance system first explores whether a parking slot is available and then performs the parking maneuver on its own.
+1. 句子 1：The automatic parking assistance system is organized into two top-level phases: exploration and parking.
    对应摘录：A
-2. 句子 2：During the exploration phase, the controller evaluates the slot length and width and confirms whether parking is possible.
-   对应摘录：A
-3. 句子 3：During the parking phase, the controller uses driver-input switches, sensor data, condition checking, motor actuation, and parking-path shifting points to guide the vehicle along a suitable trajectory into the identified slot without collision.
+2. 句子 2：During exploration, a stepper-motor-mounted ultrasonic sensor scans the candidate slot, the controller evaluates the slot length and width, makes the parking-slot fitment decision, and computes the three-point unequal-rotating-radius trajectory together with the parking-path shifting points.
    对应摘录：A, B
+3. 句子 3：During the parking phase, driver-input switches, sensor data, condition checking, and motor actuation are coordinated so that the vehicle follows the designed path from the identified shifting points into the selected slot without collision.
+   对应摘录：A, B
+4. 句子 4：The implemented control logic encodes these shifting points together with the associated travelled distances and timing values so that the prototype can execute the parking maneuver and later be corrected in closed loop when steering or path errors appear.
+   对应摘录：B

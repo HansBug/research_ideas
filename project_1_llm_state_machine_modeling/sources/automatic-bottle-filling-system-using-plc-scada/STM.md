@@ -32,13 +32,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC bottle-filling controller uses an IR sensor to detect the presence of a bottle on the conveyor and an ultrasonic sensor to monitor the liquid level during filling. When the bottle reaches the filling position, the conveyor halts and the mini water pump is activated. After the desired liquid level is reached, the pump stops and the conveyor resumes to move the filled bottle forward.
+The PLC bottle-filling controller uses an IR sensor to detect the presence of a bottle on the conveyor and an ultrasonic sensor to monitor the liquid level during filling. Once the bottle is in position, the conveyor halts and the mini water pump is activated so that filling can start under PLC control. After the desired liquid level is reached, the pump stops and the conveyor resumes to move the filled bottle forward. The SCADA layer provides real-time monitoring, status feedback, and manual intervention capability for the same sequence.
 
 ### 3. 逐句溯源
 
 1. 句子 1：The PLC bottle-filling controller uses an IR sensor to detect the presence of a bottle on the conveyor and an ultrasonic sensor to monitor the liquid level during filling.
    对应摘录：A
-2. 句子 2：When the bottle reaches the filling position, the conveyor halts and the mini water pump is activated.
+2. 句子 2：Once the bottle is in position, the conveyor halts and the mini water pump is activated so that filling can start under PLC control.
    对应摘录：A
 3. 句子 3：After the desired liquid level is reached, the pump stops and the conveyor resumes to move the filled bottle forward.
+   对应摘录：A
+4. 句子 4：The SCADA layer provides real-time monitoring, status feedback, and manual intervention capability for the same sequence.
    对应摘录：A

@@ -37,13 +37,13 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation. The PLC logic assigns priorities automatically for a four-way intersection and adjusts the ON/OFF times of the green, yellow, and red lights according to the detected lane densities. Signal changes from red to green are therefore synchronized with current traffic conditions rather than being fixed in advance.
+The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation at a four-way intersection. The PLC program uses timer instructions together with the detected lane priorities to change the ON/OFF times of the green, yellow, and red lights. In this way, signal changes from red to green are synchronized with current traffic conditions instead of remaining fixed in advance, and the SCADA layer is used to monitor and supervise the same process.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation.
+1. 句子 1：The smart traffic controller counts vehicles in each lane and sends the sensor data to the PLC for priority evaluation at a four-way intersection.
    对应摘录：A
-2. 句子 2：The PLC logic assigns priorities automatically for a four-way intersection and adjusts the ON/OFF times of the green, yellow, and red lights according to the detected lane densities.
-   对应摘录：A
-3. 句子 3：Signal changes from red to green are therefore synchronized with current traffic conditions rather than being fixed in advance.
+2. 句子 2：The PLC program uses timer instructions together with the detected lane priorities to change the ON/OFF times of the green, yellow, and red lights.
+   对应摘录：A, B
+3. 句子 3：In this way, signal changes from red to green are synchronized with current traffic conditions instead of remaining fixed in advance, and the SCADA layer is used to monitor and supervise the same process.
    对应摘录：B

@@ -31,22 +31,28 @@
 > This system was designed to be operated when it received signal from emergency vehicles based on radio frequency (RF) transmission ... microcontroller to change the sequence back to the normal sequence before the emergency mode was triggered. ... function with the sequence mode of traffic light when emergency vehicles passing by an intersection and changing the sequence back to the normal sequence before the emergency mode was triggered.
 
 #### 摘录 B
-- 出处：第 8 页，Normal Sequence, 行 272-276
-> The sequence of the traffic lights started as green light of traffic light 1 and red light of other traffic lights are on. The duration for this mode lasted for 30 seconds unless the RF receiver triggers any signal from the transmitter to override the sequence.
+- 出处：第 8 页，Normal Sequence, 行 272-283
+> The sequence of the traffic lights started as green light of traffic light 1 and red light of other traffic lights are on. The duration for this mode lasted for 30 seconds unless the RF receiver triggers any signal from the transmitter to override the sequence. ... Then, the green light of traffic light 1 is off and the yellow light of the same traffic light is on for 2 seconds. ... The same thing happened to the traffic light 3 and traffic light 4 after an interval of the yellow light of each traffic light is on for 2 seconds.
 
 #### 摘录 C
-- 出处：第 8-9 页，Emergency Mode Sequence, 行 308-318
-> The emergency mode is triggered when the RF receiver received the transmitted signal from the RF transmitter to override the normal sequence ... The emergency sequence mode started when the yellow of traffic light 1 is on for 2 seconds. Then the green of traffic light 4 is on for 10 seconds and then the yellow light of the same traffic light is turned on for 2 seconds.
+- 出处：第 6-9 页，RF transmitter / Emergency Mode Sequence，行 229-247, 308-321
+> A set of four push-on switches is used in the RF transmitter circuit. Each switch labeled with number 1, 2, 3, and 4 to indicate which traffic light at the intersection. These switch need to be push (switch on) in order to trigger the emergency sequence mode of the traffic light intersection. ... The emergency mode is triggered when the RF receiver received the transmitted signal from the RF transmitter to override the normal sequence. For example, an ambulance arrives at the traffic light 4 and the green light of the traffic light 1 is on ... the yellow of traffic light 1 is on for 2 seconds. Then the green of traffic light 4 is on for 10 seconds and then the yellow light of the same traffic light is turned on for 2 seconds.
+
+#### 摘录 D
+- 出处：第 9 页，Emergency Mode Sequence，行 319-321
+> The emergency sequence mode is ended when the sequence of the traffic light is back to the normal sequence which the green light of traffic light 1 is turned back on for the remaining time before the emergency sequence mode is triggered.
 
 ### 2. 基于原文整理后的自然语言描述
 
-In normal operation, the controller keeps traffic light 1 green and the other traffic lights red for 30 seconds unless an RF signal arrives from an emergency vehicle. When the RF receiver gets the transmitted signal, the controller overrides the normal sequence and enters the emergency mode sequence. In the illustrated case, the controller first turns traffic light 1 yellow for 2 seconds, then turns traffic light 4 green for 10 seconds, and then turns traffic light 4 yellow for 2 seconds before returning to the normal sequence.
+In normal operation, the controller cycles the four-way intersection so that each traffic light gets a 30-second green interval followed by a 2-second yellow interval before the next light takes its turn. The RF transmitter has four push-on switches, one for each traffic light, and pressing a switch sends a coded 434 MHz signal to the RF receiver to override the current sequence. In the illustrated emergency case, if traffic light 1 is currently green and switch 4 is pressed, the controller first turns traffic light 1 yellow for 2 seconds, then turns traffic light 4 green for 10 seconds, and then turns traffic light 4 yellow for 2 seconds. After the emergency sequence ends, the controller returns to the normal sequence and restores traffic light 1 for the remaining time that was left before the override.
 
 ### 3. 逐句溯源
 
-1. 句子 1：In normal operation, the controller keeps traffic light 1 green and the other traffic lights red for 30 seconds unless an RF signal arrives from an emergency vehicle.
+1. 句子 1：In normal operation, the controller cycles the four-way intersection so that each traffic light gets a 30-second green interval followed by a 2-second yellow interval before the next light takes its turn.
    对应摘录：B
-2. 句子 2：When the RF receiver gets the transmitted signal, the controller overrides the normal sequence and enters the emergency mode sequence.
-   对应摘录：A, C
-3. 句子 3：In the illustrated case, the controller first turns traffic light 1 yellow for 2 seconds, then turns traffic light 4 green for 10 seconds, and then turns traffic light 4 yellow for 2 seconds before returning to the normal sequence.
-   对应摘录：A, C
+2. 句子 2：The RF transmitter has four push-on switches, one for each traffic light, and pressing a switch sends a coded 434 MHz signal to the RF receiver to override the current sequence.
+   对应摘录：C
+3. 句子 3：In the illustrated emergency case, if traffic light 1 is currently green and switch 4 is pressed, the controller first turns traffic light 1 yellow for 2 seconds, then turns traffic light 4 green for 10 seconds, and then turns traffic light 4 yellow for 2 seconds.
+   对应摘录：C
+4. 句子 4：After the emergency sequence ends, the controller returns to the normal sequence and restores traffic light 1 for the remaining time that was left before the override.
+   对应摘录：D

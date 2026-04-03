@@ -36,13 +36,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The conveyor-control system uses PLC logic and sensors to monitor the components transported on DC-motor-driven belts. Each conveyor segment starts running only after its proximity sensor detects an object, and the segment is turned off after a certain number of seconds following detection. The same sequence is applied to all three conveyors, except that the third conveyor starts only after five objects have been collected.
+The conveyor-control system uses PLC logic and three proximity-sensed, DC-motor-driven conveyor sections to monitor the components transported on the belts. Each conveyor section starts running only after its own proximity sensor detects an object, and that section is turned off again after a certain number of seconds following the detection event. The same detect-run-delayed-stop sequence is applied to the first and second conveyors, while the third conveyor is released only after five objects have been collected. SCADA logs the conveyor cycle time, idle time, and the number of completed components while the PLC executes the transport sequence.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The conveyor-control system uses PLC logic and sensors to monitor the components transported on DC-motor-driven belts.
+1. 句子 1：The conveyor-control system uses PLC logic and three proximity-sensed, DC-motor-driven conveyor sections to monitor the components transported on the belts.
    对应摘录：A, B
-2. 句子 2：Each conveyor segment starts running only after its proximity sensor detects an object, and the segment is turned off after a certain number of seconds following detection.
+2. 句子 2：Each conveyor section starts running only after its own proximity sensor detects an object, and that section is turned off again after a certain number of seconds following the detection event.
    对应摘录：B
-3. 句子 3：The same sequence is applied to all three conveyors, except that the third conveyor starts only after five objects have been collected.
+3. 句子 3：The same detect-run-delayed-stop sequence is applied to the first and second conveyors, while the third conveyor is released only after five objects have been collected.
    对应摘录：B
+4. 句子 4：SCADA logs the conveyor cycle time, idle time, and the number of completed components while the PLC executes the transport sequence.
+   对应摘录：A, B
