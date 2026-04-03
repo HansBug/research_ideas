@@ -1,0 +1,1111 @@
+--- Page 1 ---
+Nondeterministic Streaming String Transducers*
+
+Rajeev Alur and Jyotirmoy V. Deshmukh
+
+Dept. of Computer and Information Science,
+University of Pennsylvania.
+{alur ,djy}@cis.upenn.edu
+
+Abstract. We introduce nondeterministic streaming string transducers
+(NssTs) — a new computational model that can implement MSO-definable
+relations between strings. An NSST makes a single left-to-right pass on
+the input string and uses a finite set of string variables to compute the
+output. In each step, it reads one input symbol, and updates its string
+variables in parallel with a copyless assignment. We show that the expres-
+sive power of NSST coincides with that of nondeterministic MSO-definable
+transductions. Further, we identify the class of functional NssT; these al-
+low nondeterministic transitions, but for every successful run on a given
+input generates the same output string. We show that deciding function-
+ality of an arbitrary NssT is decidable with PSPACE complexity, while the
+equivalence problem for functional NSST is PSPACE-COMPLETE. We also
+show that checking if the set of outputs of an NSST is contained within
+
+the set of outputs of a finite number of DssTs
+
+1 Introduction
+
+is decidable in PSPACE.
+
+In this paper, we introduce nondeterministic streaming string transducers (NSSTs).
+A run of such a transducer processes an input string in a single left-to-right pass
+
+in linear time, and computes an output string. T
+allows it to produce different outputs for different
+
+he nondeterminism of an NSST
+runs on an input string. Thus,
+
+an NSST is a natural model for implementing relations between strings.
+Classical literature on string-to-string transductions largely focusses on finite-
+
+state transducers that realize rational relations [
+ducer reads an input symbol and writes zero or
+
+3]. At each step such a trans-
+more symbols to the output.
+
+These transducers and their many variations have been extensively studied in
+the literature. If restricted to a single left-to-right pass over the input, i.e., to
+their streaming versions, the expressive power of finite transducers is limited.
+
+For example, they can implement transductions
+an input string and deleting a substring of the
+implement transductions such as reversing an im
+substrings within an input string.
+
+Deterministic streaming string transducers (D
+in addition to all transductions implemented by
+
+* This research is partially supported by NSF awar
+CRA Computing Innovation Fellows project.
+
+such as inserting a symbol in
+input string, but they cannot
+ut string or the swapping two
+
+SSTs), first introduced in [1, 2],
+eterministic finite transducers,
+
+ 
+
+CCF 0905464 and by the CCC-
+
+
+--- Page 2 ---
+can implement transductions such as reversing a string and swapping substrings.
+A DssT reads the input in a single left-to-right pass. In addition to a finite set of
+states, it has a finite set of string variables that it uses to produce the output.
+In each step, a DSST reads an input symbol, changes its state, and concurrently
+updates all its string variables in parallel using a copyless assignment. The right-
+hand-sides (RHS) in a copyless assignment consist of a concatenation of string
+variables and output symbols, with the restriction that in a parallel assignment,
+a variable can appear at most once across all right-hand-sides.
+
+A pDssT that reverses a string can be defined with a state g, and a string
+variable x. In each step, if it reads the symbol a, it executes the assignment
+[x := a.a]. At the end of its computation, x contains the string that is the reverse
+of the input string. Consider the transformation that maps a string w = l,m_f
+to the string f_m_l, (here 1, m and f respectively denote strings corresponding
+to some last, middle, and first name, and ‘_’ denotes a single space). A DSST
+with two string variables x and y can implement this transduction. It stores the
+substring till the comma (/) in x, and stores the subsequent string (m) till it sees
+the space in y. It then sets y to y._.xz, resets x to the empty string, and stores
+the remaining substring (f) in x. It finally outputs the string v._.y.
+
+Compared to their deterministic counterparts that implement partial func-
+tions between strings, nondeterministic finite transducers (NFTs) can implement
+relations between strings; for example, mapping a string to all its substrings.
+However, NFTs lack the expressiveness to implement transductions such as (1)
+mapping a string w to all strings w’ obtained by swapping some prefix and suffix
+of w, (2) mapping w to all strings w’ = p.rev(m).s, where w has the form p.m.s
+(where p, m and s are substrings of w), and rev(m) denotes the reverse of m!.
+In addition to all transductions realized by NFTs, NSSTs can implement both
+of these transductions. The first transduction is implemented by an NSST with
+two string variables x and y. It nondeterministically chooses some prefix p to
+store in x and some substring m to store in y. It then sets y to y.x, resets x, sub-
+sequently copies the remaining input s to z, and finally outputs x.y. The second
+transduction is implemented by an NSST that copies some prefix p (chosen non-
+deterministically) to x, and uses y to compute rev(m) for a nondeterministically
+chosen m. It then sets x to x.y, subsequently appends the remaining input s to
+; and finally outputs zx.
+
+The organization of the paper is as follows: After defining the NSST model
+in Sec. 2, we characterize the expressive power of NSSTs in Sec. 3. We show
+that the expressive power of NSSTs is equivalent to that of nondeterministic
+MSO-definable transductions. We then compare both NSSTs and ¢-NSSTs— an
+extended model that allows ¢-transitions — with classical models such as two-way
+nondeterministic generalized sequential machines. In Sec. 4, we explore decision
+problems for NSSTs and their subclasses. An interesting and robust subclass of
+NSSTs is that of functional NssTs: these can have multiple runs on a given input
+
+8
+
+ 
+
+ 
+
+' For a given prefix p and a given suffix s, the transformation from p.m.s to p.reu(m).s
+is well-known as the inversion operator for a string representation of a chromosome
+[11]. Thus, this transduction generates all inversions of a string.
+
+
+--- Page 3 ---
+string, but the output produced in each run is identical. We show that checking
+whether an NSST is functional is decidable in PSPACE, and show that checking
+equivalence of functional NSSTs is PSPACE-COMPLETE.
+
+In [2], the authors show how pDsstTs can be viewed as natural models for
+a class of sequential heap-manipulating programs, and reduce the verification
+problem for such programs to decidable problems for Dssts. A key application
+for NSSTs would be in understanding the theoretical limits of the verification
+problems for concurrent heap-manipulating programs. Here, we wish to verify if
+the set of behaviors of the concurrent program (say mj || m2) is a subset of the
+set of behaviors engendered by some sequential execution of the programs m4
+and mp. For instance, checking linearizability of a set of methods often entails
+such a check. With this goal in mind, we show that checking if the set of outputs
+of an NSST is contained within the set of outputs generated by a fixed number
+of DssTs is decidable with PSPACE complexity.
+
+2 Transducer Models
+
+In this section, we introduce definitions related to transductions, review existing
+models for specifying transductions, and formally define NSSTs. We observe the
+following convention: the letters R and W denote transductions, and the letters
+T, D denote the transducers implementing transductions.
+
+Transduction. A transduction R from a finite input alphabet » to a finite output
+alphabet I is a subset of ©* x I*. A transduction is deterministic if for every
+ax € &*, there is at most one y such that (x,y) € R, i.e., R is a partial function.
+Otherwise, we say that the transduction is nondeterministic. Given an input
+x € X*, we use R(x) to denote the set {y | (x,y) € R}.
+
+Valuedness. A transduction is called finitary if for every x € X*, the set R(x) is
+finite. A transduction R is said to be k-valued for a given constant k, if the fol-
+lowing holds: Va € ©*: |R(x)| < k. A transduction is said to be bounded-valued
+if there exists some constant k such that R is k-valued. A 1-valued transduction
+is also called a functional transduction. A transduction is called bounded-length
+if there exists a constant k& such that for all x € Y* and for each y in R(x),
+\y| < k.|z|. Note that a bounded-valued transduction is obviously finitary, while
+every bounded-length transduction is also finitary: for a constant k, and a given
+input z, there are finitely many strings of length k.|z|.
+
+Example 2.1. Consider the transduction R.» C {a}* x (IU {#})* defined as
+the set {(a”, wi#w)|n > 0,w € I*,|w| = n}. Rep maps an input a” to a string
+containing two identical copies of some output string of length n, separated by
+#. As there are only finitely many strings of length n, Rp is finitary. Further,
+note that R.,p is bounded-length: for an input of length n, the output length is
+(2.n + 1). However, Rep is not bounded-valued as the number of output strings
+for an input of length n is |I°|?”.
+
+
+--- Page 4 ---
+Example 2.2. Consider the transduction Rnat C ©* x defined as the set
+foyum)|m 过le 2 Rn inonfinitary as it maps the input string w
+to the set of all multiples of the string w. Clearly, Rmx is neither bounded-
+valued nor bounded-length.
+
+Relational or Sequential Composition. Similar to [7], we use R, o Ry to de-
+note the composition of transductions R; and Rz (note the order): Ry o Rz =
+{(wi, ws) | dwe : (wi, we) € Ri A (we, w3) € Re}.
+
+2.1 Background
+
+We assume that each machine in the following discussion has finite input and
+output alphabets ’ and I’ respectively. Each machine reads words from *, and
+outputs words in I. We use the notation [/] to define the semantics of M: for
+an input string w € Y*, [LM] (w) defines the set of outputs of M on input w.
+
+Finite Transducers. A finite sequential transducer (denoted as NFT) is a finite-
+state device that has a one-way read-only input tape and a one-way output tape.
+It scans the input tape from the left to the right, and in each state it reads an
+input symbol, writes a finite string to the output tape, changes its state, and
+moves its reading head to the next position on the input tape. In each such step,
+it can nondeterministically choose its next state and the output string that it
+writes. The output of an NFT is the string on the output tape if the NFT finishes
+scanning the input tape in some designated final state. Formally, we define an
+NFT T as the tuple (Q, Y,I, E, qo, F) where Q is a finite nonempty set of states,
++} and I are input and output alphabets, F is a set of transitions defined as
+a finite subset of Q x (XU {e}) x Q x I*, the state qo € Q is an initial state,
+and F C Q is a set of final states. An NFT may contain transitions in which
+the NFT writes some output string or changes state without moving its reading
+head. We call such transitions as ¢-transitions, and a NFT in which such moves
+are disallowed is called a e-free NFT or a nondeterministic generalized sequential
+machine (NGSM).
+
+Two-way Machines. A two-way nondeterministic generalized sequential machine
+(denoted 2NGSM) is a finite-state device with a two-way read-only input tape
+and a one-way output tape. In each step, the machine reads an input symbol,
+changes its state, writes a finite string to its output tape, and moves its input
+head as per its finite-state control. The input head either does not move (denoted
+by 0), or is moved to the left (—) or to the right (+). In each such move, it has
+a finite number of nondeterministic choices for the next state, output string
+written and the direction for moving its head. The string on the input tape is
+assumed to be Fw, where and 4 (¢ &’) are special symbols known as the left
+and right end-markers. The NGSM halts if it moves right from 4, or left from F.
+It is possible that the computation of the machine may not terminate; however,
+only halting runs contribute to the output. The output of the machine is the
+string on the output tape if the machine terminates in a designated final state.
+
+
+--- Page 5 ---
+Formally, a 2NGSM is specified as the tuple (Q, ©, I, E, qo, F), where Q, Y, I,
+qo and F are defined as for finite transducers, while the set of transitions EF is
+defined as a finite subset of (Q x YU {F,4} x Q x {-,0,+} x I*).
+
+Determinism and Valuedness. The definition of determinism is the standard
+one: no two distinct transitions starting in a state q have the same input symbol
+symbol a. The deterministic versions of the machines defined above are denoted
+as DFT, DGSM, and 2DGSM. The transductions implemented by a DFT, a DGSM
+and a 2DGSM are obviously 1-valued (and thus finitary). Further, these trans-
+ductions can also be shown to be bounded-length, as on an input of length n,
+these machines take at most n steps, and each step contributes a constant num-
+ber of symbols to the output. In an NGSM, there are only finitely many paths
+corresponding to each input string, and the length of output along each such
+path grows proportional to that of the input. Thus, the transductions imple-
+mented by an NGSM are bounded-length (and thus finitary) as well. However,
+note that the transductions implemented by an NGSM are not bounded-valued in
+general. The transductions implemented by NFT and 2NGSM are neither finitary
+nor bounded-length.
+
+MSO-definable String Transductions. String transductions can be described us-
+ing Monadic Second Order logic [5,7]. The input to such a transduction is a
+string w = w w2... wp viewed as an input string graph G; with k+1 vertices
+U0,-++,Uk, Where the label of each edge (v;,v;41) is w;. The labels for the ver-
+tices and the edges appearing in the output string graph are expressed in terms
+of MSO formulas over a fixed number of copies of G;. Formally, a determinis-
+tic MSO-definable string transduction (DMsos) W is specified by? : (1) a finite
+copy set C, (2) for each c € C, vertex formulas y°(x), which are MSO formulas
+with one free first-order variable variable x, and (3) for each a € (IU {e}),
+c,d € C, edge formulas y4(x,y), which are MSO formulas with two free first
+order variables x and y. The output graph (G,) is defined as follows: for each
+vertex x in G; and c € C, the vertex «° is in G, if the vertex formula y*(x) is
+true, and for all vertices x°, y@, there is an edge (2°, y“) labeled by a if the edge
+formula y¢“(z) is true. Finally, the output is defined as the string formed by the
+sequence of symbols (other than <) that are the obtained by reading the labels
+of edges of the output graph G, in order. If G, is not a legal string graph the
+output is undefined. In case of MSO-definable transductions, we use the notation
+[W](z) synonymously with W(x), where «x is an input string.
+
+The nondeterministic variant of MSO-definable string transductions is ob-
+tained by adding free second-order variables %,...,%, that range over sets of
+vertices. The vertex and edge formulas in this case have these variables as addi-
+tional arguments. To obtain the output string graph, a (global) valuation of the
+
+ 
+
+? We present a definition slightly modified from the one in [7]. For ease of exposition,
+we omit specification of a domain formula ydom, as it can be included to be a part
+of the vertex and edge formulas. We also allow edges in the output graph to be
+labeled with the empty string ¢. It can be shown that such MSO-transductions are
+equivalent to MSO-transductions that do not make use of ¢-labels.
+
+
+--- Page 6 ---
+second-order variables %,..., 4 is chosen, and then the output string graph is
+obtained as in the deterministic case. As the valuation for %,..., 4 is chosen
+
+nondeterministically, there can be multiple possible outputs for a given input
+string.
+
+Example 2.3. Consider the transduction R,, = {(w, u#v)|u,v are subsequences
+of w}, where u,v,w € X*, and #¢ LY. We define R,, as a NMSOS transduc-
+tion W by choosing the copy set C = {1,2}, and two parameters % and
+X. We use the formula edge,(x,y) to denote that there is an edge labeled
+a between vertices x and y, and the formula last(x) (resp. first(x)) to denote
+that x is the last (resp. first) node in the input string graph. We now define
+the edge formulas: ye (x,y, X, X%2) = last(x) A first(y), and, Vj EC, Va EY:
+pid (x,y, X, X2) = (x € Xj) A edge, (x,y), and Vj € C: yh) (x,y, X1, %) = (a ¢
+Xj) \Vaex edge, (2, y). Intuitively, the second order variable 4; is used to guess
+which positions of the original string contribute to u, while 2 independently
+guesses which positions contribute to v.                                            口
+
+Hennie Machines. A two-way machine with a writable input tape and a write-
+only output tape is defined in similar fashion to a 2NGSM. The instructions of
+such a machine M are of the form (q,0/a, q’,), which means that in state g, M
+reads the symbol o from the tape, overwrites it with the symbol a, transitions
+to the state q' and writes the finite string y to the output tape. Here, a,a € XY,
+where » is the tape alphabet, and y € I*, which is the output alphabet. A
+computation of M is called k-visiting, if each position of the tape is visited at
+most k times. A Hennie machine is such a two-way machine with the property
+that there exists a constant k such that every computation of the machine is
+k-visiting. The classes of string transductions realized by nondeterministic and
+deterministic Hennie machines are denoted by NHM and DHM, respectively.
+
+Example 2.4. Consider the transduction Rep of Ex. 2.1. In [7], it is shown that
+Rep can be realized by an NHM moving in two left-to-right passes over the tape.
+In the first pass, it nondeterministically overwrites the input string a” with some
+output string w, and also writes w to the output. It then scans backward to the
+beginning of the (overwritten) input, writes # to the output, and copies the
+contents of the input tape to the output a second time. The NHM is 3-visit. O
+
+2.2 Streaming String Transducers
+
+Deterministic streaming string transducers (DSST) have been proposed as an
+effective machine model for MSO-definable string transductions [2,1]. A DssT
+makes a single left-to-right pass over the input string mapping it to the output
+string, while using a fixed set of string variables that can store strings over
+the output alphabet. In each step, a DSST reads an input symbol a, changes
+its state and updates all its string variables simultaneously using a copyless
+assignment. The right-hand-side (RHS) of any assignment to a string variable is
+a concatenation of output symbols and some string variables, with the restriction
+
+
+--- Page 7 ---
+hat in a given parallel assignment, any string variable can appear at most
+once across all the right-hand-sides. For instance, let X = {x,y} be the set
+of string variables, and let a,8,y € I* be strings of output symbols. Then,
+he update (2, y) = (a.x.8.y.y, €) is a copyless assignment, as it contains only
+one occurrence of x and y each. On the other hand, the assignment (x,y) =
+(x.y, y-a) is not copyless as the variable y appears in the RHS twice. The two
+main extensions to the DGSM model are that (1) DSSTs are not constrained to
+add output symbols only at the end of the tape, and (2) they can compute
+he output in multiple chunks that can be extended and concatenated (but not
+duplicated) as needed.
+
+We now present a nondeterministic extension of DssTs: the class of non-
+deterministic streaming string transducers (NSSTs). An NSST is defined as the
+uple (Q, 2,I, X,E,qo, F), where Q is a finite nonempty set of states, ©’ and
+I are respectively the input and output alphabets, X is a finite set of string
+variables with A as a set of copyless assignments to variables in X (mappings
+a from X to (X UI)* such that for any x € X, x appears at most once in
+he set {a(y) | y € X}), E is a set of transitions that is a finite subset of
+(Qx Xx Ax Q), qo is an initial state, and F : Q > (X UT)* is a partial output
+unction such that for every g € Q and x € X, there is at most one occurrence
+of x in F(q).
+
+ 
+
+Semantics. We first make an observation: copyless assignments are closed under
+sequential composition, i.e., 过 al and a2 are copyless assignments, the assign-
+ment a10 a2 is also copyless. We define the semantics of an NSST in terms of
+the summary of a computation of the NssT. For an NSST starting in state q
+and processing the input string w, the summary is a set of pairs of the form
+(a,q’), where a represents the effect of a sequence of copyless assignments to
+the string variables, and q’ is a possible next state. Let id denote the iden-
+tity assignment, i.e., it maps each x to x. We inductively define the sum-
+mary A as a mapping from Q x U* to 24*@, where: A(q,e) = {(id,q)}, and
+A(q,w.a) = {(awoa,q) | aq, st. (awa) € A(g,w) A (qi,4a,0,¢q) € E}.
+
+A valuation of a string variable is defined as the function v : X > I*, which
+maps each variable to some string in I*. Such a valuation is extended to map
+strings in (X UI)* to I* in a natural fashion. Let v- be the initial valuation,
+where for all x € X, v-(a) = ¢. We define the semantics of an NSsT T as the set
+of outputs [7] (w) generated by T on input string w:
+
+[T] (w) = {ve(awoF(q)) | (aw, q) € Algo, w) and F'(q) is defined}.
+We now illustrate the model using a couple of examples.
+
+Example 2.5. The Nsst T,, implementing the transduction R,, from Ex. 2.3 has
+a single state q and uses two string variables x and y. For each input symbol a, it
+nondeterministically decides to append a to x or y or both or none. Formally, the
+transitions of T,, are of the form (q,a, (x,y) := (#71, y-72),q), where 71,72 €
+{e,a}. The output function is defined as F(q) = 2.#-.y.                          口
+
+
+--- Page 8 ---
+Brzrample 2.6. The NSST Tcp implementing the transduction R,, from Ex. 2.1 has
+a single state q and uses two string variables x and y. For each input symbol it
+nondeterministically chooses an output symbol 7 € {a,b} and appends it to both
+xand y, i.e., the set of transitions E = {(q, a, (x,y) := (x.7,y-7), | ¥ € {a, b}}.
+The output function is defined as F(q) = x.#-y.                                口
+
+Extensions and Subclasses. An NSST with e-transitions (e-NSST) can update its
+string variables and change state without consuming an input symbol, i.e. E is
+a finite subset of (Q x (7U {e}) x Q x A). As we will see in Sec. 3, an €-NSST is
+more powerful than an NSST as it can implement nonfinitary transductions.
+
+Lastly, we note some important subclasses of NSSTs, based on their valued-
+ness. An NSST T is said to be k-valued, if the underlying transduction that it
+implements is k-valued, i.e. for a given constant k, Vw € *, |[T](w)| < k. If
+there exists some constant k such that T is k-valued, we say that T is bounded-
+valued, and if k = 1, we say that the NSsT is functional. A functional NSST has
+the property that for any input string, all runs that end in a state q where F(q)
+is defined produce the same output string. Thus, the transduction realized by
+such an NSST is a partial function. Functional NSSTs are an interesting subclass
+of NssTs, as their decision problems have good algorithmic properties.
+
+ 
+
+3 Expressiveness Results
+
+In this section, we first characterize the expressive power of NSSTs and then
+highlight some of the important properties of NSSTs. For classes of transductions
+C, and C2, we denote by Ci C C2 the fact that for every transducer T of type
+C\, there is a transducer T” of type C2 such that [7] = [T’]. We say that C; is
+equi-expressive to C2 if Cy C C2 and C2 C Cj. The following relationships are
+known: DMSOS = 2DGSM [7], DMSOs = pDssT [1], NMSOS Z 2NGSM and 2NGsM Z
+NMsos [7].
+
+We begin by comparing the expressive power of NSSTs with respect to that
+of existing models/machines for nondeterministic transductions such as NMSOS-
+transductions, NGSM, and 2NGSM.
+
+3.1 Comparing NSsTs with existing models
+
+Expressive power of NGSM vs. NSST. A NGSM is a NSST with a single string
+variable (say x), and every transition is of the form (q,a,x := x.y,q'), where
+ae, and y € I*. Thus, NGSM C NSST.
+
+Expressive power of NMSOS vs. NSST. We now show that the the class of NSSTs
+is equi-expressive to NMSOS-transductions. We first show that for every NMSOS
+W, we can obtain a Nsst T such that [W] = [J]. The key idea is that any
+NMSOS transduction can be expressed as the composition of a nondeterministic
+
+
+--- Page 9 ---
+string relabeling relation with a DMSOS transduction, and that for each DMSOS
+transduction, there is an equivalent DSST3.
+
+Lemma 3.1. NMSOS C NSST.
+
+Proof. Let W C &* x I’* be an NMSOS transduction. We show the existence of
+an equivalent NssT T that implements W.
+
+A tranduction p C LY} x Y3 is called a string relabeling if (e¢,<) € p, and
+there exists a relation R C XY x X> such that (a.w,b.w’) € p if (a,b) Ee R
+and (w,w’) € p. We recall a result from [7] that shows that for every NMSOS
+transduction W C &* x I*, we can find a string relabeling transduction p C
+&”* x Lf and a DMSOS transduction Wager C YT x I* such that W = po Wier.
+We note that from [1] we know that for every DMSOS transduction from 2 to
+I, there exists an equivalent DssST (say Tye:) that implements it.
+
+Let R = Y x LY. Now consider the transformation in which we replace every
+transition of Tyj., of the form (q,0’,a,q') by a set of transitions {(q,0,a,q') |
+(o,0’) € R}; let the resulting transducer be denoted by T. It is clear that T may
+be nondeterministic, as the replacement transformation might cause transitions
+labeled with distinct o’ symbols to be labeled with the same co.
+
+For the above R, consider the string relabeling transduction p; it contains
+all pairs of strings (u,u’) such that wu € D* and u’ € SY}. Further, we know
+that for each wu’ input to Tuer, if (u’,w) € [Tuer], then (u’,w) € Waer. Thus, for
+each u € &* and each w € [T]](u), there exists a w such that (u,u’) € p and
+(u’, w) € Waet. In other words, T is an NSST that implements the transduction
+po faer ie it implements W.                                              口
+
+We now show that for every NSST 了 we can define a NMSOS transduction
+W such that [7] = [W]. In [1], the authors shows how a sequence of states
+and copyless assignments of a DSST can be encoded in the copy set of a DMSOS-
+transduction. As a run of an NSsT T' is such a sequence of states and assignments,
+it can also be encoded in the copy set of a DMSOS-transduction. The key ideas
+in this construction are: (1) Let nz = maxg |a(x)| (i.e. the maximum number
+of output symbols added by any assignment to the string variable x). Then,
+
+assignments to x can be encoded within a copy set that has at most n,,+2 copies.
+b
+
+ 
+
+In any step, for each string variable x, we maintain a designated start vertex 2’
+and a designated end vertex x° for x, and the valuation of x (v(x)) is obtained
+from the string graph corresponding to the path beginning at x? and ending in
+x®, This graph is linear and connected by construction. (2) Concatenation of
+
+3 In the original version of this paper, we had a different proof that relied on NSSTs
+being closed under sequential composition. However, the proof for closure under se-
+quential composition had a bug that was pointed out to us by Joost Engelfriet in
+personal correspondence. Further, he also pointed out that closure under sequen-
+tial composition does not seem to be key for proving Lemma 3.1. Thus, the re-
+vised proof does not use the closure property. Once we independently establish that
+NMSOS-transductions and NSST are equi-expressive, closure under sequential compo-
+sition follows from the fact that NMsoOs-transductions are closed under sequential
+composition (Theorem 3.3).
+
+
+--- Page 10 ---
+string variables, say z := x.y, is encoded by adding an edge between x° and y?.
+(3) A state of the streaming transducer can be encoded by an MSO-formula on
+the input graph (these formulas essentially capture the next-state function). (4)
+The output is defined if the output graph — the sequence edges beginning in the
+start vertex for the output and concluding in the end vertex — is a string graph.
+
+Lemma 3.2. NSST C NMSOS.
+
+Proof. Recall that a NMSOSs transducer W has a finite copy set C, and a finite
+set of parameters ¥ = {X,...,¥%m}, i-e., second order variables ranging over
+sets of vertices. This proof combines two main ideas: (a) a given run of a NSST
+T can be encoded in the finite copy set of a NMSOS transducer W, and, (b) each
+run of T can be guessed by W by guessing a valuation for its parameters. The
+construction for part (a) is as discussed, for details see [1]. We focus on part (b).
+
+As T is nondeterministic, there may be multiple transitions on a given input
+symbol that are enabled in a state g. However, as the assignment in each transi-
+tion is a copyless assignment over the same set of string variables, the copy set
+required is the same as that for encoding a single run. However, different runs
+may label an edge in the copy set with different labels.
+
+To make the NMSOS transduction W mimic a single run of T, we add param-
+eters that consistently choose among the different labels available for a given set
+of edges. Let the maximum number of transitions of T from any state q on any
+input symbol a be d. Then, W uses the set of parameters ¥ = {%,..., Xa}.
+Intuitively, the j*” nondeterministic transition of T is chosen by W if the corre-
+sponding vertex of the input graph is present in the valuation chosen for 4; by
+W. Choosing the j‘” transition fixes a particular assignment a, to each string
+variable v. Now for each edge formula yi! (x,y) that encodes the action of aj,
+we define yi) (x,y, ¥1,...,¥a) = gid (x,y) A (x € Xj). We can similarly encode
+the next state function in terms of the parameters.
+
+ 
+  
+
+We also assume that each of the vertex and edge formulas is conjoined with
+a domain formula that specifies that for any vertex x € Gj, x is contained in at
+most one 1X; in a given valuation, and the union of all 4; covers the set of all
+vertices of the input graph‘. In other words, using the parameters in Y, W first
+guesses a possible sequence of choices at each state in T’, and then encodes that
+sequence using the copy set and next-state relations (which are MSO-formulas as
+in the deterministic case). It is obvious that the number of parameters required
+is at most d, and thus finite.                                                  口
+
+ 
+
+ 
+
+From Lemmas 3.2 and 3.1, we can conclude that NSSTs are equi-expressive
+to NMSOS-transductions, formalized in Theorem 3.1 below.
+
+Theorem 3.1. NSST = NMSOS.
+‘ It. further ensures the technicality that if the number of outgoing transitions of T
+
+corresponding to a particular state and input symbol is d’, where d’ < d, then in
+this case, all %; where j > d’ always evaluate to the empty set.
+
+10
+
+
+--- Page 11 ---
+Comparing €-NSSTs with existing models. We now investigate the expressive
+power of €-NSSTs, i.e., NSSTs that are allowed transitions without consuming
+any input symbol. The expressive power of €-NSSTs is greater than that of NSSTs:
+consider an €-NSST in which there is a state g reachable from the initial state qo
+on the input string w, and q has an e-loop (a cycle with only ¢-transitions) that
+adds some symbols to the output. The set of outputs for any input with w as its
+prefix is infinite, as the ¢-NSST can cycle through the ¢-loop an infinite number
+of times. Thus, the transduction realized by a general ¢-NSST is nonfinitary.
+
+If we restrict €-NSSTs so that they are ¢-loop-free, then we can show that the
+class of such transducers coincides with Nssts. The proof uses a construction
+similar to the one used for eliminating ¢-transitions in NFAs: a finite sequence of
+transitions of the form (q1,¢,a1,q2), ---; (Qn, €,OnsQn41), (n41,4, 8, q') can be
+replaced by the single transition: (q1,a,a10...0@n,0,q’). Since the transducer
+is c-loop-free, an infinite sequence with ¢-transitions does not exist.
+
+We now compare €-NSSTs with 2NGsMs. Though both classes can implement
+nonfinitary transductions, we show that their expressive power is incomparable.
+We first note that NMsos Z 2NGSMs [7], and as NSST = NMSOS (Theorem 3.1),
+and NSST C e-NSST, we have that «-NSST Z 2NGSM, i.e., there are transductions
+implemented by NSsTs and ¢-NSSTs that cannot be implemented by 2NGSMs. We
+further show that 2NGSM ¢ e-NSST, by an example transduction that can be
+realized by a 2NGSM but cannot be realized by an e-NssT. A similar example
+is used in [7] to show the incomparability of NMSOS with 2NGSM; however, the
+argument used therein is not applicable in our setting, as the transductions
+realized by both 2NGSMs and €-NSSTs are nonfinitary.
+
+ 
+
+ 
+
+Theorem 3.2. The transduction Rmun = {(w,w™)|m > 1,w € L*} can be
+realized by a 2NGSM, but cannot be realized by an €-NSST.
+
+Proof. The 2NGSM implementing the transduction Rui has three states q, q
+and halt. It starts in state g scanning the input | w from left to right, simul-
+taneously copying it to the output. Upon reaching 4, it either transitions to the
+state halt and moves right from 4, or transitions to q and scans the input from
+right to left without producing any output. Once it reaches F, it transitions back
+to the state q.
+
+We note that Rmui: is a nonfinitary transduction. If there is a e-NSST T_ that
+implements it, it must have a ¢-loop on some state g that is reachable from the
+initial state go. We denote the summary of T- for the e-loop by A(q, €-loop).
+Suppose A(q, e-loop) = (8,q). Let u,v € X* be substrings of w such that u.v =
+w, u is the input that drives T. from qq to qg, and v is the input that drives
+T- from q to some state gq’ (possibly the same), where F(q’) is defined. Now let
+A(qo,u) = (a1,q), A(q,v) = (a2, q’). Then A(q, w) is the set {(a1 0a2,q'), (ay 0
+Boag,q'),(a1 0B Boag,q),...}.
+
+Suppose the number of symbols added to the output by aj is ti, by @ is t,
+and by ag is tg. Then the lengths of the outputs of T- in state q’ are t; + te,
+ty + t+ te, ty + 2.4 te, and so on. However, Rmui requires that for any input
+w, each of the outputs have length that is a multiple of |w|. This is possible
+
+ 
+
+11
+
+
+--- Page 12 ---
+only if t) = t2 = 0 and t = |w|. However, t is a fixed number for a given <-loop,
+and independent of the input w. Thus, once we fix T:, it will produce incorrect
+outputs for any w where |w| 4 t.                                                口
+
+3.2 Properties of NSSTS
+
+As NMSOS transductions are closed under sequential composition [4,7], the fol-
+lowing result follows from Theorem 3.1.
+
+Theorem 3.3. Let T; be a (21,1) )-Nsst, Tz be a (X12, X'3)-NSST, then there
+exists an (1, %'3)-NSSt T, = T, 0 To, ie., for all strings w € Lf, we have
+[Treo = LU [Palu).
+
+ue[Ti ](w)
+
+Theorem 3.4. The transduction implemented by an NSST T is bounded-length,
+ie., there exists a constant c such that Vw € &*, ifu € [T](w), then |u| < c.|w.
+
+Proof. We use the notation |a(x)| to denote the number of output symbols in
+the expression a(x). We define |a| = >>,,(\a(z)|). Now let maz = maxy(|a]),
+i.e., the maximum number of output symbols added by any transition in T. Let
+Uw be the shorthand for some output of T upon reading the string w. We prove
+the result by induction on the length of the input. The base case is valid; since
+if |w| = 0, the length of u, is zero. The inductive hypothesis is stated as follows:
+for input w, if uw, € [T](w), then |uw| < lmaz-|w|. Now consider an input of the
+form w.a, and let q be the state of T after reading w. Let E’ be the subset of
+E containing transitions of the form (q,a, 3,q'). The number of output symbols
+added by any transition in E’ is bounded by maxzy |3|. However, by definition,
+Cmax > Max |8|. Thus, for any uw.a € [T](w.a), \uw.al < Cmax-|w] + lmax-
+Thus, |uw.a| < maz-|w-a|, since |w.a| = |w| + 1.                             口
+
+Functional NSSTs. It is clear that the expressive power of functional NSSTs is
+identical to that of the class DSST, as a transduction realized by a functional
+NSST is deterministic and MSO-definable, i.e., a DMSOS transduction, which is
+the same as that for a DSST.
+
+Theorem 3.5. Functional NSST = DSST.
+
+It is also easy to show that functional NSsTs are closed under sequential com-
+position. The results follow from the fact that NSSTs are closed under sequential
+composition, and single-valued transductions are closed under sequential compo-
+sition. Finally, the expressivity relations between the different transducer models
+are as shown in Fig. 3.1.
+
+4 Decision Problems
+
+In this section, we discuss decision problems for NSSTs, with special heed to the
+class of functional Nssts. In what follows, we make use of 1-reversal-bounded
+
+12
+
+
+--- Page 13 ---
+NSST = NMSOS = NHM
+DSST = DMSOS = DHM =          e-NSST
+2DGSM = Functional NSsT
+
+ 
+
+ 
+
+2NGSM
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 3.1: Expressivity Results.
+
+m-counter machines. Such a machine is an NFA augmented with m counters,
+where each counter can make at most one reversal (i.e., in any computation
+each counter can go from increasing to decreasing mode at most once). It has
+been shown that the nonemptiness problem for such machines is in NLOGSPACE
+in the size of the machine’s description. For further details on reversal-bounded
+counter machines, please see [9].
+
+Checking functionality. We now address the problem of checking if an arbitrary
+NSST is functional. We show that this problem is decidable, and present an
+algorithm with PSPACE complexity. To a large extent, our algorithm draws upon
+techniques developed for checking equivalence of DssTs discussed in [2]. We use
+the following intuition: An NSST is not functional if there exists some input
+string w such that there are outputs yi, y2 € [T](w) and y: # yo. We reduce
+the problem of finding such distinct outputs to the nonemptiness problem for a
+1-reversal-bounded 2-counter machine as shown in the following theorem.
+
+We assume that in the given NSsT, for any state g, F(q) maps to a single
+string variable x. An NSST in which F(q) is some general expression a can be
+converted to an equivalent NSST where each F(q) maps to x. This is done by
+adding a dummy final state qf, and for all states q, we add a transition from q
+(where F(q) = a) to qf such that «x is assigned to a on that transition.
+
+Theorem 4.1. For an Nsst T, checking if T is functional is in PSPACE.
+
+Proof. We construct a 1-reversal-bounded 2-counter machine M that for a given
+input string w simultaneously simulates two paths in T corresponding to w,
+and checks if the resulting outputs u; and uz differ because of either of these
+conditions: (1) |ui| 4 |ual, é.e., the lengths of u; and uz are different, (2) there
+exists a position p such that® u,[p] 4 u2[p]. M nondeterministically chooses one
+of the above conditions to check. Checking the first condition is easier and uses
+
+ 
+
+5 For a string s, we denote by s[p] the pr symbol in s.
+
+13
+
+
+--- Page 14 ---
+similar techniques as for checking the second condition; thus, we focus on the
+latter. We now explain how the second condition is checked.
+
+M precisely keeps track of the state of T in
+
+each of the two paths being
+
+simulated in its state. At the beginning of the computation, M pre-loads its
+
+counters cy; and cg with the same number; this
+position p in which the outputs might differ. For
+in the simulation, M nondeterministically guesses
+copyless assignment in this step appears at the p'”
+output u;, and remembers 4; in its state. It also gue
+appears with respect to p in this output. Concre
+
+number is the guess for the
+ath i (i = 1,2), at some step
+hat the symbol +; added by a
+position in the corresponding
+sses where each string variable
+ely, we define the mapping @
+
+(called the string variable class) from X to an element of ¢ = {L,R,C, N}. Here,
+
+o(a) is L, R, C or N, depending on whether x a
+
+ppears to the left of p, to the
+
+right of p, contains p, or does not contribute to the output respectively. For each
+
+output symbol added to the left of p in the first pa’
+ci, and for each output symbol added to the left
+decrements C9.
+
+th, M decrements the counter
+of p in the second path, M
+
+Let the symbol 1 denote that M has not made its guess for the symbol in
+
+position p. Let I’ = ['U {1}. Formally, the set
+of (Q x Q x (I’ x ¢*) x (I" x CX)). To elabora
+
+of states S of M is a subset
+e, the meaning of some state
+
+(¢,7',71; 01,-L, 2) in M is: T reaches states dg and q’ from its initial state on
+
+the same input string; M has guessed that the
+not yet guessed the symbol at us[p], and the map
+to classes along the two paths are 01 and g. Ex
+
+symbol at ui[p] is 71, M has
+ings from the string variables
+cept for the initial transitions
+
+where M pre-loads c; and cg, all transitions of M decrement the counters by
+
+ 
+
+ 
+
+some non-negative amount. Thus, the counters o!
+
+M are single-reversal.
+
+The transitions of M are defined in a way that ensures that M consistently
+
+guesses the classes for each string variable. We illustrate this with two examples.
+
+.    .      ws      a/(«, y):=(«.d.y, b)       , afa ,
+Suppose T has the following transitions: g —————~————_> r and q/ —> 1’,
+where a is some copyless assignment.
+
+Suppose in state r, M guesses that the symbol d added to the string vari-
+able x appears at w;[p]. In order to maintain consistency, in state g, M must
+have assigned x to the class L, and y to the class R. In other words, we add
+a transition from the state (q,q',-L,[o1(z) = L,oi(y) = R],72, 2) to the state
+(r,r’, d, [o4(x) = C, of (y)], 72, ef), with no change to the counters. The mapping
+o,(y) maps y to any string class in ¢ other than C, and the mappings 2 and 04
+similarly ensure consistency with the assignment a along the second path.
+
+Now consider the case where in state r, M guesses that the contents of x
+(which are now x.d.y) appear to the left of the position p in u;. In order to
+maintain consistency, in state g, MM must have assigned x and y to the class
+L. Thus, we add a transition between the states (q,q',71, [o1(z) = L,oi(y) =
+L), 72, 02) and (r,7r’,¥1, [04 (x) = L, of (y)], 72, of) in M. As the assignment adds
+one letter to the left of p, M decrements c; by one. Here, 0{(y) maps y to any
+string class in ¢, and 7 is propagated unchanged.
+
+Initially, no string variable is guessed to be in the class C, and at each step
+at most one string variable can be guessed to be in the class C. At the end of
+
+14
+
+
+--- Page 15 ---
+a computation, if cl = c2 = 0, then it means that the symbols ?71 and ?2 in the
+state of M are Symbols in the same position p in w and w2, 1e 7一] and
+2 = Ug[p|. We define a state (q, q', 71, 02, 72, 02) of M as accepting if cy = cy = 0,
+‘1 4 72, and if F(q) and F(q’) are both defined in T. M thus accepts only those
+paths that are witnesses to an input string that leads to two distinct output
+strings. In other words, T is functional iff M is empty. The problem of checking
+nonemptiness of 1-reversal bounded m-counter machines is in NLOGSPACE in the
+size of M. As the total number of states of M is (|Q|?.(\I'| + 1)2.|¢)?'*)), ie,
+exponential in the size of X, the above technique gives us a procedure that is in
+PSPACE.                                                                             口
+
+ 
+
+Equivalence Checking. We now discuss the equivalence problem for NSSTs. Given
+two Nssts T, and Ty from » to I’, the equivalence problem is to determine if
+for all inputs w € &*, [T,](w) = [Ty] (w). We start with a negative result that
+shows that for the general case of NSSTs, checking equivalence is undecidable.
+
+Theorem 4.2. The equivalence problem for NSSTs is undecidable.
+
+Proof. As mentioned in Section 3.1, an NGSM is a special case of a NSST. The
+result follows from the fact that the equivalence problem for NGSMs is known to
+be undecidable by a reduction from the Post Correspondence problem [8]. 0
+
+If we restrict our attention to functional NssTs, the equivalence problem is
+decidable and a minor modification of the algorithm for checking equivalence
+of DsstTs in [2] can be directly applied to give a PSPACE complexity procedure.
+Moreover, we show that the problem is in fact PSPACE-COMPLETE.
+
+Theorem 4.3. The equivalence problem for the class of functional NSSTs is
+PSPACE-COMPLETE.
+
+Proof. Membership in PSPACE can be shown by using an algorithm similar to
+the one for checking equivalence of DssTs [2].
+
+We further show that the problem is PSPACE-HARD by a reduction from the
+equivalence problem for NFAs. We can encode an NFA as an NSST T’ which uses
+only one string variable x and never changes the value of x from the initial value
+of e. The states of the NFA are the same as the states of T. We define the output
+function F of T such that for each final state q¢ of the NFA, in the corresponding
+state of T, F(qr) = x, and for all other states q of the NFA, F(q) is undefined.
+Clearly, [T](w) = {e} implies that w is accepted by the NFA. Observe that
+the NssT defined thus is functional: for all inputs w, [T](w) is either empty or
+contains exactly one symbol. If two such NssTs T; and T> are equivalent, it means
+that either (1) there exist runs of T; and T2 in which both read the same input
+string w, and produce the same output ¢, or (2) all runs of T; and T> reading
+the same input string w reach some states q and q/ respectively, such that Fj (q)
+and F,(q’) are undefined. In other words, two such NSsTs are equivalent iff the
+encoded NFAs are equivalent.                                                   口
+
+15
+
+
+--- Page 16 ---
+Containment. The problem of checking if the transduction realized by an NSST
+is contained within the outputs of a finite set of DSSTs is of particular interest in
+applications such as the verification of concurrent heap-manipulating methods.
+Given an Nsst T, and a set of DssTs Dj,...,Dm, we show that the problem
+of checking if the set of outputs of T is contained within the set of outputs of
+Dj,...,Dm is in PSPACE by reducing the problem to the nonemptiness problem
+for 1-reversal n-counter machines.
+
+Theorem 4.4. Suppose Dj,...,Dm, are (X',I°)-Dsst, and T is a (2, I’)-Nsst.
+Checking if [T] CUS, [Dj](w) is in Pspace.
+
+Proof. We observe that [T] Z Uj", [Dj] (w), if there is a run of T on the input
+string w that produces an output u, such that for all the DssTs Dj, either the
+output of D; on w is undefined, or the output of D; is different from u;. Formally,
+
+m [ [Dj] (w) is not defined v
+dw e *, dur € [T](w) : 人    jue| A [LD] (w)|       Vv             (4.1)
+j=1 \ Sp; ((uelps] A [Dj] (~) Ips)
+
+We can expand the above condition to obtain a disjunction over different
+combinations of conjunctions of the inner disjuncts. Each term in this disjunct
+illustrates a way in which w; is not generated by all of the m DssTs. We construct
+a 1-reversal (2.m)-counter machine M that nondeterministically decides to check
+one of the conjunctive terms in (4.1). In particular, we show how M checks
+the conjunction: Nea (wp # [Dj] (w)[p;])), the other conjunctions are simpler
+and can be checked by similar techniques.
+
+M simulates the action of D,...,Dm, and T in parallel. It precisely keeps
+track of the states of each of these transducers in its state. For each pair (D;,T),
+M maintains a pair of counters (cjz, c,j). For each of these m pairs, M pre-loads
+the counters with some number p; (the same for both), which is the guess of
+M for the position p; such that u[p;] # [Dj] (w)[p;]. At some point in its
+simulation of T (resp. D;), M guesses that it has output the symbol yj = uz[p;]
+(resp. Yj = [Dj] (w)[p;]) and remembers it in its state. It also guesses where
+each string variable of T (resp. D;) appears with respect to the position p;, thus
+mapping each string variable to a class in ¢ = {L,C,R,N}. For each output
+symbol added by T (resp. Dj) to the left of p;, M decrements the counter c,;
+(resp. cj) by one.
+
+Let I’ = [U{L}, where 1 is the symbol indicating that M has not guessed
+the symbol at position p; yet. The set of states of M is a subset of ((Qr x
+Qi x... X Qm) x (LP? x CXF x OX) x x (P? x CXF x C*™)). The transitions
+of M are defined in similar fashion to those in the proof of Theorem 4.1 end
+ensure that the guesses of M for the string variable classes are consistent with
+the transitions in T, D1, ..., Dm. Note that apart from the initial transitions
+of M that pre-load the counters, all transitions decrement the counters by some
+non-negative number; thus M has only one reversal.
+
+Once M reaches the end of the input string w, it checks if the symbol guessed
+for D; and T is at the same position p;, by checking if c,; = cj, = 0. We define a
+
+ 
+
+16
+
+
+--- Page 17 ---
+state as accepting if for all j, cj, = cj = 0, and for each pair of symbols recorded
+in the state, yj, A Yj. In other words, M accepts a computation iff it encodes
+the parallel action of T, D,,...,D,, on an input string w, producing an output u;
+in [7] (w) such that wu; is different from each of the m outputs of the transducers
+Di,...,Dm. Thus [T] C Uj, [Di] iff M is empty. From [9], we know that
+checking the nonemptiness of a 1-reversal n-counter machine is in NLOGSPACE
+(in the size of M). For a fixed m, the number of states of M is dominated by
+an exponential in the size of the largest set among X7,Xj,...,Xm. Thus, the
+
+above construction yields us a procedure that is in PSPACE.                    口
+
+5 Discussion
+
+Checking k-valuedness. A k-valued NSST naturally extends a functional NssT.
+This class is not closed under sequential composition because given two k-valued
+transducers T, and T>, the NssT T; o T> could be k?-valued. Checking if an
+arbitrary NssT T is k-valued is decidable. We skip the proof in interest of brevity.
+Similar to the proof of Theorem 4.1, the basic idea is to reduce k-valuedness of an
+NSST to the nonemptiness problem for a 1-reversal-bounded (k.(k + 1))-counter
+machine M that detects if there is some input w on which T produces (k + 1)
+distinct outputs. M simulates (k + 1) copies of T in parallel, and for each pair
+of the possible (k +1) outputs, M uses a pair of counters to check if the outputs
+are different. MM is empty iff T is k-valued. Our approach can be viewed as an
+extension of the algorithm to check the k-valuedness of NFTs [10].
+
+Equivalence of k-valued NSSTs. The equivalence problem for k-valued NFTs has
+been shown to be decidable in [6], and more recently in [14]. We are interested in
+investigating the same problem for k-valued Nssts. The approach in [6] reduces
+the equivalence of k-valued NFTs to the solution of an infinite system of word
+equations, which by the validity of Ehrenfeucht’s conjecture, is equivalent to
+a finite subsystem. The authors then show how the finite subsystem can be
+effectively characterized for NFTs, which leads to a decision procedure. The proof
+of [6] relies on the fact that the valuedness of an NFT is at the most its maximum
+edge-ambiguity®. However, as the maximum edge-ambiguity of an NSST does not
+place such a bound on its valuedness, this proof strategy fails for proving the
+decidability of equivalence checking for k-valued Nssts. In [14], the authors rely
+on a procedure to decompose a k-valued NFT T into k functional NFTs whose
+union is equivalent to T. Whether such a decomposition can be generalized to
+NSSTs remains open.
+
+Bounded-valued NSSTs. The class of bounded-valued NFTs has been extensively
+studied in the literature [15], [12]. The class of bounded-valued NssTs promises to
+be a robust class. Unlike the class of k-valued NssTs, it is closed under sequential
+composition. In both [15] and [12], it is shown that the problem of checking if an
+
+© The edge-ambiguity of a transducer is the maximum number of transitions between
+any two states q and q’ that have the same input symbol.
+
+17
+
+
+--- Page 18 ---
+NFT is bounded-valued can be checked in polynomial time by verifying certain
+conditions on the structure of its transition diagram. We believe that it may
+be possible to generalize these conditions to characterize bounded-valuedness
+of Nssts. However, the extension is not straightforward due to the presence of
+multiple string variables, and allowing output symbols to be appended to the
+left as well as to the right.
+
+In summary, some of the interesting open problems are:
+
+— Is the equivalence problem for k-valued Nssts decidable?
+
+— Given a k-valued Nsst T can it be effectively decomposed into k functional
+Nssts T},...,Tk, such that [7] =U*, [Ti]?
+
+— Is the bounded-valuedness of NSsTs decidable?
+
+Applications. One of the motivations for studying NSSTs is their potential as
+models for verifying concurrent heap-manipulating programs. In [3], the authors
+study the problem of verifying linearizability of methods that modify linked-
+lists. Checking linearizability of a pair of methods m, and mz involves verifying
+if the interleaved execution of m; and mz (denoted by mj || mz) finishes with
+the same linked-list as executing m followed by mz (denoted by mi;mz2) or
+mg followed by m, (m2;m 1). The authors show that with a specific regimen for
+pointer updates this problem can be algorithmically solved.
+
+In [2], the authors have demonstrated how sequential heap-manipulating
+methods can be modeled as DsstTs. Proving linearizability of methods m,; and
+mg is thus the same as verifying if the interleaved product of the corresponding
+pssts D; and Dy is contained within their union, i.e., checking if [D, || Do] C
+([Di o Da] V [D2 o D,]). In general, it may not be possible to model the inter-
+leaved product of DSSTs as an NSST. However, if we identify a subclass of DSSTs
+such their interleaved product is an NSST, then checking linearizability reduces
+to checking containment of this NSST in the finite union of the DssTs (each of
+which represents a possible sequential execution of the DSSTs). We have shown
+that checking containment is decidable in PSPACE. Thus, we believe that NSSTs
+could serve as a foundational model of concurrent heap-manipulating methods,
+by helping us better understand the theoretical limits of decidability of the ver-
+ification problems for such methods.
+
+ 
+
+Acknowledgements
+
+We thank Joost Engelfriet for pointing out the mistake in the proof of closure
+under sequential composition of NSSTs in the original version of the paper that
+appeared in the Proceedings of ICALP 2011.
+
+References
+1. Alur, R., Cerny, P.: Expressiveness of streaming string transducers. In: Proc. of
+
+Foundations of Software Technology and Theoretical Computer Science. pp. 1-12
+(2010)
+
+18
+
+
+--- Page 19 ---
+10.
+
+11.
+
+12.
+
+13.
+
+14.
+
+15.
+
+Alur, R., Cerny, P.: Streaming transducers for algorithmic verification of single-
+pass list-processing programs. In: Proc. of Principles of Programming Languages.
+pp. 599-610 (2011)
+
+Cerny, P., Radhakrishna, A., Zufferey, D., Chaudhuri, S., Alur, R.: Model checking
+of linearizability of concurrent list implementations. In: Proc. of Computer Aided
+Verification. pp. 465-479 (2010)
+
+Courcelle, B.: The expression of graph properties and graph transformations in
+monadic second-order logic. In: Rozenberg, G. (ed.) Handbook of graph grammars
+and computing by graph transformation, Vol. 1: Foundations. pp. 313-400. World
+Scientific Publishing Co.
+
+Courcelle, B.: Graph Operations, Graph Transformations and Monadic Second-
+Order Logic: A survey. Electronic Notes in Theoretical Computer Science 51, 122
+— 126 (2002)
+
+Culik, K., Karhumaki, J.: The equivalence of finite valued transducers (on HDTOL
+languages) is decidable. Theor. Comp. Sci. 47, 71 — 84 (1986)
+
+Engelfriet, J., Hoogeboom, H.J.: MSO definable String Transductions and Two-
+way Finite-State Transducers. ACM Transactions on Computational Logic 2(2),
+216-254 (2001)
+
+Griffiths, T.V.: The unsolvability of the equivalence problem for e-Free nondeter-
+ministic generalized machines. Journal of the ACM 15, 409-413 (Jul 1968)
+Gurari, E.M., Ibarra, O.H.: The Complexity of Decision Problems for Finite-Turn
+Multicounter Machines. J. Comput. Syst. Sci. 22(2), 220-229 (1981)
+
+Gurari, E.M., Ibarra, O.H.: A Note on Finite-valued and Finitely Ambiguous
+Transducers. Mathematical Systems Theory 16(1), 61-66 (1983)
+
+Gusfield, D.: Algorithms on strings, trees, and sequences: computer science and
+computational biology. Cambridge University Press (1997)
+
+Sakarovitch, J., de Souza, R.: On the decidability of bounded valuedness for trans-
+ducers. In: Proc. of Mathematical Foundations of Computer Science. pp. 588-600
+(2008)
+
+Schiitzenberger, M.P.: Sur les relations rationelles entre monoides libres. Theor.
+Comput. Sci. pp. 243-259 (1976)
+
+de Souza, R.: On the decidability of the equivalence for k-Valued transducers. In:
+Proc. of Developments in Language Theory. pp. 252-263. Berlin, Heidelberg (2008)
+Weber, A.: On the Valuedness of Finite Transducers. Acta Informatica 27(8), 749-
+780 (1990)
+
+19
+
