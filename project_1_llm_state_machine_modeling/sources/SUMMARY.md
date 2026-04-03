@@ -356,6 +356,7 @@
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-04-04 04:38:42 | 回刷 `#91-108` 并同步汇总统计 | 完成第 `4/7/8` 节与本批 `STM.md` 的口径对齐 | 本轮继续按 `paper_content.txt -> 必要时 paper.pdf -> STM.md` 顺序重读 `#91-108`，其中 `#107/#108` 已回升到 `原文 = 描述 = 🟢 A`，并同步刷新二维统计表与文件级评级。 |
 | 2026-04-04 03:31:58 | 回刷 `#71-90` 并同步汇总统计 | 修正第 `4/6/7/8` 节与 `18` 个 `STM.md` 的条目/文件口径一致性 | 本轮已按 `paper_content.txt -> 必要时 paper.pdf -> STM.md` 顺序重读 `#71-90`，并把 `#72/#73/#75/#76/#79/#80/#86/#87/#88/#89` 的等级回升、`#79/#85` 的时间级别调整，以及 `#76` 的角色变化统一写回总账。 |
 | 2026-04-04 01:04:58 | 同步细节评级变更后的汇总表 | 修正第 `4/7/8` 节与 `2` 个 `STM.md` 的角色/统计一致性 | 由于 `#18` 与 `#25` 已回升到 `原文 = 描述 = 🟡 B` 且不再属于强趋同条目，本轮将其从 `🧰` 调整为 `💎`，并按 `108` 条正例现值重算总体统计。 |
 | 2026-04-03 20:08:04 | 按讨论稿新标准回刷 `STM` 盘点 | 新口径统计 / 总表 / 角色边界已替换 | 保留 `149` 个 `STM.md` 与 `108` 条正例的覆盖范围，统一改用 `状态机类型 / 时间级别 / 结构标签 / 原文细节充实度 / 描述细节充实度 / 数据集角色` 口径。 |
@@ -400,37 +401,37 @@
 
 | 原文细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 27 | 25.0% |
-| `🟡 B` | 66 | 61.1% |
+| `🟢 A` | 29 | 26.9% |
+| `🟡 B` | 64 | 59.3% |
 | `🟠 C` | 13 | 12.0% |
 | `🔴 D` | 2 | 1.9% |
 | `🟢 A + 🟡 B` | 93 | 86.1% |
 | `🟠 C + 🔴 D` | 15 | 13.9% |
 
-这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在本轮完成 `#71-90` 的逐条重读与回刷后，原文侧达到 `🟢 A / 🟡 B` 的条目已经提升到 `93` 条，但仍有 `15` 条（`13.9%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
+这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在继续完成 `#91-108` 的逐条重读与回刷后，原文侧达到 `🟢 A / 🟡 B` 的条目仍稳定在 `93` 条，其中 `🟢 A` 已升至 `29` 条；但仍有 `15` 条（`13.9%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
 
 #### 4.3 描述细节充实度分布
 
 | 描述细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 27 | 25.0% |
-| `🟡 B` | 66 | 61.1% |
+| `🟢 A` | 29 | 26.9% |
+| `🟡 B` | 64 | 59.3% |
 | `🟠 C` | 14 | 13.0% |
 | `🔴 D` | 1 | 0.9% |
 | `🟢 A + 🟡 B` | 93 | 86.1% |
 | `🟠 C + 🔴 D` | 15 | 13.9% |
 
-在本轮对 `71-90` 的逐条重读与补写后，描述侧的 `🟢 A + 🟡 B` 已经提升到 `93` 条，与原文侧**完全追平**；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
+在继续对 `#91-108` 的逐条重读与补写后，描述侧的 `🟢 A + 🟡 B` 仍保持 `93` 条，与原文侧**完全追平**，且 `🟢 A` 已同步升至 `29` 条；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
 
 #### 4.4 原文细节充实度 vs 描述细节充实度二维对照
 
 | 原文 \\ 描述 | `🟢 A` | `🟡 B` | `🟠 C` | `🔴 D` | 行合计 |
 |---|---:|---:|---:|---:|---:|
-| `🟢 A` | `27 / 25.0%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `27 / 25.0%` |
-| `🟡 B` | `0 / 0.0%` | `66 / 61.1%` | `0 / 0.0%` | `0 / 0.0%` | `66 / 61.1%` |
+| `🟢 A` | `29 / 26.9%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `29 / 26.9%` |
+| `🟡 B` | `0 / 0.0%` | `64 / 59.3%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 59.3%` |
 | `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 12.0%` | `0 / 0.0%` | `13 / 12.0%` |
 | `🔴 D` | `0 / 0.0%` | `0 / 0.0%` | `1 / 0.9%` | `1 / 0.9%` | `2 / 1.9%` |
-| 列合计 | `27 / 25.0%` | `66 / 61.1%` | `14 / 13.0%` | `1 / 0.9%` | `108 / 100.0%` |
+| 列合计 | `29 / 26.9%` | `64 / 59.3%` | `14 / 13.0%` | `1 / 0.9%` | `108 / 100.0%` |
 
 从二维表看，有三个直接结论：
 
@@ -446,7 +447,7 @@
 | 描述未降级 | 93 | 86.1% | 100.0% |
 | 描述降级或显著关键信息缺失 | 0 | 0.0% | 0.0% |
 
-继此前锁定的降级条目回刷之后，本轮又完成 `#72`、`#73`、`#75`、`#76`、`#79`、`#80`、`#86`、`#87`、`#88`、`#89` 的等级回升与细节补齐；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
+继此前锁定的降级条目回刷之后，本轮又完成 `#107`、`#108` 的等级回升与细节补齐；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
 
 #### 4.6 状态机类型分布
 
@@ -756,8 +757,8 @@
 | 145 | ✈️ | `💎 含核心样本` | `HSM` | `T0` | `层次, 并行` | `🟢 直接可用` | 1 | [《A Parallel Hierarchical Finite State Machine Approach to UAV Control for Search and Rescue Tasks》](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/STM.md) | [STM](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/STM.md) / [TXT](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/paper_content.txt) / [Bib](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
 | 146 | ✈️ | `💎 含核心样本` | `HSM` | `T0` | `层次` | `🟢 直接可用` | 1 | [《Methodology To Develop A Discrete-Event Supervisory Controller For An Autonomous Helicopter Flight》](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/STM.md) | [STM](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/STM.md) / [TXT](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/paper_content.txt) / [Bib](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
 | 147 | ✈️ | `⛔ 不作正样本` | `-` | `-` | `-` | `⚪ 未收获` | 0 | [《Formal Verification of Simulation Scenarios in Aviation Scenario Definition Language (ASDL)》](./formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language/STM.md) | [STM](./formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language/STM.md) / [TXT](./formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language/paper_content.txt) / [Bib](./formal-verification-of-simulation-scenarios-in-aviation-scenario-definition-language/bibtex.bib) | 🛠️ 方法/工具/流程主导；建议保留为 hard negative 或背景样本。 |
-| 148 | ✈️ | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟡 可整理` | 1 | [《Reusable and Reliable Flight-Control Software for a Fail-Safe and Cost-Efficient Cubesat Mission: Design and Implementation》](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) | [STM](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) / [TXT](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/paper_content.txt) / [Bib](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
-| 149 | ✈️ | `💎 含核心样本` | `HSM` | `T0` | `层次` | `🟡 可整理` | 1 | [《Behavior Trees for UAV Mission Management》](./behavior-trees-for-uav-mission-management/STM.md) | [STM](./behavior-trees-for-uav-mission-management/STM.md) / [TXT](./behavior-trees-for-uav-mission-management/paper_content.txt) / [Bib](./behavior-trees-for-uav-mission-management/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
+| 148 | ✈️ | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Reusable and Reliable Flight-Control Software for a Fail-Safe and Cost-Efficient Cubesat Mission: Design and Implementation》](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) | [STM](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) / [TXT](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/paper_content.txt) / [Bib](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
+| 149 | ✈️ | `💎 含核心样本` | `HSM` | `T0` | `层次` | `🟢 直接可用` | 1 | [《Behavior Trees for UAV Mission Management》](./behavior-trees-for-uav-mission-management/STM.md) | [STM](./behavior-trees-for-uav-mission-management/STM.md) / [TXT](./behavior-trees-for-uav-mission-management/paper_content.txt) / [Bib](./behavior-trees-for-uav-mission-management/bibtex.bib) | 文件内正例条目均为 `💎`，可直接作为主训练集候选来源。 |
 
 ### 8. 条目级全量总表（108 条正例全覆盖）
 
@@ -875,8 +876,8 @@
 | 104 | ✈️ | `EFSM` | `T1` | `显式时钟` | `🪫 降采样保留` | `🟢 A` | `🟢 A` | 🔁 G6 起落架 handle-门-起落架序列 | [《The landing gear case study: challenges and experiments》](./the-landing-gear-case-study-challenges-and-experiments/STM.md) / Extend-retract sequencing and cockpit indication in the landing gear system | 飞机起落架及其数字控制软件 | [STM](./the-landing-gear-case-study-challenges-and-experiments/STM.md) / [TXT](./the-landing-gear-case-study-challenges-and-experiments/paper_content.txt) / [Bib](./the-landing-gear-case-study-challenges-and-experiments/bibtex.bib) | 原文与描述均到 `🟢 A`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 105 | ✈️ | `HSM` | `T0` | `层次, 并行` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《A Parallel Hierarchical Finite State Machine Approach to UAV Control for Search and Rescue Tasks》](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/STM.md) / Search-and-rescue mission flow with parallel safe-flight layer | 搜索救援无人机高层控制器 | [STM](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/STM.md) / [TXT](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/paper_content.txt) / [Bib](./a-parallel-hierarchical-finite-state-machine-approach-to-uav-control-for-search-and-rescue-tasks/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
 | 106 | ✈️ | `HSM` | `T0` | `层次` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Methodology To Develop A Discrete-Event Supervisory Controller For An Autonomous Helicopter Flight》](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/STM.md) / Takeoff-on-route-landing supervisory flow for Bell 412 autonomy | Bell 412 直升机自主飞行监督控制器 | [STM](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/STM.md) / [TXT](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/paper_content.txt) / [Bib](./methodology-to-develop-a-discrete-event-supervisory-controller-for-an-autonomous-helicopter-flight/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 107 | ✈️ | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Reusable and Reliable Flight-Control Software for a Fail-Safe and Cost-Efficient Cubesat Mission: Design and Implementation》](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) / Closed-mode CONOPS and safe-mode fallback in Masat-1 | Masat-1 CubeSat 飞控软件中的任务/故障管理逻辑 | [STM](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) / [TXT](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/paper_content.txt) / [Bib](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
-| 108 | ✈️ | `HSM` | `T0` | `层次` | `💎 核心保留` | `🟡 B` | `🟡 B` | ✨ 未见强趋同 | [《Behavior Trees for UAV Mission Management》](./behavior-trees-for-uav-mission-management/STM.md) / Task activation and interruption logic for UAV mission management | 无人机任务管理模块 | [STM](./behavior-trees-for-uav-mission-management/STM.md) / [TXT](./behavior-trees-for-uav-mission-management/paper_content.txt) / [Bib](./behavior-trees-for-uav-mission-management/bibtex.bib) | 原文与描述均到 `🟡 B`，当前稿未见降级，已保住该类样本的主建模关键件。 |
+| 107 | ✈️ | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Reusable and Reliable Flight-Control Software for a Fail-Safe and Cost-Efficient Cubesat Mission: Design and Implementation》](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) / Closed-mode CONOPS and safe-mode fallback in Masat-1 | Masat-1 CubeSat 飞控软件中的任务/故障管理逻辑 | [STM](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/STM.md) / [TXT](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/paper_content.txt) / [Bib](./reusable-and-reliable-flight-control-software-for-a-fail-safe-and-cost-efficient-cubesat-mission-design-and-implementation/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `INIT / SAFE / CRITICAL / IDLE / SUN-VIS / ECLIPSE / MISSION / COMMUNICATION` 模式、4 类迁移触发、`45 min` 天线展开延迟、`3` 次重试、`86%` 电量阈值、`60/120 s` beacon 周期与 FDIR 触发安全回退链。 |
+| 108 | ✈️ | `HSM` | `T0` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Behavior Trees for UAV Mission Management》](./behavior-trees-for-uav-mission-management/STM.md) / Task activation and interruption logic for UAV mission management | 无人机任务管理模块 | [STM](./behavior-trees-for-uav-mission-management/STM.md) / [TXT](./behavior-trees-for-uav-mission-management/paper_content.txt) / [Bib](./behavior-trees-for-uav-mission-management/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住根节点 tick、`Success / Failure / Running` 返回码、sequence/selector 层次语义、`Idle / Activating / Running` 内部状态、entry/exit hooks、运行中任务先 deactivate 再切高优先级/回退任务，以及起飞-航点循环-指针 reset 的示例任务链。 |
 ### 9. `⚪ 未收获` 文件专表（便于 hard negative 回收）
 
 | # | 领域 | 未收获原因类别 | 论文 | 跳转 | 当前简要判断 |

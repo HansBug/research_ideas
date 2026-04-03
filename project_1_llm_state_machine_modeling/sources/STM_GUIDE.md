@@ -87,7 +87,7 @@
 2. 可以做**合理转接**，把原文中分散的句子整理成连续描述，但不能加入找不到原文依据的新信息。
 3. 如果原文有 OCR 噪声，摘录时允许保留噪声；不要为了“更顺”而擅自改写引文内容。
 4. 如果控制逻辑只出现在图题、图注、变量表、公式说明中，这些也可以作为证据，但仍需写清出处。
-5. 如果控制语义主要落在**输出编码、模式名、模块职责、参数表、映射示例或计算实例**里，也必须把这些内容直接摘出来；不要只摘“系统会进行控制”这类概括句。
+5. 如果控制语义主要落在**输出编码、模式名、模块职责、参数表、映射示例或计算实例**里，也必须把这些内容直接摘出来；不要只摘“系统会进行控制”这类概括句。若原文给了**完整模式集合、各模式进入原因、驻留条件、模式内 procedure/周期任务**，也应把这整组事实当作正式控制证据，而不是只摘其中一两个 mode name。
 6. 如果控制语义主要落在**工程实现细节**里，例如 `PLC I/O` 分配、内部 memory bit、门/阀/泵组合输出、阶段切换 trigger、轨迹参数或模糊控制输入输出，也必须把这些实现性事实当作正式证据，而不是当作“可省略的实现描述”。
 
 ### 3.3 统一底线要求
@@ -321,8 +321,9 @@
 结合前期降级条目回刷与最近前 `10` 条重写，以下几类信息被证明最容易在摘录阶段漏掉；后续凡是原文里出现，就应默认补进 `### 1. 原文摘录`：
 
 1. **显式状态名与阶段名**
-   - 例如 `idle / Entry / CalcSlipRate / Exit`、`idle / commanded / proved / occupied`、`LRI / AVI / URI / PVARP / VRP`。
-   - 若状态名承载行为语义，不要只摘“系统经历若干阶段”这种概括句。
+   - 例如 `idle / Entry / CalcSlipRate / Exit`、`idle / commanded / proved / occupied`、`LRI / AVI / URI / PVARP / VRP`、`INIT / SAFE / CRITICAL / IDLE / SUN-VIS / ECLIPSE / MISSION / COMMUNICATION`。
+   - 若状态名承载行为语义，不要只摘“系统经历若干阶段”这种概括句；若原文给的是完整 mode catalogue / task status set，也应尽量整套摘出，不要只保最显眼的两三个模式。
+   - 对模式管理类条目，还要把**进入原因、保持条件、退出触发、模式内持续任务或周期动作**和模式名一起摘出，避免后续只剩“系统会切到 safe mode / mission mode”这类空壳句。
 2. **精确 guard、比较式、阈值区间、输出编码与赋值**
    - 例如 `v<5*(v-w*R)`、`v==0 [torqueABS=0]`、`0-30% -> 90 seconds`、`LT(i,T)`、`TTC <= t0TTC`、`signal = 0 / 1 / 2`、`controller output = -1 / 0 / 1`、`Tgi = 0` 这类显式判定和控制结果。
    - 也包括工程控制里常见的**分层区间与组合输出**，例如 `41.00 / 41.60 / 41.80 / 42.00` 这类液位边界、`back-up valve + solenoid 1 + solenoid 2` 这类联动输出，以及“已在目标层则不动作”这类显式不触发 guard。
@@ -333,6 +334,7 @@
 4. **异常、降级、恢复与 fallback 链**
    - 例如 retry 计数、priority tier、alarm、manual fallback、mode switch、释放条件、lock/release 条件、进入高风险级后持续输出同一控制信号、错位停放后通知 driver/admin、紧急车辆通过后恢复 normal。
    - 这类内容常散落在 requirement list、图注和正文段落中，必要时应多摘几块。
+   - 若 fallback mode 本身还带**降功耗配置、受限功能集、周期巡检、维持到某个解除条件**，也要把这些随 mode 一起摘出；不能只摘“发生故障后进入某安全模式”。
 5. **感知-处理-决策-执行/通知链、接口读写节拍与同步开始/停止**
    - 对构件级 TA / FunctionPrototype / block behavior，若原文区分 `read / execute / write`、`behstart / behstop`、`READ(Pin) / WRITE(Pout)`、输入/输出端口映射、更新阶段、`committed/urgent` 位置，应把这些执行节拍和接口语义单独摘出来。
    - 对工程控制条目，也要把 `push button -> RF -> controller`、`sensor/camera -> processing unit -> cloud verify -> notify`、`wheel sensor -> ECU -> valve/pump`、`camera -> median/Sobel/subtraction -> density/parking parameter -> fuzzy/controller -> HMI/actuator`、`button/sensor -> memory bit -> timer -> motor/door output` 这类控制链摘完整，不能只摘最后的“系统做了某动作”。
@@ -340,6 +342,7 @@
 6. **层次 / 并行 / 子模块 / 调度顺序 / 资源关系**
    - 例如四个 sibling movement machines、父子职责边界、上下层控制器、`sensing / early warning / control / execution` 这类模块分工、`Thread A / Thread B`、`D1 / D2`、`mc=<ac,ts>`、printer 子模块、资源锁闭/释放条件、共享锁变量、`TP / DA / MO` 这类模式集合。
    - 不能只摘顶层摘要，而把真正决定结构的子机名、并发分支、调度顺序和资源规则漏掉。
+   - 若原文采用 behavior tree / task hierarchy / supervisory task 语义，而不是传统显式迁移表，还要把 **root tick、`Success / Failure / Running` 返回码、`Idle / Activating / Running` 内部状态、transient / non-transient 区分、deactivate-before-activate 规则**摘出来；这些契约本身就是状态机语义的一部分。
 7. **离散映射表、规则参数与计算/调度链**
    - 若控制逻辑是“输入区间/模式 -> 输出动作/持续时间”，要把整张映射补齐，不要只摘其中一两个 bucket。
    - 若控制语义主要由规则参数或约束结构承载，例如 `r / p1 / p2 / d1 / d2` 这类 route-rule 参数、typed state domain、lock/free 约束，也应把这些参数角色与状态域一并摘出来。
@@ -368,13 +371,14 @@
 6. 必须尽量把建模关键件直接写进这段描述，而不是只留在摘录里。
    - 若原文里的关键 guard、阈值、timer、异常回退、控制权交接、层次关系、资源互斥或连续耦合点对建模很关键，描述里就应尽量保住。
    - 对工程实现型样本，还要尽量保住真正承载控制语义的 `I/O` 映射、内部 memory、阶段切换 trigger、组合输出和感知-处理-决策-执行链；不要因为它们“像实现细节”就一刀切掉。
+   - 对模式管理/任务管理类样本，还要尽量保住**完整模式/任务集合、进入与退出触发、驻留条件、模式内职责、周期检查、优先级中断与恢复契约**；不要只保“存在若干运行模式”这种摘要。
    - 若原文同时给了**设计口径**与**原型/实现口径**，描述中也应把这两个层次一并保住，并明确谁是目标逻辑、谁是实现替代；不能把二者揉成一个原文并不存在的“统一版本”。
    - 否则后续在 [SUMMARY.md](./SUMMARY.md) 中很容易出现“原文细节充实度够，但描述细节充实度降级”的问题。
 7. 正式写描述前，应先把当前条目的 `状态机类型 / 时间级别 / 结构标签` 当作一张保真 checklist，至少补核以下项目：
    - `FSM`：阶段划分、触发事件、阶段动作。
-   - `EFSM`：关键变量、阈值、guard 比较关系、变量更新、控制输出值或控制动作；若决策是通过显式计算链得出，还要保住输入量、计算式、筛选逻辑、最终输出及其取值语义。
+   - `EFSM`：关键变量、阈值、guard 比较关系、变量更新、控制输出值或控制动作；若决策是通过显式计算链得出，还要保住输入量、计算式、筛选逻辑、最终输出及其取值语义。若这条 `EFSM` 的主体其实是 mode manager，还要保住完整模式集、各模式进入触发、模式内 procedure、模式间 fallback/return 条件与周期监督动作。
    - 若是工程控制里的 `EFSM`，还要额外检查是否漏掉 `PLC I/O`、内部 memory bit、按钮/传感器到执行器的映射，以及“满足条件时不动作 / 保持当前输出 / 重新开门 / 普通车道全红停止 / 空位已满不再放行”这类 guard 结果。
-   - `HSM`：高层模式、低层子状态/子机、父子关系、跨层触发或层间职责边界；若原文区分“工作区/风险级/手动-自动模式”，这些模式名本身就应保住。
+   - `HSM`：高层模式、低层子状态/子机、父子关系、跨层触发或层间职责边界；若原文区分“工作区/风险级/手动-自动模式”，这些模式名本身就应保住。若层次语义是通过 behavior tree / task hierarchy 表达，还要保住 root tick、return codes、内部状态、entry/exit hooks、激活/去激活顺序以及 sequence/selector 的优先级语义。
    - 若是分阶段控制样本，还要保住中间位置、handoff trigger、哪一阶段接管 HMI/控制权，以及阶段间规则集是否独立；若阶段内部还分子步骤，也不要把这些子步骤压没。
    - `Protocol`：参与角色、消息/命令、请求-授权-确认-返还的顺序、消息载体或链路，以及控制权变化。
    - `Resource-flow`：资源对象、分配/占用/核验/释放条件、冲突互斥关系、阻塞原因或使能条件；若原文主要通过 typed state domain、invariant、rule parameter、`component / point / RBS` 这类抽象对象或 scheduler loop 表达控制语义，这些结构事实也必须保住；若存在资源搜索顺序、token/slot 编号或 accept/reject 分流，也应显式保住。
@@ -396,7 +400,8 @@
 
 1. **状态名被压没**
    - 若状态名本身承载语义，应直接保留，而不是改写成“进入某阶段”“完成计算后退出”。
-   - 特别是 lifecycle state、timing cycle、父子子机名、read/write stage。
+   - 特别是 lifecycle state、timing cycle、父子子机名、read/write stage，以及 `SAFE / CRITICAL / MISSION`、`Idle / Activating / Running` 这类本身就决定迁移与行为语义的 mode / task status。
+   - 若原文给的是一整套模式表，不要只保主模式而把 mode-local duty、periodic check、保持条件压没。
 2. **guard 被压成模糊条件**
    - 若原文给了精确 guard、阈值、区间边界、输出编码或变量赋值，描述中也应尽量保留数值、比较方向和动作结果。
    - 不要把 `v<5*(v-w*R)` 写成“滑移过大时”，也不要把 `0-30% -> 90s` 写成“低密度时延长绿灯”，更不要把 `signal = 0 / 1 / 2`、`output = -1 / 0 / 1`、`41.60 -> back-up valve + solenoid 1 + solenoid 2` 这类控制含义压成“系统发出适当信号”；同样也不要把“未检测到则保持常规序列 / 普通车道全红 / 空位已满 / 空秤亮黄灯”这类负向结果压掉。
@@ -405,9 +410,11 @@
    - 对工程控制条目，还要警惕把 `door open dwell -> close -> post-close wait -> reopen on obstacle/open button` 这类局部时间链压成一句“门会自动开关”。
 4. **异常/降级/恢复链缺失**
    - 若原文有 retry、priority tier、alarm、manual fallback、release condition、mode switch、恢复返回路径、进入高风险级后的持续输出或停止重算规则，描述里不能只保 nominal path。
+   - 对 mode management 条目，还要警惕把“进入 fallback mode 后做什么、保持到何时、是否降低 beacon / power / capability、是否继续周期检查某阈值”压掉；否则虽然写了 fallback，但系统实际已无法仿真。
 5. **结构被压平成单线流程**
    - 对 `HSM / 并行 / Resource-flow / Protocol` 条目，描述里应保住子机、角色、资源或并发事实。
    - 不要把四个 sibling 子机、上下层控制器、共享资源锁闭、`TP / DA / MO` 模式集、请求-授权-确认链压成一句“系统执行相应动作”。
+   - 对 behavior tree / task-hierarchy 条目，不要只写“高优先级任务会打断低优先级任务”；还要保住 `tick -> return code -> activate/deactivate -> reset/advance` 这条实际运行契约。
    - 对以 invariant、typed state domain、rule parameter 承载控制语义的条目，也不要把它们压成“系统满足若干安全约束”这种空泛总结；状态域、锁闭关系、规则参数职责本身就是建模关键件。
 6. **感知-处理-决策-执行/通知链、接口节拍与更新阶段缺失**
    - 对构件级 `EFSM / Hybrid`，若原文有 `read / execute / write` 节拍、输入/输出端口、变量映射、同步开始/停止、`committed/urgent` 位置或专门的变量更新阶段，应在描述中保住。
