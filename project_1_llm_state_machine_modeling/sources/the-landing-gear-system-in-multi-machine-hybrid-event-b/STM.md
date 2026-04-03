@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 文件级角色：🧰 需清洗样本
+- 文件级角色：🪫 主要用于降采样池
 - 代表状态机类型：HSM（层次状态机）
 - 代表时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签概况：显式时钟、层次、并行
@@ -16,8 +16,8 @@
 - 时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签：层次、并行、显式时钟
 - 原文细节充实度：🟡 B（细节较充实）
-- 描述细节充实度：🟠 C（只有主链）
-- 数据集角色：🧰 清洗后保留
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：🪫 降采样保留
 - 趋同标签：🔁 强趋同（G6 起落架 handle-门-起落架序列）
 
 ### 0. 条目识别与判定
@@ -69,13 +69,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The landing gear is controlled through a handle where handle UP means gear up and handle DOWN means gear down, and the initial condition has the gear down and locked. When a handle event occurs, the analogical switch closes, remains closed for a period, and then opens again, with dedicated events marking the changes from closing to closed and from closed to reopening. The hydraulic movement logic is organized into separate machines for opening doors, closing doors, extending gear and retracting gear.
+At the top level, the pilot commands the landing gear with handle UP for gear-up and handle DOWN for gear-down, and the initial state has the gear down and locked. The analogical switch is open by default; after each handle event it enters a timed closing episode from 0 to CLOSED_INIT, stays closed from CLOSED_INIT to CLOSED_FIN so commands can reach the general electrovalve, and then reopens from CLOSED_FIN to OPEN. This switch behavior is controlled by clock clk_AnSw, and a new handle event is interpreted differently depending on the current phase: it has no effect during closing, restarts the closed period while closed, and restarts closing from a proportional point during reopening; the events AnSw_CLOSED_INIT_reached and AnSw_CLOSED_FIN_reached mark the phase changes. Below this handle/switch layer, hydraulic actuation is split into four sibling movement machines, DoorsOpen_EV, DoorsClose_EV, GearExtend_EV, and GearRetract_EV, which share one structural pattern and organize the door and gear motion logic as coordinated submachines.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The landing gear is controlled through a handle where handle UP means gear up and handle DOWN means gear down, and the initial condition has the gear down and locked.
+1. 句子 1：At the top level, the pilot commands the landing gear with handle UP for gear-up and handle DOWN for gear-down, and the initial state has the gear down and locked.
    对应摘录：A
-2. 句子 2：When a handle event occurs, the analogical switch closes, remains closed for a period, and then opens again, with dedicated events marking the changes from closing to closed and from closed to reopening.
+2. 句子 2：The analogical switch is open by default; after each handle event it enters a timed closing episode from 0 to CLOSED_INIT, stays closed from CLOSED_INIT to CLOSED_FIN so commands can reach the general electrovalve, and then reopens from CLOSED_FIN to OPEN.
    对应摘录：B
-3. 句子 3：The hydraulic movement logic is organized into separate machines for opening doors, closing doors, extending gear and retracting gear.
+3. 句子 3：This switch behavior is controlled by clock clk_AnSw, and a new handle event is interpreted differently depending on the current phase: it has no effect during closing, restarts the closed period while closed, and restarts closing from a proportional point during reopening; the events AnSw_CLOSED_INIT_reached and AnSw_CLOSED_FIN_reached mark the phase changes.
+   对应摘录：B
+4. 句子 4：Below this handle/switch layer, hydraulic actuation is split into four sibling movement machines, DoorsOpen_EV, DoorsClose_EV, GearExtend_EV, and GearRetract_EV, which share one structural pattern and organize the door and gear motion logic as coordinated submachines.
    对应摘录：C

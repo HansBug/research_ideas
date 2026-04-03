@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 文件级角色：🧰 需清洗样本
+- 文件级角色：💎 含核心样本
 - 代表状态机类型：EFSM（扩展状态机）
 - 代表时间级别：T0（无关键时间语义） / T2（强实时 / 显式时钟时间窗口）
 - 结构标签概况：显式时钟
@@ -89,8 +89,8 @@ The infusion pump can be run locally or under CARA, with the local switch settin
 - 时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签：显式时钟
 - 原文细节充实度：🟢 A（细节完备）
-- 描述细节充实度：🔴 D（摘要/背景级）
-- 数据集角色：🧰 清洗后保留
+- 描述细节充实度：🟢 A（细节完备）
+- 数据集角色：💎 核心保留
 - 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
@@ -212,13 +212,17 @@ The infusion pump can be run locally or under CARA, with the local switch settin
 
 ### 2. 基于原文整理后的自然语言描述
 
-When cuff pressure is being used for control, CARA uses it as one of the prioritized blood pressure sources and adjusts the cuff reading frequency so that lower pressures are checked more often. Specifically, cuff readings are taken once per minute at 60 or below, every 2 minutes for (60, 70], every 5 minutes for (70, 90], and every 10 minutes above 90. If CARA cannot obtain a valid blood pressure in 3 minutes, or if repeated cuff readings remain invalid while cuff pressure is being used for control, it issues the prescribed messages and alarms and reverts to manual mode.
+When cuff pressure is used for control, CARA treats it as the priority-3 blood-pressure source and only accepts control readings in the valid 40-150 mmHg range. While cuff remains the active control source, the cuff handler resets its local timer after each accepted reading and sets the next cuff request interval to 60 seconds for mean BP at or below 60, 120 seconds for (60, 70], 300 seconds for (70, 90], and 600 seconds above 90, so lower pressures are checked more often. If the cuff is already inflating when the next reading is due, no extra cuff request is issued. If no valid blood pressure can be obtained within 3 minutes, CARA displays the required message, raises the level-2 alarm, records the event, and sets the back-to-manual action. When cuff is the only control source and an expected cuff reading is invalid, the handler first issues the message and level-1 alarm and immediately requests another cuff reading; if that retry is also invalid, it escalates to a level-2 alarm, records the failure, and returns the system to manual mode.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When cuff pressure is being used for control, CARA uses it as one of the prioritized blood pressure sources and adjusts the cuff reading frequency so that lower pressures are checked more often.
-   对应摘录：A, B
-2. 句子 2：Specifically, cuff readings are taken once per minute at 60 or below, every 2 minutes for (60, 70], every 5 minutes for (70, 90], and every 10 minutes above 90.
-   对应摘录：A, B
-3. 句子 3：If CARA cannot obtain a valid blood pressure in 3 minutes, or if repeated cuff readings remain invalid while cuff pressure is being used for control, it issues the prescribed messages and alarms and reverts to manual mode.
+1. 句子 1：When cuff pressure is used for control, CARA treats it as the priority-3 blood-pressure source and only accepts control readings in the valid 40-150 mmHg range.
+   对应摘录：B, C
+2. 句子 2：While cuff remains the active control source, the cuff handler resets its local timer after each accepted reading and sets the next cuff request interval to 60 seconds for mean BP at or below 60, 120 seconds for (60, 70], 300 seconds for (70, 90], and 600 seconds above 90, so lower pressures are checked more often.
    对应摘录：A, B, C
+3. 句子 3：If the cuff is already inflating when the next reading is due, no extra cuff request is issued.
+   对应摘录：B
+4. 句子 4：If no valid blood pressure can be obtained within 3 minutes, CARA displays the required message, raises the level-2 alarm, records the event, and sets the back-to-manual action.
+   对应摘录：B, C
+5. 句子 5：When cuff is the only control source and an expected cuff reading is invalid, the handler first issues the message and level-1 alarm and immediately requests another cuff reading; if that retry is also invalid, it escalates to a level-2 alarm, records the failure, and returns the system to manual mode.
+   对应摘录：B, C

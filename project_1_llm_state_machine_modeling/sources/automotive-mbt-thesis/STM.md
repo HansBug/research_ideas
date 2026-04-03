@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 文件级角色：🧰 需清洗样本
+- 文件级角色：🪫 主要用于降采样池
 - 代表状态机类型：Hybrid（混成状态机）
 - 代表时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签概况：显式时钟、连续耦合
@@ -16,8 +16,8 @@
 - 时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签：连续耦合、显式时钟
 - 原文细节充实度：🟡 B（细节较充实）
-- 描述细节充实度：🟠 C（只有主链）
-- 数据集角色：🧰 清洗后保留
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：🪫 降采样保留
 - 趋同标签：🔁 强趋同（G3 BBW/ABS 基准控制链）
 
 ### 0. 条目识别与判定
@@ -65,13 +65,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The pABS FL behavior first checks whether the car is moving before deciding how the brake torque should be produced. When the car has no speed, no brake force is applied; otherwise slip is evaluated, and the requested wheel torque is only sent to the actuator when the slip condition does not call for wheel-lock prevention. Around this behavior, the interface reads inputs, executes the computation, writes the output, and then remains idle until the function is triggered again.
+The pABS FL behavior TA uses an inactive idle location together with the active states Entry, CalcSlipRate, and Exit to compute the brake command for the wheel. When the function is triggered, Entry first evaluates vehicle speed v: guard v==0 takes the automaton directly to Exit with torqueABS=0, whereas v>0 moves the behavior to CalcSlipRate. In CalcSlipRate, the slip condition is encoded as v<5*(v-w*R), which corresponds to sliprate > 0.2 and therefore suppresses braking by assigning torqueABS=0; the complementary guard v>=5*(v-w*R) forwards the requested torque by assigning torqueABS=wheelABS. At the interface level, the Read-to-Exec step synchronizes with behavior start, the interface and behavior stay active until clock x reaches exec = 2, and then the Exec-to-Write step, the behavior-stop synchronization, and the Write-to-Idle update return the function to Idle until the next trigger.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The pABS FL behavior first checks whether the car is moving before deciding how the brake torque should be produced.
+1. 句子 1：The pABS FL behavior TA uses an inactive idle location together with the active states Entry, CalcSlipRate, and Exit to compute the brake command for the wheel.
    对应摘录：A
-2. 句子 2：When the car has no speed, no brake force is applied; otherwise slip is evaluated, and the requested wheel torque is only sent to the actuator when the slip condition does not call for wheel-lock prevention.
+2. 句子 2：When the function is triggered, Entry first evaluates vehicle speed v: guard v==0 takes the automaton directly to Exit with torqueABS=0, whereas v>0 moves the behavior to CalcSlipRate.
    对应摘录：A
-3. 句子 3：Around this behavior, the interface reads inputs, executes the computation, writes the output, and then remains idle until the function is triggered again.
+3. 句子 3：In CalcSlipRate, the slip condition is encoded as v<5*(v-w*R), which corresponds to sliprate > 0.2 and therefore suppresses braking by assigning torqueABS=0; the complementary guard v>=5*(v-w*R) forwards the requested torque by assigning torqueABS=wheelABS.
+   对应摘录：A
+4. 句子 4：At the interface level, the Read-to-Exec step synchronizes with behavior start, the interface and behavior stay active until clock x reaches exec = 2, and then the Exec-to-Write step, the behavior-stop synchronization, and the Write-to-Idle update return the function to Idle until the next trigger.
    对应摘录：B

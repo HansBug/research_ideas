@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 文件级角色：🧰 需清洗样本
+- 文件级角色：🪫 主要用于降采样池
 - 代表状态机类型：Hybrid（混成状态机）
 - 代表时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签概况：显式时钟、连续耦合
@@ -16,8 +16,8 @@
 - 时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签：连续耦合、显式时钟
 - 原文细节充实度：🟡 B（细节较充实）
-- 描述细节充实度：🟠 C（只有主链）
-- 数据集角色：🧰 清洗后保留
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：🪫 降采样保留
 - 趋同标签：🔁 强趋同（G3 BBW/ABS 基准控制链）
 
 ### 0. 条目识别与判定
@@ -69,25 +69,34 @@
 > 14</MODEL></BEHAVIOUR>
 
 #### 摘录 B
-- 出处：第 81 页，Chapter 5 / abstract test-case witness trace 说明，行 4399-4404
+- 出处：第 81 页，Chapter 5 / abstract test-case witness trace 说明，行 4399-4413
 > The U PPAAL PORT model checker automatically generates the witness trace
 > presented in Figure 5.9, which represents the execution of the pABS FL Func-
 > tionPrototype. Initially, the TA is in location idle and all variables are zero.
 > The ﬁrst transition to state Entry is aread transition, where the latest variable
 > values of w,wheelABS , and vare read. Since v> 0, the TA moves to the
 > CalcSliprate location. On the transition to Exit , thetorqueABS variable is
+> 
+> --- Page 81 ---
+> 58 Chapter 5. Thesis Contributions
+> Entry
+> CalcSlipRateExit
+> v>0 [ ]v==0 [torqueABS=0]
+> v<5*(v-w*R) [torqueABS=0]
+> v>=5*(v-w*R) [torqueABS=wheelABS]
+> Figure 5.5: The TA model associated with the pABS FLFunctionPrototype.
 
 ### 2. 基于原文整理后的自然语言描述
 
-When the front-left ABS function is activated, it reads the latest requested torque and speed values and starts its computation from an idle condition. If the vehicle has no speed, it finishes with zero brake torque. If the vehicle is moving, it evaluates slip and either forwards the requested wheel torque or suppresses braking when the no-brake condition for wheel-lock prevention applies. After the result is written out, the function returns to idle and waits for the next activation.
+The pABS FL FunctionPrototype is modeled with local variables wheelABS, torqueABS, v, w and constant R=1, and its TA behavior contains four locations: idle, Entry, CalcSlipRate, and Exit. The read action moves the function from idle to Entry, where v==0 goes directly to Exit with torqueABS=0, while v>0 takes the automaton to CalcSlipRate. In CalcSlipRate, the guard v>=5*(v-w*R) assigns torqueABS=wheelABS and the complementary guard v<5*(v-w*R) assigns torqueABS=0, matching the no-brake requirement when the wheel-slip condition is detected. The write action returns Exit to idle, and the witness trace shows the concrete execution order idle -> Entry -> CalcSlipRate -> Exit after the latest values of v, w, and wheelABS are read.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When the front-left ABS function is activated, it reads the latest requested torque and speed values and starts its computation from an idle condition.
-   对应摘录：A, B
-2. 句子 2：If the vehicle has no speed, it finishes with zero brake torque.
-   对应摘录：A, B
-3. 句子 3：If the vehicle is moving, it evaluates slip and either forwards the requested wheel torque or suppresses braking when the no-brake condition for wheel-lock prevention applies.
+1. 句子 1：The pABS FL FunctionPrototype is modeled with local variables wheelABS, torqueABS, v, w and constant R=1, and its TA behavior contains four locations: idle, Entry, CalcSlipRate, and Exit.
    对应摘录：A
-4. 句子 4：After the result is written out, the function returns to idle and waits for the next activation.
+2. 句子 2：The read action moves the function from idle to Entry, where v==0 goes directly to Exit with torqueABS=0, while v>0 takes the automaton to CalcSlipRate.
+   对应摘录：A, B
+3. 句子 3：In CalcSlipRate, the guard v>=5*(v-w*R) assigns torqueABS=wheelABS and the complementary guard v<5*(v-w*R) assigns torqueABS=0, matching the no-brake requirement when the wheel-slip condition is detected.
+   对应摘录：A
+4. 句子 4：The write action returns Exit to idle, and the witness trace shows the concrete execution order idle -> Entry -> CalcSlipRate -> Exit after the latest values of v, w, and wheelABS are read.
    对应摘录：A, B

@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 文件级角色：🧰 需清洗样本
+- 文件级角色：🪫 主要用于降采样池
 - 代表状态机类型：Resource-flow（资源流/并发网模型）
 - 代表时间级别：T0（无关键时间语义）
 - 结构标签概况：资源互斥
@@ -16,8 +16,8 @@
 - 时间级别：T0（无关键时间语义）
 - 结构标签：资源互斥
 - 原文细节充实度：🟢 A（细节完备）
-- 描述细节充实度：🟡 B（细节较充实）
-- 数据集角色：🧰 清洗后保留
+- 描述细节充实度：🟢 A（细节完备）
+- 数据集角色：🪫 降采样保留
 - 趋同标签：🔁 强趋同（G1 铁路联锁进路生命周期）
 
 ### 0. 条目识别与判定
@@ -28,7 +28,7 @@
 ### 1. 原文摘录
 
 #### 摘录 A
-- 出处：第 3 页，Section 2，对 route command handling 与 subroute release 的说明，行 97-110
+- 出处：第 3 页，Section 2，对 route command handling 与 subroute release 的说明，行 97-116
 > RKM 045 is a route going from signal KM to track 045. The interlocking handles a route command in
 > the following manner:
 > 1. When a route is requested, it veriﬁes whether the command is safe. This means that the track
@@ -43,6 +43,12 @@
 > for R KM 045).
 > A route is composed of several segments called subroutes, corresponding to its track segments (three
 > for route R KM 045). Each of them is locked when the route is set and is released when the train has
+> fully freed the home track circuit of the subroute, releasing the corresponding points.
+> This process also makes use of other logical components not shown in Figure 2 like the component
+> materialising a point locking ( UIR) or the component recording the train passage on the route ( T ISP ).
+> The list of controls and veriﬁcations stated above are loaded from the application data and used by the
+> interlocking for every route. The fact that the application data properly reﬂects the track layout and the
+> signalling principles is thus crucial in the safety that the interlocking can achieve.
 
 #### 摘录 B
 - 出处：第 4 页，Section 3，对 route-based interlocking 的说明，行 141-147
@@ -97,13 +103,17 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-When a route is requested, the interlocking first checks whether the command is safe, then commands and locks the required track components, and finally grants access by setting the origin signal of the route to green. Each subroute is locked when the route is set and is released when the train has fully freed the corresponding home track circuit. The route module therefore captures a route lifecycle made of request conditions and the actions needed to fulfil the request.
+The route module for RKM 045 starts in the explicit lifecycle states idle, commanded, proved, and occupied by a train. When a route request arrives, the interlocking first checks that the required points and track circuits are not already reserved for another route, then commands the points to the positions needed for the route and verifies the actuator replies before setting the origin signal to green. A route is decomposed into subroutes, each subroute is locked when the route is set, and each is released only after the train has fully freed the corresponding home track circuit, releasing the associated points. Because the SSI is route-based, routes interact with signals and points through shared locking variables so that conflicting routes cannot use the same resources at the same time. The surrounding frame-axioms logic updates track-component status, triggers wheel detectors when segments become occupied, and updates point positions after commands, so the resource state of the station evolves together with the route lifecycle.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When a route is requested, the interlocking first checks whether the command is safe, then commands and locks the required track components, and finally grants access by setting the origin signal of the route to green.
+1. 句子 1：The route module for RKM 045 starts in the explicit lifecycle states idle, commanded, proved, and occupied by a train.
+   对应摘录：C
+2. 句子 2：When a route request arrives, the interlocking first checks that the required points and track circuits are not already reserved for another route, then commands the points to the positions needed for the route and verifies the actuator replies before setting the origin signal to green.
    对应摘录：A
-2. 句子 2：Each subroute is locked when the route is set and is released when the train has fully freed the corresponding home track circuit.
+3. 句子 3：A route is decomposed into subroutes, each subroute is locked when the route is set, and each is released only after the train has fully freed the corresponding home track circuit, releasing the associated points.
    对应摘录：A
-3. 句子 3：The route module therefore captures a route lifecycle made of request conditions and the actions needed to fulfil the request.
-   对应摘录：B, C
+4. 句子 4：Because the SSI is route-based, routes interact with signals and points through shared locking variables so that conflicting routes cannot use the same resources at the same time.
+   对应摘录：B
+5. 句子 5：The surrounding frame-axioms logic updates track-component status, triggers wheel detectors when segments become occupied, and updates point positions after commands, so the resource state of the station evolves together with the route lifecycle.
+   对应摘录：C

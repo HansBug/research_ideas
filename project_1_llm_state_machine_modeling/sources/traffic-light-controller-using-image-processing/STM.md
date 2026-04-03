@@ -2,7 +2,7 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
-- 文件级角色：🧰 需清洗样本
+- 文件级角色：💎 含核心样本
 - 代表状态机类型：EFSM（扩展状态机）
 - 代表时间级别：T1（工程定时 / 局部定时）
 - 结构标签概况：-（无代表标签）
@@ -16,8 +16,8 @@
 - 时间级别：T1（工程定时 / 局部定时）
 - 结构标签：-（无额外结构标签）
 - 原文细节充实度：🟡 B（细节较充实）
-- 描述细节充实度：🟠 C（只有主链）
-- 数据集角色：🧰 清洗后保留
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
 - 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
@@ -47,13 +47,13 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The traffic signal uses red, yellow and green lights and changes them according to the traffic observed at the junction. After the captured image has been compared with the reference image, the controller assigns different green durations to different levels of traffic density. At the highest matching range, the controller keeps the red light on for a long interval instead of assigning a green phase.
+The controller uses the standard red, yellow, and green traffic lights together with CCTV images of the junction to choose the signal duration. After comparing the captured image with the reference image, it maps a matching level of 0-30% to 90 seconds of green, 30-50% to 60 seconds of green, 50-70% to 30 seconds of green, and 70-90% to 20 seconds of green. If the matching rises to 90-100%, the controller does not allocate a green phase for that case and instead keeps the red light on for 90 seconds.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The traffic signal uses red, yellow and green lights and changes them according to the traffic observed at the junction.
+1. 句子 1：The controller uses the standard red, yellow, and green traffic lights together with CCTV images of the junction to choose the signal duration.
    对应摘录：A
-2. 句子 2：After the captured image has been compared with the reference image, the controller assigns different green durations to different levels of traffic density.
+2. 句子 2：After comparing the captured image with the reference image, it maps a matching level of 0-30% to 90 seconds of green, 30-50% to 60 seconds of green, 50-70% to 30 seconds of green, and 70-90% to 20 seconds of green.
    对应摘录：B
-3. 句子 3：At the highest matching range, the controller keeps the red light on for a long interval instead of assigning a green phase.
+3. 句子 3：If the matching rises to 90-100%, the controller does not allocate a green phase for that case and instead keeps the red light on for 90 seconds.
    对应摘录：B

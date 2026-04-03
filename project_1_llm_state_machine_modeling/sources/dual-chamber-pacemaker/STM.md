@@ -16,8 +16,8 @@
 - 时间级别：T2（强实时 / 显式时钟时间窗口）
 - 结构标签：显式时钟
 - 原文细节充实度：🟢 A（细节完备）
-- 描述细节充实度：🟡 B（细节较充实）
-- 数据集角色：🧰 清洗后保留
+- 描述细节充实度：🟢 A（细节完备）
+- 数据集角色：💎 核心保留
 - 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
@@ -79,17 +79,19 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The pacemaker manages the timing relationship between atrial and ventricular events by sensing events from the heart and delivering atrial or ventricular pacing actions back to the heart. In DDD operation, the lower-rate interval keeps the heart above the minimum rate by starting from each ventricular event and delivering atrial pacing if no atrial event is sensed in time. After an atrial event, the atrio-ventricular interval waits for ventricular sensing and delivers ventricular pacing if needed, while the upper-rate interval can hold that pacing until the permitted ventricular timing is reached. Blanking and refractory periods filter atrial and ventricular noise so that early or spurious events do not drive the device into undesired behavior.
+The DDD pacemaker is decomposed into five event-triggered timing components that communicate through broadcast channels and shared variables while sensing Aget!/Vget! events from the heart and issuing AP!/VP! pacing actions. The LRI component is reset by each ventricular event (VS or VP) and, if no atrial sense occurs, delivers AP after TLRI-TAVI so that the ventricular interval never exceeds the lower-rate limit. After an atrial event (AS or AP), the AVI component waits up to TAVI for a ventricular sense and delivers VP if none arrives, while the URI component uses the global clock clk after each ventricular event and holds that VP until the lower bound TURI is satisfied. After every ventricular event, PVAB first blanks atrial events, then PVARP continues the refractory window so that atrial events in that interval become AR rather than AS. A separate VRP follows each ventricular event to filter noise and early ventricular events on the ventricular channel.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The pacemaker manages the timing relationship between atrial and ventricular events by sensing events from the heart and delivering atrial or ventricular pacing actions back to the heart.
+1. 句子 1：The DDD pacemaker is decomposed into five event-triggered timing components that communicate through broadcast channels and shared variables while sensing Aget!/Vget! events from the heart and issuing AP!/VP! pacing actions.
    对应摘录：A
-2. 句子 2：In DDD operation, the lower-rate interval keeps the heart above the minimum rate by starting from each ventricular event and delivering atrial pacing if no atrial event is sensed in time.
+2. 句子 2：The LRI component is reset by each ventricular event (VS or VP) and, if no atrial sense occurs, delivers AP after TLRI-TAVI so that the ventricular interval never exceeds the lower-rate limit.
    对应摘录：A
-3. 句子 3：After an atrial event, the atrio-ventricular interval waits for ventricular sensing and delivers ventricular pacing if needed, while the upper-rate interval can hold that pacing until the permitted ventricular timing is reached.
+3. 句子 3：After an atrial event (AS or AP), the AVI component waits up to TAVI for a ventricular sense and delivers VP if none arrives, while the URI component uses the global clock clk after each ventricular event and holds that VP until the lower bound TURI is satisfied.
    对应摘录：B
-4. 句子 4：Blanking and refractory periods filter atrial and ventricular noise so that early or spurious events do not drive the device into undesired behavior.
+4. 句子 4：After every ventricular event, PVAB first blanks atrial events, then PVARP continues the refractory window so that atrial events in that interval become AR rather than AS.
+   对应摘录：B
+5. 句子 5：A separate VRP follows each ventricular event to filter noise and early ventricular events on the ventricular channel.
    对应摘录：B
 
 ## 条目 2: Mode-switch algorithm between DDD and VDI
