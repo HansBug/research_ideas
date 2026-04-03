@@ -1,0 +1,4711 @@
+--- Page 1 ---
+Verification of Clocked and Hybrid Systems*
+
+Yonit Kestent Zohar Manna! Amir PnueliS
+
+Abstract. This paper presents a new computational model for real-
+time systems, called the clocked transition system (CTS) model. The CTs
+model is a development of our previous timed transition model, where
+some of the changes are inspired by the model of timed automata. The
+new model leads to a simpler style of temporal specification and ver-
+ification, requiring no extension of the temporal language. We present
+verification rules for proving safety and liveness properties of clocked
+transition systems. All rules are associated with verification diagrams.
+The verification of response properties requires adjustments of the proof
+rules developed for untimed systems, reflecting the fact that progress in
+the real time systems is ensured by the progress of time and not by fair-
+ness. The style of the verification rules is very close to the verification
+style of untimed systems which allows the (re)use of verification meth-
+ods and tools, developed for untimed reactive systems, for proving all
+interesting properties of real-time systems.
+
+We conclude with the presentation of a branching-time based approach
+for verifying that an arbitrary given CTS is non-zeno.
+
+Finally, we present an extension of the model and the invariance proof
+rule for hybrid systems.
+
+Table of Contents
+
+1 Introduction .......... 0... 2.2... 2 eee ee eee
+
+2 Real-Time Systems ...........0.0 000000 e eee eee
+2.1 Computational Model: Clocked Transition System ........
+2.2 Specification Language ... 1... ee ee ee ee
+
+coon Nw
+
+* This research was supported in part by the National Science Foundation under
+grant CCR-95-27927, the Defense Advanced Research Projects Agency under NASA
+grant NAG2-892, ARO under grant DAAH04-95-1-0317, ARO under MURI grant
+DAAH04-96-1-0341, by Army contract DABT63-96-C-0096 (DARPA), by a basic re-
+search grant from the Israeli Academy of Sciences, and by the European Community
+ESPRIT Basic Research Action Project 6021 (REACT).          Preliminary versions
+of some parts of this paper appeared in [KMP95] and [MP95al].
+
++ Department of Communication Systems Engineering, Ben Gurion University, Beer-
+Sheva, Israel, e-mail: ykesten@bgumail .bgu.ac.il
+
++ Department of Computer Science, Stanford University, Stanford, CA 94305, e-mail:
+manna@cs.stanford.edu
+
+5 Department of Computer Science, Weizmann Institute, Rehovot, Israel, e-mail:
+amir@wisdom.weizmann.ac.il
+
+
+--- Page 2 ---
+3 Programs as Clocked Transition Systems .............    9
+
+3.1 A Simple Programming Language ...........-.....     9
+3.2 The CTS corresponding to an SPL, program. .........--   13
+4 Verifying Safety Properties of Clocked Transition Systems. . 17
+4.1 The Invariance Rule... 2... ee ee ee eee   17
+4.2 Verification Diagrams ...   19
+4.3 Invariance Verification Diagrams ... ...-..    20
+4.4 Completeness of RuleINV .. ee ee ee ee   25
+4.5 Verifying Waiting-for Formulas .................-.    27
+5 Verifying Response Properties of Clocked Transition Systems 30
+5.1 The Clock-Bounded Chain Rule ...............2.-.   30
+5.2 Clock-Bounded Chain Diagrams ...   33
+5.3 WinningaRace .5   35
+5.4 Proving Accessibility for Program MUTEX[L,u] ......-..，   37
+5.5 Clock-Bounded Well-Founded Rule... ......-2.-22020-   43
+5.6 Rule CB-WELL «2... eee ee ee ee ee eee  Ad
+5.7 Ranked Diagrams ... 2.2... . , ee ee ee ee eee   48
+5.8 From Waiting-for to Response Properties .............    50
+5.9 Are Rules CB-CHAIN and CB-WELL Really Necessary? ......   51
+6 Proving that a CTS is Non-Zeno ...............---.   53
+6.1 A Rule for Establishing Non-Zenoness .........2.-206-   54
+6.2 Verifying Possibility Formulas...................--    56
+6.3 Possibility Diagrams... 2... 2... eee ee ee ee ee   61
+6.4 Proving that 4 is Non-Zeno ..........2.-2020008-   62
+7 Hybrid Systems ...... 2.0.0... eee ee ee ee   63
+7.1 Computation Model: Phase Transition System ..........   63
+7.2 Verifying Invariance Properties over PTS. .....-..-.+.--   68
+8 Conclusions... 2... 2... ee ee ee   71
+
+1 Introduction
+
+A formal framework for specifying and verifying temporal properties of reactive
+systems often contains the following components:
+
+e A computational model defining the set of behaviors (computations) that are
+to be associated with systems in the considered model.
+
+e A requirement specification language for specifying properties of systems
+within the model. The languages we have considered in our previous work are
+all variants of temporal logic extended to deal with various aspects specific to
+the considered model, such as real-time and continuously changing variables.
+A system description language for describing systems within the model. We
+frequently use both a textual programming language and appropriate exten-
+sions of the graphical language of statecharts [Har87] to present systems.
+
+ 
+
+
+--- Page 3 ---
+e A set of proof rules by which valid properties of systems can be verified,
+showing that the systems satisfy their specifications.
+
+e Aset of algorithmic methods enabling a fully automatic verification of decid-
+able subclasses of the verification problem such as the verification of finite-
+state systems (model checking).
+
+In [MP93a], we considered a hierarchy of three models, each extending its pre-
+decessor, as follows:
+
+e A reactive systems model that captures the qualitative (non-quantitative)
+temporal precedence aspect of time. This model can only identify that one
+event precedes another but not by how much.
+
+e A real-time systems model that captures the metric aspect of time in a
+reactive system. This model can measure the time elapsing between two
+events.
+
+e A hybrid systems model that allows the inclusion of continuous components
+in a reactive real-time system. Such continuous components may cause con-
+tinuous change in the values of some state variables according to some phys-
+ical or control law.
+
+The computational model proposed for reactive systems is that of a fair transi-
+tion system (FTS) [MP93b].
+
+The approach to real time presented in [MP93a] and [HMP94] is based on
+the computational model of timed transition systems (TTS) in which time itself
+is not explicitly represented but is reflected in a time stamp affixed to each state
+in a computation of a TTS.
+
+In this paper we present a new computational model for real-time systems,
+the clocked transition system (CTS) model. This model represents time by a set
+of clocks (timers) which increase uniformly whenever time progresses, but can be
+set to arbitrary values by system (program) transitions. The CTs model can be
+viewed as a natural first-order extension of the timed automata model [AD94].
+
+It is easy and natural to stipulate that one of the clocks T is never reset. In
+this case, T represents the master clock measuring real time from the beginning
+of the computation. This immediately yields the possibility of specifying timing
+properties of systems by unextended temporal logic, which may refer to any of
+the system variables, including the master clock T.
+
+Consider, for example, the following two important timed properties:
+
+e Bounded response: Every p should be followed by an occurrence of a q, not
+later than d time units.
+
+e Minimal separation: No q can occur earlier than d time units after an oc-
+currence of p.
+
+Within the CTS computational model, these two yardstick properties can be
+specified by the following (unextended) temporal formulas:
+
+e Bounded response: pA (T=to.) + O@AT<to+d).
+e Minimal separation: pA (T=to) =>      (T <to+d — 79).
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+--- Page 4 ---
+The new computational model has several advantages over previous models such
+as the model of timed transition systems (TTS, see [HMP94]).
+
+The first advantage of the new model, as shown above, is that it leads to a
+more natural style of specification, explicitly referring to clocks, which are just
+another kind of system variables, instead of introducing special new constructs,
+such as the bounded temporal operators proposed in metric temporal logic (MTL)
+(see [KVdR83], [KdR83], and [Koy90]) or the age function proposed in [MP93a].
+
+A second advantage of the CTS model is that we can reuse many of the
+methods and tools developed for verifying untimed reactive systems (e.g. [MP95])
+for verifying real-time systems under the CTS model. The move from TTS to CTS
+brings us closer to the approach proposed in [AL91], which also recommends
+handling real time with a minimal extension of the reactive-systems formalism.
+
+The model of Clocked Transition Systems, as presented in this paper, has
+been successfully implemented in the Stanford Temporal Verifier support sys-
+tem sTep[BBCt95]. We refer the reader to the paper [BMSU97] which uses
+clocked transition systems to model and verify the generalized railroad crossing
+benchmark problem.
+
+A model similar to the CTS model presented here was introduced in [AH94],
+and proof rules for establishing response properties for this model were presented
+in [HK94]. However, the response verification rules presented there for the general
+case were based on consideration of the region graph associated with timed
+automata which, in many cases, becomes very big. Our approach to response
+verification, while considering the general case, does not refer to the region graph
+and can be viewed as a natural modification of the response rules for untimed
+fair transition systems, except that the notion of fairness is replaced by the
+guaranteed progress of time.
+
+We refer the reader to [AH89], [Ost90], [AL91], and the survey in [AH92], for
+additional logics, models, and approaches to the verification of real-time systems.
+In the process algebra school, some of the representative approaches to real time
+are [NSY92], [MT90], and many others are listed in [Sif91].
+
+The paper is organized as follows. In Section 2, we present the real-time
+computational model of clocked transition systems (CTS). In Section 3, we show
+how programs augmented with timing bounds for the execution of statements
+can be represented as clocked transition systems. In Section 4, we present rules
+and verification diagrams for verifying safety properties of CTs’s. In Section 5,
+we present rules and verification diagrams for establishing response properties
+of clocked transition systems. In Section 6, we present an approach to verifying
+that a given CTS is non-zeno. Finally, in Section 7, we present the extension of
+the CTS model to deal with general hybrid systems. This yields an extended
+model to which we refer as a phase transition system. A proof rule for verifying
+safety properties of hybrid systems is introduced and illustrated.
+
+A part of an ongoing research has implemented support for phase transition
+systems in sTep [MS98], and has used it to successfully (and actually without
+too much user interaction) verify a few of the HyTech examples [HHWT95].
+
+An earlier workshop version of this paper appeared in [KMP98].
+
+ 
+
+
+--- Page 5 ---
+2 Real-Time Systems
+
+We now introduce a computational model for real-time systems.
+
+2.1 Computational Model: Clocked Transition System
+
+Real-time systems are modeled as clocked transition systems (CTS). A clocked
+transition system ® = (V,0,T, IT) consists of:
+
+e V : A finite set of system variables. The set V = DUC is partitioned into
+D = {u1,...,Un} the set of discrete variables and C = {t1,...,t,} the set
+of clocks. Clocks always have the type real. The discrete variables can be
+of any type. We introduce a special clock T’ € C, representing the master
+clock, as one of the system variables.
+
+e ©: The initial condition. A satisfiable assertion characterizing the initial
+states. It is required that
+
+@ > t=...=t=T=0,
+
+ie., the clocks are reset to zero at all initial states.
+e T : A finite set of transitions. Each transition 7 € T is a function
+
+T1 DH 2,
+
+mapping each state s € ¥’ into a (possibly empty) set of T-successor states
+r(s) CX.
+
+The function associated with a transition 7 is represented by an assertion
+pr(V,V"), called the transition relation, which relates a state s € ¥ to its
+r-successor s’ € 7(s) by referring to both unprimed and primed versions of
+the system variables. An unprimed version of a system variable refers to its
+value in s, while a primed version of the same variable refers to its value in
+s'. For example, the assertion 2’ = x +1 states that the value of x in s' is
+greater by 1 than its value in s.
+
+We say that a transition r € T is enabled (denoted En(r)) in some state s,
+if the following formula is satisfied:
+
+En(r): (AV')p+(V,V"),
+
+Thus, En(r) is true in s iff s has some r-successor.
+For every 7 € T, it is required that
+
+pr 7 T'=T,
+
+ie., the master clock is modified by no transition.
+e II: The time-progress condition. An assertion over V. The assertion is used
+to specify a global restriction over the progress of time.
+
+ 
+
+
+--- Page 6 ---
+Extended Transitions
+
+Let & : (V,0,T, IZ) be a clocked transition system. We define the set of extended
+transitions Ty associated with @ as follows:
+
+Tr =T U {tick}.
+Transition tick is a special transition intended to represent the passage of time.
+Its transition relation is given by:
+Ptick: JA.Q(A) A D'=D A C'=CHA,
+where (2(A) is given by
+MA): A>O A VEE [0, A). H(D,C +t).
+Let D = {u1,...,Um} be the set of discrete variables of and C = {t1,-..,tx,T}
+be the set of its clocks. Then, the expression C’ = C + A is an abbreviation for
+f=thtA A A th =tt+A A TI=THA,
+and 1(D,C +t) is an abbreviation for H(u,---,Um tit t,.--,t, +t,T +).
+
+Runs and Computations
+Let ® : (V,0,T, 11) be a clocked transition system. A run of & is a finite or
+infinite sequence of states o : so, 1,-.. Satisfying:
+
+e Initiation: so FO
+© Consecution: For each j € [0,|o|) $341 € T(s;), for some T € Tr.
+
+A state is called (®-)accessible if it appears in a run of #.
+A computation of & is an infinite run satisfying:
+
+e Time Divergence: The sequence so[T], 51[Z],... grows beyond any bound.
+That is, as i increases, the value of T' at s; increases beyond any bound.
+
+A Frequently Occurring Case
+In many cases, the time-progress condition JT has the following special form
+IT:  \@ir ti < Ei);
+igN
+where N is some finite index set and, for each i € N, the assertion p; and
+the real-valued expression £; do not depend on the clocks, and t; € C is some
+clock. This is, for example, the form of the time-progress condition for any CTS
+
+representing a real-time program. For such cases, the time-increment limiting
+formula (2(A) can be significantly simplified and assumes the following form:
+
+MA): A>OA  A@7t+4<B)
+igN
+Note, in particular, that this simpler form does not use quantifications over t.
+
+ 
+
+
+--- Page 7 ---
+Non-Zeno Systems
+
+A CTS is defined to be non-zeno if every finite run can be extended into a
+computation (see [AL91], [Hen92]). An equivalent formulation is that ® is non-
+zeno if it satisfies the following
+
+A finite sequence o is a run of & iff o is a prefix of some computation
+of &
+
+A consequence of @ being non-zeno is that a state s is -accessible iff it appears
+in some computation of &.
+
+Example1. Consider the CTs’s #; and @ presented in Fig 1. In Fig 2, we
+
+y: integer where y = 0                         y: integer where y = 0
+t,T: real where t=T=0              t,T: real where t= T=0
+y=ytl                       1) =(¥+10)
+
+>) CD
+
+cTs #1                                                CTs 2
+
+ 
+
+ 
+
+Fig. 1. Two cTs’s.
+
+present these two CTS’s in textual form.
+
+It is not difficult to establish that both ®, and ®2 are non-zeno CTS’s. This
+is because, from any accessible state, we can always move to state 4 from which
+we can continue to take infinitely many time steps with increment 1.
+
+The tick transitions for these two CTS’s are given by
+
+ 
+
+ 
+
+Prick? 2A > 0.(a',y') = (ay) A (4T') = (€+ A,T +A) AW =0>t+AK< 2)
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Pion: 3A > 0. (n'y) = (my) A (tT) = (C4 AT +A) A(t =0 t+ AK she).
+
+ 
+
+
+--- Page 8 ---
+ 
+
+ 
+
+V: {x: {0, 1}; y: integer} U {t, T: real}                V: {n: {0,1}; y: integer} U {t, T: real}
+
+eS aS TS 一一一       ee ST 一一一
+
+D             C                      D             C
+
+O:r=y=t=T=0               O:n=y=t=T=0
+T: {70, T1}with transition relations               T: {7,71 }with transition relations
+
+To T= T =OAY =ytl            totam =U =0Ay =ytl]
+
+A(t, T) = (t,T’)                            AT=T'
+
+mi T=OAW HLA (yt, T) = (y',t',T’)       mT=OAW HLA (y,t,T)=(y',t,T’)
+
+II:m=O0>t<2                Jr=0一!< fn
+CTs Dy                              CTS D2
+
+ 
+
+Fig. 2. The two CTs’s in textual form.
+
+Following is a computation of CTS #1:
+
+(x:0, y:0, #30, 7:0) “&O (n:0, y:0, 1, 7:1) 全
+(x20, y:1,t:1,T7:1) 一 (m:0, y2, te1, T:1) A
+(n:0, y:2, t:2,7:2) -% (9:0, y:3,t:2,7:2)
+(1:0, y:4, 22, T:2) 全 (a1, ye, t22, 7:2) “=O
+(m1, y:4, t:3, T:3) tick(1) (m1, y:4, t:4, T:4) tick)
+
+Note that to be a computation, time must grow beyond any bounds. Since,
+at location f) of ®, time cannot grow beyond 2, any computation of #; must
+eventually move to location £;, where time can grow beyond any bounds. y
+
+2.2 Specification Language
+
+To specify properties of reactive systems, we use the language of temporal logic,
+as presented in [MP93b]. Here, we only use the following:
+
+e State formulas (assertions) - any first-order formula, possibly including at_£
+expressions
+
+e Op — Always p, where p is an assertion. We refer to such a formula as
+an invariance formula.
+
+ep=>(qWr) — pentails q waiting for r, where p, g, and r are assertions.
+We refer to such a formula as a waiting-for formula.
+
+ep>Or — pentails eventually r, where p and r are assertions. We refer
+
+to such a formula as a response formula.
+
+ 
+
+ 
+
+For a state s and assertion p, we write s [Kp to indicate that p holds (is true)
+over s. Let o : 59,51... be an infinite sequence of states, to which we refer as a
+
+
+--- Page 9 ---
+model. For an assertion p, we say that j > 0, is a p-position if s; EK p. Satisfaction
+of (the three considered) temporal formulas over a model o is defined as follows:
+
+ 
+
+ 
+
+e A model o satisfies the invariance formula (|p, written o — Lp, if all
+positions within o are p-positions.
+
+e A model g satisfies the waiting-for formula p > (qW7r), written o FE p >
+(qWr), if every p-position 4 within o initiates an interval of positions, all of
+which satisfy g. This continuous-q interval can either extend to infinity or
+terminate in an r-position which is not in the interval. That is,
+
+oft] Ep implies o[j] | q for all j > i, or
+ok] Er for some k >i and o[j] Eq for all j, i f <k.
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+e A model o satisfies the response formula p> © r, written co Ep > O17, if
+every p-position ¢ within o is followed by an r-position j > i.
+
+A temporal formula ¢ is said to be valid over CTS & (or &-valid) if o — vy for
+every computation o of &. We write & | ¢ to indicate this fact. An assertion p
+is called ®-state valid if it holds at every ®-accessible state. We write # |K p to
+indicate that assertion p is &-state valid.
+
+A temporal formula is specified over a set of variables, partitioned into flexible
+and rigid variables. Flexible variables may assume different values in different
+states. Rigid variable must assume the same value in all states.
+
+The temporal formulas that specify program properties can be arranged in a
+hierarchy that identifies several classes of formulas, differing in their expressive
+power. For a full presentation of the hierarchy, we refer the reader to [MP95]
+(chap. 0), and to [MP93b] for a more extensive discussion. In this paper, we
+present proof rules for the verification of two subclasses of the general class of
+safety properties (state-invariance and waiting-for properties), and a subclass
+of the general class of liveness properties (response). These restricted sets of
+properties are sufficient to demonstrate the similarity between the verification
+methods developed for untimed reactive systems and the verification methods
+that can be used with the CTS and PTS models for real time and hybrid systems.
+
+3 Programs as Clocked Transition Systems
+
+In this section we show how to represent real-time programs as clocked transition
+systems. First we introduce a simple conccurrent programming language in which
+example programs will be written. Next we show the representation of such
+programs as CTS.
+
+3.1 A Simple Programming Language
+
+In [MP93b], we introduced a simple programming language SPL. Here we consider
+a subset of the language, restricting our attention to the following statements:
+
+ 
+
+
+--- Page 10 ---
+assignment, await, noncritical, critical, conditional, concatenation, se-
+lection, while, and block.
+
+In this restricted subset, concurrent processes communicate by shared variables,
+and parallelism is allowed only at the top level of the program.
+We start by presenting the syntax of statements and programs in SPL.
+
+Basic Statements
+
+First, we consider basic statements. These are statements that can be executed
+in a single atomic step
+e Assignment: For a variable y and an expression e of appropriate type,
+7 := e
+is an assignment statement. We use the skip statement as an abbreviation for
+a trivial assignment y := y.
+e Await: For a boolean expression c,
+await c
+is an await statement. We refer to condition c as the guard of the statement.
+Execution of await c changes no variables. Its sole purpose is to wait until c
+becomes true, at which point it terminates, allowing the execution of subsequent
+statements.
+
+Schematic Statements
+
+The following statements provide schematic representations of segments of code
+that appear in programs for solving the mutual-exclusion problem. Typically,
+we are not interested in the internal details of this code but only in its overall
+behavior concerning termination.
+e = Noncritical:
+noncritical
+is a noncritical statement. This statement represents the noncritical activity in
+programs for mutual exclusion. It is not required that this statement terminate.
+The name “noncritical” given to this statement is appropriate for programs that
+deal with critical sections.
+© = Critical:
+critical
+is a critical statement. This statement represents the critical activity in programs
+for mutual exclusion, where coordination between the processes is required. It is
+required that this statement terminate.
+
+Compound Statements
+
+Compound statements consist of a controlling frame applied to one or more
+sub-statements, to which we refer as the children of the compound statement.
+
+e Conditional: For statements S; and Sz and a boolean expression c,
+if c then S; else Sy
+
+ 
+
+
+--- Page 11 ---
+is a conditional statement. Its intended meaning is that the boolean condition
+c is evaluated and tested. If the condition evaluates to T (true), statement 51
+is selected for subsequent execution; otherwise, if the condition evaluates to
+F (false), S2 is selected. Thus, the first step in an execution of the conditional
+statement is the evaluation of c and the selection of S, or Sp for further execution.
+Subsequent steps continue to execute the selected sub-statement.
+
+A special case of the conditional statement is the one-branch-conditional
+statement
+
+if c then 5}.
+Execution of this statement in the case that c evaluates to F terminates in one
+step.
+e Concatenation: For statements $1,..., Sx,
+S13+++5 Sk
+
+is a concatenation statement. Its intended meaning is sequential execution of
+the statements S1,...,5, one after the other. The first step in an execution of
+S15---; Sy is the first step in an execution of S,. Subsequent steps continue to
+execute the rest of S;, and when 5S; terminates, proceed to execute 52, 53,..., Sp.
+In a program presented as a multi-line text, we often omit the separator ‘;’
+at the end of a line.
+e Selection: For statements Si,...,S%,
+S, or --+ or Sy
+is a selection statement. Its intended meaning is a nondeterministic selection of
+a statement 5; and its execution. The first step in the execution of the selection
+statement selects a statement S;,7=1,...,k, that is currently enabled (ready to
+be executed) and performs the first step in the execution of S;. Subsequent steps
+proceed to execute the rest of the selected sub-statement, ignoring the other S;’s.
+If more than one of $1,..., 5% is enabled, the selection is nondeterministic. If
+none of the branches are enabled, execution of the selection statement is delayed.
+e While: For a boolean expression c and a statement S,
+while cdo S
+is a while statement. Its execution begins by evaluating c. If c evaluates to F,
+execution of the statement terminates. Otherwise, subsequent steps proceed to
+execute S. When S terminates, execution of the while statement repeats.
+We introduce the notation
+loop forever do S
+as a synonym for
+while T do S.
+Another useful abbreviation is the for statement
+for i:=1tomdo S,
+which is an abbreviation for the concatenation
+4:=1; while i <m do [S; i:=i+]].
+
+ 
+
+ 
+
+11
+
+ 
+
+ 
+
+
+--- Page 12 ---
+Programs
+A program P has the form
+P::  [declarations [Piz [Gz S13 Gill --- Wl Bat (lm Smi Gn i].
+
+where P; :: [é1: Si;  a  :Po [Ont Smj  Gn  :] are named processes. The
+names of the program and of the processes are optional, and may be omitted.
+The body [0;: Si; & :] of process P; consists of a statement S; and an exit label
+人 which is where control resides after execution of S; terminates. Label gj can
+be viewed as labeling an empty statement following .9;.
+A declaration consists of a sequence of declaration statements of the form
+variable, ..., variable: type where ¢.
+
+Each declaration statement lists several variables that share a common type and
+identifies their type, i-e., the domain over which the variables range. The optional
+assertion y imposes constraints on the initial values of the variables declared in
+this statement.
+
+Let ~1,.--;n be the assertions appearing in the declaration statements of a
+program. We refer to the conjunction y : y1 A-+-A Qn as the data-precondition
+of the program.
+
+Fig. 3 presents a simple program consisting of two processes communicating
+by the shared variable «, initially set to 0. Process P; keeps incrementing variable
+y as long as x = 0. Process P has only one statement, which sets x to 1.
+Obviously, once x is set to 1, process P, terminates and some time later so does
+P,, as soon as it observes that «+ 4 0.
+
+ 
+
+7Z) y: integer where xz = y = 0
+
+fo: while z = 0 do
+
+Pon  a: y=yt]  | Pan [meen]
+fo:
+
+ 
+
+Fig. 3. Program ANy-y: A simple concurrent program.
+
+Let P be an SPL program. To obtain a real-time program, we associate with
+each executable statement S of P, a pair of values [/,,u,], called the Jower and
+upper bounds of S. These values, satisfying 0 < 1, < us < co are intended to
+provide a lower and upper bound on the length of time the statement can be
+enabled without being taken. We refer to a program with an assignment of time
+bounds as an SPLy program, and view it as a real-time program.
+
+ 
+
+
+--- Page 13 ---
+3.2 The CTs corresponding to an SPL, program
+
+In the following, we show how an SPLy program can be represented by a CTS,
+identifying each of the components of a CTs for a given program.
+Consider a program P given by
+
+[declaration; [P,:: (4: 513 G3] |] +++ ll Pm [emt Sms En ‘]-
+Without loss of generality, we assume that all statements in the program are
+labeled. Let L; denote the set of locations within process P;, i = 1,...,m, and
+
+let Lp = L, U---U Lm denote the set of locations of the entire program P.
+
+State Variables and States
+
+The state variables V for system ®p consist of the data variables Y = y1,.--5Yns
+that are declared at the head of the program, the set of control variables 7 =
+{71,..-,7m}, one for each process P;, and the set of clocks C = {ti,...,tm,T},
+one clock ¢; for each process P; and a master clock T. The data variables Y
+range over their respectively declared data domains. The control variable 7;
+ranges over the location set L;, for i =1,...,m.
+
+As states we take all possible interpretations that assign to the state variables
+values over their respective domains.
+
+The Initial Condition
+
+Let y denote the data-precondition of program P. We define the initial condition
+© for ®p as
+
+O: m=4,...,Im=lnA PAK =...=tn=T=0.
+This implies that the first state in an execution of the program begins with
+the control variables pointing to the initial locations of the processes, the data
+variables satisfying the data precondition, and clocks reset to zero.
+
+Transition Relation
+
+Next, we consider each of the statements that may appear in an SPL; program
+and, for each such statement, we identify its contribution to the transition rela-
+tion p. Typically, each statement may contribute an additional disjunct to p.
+
+We proceed to define the contributions of each of the previously introduced
+statements. In these definitions, we use the notation pres(U) as an abbreviation
+for
+
+presU): \ (y' =),
+
+yeU
+
+stating that all the variables in the variable set U C V are preserved by a
+considered statement. The statements we consider are displayed in the form:
+
+£:5;¢ E PB,
+
+ 
+
+ 
+
+13
+
+ 
+
+ 
+
+
+--- Page 14 ---
+implying that the statement S with the pre-condition @ and post-condition Cis
+a statement in process P;.
+For locations ¢; and & in a process P;, we denote
+
+at 让   1 = £3
+at_ljn im =O Vm = lk
+
+e Assignment: The statement
+l:y:=e;f: € RP,
+contributes the disjunct
+
+pe Te=L AN THN =e N t>le A t;=0A pres(V —{m,ti,y})
+
+to the transition relation p. The conjunct t; > le asserts that the transition can
+be taken only when ¢;, the clock corresponding to the process P;, is not below
+i, the lower bound associated with the transition. When taken, the transition
+resets clock ¢; to 0. The last conjunct of pg asserts that all variables, excluding
+Tit; and y, retain their values over the transition 7;.
+
+e Await: The statement
+ft: awaitc; €: € Pi,
+contributes the disjunct
+
+cn mH = 他 A pres(V 一 {mi,ti})               ,
+per THH=LAN   V                  和人去>和二0，
+ac A pres(V —t)
+
+The await transition is enabled once control reaches @ and t; > Ie. Thus,
+within a time lying between J, and we, it will be taken. When taken, control
+either moves from £ to @ (if c is true) or remains in place. In any case, the clock
+associated with this statement will be reset.
+
+e Noncritical The statement
+é: noncritical;   Ge   Pi,
+contributes the disjunct
+pres(V — ti)
+per Ti=L 入   Vv               At>l A t,=0
+m=@ A pres(V —{mi,ti})
+
+to the transition relation p. This statement makes a non-deterministic choice
+between staying at the same location or terminating. It is acceptable that the
+statement consistently chooses not to terminate, representing the behavior of a
+non-critical section that never terminates. Note that a process can remain forever
+in its non-critical section from a certain point on.
+
+e Critical The statement
+t: critical; ¢@: € Pi,
+contributes the disjunct
+
+per m=L AN mal A t>le A t, =0A pres(V — {mj ti})
+
+ 
+
+
+--- Page 15 ---
+to the transition relation p. The observable action of the critical statement is to
+terminate.
+
+e Conditional The statement            ~
+é: fifc then £,: 5, else f: SJ; & € P,,
+contributes the disjunct
+
+cAm=h          ，
+perm=l A       Vv       At >le A t,=0A pres(V — {a;,t;}).
+ac A a = &}
+
+to the transition relation p. Thus, the transition for this statement moves from
+£ to &; if the condition c evaluates to T, and moves from £ to ¢, if the condition
+c evaluates to F.
+For the one-branch conditional _
+é: [ifc then 4:5;]; G €  P,, we take the transition relation
+to be
+
+cA mM=h         ，
+perm 一LA      V   人  Nt >le A 友三0和 pres(V — {r;,ts}).
+nmCA开=人
+
+e While: The statement _
+£: while c do [f:S]; £: € BP,
+contributes the disjunct
+
+cA mal          ,
+perm =LN      V      Nt >le A t,=0A pres(V — {m, ti}).
+ac A m=
+
+to the transition relation. According to pe, when c evaluates to T control moves
+from £ to @, and when c evaluates to F control moves from £ to @ Note that the
+enabling transition of Tz is 7; =£A t; > lg which does not depend on the value
+of c.
+
+The selection or the concatenation statements make no direct contribution
+to the transition relation.
+
+Time-Progress Condition
+For each executable statement
+Ls
+in process P;, I includes the conjunct
+
+Ti一人 7 t<Uus,
+
+ 
+
+ 
+
+15
+
+ 
+
+ 
+
+
+--- Page 16 ---
+where u, is the upper bound associated with statement S. This ensures that
+control cannot wait at location ¢ for more than u, without the transition asso-
+ciated with S (or another transition causing control to move away from £) being
+taken.
+
+Note that the lower bounds of statements are added as constraints to tran-
+sitions, while the upper bounds are added as constraints to the time-progress
+condition 7.
+
+This concludes the definition of the transition system @p.
+
+Examples of Computations
+
+Consider the program ANY-Y presented in Figure 3. To make it an SPL; program,
+we uniformly associate each of its executable statements with the time bounds
+[3, 5]. The CTS Pany-yj3,5) associated with ANY-Y;3,5] is defined as follows:
+
+e System Variables: V = {m1,72,2,y,t1,t2,T}. In addition to the control
+variables 7, and 72, and data variables x and y, the system variables also
+include clock t;, measuring delays in process P;, clock t2, measuring delays
+in process P,, and the master clock T, measuring time from the beginning
+of the computation.
+
+e Initial Condition:
+
+ 
+
+OO: m=lAmM=mMAL=Y=NAtK=tk=T=0.
+
+ 
+
+e Transitions: T : {€o,4,mo} with transition relations:
+
+Z=OA  到 =
+Pio: TL=Lo A     vo    At>3AK=0
+t#OATZ=6
+A pres({n2, 2, y, t2,T})
+pai MHOAM=HAY=¥ytlAtUR3At4=0
+A pres({72,X,t2,T})
+Pmo ? 72 = ™Mo A =m Agl=1 At>3AH=0
+A pres({71,4y,t1,T}).
+e Time-progress condition:
+IH: (at_loi — t1 <5) A (at_mo > t2 <5)
+The tick transition relation for this system is given by
+
+Prick: IA > 0. pres(m,72,2,y) A (4, t,T) =( +A,ta+A,T+A) A
+(at -lo — tr tA<5) A (atm — t2+A<5) yg
+
+ 
+
+Having defined the crs ©, derived from an SPL; program P, we use the
+terms P-valid, P-state valid, and P-accessible as synonymous to &,-valid, &,-
+state valid, and ,,-accessible. We also write P — y and P |E p to denote $, - y
+and ®, |E p, respectively.
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+--- Page 17 ---
+4 Verifying Safety Properties of Clocked Transition
+Systems
+
+In this section, we present methods for verifying safety properties of clocked tran-
+sitions systems. Safety properties are those that can be expressed by a formula
+generated from state formulas, the boolean operators V and A, and the temporal
+operators [] and W. we refer to a formula of this form as a cannonical safety
+formula.
+
+In this paper, we consider only invariance and wait-for properties specified
+over state-formulas.
+
+ 
+
+ 
+
+ 
+
+ 
+
+4.1 The Invariance Rule
+
+First, we consider invariance properties, namely, properties that can be ex-
+pressed by the formula CL] p, for some assertion p.
+
+ 
+
+ 
+
+ 
+
+ 
+
+The Accessibility Rule
+
+As a preliminary step, we introduce a rule that establishes the $-state validity
+of an assertion p. This is rule ACC, presented in Fig. 4.
+
+ 
+
+For assertions y and p,
+
+Al. p> p
+AQ O >»
+A3. pr Np 一 W for every TE Tr
+
+DFP
+
+ 
+
+Fig. 4. Rule acc (@-state validity of assertion p).
+
+The rule uses an auxiliary assertion y. Premise Al of rule ACC requires that
+the auxiliary assertion y implies assertion p, whose ®-state validity we wish
+to prove. Premise A2 of the rule requires that ©, the initial condition of P,
+implies the auxiliary assertion y. Premise A3 requires that all transitions in 77?
+(extended transitions of &) preserve y. Premises A2 and A3 state that y holds
+at the initial state of every run and that it propagates from any state to its
+T-successor, for every transition 7 € Tr of the system. Thus, every state in each
+run of © satisfies y. Due to the implication Al, every such state also satisfies
+p. It follows that p holds on every accessible state of system @ and, therefore,
+assertion p is @-state valid.
+
+ 
+
+ 
+
+17
+
+ 
+
+ 
+
+
+--- Page 18 ---
+Rule INV
+
+Assume that we have shown that assertion p is ®-state valid, i-e., every accessible
+state of ® satisfies p. Since all states appearing in a computation are accessible
+(every computation is a run), all states in every computation satisfy p. It follows
+that every computation of © satisfies [] p. Thus, we may use the premises of
+rule ACC to establish that the temporal formula [1 p is ®-valid. Consequently,
+we propose rule INV, presented in Fig. 5, as the main tool for verifying invariance
+properties of a cTs #.
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+For assertions y and p,
+
+Il. gp p
+12 O-¢
+
+B. pp Ap > g' for every TE Tr
+
+ 
+
+@E- Lp
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 5. Rule INV (invariance) applied to cTs &.
+
+Example 2. We use rule INV to establish the invariance of the assertion
+p: at_lo, V at_m,
+
+over program ANY-Yj3,5) (Fig. ??). This assertion claims that, at every state in
+the execution of program ANY-Yj3,5], either control of process P, is at £o or 41,
+or control of P, is at m,. In particular, it implies that if P, is at 2 then P) has
+already arrived in m.
+
+We apply rule INV to this choice of p, taking
+
+gy: (©=O0A at_fo1) V atm
+
+as the auxiliary assertion.
+Premise I1 assumes the form
+
+(x =OA at_fy1) Vat_m, — at_&, V at_my,
+—_ oN          —_e
+的                                   P
+
+which is obviously valid.
+Premise 12 assumes the form
+
+at_lo A aot_rno AZ=0A人… 一 (C=0Aot lol)V…:
+Seal     —_——"_
+Qe                     9
+
+which is obviously valid.
+
+ 
+
+
+--- Page 19 ---
+了Premise I3 has to be checked for each 7 E {to; bno) 如cj For example,
+
+premise I3
+
+for 9 assumes the form
+
+c=0 A at_h
+oA      V      Ag=x“xA-
+
+t#0A at_h
+
+Peg
+
+A (%=0A at_fo1) V at-mi
+—_—_———
+
+It is not dif
+
+This establishes the P-validity of the invariant
+
+yp
+
+(2’ = OA at!_lo,1) V atm.
+一
+
+ficult to see that this implication is valid.
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+PE
+
+ 
+
+(at_o,1 Vv at_m1). JJ
+
+ 
+
+4.2 Ver
+
+ification Diagrams
+
+yg
+
+Py 1.€.,
+
+In proofs of properties of clocked and hybrid systems, it is typically necessary to
+deal with several assertions at the same time and trace which transitions lead
+from one assertion to another. These proofs can be effectively presented by the
+graphical formalism of verification diagrams. Verification diagrams have been
+introduced as a visualization tool in the deductive proofs of untimed, reactive
+systems (see [MP94], [BMS95]). In this paper we use the formalism with minor
+changes, adapting it to the proof rules of clocked and hybrid systems.
+
+In the following we define the basic verification diagram, a diagram whose
+properties are common to all verification diagrams presented in this paper.
+
+A basic verification diagram is a directed labeled graph constructed as follows:
+
+e Nodes in the graph are labeled by assertions (0), $1,---,m- We will often
+refer to a node by the assertion labeling it.
+
+e Edges in the graph represent transitions between assertions. Each edge de-
+parts from one node, connects to another, and is labeled by the name of a
+transition in the program. We refer to an edge labeled by 7 as a T-edge.
+
+e Some of the nodes may be designated as initial nodes. They are annotated
+by an entry arrow  *; :
+
+e Optionally, one of the nodes is designated as a terminal node, (“goal” node).
+In the graphical representation, this node is distinguished by having a bold-
+face boundary, and is labeled by the assertion Yo. No edges depart from a
+terminal node.
+
+ 
+
+ 
+
+19
+
+ 
+
+ 
+
+
+--- Page 20 ---
+Verification Conditions
+
+With each verification diagram, we associate a set of verification conditions, each
+Corresponding to Some premise of the proof rule represented by the diagram. To
+facilitate the expression of verification conditions, we introduce the abbreviation
+
+{p}r{q} standingfor p;Ap > q’,
+
+for assertions p and q and transition rT.
+We say that a verification diagram is valid over a CTS & (@-valid) if all the
+verification conditions associated with the diagram are &-state valid.
+
+Encapsulation Conventions
+
+There are several encapsulation conventions that improve the presentation and
+readability of verification diagrams. We extend the notion of a directed graph into
+a structured directed graph by allowing compound nodes that may encapsulate
+other nodes, and edges that may depart or arrive at compound nodes. A node
+that does not encapsulate other nodes is called a basic node.
+
+We use the following conventions:
+
+e Labels of compound nodes: A diagram containing a compound node n, la-
+beled by an assertion Y and encapsulating nodes n1,...,% with assertions
+1,...,%x, is equivalent to a diagram in which n is unlabeled and nodes
+NA, +++5M are labeled by 91 AY, -.., and Yer AY.
+
+e Edges entering and exiting compound nodes: A diagram containing an edge
+e connecting node A to a compound node n encapsulating nodes n1,...,n%
+is equivalent to a diagram in which there is an edge connecting A to each
+Ni, i = 1,...,k, with the same label as e. Similarly, an edge e connecting
+the compound node n to node B is the same as having a separate edge
+connecting each n;,i =1,...,k, to B with the same label as e.
+
+4.3 Invariance Verification Diagrams
+
+An invariance diagram is a basic verification diagram with no terminal node. For
+example, in Fig. 6 we present a verification diagram for program ANY-Yj3,5]-
+
+ 
+
+ 
+
+ 
+
+Fig. 6. Verification Diagram D1.
+
+ 
+
+
+--- Page 21 ---
+Verification Conditions for Invariance Diagrams
+
+With each invariance diagram, we associate the following verification conditions:
+
+e Let y be a node in the graph, 7 be a transition in the program, and let
+Y1,+++5~k be the nodes reached by r-edges departing from y. The verifi-
+cation condition associated with y and 7 (corresponding to premise I3) is
+given by
+
+{9} T{IPVYLV..-V GE}
+
+In particular, if k = 0 (i.e., y has no T-successors), the associated verification
+condition is
+
+{ye} T {y}-
+
+For example, the verification conditions associated with diagram Dj, (Fig. 6),
+are:
+
+13 for gy, and 49: {w=OA at_lo1} & {a =0A at_fo1}
+
+Bifor gi and&: {f=OAat_Oa}& {x =0A at_o}
+
+13 for gy, and mg: {«=OA at_lo1}mo{(x =O0A at_fo,1) V at_mi}
+了 for yy and tick: {v7 =0A at_lo,1} tick{x =O A at_fo,1}
+
+13 for ya and fo: {at_m1} & {at_mi}
+
+13 for pa and &: {at_m} & {at_m}
+
+13 for y2 and mg: {at_mi}mo {at_mi}
+
+T3 for y and tick: {at_my,} tick {at_m}
+
+Let Dp be an invariance diagram associated with (the CTs of) a program P.
+Let ¥1,.-.,(m be the assertions labeling the nodes of Dp.
+
+Claim 1 Jf the invariance diagram Dp is valid, then
+
+PE V gi >     V Qi
+i=l           a=1
+
+ 
+
+ 
+
+ 
+
+ 
+
+Tf, in addition, 0 一  V y; and yp; > p for everyi=1,...,m, then
+
+w=1
+
+ 
+
+PEOp.
+
+In case there is a subset N C {1,...,m} such that O >  V yi, we identify pi
+ieN
+
+ 
+
+ 
+
+ 
+
+tEN as initial nodes.
+
+For example, all the verification conditions associated with diagram Dj are valid
+and the invariance diagram Dj establishes
+
+ANY-Y F (at_fo,1 V at_m,)                                     (1)
+
+ 
+
+ 
+
+21
+
+ 
+
+ 
+
+
+--- Page 22 ---
+ 
+
+Fig. 7. A more detailed diagram, using encapsulation conventions.
+
+Using the encapsulation convetions, we can draw a more detailed invariance
+diagram establishing (1), as shown in Fig. 7.
+In the diagram of Fig. 7, the single assertion Z = 0 A at_,1, has been broken
+into the two sub-cases: x = 0A at_fp and « = 0A at_&, explicitly displaying
+the fact that transitions &) and & cause the system to move between these two
+sub-cases.
+
+Example 3. We use rule INv to prove that program ANY-Y;3,5) terminates
+within 15 time units, as specified by the following invariance formula:
+
+CT < 15 v (at_& A at_m))
+
+This formula claims that every accessible state in which the program has not
+terminated yet (ie., at_l2 A at_m, does not hold), can only be observed when
+the master clock T has not yet passed 15. It follows that any state observed later
+than T = 15 must be a termination state.
+The proof is presented by the invariance diagram in Fig. 8.
+The assertions are indexed in descending order from 3 on top to Yo at bottom
+in order to keep compatibility with the chain diagrams introduced in Section 5.
+Note that no edge in the diagram is labeled by the tick transition. This
+implies that all verification conditions involving the tick transition are of the form
+{yi} tick {yi} aiming that the tick transition preserves each of the assertions
+appearing in the diagram.
+As an example, consider the verification condition claiming that assertion
+ga: atl, A T <5+t, < 10 is preserved by the tick transition.
+at_lp AT <54+t1<10 A
+一-一
+
+2
+A>OAW=H=TATI=HTH+A AH =HH4+AA (Ath ot +A<5) A>:
+OL el
+
+ 
+
+ 
+
+ 
+
+Ptick
+= atl AT! <5+t, <10
+eS
+
+a
+
+ 
+
+
+--- Page 23 ---
+ 
+
+t,t2,T 之 0
+
+3 :at lolAat_7noAZ三0A丰和5和如 =T<5
+
+at_m,z=1
+
+gy: atl; AT <5+t, < 10
+
+a
+
+gi: atOgo AT < 104+, <15
+
+Lo
+
+Yo: at_ly A at_my,
+
+Fig. 8. Termination of aNy-y within 15 time units.
+
+                                                                                                                                                                                                                                                                  
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+It is not difficult to see that this implication is state-valid. 4
+
+Example4. As a second example, we present a mutual-exclusion algorithm,
+due to M. Fischer, which functions properly only due to the timing constraints
+associated with the statements. Similar proofs to the one we will present here
+are given in [SBM92], [AL91], and [MMP92].
+
+The algorithm is presented in Fig. 9 under the name of program MUTEX. By
+assigning all statements in MUTEX the uniform time bounds [L, U], we obtain the
+timed program MUTEX{z,y). Assuming that 2L > U, we prove that the mutual
+exclusion property
+
+ 
+
+ 
+
+ 
+
+ 
+
+a(at_lg A at_ms)
+
+ 
+
+is valid for MUTEX{z,u]-
+
+ 
+
+ 
+
+23
+
+ 
+
+ 
+
+
+--- Page 24 ---
+ 
+
+az: integer where z = 0
+£9: loop forever do                   mo: loop forever do
+4, : noncritical                 mi: noncritical
+42: skip                      m2: skip
+£3: while z #1 do          m3: while zc #2 do
+fy : await c=0              ma: await c=0
+é5:@:=1         |       Ms: 2:=2
+&, : skip                                     me : skip
+é7 if c=1 then             mz iif x= 2 then
+ég: critical                        ms: critical
+fy: skip                      mg: skip
+fig: 2:=0                 mio: x2:=0
+- A 一                                - BP -
+
+ 
+
+ 
+
+ 
+
+Fig. 9. Program MUTEX, implementing Fischer’s protocol.
+
+Let us explain informally why mutual exclusion for program MUTEX is guar-
+anteed and the role of the skip statements at 4 and mg. Assume a violation
+of mutual exclusion in which process P, entered its critical section (location fg)
+first and, while P, is still there, process P2 enters mg. When P, entered ¢g, x was
+1. For P, to enter mg later, it was necessary for it to set x to 2 first, which can
+only be done at ms. Since after P, set 7 to 1 at @;, P, cannot pass the test for
+x = Oat m4, the only possibility is that P, kept waiting at ms while P, executed
+L6 and the test at @7. This must have taken P; at least 2, since L is the lower
+bound for execution of a statement. However, P2 cannot wait at ms for as long
+as 2L because 2L > U and no process can delay the execution of a statement for
+more than U. It follows that the described scenario in which P2 keeps waiting
+at ms until P, enters ls is impossible. The role of the skip statement at f6 is
+therefore to introduce an additional delay of at least Z time units.
+
+The skip statements at 49 and mg are necessary to guarantee the response
+properties of this algorithm, and we will discuss them in the next section. The
+skip statements at £2 and m, represent exits out of the noncritical sections (at
+£, and m1, respectively) and intentions to enter the critical sections.
+
+A formal proof that the assertion =(at_fg A at—ms) is an invariant of
+program MUTEX is presented by the invariance diagram of Fig. 10.
+
+All verification conditions associated with this diagram, have been verified
+automatically (with no user intervention) by the sTeP verifier [BBC+95], using
+the axiom 2L > U.
+
+This concludes the proof of mutual exclusion for program MUTEX. y
+
+ 
+
+
+--- Page 25 ---
+ 
+
+(0<t,t<U
+
+ 
+
+ 
+
+ 
+
+ 
+
+at_ 3.6.10, at~™M0..4,6,7
+
+at_le, 2 >
+
+&
+
+at_t, te =u +h                  at_m7, ty > te +L
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 10. Mutual exclusion for program MUTEX.
+
+4.4 Completeness of Rule INv
+
+Rule INV is complete for verifying invariances of clocked transition systems. This
+is stated by the following claim.
+
+Claim 2 [f formula
+
+ 
+
+ 
+
+p is valid over non-zeno CTS ®, then there exists an
+
+ 
+
+ 
+
+assertion ~ such that premises 11-I3 of rule INV are state-valid.
+
+Justification The basic idea of the proof is the construction of an assertion
+acc, that holds in a state s iff s is ®-accessible, i-e., appears in some run of &.
+
+We then show that if
+
+ 
+
+ 
+
+ 
+
+ 
+
+Di &-valid, then the premises of rule INV are state-valid
+
+(implying that they are also &-state valid) when taking acc, for Y. Since we are
+
+ 
+
+ 
+
+25
+
+ 
+
+ 
+
+
+--- Page 26 ---
+only proving relative completeness, it is enough to show validity of the premises,
+assuming an oracle that provides proofs or otherwise verifies all generally valid
+assertions.
+
+For the construction of acc,, we refer the reader to [MP91] or Chapter 2 of
+[MP95]. Assume that we have constructed an assertion acc, such that
+
+8 F acc,      iff      8 is a ®-accessible state.
+
+We show that acc,, when substituted for ¥, validates the three premises of rule
+INV.
+
+Il. acc, > p
+By our assumption that [1 p is @-valid, it follows that each state appearing
+in some computation satisfies p. As ® is non-zeno, every accessible state
+appears in some computation and, hence, every accessible state satisfies p.
+Since acc, characterizes precisely the accessible states, the premise follows.
+
+12. O — acc,
+
+It is obvious that every state satisfying O is initial and is, therefore, 五
+accessible. Consequently, such a state must satisfy acc,, which characterizes
+all -accessible states.                .
+
+13. p;(U,U) A ace,(U) — acc,(U), for each r € T and every values of U
+and 0.      .
+
+Let U and U be two lists of values, which can be viewed as values of the
+system variables V, such that both p;(U,U) and acc,(U) are true. We will
+show that acc, (0) is also true.
+
+Let s and 3 be two arbitrary states such that s[V] =U and 3[V] =U. Since
+acc,(U) = T, we have that s F acc,. By the meaning of acc,, it follows
+that s is B-accessible. From p,(U,) =, it follows that (8,3) E p,(V,V’)
+and, therefore, that 3 is a t-successor of s. Since s is accessible, it follows
+that also 3 is accessible and, hence 3 — acc,, leading to acc,(U) = T.
+
+ 
+
+ 
+
+ 
+
+ 
+
+This concludes the proof of completeness of rule INV. 4
+
+ 
+
+The following example demonstrates that the assumption that # is non-zeno
+is essential to the completeness of the rule.
+
+ 
+
+Example 5. Consider the CTs 3 which is presented graphically in Fig. 11
+and textually in Fig. 12.
+
+Clearly, CTS 3 is a possibly-zeno system because, once a run enters location
+£,, time is bounded and cannot diverge. Thus, a run entering location ¢, cannot
+be extended into a computation of 3. A result of the fact that no computation
+of #3 ever enters location @; is that the invariance formula [J at_£ is ®3-valid.
+However, examination of the arguments for the soundness of rule INV shows
+that any assertion p, whose invariance is proven by rule INV, must hold on all
+accessible states. The state (7:1) is accessible for cTs 3 but does not satisfy
+at_g. Therefore, the $3-validity of [] at) cannot be proven by rule INV. y
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+--- Page 27 ---
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 11. CTS 5s.
+
+ 
+
+V: {m: {0, 1};t, T: real}
+O:7=t=T=0
+T: {701} with transition relation
+Tu: T=OAWH=LAUHO0AT=T
+I:mt=1—t<1
+
+ 
+
+ 
+
+ 
+
+Fig. 12. crs #3 in textual form.
+
+4.5 Verifying Waiting-for Formulas
+
+ 
+
+The invariance formula [gq states that q holds continuously from the beginning
+
+ 
+
+ 
+
+ 
+
+of the computation to infinity. In comparison, the waiting-for formula
+
+p => qwr
+
+ 
+
+ 
+
+27
+
+ 
+
+ 
+
+also states the continuous holding of g but only for an interval that is initiated by
+an occurrence of p and may be terminated by an occurrence of r. Such formulas
+are useful for expressing timing properties, where time is measured since an
+occurrence of an event, rather than from the beginning of a computation.
+
+Example6. Consider program CYCLIC, presented in Fig. 13. This program
+
+ 
+
+ 
+
+fo: loop forever do
+
+x,y: integer where x = y = 0
+
+mo: loop forever do
+
+4, : while z =0 do   |    miimi=l
+四 =           1+ v=
+Qi ysytl       [ie wait «=o
+ég3:2:=0
+一 五 一          - BP -
+
+ 
+
+Fig. 13. Program CYCLIC.
+
+can be viewed as a generalization of program ANY-Y, in which the basic interac-
+tion between processes P, and P, is embedded within an endless loop.
+
+
+--- Page 28 ---
+Since program CYCLIC never terminates, a relevant time-related property is
+that from any state in which we observe P, at 4; and P, at mi, P, will reach
+location £3 within at most 15 time units.
+
+This property can be stated by the following waiting-for formula:
+
+att; Aat_m Ac=OAT=a => (F<a+l15)Wat_&.
+
+This formulas uses a rigid variable a to record the time at the initial observation
+state. It claims that from the time we observe a state satisfying at_£; A at_m, A
+«x = 0, time will not progress by more than 15 units before we observe P; at ¢3.
+
+To facilitate the expression of such properties, we introduce the abbreviation
+
+Tg = T-a.
+
+With this abbreviation we can write the property of “reaching @3 within 15 time
+units” as
+
+at_Q A at-m At=OATZ=0 => (Ta <15)Wat_&.
+The J, abbreviation allows us to view Ty as a special timer, reset at the initial
+point of observation. 4
+A Waiting-for Rule
+
+To establish the P-validity of a waiting-for formula, we may use rule walT,
+presented in Fig. 14.
+
+ 
+
+For assertions p, q, ¢, and r,
+Ul. yp一9
+U2. po rvygy
+U3. pr Np - vr! Vy! for every TE Tr
+
+ 
+
+P —- p>aqwr
+
+ 
+
+ 
+
+ 
+
+Fig. 14. Rule walt (waiting-for) applied to cTs P.
+
+Waiting Diagrams
+
+Proofs by rule WAIT can be succinctly represented by the basic verification di-
+agrams. We refer to basic verification diagrams which are used to represent
+waiting-for proofs as waiting diagrams.
+
+ 
+
+
+--- Page 29 ---
+Verification Conditions Implied by a Waiting Diagram
+Consider a nonterminal node labeled by assertion y. Let 7 € Tr be a transition
+and let 1,..-,~%, k > 0, be the successors of y by edges labeled with 7 (pos-
+sibly including ¢ itself). With each such node and transition, we associate the
+following verification condition:
+
+fo} r {pV a Ve V gp}
+Similar to invariance verification diagrams, if k = 0 (i.e., y has no 7-successors),
+the associated verification condition is
+
+{ye} 7 {y}-
+
+Valid Waiting Diagrams
+The consequences of having a valid waiting diagram are stated in the following
+claim:
+
+Claim 3 [f D is a P-valid waiting diagram with nodes Yo,...;(Pm, then
+
+PEV 9 + (Vo) Wo
+j=0
+
+j=l
+
+Tf, in addition, oo = 7,
+
+m                               m
+Ul:  V oj 一 和    and   U2: p 一  V Yj,
+j=l                              j=0
+
+then we can conclude:
+PEp => qwr.
+
+In case there is a subset N C {1,...,m} such that p >  V yi, we identify pi
+igN
+
+tEN as initial nodes.
+Justification We observe first that the verification conditions associated with
+a waiting diagram imply premise U3 of rule WAIT, when we take y to be y1 V
++++ V Ym and r to be Yo.
+
+If we further take p= Yo V --: V Ym and g= Y1 V -*- V Ym, we find that
+premises U1 and U2 hold trivially. This yields the first part of the claim.
+
+The second part of the claim considers different p and q but explicitly requires
+that premises U1 and U2 are P-valid. The conclusion follows by rule WAIT. y
+
+Example7. In Fig. 15, we present a waiting diagram that establishes the
+property
+
+at_l, \ at-m At=OATZ=0 = (Ty <15)Wat_bz
+
+for program CYCLIC(3,5).
+
+ 
+
+ 
+
+29
+
+ 
+
+ 
+
+
+--- Page 30 ---
+ 
+
+O<t <5, %>0
+han
+
+|  at 所2 A at-m At=OATy <te <5 }
+ya
+
+ 
+
+ 
+
+at_me, T=1
+
+atle N Ty <5+t, < 10
+
+a
+
+atl; \ Ta <10+¢t, < 15
+
+ 
+
+ 
+
+Fig. 15. A waiting diagram, establishing the formula
+at_l;y ANat-m Ac=0AT2=0 > (La <15)Wat_&
+
+5 Verifying Response Properties of Clocked Transition
+Systems
+
+In this section, we present methods for verifying response properties of clocked
+transition systems. We begin with the clock-bounded chain rule, which is an
+adaptation of the chain rule developed for reactive systems, to real-time systems.
+This rule is used to prove response properties which require a bounded number of
+(non-tick) steps for their achievement. Next, we present the clock-bounded well-
+founded rule, which is the real time extension to the WELL rule used for reactive
+systems. Similar to the WELL rule, the clock-bounded well-founded rule is used to
+prove response properties which require an unbounded number of steps. To deal
+with these cases, we must generalize the induction over a fixed finite subrange
+of the integers into an explicit induction over an arbitrary well-founded relation.
+
+The changes made to both the CHAIN and the WELL rules developed for
+untimed systems, reflect the fact that progress in the real time systems is ensured
+by the progress of time and not by fairness.
+
+5.1 The Clock-Bounded Chain Rule
+
+The basic rule for proving response properties of clocked transition systems is
+the clock-bounded chain rule (rule CB-CHAIN) presented in Fig. 16. The rule uses
+auxiliary assertions 1,--.,¢m and refers to assertion g also as yo. With each
+assertion Y; we associate one of the clocks t; € C’, to which we refer as the helpful
+clock, and a real-valued upper bound );. The intention is that while remaining in
+
+ 
+
+
+--- Page 31 ---
+states satisfying pi the clock t; is bounded by b; and never reset. Since time in a
+computation grows beyond any bound, this will imply that we cannot continually
+stay at a y;-state for too long.
+
+For assertions p, q, and (0 = q, P1,-++5 Pm;
+clocks t1,...,tm € C, and
+real constants 61,...,6m €R,
+
+Cl. p 一 V 宁
+j=0
+
+The following two premises hold for i= 1,...,m
+
+C2 pr Ag > (AnD) VV oF
+j<t
+for every T € Tr
+C3. GB 一 i<h
+
+ 
+
+p> Od
+
+ 
+
+ 
+
+Fig. 16. Rule cB-CHAIN (clock-bounded chain rule for response).
+
+Premise C1 requires that every p-position satisfies one of Yo = g,71,---5Ym-
+
+Premise C2 requires that every r-successor (for any 7 € Tr) of a y;-state s
+is a yj-state for some j < i. In the case that the successor state satisfies yj, it
+is required that the transition does not decrease the value of t;.
+
+Premise C3 requires that assertion y; implies that t; is bounded by the
+constant b;.
+
+The following claim states the soundness of the rule:
+
+Claim 4 Rule CB-CHAIN is sound for proving that a response formula is ®-valid.
+
+Justification: | Assume that the premises of the rule are -valid, and let o be
+a computation of &. We will show that o satisfies the rule’s consequence
+
+p> OG
+
+i.e., every p position in o is followed by a q-position.
+
+Assume that p holds at position k and no later position i > k satisfies g. By
+C1 some ; must hold at position k. Let 7, denote the minimal index such that
+yj, holds at k. Obviously jx > 0 by our assumption that gq never occurs beyond
+position k.
+
+By C2, state s,41 must satisfy yp; for some 7, 0 <7 < jx. Let jx41 denote the
+minimal such index. Continuing in this manner we obtain that every position 4
+
+ 
+
+ 
+
+31
+
+ 
+
+ 
+
+
+--- Page 32 ---
+beyond k satisfies some y;;, where j; > 0 and
+Jk > jk+i > Jk+2 2+ -
+Since we cannot have an infinite non-increasing sequence of natural numbers
+
+which decreases infinitely many times, there must exist a position r > k such
+that
+
+Jr = Jr =Irp2 = 0° -
+
+Denote the value of this eventually-stable assertion index by u = j,.
+
+Consider the value of the clock t, at states s;,7 > r. By C2, the value of
+ty never decreases. Also, whenever a tick transition with increment A is taken,
+t,, increases (as do all clocks) by A. It follows that the master clock T cannot
+increase by more than b, — 8,[¢,] from its value at state s,. This contradicts
+the fact that o is a computation in which the master clock increases beyond all
+bounds.
+
+We conclude that our assumption of the existence of a p-position not followed
+by any q-position is false. Consequently, if the premises of the rule hold then every
+p-position must be followed by a q-position, establishing the consequence of the
+tule. y
+
+Note that the premises of rule CB-CHAIN ensure the stronger time-bounded
+response property
+
+PA Ta=0 + OWA Tas >_bi)-
+i=l
+
+Example 8. We illustrate the use of rule CB-CHAIN to prove the termination
+of program ANY-Y;3,5], which can be stated by the response formula
+at_ly A at-mgp At=tr=te=T=0 > O(at_-& A at-m,).
+
+To apply rule CB-CHAIN, we identify at Lo A at-mop Ax = ty =t2 =T =0as
+pand at_l, A at_my as q. The auxiliary assertions, helpful clocks, and bounds
+are presented in the following table:
+
+yo: at_ly A at_m                             一       一
+gi: at_lyo A at-my AtT=1AtK<5              4: 如     by: 5
+ga: at_-4y A at-m Axv=1At<5              te: ta     bg: 5
+(3: at -Lo A atum AtT=O0AtH<5AR<5     tz: te     b3: 5
+We check the premises of rule CB-CHAIN for this selection of auxiliary assertions,
+helpful clocks, and bounds.
+e Premise C1 assumes the form
+at_lyo A at_-mp Atv=t=tz=T=0 一
+SS
+P
+ree V at_lo,1 A at-mp AZH=OAH KSA <5,
+SS
+"3
+which is obviously state valid.
+
+ 
+
+
+--- Page 33 ---
+e Premise C2 has to be checked for each i = 1,...,m and each 7 € Tr. We
+present only a few representative cases.
+Premise C2 for v3 and transition mg assumes the form
+
+m=m At =1AK=t As A ator At <5A+
+一  一一
+
+Pm                                                   9s
+
+Vat fo AatlLm Ag =1AtK <5
+——___
+
+#1
+Vo atl& AatlLm Ag =1At <5
+Sp
+
+5
+
+which is obviously state valid.
+Premise C2 for y2 and the tick transition assumes the form
+
+A>OA pres(m™1, 72,2) At =t + AA (at_loy ot +A<5)A-:-
+a
+
+Pick
+A at-ly AN atuem Axr=1AtK<5 一
+一
+
+op2
+at_fy Aat_Lm AU=H1l1AH<5AKNK<H,
+OO i irr”
+%                       toSth
+which is obviously state valid.
+e Premise C3 is trivially valid, since each y;, i = 1,...,3 includes t; < bj asa
+conjunct.
+
+This analysis indicates that all premises of rule CB-CHAIN are state valid. It
+follows that the response formula
+
+at_lo A at-mp At=t=t=0 > O(at_h A at_me)
+
+is valid over program ANY-Y;3,5)- 4
+
+5.2 Clock-Bounded Chain Diagrams
+
+The main ingredients of a proof by rule CB-CHAIN can be conveniently and
+effectively presented by a special type of verification diagrams that summarize
+the auxiliary assertions with their helpful clocks and bounds, and display the
+possible transitions between the assertions.
+
+We define a clock bounded chain diagram (chain diagram for short) to be a
+basic verification diagram satisfying:
+
+e The terminal node is labeled by an assertion Yo. All other nodes are labeled
+by a pair of assertions: ¢; and (;, for i = 1,...,m. The assertion (3; has
+the form t; < b;, where t; € C is a clock and 8; is a real constant. We refer
+to the conjunction ¢; A 3; as yi, and say that the node is labeled by the
+(combined) assertion y;. For uniformity, we define ¢o = Yo.
+
+ 
+
+ 
+
+33
+
+ 
+
+ 
+
+
+--- Page 34 ---
+e An edge can connect node y, to node y; only if i > j. This imposes the
+restriction that the graph of a chain diagram is weakly acyclic, i.e., the only
+cycles in the graph consist of a node connected to itself.
+
+Verification Conditions Implied by a Chain Diagram
+
+Consider a nonterminal node labeled by assertion y: ¢@ A @ where the clock-
+bound assertion is : t < b. Let 7 € Tr bea transition and let y1,...,y%, k > 0,
+be the successors of y by edges labeled with 7 (possibly including ¢ itself). With
+each such node and transition, we associate the following verification condition:
+
+pr AD > (PATS) V BV iV
+
+Tn particular, if k = 0 (i.e., y has no 7-successors), the associated verification
+condition is
+
+php > gat >t.
+
+Valid Chain Diagrams
+The consequences of having a valid clock-bounded chain diagram are stated in
+the following claim:
+
+Claim 5 If D is a P-valid chain diagram with nodes o,..-,;m, then
+PE (V@%) > Ov
+j=0
+If, in addition, po q and
+
+Cl: p > Vg;
+j=0
+then we can conclude:
+
+PF p+QO@
+
+In case there is a subset N C {1,...,m} such that p >  V yi, we identify Yi,
+igN
+4 € N as initial nodes.
+
+The claim follows from the observation that the verification conditions associ-
+ated with a chain diagram precisely correspond to premise C2 of rule CB-CHAIN.
+Premise C1 is trivially satisfied for the first part of the claim, where we take p to
+be Vixo yj. It is explicitly provided in the second part of the claim. Premise C3
+is trivially satisfied by having (;: t; < b; as an explicit conjunct of ~; = ¢; A (ij.
+
+Example 9. —_In Fig. 17, we present a chain diagram for proving that
+at_ly A at-mp At=tr=t=T=0 > O(at_& A at_m1)
+
+is valid over program ANY-Y;3,5]-
+
+Note the use of encapsulation in labeling the compound node by the common
+clock bound 3: t1 < 5, which is factored out of nodes y1 and y2. We also remove
+the index from the ( assertion labeling a node and write ( instead of ;. 4
+
+ 
+
+
+--- Page 35 ---
+ 
+
+ 
+
+ 
+
+t1,t2,T = 0             ]
+3: at_lo, A atm Ax =0At <5Atg <5
+Bi tg <5
+7720
+
+at_T2Z 一1三区5 Bt <5
+
+do : at_,
+
+a
+
+ 
+
+Yo = bo: at_ly A at_m
+
+Fig. 17. Verifying termination of program ANY-Y;3,5)-
+
+ 
+
+ 
+
+ 
+
+ 
+
+5.3. Winning a Race
+
+We introduce an additional graph-structuring convention which leads to more
+economic and comprehensible verification diagrams. Similar to the previously
+introduced encapsulation conventions, this one is also inspired by the Statechart
+language [Har87].
+
+A conjunctive compound node is a compound node which contains two sets of
+encapsulated nodes: {¢1,.-.,¢m} and {y,..-,Wn}. The two sets are separated
+by a dashed line. Edges may connect nodes within each of the sets, and external
+nodes to nodes in each of the sets. No edge may connect a ¢-node to a w-node.
+We also allow a multi-source edge such as the edge connecting nodes ¢2 and wW2
+to the external node x.
+
+In Fig. 18, we present a graph with a conjunctive compound node.
+
+Any diagram containing conjunctive nodes can be expanded into an equiva-
+
+ 
+
+ 
+
+35
+
+ 
+
+ 
+
+
+--- Page 36 ---
+ 
+
+ 
+
+ 
+
+Fig. 18. A conjunctive compound node.
+
+lent flat diagram, to which we refer as the expanded diagram, as follows:
+
+For each i € {1,...,m} and j € {1,...,n}, the expanded diagram contains
+a node, labeled by the conjunction ¢; A ~;.
+
+For each 7-labeled edge connecting wo to ¢p, there are 7-labeled edges con-
+necting expanded node ¢g Aw; to d5 AW; for all j € {1,...,n}.
+
+For each 7T-labeled edge connecting 7. to Wa, there are T-labeled edges con-
+necting expanded node ¢ A w- to $ A Wa for all i € {1,...,m}.
+
+For each 7-labeled edge connecting ¢. to external node x, there are T-labeled
+edges connecting expanded node ¢q A Wj to x for all j € {1,...,n}.
+
+For each 7-labeled edge connecting ~, to external node x, there are T-labeled
+edges connecting expanded node ¢; A w_ to x for all i € {1,...,m}.
+
+For each r-labeled multi-source edge connecting nodes ¢g and v- to external
+node x, there exists a T-labeled edge connecting expanded node ¢g A We to
+node x.
+
+In Fig. 19, we present the flat diagram equivalent to the diagram of Fig. 18.
+
+ome arm
+1    1 bay                   2    2
+CS
+
+a
+
+73
+
+Fig. 19. An expanded equivalent to the conjunctive diagram.
+
+ 
+
+
+--- Page 37 ---
+Analyzing Races between Processes
+
+Conjunctive nodes are particularly helpful for proving that one process always
+wins in a race against a competing process. Consider the trivial program RACE
+presented in Fig. 20.
+
+ 
+
+Fig. 20. Program RACE.
+
+As in the case of program MUTEX, yj, we assign to all statements of program
+RACE time bounds [L,U], stipulating that 2L > U. It is clear that when this
+program is run, process P; will terminate before P, does. This is because P,
+must terminate within 2U time units, while P, must take at least 4Z > 2U time
+units to terminate. How do we formally prove this property which can be stated
+by the response formula
+
+atlo A atum Aty=t=T=0 =>   O(at_h A at_mo..3) ?
+
+In Fig. 21, we present a chain diagram which proves this property.
+
+A central argument in the validation of this diagram is that transition m3
+is disabled on all nodes within the conjunctive compound node. Transition m3
+can be enabled only on an at_mg-state and only when t2 > L. Combining the
+assertion attached to the at_m3-node with t2 > L, we obtain T > 4L > 2U.
+However, all assertions on the left-hand side of the conjunctive node imply T <
+2U. This shows that m3 is disabled on all states covered by the conjunctive node,
+and the only exit is via 4.
+
+This establishes the property
+
+at_lo \ at-mp Athy =t=T=0 > O(at_l A at_mo.,3).
+
+5.4 Proving Accessibility for Program MUTEX,z,v]
+
+As a more ambitious example, we prove for program MUTEX(z,y] (Fig. 9) the
+property of accessibility which can be stated (for process P,) by the response
+formula
+
+atlze > Oat_k.
+
+A similar formula states accessibility for process P.
+
+ 
+
+ 
+
+37
+
+ 
+
+ 
+
+
+--- Page 38 ---
+t, t2,T > 0, B: th < U
+
+at_lo A T=t<U
+Lo
+
+| ( at-m AT>t+L
+
+ 
+
+—e
+
+at_m A T
+
+—e
+
+一如
+mo
+Z                                  m
+1
+at_m, A T > t2+2L
+2
+
+™
+
+ 
+
+ 
+
+at_ms3 AT > tg 十3
+
+ 
+
+at_ly A at_m.3
+
+Fig. 21. Chain diagram proving that P, wins the race.
+
+From the invariance diagram of Fig. 10, we can infer the following five in-
+variants, which we will use in the response proof:
+
+Xo:
+Xi:
+Xai
+X32
+Xa:
+
+ 
+
+ 
+
+ 
+
+(x € {0,1,2})
+
+at_lo.245 >= «rFl
+
+at-mo.2,4,5 = xr#2
+
+at_ly => «=0 V (at_me.i10 A t= 2)
+at_le7 NZ=1 > at_mo.7
+
+ 
+
+The accessibility formula is proved in several steps, verifying separately the
+following response formulas:
+
+Wr:
+ei
+
+ps:
+Qa:
+bs:
+Ye:
+
+atle > Oat_hy
+at_tlyNz=0 >
+(at_bs Vv (at_l1,6,7 A atim AZ=2AtR= 0))
+at_lye7 A at_mg NZ=2At=0 =>
+Ol(at_ly A at_mo A x =0 A te =0)
+at_l, A at_mg.ag9 N2=2 >
+O(at_ly A at-mo Az =0 A te =0)
+at_ly A at-m Arz=0Atg=0 =>
+O(at_le A at-mo.a A «= 1)
+at_le N at-maNt=1 > Oaths
+
+It is not difficult to see that response formulas ~-7.6 lead to the accessibility
+
+property.
+
+ 
+
+
+--- Page 39 ---
+We proceed to prove each of the response formulas.
+
+Proving 7,: atl, > 个of
+
+Formula y, states that, starting at 42, process P, is guaranteed to reach 4.
+Statement 2 is unconditional and is guaranteed to terminate within U time
+units. By X1, when we enter @3 from é2, x is different from 1, and will remain
+so as long as we stay at £3 (é5 is the only statement that can set x to 1).
+Consequently, within U time units, P; will proceed to 44.
+
+The formal proof of 7 is provided by the chain diagram of Fig. 22.
+
+ 
+
+ 
+
+ 
+
+Fig. 22. Chain diagram for 71: at-l2 >  > at—ly.
+
+Proving >
+Response formula w2 is given by
+
+atlyNz=0 > (at_ls V (at_lug,7 A at_mg A x =2 A tp =0)).
+
+It states that, starting at location la with x = 0, process P; will either reach the
+critical section (at €g), or be overtaken by process P2 just entering location mg
+(and hence tz = 0), while setting x to 2. In the latter case, P; will be overtaken
+at one of the locations 4, £6, or £7.
+
+The formal proof of y is presented by the chain diagram of Fig. 23.
+
+The diagram follows the progress of process P; from ¢4 with 7 = 0. While P;
+is at £4, P, may execute statement ms and set x to 2, which reaches the goal do.
+If this does not happen, P; proceeds to 4; and then to é, setting x to 1. Here,
+we use invariant X4 to infer that when P; moves from é; to , setting x to 1,
+process P, can only be at locations mo,-...,m7. From this point on, either P,
+will perform ms, leading again to ¢o, or P, will perform ¢7 moving to €g, which
+is also a goal state.
+
+Proving 7,
+
+Response formula w3 is given by
+
+at_ly6,7 Nat-mgp AZ =2AR=0 > O(at-lyA at_mo Ar =O0At2 =0).
+
+ 
+
+ 
+
+39
+
+ 
+
+ 
+
+
+--- Page 40 ---
+B:t<U
+
+°°                  2=1, at_mo.7
+
+[at Axr=0 和  at_ls
+
+do: at_lg V (at_la6,7 A at_m A 2=2A te = 0)
+
+Fig. 23. Chain diagram for the formula
+we: atleNxc=0 >  (ates V (at_lae7 A at-me At =2A t2= 0)).
+
+ 
+
+The formula states that, once P; has been overtaken by P), it will return to
+location £4 before P» exits its critical section and returns to mo, setting « back
+to 0. The fact that, being denied entry to ¢g, process P; must eventually return
+to £3 and proceed to £4 is obvious. Less obvious is the fact that when P2 performs
+mo On its exit from the critical section, P, is already at @,. This results from
+the number of statements that each process has to execute until it reaches ¢4
+and mo, respectively, and from the assumption U < 2Z which guarantees that
+P, completes the execution of a single statement before P, can complete the
+execution of two statements.
+
+The worst case for P, is if it is overtaken at s. To reach ¢4 it must execute 3
+statements: fg, €7, and é3. It will take P, at most 3U to do so. To reach location
+mo from its initial location at mg, P2 has to execute at least 6 statements: m6,
+M7, Mg, M3, Mg, and myo. It will take P2 at least 6L to reach mo. Since 3U < 6L,
+P, will get to @g first.
+
+The precise analysis of this race between P; and P» is presented by the chain
+diagram of Fig. 24
+
+Note that mio is enabled only at states in which 万 is at £4. This is because
+at all other P,-locations, Ty < 3U < 6L. For mio to be enabled, T, must be at
+least 6.
+
+Proving 7%,
+Response formula w4 is given by
+at_ly A at-m6e.io0 N@=2 > O(at_&y A at_mo Ac=0A t2=0).
+
+The formula states that, starting with P, at €4, = 2, and P2 somewhere within
+{mg,-.-,™io}, we are guaranteed to reach a state in which P, is still at €4 but
+
+ 
+
+
+--- Page 41 ---
+             
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ti te, Ta > 0, c=2      'B:t2<U
+|                   c
+|     at_lg AN Ta <t <U     J      at_me \ Ta = te
+mt      &                m6
+( at-léz A Ta <U +t, < 2U )' ( atlmz AT. >te+L
+tr              |                m7
+(atl; A Ty <2U +t, <3U)' (at-mg A Ty >t +2L
+mt      bs                me
+|              at_h,             }) (at-mg A Ta > te + 3L
+Mao                m3
+   at_mg A Ty >t + 42
+                ™g
+   at_mjo A Ty > te +5L
+
+ 
+
+at_ly A at_mp A ©=0 A te =0
+
+ 
+
+Fig. 24. Chain diagram for the formula
+v3: atlse7 A at-mg Nx=2At2=0AT,=0 >
+Datla A atamp Ax =0A tz =0).
+
+P has just moved to mo (hence t2 = x = 0). This property relies on the progress
+of P, through {me,...,mio} to mo while x = 2 and PF; cannot change the value
+of x, being stuck at ¢4. For a formal proof of this property, we can use again the
+diagram of Fig. 24, where the initial nodes are within the conjunctive compound
+node.
+
+Proving 7,
+Response formula ws is given by
+at_ly A at-mp AZ=O0At=0 > O(at_&e A at-mo.a A x=1).
+
+The formula considers another possible race between P, and P», starting
+with P, at €4 and P, just arriving to mo. Formula ws states that P, will reach
+
+ 
+
+ 
+
+41
+
+ 
+
+ 
+
+
+--- Page 42 ---
+fg (with x = 1) before P, reaches ms. Note that from a state satisfying at_lg A
+at_mo,.4 \ x =1 the entry of P, to its critical section is guaranteed, since P,
+cannot pass the test at m4 and interfere with P,’s progress.
+
+Formula ws is verified by the chain diagram of Fig. 25.
+
+    
+   
+    
+   
+  
+
+ 
+
+r
+ty, te, Ty > 0, cr =0       B:t<U
+
+ce?
+
+|    at_mo A Ta = to    |
+7720
+( at-m, A Ty >te+L )
+my
+
+at_mg A Ty > te +2L
+
+mg
+
+at_m3 A Ty > te +3L
+
+m3
+
+at_mg A Ty > te +40
+
+|    atlyNTy<th<U |
+ty
+
+ 
+
+ 
+
+| at_ls A Tg <U+t, < 2U |
+bs
+
+ 
+
+ 
+
+ 
+
+ 
+
+  
+
+at_lg A at-mo.4 A c=1
+
+Fig. 25. Chain diagram for the formula
+ys: at-la Aat-mo At =O0At2=0AT2=0 => (atl A at-mo.4 Ax =1).
+
+A simple informal argument explains why P, is sure to win this race. To
+move from £4 to &, P, has to execute 2 statements: @, and ¢5, which takes at
+most 2U. In that time, P2 cannot complete the execution of the 5 statements
+™mo—mMa necessary to reach ms, since 5L > 2U.
+
+Proving w¢
+Response formula wg is given by
+ve: atle A at_mgaANt=1 > Oat_hy.
+
+This formula states that, once P, reached while P> is still confined within the
+range {mo,...,ma}, entry of P; to fg is guaranteed. The proof presented in the
+
+ 
+
+
+--- Page 43 ---
+diagram of Fig. 26 simply traces the progress of P, from 4L6 to bs while 7 keeps
+its value of 1.
+
+ 
+
+at_ma, T=1, 8:4 <U
+
+ 
+
+ 
+
+Fig. 26. Chain diagram for the formula
+ve: at_le ANat_moa Axcx=1 >   D at_ly.
+
+This concludes the proof of accessibility for program MUTEX z,u]-
+
+5.5 Clock-Bounded Well-Founded Rule
+
+Rule CB-CHAIN is adequate for proving response properties in which a ¢ state is
+achieved in a number of significant steps which is a priori bounded. For example,
+in verifying termination of program ANY-Yj3,5], there were 3 helpful steps leading
+to termination. These are represented in the chain diagram of Fig. 17 by the
+edges entering nodes ¢2-¢o.
+
+In many cases, the number of helpful steps needed to reach the goal g cannot
+be bounded a priori. For these cases we need a stronger rule, based on well-
+founded ordering.
+
+Well-founded Domains
+
+We define a well-founded domain (A, >) to consist of a set A and a well-founded
+order relation > on A. A binary relation > is called an order if it is
+
+e transitive: a > b and b> cimply a> c, and
+e irreflexive: a > a for noa € A.
+
+The relation > is called well-founded if there does not exist an infinitely de-
+scending sequence ao, a@1,... of elements of A such that
+
+ao - are.
+
+A typical example of a well-founded domain is (N,>), where N are the nat-
+ural numbers (including 0) and > is the greater-than relation. Clearly, > is
+well-founded over the natural numbers, because there cannot exist an infinitely
+descending sequence of natural numbers
+
+mn>m > nm >....
+
+ 
+
+ 
+
+43
+
+ 
+
+ 
+
+
+--- Page 44 ---
+For >, an arbitrary order relation on A, we define its reflexive extension > to
+hold between a, a’ € Aif either a> a! or a=a’'.
+
+Lexicographic Tuples
+
+Another frequently used well-founded domain is (N*,>), where N* is the set of
+k-tuples of natural numbers. The order > is defined by
+
+(m1,..-5 Mk) > (m1,-+.,;™k)  if n=mi, ..-, M1=M-1, Mi > Mi
+for some i, 1 <i<k.
+
+For example, for k = 3
+(7, 2,1) > (7, 0, 45).
+
+It is easy to show that the domain (N*, >) is well-founded.
+
+It is possible to make lexicographic comparisons between tuples of inte-
+gers of different lengths. The convention is that the relation holding between
+(a1,---,@:) and (b1,...,b) for i < k is determined by lexicographically compar-
+ing (a1,...,@:,0,...,0) to (b1,..., bi, big1,.--, bx). That is, we pad the shorter
+tuple by zeros on the right until it assumes the length of the longer tuple.
+
+According to this definition, (0,2) > 0, since (0, 2) > (0, 0). In a similar
+way, 1 > (0, 2).
+
+5.6 Rule CB-WELL
+
+In Fig. 27, we present the clock-bounded well-founded response rule (rule CB-
+WELL) for proving response properties of clocked transition systems. The rule
+uses auxiliary assertions y,.-..,(?m and refers to assertion g also as yo. With
+each assertion Y;, i > 0, we associate one of the clocks t; € C, to which we refer as
+the helpful clock, and an upper bound B;, which is a real-valued expression. Note
+that allowing B; to be an expression, is a generalization over the rule CB-CHAIN
+where the upper time bounds are constants. This generalization is necessary in
+order to guarantee the completeness of the rule (claim 7).
+
+Also required are a well-founded domain (A, >), and ranking functions 6;: 7哺
+A, i =1,...,m, mapping states of the system to elements of A. The ranking
+functions measure progress of the computation towards the goal q.
+
+Premise W1 requires that every p-position satisfies one of yp = g,(91,---5Ym-
+
+Premise W2 requires that every r-successor (for any T € Tr) of a y;-state s
+is a y;-state for some j, with a rank 6! not exceeding 6,. In the case that the
+successor state satisfies y;, it is allowed that 6; = 6; but is required that the
+transition does not decrease the value of ¢; or increase the value of B;. In all
+other cases it is required that 6 < 6;, ie., that the rank strictly decreases.
+
+Premise W3 requires that assertion y; implies that ¢; is bounded by the
+constant Bj.
+
+The following claim states the soundness of the rule:
+
+ 
+
+
+--- Page 45 ---
+ 
+
+For assertions p, q, and Yo = q, PPmy
+clocks t1,...,¢m €C,
+real expressions Bi,...,Bm € R,
+a well-founded domain (A, >), and
+ranking functions 61,...,dm: X't A,
+
+Wl. p 一 Ve
+j=0
+
+The following two premises hold for i= 1,...,m
+
+W2. pp Ag 一  V& A b> 5) V
+j=0
+(vi A= 5: Ati <th A BI < Bi)
+for every T € Tr
+W3. Gg 7 GSB
+
+ 
+
+p> Od
+
+ 
+
+ 
+
+Fig. 27. Rule CB-WELL (clock-bounded well-founded rule for response).
+
+Claim 6 Rule CB-WELL és sound for proving that a response formula is B-valid.
+
+Justification: Assume that the premises of the rule are $-valid, and let o be
+a computation of &. We will show that o satisfies the rule’s consequence
+
+p>Oe@
+
+Assume that p holds at position & and no later position i > k satisfies g. By
+W1 some y; must hold at position k. Let uz € A be the minimal rank of state
+Sp, i.e. the minimal value of 6;(s,) among all yj which hold at s%. Let jx be the
+smallest index such that yj, holds at s_ and uz = 63, (8%).
+
+By W2, state s,41 must satisfy yp; for some j > 0, implying that s;,41 has a
+defined rank ux,41. Premise W2 requires that uz41 < Ux.
+
+Proceeding in this manner we obtain that every position 7 beyond k has a
+rank w,, such that
+
+Uk = Ubt1 T= Unpe more.
+Since A is well-founded, there must exist a position r > k such that
+Ur = Urq = Urgg Ser.
+
+Denote the value of this eventually-stable rank by u = ur, and let j, > 0 be the
+index of the assertion such that 6;,(s;) = u.
+
+ 
+
+ 
+
+45
+
+ 
+
+ 
+
+
+--- Page 46 ---
+Consider the value of the clock 好， at states 5z) 1 > r. Since the rank never
+decreases beyond r, the value of ¢;,, never decreases and the value of B;,. never
+increases beyond that position. Also, whenever a tick transition with increment
+A is taken, t;,. increases (as do all clocks) by A. It follows that the master clock
+T cannot increase by more than B,,(s;) — $[t;,] from its value at state s,. This
+contradicts the fact that o is a computation in which the master clock increases
+beyond all bounds.
+
+We conclude that our assumption of the existence of a p-position not followed
+by any q-position is false. Consequently, if the premises of the rule hold then every
+p-position must be followed by a q-position, establishing the consequence of the
+tule. y
+
+Claim 7 Rule CB-WELL is complete for proving that a response formula is valid
+over a non-zeno system ®,
+
+Justification (A sketch): The meaning of this claim is that if the response for-
+mula p = <q is valid over the non-zeno system ®, then there exist constructs
+as required by rule CB-WELL, such that all premises of the rule are @-state valid.
+
+An execution segment o is called q-free if no state in o satisfies g. A state
+s' is said to be a 7q-follower of state s if there is a g-free ®-execution segment
+leading from s to s'. We follow the techniques of [MP91] and take for (a single)
+y the assertion pending,, constructed in such a way that
+
+5 |F pending,      iff      s is a —g-follower of a &-accessible p-state.
+
+ 
+
+We define a binary relation 4 such that s 2 s' if s satisfies pending, s' is a
+—g-follower of s, and s'[T] > s[T] + 1. Obviously, 3 is well-founded, because an
+infinite sequence so     351     82     +» would lead to a computation violating
+p> OF
+
+Based on a transcendentally inductive construction, we can define a ranking
+function 6: X’ ++ Ord, mapping states into the ordinals, such that
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+O1. If s! is a ~g-follower of the pending,-state s, then 6(s) > 6(s’).
+O2. If s os’, where s is a pending,-state, then 6(s) > 6(s’).
+
+ 
+
+Given a pending state s, let B(s) denote the supremum of all values s'[T’] where
+s' is a —g-follower of s and 6(s’) = 6(s). Due to property O2, this supremum
+exists and is bounded by s[Z’] + 1. It can now be shown that all premises of
+rule CB-WELL hold for the choice of m = 1, y1 = pending, ty = T, By, = B(s),
+(A, >) = (Ord, >), and 6; = 6 as defined above. 4
+
+The following example illustrates an application of rule CB-WELL.
+
+Example 10. Consider program UP-DOWN presented in Fig. 28.
+
+This program can be viewed as a generalization of program ANY-Y in which,
+after terminating the while loop at %&,€:, process P, proceeds to perform a
+second while loop at 2, 43, decrementing y until it reaches 0.
+
+ 
+
+
+--- Page 47 ---
+ 
+
+x,y: integer where x = y = 0
+
+fo: while x = 0 do
+
+A: yxytl      Coe
+fz: while y > 0 do | [moe]
+mi:
+fg: yx=y-1
+ea:
+一 已 一      — PR -
+
+ 
+
+ 
+
+Fig. 28. Program UP-DOWN.
+
+Assume, we assign the uniform time bounds [L, U] to all executable state-
+ments of program UP-DOWN, where our only information about L and U is given
+by
+
+0<L<U<m.
+
+We use rule CB-WELL to verify that program UP-DOWN terminates. This
+property can be expressed by the response formula
+
+at_lo A atmo AG=y=th=tk=T=0 > O(at_&y A at_mi).
+ee eS            一,一一
+
+卫                       q
+
+As the well-founded domain, we take (N?, +), i.e., the domain of lexicographic
+pairs. As time bounds, we use B;: U for all¢ =1,...,5. The auxiliary assertions,
+helpful clocks, and ranking functions are given by the following table:
+
+Yo: at_ly A at-m,                               60: 0
+gi: at_lg Nat-m At=1Ay>0AK<U tit &: (,2y)
+go: at_lhy Nat-m AtT=1Ay>O0AK<U tet, 6: (1,2y4+1)
+gs: at_-lyo AN at-m Ar=1Ay>O0AH<U tsi ti 63: 2
+gat at-lhy Aat-m At®=1Ay>OAH<U tart 64: 3
+Ys: atlo,1 A at_mg Nt=OAY>DOAH <UN<U
+
+ts: te   65: 4
+
+We consider two instances of premise W2: transition ¢2 taken from y2 and
+transition ¢3 taken from ¢.
+
+ 
+
+ 
+
+47
+
+ 
+
+ 
+
+
+--- Page 48 ---
+For the case of 2, premise W2 assumes the form
+
+y >O0A move(Lo, £3)
+Vv          A pres(V—m) A atim Az=1Ay>0AtH<U
+ee,
+
+y <0 A move(lr, £4)                                         ~
+
+Peo
+
+=
+at_lz A at_m Aa =1Ay' >O0AK <U A (1,2y41)> (1,2y)
+一-一”一一
+Ft                          barb
+.V    V
+
+at!_ly A at_m, A (1,2y+1)>0
+The implication uses the abbreviation
+move(l;,f;): m=h A m=.
+
+Note that move(4,€;) implies at!_€; and at!_m, = at_my. Since py, implies
+y' =, the implication is obviously valid, in particular, due to
+
+(1,2y+1)>(,2y) and = (1,2y+1)>0.
+Premise W2 for y and transition £3 assumes the form
+move(ls,l2) Ay! =y—1 A pres(z,ti,te,T) A
+——
+
+Peg
+at_lg Nat_m AtT=1Ay>0At<U 一
+一
+
+v1
+
+-V [atl Natl Av =1AyY>OAK<U A (1,29) >, 274+)
+             全
+Since pe, implies y’ = y 一1, it is easy to verify thaty > 0implies y 之0and
+(1, 2y/ + 1) = (1, 2(y — 1) +1) = (1, 2y — 1) ~ (1, 2y).
+This establishes that the response property
+ato A at_mp Nt =y=t=t=T=0 > O(at_&y A at_m).
+
+is valid over program UP-DOWN. y
+
+5.7 Ranked Diagrams
+
+The main ingredients of a proof by rule CB-WELL can be conveniently and effec-
+tively presented by a special type of verification diagrams that summarize the
+auxiliary assertions, their helpful clocks and bounds and their ranking functions,
+and display the possible transitions between the assertions.
+
+We define a ranked diagram to be a basic verification diagram satisfying:
+
+ 
+
+
+--- Page 49 ---
+e The terminal node is labeled by an assertion Yo. All other nodes are labeled
+by a pair of assertions: ¢; and (;, for i = 1,...,m, and a ranking function
+6;. The assertion 3; has the form ¢; < B,;, where t; € C is a clock and B, is
+a real-valued expression. We refer to the conjunction ¢; A 3; as y;, and say
+that the node is labeled by the (combined) assertion y;. For uniformity, we
+define ¢p = Yo.
+
+Verification Conditions Implied by a Ranked Diagram
+
+Consider a nonterminal node labeled by assertion y: ¢ A 3 where the clock-
+bound assertion is 3: ¢ < B and the ranking function is 6. Let 7 € Tr bea
+transition and let Y1,-..,(x, k > 0, be the successors of p by edges labeled with
+T (possibly including ¢ itself). With each such node and transition, we associate
+the following verification condition:
+
+pr NG > (PAH =EATSESB<B)V (PY AS>S)V
+(gh Ab> 5) Vir VG AS YH)
+
+In particular, if k = 0 (i.e., y has no r-successors), the associated verification
+condition is
+
+Prnp > (PAK=H=EAtSUSB<B) Vv (YW A6>86).
+
+Valid Ranked Diagrams
+
+The consequences of having a valid ranked diagram are stated in the following
+claim:
+
+Claim 8 [f D is a P-valid ranked diagram with nodes yo,..., 2m, then
+
+PEV ea > O¢0
+
+j=0
+
+Tf, in addition, (po = q and
+
+Wi: p 一   V Yi
+
+j=0
+
+then we can conclude:
+
+PEp >= O@
+In case there is a subset N C {1,...,m} such that p >  V Yi, we identify yi,
+
+ieN
+
+4 EN as initial nodes.
+
+Example 11. In Fig. 29, we present a ranked diagram which establishes that
+the response property
+
+at_lo A at-mgp At=y=t,=t=T=0 > O(at_&y A at_m)).
+
+ 
+
+ 
+
+49
+
+ 
+
+ 
+
+
+--- Page 50 ---
+ 
+
+te, T > 0, 0<4<U
+
+ 
+
+( bs: at_ly, A at-mg NZ=OAY>O), Bi <U, 6:4)
+
+ 
+
+at_m, x=1, y 20,    B: ty < U
+
+da: at 三，       0: 3
+
+名
+
+3:  at_Lo,       6: 2
+
+Lo
+
+ 
+
+ 
+
+Ly                 Ly
+di: at_lz A y>0,     6: (1, 2y)
+
+ 
+
+ 
+
+do: at_hy A at_mi,
+
+Fig. 29. A ranked diagram, establishing the formula
+at_lo A at-mo Acw=y=ti=t2=T=0 >   O(at_& A atm)
+
+is valid over program UP-DOWN.
+Observe that the { assertions for nodes ¢1-¢4 appear at the head of the com-
+pound nodes containing these nodes, as part of the encapsulation conventions.
+
+J
+
+5.8 From Waiting-for to Response Properties
+
+In many useful cases, we can infer response formulas from a waiting-for formula
+of a particular form.
+
+Rule W-R, presented in Fig. 30, supports the inference of a response formula
+from a waiting-for formula of a special form. The rule refers to a rigid expression
+B, which is an expression that does not change its value from one state to the
+next.
+
+Justification: Assume that the waiting-for premise is P-valid. Consider a
+P-computation o, and a p-position 7 > 0 in o. By the waiting-for formula, j
+
+ 
+
+
+--- Page 51 ---
+ 
+
+For assertions p, g, and r, and rigid expression B,
+p > @ATI<B)Wr
+
+p> Or
+
+Fig. 30. Rule WR (from waiting-for to response formulas).
+
+ 
+
+ 
+
+ 
+
+initiates an interval, all of whose positions satisfy q A Ta < B, which either
+extends to infinity or is terminated by an r-position. Since o is a computation,
+T must grow beyond all values and cannot remain bounded by the constant
+value of B at all positions. It follows that j must be followed by an r-position.
+
+a
+
+Example12. Consider the sPLy program UP-DOWN{,,5], which is program
+UP-DOWN with time bounds [1,5] uniformly assigned to all executable statements.
+We use rule WR to verify that the response formula
+
+atly A at-mp At=y=Ta=0 > Ol(at-&s A at-m A Ty < 50)
+
+is valid over program UP-DOWNn,,5]-
+In Fig. 31, we present a waiting diagram which establishes the UP-DOWN{1,5]-
+validity of the waiting-for formula
+
+at_lyp A at_mp AZ=y=Ta=0 => (Ta < 50)W (at A Ta < 50)
+
+Note that the assertion describing the initial state does not specify initial
+values for either t or tg. To show that the waiting diagram is valid, we rely on
+the following invariant:
+
+((at_lo5 > 0<t, <5) A (at_mo — 0<t% <5)).
+
+ 
+
+ 
+
+ 
+
+ 
+
+This invariant can be separately established, using the methods of Section 4. 4
+
+5.9 Are Rules CB-CHAIN and CB-WELL Really Necessary?
+
+Rule WR enables the derivation of a response property from a timed waiting-
+for property, which can be established using rule WAIT. Rule WAIT (and its
+equivalent formulation in terms of waiting diagrams) is, in principle, simpler
+than either rule CB-CHAIN or rule CB-WELL, because it does not require the
+identification of explicit time bounds or ranking functions as auxiliary constructs.
+
+In view of this, a naturally rising question is why do we need the response-
+specific rules CB-CHAIN and CB-WELL. Isn’t rule WR adequate for establishing
+all response properties of interest?
+
+We provide two answers to this question. The first answer is that there are
+some response properties that cannot be established through timed waiting-for
+properties.
+
+ 
+
+ 
+
+ol
+
+ 
+
+ 
+
+
+--- Page 52 ---
+y>0, Ta>0, 05h <5, 0< <5
+
+ 
+
+ 
+
+at_mo, ©=0, Ty <t2 <5             J
+
+(ato A (y=OV 2y+t <T.41)
+ty
+
+at_ly A 2y+ty <Ta
+
+ 
+
+ 
+
+ 
+
+mo
+
+ 
+
+at_m,, ©=1
+( at-li AyY<2AT, < 5+, < 10}
+
+4
+
+(atlo Ny<3A Ty < 10+, < 15)
+
+&
+
+ 
+
+ 
+
+ 
+
+ 
+
+at_m, ©=1, y<3
+at_ly A Ty < 45 —10y+t, < 50 — 10y
+4
+
+ 
+
+ 
+
+ 
+
+by
+(at_ AN y>O0A Ty <50—10y +t < 55— 10y)
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+at_l, \ Ta < 50
+
+Fig. 31. A waiting diagram, establishing the formula
+at_lo A at-mo Nc =y=Ta=0 => (Ta <50)W (at_ls A Ta < 50)
+
+To support this point, consider again program UP-DOWN but with general
+(uniform) time bounds, [Z,U], such that 0 < L < U < o. For all cases that
+L > 0, we can essentially repeat the analysis done in Example 12, and establish
+the waiting-for formula
+
+atlo A at_-mo N@=y=Ta=0 => (Ta < B)W(at_&y A Ta < B),
+
+where
+
+B= 6+2|5)0,
+
+ 
+
+
+--- Page 53 ---
+Applying rule W—R to this formula, one can infer the response formula
+at_lyp A at-mp At=y=Ta=0 > O(at-ly A To < B),
+
+guaranteeing termination within B time units.
+
+One can see that as L gets closer to 0, the bound on termination time gets
+larger. It is therefore not surprising that when L = 0, there is no bound on the
+time it takes the program to terminate. Yet, all computations of this program
+eventually lead to the termination state at_¢,. Thus, termination of program
+UP-DOWN in the case of L = 0 is a response property that cannot be verified
+using rule WR. On the other hand, in Example 10, we established termination
+of UP-DOWN, using rule CB-WELL, in a proof that is valid for all ZL > 0. This
+illustrates the case of a response property that cannot be proven by rule WR,
+but is provable by rule CB-WELL.
+
+As the second answer justifying the introduction of rule CB-WELL, we pro-
+pose to compare the verification diagram of Fig. 29 with that of Fig. 31, both
+establishing termination of UP-DOWN for the time bounds [1, 5] (Fig. 29 actually
+established it for general [L, U]). It is obvious that diagram 31 requires a much
+more detailed analysis of the precise time interval which we can spend at each of
+the diagram nodes. In comparison, the diagram of Fig. 29 said very little about
+these time intervals. The only timing information included in this diagram was
+that the time spent at each of the nodes is bounded by U. Thus, when we need
+or are ready to conduct a very precise analysis of the time intervals spent at each
+node, it makes sense to use waiting diagrams and rule WR. If, on the other
+hand, we are content with less quantitative analysis, and are only interested in
+the qualitative fact that eventually q will occur (which is the essence of the
+temporal operator), we may use rule CB-WELL or rule CB-CHAIN. These rules
+may be conceptually more complicated than rule WAIT, but their application
+calls for a simpler analysis of the program.
+
+A more careful analysis of the conditions under which the investment in rules
+CB-CHAIN and CB-WELL is justified, requires further study and experimentation.
+
+6 Proving that a CTS is Non-Zeno
+
+It is by now a widely accepted notion that the only interesting real-time systems
+are those which obey the non-zeno restriction. One of the reasons is that, since
+we only consider time-divergent runs as computations, a possibly-zeno system
+may contain statements that will never be accessed in a computation. In some
+sense, these components are redundant to the description of the system and their
+inclusion is superfluous and often confusing and misleading. Non-zeno systems,
+on the other hand, contain no such redundancy, since every accessible state also
+appears in some computation.
+
+In view of the significance of the non-zeno restriction, it is important to be
+able to verify that an arbitrary given CTS is non-zeno.
+
+In many cases, there are simple sufficient conditions which guarantee that
+the system is non-zeno. One of the most important cases is the following:
+
+ 
+
+ 
+
+53
+
+ 
+
+ 
+
+
+--- Page 54 ---
+Claim 9 Let P be an SPLr program in which the upper bound assigned to each
+executable statement is a positive constant. Then @,, the CTS corresponding to
+P, is a non-zeno system.
+
+Justification Let U;, > 0 be the minimal upper bound. Consider a finite run
+T: 8Q)+++55k- We wish to show that r can be extended into a computation.
+
+The recipe for extending r considers the last reached state s (= sx) and
+decides to apply the next transition as follows:
+
+e If the tick transition is enabled on s, take the tick transition with increment
+A> 0, which is the maximal A < 1 satisfying s EF (A).
+
+e If the tick transition is disabled on s, it must be blocked by one of the pro-
+cesses, say P;, whose clock ¢; has reached the upper bound of some transition
+7 of P; which is currently enabled. In this case, take this ripe transition rT.
+
+It is not difficult to check that an accessible state in a clocked transition system
+derived from a program with positive upper bounds always has at least one
+extended transition enabled on it. Thus, the described recipe produces an infinite
+run. This observation hinges on the revised transition relation we associated with
+the await statement.
+
+It only remains to check that the infinite run produced by this recipe is time-
+divergent and, hence, is a computation. By considering the different possibilities,
+we observe that two cases are possible.
+
+In one case, we eventually reach a state s such that s|E (A), for every
+A > 0. In this case, once we reach this s, we continue to take tick steps with
+A=1.
+
+In the remaining case, for every reached state s;, there exists a limit A;
+such that s; |F (A) for no A > A;. In this case, our construction must take
+infinitely many untimed transitions, i.e., transitions T # tick. Note that each
+such transition resets one of the clocks to 0. It follows that the construction
+of the infinite run causes at least one of the clocks, say t;, to be reset to 0
+infinitely many times. It is not difficult to see that between two consecutive
+resets of clock ¢;, time must progress by at least Um. It follows that time has
+progressed infinitely many times by the amount U,, > 0 and, therefore, the run
+is time-divergent.
+
+6.1 A Rule for Establishing Non-Zenoness
+
+While Claim 9 settles the question of non-zenoness for many useful cases, there
+are additional cases which require different methods. The claim was established
+for the simpler case that the upper bounds assigned to transitions were positive
+constants. It can easily be generalized to state-dependent upper bounds which
+are bounded from below by a positive constant. However, this still does not
+cover all possible cases. For example, cTS #4 presented in Fig. 32, is a non-zeno
+system, even though, the upper bounds of the transition connecting f to itself
+have no lower bound.
+
+ 
+
+
+--- Page 55 ---
+ 
+
+y: integer where y = 1
+ti, T: real where t; =T =0
+
+ 
+
+Fig. 32. A non-zeno CTS 4 with upper bounds tending to 0.
+
+ 
+
+For assertion ¢,
+
+Nl. Ky
+N2. PGE AG WYAT2=0 > EF(Ts >1))
+
+ 
+
+@ is non-zeno
+
+ 
+
+Fig. 33. Rule Nonz (@ is a non-zeno CTS).
+
+The general strategy we propose for proving that a given CTS @ is non-zeno
+is summarized in rule NONZ, presented in Fig. 33.
+
+The rule uses an auxiliary assertion y. Premise N1 requires that ~ is &-state
+valid, and can be proven using rule Acc.
+
+Premise N2 belongs to the realm of branching-time temporal logic, which
+is different from the linear-time temporal framework we have been consistently
+using in this paper. It has long been observed that the property of being non-
+zeno cannot be formulated in linear-time TL and needs branching-time TL for
+its precise formulation. In a recent paper ([Lam95]), Lamport makes this ob-
+servation but suggests a method by which properties such as non-zenoness can
+still be verified in a linear framework. We prefer to use the branching-time logic
+CTL([EC82]) for formulating the required property, as in premise N2, and present
+a single proof rule which is adequate to establish CTL formulas such as the
+one presented in N2. A deductive system for verifying the main CTL properties
+appeared in [BAMP83]. A more comprehensive deductive system for CTL was
+recently proposed in [FG96].
+
+Premise N2 states that, from every y-state s, it is possible to trace a com-
+putation segment in which time increases by at least 1 from its value at s. We
+use the constant a to represent the global time at s.
+
+Justification By premise N1, all @-reachable states satisfy the assertion vy. Let
+s be an arbitrary reachable @-state. By N1, it satisfies y. By N2, we can construct
+
+ 
+
+ 
+
+55
+
+ 
+
+ 
+
+
+--- Page 56 ---
+a computation segment from s to another state s;, such that s,[T] > s[Z] 十1
+Applying premise N2 to s;, we are guaranteed of a computations segment leading
+from s1 to some state sz, such that s2[T] > s1[7]+1.
+
+Proceeding in this manner, we can construct a time-divergent run, starting
+at s. It follows that any finite run, such as the one leading to s, can be extended
+to a computation. We conclude that @ is non-zeno. y
+
+6.2 Verifying Possibility Formulas
+A possibility formula is a CTL formula of the form
+AG(p — EFq),
+
+for assertions p and g. Without entering into the individual meaning of the CTL
+temporal operators AG and EF, we say that the possibility formula AG(p 一
+EF¢@) is valid over crs © (®-valid) if
+
+For every accessible p-state s, there exists a run segment s=s1,..., 5%
+leading from s to a g-state s,.
+
+We write
+@E AG(p — EF)
+
+to indicate that the possibility formula AG(p — EF) is &-valid.
+In Fig. 34, we present rule G-Poss which is sound and complete for proving
+the @-validity of a possibility formula.
+
+ 
+
+For assertions p, q, and 0 = 9, 1,---,m;
+transitions 71,...,;7m € Tr,
+functions Nezt,,..., Nettm: SiH Xi,
+a well-founded domain (A, >), and
+ranking functions 69,...,6m: S't A,
+
+Gl. p 一   V Qj
+j=0
+The following premise holds for i =1,...,m
+
+G2. gi A V'=Nesti > pr, A Ve A 6: > 6)
+j=0
+
+ 
+
+SEAG(p > EF)
+
+ 
+
+ 
+
+ 
+
+Fig. 34. Rule G-poss (@ validity of a possibility formula).
+
+ 
+
+
+--- Page 57 ---
+The rule requires finding auxiliary assertions y,, functions Nezt;: 3 1 LY,
+and transitions 7;, 1 = 1,...,m, a well-founded domain (A,>), and ranking
+functions 6;: S ++ A. Each assertion y; is associated with the transition 7;
+that is helpful at positions satisfying y:, with a function Nezt; that selects a
+successor state, and with its own ranking function 6;. We have presented the
+successor-selection functions Next; as mapping states to states but, in fact, they
+map s[V], ie., the values of the system variables in state s, to s’[V], the values
+of the system variables in a successor state s’.
+
+Premise G1 requires that every p-position satisfies one of yo,.--;m-
+
+Premise G2 considers a ;-state s and a state ¥ such that 3[V] = s[V’] =
+Next;, for some i = 1,...,m. The premise requires that 5 is a 7-successor of s
+which satisfies :p;, for some j = 0,...,m and has a rank lower than that of s.
+Justification Let s be a pstate. We will show that there exists a run segment
+S=51,...,% which leads from s to a q-state. By premise G1, s = s; must satisfy
+9, for some j = 0,...,m. Let 7; be the minimal j such that s |F y;. If 7, = 0,
+we are done, since 5; satisfies Yo = q.
+
+Otherwise, j; > 0 and let wu; = 6;, (51). Let sz be any state such that so[V] =
+Nezt;,(si[V]). By premise G2, s2 is a 7;,-successor of 51, satisfies y,, for some
+jo € {0,-..,m}, and arank uz = 6;,(s2) < uw. If j2 = 0, we are done. Otherwise,
+we take s3 to be some Nezt;,-selected successor of s2, and so on.
+
+This construction can terminate when we reach some k such that j, = 0. If
+it does not terminate, we generate an infinite descending sequence
+
+U1 U2 Pee
+
+This is impossible due to the well-foundedness of A. We conclude that the con-
+struction must terminate in a state s, satisfying yo=q. 4
+
+Example13. We illustrate the application of rule G-Poss for proving that
+the possibility formula
+
+AG(at_lo1 ATa =0 一 BF >D)
+一
+卫                          q
+
+is valid over CTS #5, presented in Fig. 35.
+
+Observe that transition 7, the only transition in #;, has two successors. One
+satisfying at_) and the other satisfying at_@,.
+
+To apply rule G-Poss, we take (N, >) (the domain of the natural numbers) as
+the well-founded domain. The auxiliary assertions, helpful transitions, successor-
+selection functions, and ranking functions are given by the following table:
+
+ 
+
+yo: Ta >1          1: tick Netto: (x’: 1,7’: T+1) 6: 0
+gi: at_ly NT, >0 1: tick Neaty: (21,77: T+1) &: 1
+ga: at-lyo NTg>0 mT    Neato: (x: 1, T': T)      62: 2
+
+This choice of constructs, corresponds to a strategy of constructing a run segment
+in which time will progress by at least 1. According to this strategy, if we are
+at 9, we choose to take transition 7 and choose a r-successor state satisfying
+
+ 
+
+ 
+
+57
+
+ 
+
+ 
+
+
+--- Page 58 ---
+ 
+
+T: real where t; = T =0
+
+ 
+
+Fig. 35. A non-zeno CTS #5.
+
+at_,. If we are at £;, we choose to take the tick transition with time increment
+1.
+
+It is not difficult to check that all premises of rule G-Poss are satisfied by
+this choice of constructs.
+
+Tt follows that the possibility formula
+
+AG(at_lor ATa=0 — EF(Ta>1))
+
+is @s-valid. y
+
+Systems with Deterministic Transitions
+
+Rule G-Poss is very general and can be shown to be complete for proving possi-
+bility properties of all clocked transition systems. However, there is a big family
+of systems which can be handled by a rule which calls for identification of simpler
+constructs.
+
+A transition 7 of a CTS is called deterministic if all the 7-successors of an
+accessible state assign the same values to the system variables. That is, if we
+restrict our attention to the values of the system variables, each accessible state
+has at most one 7-successor. We say that a CTS © is transition-deterministic
+(@ is a TD-cCTS for short) if all of its (untimed) transitions are deterministic.
+All the systems we have presented in this paper, excluding #5, are transition-
+deterministic.
+
+Consider a TD-cTS #. Assume that we wish to construct the successor-
+selection function Next; corresponding to assertion y;, where 7; # tick. Since
+7; is deterministic, Next; is uniquely determined, and its explicit specification is
+redundant. The situation is different with the tick transition, which may have
+(uncountably) many successors, each corresponding to a different value of the
+time increment A. However, once we specify the value of A, the successor of
+a tick transition is also uniquely determined up to differences in non-system
+variables.
+
+Thus, instead of specifying the values of all system variables in the successor
+state, it is sufficient to specify the time increment A; associated with the suc-
+
+ 
+
+
+--- Page 59 ---
+cessor. For uniformity, we specify values of A; also for untimed transitions, but
+then we ensure that A; = 0.
+
+This leads to rule poss (Fig. 36) which is adequate for proving possibility
+properties of every TD-CTS. Rule Poss has more premises than rule G-POss but
+it requires the identification of simpler constructs, and the premises are easier
+to verify.
+
+For assertions p, q, and 0 = 4, 21 Pm;
+transitions 71,...,7m € Tr,
+time increments Aj,..., Am > 0,
+a well-founded domain (A, >), and
+ranking functions 60,...,6m: 2) A,
+
+Pl. p 一 Ve
+j=0
+
+The following premises hold for i = 1,...,m
+
+P2. pr, A T=T+A AGO  V@& A 6: > &)
+j=0
+P3. If % = tick then
+P3t. yi 一 (Ai)
+Otherwise
+P3n, Yi 3 Ap=0 A En(m)
+
+®EAG(p > EF)
+
+ 
+
+Fig. 36. Rule poss (@ validity of a possibility formula).
+
+Note that rule Poss splits premise G2 of rule G-PoOss into two premises.
+Premise P2 guarantees that the (unique) successor of a y;-state corresponding
+to the identification of the helpful transition 7; and the time increment A, (if it
+exists), satisfies some ; with a lower rank. Premise P3 guarantees that each ¢,-
+state does have a successor corresponding to 7; and A;. The premise is split into
+the case of the tick transition (sub-premise P3t) and the case of all other untimed
+transitions (sub-premise P3n). Sub-premise P3t requires that y; implies 2(A;),
+the enabling condition of transition tick, with the specified A;. Sub-premise P3n
+requires that A; = 0 and that y; implies the enableness of 7.
+
+Example14. We illustrate the use of rule poss for proving that the possibil-
+
+ 
+
+ 
+
+59
+
+ 
+
+ 
+
+
+--- Page 60 ---
+ity formula
+
+1
+AG(at_l6o N1<y=uA0<t.<—AT=0 -— EFT>1
+(atl Al<y  Susy    ( ))
+
+q
+P
+
+is valid over CTS ®4, where wu is an auxiliary rigid variable recording the value
+of y at the state described by at-lo AN 1<yA0<ti.< wi A Ta = 0.
+Note that CTS &4 has a single untimed transition, to which we refer as 70.
+As the well-founded domain, we take (N’,>+), the domain of lexicographic
+pairs. The auxiliary assertions, helpful transitions, time increments, and ranking
+functions are given by the following table:
+
+Yo:   Ta 之 1   To: 700    Ao:   0         60:   0
+
+gu  ato A 1SusySdu+1A h=0A teat <Ta<l
+m1: «tick Aj:   wi       6: ({2u+1—yI,2)
+
+go atlo N1<us<y<dt+lAh=aA BEST <1
+T: To Ao:            62: ([2u+1—yl,1)
+
+ 
+
+ 
+
+os: atly N1<u<y<2ut+1laA 0<a<y AN0<T <1
+T3:    tick    As:    w -t    63:   2u+2
+
+The idea behind this selection is the following. Starting in a state at which
+y=ur>landd0<t< wi (described by assertion 3), we first step time with
+an increment wi —t1, this will get us to a state in which t, = wi (described
+by 2). From this point on, we alternate between taking untimed transition 700
+which increments y by 1 but preserves time, and taking transition tick, which
+increments time by aw but preserves the value of y. We repeat this couple of
+steps at most u+1 times, letting y increase from u to 2u+ 1. Since the time step
+in each round is decreasing, the total time increase is not less than wu +1 times
+the last time increment which is ya Thus the total time increase is not less
+than                                  “
+
+ 
+
+utl >1
+Vv2ut+l ~
+where the inequality holds for every u > 1.
+
+This informal argument can be formalized by checking that all premises of
+tule POSS are state valid for the specified selection of the auxiliary assertions,
+helpful transitions, time increments, and well-founded ranking.
+
+This establishes that the possibility formula
+
+1
+AG(at- ALSy=UNOSHS TAT =0  + EF(T,>1))
+
+is valid over CTS a.
+
+ 
+
+
+--- Page 61 ---
+6.3 Possibility Diagrams
+
+Proofs according to rule Poss can be succinctly represented by special type
+of verification diagram. A possibility diagram is a basic verification diagram,
+satisfying the following constraints:
+
+e The terminal node is labeled by an assertion denoted yo. All other nodes
+are labeled by an assertion and a ranking function 6.
+
+e Every non-terminal node must have an edge departing from them.
+
+e Edges are labeled by the name of either an untimed transition in the program,
+as in basic verification diagrams, or by a label of the form tick(A).
+
+e All edges departing from the same node must have the same label.
+
+Verification Conditions Implied by a Possibility Diagram
+
+Consider a nonterminal node labeled by assertion y and ranking function 6. Let
+Y1,--+,Pk, k > 0, be the successors of y by edges departing from (possibly
+including ¢ itself). With each such node, we associate the following verification
+condition:
+
+e If the label of all edges departing from ¢ is tick(A), then we require the
+following verification conditions to hold:
+
+P2. price AT'=T+A NY > (QLAS>H) Vee VQ AS>&)
+P3t. yg > MA)
+
+e If the label of all edges departing from » is 7 # tick, then we require the
+following verification conditions to hold:
+
+P2. pp ATT=T AG > (NE>H) A NA (YASH &)
+P3n. yp — En(r)
+Valid Possibility Diagrams
+
+The consequences of having a valid possibility diagram are stated in the following
+claim:
+
+Claim 10 If D is a P-valid possibility diagram with nodes (~0,..+,m; then
+
+PF4G(V gj > EF¢)
+j=0
+
+Tf, in addition, po = q, and
+m
+了 一  V Pir
+j=0
+
+then we can conclude:
+
+PEAG(p > EF¢).
+
+ 
+
+ 
+
+61
+
+ 
+
+ 
+
+
+--- Page 62 ---
+In case there is a subset N C {1,...,m} such that p >  V yi, we identify Yi,
+2EN
+1E AN as initial nodes.
+
+Example15. _In Fig. 37, we present a possibility diagram that establishes the
+possibility property
+
+AG(atlo ALS Y=UNOSHS TAT. =0  — EF(T,>1))
+
+for system Oy.
+
+ey
+
+at_ly, 1<b<y<2%4+1, h >0,0<T% <1
+
+ 
+
+g33 0<t<+ 6: 242
+|          四
+
+ 
+
+| tick( 4 一三)
+
+ 
+
+lei th=Jg A Tu > See4(20+1一外1
+
+ 
+
+Too
+V
+
+| yr: h=0AT> oS   6: (26+1—yl,2) |
+
+ 
+
+tick( Zz)         tick()
+
+yo: Ta > 1    6: 0
+
+ 
+
+ 
+
+Fig. 37. A possibility diagram, establishing the formula
+
+AG(at_ NI Sy=suA0Sh<EAM=0 4 EFM.>1)
+
+6.4 Proving that ©, is Non-Zeno
+
+We conclude this discussion by applying rule NONZ to show that CTS 4 is non-
+zeno.
+As the assertion y required by rule NONZ, we take
+1
+
+gy: atl Ny>la Oshs—.
+
+ 
+
+
+--- Page 63 ---
+It is not difficult to show by rule Acc that wp is 4-state valid. This establishes
+premise N1 of rule NONZ.
+For premise N2 of NONZ, we have to verify the possibility formula
+
+AG(atly AUST AOSHS TZ AT=0  + EF(%>1). (2)
+Example 14 establishes the possibility formula
+AG(at_lo My DL AVS tH < 5 Ay=uAT,=0 > EF(I,>1)),
+
+to which we may apply existential quantification over the rigid variable u to
+obtain
+
+AG (Bu: (atlo AY>1TA0SH <A Y=UATr=0   一
+
+vy                                                   (3)
+EF(I. > 1)),
+
+using well-established simplification rules for rigid quantification (see, for exam-
+ple [MP93b)]).
+
+Since the left-hand sides of the implications in (2) and (3) can be shown to
+be equivalent, it follows that the formula (2) is &4-valid.
+
+We conclude that CTS @, is non-zeno.
+
+7 Hybrid Systems
+
+In this section we consider the case of hybrid systems. Similar to our treatment
+of real-time systems, we present first a computational model for hybrid systems
+that can be viewed as an extension of the CTS model. Then we present rule INV-H
+for proving invariance properties of hybrid systems, and illustrate its use.
+
+7.1 Computation Model: Phase Transition System
+
+Hybrid systems are modeled as phase transition systems (PTS). The PTS model
+was originally presented in [MMP92] and [MP93c]. The PTs model presented here
+is an extension of the CTS model. A closely related model for hybrid systems is
+presented in [ACH*95].
+
+A phase transition system (PTS) ® = (V,@,T, A, I) consists of:
+
+eV = {u,...,Un} : A finite set of system variables. The set V = DUT is
+partitioned into D the set of discrete variables and I the set of integrators.
+Integrators always have the type real. The discrete variables can be of any
+type. We introduce a special integrator T’ € I representing the master clock.
+
+e O: The initial condition. A satisfiable assertion characterizing the initial
+states. It is required that
+
+Oo = T=0.
+
+ 
+
+ 
+
+63
+
+ 
+
+ 
+
+
+--- Page 64 ---
+T : A finite set of transitions, defined as in the CTS model.
+A: A finite set of activities. Each activity a € A is represented by an activity
+relation:
+
+Pa > I= FV?,t)
+where py is a predicate over D called the activation condition of a. Activity
+a is said to be active in state s if its activation condition p, holds on s. If
+Pa is true, it may be omitted.
+let I = {2,...,%m = T} be the integrators of the system. The vector
+equality I(t) = F*(V°, t) is an abbreviation for the following set of individual
+equalities:
+
+a(t) = F°(V°,t), for eachi=1,...,m,
+which define the evolution of the integrators throughout a phase of contin-
+uous change according to the activity a. The argument V° represents the
+initial values of all the system variables at the beginning of the phase.
+For every a € A it is required that
+
+Fe(V°,0)=29, for every i=1,...,m
+
+e(V°,t) = Fe(V9,t) =T° +t.
+
+That is, F?(V°,0) agrees with the initial value of x;, and the effect of evo-
+lution of length ¢ on the master clock (integrator Zm) is to add t to T.
+It is required that the activation conditions associated with the different
+activities be exhaustive and exclusive, i.e., exactly one of them holds on any
+state.
+IT : The time-progress condition, defined as in the CTS model.
+
+The enabling condition of a transition 7 can always be written as 6 A «, where
+é is the largest sub-formula that does not depend on integrators. We call « the
+integrator component of the enabling condition, and denote it by Enz(r).
+
+are
+
+In descriptions of concrete hybrid systems, the evolution functions F°(V°, t)
+
+often presented by sets of ordinary differential equations of the form 4; =
+
+9(V) for 7 = 1,...,m. In such cases, the evolution functions F°(V°,#) can
+be obtained as solutions of the differential equations. It is straightforward to
+extend the model to also cover non-deterministic evolutions. In such cases, we
+may represent the evolution functions as solutions of differential inclusions.
+
+Example 16. Consider the hybrid system ®, presented in figure 38.
+This system can be modeled by the following PTs:
+
+Vv
+
+oO:
+
+T:
+A:
+
+IT:
+
+=I: {x,T}
+:      Z=1A了=0
+{r} where pp, :@=-1 AX =1AT'=T
+{a} with activity relation (omitting the a subscript and superscript)
+true 7 2z=2 -t
+P         F(x°,t)
+z>-l
+
+The behavior of this system is (informally) presented in Fig. 39. 4
+
+ 
+
+
+--- Page 65 ---
+es                         g=-l/r:=1
+
+Fig. 38. A hybrid system @,.
+
+ 
+
+xX
+1                                           上
+                                  T
+0                                                ，
+1                2              3                 4
+一1                                 |
+
+Fig. 39. Behavior of PTs #1.
+
+Extended Transitions
+
+Let  : (V,0,T, A, II) be a phase transition system. We define the set of ex-
+tended transitions Ty associated with & as follows:
+
+Ty =TUTs, where Js = {ta |a € A}.
+For each a € A, the transition relation of Tq is given by
+D=DApa nee}
+
+Prat AA>O                   A
+Vt € [0, A). I(D, F(V,t))
+
+The transition relation p;, characterizes possible values of the system vari-
+ables at the beginning and end of an a-phase, where V = (D,J) denotes the
+
+ 
+
+ 
+
+65
+
+ 
+
+ 
+
+
+--- Page 66 ---
+values at the beginning of the phase and V’ = (D’, J’) denotes their values at
+the end of the phase. The formula assumes a positive time increment A which
+will be the length of the phase. It then states that the values of the discrete
+variables are preserved (D! = D), the activation condition py currently holds,
+the values of the integrators at the end of the phase are given by F°(V, A), and
+the time-progress condition JT holds for all intermediate time points within the
+phase, i.e., for all t, O<t< A.
+
+Runs and Computations
+
+The runs and computations of a phase transition system ® : WV, 0,T, A, I ) are
+defined as in the CTS model.
+
+Non-Zeno Systems
+
+As in the case of the CTS model, we restrict our attention to non-zeno PTS’s.
+These are systems for which any prefix of a run can be extended to a computa-
+tion.
+
+System Description by Hybrid Statecharts
+
+Hybrid systems can be conveniently described by an extension of statecharts
+[Har87] called hybrid statecharts. The main extension is
+
+e States may be labeled by (unconditional) differential equations. The impli-
+cation is that the activity associated with the differential equation is active
+precisely when the state it labels is active.
+
+We illustrate this form of description by the example of Cat and Mouse taken
+from [MMP92]. At time T = 0, a mouse starts running from a certain position
+on the floor in a straight line towards a hole in the wall, which is at a distance
+Xo from the initial position. The mouse runs at a constant velocity Um. After a
+delay of A time units, a cat is released at the same initial position and chases
+the mouse at velocity v. along the same path. Will the cat catch the mouse, or
+will the mouse find sanctuary while the cat crashes against the wall?
+
+The statechart in Fig. 40 describes the possible scenarios. This statechart
+(and the underlying phase transition system) uses the integrators x and Zc,
+measuring the distance of the mouse and the cat, respectively, from the wall.
+The waiting time of the cat before it starts running is measured by the master
+clock T. The statechart refers to the constants Xo,Um,Uc, and A.
+
+A behavior of the system starts with states M.restand C.rest active, variables
+Im and Z- set to the initial value Xo, and the master clock T set to 0. The mouse
+proceeds immediately to the state of running, in which its variable x», changes
+continuously according to the equation tn = —Um. The cat waits for a delay of
+A before entering its running state, using the master clock T to measure this
+delay. There are two possible termination scenarios. If the event 2m = 0 happens
+first, the mouse reaches sanctuary and moves to state safe, where it waits for
+
+ 
+
+
+--- Page 67 ---
+Initially ze = am = Xo, T=0
+
+ 
+
+ 
+
+  
+
+Xo > fe =Im > 0
+
+Fig. 40. Specification of Cat and Mouse.
+
+  
+
+the cat to reach the wall. As soon as this happens, detectable by the condition
+Le = Lm = 0 becoming true, the system moves to state Mouse-Wins. The other
+possibility is that the event Xo > %- = Lm > O occurs first, which means that the
+cat overtook the mouse before the mouse reached sanctuary. In this case they
+both stop running and the system moves to state Cat-Wins. The compound
+conditions z- = Im = 0 and Xp > Xe = Xm > O stand for the conjunctions
+Le = Lm \Lm =0 and Xo > Le A Le = Lm A Lm > O, respectively.
+
+The statechart representation of the Cat and Mouse illustrates the typical
+interleaving between continuous activities and discrete state changes which, in
+
+ 
+
+ 
+
+67
+
+ 
+
+ 
+
+
+--- Page 68 ---
+this example, only involve changes of control.
+
+The Underlying Phase Transition System
+
+Following the graphical representation, we identify the phase transition system
+underlying the picture of Fig. 40. We refer to states in the diagram that do not
+enclose other states as basic states.
+
+e System Variables: V = DUI, where D: {%m, 7c} and I: {£c, Zm,T}. Variables
+Tm and 7; are control variables whose values are the basic states of the mouse
+and cat subsyst which are currently active.
+
+e Initial Condition: Given by
+
+O: Tm=M.rest AN Te = C.rest \ te=Im = X09 A T=O0.
+e Transitions: Listed together with the transition relations associated with
+them.
+M.rest-run : Tm = M.rest A Tn = M.run
+C.rest-run : Te = C.rest N T=A A 7, = C.run
+M.run-safe : 1m = M.run \ im=0 A Tp = M.safe
+M.win: 1m € Active A Ze =Im =O A Ty = 7. = Mouse- Wins
+C.win : 1. € Active A Xo > Lo =Im >0 A 7. = Tm = Cat-Wins,
+where the set Active stands for the set of basic states
+Active: {M.rest, M.run, M.safe, C.rest, C.run}.
+
+e Activities: It is possible to group all the activities into a single activity,
+given by:
+
+2 &m = 29,—(at_M.run)Umt Nae = 29—(at_C.run)u,(t-A) AT = T°+t.
+
+In this representation, we used arithmetization of control expressions by
+which at_M.run equals 1 whenever 7m = M. and equals 0 at all other
+instances. A less compact representation lists four activities corresponding
+to the four cases of: cat and mouse both resting, cat rests and mouse runs,
+cat runs and mouse is safe, cat and mouse both running.
+
+e Time Progress Condition: Given by
+
+Tl:  tm # M.rest A (me = C.rest + T<A)A
+“\ im = Merun > tm >0) A (te = C.run > Ze > Lm)
+
+7.2 Verifying Invariance Properties over PTS
+
+Invariance properties of hybrid systems can be verified by rule INV-H, presented
+in Fig. 41.
+
+Rule INV-H is sound and (relatively) complete for proving all invariance prop-
+erties of non-zeno PTS’s.
+
+Note that rule INv-H is identical to rule INV, except that we use 7 as the set
+of extended transitions. Consequently, we can adopt the notations of invariance
+diagrams for the concise representation of invariance proofs over PTS’s.
+
+ 
+
+
+--- Page 69 ---
+ 
+
+For assertions y and p,
+Il. gop
+DB. 日一op
+B. pp Ay 一 mW for every tT € Tx
+
+F-Op
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 41. Rule INv-H (invariance) applied to PTS &.
+
+Verifying a Property of the Cat and Mouse System
+Consider the property that, under the assumptions
+X          X
+f<A+—2%                                      (4)
+
+Um                      Ve
+
+Xo, Vey Um A>0,
+
+all computations of the Cat and Mouse system satisfy
+
+ 
+
+(te =m  一  Ze = Xo V Im = 0).
+
+ 
+
+ 
+
+ 
+
+This invariant guarantees that the cat can never win.
+
+In Fig. 42, we present a verification diagram for this invariance property. In
+this diagram we use control assertions indicating that certain basic states are
+contained in 7m and 7. For example, C.run stands for 7, = Cat.run. We also
+use tm for 4a, the time it takes the mouse to run the distance Xo.
+
+It is not difficult to verify that the diagram is valid, including the preservation
+of all assertions under the single activity-induced transition Ty.
+The part that requires some attention is showing that the 2 conjunct
+
+Ge=Xo-Vve (T-A) > Im=Xo-Um-T
+
+is maintained until transition M.run-safe becomes enabled, that is, as long as tm
+is nonnegative. Obviously, 2 > 0 implies T < tm. To show that the conjunct is
+
+maintained, it is sufficient to show uv. -(I — A) < Um+T which is equivalent to
+
+Um         A
+
+—mysyis
+
+TT                                                                  (5)
+From inequality (4), we can obtain
+
+Um            Um
+
+Ue >1-A  Xo
+
+X
+which, using the definition of tm = ra gives
+mn
+
+Um          A
+—>1-—.
+Ve  >      tm                                                                        (6)
+
+ 
+
+ 
+
+69
+
+ 
+
+ 
+
+
+--- Page 70 ---
+|
+
+yo: M.rest A C.rest A te = Lm = Xo A T=0
+
+ 
+
+|   M.rest-run
+
+ 
+
+M.run A C.rest NO<T<A
+
+Pi:        A
+Ge= Xo A im = Xo — Vm: T
+
+ 
+
+M.run-safe                  |  C.rest-run
+
+ 
+
+M.run A C.run \ A<T <tmn
+
+2:           A
+Le = Xo 一ve: — A) > Bm = X0 — Um T
+
+ 
+
+|   M.run-safe
+
+ 
+
+ 
+
+ 
+
+ga: (M.safe V M.win) A tm =0
+
+ 
+
+Fig. 42. A hybrid invariance proof diagram.
+
+Since T < tm, we have 1— 全 >1- 5 establishing (5).
+
+It remains to show that ””
+
+M.rest A C.rest A te =Im =Xo A Y=OAT=0 一
+一
+
+@
+M.resf A Cresf Ace=zm=XAV=T=0 (7)
+一一
+Po
+Go Vii V P34 (te =m 4 te= Xo V ttm =0):          (8)
+
+Implication (7) is obviously valid. To check implication (8), we observe that both
+Yo and ¥; imply x. = Xo, 2 implies x, > Zm (using the assumption A > 0),
+
+ 
+
+
+--- Page 71 ---
+and %3s implies Zm = 0.
+This shows that under assumption (4), property
+
+ 
+
+ 
+
+ 
+
+(fe=Im 一 e=Xo V Im =0)
+
+is valid for the Cat and Mouse system.
+
+Similar to the clocked transition systems, it is possible to formulate appro-
+priate proof rules for the verification of waiting-for and response properties over
+phase transition systems. Note that all the rules that rely on the uniform progress
+of clocks, must refer to either the master clock T, or other variables which
+progress at a constant rate at all times.
+
+ 
+
+Checking Non-Zenoness of Hybrid Systems
+
+Since all hybrid systems contain the master clock T among their integrators, we
+can apply all the techniques presented in Section 6 for establishing that a given
+PTS is Non-Zeno.
+
+8 Conclusions
+
+In this paper we have presented the real-time model of clocked transition systems
+(CTs). This model can be viewed as an extension of the timed automata model
+[AD94]. In addition to algorithmic verification of finite-state systems, the CTS
+model can also support deductive verification. We presented verification rules
+for invariance properties which are identical to the invariance verification rules
+of fair transition systems [MP95]. For response properties, we presented rules
+similar to the CHAIN and W-RESP rules of fair transition systems [MP91]. The
+main differences between the timed and the untimed versions of these rules is that
+the timed version does not use the concept of a helpful transition but replaces
+it with the concept of a helpful clock, whose boundedness and the fact that it is
+not reset while its associated assertion holds, implies that we can stay in states
+that satisfy this assertion only for a bounded time, and must move elsewhere.
+
+We proceeded with the presentation of an approach for verifying that an
+arbitrary CTS satisfies the non-zeno restriction. We use branching-time TL (CTL)
+to formulate the non-zeno property, and give a single proof rule to establish the
+CTL formula.
+
+We concluded with an extension of the CTS model to hybrid systems, and
+presentation of a rule for verifying safety properties of such systems.
+
+As previously mentioned, the model of Clocked Transition Systems and its
+verification rules have been successfully implemented in the sTep system [BBC 95].
+Many of the examples presented in this paper have been verified within sTeP.
+Implementation of the Hybrid Systems extension is under way.
+
+Acknowledgment
+
+We gratefully acknowledge the careful reading and critical comments of previous
+versions of this paper by Oded Maler and Tomdas Uribe. Nikolaj Bjgrner imple-
+mented the clocked transition system model and its verification rules within
+
+ 
+
+ 
+
+71
+
+ 
+
+ 
+
+
+--- Page 72 ---
+STeP. Special thanks are due to Henny Sipma for a thorough examination of
+the current (and previous) versions, the detection and correction of some sub-
+tle errors, and the step mechanical verification of some of the more difficult
+examples.
+
+References
+
+[ACH*95] R. Alur, C. Courcoubetis, N. Halbwachs, T. Henzinger, P. Ho, X. Nicollin,
+A. Olivero, J. Sifakis, and S. Yovine. The algorithmic analysis of hybrid
+systems. Theor. Comp. Sci., 138:3-34, 1995.
+
+[AD94]     R. Alur and D.L. Dill. A theory of timed automata. Theor. Comp. Sci.,
+126:183-235, 1994.
+
+AHS89]     R. Alur and T.A. Henzinger. A really temporal logic. In Proc. 30th IEEE
+Symp. Found. of Comp. Sct., pages 164-169, 1989.
+
+AH92]     R. Alur and T. Henzinger. Logics and models of real time: A survey. In
+J.W. de Bakker, C. Huizing, W.P. de Roever, and G. Rozenberg, editors,
+Proceedings of the REX Workshop "Real-Time: Theory in Practice“, vol-
+ume 600 of Lect. Notes in Comp. Sci., pages 74-106. Springer-Verlag, 1992.
+
+[AH94]     R. Alur and T.A. Henzinger. Real-time system = discrete system + clock
+variables. In T. Rus and C. Rattray, editors, Theories and Experiences
+for Real-time System Development, AMAST Series in Computing 2, pages
+1-29. World Scientific, 1994.
+
+AL91]      M. Abadi and L. Lamport. An old-fashioned recipe for real time. In Real-
+Time: Theory in Practice, volume 600 of Lect. Notes in Comp. Sci., pages
+1-27. Springer-Verlag, 1991.
+
+[BAMP83] M. Ben-Ari, Z. Manna, and A. Pnueli. The temporal logic of branching
+time. Acta Informatica, 20:207-226, 1983.
+
+[BBCt95] N. Bjgrner, I.A. Browne, E. Chang, M. Colon, A. Kapur, Z. Manna, H.B.
+
+Sipma, and T.E. Uribe. STeP: The Stanford Temporal Prover, User’s Man-
+
+ual. Technical Report STAN-CS-TR-95-1562, Computer Science Depart-
+
+ment, Stanford University, November 1995.
+
+[BMS95] IA. Browne, Z. Manna, and H.B. Sipma. Generalized verification dia-
+grams. In 15th Conference on the Foundations of Software Technology and
+Theoretical Computer Science, volume 1026 of Lect. Notes in Comp. Sct.,
+pages 484-498, December 1995.
+
+[BMSU97] N.S. Bjgrner, Z. Manna, H.B. Sipma, and T.E. Uribe. Deductive verifica-
+tion of real-time systems using STeP. In 4th Intl, AMAST Workshop on
+Real-Time Systems, volume 1231 of Lect. Notes in Comp. Sci., pages 22-43.
+Springer-Verlag, May 1997. To appear in Theoretical Computer Science.
+
+[EC82]     E.A. Emerson and E.M. Clarke. Using branching time temporal logic to
+synthesize synchronization skeletons. Sci. Comp. Prog., 2:241—266, 1982.
+
+FG96]     L. Fix and O. Grumberg. Verificaiton of temporal properties. Logic and
+Computation, 6(3):343-362, 1996.
+
+Har87]      D. Harel. Statecharts: A visual formalism for complex systems. Sci. Comp.
+Prog., 8:231-274, 1987.
+
+Hen92]  T.A. Henzinger. Sooner is safer than later. Info. Proc. Lett., 43(3):135-142,
+1992.
+
+ 
+
+ 
+
+
+--- Page 73 ---
+HK94]
+
+[HMP94]
+
+KdR83]
+
+[KMP98]
+
+Koy90]
+
+[KVdR83]
+
+[Lam95]
+
+MMP9?]
+
+MP91]
+MP93al
+MP93b]
+
+[MP93c]
+
+MP94]
+
+MP95]
+
+MS98|
+
+ 
+
+MT90]
+
+[HHWT95] T.A. Henzinger, P.-H. Ho, and H. Wong-Toi. A user guide to HYTECH. In
+
+Proceedings of the Workshop on Tools and Algorithms for the Construction
+and Analysis of Systems (TACAS), Aarhus, Denmark, 1995. To appear.
+T.A. Henzinger and P.W. Kopke. Verification methods for the divergent
+runs of clock systems. In H. Langmaack, W.-P. de Roever, and J. Vytopil,
+editors, FTRTFT 94: Formal Techniques in Real-time and Fault-tolerant
+Systems, Lecture Notes in Computer Science 863, pages 351-372. Springer-
+Verlag, 1994.
+
+T. Henzinger, Z. Manna, and A. Pnueli. Temporal proof methodologies for
+timed transition systems. Inf. and Comp., 112(2):273-337, 1994.
+
+R. Koymans and W.-P. de Roever. Examples of a real-time temporal logic
+specifications. In The Analysis of Concurrent Systems, pages 231-252.
+Springer-Verlag, 1983.
+
+YY. Kesten, Z. Manna, and A. Pnueli. Verification of clocked and hybrid
+systems. In G. Rozenberg and F.W. Vaandrager, editors, Lectures on Em-
+bedded Systems, volume 1494 of Lect. Notes in Comp. Sci., pages 4 — 73.
+Springer-Verlag, 1998.
+
+R. Koymans. Specifying real-time properties with metric temporal logic.
+Real-time Systems, 2(4):255-299, 1990.
+
+R. Koymans, J. Vytopyl, and W.-P. de Roever. Real-time programming
+and asynchronous message passing. In Proc. 2nd ACM Symp. Princ. of
+Dist. Comp., pages 187-197, 1983.
+
+L. Lamport. Proving possibiity properties. Technical Report 137, Digital
+Equipment Corporation, Systems Research Center, Palo Alto, July 1995.
+O. Maler, Z. Manna, and A. Pnueli. From timed to hybrid systems. In
+J.W. de Bakker, C. Huizing, W.P. de Roever, and G. Rozenberg, editors,
+Proceedings of the REX Workshop “Real-Time: Theory in Practice”, vol-
+ume 600 of Lect. Notes in Comp. Sci., pages 447-484. Springer-Verlag,
+1992.
+
+Z. Manna and A. Pnueli. Completing the temporal picture. Theor. Comp.
+Sci., 83(1):97-130, 1991.
+
+Z. Manna and A. Pnueli. Models for reactivity. Acta Informatica, 30:609—-
+678, 1993.
+
+Z. Manna and A. Pnueli. The Temporal Logic of Reactive Systems.
+Springer Verlag, New York, 1993.
+
+Z. Manna and A. Pnueli. Verifying hybrid systems. In R.L. Grossman,
+A. Nerode, A. Ravn, and H. Rischel, editors, Hybrid Systems, volume 736
+of Lect. Notes in Comp. Sct., pages 4-35. Springer-Verlag, 1993.
+
+Z. Manna and A. Pnueli. Temporal verification diagrams. In T. Ito and
+A. R. Meyer, editors, Theoretical Aspects of Computer Software, volume
+789 of Lect. Notes in Comp. Sci., pages 726-765. Springer-Verlag, 1994.
+Z. Manna and A. Pnueli. Temporal Verification of Reactive Systems:
+Safety. Springer-Verlag, New York, 1995.
+
+Z. Manna and H. Sipma. Deductive verification of hybrid systems using
+STeP. In Hybrid Systems: Computation and Control, volume 1386 of Lect.
+Notes in Comp. Sci. Springer-Verlag, 1998.
+
+F. Moller and C. Tofts. A temporal calculus of communicating systems. In
+J.C.M. Baeten and J.W. Klop, editors, Proceedings of Concur’90, volume
+458 of Lect. Notes in Comp. Sci., pages 401-415. Springer-Verlag, 1990.
+
+ 
+
+ 
+
+73
+
+ 
+
+ 
+
+
+--- Page 74 ---
+[NSY92]
+
+[Ost90]
+
+[SBM92]
+
+[sifo1]
+
+X. Nicollin, J. Sifakis, and S. Yovine. From ATP to timed graphs and
+hybrid systems. In J.W. de Bakker, C. Huizing, W.P. de Roever, and
+G. Rozenberg, editors, Real-Time: Theory in Practice, volume 600 of Lect.
+Notes in Comp. Sci., pages 549-572. Springer-Verlag, 1992.
+
+J.S. Ostroff. Temporal Logic of Real-Time Systems. Advanced Software
+Development Series. Research Studies Press (John Wiley & Sons), Taunton,
+England, 1990.
+
+F. B. Schneider, B. Bloom, and K. Marzullo. Putting time into proof out-
+lines. In J.W. de Bakker, C. Huizing, W.P. de Roever, and G. Rozenberg,
+editors, Proceedings of the REX Workshop “Real-Time: Theory in Prac-
+tice”, volume 600 of Lect. Notes in Comp. Sci., pages 618-639. Springer-
+Verlag, 1992.
+
+J. Sifakis. An overview and synthesis on timed process algebra. In K.G.
+Larsen and A. Skou, editors, 3rd Computer Aided Verification Workshop,
+volume 575 of Lect. Notes in Comp. Sci., pages 376-398. Springer-Verlag,
+1991.
+
+ 
+
