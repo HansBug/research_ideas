@@ -8,7 +8,7 @@
 - 结构标签概况：显式时钟、连续耦合
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
-- 简要判断：BBW ABS 行为图和接口执行流程都能直接落成可追溯自然语言。
+- 简要判断：BBW ABS 行为 TA、Interface/Behavior 同步语义以及 10ms/2ms 触发执行参数都能直接落成可追溯自然语言。
 
 ## 条目 1: BBW ABS behavior TA
 - 控制对象：车载 Brake-by-Wire 系统的 ABS 计算逻辑
@@ -63,17 +63,38 @@
 > takes the Behavior TA to the Init location. The edge between Write andIdle
 > is dedicated to updating any necessary variables. Finally, the TA returns to theIdle location, and remains there until the component is triggered again.
 
+#### 摘录 C
+- 出处：第 30-32 页，BBW use-case timing annotations，行 1187-1209 与 1273-1280
+> The Brake-by-Wire Use-case. The Brake-by-Wire (BBW) use-case is a
+> braking system equipped with an ABS function, and without any mechanical
+> connectors between the brake pedal and the brake actuators.
+> The ABS algorithm computes the slip rate based on the
+> following equation:
+> slipRate =(vehicleSpeed - wheelSpeed * Radius)/vehicleSpeed
+> where vehicleSpeed is the speed of the vehicle, wheelSpeed is the speed of the
+> wheel, and Radius is the radius of the wheel.
+> If slipRate is greater than 0.2 the brake
+> actuator is released and no brake is applied, or otherwise the requested brake
+> torque is used.
+> In Figure 2.1, we present the BBW system model in EAST-ADL, at De-
+> sign Level, with annotations for timing properties like triggering period and
+> execution time.
+> Each of the four ABS FunctionPrototypes are triggered every 10 ms, and their ex-
+> ecution takes at most 2 ms according to the associated ExecTime Constraint.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The pABS FL behavior TA uses an inactive idle location together with the active states Entry, CalcSlipRate, and Exit to compute the brake command for the wheel. When the function is triggered, Entry first evaluates vehicle speed v: guard v==0 takes the automaton directly to Exit with torqueABS=0, whereas v>0 moves the behavior to CalcSlipRate. In CalcSlipRate, the slip condition is encoded as v<5*(v-w*R), which corresponds to sliprate > 0.2 and therefore suppresses braking by assigning torqueABS=0; the complementary guard v>=5*(v-w*R) forwards the requested torque by assigning torqueABS=wheelABS. At the interface level, the Read-to-Exec step synchronizes with behavior start, the interface and behavior stay active until clock x reaches exec = 2, and then the Exec-to-Write step, the behavior-stop synchronization, and the Write-to-Idle update return the function to Idle until the next trigger.
+The pABS FL FunctionPrototype is a periodic ABS controller in the Brake-by-Wire system: it is triggered every 10 ms, has execution time at most 2 ms, takes RequestedTorqueIn, VehicleSpeedIn, and WheelSpeedIn as inputs, produces ASBrakeTorqueOut, and computes brake torque from slipRate=(vehicleSpeed-wheelSpeed*Radius)/vehicleSpeed. Its Behavior TA has states idle, Entry, CalcSlipRate, and Exit, with variables mapped so that wheelABS holds the requested torque, torqueABS holds the ABS brake torque, and v and w hold the vehicle and wheel speeds. In Entry, guard v==0 takes the automaton directly to Exit with torqueABS=0, while v>0 moves the behavior to CalcSlipRate. In CalcSlipRate, guard v<5*(v-w*R) captures slipRate > 0.2 and assigns torqueABS=0, whereas the complementary guard v>=5*(v-w*R) assigns torqueABS=wheelABS. At the architectural semantics level, the interface is a separate TA with Idle, Read, Exec, and Write, where Read and Write are committed, the edge from Idle to Read updates input variables from the connectors and triggering elements, the 10-unit period allows the function to leave Idle, pABS FLbehstart and pABS FLbehstop synchronize the interface with the Behavior TA, and the component stays in Exec until clock x reaches exec=2 before Write updates the necessary variables and returns the function to Idle.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The pABS FL behavior TA uses an inactive idle location together with the active states Entry, CalcSlipRate, and Exit to compute the brake command for the wheel.
+1. 句子 1：The pABS FL FunctionPrototype is a periodic ABS controller in the Brake-by-Wire system: it is triggered every 10 ms, has execution time at most 2 ms, takes RequestedTorqueIn, VehicleSpeedIn, and WheelSpeedIn as inputs, produces ASBrakeTorqueOut, and computes brake torque from slipRate=(vehicleSpeed-wheelSpeed*Radius)/vehicleSpeed.
+   对应摘录：C
+2. 句子 2：Its Behavior TA has states idle, Entry, CalcSlipRate, and Exit, with variables mapped so that wheelABS holds the requested torque, torqueABS holds the ABS brake torque, and v and w hold the vehicle and wheel speeds.
    对应摘录：A
-2. 句子 2：When the function is triggered, Entry first evaluates vehicle speed v: guard v==0 takes the automaton directly to Exit with torqueABS=0, whereas v>0 moves the behavior to CalcSlipRate.
+3. 句子 3：In Entry, guard v==0 takes the automaton directly to Exit with torqueABS=0, while v>0 moves the behavior to CalcSlipRate.
    对应摘录：A
-3. 句子 3：In CalcSlipRate, the slip condition is encoded as v<5*(v-w*R), which corresponds to sliprate > 0.2 and therefore suppresses braking by assigning torqueABS=0; the complementary guard v>=5*(v-w*R) forwards the requested torque by assigning torqueABS=wheelABS.
+4. 句子 4：In CalcSlipRate, guard v<5*(v-w*R) captures slipRate > 0.2 and assigns torqueABS=0, whereas the complementary guard v>=5*(v-w*R) assigns torqueABS=wheelABS.
    对应摘录：A
-4. 句子 4：At the interface level, the Read-to-Exec step synchronizes with behavior start, the interface and behavior stay active until clock x reaches exec = 2, and then the Exec-to-Write step, the behavior-stop synchronization, and the Write-to-Idle update return the function to Idle until the next trigger.
-   对应摘录：B
+5. 句子 5：At the architectural semantics level, the interface is a separate TA with Idle, Read, Exec, and Write, where Read and Write are committed, the edge from Idle to Read updates input variables from the connectors and triggering elements, the 10-unit period allows the function to leave Idle, pABS FLbehstart and pABS FLbehstop synchronize the interface with the Behavior TA, and the component stays in Exec until clock x reaches exec=2 before Write updates the necessary variables and returns the function to Idle.
+   对应摘录：B, C

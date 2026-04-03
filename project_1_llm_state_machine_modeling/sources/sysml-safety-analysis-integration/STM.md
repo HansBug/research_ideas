@@ -80,13 +80,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The aircraft wheel brake system is designed to continue braking through a normal hydraulic line, an alternate line, and finally an emergency supply from the accumulator as failures propagate. When the normal line fails, the system moves to alternate operation; when the alternate path also fails, braking is maintained through the emergency supply; only when the emergency path fails does the whole system fail. The related safety requirements therefore demand pressure from the alternate line when the normal line is unavailable and require the system not to fail while emergency power remains available.
+The wheel brake system is modeled by four explicit modes: Normal, Alternate, Emergency, and Fail. The system stays in Normal while the normal hydraulic line operates, switches to Alternate when failNormal is detected, switches to Emergency when failAlternate is also detected so that the accumulator becomes the pressure source, and reaches Fail only when failEmergency occurs as well. These modes and transitions are the dynamic behavior that the authors encode in a SysML State Machine Diagram and then translate into a NuSMV model for formal verification. The linked safety requirements make the transition conditions operational: SR1-WBS requires Alternate.output = True whenever Normal.output = False and Alternate.failAlternate = False, and SR2-WBS requires !(systemMode = Fail) whenever both Normal and Alternate produce no output but Accumulator.failEmergency = False.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The aircraft wheel brake system is designed to continue braking through a normal hydraulic line, an alternate line, and finally an emergency supply from the accumulator as failures propagate.
+1. 句子 1：The wheel brake system is modeled by four explicit modes: Normal, Alternate, Emergency, and Fail.
    对应摘录：A
-2. 句子 2：When the normal line fails, the system moves to alternate operation; when the alternate path also fails, braking is maintained through the emergency supply; only when the emergency path fails does the whole system fail.
+2. 句子 2：The system stays in Normal while the normal hydraulic line operates, switches to Alternate when failNormal is detected, switches to Emergency when failAlternate is also detected so that the accumulator becomes the pressure source, and reaches Fail only when failEmergency occurs as well.
    对应摘录：A
-3. 句子 3：The related safety requirements therefore demand pressure from the alternate line when the normal line is unavailable and require the system not to fail while emergency power remains available.
+3. 句子 3：These modes and transitions are the dynamic behavior that the authors encode in a SysML State Machine Diagram and then translate into a NuSMV model for formal verification.
+   对应摘录：A
+4. 句子 4：The linked safety requirements make the transition conditions operational: SR1-WBS requires Alternate.output = True whenever Normal.output = False and Alternate.failAlternate = False, and SR2-WBS requires !(systemMode = Fail) whenever both Normal and Alternate produce no output but Accumulator.failEmergency = False.
    对应摘录：A

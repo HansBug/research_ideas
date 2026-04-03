@@ -77,9 +77,18 @@
 > channel which could otherwise cause undesired pacemaker behavior. Fig. 3(e)
 > shows the UPPAAL design of VRP component.
 
+#### 摘录 C
+- 出处：第 6 页，Parameter Selection，行 216-221
+> Parameter Selection: Each timing parameter of the pacemaker has a feasible
+> range. However, after those parameters are programmed, they are ﬁxed during
+> pacemaker operation. Consider all possible combinations of feasible parameter
+> valuesisinfeasible.In thiswork,weonlyverifyoneinstanceofaDDD pacemaker
+> with nominal values in clinical settings [8]. The values we choose are TAVI=150,
+> TLRI=1000, TPVARP=100, TVRP=150, TURI=400, TPVAB=50.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The DDD pacemaker is decomposed into five event-triggered timing components that communicate through broadcast channels and shared variables while sensing Aget!/Vget! events from the heart and issuing AP!/VP! pacing actions. The LRI component is reset by each ventricular event (VS or VP) and, if no atrial sense occurs, delivers AP after TLRI-TAVI so that the ventricular interval never exceeds the lower-rate limit. After an atrial event (AS or AP), the AVI component waits up to TAVI for a ventricular sense and delivers VP if none arrives, while the URI component uses the global clock clk after each ventricular event and holds that VP until the lower bound TURI is satisfied. After every ventricular event, PVAB first blanks atrial events, then PVARP continues the refractory window so that atrial events in that interval become AR rather than AS. A separate VRP follows each ventricular event to filter noise and early ventricular events on the ventricular channel.
+The DDD pacemaker is decomposed into five event-triggered timing components that communicate through broadcast channels and shared variables while sensing Aget!/Vget! events from the heart and issuing AP!/VP! pacing actions. The LRI component is reset by each ventricular event (VS or VP) and, if no atrial sense occurs, delivers AP after TLRI-TAVI so that the ventricular interval never exceeds the lower-rate limit. After an atrial event (AS or AP), the AVI component waits up to TAVI for a ventricular sense and delivers VP if none arrives, while the URI component uses the global clock clk after each ventricular event and holds that VP until the lower bound TURI is satisfied. After every ventricular event, PVAB first blanks atrial events, then PVARP continues the refractory window so that atrial events in that interval become AR rather than AS, and VRP separately filters noise and early ventricular events on the ventricular channel. In the verified clinical instance, the nominal timing parameters are TAVI = 150, TLRI = 1000, TPVARP = 100, TVRP = 150, TURI = 400, and TPVAB = 50.
 
 ### 3. 逐句溯源
 
@@ -89,10 +98,10 @@ The DDD pacemaker is decomposed into five event-triggered timing components that
    对应摘录：A
 3. 句子 3：After an atrial event (AS or AP), the AVI component waits up to TAVI for a ventricular sense and delivers VP if none arrives, while the URI component uses the global clock clk after each ventricular event and holds that VP until the lower bound TURI is satisfied.
    对应摘录：B
-4. 句子 4：After every ventricular event, PVAB first blanks atrial events, then PVARP continues the refractory window so that atrial events in that interval become AR rather than AS.
+4. 句子 4：After every ventricular event, PVAB first blanks atrial events, then PVARP continues the refractory window so that atrial events in that interval become AR rather than AS, and VRP separately filters noise and early ventricular events on the ventricular channel.
    对应摘录：B
-5. 句子 5：A separate VRP follows each ventricular event to filter noise and early ventricular events on the ventricular channel.
-   对应摘录：B
+5. 句子 5：In the verified clinical instance, the nominal timing parameters are TAVI = 150, TLRI = 1000, TPVARP = 100, TVRP = 150, TURI = 400, and TPVAB = 50.
+   对应摘录：C
 
 ## 条目 2: Mode-switch algorithm between DDD and VDI
 - 控制对象：双腔起搏器的模式切换控制
@@ -171,15 +180,17 @@ The DDD pacemaker is decomposed into five event-triggered timing components that
 
 ### 2. 基于原文整理后的自然语言描述
 
-When sustained fast atrial activity is confirmed, the mode-switch algorithm changes the device from dual-chamber operation to a single-chamber fallback mode so that ventricular timing is no longer driven by the fast atrial rate. To make that decision, it measures successive atrial intervals, classifies them as fast or slow, updates a counter, and uses a duration window to confirm the detection. If the counter remains positive after the confirmation window, the pacemaker enters VDI fallback mode; if the counter drops to zero, the confirmation interval ends and the pacemaker returns to DDD mode. In the UPPAAL model, the AVI and LRI components are duplicated for the two modes and switch when DDD or VDI events are received, while shared clocks preserve essential timing intervals across the mode change.
+When sustained fast atrial activity is confirmed, the mode-switch algorithm changes the device from dual-chamber operation to the single-chamber fallback mode VDI so that ventricular timing is no longer driven by the fast atrial rate. To make that decision, it measures intervals between atrial events outside the blanking period (AS, AR), classifies each interval as fast or slow against the Trigger Rate threshold, increments the counter for fast intervals, decrements it for slow intervals, and starts a Duration confirmation window once the counter reaches the Entry Count. In the verified UPPAAL instance, the trigger rate is 170 bpm (350 ms), the entry count is 8, the duration spans 8 ventricular events, and fallback mode is VDI. If the counter is still positive after Duration, the pacemaker switches to VDI; if the counter reaches zero at any time, Duration terminates and the pacemaker switches back to DDD. In the model, AVI and LRI each have duplicated DDD and VDI copies that switch on DDD!/VDI! events, VP is delivered by LRI rather than AVI in VDI mode, and shared clocks preserve essential timing intervals across the mode change.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When sustained fast atrial activity is confirmed, the mode-switch algorithm changes the device from dual-chamber operation to a single-chamber fallback mode so that ventricular timing is no longer driven by the fast atrial rate.
+1. 句子 1：When sustained fast atrial activity is confirmed, the mode-switch algorithm changes the device from dual-chamber operation to the single-chamber fallback mode VDI so that ventricular timing is no longer driven by the fast atrial rate.
    对应摘录：A
-2. 句子 2：To make that decision, it measures successive atrial intervals, classifies them as fast or slow, updates a counter, and uses a duration window to confirm the detection.
+2. 句子 2：To make that decision, it measures intervals between atrial events outside the blanking period (AS, AR), classifies each interval as fast or slow against the Trigger Rate threshold, increments the counter for fast intervals, decrements it for slow intervals, and starts a Duration confirmation window once the counter reaches the Entry Count.
    对应摘录：A
-3. 句子 3：If the counter remains positive after the confirmation window, the pacemaker enters VDI fallback mode; if the counter drops to zero, the confirmation interval ends and the pacemaker returns to DDD mode.
+3. 句子 3：In the verified UPPAAL instance, the trigger rate is 170 bpm (350 ms), the entry count is 8, the duration spans 8 ventricular events, and fallback mode is VDI.
    对应摘录：A
-4. 句子 4：In the UPPAAL model, the AVI and LRI components are duplicated for the two modes and switch when DDD or VDI events are received, while shared clocks preserve essential timing intervals across the mode change.
+4. 句子 4：If the counter is still positive after Duration, the pacemaker switches to VDI; if the counter reaches zero at any time, Duration terminates and the pacemaker switches back to DDD.
+   对应摘录：A
+5. 句子 5：In the model, AVI and LRI each have duplicated DDD and VDI copies that switch on DDD!/VDI! events, VP is delivered by LRI rather than AVI in VDI mode, and shared clocks preserve essential timing intervals across the mode change.
    对应摘录：A

@@ -8,7 +8,7 @@
 - 结构标签概况：连续耦合
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
-- 简要判断：恒温器控制逻辑的原文摘录非常完整。
+- 简要判断：恒温器的 on/off 模式、连续演化方程、守卫条件和分析用 clock/stopwatch 都能从原文连续保住。
 
 ## 条目 1: Thermostat hybrid automaton
 - 控制对象：温控器控制系统
@@ -59,15 +59,13 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The thermostat starts at 2 degrees with the heater on and the temperature rising at the stated rate. When the temperature reaches 3 degrees, the heater is turned off, after which the temperature falls. While heating remains on, the temperature must stay within the invariant 1 < x < 3, and the control must leave that condition before the temperature exceeds 3. The model can also reset clocks on transitions and use extra time variables to measure how long heating remains on.
+The thermostat hybrid automaton starts with temperature x = 2 in the heater-on node, where the temperature rises at rate -x + 5 and must satisfy the invariant 1 < x < 3. When x reaches 3, the turn_off transition is taken, the heater is turned off, and the temperature thereafter falls at rate -x. For the linearized analysis, the nonlinear on-mode rate is overapproximated by the interval [2, 4], a clock y measures elapsed time, a stopwatch z measures the accumulated time spent in node on, and the invariants are strengthened with y <= 60 to check that no state with y = 60 and z > 2y/3 is reachable.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The thermostat starts at 2 degrees with the heater on and the temperature rising at the stated rate.
+1. 句子 1：The thermostat hybrid automaton starts with temperature x = 2 in the heater-on node, where the temperature rises at rate -x + 5 and must satisfy the invariant 1 < x < 3.
    对应摘录：A
-2. 句子 2：When the temperature reaches 3 degrees, the heater is turned off, after which the temperature falls.
+2. 句子 2：When x reaches 3, the turn_off transition is taken, the heater is turned off, and the temperature thereafter falls at rate -x.
    对应摘录：A
-3. 句子 3：While heating remains on, the temperature must stay within the invariant 1 < x < 3, and the control must leave that condition before the temperature exceeds 3.
-   对应摘录：A
-4. 句子 4：The model can also reset clocks on transitions and use extra time variables to measure how long heating remains on.
+3. 句子 3：For the linearized analysis, the nonlinear on-mode rate is overapproximated by the interval [2, 4], a clock y measures elapsed time, a stopwatch z measures the accumulated time spent in node on, and the invariants are strengthened with y <= 60 to check that no state with y = 60 and z > 2y/3 is reachable.
    对应摘录：A, B

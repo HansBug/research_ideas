@@ -8,7 +8,7 @@
 - 结构标签概况：显式时钟、连续耦合
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
-- 简要判断：正文给出了 BBW 的控制逻辑与 read-execute-write 语义，可整理成自然语言功能描述。
+- 简要判断：正文除了 BBW ABS 主逻辑外，还把 ICM -> TA 的 read/write/reset 语义、time-triggered/event-triggered 触发条件写得更明确。
 
 ## 条目 1: BBW ABS brake-release logic under TA execution
 - 控制对象：Brake-by-Wire 系统中 wheel ECU 的 ABS 功能行为
@@ -35,15 +35,38 @@
 - 出处：第 6 页，Section 4.2 “Mapping ICM to TA”，行 31
 > / Procedia Computer Science 00 (2013) 1–186are two types of function entities, time-discrete functions and time-continuous functions. A time-discrete function isperformed after a computational delay, whereas a time-continuous function deﬁnes the transfer function from input tooutput, and the computation rate is inﬁnite. However, on our mapping we do not deal with time-continuous functions,but only with time-discrete ones. The latter are invoked either in a time-triggered fashion, in which case time alonecauses execution to start, or in an event-triggered manner, which is caused by data arrival or calls on the input ports.The trigger conditions are matched by those of a clock component and data type ports inICM, respectively.4.2. Integrating the Behavioral Formal Model: MappingICMtoTAIn the previous sections, we have shown a straightforward mapping from the informal semantics of EAST-ADLtothe intermediate component model,ICM. Since EAST-ADLallows the use of various behavioral notations, we exploitthis feature to our advantage, and specify the function behavior by assigning an UPPAALPORTTA model to eachICMcomponent mapped from its correspondingFunctionPrototype(fp); in this procedure, we comply to the triggeringdeﬁnition, as well as translate the execution time of eachfp, and its requirements. The TA model encapsulates the“internal behavior” of aFunctionPrototypeand is used as input to the UPPAALPORTmodel-checker that we use tocarry out the formal analysis and veriﬁcation of functional and timing EAST-ADLproperties.Let us consider the Intermediate Component Model (ICM) as deﬁned in section 4.1:ICM,hComp,Pin,Pout,trig,Connections,TCICMi.The behavior of aFunctionPrototypemapped onto a component within the setCompofICMis modeled as anUPPAALPORTTA, as in section 2:TA,hL[{l?},l0,lf,VC,VD,r0,rf,E,Ii,whereLis the set of TA locations, extended with the idle locationl?,l02Lis the initial location,lf2Lis the ﬁnallocation (used to model the termination of a function execution), such that no edges inEare leading out fromlf. Therest of the tuple elements have the same meaning as described in section 2. We also deﬁne the actionRead(Pin)forreading variables fromPinandWri te(Pout)for writing variables onto output ports.The execution of theICMbehavior is determined in terms of the triggering value, which changes accordingto a periodic clock. Whentrigholds, the TA data variables inVDare updated by READ(Pin), and WRITE(Pout),respectively, which are atomic and urgent (in the sense that time is not allowed to pass when a component readsor writes). A component is initiallyidle, and after performing the read action it starts executing until its internalcomputation is done. After completing the write action, which forwards data from the output ports via connections,the component becomesidleagain. That being said, we deﬁne the mapping betweenICMandTAas follows:MappingICMtoTA.GivenICMandTAas above, the mapping rules for integrating them are:•l?g,read,r0 !l0The read action is READ(Pin) that updatesVDwith input values fromPin. The clockr0is the initialclock reset;•lfg,write,rf !l?The write action is WRITE(Pout) that writes on output ports, whereasrfis the ﬁnal clock reset;•I?(l?)=true,I?=I(l)forl,l?.The TA of a compositionC, TA(C), is deﬁned as a network of local TA. Forfpiand its corresponding componentICMi2C, the write action in TA(ICMi) is extended to update the input ports (notedPin.j) of a target componentICMj2C, according to the connections from the outports ofICMi(notedPout.i). A connection connects a source portp2Pout.ito a target portp02Pin.j. The edgeseof TA(ICMi) are explained withextended write actionsas follows.Extended Write Actions.AssumeTA(ICMi)is deﬁned ashL,l0,lf,r0,rf,VD,VC,{XWRIT Ei(e)|e2E},Ii, suchthat the following hold:•XWRIT Ei(lg,a,r !l0),(lg,w,u !l0;WRIT E(Pout.i)), ifa=write. Note that “;” represents the sequential execution;6
 
+#### 摘录 C
+- 出处：第 13-14 页，Figure 9-10 / BBW functionality 与 timing constraints，行 57-65
+> <<eventFunctionFlowPort>> EventPedalPosition structure <<delayConstraint>>
+> BrakeDelayAtMasterNode structure <<DelayConstraint>> upper = 130 ms
+> <<eventFunctionFlowPort>> EventTorqReqToRearRightWhlSent
+> Figure 9. Associated timing constraints specified in the EAST-ADL model.
+> The delayConstraint requires a delay between a set of input Flow Ports and a set of output Flow Ports.
+> We check the applicability of our approach on the Brake-by-Wire (BBW) system, modeled in EAST-ADL.
+> The system reads the pedal position percentage used to compute the desired torque and calculates the torque required for each wheel.
+> The ABS controls braking to prevent locking of the wheel based on the slip rate.
+> The slip value is calculated by the equation:
+> slipRate = (vehicleSpeed - wheelSpeed * r) / vehicleSpeed,
+> where vehicleSpeed is the estimated vehicle speed value, wheelSpeed the wheel speed sensor value, and r the wheel radius.
+> If slipRate is greater than 0.2 the brake actuator is released and no brake is applied, or else the requested brake torque is used.
+> The architecture is encapsulated in one FAA ft that contains six interconnected fps modeled using the TA editor.
+> The slip rate calculation is controlled by variable slipRate.
+> From location calculateSlipRate, based on the current vehicle speed vSpeed, the wheel speed wSpeed, and the wheel radius wRadius, the TorqueCmd controls the wheel braking.
+> Consequently, the ABS enters location Torque and jumps back to location Start, provided that slipRate is greater than 0.2.
+
 ### 2. 基于原文整理后的自然语言描述
 
-In the Brake-by-Wire example, brake pedal position is turned into a requested brake force, that force is distributed by the central controller, and each wheel ECU combines wheel speed with the requested torque in its ABS logic. At each wheel, braking is released whenever slip rises above 0.2; otherwise the requested brake torque is used. The corresponding function behavior is then integrated as a timed automaton under read-execute-write semantics, where input values are read, computation is carried out, outputs are written, and the component becomes idle again.
+In the Brake-by-Wire example, brake pedal position is converted into requested global brake torque, that torque is distributed by the central ECU, and each wheel ECU combines its wheel-speed sensor, brake actuator, and ABS controller to determine the actual wheel brake command. The ABS controller follows a slip-based rule with slipRate=(vehicleSpeed-wheelSpeed*r)/vehicleSpeed: if slipRate>0.2 the brake actuator is released and no brake is applied, otherwise the requested brake torque from the central ECU is used, and the paper explicitly places this decision around locations such as calculateSlipRate, Torque, and Start in the ABS TA. For formal analysis, each elementary Function Prototype is mapped to an ICM component with no internal concurrency and then to an UPPAAL PORT timed automaton with an added idle location l?, an initial location l0, a final location lf, read and write actions over Pin/Pout, and reset clocks r0/rf. The method handles only time-discrete functions: they may be time-triggered or event-triggered, READ(Pin) and WRITE(Pout) are urgent and atomic when trig holds, the component starts from idle, executes its internal behavior, writes outputs to the connected target ports, and returns to idle. The same formalization is also used to check explicit timing constraints between eventFunctionFlowPorts, including the BrakeDelayAtMasterNode bound whose upper limit is 130 ms, together with functional properties such as releasing the brake when the slip-rate condition is violated.
 
 ### 3. 逐句溯源
 
-1. 句子 1：In the Brake-by-Wire example, brake pedal position is turned into a requested brake force, that force is distributed by the central controller, and each wheel ECU combines wheel speed with the requested torque in its ABS logic.
+1. 句子 1：In the Brake-by-Wire example, brake pedal position is converted into requested global brake torque, that torque is distributed by the central ECU, and each wheel ECU combines its wheel-speed sensor, brake actuator, and ABS controller to determine the actual wheel brake command.
    对应摘录：A
-2. 句子 2：At each wheel, braking is released whenever slip rises above 0.2; otherwise the requested brake torque is used.
-   对应摘录：A
-3. 句子 3：The corresponding function behavior is then integrated as a timed automaton under read-execute-write semantics, where input values are read, computation is carried out, outputs are written, and the component becomes idle again.
+2. 句子 2：The ABS controller follows a slip-based rule with slipRate=(vehicleSpeed-wheelSpeed*r)/vehicleSpeed: if slipRate>0.2 the brake actuator is released and no brake is applied, otherwise the requested brake torque from the central ECU is used, and the paper explicitly places this decision around locations such as calculateSlipRate, Torque, and Start in the ABS TA.
+   对应摘录：A, C
+3. 句子 3：For formal analysis, each elementary Function Prototype is mapped to an ICM component with no internal concurrency and then to an UPPAAL PORT timed automaton with an added idle location l?, an initial location l0, a final location lf, read and write actions over Pin/Pout, and reset clocks r0/rf.
    对应摘录：A, B
+4. 句子 4：The method handles only time-discrete functions: they may be time-triggered or event-triggered, READ(Pin) and WRITE(Pout) are urgent and atomic when trig holds, the component starts from idle, executes its internal behavior, writes outputs to the connected target ports, and returns to idle.
+   对应摘录：B
+5. 句子 5：The same formalization is also used to check explicit timing constraints between eventFunctionFlowPorts, including the BrakeDelayAtMasterNode bound whose upper limit is 130 ms, together with functional properties such as releasing the brake when the slip-rate condition is violated.
+   对应摘录：C

@@ -8,7 +8,7 @@
 - 结构标签概况：显式时钟、并行
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
-- 简要判断：Sorter1 的控制过程可以从主控决策一直串到执行器动作。
+- 简要判断：Sorter1 的 ETA 接收、action schedule、diverter/labeler 并行推进和同步时钟执行链都能从正文串起来。
 
 ## 条目 1: Sorter1 control flow in a TCED sorting machine
 - 控制对象：分拣机系统中 Sorter1 的调度与执行逻辑
@@ -90,15 +90,42 @@
 > are synchronized to the item’s movement. P11 andP13 denote
 > availability of the extend and retract agents, respectively.
 
+#### 摘录 C
+- 出处：第 4-5 页，TCED formal definitions，行 249-336
+> B. Formal Model of TCED Control Architecture
+> The formal model of the TCED control architecture is
+> defined following a top-down approach. The basic construction
+> unit in the TCED architecture is called a module.
+> Definition 1 (TCED Module):
+> m=<p,c,A,T,l,v>
+> where p is an EDPM; c is an optional TDCM;
+> A is a set of reactive agents; T is a set of constituent TCED modules;
+> l is a synchronized local clock; v is an optional action schedule.
+> Definition 2 (EDPM): p=<IMC,OMC,IAC,theta,tau>
+> where theta updates the action schedule v based on received commands,
+> and tau schedules the executions of constituent TCED modules
+> based on received module commands and current local time.
+> Definition 3 (Action Command): ac=<e,R>
+> where e is the action to be executed and R is a set of action parameters or execution results.
+> Definition 4 (Module Command): mc=<ac,ts>
+> where ts is a timestamp indicating the action's scheduled execution time.
+> Definition 5 (TDCM): c=<OAC,mu>
+> where mu dispatches action commands scheduled in v based on local time l.
+> Finally, an action schedule v is a set of chronologically ordered module commands.
+
 ### 2. 基于原文整理后的自然语言描述
 
-In the sorting machine, the main controller analyzes scan results and sends a time-stamped message to the selected sorter with the estimated arrival time of the scanned item. On the sorter side, one thread adds the received ETA to a local timetable and another thread compares local time with the earliest timetable entry and actuates the labeler and diverter when the scheduled time is reached. For Sorter1 specifically, the controller analyzes the received module command, dispatches actuation schedules to the diverter and labeler modules, updates the action schedule, and then drives the extend and retract agents in synchrony with the moving item.
+In the TCED sorting machine, the main controller analyzes each scanned item, chooses a target sorter, and sends that sorter a time-stamped message carrying the estimated time of arrival. On the sorter side, Thread A, with unit execution time D1, inserts the received ETA into a local timetable, while Thread B, with unit execution time D2, repeatedly compares the synchronized local time with the earliest timetable entry and actuates the labeler and diverter as soon as the scheduled time is reached. Formally, Sorter1 is a TCED module ms1=<ps1,{mdi,mla},ls1>, where mdi is the diverter module, mla is the labeler module, and mla contains the printer submodule mpr; these modules share a synchronized local clock and an action schedule v that is a chronologically ordered set of timestamped module commands mc=<ac,ts>, updated by the EDPM and dispatched by the TDCM. In the Sorter1 control flow, once the item is assigned to Sorter1, its EDPM dispatches actuation schedules to the diverter and labeler branches, the diverter EDPM updates its schedule, and the diverter TDCM decides when to actuate the extend and retract agents, whose actual actuations are synchronized to the item’s movement while P11 and P13 represent extend/retract availability. While the diverter branch is processing its module command, the labeler branch concurrently analyzes its own command, updates its action schedule, dispatches the schedule to the printer module, and lets the labeler TDCM decide the cutter and glue-dispenser actions according to the stored schedule.
 
 ### 3. 逐句溯源
 
-1. 句子 1：In the sorting machine, the main controller analyzes scan results and sends a time-stamped message to the selected sorter with the estimated arrival time of the scanned item.
+1. 句子 1：In the TCED sorting machine, the main controller analyzes each scanned item, chooses a target sorter, and sends that sorter a time-stamped message carrying the estimated time of arrival.
    对应摘录：A, B
-2. 句子 2：On the sorter side, one thread adds the received ETA to a local timetable and another thread compares local time with the earliest timetable entry and actuates the labeler and diverter when the scheduled time is reached.
+2. 句子 2：On the sorter side, Thread A, with unit execution time D1, inserts the received ETA into a local timetable, while Thread B, with unit execution time D2, repeatedly compares the synchronized local time with the earliest timetable entry and actuates the labeler and diverter as soon as the scheduled time is reached.
    对应摘录：A
-3. 句子 3：For Sorter1 specifically, the controller analyzes the received module command, dispatches actuation schedules to the diverter and labeler modules, updates the action schedule, and then drives the extend and retract agents in synchrony with the moving item.
+3. 句子 3：Formally, Sorter1 is a TCED module ms1=<ps1,{mdi,mla},ls1>, where mdi is the diverter module, mla is the labeler module, and mla contains the printer submodule mpr; these modules share a synchronized local clock and an action schedule v that is a chronologically ordered set of timestamped module commands mc=<ac,ts>, updated by the EDPM and dispatched by the TDCM.
+   对应摘录：B, C
+4. 句子 4：In the Sorter1 control flow, once the item is assigned to Sorter1, its EDPM dispatches actuation schedules to the diverter and labeler branches, the diverter EDPM updates its schedule, and the diverter TDCM decides when to actuate the extend and retract agents, whose actual actuations are synchronized to the item’s movement while P11 and P13 represent extend/retract availability.
+   对应摘录：B
+5. 句子 5：While the diverter branch is processing its module command, the labeler branch concurrently analyzes its own command, updates its action schedule, dispatches the schedule to the printer module, and lets the labeler TDCM decide the cutter and glue-dispenser actions according to the stored schedule.
    对应摘录：B
