@@ -9,9 +9,10 @@
 - DOI：`10.1016/j.robot.2019.103289`
 - 链接：https://doi.org/10.1016/j.robot.2019.103289
 - 形式主义：`Petri Net + Safe LTL + Supervisory Control`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：多机器人协调 / Petri 网监督控制
 - 工具/实现获取方式：原文给出 `PN + DFA + safe LTL + supervisory control` 的完整算法，但未提供单独公开软件包。
 - 标准/格式获取方式：承载方式是 labelled `PN`、safe `LTL`、`DFA` 与 admissibility procedure；原文未给独立交换格式。

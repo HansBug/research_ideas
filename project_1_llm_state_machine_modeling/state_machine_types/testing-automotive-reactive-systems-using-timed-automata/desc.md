@@ -9,9 +9,10 @@
 - DOI：`10.1109/IDAACS.2017.8095133`
 - 链接：https://doi.org/10.1109/IDAACS.2017.8095133
 - 形式主义：`Timed Automata / Taster HIL Testing Model`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：汽车电子测试 / 定时自动机应用建模
 - 工具/实现获取方式：原文使用 `UPPAAL` 建立 `SUT + environment` timed automata model，并在自研 `Taster` 工具中结合 `NI VeriStand` 做 Hardware-in-the-Loop 在线测试；论文未给公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` 4 模型、`Taster` 的对象化模型解析和 `NI VeriStand` 适配层；无独立行业交换标准。

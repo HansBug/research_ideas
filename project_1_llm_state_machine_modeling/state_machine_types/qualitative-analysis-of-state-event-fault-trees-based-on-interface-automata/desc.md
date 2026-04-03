@@ -9,9 +9,10 @@
 - DOI：`10.18280/ijsse.110606`
 - 链接：https://doi.org/10.18280/ijsse.110606
 - 形式主义：`Guarded Interface Automata (GIA)`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：💻
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：💻 软件建模与程序行为
 - 论文角色：故障树语义建模 / 接口自动机扩展在安全分析中的应用
 - 工具/实现获取方式：原文给出 `GIA`、并行组合、weak bisimilarity 划分和 `MCS` 搜索算法；未提供公开代码仓库，仅与 `SEFTAnalyzer` 做对比。
 - 标准/格式获取方式：承载方式是 `SEFT` 逻辑门到 `GIA` 的翻译、product 组合、aggregation 与 cut-sequence 搜索；无独立交换格式。

@@ -9,9 +9,10 @@
 - DOI：`10.4204/eptcs.245.1`
 - 链接：https://doi.org/10.4204/eptcs.245.1
 - 形式主义：`Extended Interface Automata for Contract + SysML/OCL Contract Pattern`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：`SoS` 契约兼容性建模 / 音视频系统案例
 - 工具/实现获取方式：原文依托 `SysML`、`OCL` 和 contract pattern；提出可作为 `Symphony` 外挂自动验证的方向，但未提供现成公开工具。
 - 标准/格式获取方式：承载方式是 `SysML` views、`OCL` notes 与 extended interface automata；无独立交换格式。

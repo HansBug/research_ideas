@@ -9,9 +9,10 @@
 - DOI：`10.3390/act11110330`
 - 链接：https://doi.org/10.3390/act11110330
 - 形式主义：`Asynchronous WMR FSM Controller`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：移动机器人控制器 / 事件驱动 FSM
 - 工具/实现获取方式：原文明确说明控制算法在 `Simulink/Stateflow` 上设计，并通过 `STMicroelectronics Matlab package` 部署到 `STM Nucleo F411RE`；论文未提供独立代码仓库。
 - 标准/格式获取方式：承载方式是 `Stateflow` 流程图、`Simulink` block、超声/循迹/编码器传感信号以及 `PWM` 输出；没有单独交换标准。

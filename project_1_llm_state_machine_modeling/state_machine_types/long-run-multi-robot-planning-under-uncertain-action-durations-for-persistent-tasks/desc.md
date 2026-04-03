@@ -9,9 +9,10 @@
 - DOI：`10.1109/IROS45743.2020.9340901`
 - 链接：https://doi.org/10.1109/IROS45743.2020.9340901
 - 形式主义：`GSPNR / MRA for Persistent Multi-Robot Tasks`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：持续任务规划 / generalized stochastic Petri net policy synthesis
 - 工具/实现获取方式：原文给出 `GSPNR -> embedded MRA -> LRA policy synthesis` 的完整流程，并在 simulated monitoring problem 上评估；未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `GSPNR`、embedded `MRA`、`LRA reward` 与 `SSP` reduction；原文未给独立交换标准。

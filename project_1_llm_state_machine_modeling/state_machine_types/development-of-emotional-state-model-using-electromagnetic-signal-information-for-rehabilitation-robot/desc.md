@@ -9,9 +9,10 @@
 - DOI：`10.1080/18756891.2016.1144154`
 - 链接：https://doi.org/10.1080/18756891.2016.1144154
 - 形式主义：`Hybrid Automata for Emotion-Aware Rehabilitation Robot Control`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：情绪感知康复机器人控制 / 混成自动机应用建模
 - 工具/实现获取方式：原文明确使用 `GUI + Stateflow + rehabilitation robot platform` 实现 emotion-recognition 与 hybrid-automata controller 的联动；论文未给独立仓库。
 - 标准/格式获取方式：承载方式是 hybrid automata 状态图、情绪编码、机器人位移/速度连续变量与 `Stateflow` 控制框架；原文未给统一交换标准。

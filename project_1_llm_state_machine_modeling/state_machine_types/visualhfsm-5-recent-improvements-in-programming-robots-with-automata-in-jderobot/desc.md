@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://gsyc.urjc.es/jmplaza/papers/waf2016-visualhfsm.pdf
 - 形式主义：`VisualHFSM / JdeRobot`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：可视化层次状态机工具 / 代码生成器
 - 工具/实现获取方式：原文明确说明 `VisualHFSM` 是 `JdeRobot` 框架中的 visual programming tool，可生成 C++ 或 Python `JdeRobot` 组件，并自带 runtime GUI。
 - 标准/格式获取方式：承载方式是图形化 `HFSM` 编辑器、内部保存的 XML 文件、自动生成的 C++/Python 代码与配置文件；原文未给通用行业交换标准。

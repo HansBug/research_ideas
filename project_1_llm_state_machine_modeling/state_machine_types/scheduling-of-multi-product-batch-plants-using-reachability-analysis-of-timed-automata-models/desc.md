@@ -9,9 +9,10 @@
 - DOI：`10.5220/0001627501410148`
 - 链接：https://doi.org/10.5220/0001627501410148
 - 形式主义：`Priced Timed Automata / Multi-Product Batch Plant Scheduling Model`
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：工业排产 / `Timed Automata` 到 `Priced Timed Automata` 的应用条目
 - 工具/实现获取方式：原文给出 cost-optimal symbolic reachability 与多种 reduction technique，但未提供独立公开仓库；模型与语义采用 `Uppaal` 风格组合 automata。
 - 标准/格式获取方式：承载方式是 `RTN -> TA/PTA` 结构映射、symbolic reachability graph 和 shortest-path-style 搜索；无统一交换标准。
@@ -219,9 +220,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 形式主义：`Priced Timed Automata / Multi-Product Batch Plant Scheduling Model`
 - 论文角色：工业排产 / `Timed Automata` 到 `Priced Timed Automata` 的应用条目
 - 核心功能：把多产品批处理工厂排产转成同步 `TA/PTA` 的 cost-optimal reachability

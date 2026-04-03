@@ -9,9 +9,10 @@
 - DOI：原文未给 DOI；当前目录保存的是 `arXiv:1610.03729` 公开 PDF
 - 链接：https://arxiv.org/abs/1610.03729
 - 形式主义：`Timed Game Automata / Event-Triggered NCS Scheduler`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：共享网络调度 / `Timed Game Automata` 应用条目
 - 工具/实现获取方式：原文明确使用 `UPPAAL-Tiga` 生成 winning strategy；未提供独立代码仓库。
 - 标准/格式获取方式：承载方式是 `TA`、`TGA`、`NTGA` 数学定义和 `UPPAAL-Tiga` 游戏模型；无统一交换标准。
@@ -229,9 +230,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 形式主义：`Timed Game Automata / Event-Triggered NCS Scheduler`
 - 论文角色：共享网络调度 / `Timed Game Automata` 应用条目
 - 核心功能：把 event-triggered NCS 的共享网络调度写成 safety game 并综合无冲突策略

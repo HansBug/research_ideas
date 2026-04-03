@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://research.utwente.nl/en/publications/modeling-and-verifying-a-bounded-retransmission-protocol
 - 形式主义：`Timed Automata / Bounded Retransmission Protocol Network`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：文件传输协议验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文把 sender、receiver 和两条 lossy channel 写成 `UPPAAL` 网络，并与 `Spin` 的 untimed 版本做对照；论文未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata network、服务逻辑公式和 handshake channel；不是独立交换标准。

@@ -9,9 +9,10 @@
 - DOI：`10.1109/IPDPS.2006.1639422`
 - 链接：https://doi.org/10.1109/IPDPS.2006.1639422
 - 形式主义：`Timed Automata / Embedded-Architecture Resource Model`
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：架构级时序分析 / 定时自动机应用建模
 - 工具/实现获取方式：原文明确使用 `UPPAAL` 对 deployment-specific timed automata 模型做分析；未提供独立公开模型仓库。
 - 标准/格式获取方式：承载方式是 computation/communication resource `TA`、event generator templates、measuring event generator 与 `UPPAAL` 查询；无统一交换标准。
@@ -233,9 +234,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Timed Automata / Embedded-Architecture Resource Model`
 - 论文角色：架构级时序分析 / 定时自动机应用建模
 - 核心功能：用 resource/event generator automata 评估部署架构的端到端时间界

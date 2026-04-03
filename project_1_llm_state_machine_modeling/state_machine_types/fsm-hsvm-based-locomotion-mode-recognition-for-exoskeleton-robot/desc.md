@@ -9,9 +9,10 @@
 - DOI：`10.3390/app12115483`
 - 链接：https://doi.org/10.3390/app12115483
 - 形式主义：`FSM-HSVM Exoskeleton Locomotion Recognizer`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：外骨骼模式识别器 / `FSM`-constrained `HSVM`
 - 工具/实现获取方式：原文直接给出 `BIT` lower-limb exoskeleton、`4` 个 `IMU`、`4` 个 plantar `FSR`、`RS485`、`Samsung S5P6818` 主控和在线识别流程；未给公开代码仓库。
 - 标准/格式获取方式：原文未给独立交换标准，主要承载方式是 locomotion-mode `FSM`、`HSVM` 分类树、输入特征向量和识别性能指标公式。

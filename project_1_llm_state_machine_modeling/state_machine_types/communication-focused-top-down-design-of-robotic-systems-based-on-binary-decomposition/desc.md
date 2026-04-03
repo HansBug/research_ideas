@@ -9,9 +9,10 @@
 - DOI：`10.3390/en15217983`
 - 链接：https://doi.org/10.3390/en15217983
 - 形式主义：`Embodied Agent / Binary Decomposition + FIPA HFSM`
-- 主类：📦
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：通信优先设计方法 / agent-FSM 规格
 - 工具/实现获取方式：原文明确说明系统以 `ROS 1` nodes 和 `RPC` 机制实现，并把 `ClassInterfaceInfo` 等通信模块作为可复用代码单元；论文未稳定给出公开仓库。
 - 标准/格式获取方式：承载方式直接依赖 `IEEE FIPA ACL` message structure、`LHFSM/LSW/LWM` 内容语言、`OWL` 环境本体和各 agent 的 `FSM` 规格；不是单一 XML 文件标准。

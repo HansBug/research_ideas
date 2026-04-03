@@ -9,9 +9,10 @@
 - DOI：`10.1109/HUMANOIDS.2017.8246943`
 - 链接：https://doi.org/10.1109/HUMANOIDS.2017.8246943
 - 形式主义：`SMACHA / SMACH`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：状态机代码生成 / `ROS` 任务控制工具链
 - 工具/实现获取方式：原文明确给出 `SMACHA` GitHub 仓库、`Baxter SMACHA` package、生成代码视频和 `SMACH` / `FlexBE` 相关工具入口。
 - 标准/格式获取方式：承载方式是 `YAML` meta-scripts、`Jinja2` templates 与生成的 Python `SMACH` code；原文未给独立标准交换格式。

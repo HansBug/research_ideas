@@ -9,9 +9,10 @@
 - DOI：`10.1016/j.robot.2025.105287`
 - 链接：https://doi.org/10.1016/j.robot.2025.105287
 - 形式主义：`High-Level robot team Petri Net (HLrtPN) / Nets-within-Nets`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：异构多机器人任务规划 / `Nets-within-Nets` 应用形式化
 - 工具/实现获取方式：原文明确使用 `Renew` 对 `HLrtPN` 系统建模与仿真；文中给出逐步实现指南，但未附公开仓库。
 - 标准/格式获取方式：承载方式是 `SpecOPN`、`RobotOPN`、system net、`GEF` 与 `Renew` 的网中网实现；无独立交换标准。

@@ -9,9 +9,10 @@
 - DOI：`10.1109/ACCESS.2024.3389738`
 - 链接：https://doi.org/10.1109/ACCESS.2024.3389738
 - 形式主义：`Timed Automata / Cooperative Packet Recovery Protocol Model`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：协议缺陷分析 / 定时自动机应用建模
 - 工具/实现获取方式：原文明确使用 `UPPAAL` 建模和 verifier，对两种 server-client 架构做形式验证；未提供独立公开模型仓库。
 - 标准/格式获取方式：承载方式是 source/server/client/receiver 的 `UPPAAL` timed automata、buffer arrays、broadcast/unicast channels 和 requirement queries；无统一交换标准。
@@ -247,9 +248,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 形式主义：`Timed Automata / Cooperative Packet Recovery Protocol Model`
 - 论文角色：协议缺陷分析 / 定时自动机应用建模
 - 核心功能：用 `UPPAAL` 找出 packet recovery、buffer overwrite 和顺序恢复缺陷

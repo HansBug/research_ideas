@@ -9,9 +9,10 @@
 - DOI：`10.1109/ACSD.2005.34`
 - 链接：https://doi.org/10.1109/ACSD.2005.34
 - 形式主义：`Parametric Timed Automata / Octahedra-Based Delay Verification`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：参数约束综合 / `Parametric Timed Automata` 应用条目
 - 工具/实现获取方式：原文给出了基于 abstract interpretation 的 octahedra 分析实现，并与 convex polyhedra、`OhDD` 做性能对比；未提供独立公开仓库。
 - 标准/格式获取方式：承载方式是 unit inequalities、octahedra、bit-vector 编码和 failure-avoidance timing constraints；无统一交换标准。
@@ -265,9 +266,10 @@ octahedra 的优势在于效率，不在于最强表达力；如果自动建模�
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Parametric Timed Automata / Octahedra-Based Delay Verification`
 - 论文角色：参数约束综合 / `Parametric Timed Automata` 应用条目
 - 核心功能：自动导出保证 safety 的参数化 timing inequalities

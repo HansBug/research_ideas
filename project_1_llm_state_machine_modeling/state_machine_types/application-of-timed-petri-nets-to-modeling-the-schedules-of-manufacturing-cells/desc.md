@@ -9,9 +9,10 @@
 - DOI：`10.1109/ETFA.1995.496672`
 - 链接：https://doi.org/10.1109/ETFA.1995.496672
 - 形式主义：`Timed Petri Net Schedules for Manufacturing Cells`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：制造单元调度 / 定时 Petri 网应用建模
 - 工具/实现获取方式：原文给出完整 timed Petri net 与 colored Petri net 构造；未给出单独代码，但公开提交版 PDF 可直接复现公式和建模规则。
 - 标准/格式获取方式：承载方式是 timed Petri nets、colored Petri nets 和 invariant analysis；原文未给出独立交换格式。
@@ -274,9 +275,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 形式主义：`Timed Petri Net Schedules for Manufacturing Cells`
 - 论文角色：制造单元调度 / 定时 Petri 网应用建模
 - 核心功能：把制造单元 simple/composite schedules 统一建成 timed / colored Petri nets 并分析节拍

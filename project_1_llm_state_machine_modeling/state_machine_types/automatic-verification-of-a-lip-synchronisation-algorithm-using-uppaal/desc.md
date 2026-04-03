@@ -9,9 +9,10 @@
 - DOI：`10.1007/S001650050032`（期刊版本）
 - 链接：https://kar.kent.ac.uk/21658/1/Automatic_Verification_of_a_Lip-Synchronisation_Algorithm_Using_UPPAAL_-_Extended_Version.pdf
 - 形式主义：`Timed Automata / Lip-Synchronisation Controller Network`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：💻
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：💻 软件建模与程序行为
 - 论文角色：多媒体同步算法验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文把 `SoundMgr`、`VideoMgr`、`SoundWdg`、`VideoWdg`、`SoundSynch`、`VideoSynch`、`SoundClock`、`Synch`、`UrgMon` 与输入流 automata 一起写成 `UPPAAL` 网络；论文未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata、urgent channels、watchdog timeout 构件和 reachability 查询；不是独立标准格式。

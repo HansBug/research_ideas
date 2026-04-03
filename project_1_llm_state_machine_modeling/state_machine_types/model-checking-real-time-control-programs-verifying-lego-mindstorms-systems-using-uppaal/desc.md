@@ -9,9 +9,10 @@
 - DOI：`10.7146/BRICS.V6I53.20123`
 - 链接：https://doi.org/10.7146/BRICS.V6I53.20123
 - 形式主义：`Timed Automata / RCX Control-Program Verification Model`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：控制程序验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文明确使用 `NQC` compiler、内部 `rcx2uppaal` 翻译器和 `UPPAAL`；论文未提供现代公开仓库。
 - 标准/格式获取方式：承载方式是 `NQC -> RCX bytecode -> UPPAAL` 的 timed automata 网络、scheduler model 与 environment automata；无统一交换标准。
@@ -235,9 +236,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Timed Automata / RCX Control-Program Verification Model`
 - 论文角色：控制程序验证 / 定时自动机应用建模
 - 核心功能：把并发控制程序、scheduler 和环境联合翻译为可验证 `TA` 网络

@@ -9,9 +9,10 @@
 - DOI：`10.1016/j.conengprac.2004.10.005`
 - 链接：https://doi.org/10.1016/j.conengprac.2004.10.005
 - 形式主义：`Controlled Petri Net / Task-Variable Graph Execution Control`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：海洋机器人任务执行控制 / `Petri Net` 应用建模
 - 工具/实现获取方式：原文明确实现了 `gcpetrinetgenerator` 与 `gceexecutioncontroller`，并在 `Romeo` `ROV` 的 guidance/control 任务上测试；未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 task-variable graph、controlled `Petri Net`、goal vector 与 reconfiguration search；无独立交换标准。

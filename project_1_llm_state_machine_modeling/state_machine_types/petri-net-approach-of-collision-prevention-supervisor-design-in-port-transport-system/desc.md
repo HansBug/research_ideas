@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://traffic2.fpz.hr/index.php/PROMTT/article/view/2234
 - 形式主义：`Ordinary Petri Net + P-Invariant Supervisor`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：港口 AGV / HOV 混行防碰撞监督控制
 - 工具/实现获取方式：原文给出普通 `Petri Net` 建模、`P-invariant` 监督器计算步骤和仿真验证思路，但未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 ordinary `Petri Nets`、control places 和 `P-invariant` 计算；原文未给出独立交换标准。

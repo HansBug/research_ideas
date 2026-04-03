@@ -9,9 +9,10 @@
 - DOI：`10.3390/electronics9081226`
 - 链接：https://doi.org/10.3390/electronics9081226
 - 形式主义：`Cotton Harvesting Visual-Servo FSM`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：农业采摘任务管理器 / `SMACH` 驱动的视觉伺服状态机
 - 工具/实现获取方式：原文直接给出 `ROS`、`SMACH`、`ZED` 双目相机、`tiny YOLOv3`、`ZED SDK`、`Arduino` 控制器、真空末端执行器和液压 rover 原型；未提供完整公开代码仓库，但明确给出 `Zed-YOLO` GitHub 线索与 `SMACH` 入口。
 - 标准/格式获取方式：原文未给独立交换标准，主要承载方式是状态图、`Algorithm 1`、相机标定参数、视觉伺服变量以及基于 `SMACH` 的任务级状态切换。

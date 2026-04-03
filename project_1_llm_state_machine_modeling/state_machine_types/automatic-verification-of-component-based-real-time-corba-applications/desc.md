@@ -9,9 +9,10 @@
 - DOI：`10.1109/REAL.2004.13`
 - 链接：https://doi.org/10.1109/REAL.2004.13
 - 形式主义：`Timed Automata / UPPAAL Network for Real-Time CORBA`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：组件化实时中间件验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文明确依赖 `UPPAAL`，并通过 `GReAT + GME` 把 `ESML` 应用模型转换成 timed automata；论文未给出单独公开仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata、clock/data variables、urgent/committed locations 与 `ESML` 模型转换；原文未提供独立交换格式。

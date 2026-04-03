@@ -9,9 +9,10 @@
 - DOI：`10.1109/COMPSAC.2006.112`
 - 链接：https://doi.org/10.1109/COMPSAC.2006.112
 - 形式主义：`Transaction-Aware Web Service Interface Verification Framework`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：Web 服务接口验证 / transaction-aware interface theory 应用框架
 - 工具/实现获取方式：原文明确给出 `signature / conversation / protocol` 三层接口结构、`EPA -> LTS` 转换和 `ASCTL` 模型检查流程，但未提供独立代码仓库。
 - 标准/格式获取方式：承载方式是动作集合、会话表达式、扩展协议自动机、`LTS` 和 `ASCTL` 公式；没有单独 XML/WSDL 交换文件。
@@ -279,9 +280,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 形式主义：`Transaction-Aware Web Service Interface Verification Framework`
 - 论文角色：Web 服务接口验证 / transaction-aware interface theory 应用框架
 - 核心功能：把三层 Web 服务接口对象接到 `LTS + ASCTL` 验证链路上

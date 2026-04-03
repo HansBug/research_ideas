@@ -9,9 +9,10 @@
 - DOI：`10.4204/EPTCS.268.5`
 - 链接：https://doi.org/10.4204/EPTCS.268.5
 - 形式主义：`Stopwatch Automata / DIMA Schedulability Framework`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：分布式航电可调度性分析 / `Stopwatch Automata` 应用条目
 - 工具/实现获取方式：原文明确使用 `UPPAAL` classic 与 `UPPAAL SMC`，并给出 classical MC、global SMC 与 compositional MC 三条分析路径；未提供独立代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` 模板、ARINC-653 / AFDX 结构化模型和 safety / hypothesis-testing 查询；无统一交换标准。
@@ -212,9 +213,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Stopwatch Automata / DIMA Schedulability Framework`
 - 论文角色：分布式航电可调度性分析 / `Stopwatch Automata` 应用条目
 - 核心功能：用 `UPPAAL SWA` 建模分区调度、可抢占任务与 AFDX 通信，并联用 `MC/SMC` 做可调度性分析

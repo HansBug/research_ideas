@@ -9,9 +9,10 @@
 - DOI：`10.5220/0013011900003822`
 - 链接：https://doi.org/10.5220/0013011900003822
 - 形式主义：`Modular Petri-Net-Based HRC Safety Control`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：人机协作任务级安全控制 / modular Petri net application
 - 工具/实现获取方式：原文明确给出 human/robot safety control loops、`MAPE` 结构与 toy pick-up truck 用例；未给出公开代码仓库。
 - 标准/格式获取方式：承载方式是 Petri nets、`MAPE` safety loops 与 `SRI` 评分规则；原文未提供独立交换标准。

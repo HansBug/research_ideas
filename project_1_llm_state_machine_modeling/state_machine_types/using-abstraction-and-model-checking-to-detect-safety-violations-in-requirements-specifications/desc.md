@@ -9,9 +9,10 @@
 - DOI：`10.1109/32.730543`
 - 链接：https://doi.org/10.1109/32.730543
 - 形式主义：`SCR` tabular notation
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：需求规格方法 / 验证工具链
 - 工具/实现获取方式：原文明确给出 `SCR` specification editor、dependency graph browser、consistency checker、simulator，以及与 `Spin` 的集成；论文未提供公开下载地址。
 - 标准/格式获取方式：承载方式是 `SCR` 的 tabular notation，包括 condition tables、event tables、assertion dictionary 和 conditional assignments；未给 XML/JSON 交换格式。

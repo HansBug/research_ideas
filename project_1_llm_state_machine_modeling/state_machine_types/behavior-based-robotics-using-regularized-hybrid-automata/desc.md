@@ -9,9 +9,10 @@
 - DOI：`10.1109/CDC.1999.827799`
 - 链接：https://doi.org/10.1109/CDC.1999.827799
 - 形式主义：`Regularized Hybrid Automata / Behavior-Based Mobile-Robot Control`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：移动机器人行为控制 / 正则化混成自动机应用建模
 - 工具/实现获取方式：原文明确在 `Nomad 200` 移动机器人与 `Nserver` 仿真器上实现并测试，但未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `Hybrid Automata`、potential-field vector fields、switching surface 与 regularized node；无独立交换标准。

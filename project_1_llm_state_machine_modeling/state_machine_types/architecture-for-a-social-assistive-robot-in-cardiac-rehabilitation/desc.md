@@ -9,9 +9,10 @@
 - DOI：`10.1109/CCRA.2018.8588133`
 - 链接：https://doi.org/10.1109/CCRA.2018.8588133
 - 形式主义：`Cardiac Rehabilitation Social Robot FSM`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：心脏康复社交机器人监督器 / model-controller `FSM`
 - 工具/实现获取方式：原文直接给出 `NAO` humanoid、`SARI` 应用接口、`Naoqi` framework、`DCM` 资源管理模块、PC/tablet 端应用和远程 `TCP/IP` 连接方式；未给公开代码仓库。
 - 标准/格式获取方式：原文未给独立交换标准，主要承载方式是 `FSM` 状态图、behavior timeline、`Naoqi/DCM` 服务调用和由传感接口产生的 therapy events。

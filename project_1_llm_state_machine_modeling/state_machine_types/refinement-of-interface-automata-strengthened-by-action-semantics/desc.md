@@ -9,9 +9,10 @@
 - DOI：`10.1016/j.entcs.2009.09.031`
 - 链接：https://doi.org/10.1016/j.entcs.2009.09.031
 - 形式主义：`Action-Semantic Interface Automata + Alternating Refinement`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：💻
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：💻 软件建模与程序行为
 - 论文角色：组件接口细化 / 语义兼容验证 / `CyCab` 案例
 - 工具/实现获取方式：原文给出基于 extended `Interface Automata` 的兼容与 refinement 算法，但未提供公开分析器或代码仓库。
 - 标准/格式获取方式：承载方式是带 `pre/post` 约束的接口自动机与 alternating refinement 关系；原文未提供独立交换格式。

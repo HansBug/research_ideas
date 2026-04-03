@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://web.archive.org/web/20250816075033if_/https://cim.mcgill.ca/~yiannis/Publications/CSApdf/Dupuis-LArcheveque-Allard-Rekleitis-Martin-2006.pdf
 - 形式主义：`ARGO / Cortex`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：空间机器人操作框架 / 自主工具箱
 - 工具/实现获取方式：原文直接给出 `ARGO` 框架中的 `Cortex Toolbox`、`Reconfigurable Ground Control Station (RGCS)`、`Remote Toolbox` 和 `Log Toolbox` 等组件，并说明 `Cortex` 能图形化编辑 `FSM`、自动生成 `JAVA` 代码并在线监控执行。
 - 标准/格式获取方式：原文说明框架依赖 `JAVA`、Eclipse、`XML` 和 `UML` 等通用软件工程载体；具体行为由图形化 `FSM/sub-FSM`、状态动作代码片段、转移 guard 与 trigger 组合承载，原文未给独立行业标准。

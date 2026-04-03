@@ -9,9 +9,10 @@
 - DOI：`10.3233/FI-2021-2065`
 - 链接：https://doi.org/10.3233/FI-2021-2065
 - 形式主义：`Parametric Stopwatch Automata / Launcher Flight-Control Scheduling Model`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：参数综合 / `Parametric Stopwatch Automata` 代表应用条目
 - 工具/实现获取方式：原文明确使用 `IMITATOR` 建模与综合，并将结果与 `Cheddar`、`Uppaal` 等工具对比；当前目录保存的是作者公开版本 / `arXiv:2112.07548`。
 - 标准/格式获取方式：承载方式是 `PSA` 网络、observer-style reactivity automata 和 `IMITATOR` 输入模型；无统一交换标准。
@@ -229,9 +230,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Parametric Stopwatch Automata / Launcher Flight-Control Scheduling Model`
 - 论文角色：参数综合 / `Parametric Stopwatch Automata` 代表应用条目
 - 核心功能：对飞控线程调度与反应性约束进行参数化可调度性综合

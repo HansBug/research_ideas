@@ -9,9 +9,10 @@
 - DOI：`10.5220/0005444800640072`
 - 链接：https://doi.org/10.5220/0005444800640072
 - 形式主义：`Interface Automata (IA) + Cassandra choreography failure prediction architecture`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：动态 Web 服务组合监控架构 / `IA` 驱动的 choreography 运行时预测验证
 - 工具/实现获取方式：原文给出基于 `Apache ServiceMix`、`Apache Camel`、`Cassandra` verification service 与 `SCXML` 行为规约的实现思路，但未提供独立公开仓库。
 - 标准/格式获取方式：承载方式是 `Interface Automata`、`SCXML` 行为模型、ESB 路由配置与 choreography role-bundle；原文未给统一交换标准。

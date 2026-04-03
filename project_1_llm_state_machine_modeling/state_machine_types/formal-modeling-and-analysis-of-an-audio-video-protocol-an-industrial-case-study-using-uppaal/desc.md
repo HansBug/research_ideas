@@ -9,9 +9,10 @@
 - DOI：`10.7146/brics.v4i31.18957`
 - 链接：https://doi.org/10.7146/brics.v4i31.18957
 - 形式主义：`Timed Automata / Audio-Video Bus Protocol Model`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：工业音视频总线协议验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文把 B&O 协议压成 `9` 个 `UPPAAL` timed automata，并利用最短 diagnostic trace 找到真实实现 bug；论文未给公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata、共享 bus 变量、observer 和查询公式；不是独立交换标准。

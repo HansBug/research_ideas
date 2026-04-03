@@ -9,9 +9,10 @@
 - DOI：`10.3390/technologies8030044`
 - 链接：https://doi.org/10.3390/technologies8030044
 - 形式主义：`Waiter Motion Strategy FSM / VelProSMACH`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：服务机器人运动策略监督器 / `SMACH` 驱动的多速度状态机
 - 工具/实现获取方式：原文直接给出 `VelProSMACH_V1.py`、`VelProSMACH_V2.py`、`ROS`、`SMACH`、`move_base`、`AMCL`、速度编码器、LiDAR 与近距离红外传感器；未给独立公开仓库链接。
 - 标准/格式获取方式：原文未给统一交换标准，主要承载方式是 `SMACH` 状态图、Python 速度生成逻辑、`Dock` / `Cruise` 等状态和 step / ramp / S-velocity 三种策略。

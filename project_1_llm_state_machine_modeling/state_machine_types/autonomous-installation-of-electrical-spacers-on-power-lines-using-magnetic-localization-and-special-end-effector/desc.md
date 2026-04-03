@@ -9,9 +9,10 @@
 - DOI：`10.3390/machines11050510`
 - 链接：https://doi.org/10.3390/machines11050510
 - 形式主义：`Spacer Installation Harel Statechart`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：安装任务状态图 / 专用末端执行器控制器
 - 工具/实现获取方式：原文补充材料明确给出 `GitHub` 代码仓库 `larics/schunk_lwa4p_ros`、实验数据、`YouTube` 视频，并直接依赖 `ROS`、`MoveIt!`、`OMPL`、`Gazebo`、`smach_ros`、`actionlib`。
 - 标准/格式获取方式：状态机承载方式是 `Harel statechart`、`smach_ros` 状态机实现、`URDF` 机械臂与末端模型、`MoveIt!` 规划场景和 `ROS` action 接口；原文未给独立 `XML/JSON` 交换标准。

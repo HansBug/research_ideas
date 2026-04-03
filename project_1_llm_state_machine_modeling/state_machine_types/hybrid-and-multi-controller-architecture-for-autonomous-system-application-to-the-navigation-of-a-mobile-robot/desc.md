@@ -9,9 +9,10 @@
 - DOI：`10.5220/0005065404910497`
 - 链接：https://doi.org/10.5220/0005065404910497
 - 形式主义：`Hybrid Automaton + Multi-controller Navigation Architecture`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：移动机器人导航 / 混成自动机应用与 reachability 验证
 - 工具/实现获取方式：原文明确使用 `MATLAB` 工具箱 `INTLAB`、Taylor interval integration 和 hybrid bounding method；未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 unicycle 运动学、两类控制律、混成自动机六元组和 interval reachability 算法；无独立交换格式。

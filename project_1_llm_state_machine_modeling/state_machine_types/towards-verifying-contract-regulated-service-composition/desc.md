@@ -9,9 +9,10 @@
 - DOI：`10.1109/ICWS.2008.115`
 - 链接：https://doi.org/10.1109/ICWS.2008.115
 - 形式主义：`Contract-Regulated Service Composition / WSBPEL-to-ISPL Contract Verification`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：契约约束服务组合验证 / `WSBPEL` 行为到 `ISPL/MCMAS` 的自动编译
 - 工具/实现获取方式：原文明确实现了把 `WSBPEL` 行为与契约编译到 `ISPL` 的 compiler，并调用 `MCMAS` 做验证；论文未提供独立公开仓库。
 - 标准/格式获取方式：承载方式是 `WSBPEL`、生成的 `ISPL`、`MCMAS` 输入模型与 temporal-epistemic 公式；原文未给统一交换标准。

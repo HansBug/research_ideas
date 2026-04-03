@@ -9,9 +9,10 @@
 - DOI：`10.5772/9659`
 - 链接：https://doi.org/10.5772/9659
 - 形式主义：`Petri Net Robotic Task Plan Representation / MOPN-GSPN Framework`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：机器人任务规划表示 / `Petri Net` 建模分析执行框架
 - 工具/实现获取方式：原文明确实现了 `Petri net Executor`，并使用 `TimeNET` 对完整任务网做瞬态分析；论文未给独立源码仓库。
 - 标准/格式获取方式：承载方式是 `MOPN/GSPN`、predicate places、macro places、full-task net expansion 与执行器；原文未给统一交换标准。

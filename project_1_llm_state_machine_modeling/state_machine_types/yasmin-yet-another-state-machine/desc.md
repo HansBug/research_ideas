@@ -9,9 +9,10 @@
 - DOI：`10.1007/978-3-031-21062-4_43`
 - 链接：https://arxiv.org/abs/2205.13284
 - 形式主义：`YASMIN`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：`ROS 2` 状态机库 / 运行时载体
 - 工具/实现获取方式：原文明确给出 `YASMIN` GitHub 仓库、Python/C++ 实现和 web viewer。
 - 标准/格式获取方式：承载方式是 `ROS 2` 中的 Python/C++ API、hierarchical state machine、shared blackboard 与 web viewer；原文未给 XML/JSON 标准。

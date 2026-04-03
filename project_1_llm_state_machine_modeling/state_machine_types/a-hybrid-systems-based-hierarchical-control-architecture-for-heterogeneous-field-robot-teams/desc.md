@@ -9,9 +9,10 @@
 - DOI：`10.1109/TCYB.2021.3133631`
 - 链接：https://doi.org/10.1109/TCYB.2021.3133631
 - 形式主义：`Hybrid Automata + Supervisory Control`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：混成系统应用架构 / 分层监督控制
 - 工具/实现获取方式：原文明确使用 `MATLAB`、`TCT`、physics-based simulator（`V-REP`）实现高低层控制闭环，并给出 modular supervisor 设计流程。
 - 标准/格式获取方式：承载方式是 hybrid automata、DES automata、specification automata 与 modular supervisor；原文未给独立 XML/JSON 交换标准。

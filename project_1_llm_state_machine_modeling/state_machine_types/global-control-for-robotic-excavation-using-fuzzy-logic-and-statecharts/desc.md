@@ -9,9 +9,10 @@
 - DOI：`10.22260/ISARC2000/0108`
 - 链接：https://doi.org/10.22260/ISARC2000/0108
 - 形式主义：`Robotic Excavation UML Statechart Supervisor`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：施工机器人监督器 / fuzzy low-level + `UML` statechart high-level
 - 工具/实现获取方式：原文直接给出 mini-excavator、joint encoders、hydraulic cylinder pressure transducers、spool valve set-points 和一组 `FLC_i` 低层控制器；未给公开代码仓库。
 - 标准/格式获取方式：原文承载方式是 `UML statecharts`、task element base、task characteristic functions 与 fuzzy rule bases，不依赖独立 `XML/JSON` 标准。

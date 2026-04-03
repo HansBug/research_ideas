@@ -9,9 +9,10 @@
 - DOI：`10.5220/0013067600003822`
 - 链接：https://doi.org/10.5220/0013067600003822
 - 形式主义：`Forklift Navigation FSM`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：工厂物流叉车导航 / planner-controller switching `FSM`
 - 工具/实现获取方式：原文直接给出 road network、modified `A*` local planner、`CLMPC` controller、`ROS Gazebo` 仿真和 `TwinswHeel facTHory` 叉车原型；未给公开仓库。
 - 标准/格式获取方式：原文没有独立交换标准，主要承载方式是 road-network map、corridor constraints、`FSM` supervisor 与 `ROS/Gazebo` 软件栈。

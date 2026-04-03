@@ -9,9 +9,10 @@
 - DOI：`10.1109/ACCESS.2021.3106455`
 - 链接：https://doi.org/10.1109/ACCESS.2021.3106455
 - 形式主义：`SEAD` framework / Manoeuvre Design Language (`MDL`)
-- 主类：📦
-- 描述客体：🤝
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：领域特化框架 / 机动描述语言
 - 工具/实现获取方式：原文明确给出在线 manoeuvre catalogue，并说明 `MDL` 及其 simulation parser 已实现；文中脚注直接给出 `https://github.com/sead-framework/manoeuvre-catalogue`。
 - 标准/格式获取方式：承载方式是图形化层次状态机视图与 `JSON`-based `MDL` 文件；`MDL` 受 Amazon States Language 启发。

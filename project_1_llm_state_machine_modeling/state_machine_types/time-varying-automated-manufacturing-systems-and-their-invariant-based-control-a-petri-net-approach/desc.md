@@ -9,9 +9,10 @@
 - DOI：`10.1109/ACCESS.2019.2899190`
 - 链接：https://doi.org/10.1109/ACCESS.2019.2899190
 - 形式主义：`Tv-S4R / Time-Varying S4R Petri Net`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：制造系统时变监督控制 / Petri 网应用与模型扩展
 - 工具/实现获取方式：原文给出 reachability-graph 分析、monitor synthesis、weighted state/event-based supervisor algorithms；未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `S^4R`、`TPPN`、`Tv-S^4R`、monitor place、`GMEC/GLC` 与 `P-invariant` 线性约束；无独立交换格式。

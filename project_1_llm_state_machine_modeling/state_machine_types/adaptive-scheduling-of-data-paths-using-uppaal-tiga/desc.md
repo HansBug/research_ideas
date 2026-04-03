@@ -9,9 +9,10 @@
 - DOI：`10.4204/EPTCS.13.1`
 - 链接：https://doi.org/10.4204/EPTCS.13.1
 - 形式主义：`Timed Game Automata / Uppaal Tiga Printer Scheduling Model`
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：💻
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：💻 软件建模与程序行为
 - 论文角色：不确定到达调度 / `Timed Game Automata` 应用条目
 - 工具/实现获取方式：原文明确使用 `Uppaal Tiga` 合成策略，并给出在线模型下载地址。
 - 标准/格式获取方式：承载方式是 `Uppaal Tiga` 的 timed game automata templates、controllable/uncontrollable edges 与查询语句；无统一交换标准。
@@ -209,9 +210,10 @@ control:A[] (DC_OBSERVER.INIT imply DC_OBSERVER.x <= FIRST_DC_TIME) &&
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：💻
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：💻 软件建模与程序行为
 - 形式主义：`Timed Game Automata / Uppaal Tiga Printer Scheduling Model`
 - 论文角色：不确定到达调度 / `Timed Game Automata` 应用条目
 - 核心功能：在未知作业到达条件下合成可保证 deadline/trade-off 的调度策略

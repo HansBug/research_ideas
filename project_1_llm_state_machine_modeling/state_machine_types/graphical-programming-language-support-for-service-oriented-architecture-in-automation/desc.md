@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://portal.research.lu.se/en/publications/graphical-programming-language-support-for-service-oriented-arch
 - 形式主义：Grafchart / JGrafchart with `DPWS`
-- 主类：📦
-- 描述客体：🤝
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：工具扩展 / 服务编排载体
 - 工具/实现获取方式：原文明确给出 `JGrafchart` 作为 Grafchart 的 Java 实现，并描述了内置 `DPWS Object`、设备发现和事件订阅支持。
 - 标准/格式获取方式：承载方式是 `Grafchart` 图形模型、`DPWS` 设备/服务/port type/operation 结构和 `WSDL` 自描述信息。
@@ -249,9 +250,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：📦
-- 描述客体：🤝
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🏭 工业控制与自动化
 - 形式主义：Grafchart / JGrafchart with `DPWS`
 - 论文角色：工具扩展 / 服务编排载体
 - 核心功能：把可发现的服务设备无缝嵌入图形状态机控制逻辑。

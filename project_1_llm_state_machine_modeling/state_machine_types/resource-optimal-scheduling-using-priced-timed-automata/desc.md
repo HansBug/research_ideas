@@ -9,9 +9,10 @@
 - DOI：`10.1007/978-3-540-24730-2_19`
 - 链接：https://doi.org/10.1007/978-3-540-24730-2_19
 - 形式主义：`Priced Timed Automata / Energy-Optimal Task Graph Scheduling Model`
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：资源优化调度 / `Priced Timed Automata` 分支代表应用条目
 - 工具/实现获取方式：原文明确在 `Uppaal` 中实现 symbolic minimum-cost reachability，并将线性规划子问题替换为 network simplex / min-cost flow 求解；未提供独立公开仓库。
 - 标准/格式获取方式：承载方式是 `PTA` 元组、`Uppaal` 风格 automata 组合和 task-graph-to-PTA 构造；原文未给统一交换标准。
@@ -234,9 +235,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🏭
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Priced Timed Automata / Energy-Optimal Task Graph Scheduling Model`
 - 论文角色：资源优化调度 / `Priced Timed Automata` 分支代表应用条目
 - 核心功能：把带能耗目标的 task graph scheduling 还原成 `PTA` 最小代价可达性

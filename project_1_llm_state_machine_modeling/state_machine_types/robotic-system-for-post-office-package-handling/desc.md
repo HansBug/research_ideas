@@ -9,9 +9,10 @@
 - DOI：`10.3390/app13137643`
 - 链接：https://doi.org/10.3390/app13137643
 - 形式主义：`SMACC Parcel Handling Supervisor`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：`SMACC` 应用监督器 / 工业拣放系统
 - 工具/实现获取方式：原文明确使用 `SMACC`、`MoveIt!`、`UR ROS driver`、`Zivid`/`RealSense` `ROS` drivers、`Dex-Net 4.0` 与 `UR5` 机器人；论文没有给出完整系统仓库。
 - 标准/格式获取方式：承载方式是 grasp pose `(X,Y,Z,Q_w,Q_x,Q_y,Q_z)`、`SMACC` state machine、`ROS` parameter server、`MoveIt!` 轨迹规划与多 `ROS` PCs 协同；没有单独状态机交换标准。

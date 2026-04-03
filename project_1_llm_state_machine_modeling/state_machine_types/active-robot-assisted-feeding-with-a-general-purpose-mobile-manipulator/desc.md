@@ -9,9 +9,10 @@
 - DOI：`10.1016/j.robot.2019.103344`
 - 链接：https://doi.org/10.1016/j.robot.2019.103344
 - 形式主义：`Meal Assistance FSM`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：助餐机器人任务管理 / `FSM` 驱动的 active feeding controller
 - 工具/实现获取方式：原文直接给出 `PR2`、web GUI、food-location estimator、mouth pose estimation、execution monitor、anomaly classifier、3D-printed bowl guard / wiping bar 等实现要素；未给统一代码仓库。
 - 标准/格式获取方式：原文未给独立交换标准，主要承载方式是 task-layer `FSM`、motion primitive 参数、GUI 事件和 ROS 组件。

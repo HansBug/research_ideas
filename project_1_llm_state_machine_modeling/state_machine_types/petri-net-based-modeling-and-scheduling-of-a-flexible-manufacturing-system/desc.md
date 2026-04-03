@@ -9,9 +9,10 @@
 - DOI：`10.1109/ROBOT.1994.351246`
 - 链接：https://doi.org/10.1109/ROBOT.1994.351246
 - 形式主义：`Timed Place Petri Net (TPPN) for FMS Scheduling`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：柔性制造系统调度 / 定时位置 Petri 网应用建模
 - 工具/实现获取方式：原文给出完整 FMS 原型、`TPPN` 建模规则、`Limited-Expansion A` 启发式搜索算法和台大自动化实验室 prototype FMS 验证，但未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `TPPN` 网结构、marking 序列和搜索算法；原文未使用 `PNML` 等交换标准。
@@ -251,9 +252,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 形式主义：`Timed Place Petri Net (TPPN) for FMS Scheduling`
 - 论文角色：柔性制造系统调度 / 定时位置 Petri 网应用建模
 - 核心功能：用 `TPPN` 表达 FMS 并发资源流，并把 firing sequence 解释成 near-optimal schedule

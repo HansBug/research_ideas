@@ -9,9 +9,10 @@
 - DOI：`10.1145/1734229.1734230`
 - 链接：https://doi.org/10.1145/1734229.1734230
 - 形式主义：`Timed Service Protocols / Protocol Timed Automata (PTA)`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🧱 模型本体
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：定时服务协议建模与兼容/可替换性分析 / 服务协议到 `PTA` 的语义保持映射
 - 工具/实现获取方式：原文说明相关分析能力被实现到 `ServiceMosaic` 原型中，并支持从 `BPEL` 过程抽取 timed protocol；原文未提供独立公开仓库。
 - 标准/格式获取方式：承载方式包括 timed business protocol tuple、`BPEL` 流程、`WSDL` 接口、`PTA` 与 timed automata 运算；原文未给统一交换标准。

@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://www.qmo.fr/publications/timed-automata-based-modeling-and-verification-of-denial-of-service-attacks-in-wireless-sensor-networks/
 - 形式主义：`Timed Automata / UPPAAL WSN Defense Network`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：`WSN` DoS 防御建模 / 定时自动机应用建模
 - 工具/实现获取方式：原文用 `UPPAAL` 建立 cluster head、medium、node、`cNode`、`vNode` 和 compromised node 的 timed automata，并用 `ns-3` 做能耗对照仿真；论文未给公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata templates、广播/同步 channel、整型数组和 CTL 风格查询；不是行业标准交换格式。

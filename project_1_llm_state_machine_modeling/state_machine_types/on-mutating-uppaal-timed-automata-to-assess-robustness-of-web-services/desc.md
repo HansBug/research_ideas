@@ -9,9 +9,10 @@
 - DOI：`10.5220/0005970800150026`
 - 链接：https://doi.org/10.5220/0005970800150026
 - 形式主义：`UPPAAL Timed Automata / TRON Mutation Testing Model`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：Web 服务鲁棒性测试 / 定时自动机应用建模
 - 工具/实现获取方式：原文使用 `UPPAAL`、`UPPAAL TRON` 和自写 mutation generator，对 web service composition 的 `UTA` 模型生成、验证并执行在线测试；论文未公开独立仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata XML、HTTP 请求适配器和在线测试配置；无独立行业交换标准。

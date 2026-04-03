@@ -9,9 +9,10 @@
 - DOI：`10.1007/978-3-031-62697-5_6`
 - 链接：https://doi.org/10.1007/978-3-031-62697-5_6
 - 形式主义：`Contract Automata / CARE / Uppaal Stochastic Timed Automata Model`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：运行时形式分析 / contract automata middleware verification
 - 工具/实现获取方式：原文明确给出 `CARE` 运行时、`RunnableOrchestration` / `RunnableOrchestratedContract` 两个核心 Java 抽象类，以及公开的 `Uppaal` 模型、日志与测试产物仓库。
 - 标准/格式获取方式：承载方式是 `CARE` 的 Java/TCP 实现与 `Uppaal` 的 stochastic timed automata network；原文未提供独立行业交换标准。

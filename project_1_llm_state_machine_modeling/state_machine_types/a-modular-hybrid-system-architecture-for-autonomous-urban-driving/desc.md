@@ -9,9 +9,10 @@
 - DOI：`10.2514/1.33349`
 - 链接：https://doi.org/10.2514/1.33349
 - 形式主义：`Nested Hybrid Automata (NHA)`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：城市自动驾驶控制架构 / nested hybrid automata 应用
 - 工具/实现获取方式：原文明确给出 `Sting Racing` 车队的软件结构、behavior arbiter 与传感配置；未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 nested hybrid automata、behavior voting arbiter 与 planning/control block；原文未提供独立标准格式。

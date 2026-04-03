@@ -9,9 +9,10 @@
 - DOI：`10.1007/s10009-012-0245-y`
 - 链接：https://doi.org/10.1007/s10009-012-0245-y
 - 形式主义：`Timed Automata / Distributed Firm RTS Schedulability Model`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：分布式实时系统可调度性分析 / 定时自动机应用建模
 - 工具/实现获取方式：原文使用 `UPPAAL` 建模和 point-wise verification；未给单独公开仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata、shared variables、broadcast synchronisation 和 integer-clock encoding；无统一交换标准。
@@ -217,9 +218,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Timed Automata / Distributed Firm RTS Schedulability Model`
 - 论文角色：分布式实时系统可调度性分析 / 定时自动机应用建模
 - 核心功能：分析 distributed firm RTS 在不同 `L_m, L_n` 下的 deadline 与 buffer 可行性

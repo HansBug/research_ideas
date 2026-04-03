@@ -9,9 +9,10 @@
 - DOI：`10.1177/1729881417718588`
 - 链接：https://doi.org/10.1177/1729881417718588
 - 形式主义：`Industrial Mobile Manipulation Flow Control`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：工业移动操作 flow-control / `SMACH` 层次状态机载体
 - 工具/实现获取方式：原文直接给出 `ROS`、`SMACH`、`SensorNet`、移动平台、力控机械臂、传感器头、对象识别与局部配准模块；原文未给出独立代码仓库。
 - 标准/格式获取方式：原文没有定义单独 `XML/JSON` 状态机标准，主要承载方式是 `ROS` 模块、`SMACH` 层次状态机、高层技能 `goToWorkstation / pickObjectFrom / placeObjectOn` 与训练得到的任务参数。

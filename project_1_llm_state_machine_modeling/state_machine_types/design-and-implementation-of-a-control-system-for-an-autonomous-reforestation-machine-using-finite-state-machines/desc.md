@@ -9,9 +9,10 @@
 - DOI：`10.3390/f14071340`
 - 链接：https://doi.org/10.3390/f14071340
 - 形式主义：`SMACH Mission Supervisor / AutoPlant`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：任务监督器 / 应用控制系统
 - 工具/实现获取方式：原文明确说明任务监督器运行在 `ROS Melodic` 上，使用 `SMACH`、`MoveIt`、`RViz`、`URDF` 和若干 action clients；正文未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `SMACH` 层次状态机、`ROS` actions/services、状态类与 client interface、自定义模拟器和数字孪生模型；原文未给独立 XML/JSON 标准。

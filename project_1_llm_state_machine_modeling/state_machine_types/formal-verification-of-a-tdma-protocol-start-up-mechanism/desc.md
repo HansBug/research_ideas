@@ -9,9 +9,10 @@
 - DOI：`10.1109/PRFTS.1997.640153`
 - 链接：https://doi.org/10.1109/PRFTS.1997.640153
 - 形式主义：`Timed Automata / DACAPO TDMA Start-Up Network`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：TDMA 启动同步验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文把 bus automaton、4 个 station automata 和 1 个 test automaton 建成 `UPPAAL` 网络，并在 guard 上自动注入 `±10^{-3}` clock drift；论文未给公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata network、bus channels、test automaton 和 invariant formulas；不是独立交换标准。

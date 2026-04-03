@@ -9,9 +9,10 @@
 - DOI：`10.1155/2020/8843178`
 - 链接：https://doi.org/10.1155/2020/8843178
 - 形式主义：`HVTL Multi-Task Maintenance Robot FSM`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：输电线路维护机器人监督器 / 多任务层次 `FSM`
 - 工具/实现获取方式：原文直接给出 wheel-arm compound mobile platform、dual operation arms、reconfigurable manipulators、tilt/binocular/ultrasonic/Hall/force/GPS/GIS sensors、action database 和 `C++` thread 风格的行为控制结构；未给公开代码仓库。
 - 标准/格式获取方式：原文未给独立交换标准，主要承载方式是 `12` 位 state vector、`JMB/AMB/RMB` 行为分层、`FSM` 图和任务事件序列。

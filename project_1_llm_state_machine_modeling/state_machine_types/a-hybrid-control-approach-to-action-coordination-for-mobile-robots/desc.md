@@ -9,9 +9,10 @@
 - DOI：`10.1016/S0005-1098(01)00185-6`
 - 链接：https://doi.org/10.1016/S0005-1098(01)00185-6
 - 形式主义：`Hybrid Automaton for Behavior Coordination`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：移动机器人行为协调 / hybrid automaton regularization
 - 工具/实现获取方式：原文明确使用 `Nomadic 200` 平台与 `Nserver` 仿真器验证，控制算法和 automaton regularization 均在实验平台上实现。
 - 标准/格式获取方式：承载方式是 behavior-based controllers、hybrid automaton nodes、Filippov sliding regularization 与 cubic-spline path tracking；原文未给独立交换格式。

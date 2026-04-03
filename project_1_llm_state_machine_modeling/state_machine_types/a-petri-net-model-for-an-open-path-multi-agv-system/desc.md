@@ -9,9 +9,10 @@
 - DOI：`10.5220/0005054807340745`
 - 链接：https://doi.org/10.5220/0005054807340745
 - 形式主义：`Coloured Petri Net (CPN) for Open-Path Multi-AGV Systems`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：仓储多 AGV 并发建模 / CPN 应用
 - 工具/实现获取方式：原文说明该 `CPN` 已被用于构建 discrete-event simulator，并用于分析调度、deadlock prevention 与 recovery；未给出公开仓库。
 - 标准/格式获取方式：承载方式是 coloured Petri nets、meta-cell 结构、monitor places 与 timed transitions；原文未给出独立交换标准。

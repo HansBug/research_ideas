@@ -9,9 +9,10 @@
 - DOI：`10.5220/0006291106790686`
 - 链接：https://doi.org/10.5220/0006291106790686
 - 形式主义：`Contract Automata (CA) + SAN cross-model validation`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🏭
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：铁路道岔加热系统交互验证 / `Contract Automata` 应用建模
 - 工具/实现获取方式：原文明确使用 `CAT (Contract Automata Tool)` 做自动验证，并给出 `HeatersNet` GitHub 路径；随机量化建模依赖 `SAN` / `Möbius` 工作线。
 - 标准/格式获取方式：承载方式是 `SAN` 模型、`CA` 模型、`CAT` 输入与 rail-road switch heater/coordinator 交互骨架；无统一交换标准。

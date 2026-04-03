@@ -9,9 +9,10 @@
 - DOI：原文未见
 - 链接：https://uppaal.org/texts/mmstt-icssa19.pdf
 - 形式主义：`Timed Automata Network for SCADA Attack Detection`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：SCADA 攻击检测 / 定时自动机应用建模
 - 工具/实现获取方式：原文明确使用 `UPPAAL` 对由 SCADA 时序日志生成的 timed automata network 做模型检查；PDF 由 `UPPAAL` published material 页面公开提供。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata、离散化后的 `Up/Basal/Low` 特征轨迹与 `TCTL` 性质；原文未提供独立交换标准。

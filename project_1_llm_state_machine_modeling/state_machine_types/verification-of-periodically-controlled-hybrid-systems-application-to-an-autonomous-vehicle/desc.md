@@ -9,9 +9,10 @@
 - DOI：`10.1145/2331147.2331163`
 - 链接：https://doi.org/10.1145/2331147.2331163
 - 形式主义：`Periodically Controlled Hybrid Automata (PCHA)`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🛠️ 方法路线
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：自动驾驶 planner-controller 验证 / 周期控制混成自动机应用
 - 工具/实现获取方式：原文明确讨论 `SOSTOOLS`、`QEPCAD`、定理证明与手工不变式验证；未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `PCHA` 元组、边界函数、invariant conditions 与 autonomous vehicle 模型；无独立交换格式。

@@ -9,9 +9,10 @@
 - DOI：`10.1007/978-3-642-01350-8_27`
 - 链接：https://doi.org/10.1007/978-3-642-01350-8_27
 - 形式主义：`Transaction-Aware Web Service Interface / Protocol Interface`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🧱 模型本体
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：Web 服务组合接口模型 / transaction-aware interface theory
 - 工具/实现获取方式：原文以 `signature/conversation/protocol interface`、`EPA` 与 `LTS` 语义推导为主，未提供公开代码库或专用分析器下载入口。
 - 标准/格式获取方式：承载方式是三层接口抽象、extended protocol automata 与 labeled transition system；原文未提供 `WSDL/BPEL/XML` 级交换格式。

@@ -9,9 +9,10 @@
 - DOI：`10.1109/ROBOT.2004.1302413`
 - 链接：https://doi.org/10.1109/ROBOT.2004.1302413
 - 形式主义：`Timed Automata / UPPAAL Network for Multi-Robot Planning`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：多机器人运动规划 / timed automata 应用建模
 - 工具/实现获取方式：原文明确使用 `UPPAAL` 建模、分析和验证，并给出环境、机器人、控制三个 process template 的构造方式。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata network、二维网格数组、同步 channel 与 `CTL` 查询；原文未提供独立交换标准。

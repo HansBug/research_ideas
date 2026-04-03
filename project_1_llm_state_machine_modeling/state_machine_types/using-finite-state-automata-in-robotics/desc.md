@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://robotics.sk/go/FSM/finite-state-automata.pdf
 - 形式主义：`Educational Robotics FSM`
-- 主类：🧩
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：🧩 经典离散状态机
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：教育机器人控制 / `FSM` 应用教程
 - 工具/实现获取方式：原文直接给出 `C` 语言实现、transition table matrix、Microsoft MakeCode Block language、`micro:bot` 机器人套件、`MART Friday Bot` 竞赛机器人与 `Stateflow / Arduino / JavaScript` 等实现线索；未给出统一代码仓库。
 - 标准/格式获取方式：原文没有定义独立交换标准，主要承载方式是有向图状态图、transition matrix table、`switch-case` 代码和 Block language 控制图。

@@ -9,9 +9,10 @@
 - DOI：`10.65109/vkfc7194`
 - 链接：https://doi.org/10.65109/vkfc7194
 - 形式主义：`MOPN / GSPN for Multi-Robot Tasks`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：多机器人任务建模 / Petri 网分析执行框架
 - 工具/实现获取方式：原文把任务模型组织为可展开的 `PN` 模块与分析版本通信动作，强调 qualitative analysis 与 Markov-chain based quantitative analysis；具体分析工具未固定到某一软件。
 - 标准/格式获取方式：承载方式是 `Marked Ordinary Petri Nets (MOPNs)`、`Generalised Stochastic Petri Nets (GSPNs)`、macro places 和 predicate places；原文未提供统一交换标准。

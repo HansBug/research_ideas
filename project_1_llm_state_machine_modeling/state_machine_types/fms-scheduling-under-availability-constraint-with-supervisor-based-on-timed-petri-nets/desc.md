@@ -9,9 +9,10 @@
 - DOI：`10.3390/app7040399`
 - 链接：https://doi.org/10.3390/app7040399
 - 形式主义：`Timed Petri Net + TMG Decomposition`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：FMS 调度 / availability-aware Timed Petri Net 监督控制
 - 工具/实现获取方式：原文明确给出 `TPN` 建模、`TMG` 分解、`MILP` 求解和 `GA` 求解流程，并说明使用 `Xpress` 优化器。
 - 标准/格式获取方式：承载方式是 `Timed Petri Net`、`Timed Marked Graph`、数学规划模型与 supervisor synthesis；原文未提供独立交换标准。

@@ -9,9 +9,10 @@
 - DOI：`10.1007/s10458-019-09409-x`
 - 链接：https://doi.org/10.1007/s10458-019-09409-x
 - 形式主义：`Timed Automata Network for Communicating Autonomous Vehicles`
-- 主类：⏱️
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：自动驾驶通信决策 / 定时自动机应用框架与模型检验
 - 工具/实现获取方式：原文明确使用 `UPPAAL`，并给出 `VerifCar` 源材料入口 `https://forge.ibisc.univ-evry.fr/jarcile/VerifCar/`。
 - 标准/格式获取方式：承载方式是环境自动机、车辆/基础设施自动机、时钟、broadcast channel、离散化后的车辆状态和指标计算；无独立交换格式。

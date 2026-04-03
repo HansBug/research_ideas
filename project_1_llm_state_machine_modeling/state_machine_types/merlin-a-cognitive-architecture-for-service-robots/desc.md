@@ -9,9 +9,10 @@
 - DOI：`10.3390/app10175989`
 - 链接：https://doi.org/10.3390/app10175989
 - 形式主义：`MERLIN`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：认知架构 / 规划-执行状态机桥接
 - 工具/实现获取方式：原文明确依赖 `ROSPlan`、`SMACH`、`SMACH Viewer`、`ROS actionlib` 与若干 `ROS` nodes；论文没有稳定给出独立 `MERLIN` 仓库入口，但上游工具链本身是公开可获取的。
 - 标准/格式获取方式：原文直接使用 `PDDL` domain/problem、`SMACH` 的 `State/Container`、`ROS` messages 与 `actionlib`、以及 `UML/SysML` 类图/通信图来承载架构；没有单独定义新的 XML/JSON 交换标准。

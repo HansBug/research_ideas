@@ -9,9 +9,10 @@
 - DOI：`10.1109/TAC.2024.3386024`
 - 链接：https://doi.org/10.1109/TAC.2024.3386024
 - 形式主义：`Composed Petri Net + Quotient RMPN + Büchi Petri Net`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：多机器人路径规划 / `Petri Net + LTL` 组合建模
 - 工具/实现获取方式：原文明确以 `MILP` 求解 prefix/suffix 与投影问题，但未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `RMPN`、Quotient `PN`、`Büchi PN`、Composed `PN` 与 `MILP`；无独立交换标准。

@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://www.cai.sk/ojs/index.php/cai/article/view/54
 - 形式主义：`Timed Automata / Scheduling-Layer Fieldbus Network`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：`Fieldbus` 调度协议验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文直接使用 `UPPAAL` 建立 scheduling layer、medium layer、data-link entity 和 network management 的 timed automata，并通过查询验证 token circulation、link inactivity、LAS transfer 等性质；论文未给公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata network、共享消息结构和查询公式；不是独立行业交换标准。

@@ -9,9 +9,10 @@
 - DOI：`10.1145/1086228.1086283`
 - 链接：https://doi.org/10.1145/1086228.1086283
 - 形式主义：`Timed Automata / UPPAAL-TRON Online Testing Model`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：在线黑盒一致性测试 / 定时自动机应用建模
 - 工具/实现获取方式：原文明确使用 `UPPAAL-TRON`、`UPPAAL` 引擎和 Danfoss `EKC` 控制器适配器；论文称 `TRON` 可在线获取用于评估/研究，但未给出现代公开仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata network、adapter API、timed trace、`rtioco/irtioco` 一致性关系；无独立交换标准。
@@ -233,9 +234,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Timed Automata / UPPAAL-TRON Online Testing Model`
 - 论文角色：在线黑盒一致性测试 / 定时自动机应用建模
 - 核心功能：基于 environment assumptions 做实时 conformance testing

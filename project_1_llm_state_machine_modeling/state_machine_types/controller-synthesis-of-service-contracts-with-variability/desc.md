@@ -9,9 +9,10 @@
 - DOI：`10.1016/j.scico.2019.102344`
 - 链接：https://doi.org/10.1016/j.scico.2019.102344
 - 形式主义：`Featured Modal Contract Automata (FMCA)`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：服务契约组合 / 可变性约束下的 orchestration 综合
 - 工具/实现获取方式：原文明确给出 `FMCAT` 原型工具，并说明其建立在 `CAT`/`CATLib` 与 `FeatureIDE` 之上。
 - 标准/格式获取方式：承载方式是 contract automata、feature constraint、product line orchestration 与 `FMCAT` 输入模型；原文未给独立行业标准格式。

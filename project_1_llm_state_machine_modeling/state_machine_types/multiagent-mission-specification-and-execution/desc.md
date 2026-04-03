@@ -9,9 +9,10 @@
 - DOI：`10.1023/A:1008807102993`
 - 链接：https://doi.org/10.1023/A:1008807102993
 - 形式主义：`MissionLab / CDL`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：多智能体任务规格 / `CDL` + `FSA` 执行框架
 - 工具/实现获取方式：原文明确给出 `MissionLab` toolset，包括 `CfgEdit` 图形配置编辑器、multiagent simulator、AuRA/UGV code generator、operator console，并说明 source/binary 可从 Georgia Tech `MissionLab` 页面获取。
 - 标准/格式获取方式：承载方式是 `CDL (Configuration Description Language)` 文本语言、graphical `CfgEdit`、以及 temporal sequencing 的 `FSA` 图；原文未给行业标准或 XML/JSON 交换格式。

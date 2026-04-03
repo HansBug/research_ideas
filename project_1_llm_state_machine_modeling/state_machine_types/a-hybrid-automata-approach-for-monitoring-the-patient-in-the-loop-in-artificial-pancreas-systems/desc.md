@@ -9,9 +9,10 @@
 - DOI：`10.3390/s21217117`
 - 链接：https://doi.org/10.3390/s21217117
 - 形式主义：`Patient-Mode Hybrid Automaton + LPV/Zonotopic Observer Bank`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：人工胰腺患者在环故障监测 / 混成自动机应用
 - 工具/实现获取方式：原文明确使用 reduced `Hovorka` model、polytopic Kalman filters、zonotopic observers、`Matlab R2019a` 与 `UVA/Padova` simulator；未提供单独代码仓库。
 - 标准/格式获取方式：承载方式是 `HA_k`、fault signature matrix、LPV state-space model 与 observer bank；原文未提供独立交换格式。

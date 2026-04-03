@@ -9,9 +9,10 @@
 - DOI：`10.1109/AUV.2012.6380744`
 - 链接：https://doi.org/10.1109/AUV.2012.6380744
 - 形式主义：`Universal Mission Controller / MEA`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：`UUV` 任务控制 / `Prolog` mission-control `FSM` engine
 - 工具/实现获取方式：原文直接给出 `Rational Behavior Model (RBM)`、`Mission Execution Engine (MEE)`、`Mission Execution Automata (MEA)` 和 `Allegro Prolog` 实现方式；未给公开仓库。
 - 标准/格式获取方式：原文的核心承载方式是 structured natural language mission orders、状态图和 `Prolog` mission orders；没有独立交换标准。

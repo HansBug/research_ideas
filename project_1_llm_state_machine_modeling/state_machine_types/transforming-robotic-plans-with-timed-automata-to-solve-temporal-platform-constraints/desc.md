@@ -9,9 +9,10 @@
 - DOI：`10.24963/ijcai.2021/287`
 - 链接：https://doi.org/10.24963/ijcai.2021/287
 - 形式主义：`Timed Automata + MTL-Constrained Plan Transformation`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：机器人平台时序约束求解 / 定时自动机应用建模
 - 工具/实现获取方式：原文公开 `taptenc` 原型，并使用 `UPPAAL verifyta` 求解 reachability 与 concrete trace。
 - 标准/格式获取方式：承载方式是 plan `P`、platform `TA`、`MTL` 约束和编码后的 `A_enc`；原文未提供统一交换格式。

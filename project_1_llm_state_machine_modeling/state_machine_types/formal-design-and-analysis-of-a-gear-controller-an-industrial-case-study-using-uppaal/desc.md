@@ -9,9 +9,10 @@
 - DOI：`10.1007/BFb0054178`
 - 链接：https://doi.org/10.1007/BFb0054178
 - 形式主义：`Timed Automata / Gear-Controller Network`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：车辆换挡控制 / 定时自动机应用建模
 - 工具/实现获取方式：原文把 `GearControl`、`Interface`、`Clutch`、`Engine`、`GearBox` 建成 `UPPAAL` 网络，并通过手工装饰模型验证 `46` 条逻辑公式；论文未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata network、共享时钟/变量与查询公式；不是独立行业交换标准。

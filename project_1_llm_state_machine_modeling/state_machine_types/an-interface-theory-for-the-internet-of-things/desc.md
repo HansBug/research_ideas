@@ -9,9 +9,10 @@
 - DOI：`10.1007/978-3-319-22969-0_2`
 - 链接：https://doi.org/10.1007/978-3-319-22969-0_2
 - 形式主义：`Interface Automata for Accessors / IoT Contracts`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌡️
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🧱 模型本体
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：IoT accessor 接口模型 / timed actor + AAC contract analysis
 - 工具/实现获取方式：原文明确依托 `Ptolemy II` accessors、JavaScript hosting environment 与既有 interface automata composition software；文中提到的组合工具由 Yuhong Xiong 先前开发。
 - 标准/格式获取方式：承载方式是 interface automata、组合后生成的 closed `LTS` 以及 `DE` actor / JavaScript callback contracts；原文未给独立 XML/JSON 交换格式。

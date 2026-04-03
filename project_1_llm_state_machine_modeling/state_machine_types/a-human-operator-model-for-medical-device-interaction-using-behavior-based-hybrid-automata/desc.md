@@ -9,9 +9,10 @@
 - DOI：`10.1109/THMS.2015.2487509`
 - 链接：https://doi.org/10.1109/THMS.2015.2487509
 - 形式主义：`Behavior-Based Hybrid Automata (BBHA) + ON-OFF Human Operator Model`
-- 主类：🌊
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：医疗设备人机交互 / 行为混成自动机应用建模
 - 工具/实现获取方式：原文明确使用 `PVS` / `PVSio-web` 模拟设备规格，并通过 `WebSocket` 将设备模型与人操作者模型闭环连接；未提供独立代码仓库。
 - 标准/格式获取方式：承载方式是 behavior-based hybrid automaton、`ON-OFF` 控制模型与 `PVS` 设备规格；无独立交换标准。

@@ -9,9 +9,10 @@
 - DOI：`10.1109/ICCD.2017.65`
 - 链接：https://doi.org/10.1109/ICCD.2017.65
 - 形式主义：`Timed Automata / SystemC TLM Protocol-Compliance Model`
-- 主类：⏱️
-- 描述客体：🤝
-- 所属领域：💻
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：💻 软件建模与程序行为
 - 论文角色：`SystemC/TLM` 协议合规检查 / 定时自动机应用建模
 - 工具/实现获取方式：原文用 `GDB` 非侵入式提取 `SystemC TLM-2.0` 运行日志，再自动生成 timed automata 和 `UPPAAL` 查询完成协议检查；论文未公开独立仓库。
 - 标准/格式获取方式：承载方式是 `GDB` 运行时日志、作者定义的 transaction lifetime 结构、`UPPAAL` timed automata 与 TCTL 风格查询；无统一交换标准。

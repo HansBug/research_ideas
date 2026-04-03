@@ -9,9 +9,10 @@
 - DOI：当前目录保存的是报告版；相关公开版本可见 `10.1007/11867340_9`（FORMATS 2006）与 `10.1007/s10703-008-0061-x`（期刊扩展版）
 - 链接：https://doi.org/10.1007/11867340_9
 - 形式主义：`Parametric Timed Automata / HYTECH Memory-Circuit Model`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：参数化时序验证 / `Parametric Timed Automata` 分支代表应用条目
 - 工具/实现获取方式：原文明确使用 `HYTECH` 做 reachability analysis，并把结果与 `HSIM` 电路仿真作对照；未提供独立公开代码仓库。
 - 标准/格式获取方式：承载方式是 wire/latch timed automata、线性参数约束和 `HYTECH` 多面体分析；原文未给交换标准。
@@ -231,9 +232,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 形式主义：`Parametric Timed Automata / HYTECH Memory-Circuit Model`
 - 论文角色：参数化时序验证 / `Parametric Timed Automata` 分支代表应用条目
 - 核心功能：从 memory circuit 的参数化 timed model 中综合 datasheet 约束

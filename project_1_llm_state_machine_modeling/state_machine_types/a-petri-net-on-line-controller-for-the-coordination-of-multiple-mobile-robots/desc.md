@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://hdl.handle.net/20.500.14783/9162
 - 形式主义：`Petri Net On-Line Controller + Automatic Net Generation`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：多移动机器人协调 / Petri 网在线离散事件控制
 - 工具/实现获取方式：原文明确实现了 `Visual C++` Petri Net Generator / Interpreter、图形监控和 reachability 分析模块；未提供公开仓库。
 - 标准/格式获取方式：承载方式是高层任务描述、resource places、自动生成的 `PN` 子网和运行时解释器；原文未提供独立交换格式。

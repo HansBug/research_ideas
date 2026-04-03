@@ -9,9 +9,10 @@
 - DOI：`10.4028/www.scientific.net/AEF.2-3.427`
 - 链接：https://doi.org/10.4028/www.scientific.net/AEF.2-3.427
 - 形式主义：`Power-Line Inspection Robot Crossing FSM`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：输电线路巡检机器人 `HRI` / crossing-sequence `FSM` interface
 - 工具/实现获取方式：原文直接给出 `AApe-B3` 机器人、Ground Control Station、图形界面、`Ape32.dll` 动作接口、串口 `COM` 协议、OpenGL 仿真和图像分析/视觉伺服模块；未给公开代码仓库。
 - 标准/格式获取方式：原文没有独立标准，主要承载方式是自动越障 `FSM`、九步 crossing dialogue、15 字符通信协议和界面反馈字段。

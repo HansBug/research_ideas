@@ -9,9 +9,10 @@
 - DOI：`10.1109/IROS.2006.282605`
 - 链接：https://doi.org/10.1109/IROS.2006.282605
 - 形式主义：`XABSL`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧱 模型本体
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：机器人行为语言 / 执行引擎
 - 工具/实现获取方式：原文明确给出 `XABSL` website、Ruby compiler、`XabslEngine` C++ runtime、monitoring/profiler/debugging interfaces，并说明源码和工具可免费下载。
 - 标准/格式获取方式：承载方式是 `XABSL` 文本 DSL；compiler 可生成 intermediate code、debug symbols、symbol files 与 XML representation；原文未给行业标准交换格式。

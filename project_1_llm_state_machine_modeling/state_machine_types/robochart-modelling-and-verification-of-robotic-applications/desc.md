@@ -9,9 +9,10 @@
 - DOI：`10.1007/s10270-018-00710-z`
 - 链接：https://doi.org/10.1007/s10270-018-00710-z
 - 形式主义：`RoboChart`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：机器人 DSL / 形式语义与验证工具链
 - 工具/实现获取方式：原文明确给出 `RoboTool`，作为一组 Eclipse plug-ins，支持图形/文本建模、well-formedness checking、`CSP-M` 语义生成与 `FDR` 验证；文中给出 York `RoboTool` 下载地址。
 - 标准/格式获取方式：承载方式是 `RoboChart` metamodel、graphical/textual editor、内部 textual representation 与自动生成的 `CSP-M`；原文未给行业标准交换格式。

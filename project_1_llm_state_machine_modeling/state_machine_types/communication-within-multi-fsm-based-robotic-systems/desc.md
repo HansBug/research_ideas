@@ -9,9 +9,10 @@
 - DOI：`10.1007/s10846-018-0869-6`
 - 链接：https://doi.org/10.1007/s10846-018-0869-6
 - 形式主义：`Embodied Agent / LLFSM + Whiteboard`
-- 主类：📦
-- 描述客体：🤝
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：设计方法 / 通信执行架构
 - 工具/实现获取方式：原文明确给出实现项包括 `gusimplewhiteboard` 共享内存通信库与 `LLFSM` 执行模型，并说明规格可自动生成机器人控制器代码；公开仓库入口未在正文中稳定给出。
 - 标准/格式获取方式：承载方式是 embodied-agent 规格、各子系统的 hierarchical `FSM`、transition function 与 terminal condition、以及实现阶段的 `LLFSM + whiteboard` 结构；原文未给通用 XML/JSON 标准。

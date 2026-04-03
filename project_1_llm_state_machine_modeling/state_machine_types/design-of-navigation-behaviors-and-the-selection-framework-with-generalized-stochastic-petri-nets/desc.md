@@ -9,9 +9,10 @@
 - DOI：`10.1109/ROBOT.2010.5509345`
 - 链接：https://doi.org/10.1109/ROBOT.2010.5509345
 - 形式主义：`GSPN-based Navigation Behavior Selection Framework`
-- 主类：🕸️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：移动机器人导航行为选择 / `GSPN` 应用建模
 - 工具/实现获取方式：原文明确基于 `Player/Stage` 做仿真，并把 `DWA` 与 trajectory tracking 控制器接入 `GSPN` 选择框架；论文未提供独立公开代码仓库。
 - 标准/格式获取方式：承载方式是 `GSPN` places/transitions、Poisson/Exponential rate 估计与 throughput-based behavior selection；原文未给统一交换标准。

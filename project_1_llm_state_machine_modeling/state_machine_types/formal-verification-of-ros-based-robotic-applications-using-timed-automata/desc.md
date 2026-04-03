@@ -9,9 +9,10 @@
 - DOI：`10.1109/FormaliSE.2017.9`
 - 链接：https://doi.org/10.1109/FormaliSE.2017.9
 - 形式主义：`Timed Automata Network for ROS Communication`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：ROS 通信验证 / 定时自动机应用建模
 - 工具/实现获取方式：原文直接分析公开的 `Kobuki` ROS 源码，并使用 `UPPAAL` 建立 timed automata 模型；Kobuki 仓库入口在文中给出，`UPPAAL` 模型在附录中展开。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata、ROS publisher/subscriber queues、callback queue 和 timeout 参数；没有单独交换标准。
@@ -292,9 +293,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 形式主义：`Timed Automata Network for ROS Communication`
 - 论文角色：ROS 通信验证 / 定时自动机应用建模
 - 核心功能：把 ROS 节点通信、队列和 callback 时序压成可验证的 timed automata network

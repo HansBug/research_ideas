@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://ntrs.nasa.gov/citations/20060019246
 - 形式主义：`PLEXIL`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧱 模型本体
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：计划执行语言 / 执行载体
 - 工具/实现获取方式：原文明确给出 `PLEXIL` universal executive、`CLARAty` 接口、`PLEXIL Plan Editor` 和计划验证/测试生成方向，但未提供独立公开仓库。
 - 标准/格式获取方式：原文明确说明执行计划会以 `XML` 形式发送给 executive，并给出 `Node/NodeList/Command/Assignment` 语法、domain description 与 plan editor 导出 XML 示例。

@@ -9,9 +9,10 @@
 - DOI：`10.1109/TSC.2011.55`
 - 链接：https://doi.org/10.1109/TSC.2011.55
 - 形式主义：`Behavioral Interfaces + Peer Controller Pattern (PCP)`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：异步服务交互验证 / behavioral-interface assume-guarantee 框架
 - 工具/实现获取方式：原文明确给出 Java 实现、`CommunicationMonitor/Stub` 组件、`JPF`、`SPIN` 与 `WSAT` 工具链，但未给出可直接下载的独立仓库地址。
 - 标准/格式获取方式：承载方式是 `MSL` 消息模式、peer interface 有限状态机、conversation `LTL` 和 `Promela` 翻译；没有行业交换标准文件。
@@ -276,9 +277,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 形式主义：`Behavioral Interfaces + Peer Controller Pattern (PCP)`
 - 论文角色：异步服务交互验证 / behavioral-interface assume-guarantee 框架
 - 核心功能：把 peer 接口、运行时 enforcement 和全局行为验证拆成模块化三阶段

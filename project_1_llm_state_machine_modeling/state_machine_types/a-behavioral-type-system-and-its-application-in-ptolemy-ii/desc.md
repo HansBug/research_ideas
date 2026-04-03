@@ -9,9 +9,10 @@
 - DOI：`10.1007/s00165-004-0043-8`
 - 链接：https://doi.org/10.1007/s00165-004-0043-8
 - 形式主义：`Interface Automata / Behavioral Type System for Ptolemy II`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：💻
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：💻 软件建模与程序行为
 - 论文角色：Ptolemy II 组件通信协议 / `Interface Automata` 行为类型系统应用
 - 工具/实现获取方式：原文明确说明作者在 `Ptolemy II` 上实现了行为类型的可视化编辑器、组合与分析工具；论文未给独立仓库，但 `Ptolemy II` 框架本体可公开获取。
 - 标准/格式获取方式：承载方式是 `Interface Automata` 图模型、`Ptolemy II` actor / receiver / director 结构与可视化类型编辑器；原文未给统一交换标准。

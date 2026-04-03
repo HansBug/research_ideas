@@ -9,9 +9,10 @@
 - DOI：`10.1007/978-3-030-00359-3_3`
 - 链接：https://doi.org/10.1007/978-3-030-00359-3_3
 - 形式主义：`Timed Service Contract Automata (TSCA)`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：实时服务契约编排 / `Contract Automata` 的时间与关键性扩展
 - 工具/实现获取方式：原文给出基于 timed games 与 zones 的 symbolic synthesis 过程，并说明可用 timed games library 实现；原文未提供独立公开代码仓库。
 - 标准/格式获取方式：承载方式是 `TSCA` 元组、zones、winning strategy 与 safe orchestration；原文未给统一交换标准。

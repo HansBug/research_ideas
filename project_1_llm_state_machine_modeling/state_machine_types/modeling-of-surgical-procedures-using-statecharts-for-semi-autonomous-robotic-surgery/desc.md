@@ -9,9 +9,10 @@
 - DOI：`10.1109/TMRB.2021.3110676`
 - 链接：https://doi.org/10.1109/TMRB.2021.3110676
 - 形式主义：`Procedure-Observer Surgical Statechart`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：半自主手术流程监督器 / observer-procedure statechart
 - 工具/实现获取方式：原文直接给出 `SARAS` 项目中的双机械臂实验平台、speech recognition、force observer、catheter observer、feature observer、preoperative pose observer 和一组 surgeme primitives；未给公开代码仓库。
 - 标准/格式获取方式：原文以修订后的 statechart 记法承载流程知识，核心对象是 procedure region、observer region、trigger events 和 surgeme 库；不是独立 `XML` 标准。

@@ -9,9 +9,10 @@
 - DOI：`10.1007/3-540-48778-6_17`
 - 链接：https://doi.org/10.1007/3-540-48778-6_17
 - 形式主义：`Timed Automata / UPPAAL Network for Power-Down Controller Verification`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：⏱️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🧪 应用/案例
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：⏱️ 实时与嵌入式系统
 - 论文角色：工业实时控制器案例 / `UPPAAL` 定时自动机应用建模
 - 工具/实现获取方式：原文直接基于 `UPPAAL` 建模并验证 B&O 的电源控制协议，使用 observer、flag、auxiliary variable 等技巧表达性质；论文未提供独立公开代码仓库。
 - 标准/格式获取方式：承载方式是 `UPPAAL` timed automata network、共享变量、channels 与查询公式；原文未给统一交换标准。

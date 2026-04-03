@@ -9,9 +9,10 @@
 - DOI：原文未提供
 - 链接：https://elib.dlr.de/55894/
 - 形式主义：ModeGraph / Mode-Automata-based Modelica Library
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：工具/库
 - 工具/实现获取方式：论文描述了 `ModeGraph` 作为新的 Modelica library，并依赖 Modelica 语言扩展；原文未给出独立仓库下载入口。
 - 标准/格式获取方式：核心承载是 Modelica library 组件、图形化 annotations 和论文提出的 `mode` 语义扩展。
@@ -269,9 +270,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🏭
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🏭 工业控制与自动化
 - 形式主义：ModeGraph / Mode-Automata-based Modelica Library
 - 论文角色：工具/库
 - 核心功能：在 Modelica 中实现安全的层次、并行、可 preempt 的模式状态机。

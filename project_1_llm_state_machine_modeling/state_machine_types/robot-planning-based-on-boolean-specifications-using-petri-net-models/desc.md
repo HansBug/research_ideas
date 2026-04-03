@@ -9,9 +9,10 @@
 - DOI：`10.1109/TAC.2017.2760249`
 - 链接：https://doi.org/10.1109/TAC.2017.2760249
 - 形式主义：`Petri Net with Outputs + Boolean ILP Planning`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：多机器人路径规划 / Petri 网应用与 ILP 规划
 - 工具/实现获取方式：原文明确实现为 `Matlab` 上的 `RMTool` 扩展，并调用 `CPLEX`/LPP 求解器；文中称其为 freely-downloadable package。
 - 标准/格式获取方式：承载方式是 `PN with outputs`、观测映射、Boolean 规格、`ILP` 约束和 firing-sequence reconstruction；无独立交换格式。

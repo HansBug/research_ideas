@@ -9,9 +9,10 @@
 - DOI：`10.1016/j.asej.2024.102804`
 - 链接：https://doi.org/10.1016/j.asej.2024.102804
 - 形式主义：`Automation Petri Net (APN) + Place-Invariant Supervisor`
-- 主类：🕸️
-- 描述客体：🏭
-- 所属领域：🏭
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🏭 并发过程 / 资源流
+- 所属领域：🏭 工业控制与自动化
 - 论文角色：机器人装配任务规划 / Petri 网监督控制与代码落地
 - 工具/实现获取方式：原文给出 `APN` 建模、place-invariant supervisor synthesis 与 Mitsubishi `MELFA BASIC` 控制代码映射方法；未提供公开代码仓库。
 - 标准/格式获取方式：承载方式是 `APN`、incidence matrix、control places 与 `MELFA BASIC` 程序结构；原文未给独立交换格式。

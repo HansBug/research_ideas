@@ -9,9 +9,10 @@
 - DOI：本轮使用的作者页面与章节 PDF 未标出 DOI
 - 链接：https://pageperso.lis-lab.fr/~pierre-alain.reynier/publis/Quasimodo-chap2.pdf
 - 形式主义：`Timed Game Automata / UPPAAL-TIGA Oil-Pump Controller Synthesis`
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：工业控制综合 / `Timed Game Automata` 分支代表应用条目
 - 工具/实现获取方式：原文明确联用 `UPPAAL-TIGA` 做 synthesis，`PHAVER` 做 correctness/robustness verification，`SIMULINK` 做 performance simulation。
 - 标准/格式获取方式：承载方式是 `UPPAAL-TIGA` game model、`PHAVER` hybrid verification model 与 `SIMULINK` simulation blocks；无统一交换标准。
@@ -222,9 +223,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：⏱️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：⏱️ 时间/时钟自动机
+- 对象类型：🛠️ 方法路线
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 形式主义：`Timed Game Automata / UPPAAL-TIGA Oil-Pump Controller Synthesis`
 - 论文角色：工业控制综合 / `Timed Game Automata` 分支代表应用条目
 - 核心功能：在环境扰动下综合安全且近优的油泵控制策略

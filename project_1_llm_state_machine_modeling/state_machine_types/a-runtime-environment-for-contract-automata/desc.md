@@ -9,9 +9,10 @@
 - DOI：`10.1007/978-3-031-27481-7_31`
 - 链接：https://doi.org/10.1007/978-3-031-27481-7_31
 - 形式主义：`Contract Automata / CARE`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：🌐
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：🌐 协议 / 分布式 / 交互系统
 - 论文角色：运行时实现 / orchestration engine
 - 工具/实现获取方式：原文明确给出 `CARE`、`CATLib`、`CATApp` 与对应 GitHub 链接；运行时基于 `Java` 与 `TCP/IP sockets`。
 - 标准/格式获取方式：承载方式是 contract automata、typed labels、`CARE` 的 orchestration / service classes 与 `Uppaal` runtime model；原文未给行业标准交换格式。

@@ -9,9 +9,10 @@
 - DOI：`10.6092/JOSER_2012_03_01_P28`
 - 链接：https://aisberg.unibg.it/handle/10446/86206
 - 形式主义：`rFSM Statecharts`
-- 主类：📦
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：📦 标准、交换格式、元模型与执行载体
+- 对象类型：🧱 模型本体
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：机器人协调 DSL / OROCOS statecharts
 - 工具/实现获取方式：原文明确说明提供了 real-time capable 的 `rFSM` reference implementation，并与 `OROCOS/RTT` 宽松集成；论文未给出稳定独立仓库链接。
 - 标准/格式获取方式：原文直接给出了 `rFSM` 的 `Ecore` 结构模型、`OCL` 约束、`UML` 风格图形记法和可执行 DSL 语义；没有单独 XML/JSON 标准。

@@ -9,9 +9,10 @@
 - DOI：原文未给出
 - 链接：https://editions-rnti.fr/?inprocid=1000897
 - 形式主义：`Improved Interface Automata + UML Architecture Graph`
-- 主类：🔌
-- 描述客体：🤝
-- 所属领域：💻
+- 主类：🔌 接口 / 组合 / 契约模型
+- 对象类型：🛠️ 方法路线
+- 描述客体：🤝 接口 / 交互契约
+- 所属领域：💻 软件建模与程序行为
 - 论文角色：构件组装 / 接口兼容性验证
 - 工具/实现获取方式：原文给出 `UML 2.0` 构件结构 + interface automata 的组合算法，但未提供公开分析器或代码仓库。
 - 标准/格式获取方式：承载方式是 `UML` 构件图、graph representation 与 improved interface automata；原文未提供 `XMI` 或其他独立交换格式。

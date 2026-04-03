@@ -9,9 +9,10 @@
 - DOI：`10.1109/ACCESS.2021.3117852`
 - 链接：https://doi.org/10.1109/ACCESS.2021.3117852
 - 形式主义：`Stochastic Hybrid Automata (SHA) Network / Model-to-Code Deployment Framework`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🛠️ 方法路线
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：助残/医疗场景人机交互部署框架 / `SHA` 到 `ROS` 部署单元的模型到代码映射
 - 工具/实现获取方式：原文明确使用 `UPPAAL SMC`、`ROS`、`CoppeliaSim` 和 `TurtleBot3` 相关部署链，论文给出部署架构与映射规则；原文未提供独立公开仓库。
 - 标准/格式获取方式：承载方式是 `SHA` network、`ROS` topics、deployment unit 映射函数和 simulation/deployment workflow；原文未给统一交换标准。

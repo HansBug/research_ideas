@@ -9,9 +9,10 @@
 - DOI：`10.1007/s11334-024-00570-5`
 - 链接：https://doi.org/10.1007/s11334-024-00570-5
 - 形式主义：`Distributed Petri Nets / DiNeROS`
-- 主类：🕸️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：ROS 建模验证工具链 / 分布式 Petri 网应用
 - 工具/实现获取方式：原文给出 `DiNeROS` 工具链站点、`Petri Net Engine`、`Petri Net Flattener`、`Trace Visualizer`、`Net Analyzer` 等组件，并公开说明其基于 `JastAdd`、`PNML` 与 `TINA`。
 - 标准/格式获取方式：系统模型以扩展 `PNML` 为输入，落地到 `PNM` 后由 `TINA` 分析；基础 Petri 网定义遵循 `ISO/IEC 15909`。
@@ -279,9 +280,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：🕸️
-- 描述客体：🎛️
-- 所属领域：🌡️
+- 主类：🕸️ Petri 网与并发网模型
+- 对象类型：🏗️ 标准/基础设施
+- 描述客体：🎛️ 控制 / 反应式逻辑
+- 所属领域：🌡️ CPS / 物理系统建模
 - 形式主义：`Distributed Petri Nets / DiNeROS`
 - 论文角色：ROS 建模验证工具链 / 分布式 Petri 网应用
 - 核心功能：统一描述 ROS 结构、通信和工作流，并落到可验证 / 可执行的 Petri 网链路

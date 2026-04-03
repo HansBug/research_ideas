@@ -9,9 +9,10 @@
 - DOI：`10.3182/20050703-6-CZ-1902.00530`
 - 链接：https://doi.org/10.3182/20050703-6-CZ-1902.00530
 - 形式主义：`Hybrid Perceptive Automata / Hybrid Perceptive Framework`
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 论文角色：机器人感知控制与路径规划 / 混成自动机应用架构
 - 工具/实现获取方式：原文给出 hybrid language、perceptive automata、hierarchical task/action/motion planner 的形式结构和稳定性结论，但未提供公开代码或工具仓库。
 - 标准/格式获取方式：承载方式是 `Hybrid Language`、perceptive/hybrid/hierarchical automata 元组和 Lyapunov 切换条件；无独立交换格式。
@@ -304,9 +305,10 @@ $$
 
 ## 文献分类总结
 
-- 主类：🌊
-- 描述客体：🌡️
-- 所属领域：🌡️
+- 主类：🌊 混成/随机扩展
+- 对象类型：🧪 应用/案例
+- 描述客体：🌡️ 物理 / 混成对象
+- 所属领域：🌡️ CPS / 物理系统建模
 - 形式主义：`Hybrid Perceptive Automata / Hybrid Perceptive Framework`
 - 论文角色：机器人感知控制与路径规划 / 混成自动机应用架构
 - 核心功能：用混成感知参考和层次自动机统一任务切换、动作规划、连续轨迹输出和异常恢复
