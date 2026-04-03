@@ -25,44 +25,43 @@
 
 以下关键词簇用于指导后续增量检索，目标不是泛泛地搜“形式化方法”或“建模”，而是优先命中**具有具体控制系统客体**、并且更可能包含可提取状态机自然语言描述的论文。
 
+当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `19` 条条目看，`EFSM` 占 `17` 条、`T1` 占 `12` 条，主体是 `PLC / SCADA / embedded flight software` 风格的离散工程控制与模式管理样本。
+
 ### 当前推荐关键词簇
 
-- 主线始终是 `具体控制对象 + control/controller/system + design/specification/verification/modeling`，对象继续优先选 `traffic light`、`railway level crossing`、`railway interlocking`、`elevator`、`mechanical ventilator`、`parking`，并新增强化 `landing gear`、`flight guidance system`、`autonomous helicopter`、`CubeSat flight software`、`UAV mission management`。
-- 状态机显式词继续优先：`state machine`、`FSM`、`statechart`、`mode switching`、`operation mode`、`control logic`。
-- 航空方向高产词簇本轮验证有效：`landing gear + handle + door + extend/retract + Event-B/Hybrid Event-B`，`flight guidance + mode logic + armed/active/capture/track`，`autonomous helicopter + supervisory controller + takeoff + waypoint + landing point`。
-- 航空航天控制软件方向可继续扩展：`CubeSat + safe mode + CONOPS + finite state machine`，`UAV mission management + FSM/behavior tree + takeoff + search and rescue + return to base`。
-- 泊车、液位和医疗方向继续保留：`parallel parking + stage/trajectory/three steps/path shifting`，`water level/head tank/irrigation + PLC + solenoid valve + threshold/moisture`，`mechanical ventilator + mode + inspiration + expiration + valve`。
-- 离散制造方向继续保留：`bottle filling + conveyor + valve + level sensor`，`conveyor + PLC + proximity sensor + delay`，`washing machine + rinse + dehydration + water level sensor`，`packaging + case erector + count=6 + taping + weighing`。
+- 主线优先改成 `具体控制对象 + control/controller/system + design/implementation/development/specification/modeling`，对象优先补 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging line`、`water level/head tank`、`railway level crossing`、`landing gear`、`CubeSat flight software`、`UAV mission management`。
+- 状态机显式词优先保留 `state machine`、`FSM`、`HSM`、`mode`、`operation mode`、`sequence`、`cycle`、`procedure`、`priority override`、`control logic`，因为它们更容易导向 `FSM/HSM/EFSM + T0/T1` 的离散控制链。
+- 工程控制高命中组合继续强化：`PLC/SCADA + sensor/float/proximity/photoelectric/RFID/hall call + valve/pump/motor/door/light + delay/timer/sequence/cycle`。
+- 航空航天方向继续优先找模式管理而不是连续控制：`landing gear + handle + door + extend/retract + cockpit indication`，`CubeSat + safe mode + CONOPS + finite state machine`，`UAV mission management + behavior tree/FSM + task activation + interrupt/deactivate`。
+- 离散制造与楼宇机电方向继续保留：`bottle filling + conveyor + valve + level sensor`，`washing machine + rinse + dehydration + water level sensor`，`packaging + count=6 + weighing + reject`，`elevator + PLC + door + hall call + level sensor + overload`。
+- 若某个词簇同时带 `具体对象 + 输入感知 + 输出执行 + 局部 timer/顺序词`，默认优先级高于只写“verification / optimization / framework”的泛词簇。
 
 ### 已观察到的高命中标题/关键词特征
 
-- 标题直接点名具体控制对象，并同时出现 `control system/controller`、`design/specification/verification`，命中率最高。
-- `state machine/FSM/statechart/mode/operation mode/control logic` 这类显式状态信号词仍然高产。
-- 航空方向高命中特征：`landing gear`、`flight guidance system`、`take-off procedure`、`supervisory controller`、`safe mode`、`CONOPS`、`mission management`。
-- 起落架方向一旦同时出现 `handle`、`door`、`gear`、`extend/retract`、`lock`，很容易命中可整理的离散动作链。
-- 飞行模式方向一旦同时出现 `mode logic`、`armed`、`active`、`capture`、`track`，通常能直接抽到模式切换叙述。
-- 交通灯方向高命中词：`PLC`、`sensor`、`priority`、`override`、`emergency vehicle`、`countdown`、`green/red/yellow`、`open-loop/closed-loop`。
-- 电梯方向高命中词：`push button`、`level sensor`、`door operation`、`selective operation`、`hall call/car call`、`overload`。
-- 铁路方向高命中词：`railway level crossing`、`barrier`、`gate control`、`interlocking`、`route request`、`conflicting movement`。
-- 医疗方向高命中词：`mechanical ventilator`、`PCV`、`PSV`、`inspiration`、`expiration`、`valve`、`apnea lag`。
-- 工业控制方向高命中词：`bottle filling`、`conveyor`、`washing machine`、`automatic packaging`、`photoelectric/proximity sensor`。
+- 双 A 目标样本最稳的标题画像，是**具体控制对象名**与 `controller / control system / control program / flight software / mission management` 同时出现。
+- `PLC` 与 `SCADA` 仍是最强的工程离散控制信号；当前双 A 的 `FSM/HSM/EFSM + T0/T1` 条目里，高频标题词明显集中在 `PLC`、`SCADA`、`traffic`、`elevator`、`bottle filling`、`washing machine`、`packaging`、`water level`。
+- `sequence`、`cycle`、`mode`、`operation mode`、`procedure`、`priority`、`override`、`task activation` 这类词，比泛泛的 `verification` 更能命中可直接抽成状态机描述的文本。
+- 标题或摘要同时出现**输入感知词**与**输出执行词**时命中率更高，例如 `float switch / proximity sensor / hall call / RFID / camera` 搭配 `valve / pump / door / motor / light / beacon`。
+- `T1` 样本常伴随 `delay`、`timer`、`countdown`、`interval`、`wash/rinse/dehydrate`、`fill/drain`、`door cycle` 这类局部工程定时词。
+- 航空航天里的高命中离散样本，不是连续飞控本体，而是 `safe mode`、`CONOPS`、`mission management`、`behavior tree`、`task activation/interruption`、`landing gear extend/retract sequence` 这类模式管理与序列控制。
 
 ### 已观察到的低命中标题/关键词特征
 
 - `review`、`survey`、`state of the art`、`architecture`、`framework`、`middleware`、`standards` 这类题名通常低产。
 - “状态/模式”如果指的是开发流程、分析流程、工具流程，而不是控制对象运行状态，应直接降权。
 - 航空方向低命中特征本轮比较明确：`pose estimation`、`visual feedback`、`bearing-only observations`、`disturbance rejection`、`bifurcation analysis` 往往导向连续控制/估计论文。
+- 若标题主词是 `path planning`、`trajectory tracking`、`reinforcement learning`、`optimization`、`fuzzy control`，但没有 `mode / sequence / cycle / stage / timer / override` 这类离散行为词，通常不适合作为当前主补样方向。
 - `simulator`、`scenario definition language`、`digital twin` 如果没有真实控制对象状态流，通常更像工具/场景论文而非目标样本。
 - `security analysis`、`attack`、`vulnerability`、`knowledge-based system` 这类安全分析文献通常不是目标样本。
 - 只讲连续优化、PI/PID 调参、纯控制性能或纯路径规划，而不写阶段切换、阈值触发、门控/锁闭/恢复顺序的论文，通常低产。
 
 ### 检索倾向调整
 
-- 优先沿“具体控制对象 + control/controller/system + design/specification/verification”主线检索，不从宽泛 `formal methods` 出发。
-- 本轮验证表明 `✈️` 方向在精确标题检索下明显提效，尤其是 `landing gear`、`flight guidance mode logic`、`autonomous helicopter supervisor`、`CubeSat safe mode`。
-- 下一轮若继续扩 `✈️`，应优先找 `landing gear / flight guidance / UAV mission / spacecraft mode` 这类离散模式词，而不是再追连续估计与视觉控制。
-- 新词允许扩展，但必须能解释为什么会导向“具体控制系统的状态机描述”，并在每轮更新时回写到本节。
-- 每次更新只保留仍然有效的高命中经验，删除被新结果证明价值不高的冗余词簇。
+- 下一轮优先补 `FSM/HSM/EFSM + T0/T1` 的双 A 候选，检索时默认优先找**具体工程控制客体 + 明确模式/阶段 + 输入感知 + 输出执行 + 局部 timer/顺序词**同时出现的题目。
+- 在 `PLC/SCADA` 工程控制方向，可优先复用 `object + controller/system/program + sensor + actuator + delay/timer/sequence/cycle` 这条模板，而不是只搜宽泛 `formal methods`。
+- 在 `✈️` 方向，优先找 `safe mode / operation mode / CONOPS / mission management / task activation / extend-retract sequence` 这类离散模式词，而不是连续估计、轨迹跟踪和扰动抑制。
+- 在多个方向都可命中时，优先补当前更稀缺但高价值的 `FSM/HSM + T0/T1` 样本，不要让 `EFSM + PLC` 一类继续单边膨胀。
+- 新词允许扩展，但必须能解释它为什么会导向“可做简单仿真的离散控制链”，并在每轮更新时整合回本节。
 
 ## 当前收录统计
 

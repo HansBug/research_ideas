@@ -42,6 +42,7 @@
 1. 明确面向真实控制对象或控制器，如输液泵、起搏器、电梯、交通灯、联锁、起落架、车辆控制器、PLC 模块等。
 2. 文中存在运行模式、状态切换、阶段推进、故障恢复、时序约束、守卫条件、模式降级等可整理为状态机自然语言描述的内容。
 3. 可获得 PDF 原文，并能生成可用的 `paper_content.txt`。
+4. 若目标是持续补主数据集，优先补当前最稳的高质量画像：`FSM / HSM / EFSM + T0 / T1` 的离散控制样本，且原文中最好同时出现**具体控制对象、状态/模式/阶段名、输入触发或 guard、输出动作、局部 timer 或明确事件顺序、异常/恢复链**。
 
 原则上应降低优先级或避免投入过多精力于以下文献：
 
@@ -67,9 +68,11 @@
    - 研究对象是具体控制系统、控制器或控制子系统。
    - 原文能够提取出可追溯的行为描述、模式切换、门控逻辑、阶段推进或故障恢复逻辑。
    - PDF、`bibtex.bib` 和 `paper_content.txt` 可以落库，且文本质量足以支撑 `STM.md`。
+   - 若标题/摘要还能同时看出 `controller/system/program/software`、`sequence/cycle/mode/procedure/priority override`、`sensor/input` 与 `actuator/output` 这类离散控制信号，应进一步提高优先级。
 2. 降优先级条件
    - 研究对象真实存在，但正文更偏算法、优化、诊断、仿真或工具演示，离可直接写成 `STM.md` 还差一层整理。
    - 有控制对象，但状态信息主要在图中、图注中或散落多个段落，文本证据可提但成本较高。
+   - 论文虽然和控制相关，但更像 `Hybrid / T2 / T3` 或连续优化样本，当前又缺少明确离散模式链、局部 timer 或 guard/输出映射时，可先降到背景补样而非主补样优先级。
 3. 排除条件
    - 研究对象不是控制系统运行客体，而是流程、框架、工具、工作流或方法论。
    - 论文只有连续控制性能、参数调优、轨迹优化或感知估计，没有离散行为逻辑。
@@ -279,6 +282,8 @@
 
 本轮对 `7` 条“原文够、描述抽薄”的条目逐条回刷后，后续新增或重写 `STM.md` 时，默认还应额外补核下面两类高频缺口。若这些点在原文中存在，却没有进入摘录或描述，就很容易再次出现“原文 `A/B`、描述降级”的问题。
 
+同时，结合 [SUMMARY.md](./SUMMARY.md) 里当前 `原文 = 描述 = 🟢 A` 且 `FSM / HSM / EFSM + T0 / T1` 的条目复盘，当前主数据集最稳的目标画像可以压缩成一句话：**具体工程控制客体 + 明确状态/模式/阶段 + 输入感知或 guard + 输出动作 + 局部 timer/稳定事件顺序 + 异常/恢复链**。后续若本轮目标是补主数据集，应优先筛和优先保这种结构。
+
 1. 原文摘录侧默认补核以下项目
    - **显式状态名链**：不要只摘“系统会计算/切换/释放”，还要把原文中真正出现的状态名摘出来，例如 `idle / Entry / CalcSlipRate / Exit`、`idle / commanded / proved / occupied`、五个 timing cycles、四个 sibling movement machines。
    - **精确 guard / 阈值 / 公式**：不要只摘“当滑移过大时释放制动”“按密度分配时长”这类摘要句；若原文给了比较式、区间或映射表，应把精确表达摘进来，例如 `v<5*(v-w*R)`、`0-30% -> 90s green` 这类信息。
@@ -366,11 +371,14 @@
 
 `## 检索关键词簇` 不是静态列表，必须每次更新，尤其要结合“状态机描述收获盘点”中已经确认 `🟢 直接可用` 的论文标题和关键词，不断修正后续检索倾向。
 
-每次更新该部分时，至少应做三件事：
+当前更新时，默认优先复盘 [SUMMARY.md](./SUMMARY.md) 中已经达到 `原文 = 描述 = 🟢 A` 且 `状态机类型 ∈ {FSM, HSM, EFSM}`、`时间级别 ∈ {T0, T1}` 的条目。原因很直接：这一组是当前最贴近主数据集目标、也最适合简单仿真的样本来源，后续关键词簇应优先从它们身上反推。
+
+每次更新该部分时，至少应做四件事：
 
 1. 保留当前仍有效的基础检索组合。
-2. 根据本轮新发现的 `🟢 直接可用` 论文，补充更偏向高产样本的标题词、对象词、行为词、控制词。
-3. 根据本轮大量 `⚪ 未收获` 的论文，明确哪些词更容易导向“方法/综述/架构/安全分析”而非有效 STM 样本，并适当降权。
+2. 先从当前双 A 的 `FSM / HSM / EFSM + T0 / T1` 条目里反推对象词、行为词、输入词、输出词、时间词，优先补能稳定导向主数据集样本的组合。
+3. 再根据本轮新发现的 `🟢 直接可用` 论文，补充更偏向高产样本的标题词、对象词、行为词、控制词。
+4. 根据本轮大量 `⚪ 未收获` 的论文，明确哪些词更容易导向“方法/综述/架构/安全分析”而非有效 STM 样本，并适当降权。
 
 搜索执行时，应当尽量按照当前“检索关键词簇”的指导方向来做，以复用已经验证过的高命中经验；但同时不能机械地只在现有关键词范围内打转。
 
@@ -402,15 +410,17 @@
 
 可重点观察的高命中特征包括：
 
-1. 标题直接出现具体控制对象，如 `infusion pump`、`pacemaker`、`elevator control`、`traffic light controller`、`landing gear system`、`railway interlocking`、`platoon`、`ABS`、`parking system`、`PLC`。
-2. 标题或关键词同时出现控制对象与行为词，如 `controller`、`control system`、`operation mode`、`state machine`、`FSM`、`mode switching`、`interlocking table`、`verification of ... control system`。
-3. 标题中带有具体系统设计/功能逻辑意味的词，如 `design`、`requirements`、`specification`、`control logic`、`formal model of ... system`。
+1. 标题直接出现具体控制对象，并同时带 `controller / control system / control program / software / mission management` 这类控制载体词。
+2. 标题或关键词同时出现行为词，如 `state machine`、`FSM`、`HSM`、`mode`、`operation mode`、`sequence`、`cycle`、`procedure`、`priority override`、`task activation`。
+3. 标题或摘要里能同时看到输入感知词与输出执行词，如 `float switch / proximity sensor / hall call / RFID / camera` 搭配 `valve / pump / motor / door / light / beacon`。
+4. 当前主补样的高产对象仍集中在 `PLC / SCADA` 工程控制与少量模式管理样本，如 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging`、`water level/head tank`、`landing gear`、`CubeSat safe mode`、`UAV mission management`。
 
 常见低命中特征包括：
 
 1. `review`、`survey`、`state of the art`、`architecture`、`framework`、`middleware`、`standards landscape`。
 2. 只强调 `security analysis`、`attack`、`vulnerability`、`knowledge-based system`，但不描述控制对象行为的论文。
 3. 只讨论建模流程、工程流程、工具流程，而不是控制系统运行逻辑的论文。
+4. 只强调 `path planning`、`trajectory tracking`、`reinforcement learning`、`optimization`、`pose estimation`、`disturbance rejection`，却没有 `mode / stage / sequence / timer / override` 这类离散行为词的论文。
 
 换言之，后续 AI 不能只“继续搜同一批词”，而必须从已经验证为 `🟢 直接可用` 的论文中反推什么样的标题和关键词最容易产出有效 STM 样本，并把这种偏向写回 [SUMMARY.md](./SUMMARY.md) 的“检索关键词簇”部分。
 
@@ -418,8 +428,8 @@
 
 因此，后续每轮检索时，建议同时做两层优先级判断：
 
-1. 第一层：这个关键词簇是否大概率能导向“具体控制系统客体”的有效样本；
-2. 第二层：在这些高概率方向里，优先挑当前领域统计相对偏少的方向先做，以保持全局分布更均衡。
+1. 第一层：这个关键词簇是否大概率能导向“具体控制系统客体”的有效样本，尤其是 `FSM / HSM / EFSM + T0 / T1` 的离散控制链。
+2. 第二层：在这些高概率方向里，优先挑当前领域统计相对偏少、或 `FSM/HSM` 样本相对不足的方向先做，以保持全局分布更均衡。
 
 另外，每一轮检索的论文候选数量不应过少：原则上每轮搜索得到并实际筛查的候选论文数不得少于 `20` 篇，且本轮最终实际下载入库的文献数量不得少于 `10` 篇；不要只做 `3-5` 篇这种过小批量，因为批量过小会明显降低后续 AI 并行整理、提取和比较的效率。
 
