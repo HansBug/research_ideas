@@ -15,9 +15,9 @@
 - 状态机类型：Hybrid（混成状态机）
 - 时间级别：T3（混成时间 / 连续时间耦合）
 - 结构标签：连续耦合
-- 原文细节充实度：🔴 D（摘要/背景级）
-- 描述细节充实度：🔴 D（摘要/背景级）
-- 数据集角色：🧰 清洗后保留
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
 - 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
@@ -50,18 +50,80 @@
 > a specific manner in order to extract critical information necessary for generating appropriate
 > advice for the driver.
 
+#### 摘录 C
+- 出处：第 6-7 页，`3.2. Image Processing`，行 294-318
+> The fuzzy parking aid system automatically
+> starts capturing images once it is activated by
+> the user. Figure 6 shows the simple block di-
+> agram of the system design. The video stream
+> of images coming from the cameras is fed to
+> an image processing unit, which processes the
+> image to calculate the distance parameters and
+> passes them on to the fuzzy logic unit which
+> makes appropriate decisions and presents the
+> output as guidance advice to the driver for par-
+> allel parking.
+> The captured image is processed to acquire dis-
+> tances from front and back vehicles as well
+> as lateral distances from the curb.
+> Images re-
+> ceived from the two USB cameras are treated
+> as two independent streams of images for real
+> time processing. The images in both streams
+> first go through two dimensional median filter-
+> ing
+
+#### 摘录 D
+- 出处：第 7 页，`3.2. Image Processing`，行 320-338
+> The second step
+> in processing is applying edge detection proce-
+> dure to detect edges of the objects in the scene.
+> Edge detection step of the process is done by
+> using Sobel filter.
+> The edge detection process converts the image
+> to a binary image with 0’s and 1’s.
+> Next step in the image processing
+> is measuring the pixel distance of the objects
+> in the scene by counting pixels in the specific
+> predetermined directions.
+> Rear camera images
+> are used for getting two distance parameters
+> as shown in Figure 7. The straight up vector
+> (R), measures the distance of the object or the
+> available space behind the vehicle, D
+> r,a n dt h e
+> 45 degree angled vector (C)measures the dis-
+> tance from the curb, Dlf.
+
+#### 摘录 E
+- 出处：第 11-12 页，`3.5. HMI of the System / 4. Testing Robustness of the System`，行 557-563, 611-616
+> The screen layout has four
+> quadrants for forward, backward movement and
+> left and right steering. The suggested steer-
+> ing position and the movement, including the
+> speed of movement, are shown on the screen
+> as shown in Figure 12.
+> The real time operation speed of
+> the system is found to be quite satisfactory with
+> 0.4-second update speed. The system evaluated
+> current condition of vehicle and distances be-
+> tween obstacles continuously and provided new
+> instructions to the driver every 0.4 seconds.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The parallel parking aid system uses two strategically located low-resolution cameras to observe the vehicle surroundings and extract the information needed for parking guidance. A fuzzy-logic decision block processes the visual distance information and generates instant advice for the driver. The generated advice is relayed through an LCD-based HMI that presents graphical instructions about what the driver should do during the parking maneuver.
+Once the user activates the parking aid, the system starts capturing image streams from two strategically located low-resolution wide-angle cameras mounted at the front and rear of the vehicle. The two image streams are processed independently in real time: the images are smoothed by two-dimensional median filtering, converted through Sobel edge detection, and then used to count the front, rear, and curb distance parameters needed for parking guidance. These measured distances are passed to a fuzzy-logic decision unit that mimics an expert driver and generates instant parking advice. The resulting guidance is shown on an LCD HMI with quadrants for forward/backward motion and left/right steering, including movement speed, and the system refreshes the driver instructions about every 0.4 seconds.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The parallel parking aid system uses two strategically located low-resolution cameras to observe the vehicle surroundings and extract the information needed for parking guidance.
-   对应摘录：A, B
-2. 句子 2：A fuzzy-logic decision block processes the visual distance information and generates instant advice for the driver.
-   对应摘录：A, B
-3. 句子 3：The generated advice is relayed through an LCD-based HMI that presents graphical instructions about what the driver should do during the parking maneuver.
-   对应摘录：A, B
+1. 句子 1：Once the user activates the parking aid, the system starts capturing image streams from two strategically located low-resolution wide-angle cameras mounted at the front and rear of the vehicle.
+   对应摘录：A, B, C
+2. 句子 2：The two image streams are processed independently in real time: the images are smoothed by two-dimensional median filtering, converted through Sobel edge detection, and then used to count the front, rear, and curb distance parameters needed for parking guidance.
+   对应摘录：C, D
+3. 句子 3：These measured distances are passed to a fuzzy-logic decision unit that mimics an expert driver and generates instant parking advice.
+   对应摘录：A, B, C
+4. 句子 4：The resulting guidance is shown on an LCD HMI with quadrants for forward/backward motion and left/right steering, including movement speed, and the system refreshes the driver instructions about every 0.4 seconds.
+   对应摘录：A, E
 
 ## 条目 2: Two-stage parking maneuver with trigger handoff
 - 控制对象：并联泊车辅助系统中的 Stage 1 / Stage 2 分阶段控制逻辑
@@ -116,17 +178,47 @@ The parallel parking aid system uses two strategically located low-resolution ca
 > the driver instructions are generated and HMI
 > screen is controlled by this stage.
 
+#### 摘录 C
+- 出处：第 9 页，`3.3. Fuzzy Inference Systems`，行 431-447
+> The fuzzy rules for the Stage 1 are as follows:
+> •If(Curb isfar)then (MovingDirection is
+> Reverse )(1)
+> •If(Curb isfar)and(RearCar is not close )
+> then (SteeringGuide isTurnRight )(Mov-
+> ingDirection isReverse )(0.9)
+> •If(Curb isMiddleOUT )and (RearCar is
+> notclose )then (SteeringGuide isTurnRight )
+> (MovingDirection isReverse )(0.9)
+> •If(Curb isMiddleIN )and(RearCar is not
+> close )then (SteeringGuide isTurnleft )(Mov-
+> ingDirection isReverse )(0.9)
+
+#### 摘录 D
+- 出处：第 9-10 页，`Stage 2 Fuzzy Inference System`，行 449-457
+> Stage 2 uses the same fuzzy variables “ curb”,
+> “rearCar ”, and “ frontCar ”.
+> Fuzzy rules for Stage 2 are as follows:
+> •If(FrontCar is not close )and(Curb isclose )
+> then (SteeringGuide isTurnRight )(Mov-
+> ingDirection isForward )(1
+> )
+> •If(FrontCar isclose )and(RearCar is not
+> close )then (SteeringGuide isTurnleft )(Mov-
+> ingDirection isReverse )(1)
+
 ### 2. 基于原文整理后的自然语言描述
 
-The parking maneuver is executed in two distinct stages. In Stage 1, the controller guides the driver from the initial position to an intermediate position where the rear of the vehicle is already inside the parking space while the front is still partially outside. Stage 2 starts from that intermediate position and performs the final corrections needed to place the vehicle completely in the parking position. The Stage 1 system outputs moving direction and steering guidance to the HMI, and its internal trigger output initiates the independent Stage 2 inference system, which then takes over the driver instructions on the HMI.
+The parking maneuver is executed in two distinct stages. In Stage 1, the fuzzy controller drives the vehicle from the initial position A to the intermediate position B where the rear end is already inside the parking space while the front end is still partially outside, and it outputs `movingDirection`, `steeringGuide`, and an internal `trigger` signal. During this stage, the HMI-displayed guidance is produced from the linguistic inputs `frontCar`, `rearCar`, and `curb`, with rules such as reversing while turning right when the curb is far or middle-out and the rear car is not close, and reversing while turning left when the curb becomes middle-in. The internal `trigger` output starts a completely independent Stage 2 inference system at position B, and Stage 2 then takes over the HMI. In Stage 2, the controller uses the same input variables but different rules to generate the final forward/reverse and steering corrections that bring the vehicle to the final parking position C.
 
 ### 3. 逐句溯源
 
 1. 句子 1：The parking maneuver is executed in two distinct stages.
    对应摘录：A
-2. 句子 2：In Stage 1, the controller guides the driver from the initial position to an intermediate position where the rear of the vehicle is already inside the parking space while the front is still partially outside.
-   对应摘录：A
-3. 句子 3：Stage 2 starts from that intermediate position and performs the final corrections needed to place the vehicle completely in the parking position.
-   对应摘录：A
-4. 句子 4：The Stage 1 system outputs moving direction and steering guidance to the HMI, and its internal trigger output initiates the independent Stage 2 inference system, which then takes over the driver instructions on the HMI.
-   对应摘录：B
+2. 句子 2：In Stage 1, the fuzzy controller drives the vehicle from the initial position A to the intermediate position B where the rear end is already inside the parking space while the front end is still partially outside, and it outputs `movingDirection`, `steeringGuide`, and an internal `trigger` signal.
+   对应摘录：A, B
+3. 句子 3：During this stage, the HMI-displayed guidance is produced from the linguistic inputs `frontCar`, `rearCar`, and `curb`, with rules such as reversing while turning right when the curb is far or middle-out and the rear car is not close, and reversing while turning left when the curb becomes middle-in.
+   对应摘录：B, C
+4. 句子 4：The internal `trigger` output starts a completely independent Stage 2 inference system at position B, and Stage 2 then takes over the HMI.
+   对应摘录：A, B
+5. 句子 5：In Stage 2, the controller uses the same input variables but different rules to generate the final forward/reverse and steering corrections that bring the vehicle to the final parking position C.
+   对应摘录：A, D

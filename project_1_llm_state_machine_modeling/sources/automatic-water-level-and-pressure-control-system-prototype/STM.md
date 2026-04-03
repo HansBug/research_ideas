@@ -56,15 +56,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC-based water level controller uses two float level sensors to supervise the tank level. When the lower float LL is reached, the PLC interprets the tank as empty and starts the pump to transfer water from the source container into the tank. When the upper float HL is reached, the PLC stops the pump after receiving the high-level signal.
+The PLC-based water level controller uses a double-float level sensor mounted in the tank, where the lower float LL and the upper float HL send level signals into the PLC input module while the inlet water valve is driven from the PLC output side. When the lower water level reaches the LL limit, the lower float indicates that the tank is becoming empty and the PLC runs the motorized pump to transfer water from the water container into the tank. When the rising water pushes the upper float into the HL limit, the float sensor sends the high-level signal and the PLC switches off the motor so pumping stops at the high level.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The PLC-based water level controller uses two float level sensors to supervise the tank level.
+1. 句子 1：The PLC-based water level controller uses a double-float level sensor mounted in the tank, where the lower float LL and the upper float HL send level signals into the PLC input module while the inlet water valve is driven from the PLC output side.
    对应摘录：A, B
-2. 句子 2：When the lower float LL is reached, the PLC interprets the tank as empty and starts the pump to transfer water from the source container into the tank.
+2. 句子 2：When the lower water level reaches the LL limit, the lower float indicates that the tank is becoming empty and the PLC runs the motorized pump to transfer water from the water container into the tank.
    对应摘录：B
-3. 句子 3：When the upper float HL is reached, the PLC stops the pump after receiving the high-level signal.
+3. 句子 3：When the rising water pushes the upper float into the HL limit, the float sensor sends the high-level signal and the PLC switches off the motor so pumping stops at the high level.
    对应摘录：A, B
 
 ## 条目 2: Fill-delay-drain-repeat tank cycle
@@ -101,13 +101,15 @@ The PLC-based water level controller uses two float level sensors to supervise t
 
 ### 2. 基于原文整理后的自然语言描述
 
-After the program is activated, the ladder controller immediately starts the pump and fills the tank from the water source. When the water reaches the high-level setting, the controller holds the state for a timer-defined delay and then opens the solenoid valve so that the water falls back to the source container. Once the water reaches the low-level setting again, the solenoid valve is closed, the pump restarts, and the cycle repeats until the program is deactivated.
+After the ladder program is activated, rung 0 turns on the start indication and rung 2 immediately starts the pump so water is filled from the resource container into the tank. When the water reaches the high-level setting, the controller keeps the water state for the timer value defined in rung 3 and then opens the solenoid valve. The opened valve lets water fall from the tank back into the water container, and once the level reaches the lower setting the valve closes immediately and the pump starts again. This fill-delay-drain-restart cycle repeats continuously until the program is deactivated and the stop indication of rung 1 is turned on.
 
 ### 3. 逐句溯源
 
-1. 句子 1：After the program is activated, the ladder controller immediately starts the pump and fills the tank from the water source.
+1. 句子 1：After the ladder program is activated, rung 0 turns on the start indication and rung 2 immediately starts the pump so water is filled from the resource container into the tank.
    对应摘录：A
-2. 句子 2：When the water reaches the high-level setting, the controller holds the state for a timer-defined delay and then opens the solenoid valve so that the water falls back to the source container.
+2. 句子 2：When the water reaches the high-level setting, the controller keeps the water state for the timer value defined in rung 3 and then opens the solenoid valve.
    对应摘录：A
-3. 句子 3：Once the water reaches the low-level setting again, the solenoid valve is closed, the pump restarts, and the cycle repeats until the program is deactivated.
+3. 句子 3：The opened valve lets water fall from the tank back into the water container, and once the level reaches the lower setting the valve closes immediately and the pump starts again.
+   对应摘录：A
+4. 句子 4：This fill-delay-drain-restart cycle repeats continuously until the program is deactivated and the stop indication of rung 1 is turned on.
    对应摘录：A

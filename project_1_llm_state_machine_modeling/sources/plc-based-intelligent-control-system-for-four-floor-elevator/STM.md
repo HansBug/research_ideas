@@ -32,15 +32,25 @@
 >
 > The PLC logic maintains a state machine that processes these inputs and controls the outputs. Key features include: Collective Call Scheduling: When moving in one direction, the elevator serves all requests in that direction before reversing. For example, if the car is travelling up and there are pending requests above the current floor, it continues upward until they are cleared and then changes direction. Direction State Machine: The program has three states: Ascending, Descending, and Stopped. Transitions depend on pending calls and the current state.
 
+#### 摘录 B
+- 出处：第 6-8 页，`4.2 Door Control / 4.3 Main Ladder Networks / 5. Implementation and Testing`，行 199-223, 231-235, 263-265
+> When the car arrives at the requested floor (indicated by a floor sensor), the PLC triggers Q0.2 to open the doors for a fixed dwell time (e.g., 3 s). After the interval, the PLC signals the door to close. If the obstruction sensor becomes active during closing, the program reopens the doors and restarts the closing timer ...
+> ...
+> When a car-call or hall-call button is pressed, the input is latched and stored in a memory register for future reference. The program then evaluates the current state and activates either the Up or Down motor (Q0.0 or Q0.1), depending on the requested direction. Simultaneously, the floor sensors updated the car’s position, and the door output (Q0.2) was triggered upon arrival. The ladder logic ensures that only one directional output is active at any time ...
+> ...
+> In all scenarios, the doors opened for the programmed interval at each stop, and the simulated obstruction or overload signals were handled correctly (doors reopened or motion halted).
+
 ### 2. 基于原文整理后的自然语言描述
 
-The controller manages motor direction, door actuation, floor sensing, obstruction detection, overload interlocking, and both car-call and hall-call requests. It maintains a three-state direction machine with Ascending, Descending, and Stopped states, and it serves all requests in the current direction before reversing. Door closing is inhibited by a doorway obstruction, and car motion is disallowed while the cabin remains overloaded.
+The controller manages motor direction, door actuation, floor sensing, obstruction detection, overload interlocking, and both car-call and hall-call requests, and every request is latched into a memory register for later service. It maintains a three-state direction machine with Ascending, Descending, and Stopped states, and it serves all requests in the current direction before reversing. The ladder logic permits only one drive output at a time, so `Q0.0` and `Q0.1` are never active simultaneously and both are off in the Stopped state or while the doors are opening. When a requested floor sensor is reached, `Q0.2` opens the doors for a fixed dwell of about three seconds, after which the door closes; if the obstruction sensor becomes active during closing the controller reopens the door and restarts the closing timer, and if the overload input is true the motion outputs remain inhibited until the condition clears.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The controller manages motor direction, door actuation, floor sensing, obstruction detection, overload interlocking, and both car-call and hall-call requests.
-   对应摘录：A
+1. 句子 1：The controller manages motor direction, door actuation, floor sensing, obstruction detection, overload interlocking, and both car-call and hall-call requests, and every request is latched into a memory register for later service.
+   对应摘录：A, B
 2. 句子 2：It maintains a three-state direction machine with Ascending, Descending, and Stopped states, and it serves all requests in the current direction before reversing.
    对应摘录：A
-3. 句子 3：Door closing is inhibited by a doorway obstruction, and car motion is disallowed while the cabin remains overloaded.
-   对应摘录：A
+3. 句子 3：The ladder logic permits only one drive output at a time, so `Q0.0` and `Q0.1` are never active simultaneously and both are off in the Stopped state or while the doors are opening.
+   对应摘录：B
+4. 句子 4：When a requested floor sensor is reached, `Q0.2` opens the doors for a fixed dwell of about three seconds, after which the door closes; if the obstruction sensor becomes active during closing the controller reopens the door and restarts the closing timer, and if the overload input is true the motion outputs remain inhibited until the condition clears.
+   对应摘录：A, B

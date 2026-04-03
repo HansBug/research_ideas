@@ -32,15 +32,44 @@
 >
 > This section presents the problems which are needed to solve through the ladder diagram. Ladder diagram is used to realize the many functionalities of the elevator control system. Some of the functionalities are, program should be written to make the display on which indicates the upward or downward movement, the door of the elevator should be programmed to open and close automatically, when the elevator has no request it remains at its current floor with its door opened, floor lamp should glow within the lift to indicate the current position.
 
+#### 摘录 B
+- 出处：第 2-4 页，`Flow Chart / Ladder Program / Fire Sensor Ladder Logic`，行 173-183, 192-209, 224-234
+> The flow chart consists of three threads first thread checks
+> the status of the push button within the lift and also
+> status of push buttons in different floors, and also the
+> management of the request queues are also monitored
+> in the first thread. Second thread sets the current position of the lift to
+> proper value taking input from the queue. Third thread
+> is responsible for the upward and downward moment of
+> the elevator car. If the current position of the elevator
+> cabin is less than the first element of the queue then the
+> elevator cabin should move in upward direction. If the
+> current position of the elevator cabin is greater than the
+> first element of the queue the elevator cabin should
+> move in the downward direction.
+> ...
+> This program performs the two functions,
+> -Make the elevator response the normal down hall-calls
+> when it is moving down, and when a down hall-call is
+> served, its registration is cancelled.
+> -When the elevator is moving up, the corresponding
+> floors down hall-call it passing by is not served and the
+> registration is remained.
+> ...
+> The input terminal will detect the fire, and as the output
+> the elevator will stops to the nearest down floor.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC elevator controller takes operational-mode, safety, car-call, hall-call, floor-sensor, levelling-sensor, and door signals as inputs. It prioritizes hall and car calls, drives the up/down indication display, and controls the door to open and close automatically. When no request is pending, the elevator remains at its current floor with the door open and the floor lamp indicating the current position.
+The PLC elevator controller takes operational-mode, safety, car-call, hall-call, floor-sensor, levelling-sensor, door, and fire-switch signals as inputs, and it outputs hall-call lamps, car-call lamps, door opening/closing commands, and up/down movement indications. Its logic is organized as three concurrent threads: one monitors car calls, hall calls, and the request queue, one updates the current position of the lift, and one compares the current position with the first queue element to decide upward or downward motion. The controller automatically opens and closes the door, keeps the elevator at its current floor with the door open when there is no request, and keeps the floor lamp indicating the current position. It also preserves opposite-direction hall calls instead of serving them while the car is moving the other way, and if the fire input is detected the elevator is guided to the nearest down floor.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The PLC elevator controller takes operational-mode, safety, car-call, hall-call, floor-sensor, levelling-sensor, and door signals as inputs.
+1. 句子 1：The PLC elevator controller takes operational-mode, safety, car-call, hall-call, floor-sensor, levelling-sensor, door, and fire-switch signals as inputs, and it outputs hall-call lamps, car-call lamps, door opening/closing commands, and up/down movement indications.
    对应摘录：A
-2. 句子 2：It prioritizes hall and car calls, drives the up/down indication display, and controls the door to open and close automatically.
+2. 句子 2：Its logic is organized as three concurrent threads: one monitors car calls, hall calls, and the request queue, one updates the current position of the lift, and one compares the current position with the first queue element to decide upward or downward motion.
+   对应摘录：B
+3. 句子 3：The controller automatically opens and closes the door, keeps the elevator at its current floor with the door open when there is no request, and keeps the floor lamp indicating the current position.
    对应摘录：A
-3. 句子 3：When no request is pending, the elevator remains at its current floor with the door open and the floor lamp indicating the current position.
-   对应摘录：A
+4. 句子 4：It also preserves opposite-direction hall calls instead of serving them while the car is moving the other way, and if the fire input is detected the elevator is guided to the nearest down floor.
+   对应摘录：B

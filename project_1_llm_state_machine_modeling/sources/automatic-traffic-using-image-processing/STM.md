@@ -34,13 +34,33 @@
 - 出处：第 5 页，Vehicle counting stage, 行 242-247
 > In my paper we use also from Foreground Detector Blob Analysis function. This function detects the vehicles and then from bounding box we get the size of the detected vehicles. ... It’s considered as the last stage in my paper, it gives the number of cars according to the number of boxes detected around the cars.
 
+#### 摘录 C
+- 出处：第 3-5 页，`2.1.2. Block Diagram / 3) Image Enhancement`，行 117-137, 150-166, 217-243
+> The video is divided into frames, and is taken as the input frames.
+> ...
+> Foreground Detector detect foreground using Gaussian Mixture Models (GMM) ...
+> Foreground Detector also changes the image type from “RGB” to “Gray” then
+> to “Binary” and applies filtering at different levels.
+> ...
+> First step is removing small connected components and objects from binary
+> image ...
+> Second step is by make dilate process ...
+> Third step is by make rode process ...
+> ...
+> In my paper we use also from Foreground Detector Blob Analysis function.
+> This function detects the vehicles and then from bounding box we get the size of the detected vehicles.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The controller captures image sequences from cameras mounted with the traffic light and filters the scene to isolate vehicles while removing irrelevant objects. It counts detected cars from bounding boxes and uses the resulting density of each direction to assign sufficient signal time for that approach.
+The controller takes a video stream or camera captures from the traffic-light location, divides the input into frames, and feeds each frame into a foreground-detection pipeline. In that pipeline, the image is processed with a Gaussian-mixture foreground detector, converted from RGB to gray and then binary, cleaned by removing small connected components, and further shaped by dilate and erode operations before vehicle blobs are extracted. Blob analysis then builds bounding boxes for the detected vehicles and counts them to estimate the density of each direction. The resulting count is intended to assign sufficient signal time to each traffic sign according to the observed vehicle load.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The controller captures image sequences from cameras mounted with the traffic light and filters the scene to isolate vehicles while removing irrelevant objects.
+1. 句子 1：The controller takes a video stream or camera captures from the traffic-light location, divides the input into frames, and feeds each frame into a foreground-detection pipeline.
+   对应摘录：A, C
+2. 句子 2：In that pipeline, the image is processed with a Gaussian-mixture foreground detector, converted from RGB to gray and then binary, cleaned by removing small connected components, and further shaped by dilate and erode operations before vehicle blobs are extracted.
+   对应摘录：C
+3. 句子 3：Blob analysis then builds bounding boxes for the detected vehicles and counts them to estimate the density of each direction.
+   对应摘录：B, C
+4. 句子 4：The resulting count is intended to assign sufficient signal time to each traffic sign according to the observed vehicle load.
    对应摘录：A
-2. 句子 2：It counts detected cars from bounding boxes and uses the resulting density of each direction to assign sufficient signal time for that approach.
-   对应摘录：A, B
