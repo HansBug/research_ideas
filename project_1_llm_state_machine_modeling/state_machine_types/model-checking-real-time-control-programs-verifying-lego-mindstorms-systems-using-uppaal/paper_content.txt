@@ -1,0 +1,1158 @@
+--- Page 1 ---
+BRICS RS-99-53 Iversen etal.: Model-Checking Real-TimeControl ProgramsBRICS
+Basic ResearchinComputer Science
+Model-Checking
+Real-Time Control Programs
+VerifyingLEGOMindstormsSystemsUsingUPPAAL
+Torsten K.Iversen
+K˚areJ.Kristoffersen
+KimG.LarsenMorten Laursen
+Rune G.Madsen
+Steffen K. MortensenPaulPetterssonChris B. Thomasen
+BRICSReport Series RS-99-53
+ISSN 0909-0878 December 1999
+
+--- Page 2 ---
+Copyright c/circlecopyrt1999, Torsten K. Iversen& K ˚areJ.Kristoffersen &
+Kim G.Larsen & MortenLaursen &Rune G.
+Madsen & Steffen K.Mortensen & Paul
+Pettersson & Chris B. Thomasen.
+BRICS, Department of Computer Science
+University of Aarhus. All rightsreserved.
+Reproduction ofallorpart ofthis work
+is permitted foreducational orresearch useon conditionthat thiscopyright noticeisincluded in any copy.
+SeebackinnerpageforalistofrecentBRICSReportSeriespublications.
+Copiesmay be obtained by contacting:
+BRICS
+Department of Computer Science
+Universityof AarhusNyMunkegade, building 540DK–8000Aarhus C
+Denmark
+Telephone:+45 89423360
+Telefax: +45 89423255Internet: BRICS@brics.dk
+BRICS publications are in general accessible through the World Wide
+Weband anonymous FTP through these URLs:
+http://www.brics.dk
+ftp://ftp.brics.dkThis document insubdirectory RS/99/53/
+
+--- Page 3 ---
+Model-Checking Real-Time ControlPrograms
+VerifyingLEGO MINDSTORMS SystemsUsing U PPAAL
+TorstenK. Iversen K˚ are J. Kristoffersen Kim G.Larsen MortenLaursen
+RuneG. Madsen Steffen K. Mortensen Paul Pettersson Chris B. Thomasen
+BRICS, DepartmentofComputerScience, AalborgUniversity,
+Fredrik Bajersvej 7E,DK-9220 AalborgEast, Denmark.
+E-mail: ftorsten,jelling,kgl,morten,rune,kondrup,paupet,chris g@cs.auc.dk
+Abstract
+In this paper, we present a method for automatic veri-
+ﬁcation of real-time control programs running on LEGO 
+RCXbricksusingthe veriﬁcationtool UPPAAL. The con-
+trolprograms,consistingofanumberoftasksrunningcon-
+currently, are automatically translated into the timed au-
+tomata model of UPPAAL. The ﬁxed scheduling algorithm
+used by the LEGO RCXprocessor is modeled in UP-
+PAAL, and supply of similar (sufﬁcient) timed automata
+models for the environment allows analysis of the overall
+real-time system using the tools of UPPAAL. To illustrate
+our techniques we have constructed, modeled and veriﬁedamachineforsortingLEGO bricksby color.
+1 Introduction
+Real-time systems consist of a control program operat-
+ing in a time-sensitive environment (a piece of hardware
+or a physical plant). As such it is imperative that the ser-
+vicesofthe controlprogramareofferedina timelymannerin order that the behavior of the environmentis supervised
+and controlled appropriately. The interaction between the
+(discrete) control program and the (potentially analog) en-
+vironmenttakesplaceviavarioussensorsandactuators(see
+Figure1).
+Designing and verifying real-time systems not only re-
+quiresamodelofthetasksconstitutingthecontrolprogram,
+but also calls for a model of the environmentwhich is suf-
+ﬁciently detailed for the properties of concern. As the in-teraction between the tasks of the control program and the
+environmentis assumed to be time-sensitive it is important
+BasicResearchInComputerScience, Centre of the Danish National
+Research Foundation.T1
+TnSch
+......Environment ControlProgram
+UPPAALModelS
+A
+S
+A
+Figure 1. In our framework the tasks and
+scheduler are automatically translated to
+timed automata. Sensors and actuators are
+modeledbyintegervariablescontainingtheirreadings and settings. The user provides a
+timed automatonmodeloftheenvironment.
+that our model also takes into account the overhead intro-
+duced by the particular algorithm applied for scheduling
+tasks.
+In this paper, we present a method for automatic veri-
+ﬁcation of real-time control programs running on LEGO 
+RCXbricks using the veriﬁcation tool U
+PPAAL[9]. The
+LEGORCXbrick (see Figure 9) is part of LEGO 
+MINDSTORMS andLEGO ROBOLAB . TheRCX 
+brick is essentially a big LEGO brick with a small pro-
+cessorinside. Thebrickhassixcommunicationportstothe
+environment:threesensorinputsandthreeactuatoroutputs.
+1
+
+--- Page 4 ---
+*** Task 0 = main
+000 PlaySound 1 51 01002 Delay 100 43 02 64 00
+006 Jump 0 72 87 00
+Figure 2. A simple RCX program that peri-
+odicallyplays asound.
+An infrared port enables communication between RCX 
+bricksandallowsforeasydownloadofprograms
+Thecontrolprograms—consistingofanumberoftasks
+running concurrently — are automatically translated into
+the timed automata model of U PPAAL. The ﬁxed schedul-
+ing algorithm used by the LEGO RCXprocessor is
+modeled in U PPAAL, and supply of similar (sufﬁcient)
+timedautomatamodelsfortheenvironmentallowsanalysis
+oftheoverallreal-timesystemusingthetoolsof U PPAAL.
+Related work includes the work of Corbett [4] and
+Bj¨ornfot [3], which both address the problem of analyzing
+Ada programs using veriﬁcation tool such as HyTech [5]
+andUPPAAL[9]. Morecloselyrelatedisourwork[7]where
+wesynthesizeRCX controlprogramsfromU PPAALmod-
+els. TheworkbyHunein [6]isevencloserrelated. Onone
+hand our modeling of the scheduling algorithm is simpler
+which on the other hand allows us to verify scenarios with
+moredetailedmodelsoftheenvironment.
+In Section 2, we present the preliminaries of this pa-
+per, including a brief description of the programming lan-
+guage(s) used to program the RCX bricks, and a brief
+summary of U PPAAL. Section 3, describes our translation
+ofcontrolprogramsandmodelingofthescheduler. Section
+4 and 5 then applies our method to the modeling and veri-ﬁcationofasortingmachineforLEGO bricks
+1.UPPAAL
+is successfully applied to prove that indeed the bricks are
+sorted correctly. Additionally U PPAALsucceds in pointing
+out an error in a setting where the model of the environ-
+ment does notsatisfy the assumptions made by the control
+program.
+2 Preliminaries
+2.1 TheRCX
+We shall consider control programs execut-
+ing on the LEGO RCXbrick [11], part of the
+LEGOMINDSTORMS and LEGO ROBOLAB 
+series. The RCX brick is basically a big LEGO brick
+with a built in (small) processor. It has a speaker, three
+sensor input ports, three actuator output ports, and an
+1Ordinary, old-fashioned, LEGO bricks.task main{
+while( true ) {
+PlaySound( 1 );
+Sleep( 100 );
+}
+}
+Figure 3. A simple NQCprogram that periodi-
+cally plays asound.
+S0 S1 S2
+T0
+y<=42T1P:i:=i+1 x==5
+a!
+Q:a?
+Figure4.A simple UPPAALmodel.
+infrared port for communication between bricks and for
+easydownloadingofprogramsfromanexternalcomputer.
+TheRCX brickisequippedwithaninterpretercapable
+of handling programs with up to ten tasks and 32 integer
+variables. It interprets an assembly like low level languagewhichwewillcallRCX bytecode. AnsmallRCX byte
+code program with one task that plays a beep sound every
+tens econdiss ho wninFigure2.
+2.2 NotQuite C
+The RCX brick is shipped with a graphical program-
+ming language. We have chosen to use a programming
+language with a textual C like syntax called Not Quite C,
+NQC[2]. It enables programmingof the RCX at a higher
+levelofabstractionthantheRCX bytecodelanguageand
+is more appropriate for our purposes than a graphical lan-guage.
+ANQCprogram, like a RCX byte code program, is
+restricted to ten tasks and 32 global integer variables. In
+addition, the NQCprogramsmay be deﬁned using sub rou-
+tines. A NQCprogram always starts by executing a dedi-
+catedmaintask. The remaining tasks are started by other
+tasks. A simple NQCtask with the same behavior as the
+RCXbytecodeprograminFigure2isshowninFigure3.
+2.3 UPPAAL
+UPPAAL2isamodeling,simulation,andveriﬁcationtool
+for real-time systems modeled as networks of timed au-
+tomata[1]extendedwithdatatypessuchasboundedinteger
+2See the web site http://www.uppaal.com/.
+2
+
+--- Page 5 ---
+Schedulermodel
+HardwareparametersUPPAALmodel
+ofenvironment
+envm...env1
+UPPAALmodel
+taskmaintask1...
+taskn
+scheduler
+env1...
+envmRCXprogram
+taskmaintask1
+taskn.
+..NQCprogram
+taskmaintask1
+taskn.
+..NQCcompiler rcx2uppaal
+Figure 5. Overview of translation from NQC
+programs totimedautomata.
+variables,arraysetc.Forathoroughdescriptionof U PPAAL
+see[9].
+Figure4showsanU PPAALmodelconsistingoftwopar-
+allel timed automata PandQwith two and three locations
+respectively(i.e. S0toS2andT0toT1). They use the two
+clocksxandy,anactionchannel a,andanintegervariable
+i. Initiallyallclocksandintegervariablevaluesarezero.
+When automata Ptakes the transition from S0toS1the
+integer variable iis incrementedby one. For Pto go from
+locationS1toS2theclock xisrequiredtobeexactly5(by
+the guard x==5). On the same transition, the automaton
+mustalsosynchronizeonchannel awithautomata Q,asthe
+edgeislabeledwiththeaction a!. Furthermore,automaton
+Qcan not delay in location S0for more than 42 time units
+becauseofthelocationinvariant y<=42.
+UPPAALcan check reachability and invariance prop-
+erties of boolean combination of automata locations, and
+clocks and integers constraints. In U PPAAL,E<>ex-
+presses that it is possible to reach a state satisfying .D u -
+ally,A[]expressesinvarianceof . Forexample,property
+E<>Q.T1speciﬁesthatautomata Qcanreachlocation. The
+property A[](y>42implyQ.T1) states that automata Q
+is always operating in location T1when clock yis greater
+than42. Thetwopropertiesarebothsatisﬁed in themodel.
+3 From RCX to Timed Automata
+In this section we describe an automated procedure for
+translating NQCcontrol programs into the timed automata
+modeling language of the U PPAALtool. The procedure is
+illustratedin Figure5. It isperformedin twosteps.
+The ﬁrst step is to compile the input NQCprogram,con-
+sisting of a set of NQCtasks and (global) variables, into an
+RCXbyte code program. This is done by the NQCcom-
+piler[2].
+In the next step, the program rcx2uppaal uses the
+produced RCX byte code and a set of timing parameters
+specifyingthetimingrequirementsforperformingthevari-RCX_start
+RCX_timer<1
+RCX_inSchedRCX_timer<=CS RCX_inTaskRCX_active[0]:=1,
+RCX_currentTask:=0,RCX_timer:=0
+RCX_active[RCX_currentTask]==0,RCX_timer==CS
+RCX_timer:=0,
+RCX_currentTask:=RCX_currentTask+1RCX_active[RCX_currentTask]==1,RCX_timer==CS
+RCX_timer:=0 RCX_Go!
+RCX_timer:=0,
+RCX_currentTask:=RCX_currentTask+1RCX_Go?
+Figure 6. Timed automata model of a round-
+robin scheduler.
+ous run-time instruction of the RCX brick. From this in-
+putanetworkoftimedautomatais producedin whicheach
+taskoftheRCX programismodeledasatimedautomaton
+reﬂecting its operationaland timing behavior. The (global)
+variablesaremodeledas(globalandbounded)integervari-
+ables. Inaddition,the rcx2uppaal programalsotakesas
+inputtimedautomatamodelsoftheRCX schedulingalgo-
+rithm and the components in the surrounding environmentoftheRCX brick,affectingthesensorsandactuatorscon-
+nectedtoitsinputandoutputports. Theschedulermodelis
+instantiatedwithtimingparameters,mergedwiththemodeloftheenvironmentandthemodeloftheRCX programto
+producetheﬁnaloutput: anetworkoftimedautomatainthe
+inputformatofthe U
+PPAALtool.
+Inthereminderofthissectionwedescribethescheduler
+model, the translation of RCX programs, and the model
+ofinteractionwiththeenvironmentin moredetail.
+3.1 TheRCX Scheduler
+The RCX brick scheduler executes the task programs
+in round-robin order. The method described here is notrestricted to a particular scheduling algorithm. We use a
+round-robin scheduler in the presentation as it is simple,
+well-known,and moreoverthe actualalgorithmused in the
+RCXbricks.
+Atimedautomatamodelofthe round-robinscheduleris
+shown in Figure 6. It uses the bit array RCX
+active,t h e
+(bounded) integer variable RCXcurrentTask ,a n dt h e
+clockRCXtimerto implement round-robin scheduling.
+The variable RCXcurrentTask is always assigned the
+value of the executing task (or the task to be executed next
+ifnotaskisexecuting). Thebitarray RCXactive hasone
+elementforeachtaskindicatingifthecorrespondingtaskis
+active (i.e. waiting to be executed) or not. We use a[i]to
+denote the value of element iin array a.T a s k iis active if
+RCXactive[ i]=1,otherwiseinactive.
+When the scheduler is started, it ﬁrst executes the
+special task main(or task 0). This is reﬂected in Fig-
+ure 6 by the assignments RCXactive[0]:=0 and
+RCXcurrentTask:=0 on the transition from location
+3
+
+--- Page 6 ---
+idle
+started
+done
+RCX_timer<=SetTime
+endRCX_currentTask==n
+RCX_timer:=0RCX_Go?
+x:=value
+RCX_timer==SetTime
+RCX_Go!
+Figure 7. Timed automata model of the Set
+instruction.
+RCXstarttoRCXinSched, which activates task 0and
+makeit thenexttobeexecuted.
+After initialization, the scheduler executes the ac-
+tive tasks in ﬁxed order by repeatedly incrementing
+RCXcurrentTask by one and executing the corre-
+sponding task. If task RCXcurrentTask is active (i.e.
+ifRCXactive[RCX currentTask] =1),thescheduler
+takes the left loop (to location RCXinTask) and starts the
+task by signaling the task RCXGo!after a delay of CS
+time units, where CSis the overhead time required by the
+scheduler. When the task has ﬁnished executing a single
+instructionit signals RCXGo?to the schedulerwhich pro-
+ceedsbyincrementing RCXcurrentTask byone. Iftask
+RCXcurrentTask isinactivetheschedulerperformsthe
+similar but simpler right loop, in which the signaling onchannel RCX
+Gois not performed (i.e. the task is not ex-
+ecuted).
+The maximum number of tasks in the RCX brick is
+restricted to ten. If the number of tasks is iandi< 10,
+the tasks i;:::; 9remain inactive throughout the execu-
+tion. To ensure that the tasks are executed in round-robin
+order, the domain of the variable RCXcurrentTask is
+0;:::; 9.I n U PPAAL, integer variables are always as-
+signed modulo their domain3. Therefore, incrementing
+RCXcurrentTask by one results in zero if the value is
+nine,whichisexactlythedesiredbehavior.
+3.2 TheRCX Program
+An RCXprogram consist of a set of task programs
+and variables. The variables are compiled into (bounded)integer variables in the U
+PPAALmodeling language. The
+3As a side-effect, the U PPAALveriﬁer generates a warnings when a
+variable is assigned a value outside its domains.idle
+started
+RCX_timer<=DelayTime
+waittimer<=D
+endRCX_currentTask==n
+RCX_timer:=0,
+RCX_active[i]:=0RCX_Go?
+RCX_timer==DelayTime
+timer:=0RCX_Go!
+timer==D
+RCX_active[i]:=1
+Figure 8. Timed automata model of the
+Delay(D) instruction.
+task programsare compiledinto timed automataby replac-
+ing each RCX byte code instruction with a correspond-
+ing timed automata model of the instruction. In this sec-
+tionwedescribehowthisisdonebyexemplifywithtwoin-structions. For a detailed description of how all the RCX 
+instructions are modeled as timed automata we refer to
+[10,8,6]. SeealsoFigure15intheAppendix,whichshowsthe timed automata generated from the RCX task in Fig-
+ure2.
+Mostinstructionsaretranslatedintoastructuresimilarto
+theSetinstruction, show in Figure 7, which assigns vari-
+ablextoagivenvalue. Theinstructionisstartedontheﬁrst
+transition(tolocation started)wereitsynchronizeswiththe
+scheduler RCX
+GoifRCXcurrentTask =i. Thus, the
+starting time of the instruction is controlled by the sched-
+uler. The actual effect of the instruction is modeled on the
+two next transitions were the variable xﬁrst is assigned.
+Theautomatonthendelaysinlocation doneforthetimere-
+quired to perform the Setoperation in the RCX brick.
+Finally,inthelasttransition,theinstructionreturnsthecon-
+trol to the scheduler and waits to perform its next instruc-
+tion. Thus, the endlocation coincides with the startloca-
+tionofthenextinstruction.
+Perhaps the most interesting RCX instruction is
+Delay(D) , which delays the task for Dtime units. Its
+timed automata model for task iis shown in Figure 8. The
+instruction is executed in two stages. In the ﬁrst stage (thetwo ﬁrst transitions in Figure 8) the task in-activates itself
+by resetting its entry (i.e. entry i)i nt h e RCX
+active bit
+arrayto zero. It thendelaysin location startedforthe time
+requiredtoperformtheseoperations(i.e. DelayTime ),re-
+sets the (local) clock timer, and returnsthe controlto the
+scheduler. In the second stage, in location wait,t h et a s k
+delays for Dtime units before (re-)activating itself (i.e. as-
+signing RCXactive[i] to 1) and proceeding to location
+4
+
+--- Page 7 ---
+end.
+Another 30 RCX instructions occur in the NQCcom-
+piler output4: the arithmetic and logical instructions are
+similar to the Setinstruction; the control ﬂow instruc-
+tions,suchas Test,SetLoop ,a n dJumparestraightfor-
+wardlymodeledasbranchingtimedautomata;andthecon-
+trolinstructions, such as StartTask andStopTask are
+variations of the Setinstruction automaton updating the
+RCXactive array. The only instructions not covered by
+ourrcx2uppaal programare the two RCX datalog in-
+structions SetLog andDataLog usedtologvariableval-
+uesduringprogramexecution5. However,forourpurposes
+itissufﬁcienttomodelthemasemptyinstructionsconsum-ing the correct time, as the datalog can not be accessed by
+theprogramorhaveanyaffectontheenvironment.
+3.3 TheEnvironmentInterface
+InadditiontotheRCX program,the NQCcompileralso
+generatesa setofglobalvariablesfortheinterfacebetweenthe tasks and the environment of the RCX brick. The
+rcx2uppaal programcompilestheseintegerstovariables
+in the timed automata modeling language extended with
+(bounded)integersusedin U
+PPAAL.
+Each port is typically modeled by a a tuple of
+variables, e.g. input port 1 is described by the triple(RCX
+InType 1;RCXInMode 1;RCXIN1),w h e r e
+RCXInType 1speciﬁes the type of sensor connected
+to port 1, RCXInMode 1how the sensor values are
+to be interpreted, and RCXIN1is the actual sen-
+sor value. Thus, if a light sensor is connected toport 1, RCX
+InType 1=SENSOR TYPELIGHT,
+RCXInMode 1=SENSOR MODEPERCENT ,a n d
+RCXIN1=50should be interpreted as a light inten-
+sityof50%.
+All communicationbetweenthe RCX programand its
+environmentgoesthroughthe tuplesmodelingtheenviron-
+ment interface. The interaction is implemented using the
+ordinaryinstructions,suchasthe Setinstructiondescribed
+above.
+4 LEGO Example: a Brick Sorter
+To demonstrate our techniques we have built a sorting
+machineforLEGO bricks. Aconveyorbeltequippedwith
+acolorsensorinoneendandakickingarmattheotherend
+is carryingblack and red LEGO bricks from left to right,
+(see Figure 9). The idea is that the red bricks should passuninterrupted by the kick arm and thus run all the way to
+4There are more than 32 RCX byte code instructions but all of them
+do not occur in the output of the NQCcompiler.
+5The datalog instructions are mainly used for debugging purposes.
+Light SensorRCX Brick
+Kick Off Arm
+Red Brick
+Black Bricks
+Figure 9. The LEGO brick sorter. The con-
+veyorbelt movesthebricks fromlefttoright.
+Leftmostonthebeltablackbrickisjustaboutto pass thelightintensitysensor. In themid-
+dle of the belt another black brick is on the
+way towards the kick off arm. In front of them a c h i n e( o nt h et a b l e )i sat h i r db l a c kb r i c k
+that has already been kicked off. At the very
+right end of the belt we see a red LEGO 
+brick, thatisjustabouttoleavethebelt (asit
+is supposed to). The actual RCX brick can
+beseen behindthebelt.
+the very end of the belt, while all the black ones should be
+kickedoffbythe arm.
+4.1 OverviewofBrickSorter
+The LEGO test setting is sketched in Figure 10. The
+conveyor belt is running from left to right driven by Mo-
+tor A. Shortly after being placed at the very left end of the
+belt a brick will pass a light intensity sensor ( Sensor 1 ).
+When the brick passes the sensor its color is registered in
+the following way: the undisturbed sensor displays a lightintensity of 50% (during daytime). Now, a black brick in
+front of the sensor reduces the light intensity to a value of
+35%,whilearedbrickcausesnosigniﬁcantchangeinlight
+intensity. Thus, by comparing the readings of the sensor
+valuewith asuitablethreshold,say42%,wewillbeabletoobserve when a black brick passes Sensor 1 . Notice that
+in this way the red bricks are ignored, but this is just ﬁne,
+since precisely these bricks are not supposed to be kicked
+ofthebelt.
+WhenthepresenceofablackLEGO brickisobserved
+bySensor 1 a timer will be reset, such that the kick arm
+5
+
+--- Page 8 ---
+Sensor 1Motor ASensor 3
+Motor C
+Figure 10. The brick sorter (top view). The
+positionsofblackand redbricks correspond
+to thosein Figure9.
+(situated at Motor C) will be invoked at just the right mo-
+ment. For simplicity we have restricted the model to han-dle at most two black bricks at a time between Sensor
+1and the kick arm, and thus we can do with two timers
+(Timer(1) andTimer(2) ).
+4.2 ControlPrograms: ObserveandKick
+There are two controltasks, mainandkickoff,( s e e
+Figure11and 12). Initiallythe maintask conﬁgures Sen-
+sor1(usingtheinteger IN1)a n dSensor 3 (usingthein-
+tegerIN3),thenstartstheconveyorbelt( MotorA)andin-
+vokes the kickofftask. Hereafterit entersa loopwhere
+itindeﬁnitelywaitsforablackbricktopass Sensor1 .T h e
+role of the boolean bis to keep track of which timer to re-
+set (Timer(1) orTimer(2) ). The role of the booleans
+active1 andactive2 istoletthe kickofftaskknow
+which timer to trigger on next. At each appearance of a
+blackbrickatimerisreset. Thelast wait-statementensures
+thatSensor 1 will postpone looking for a new brick until
+the current one has passed completely. Without this waitstatement the sensor might observe the same brick several
+times, and hereby lead the kick
+off task into the misunder-
+standingaboutthenumberofbricksontheconveyorbelt.
+Thekickoffcontrol task is triggered by timers ex-
+ceedingthevalue25(correspondingto2.5seconds),which
+istheestimatedtimeforablackbricktomovefrom Sensor
+1to the position of the kick arm. The additional tests on
+booleans active1 andactive2 are necessary because
+the two timers are always running, and thus a timer value
+above 25 is not in itself enough information to determine
+that there is a black brick in front of the kick arm. In fact,without active1 (oractive2 ) the kick arm would be
+kicking back and forth in the air constantly even with no
+bricks on the belt. Now, kick
+offwill runMotor C in
+reverse direction for 0.6 seconds causing the kick arm to
+pass by the belt (hereby hopefully hitting a black brick).Then the direction is changed to forward and Motor C is
+run again until the kick arm hits Sensor 3 (a touch sen-
+sor). This use of a touch sensor ensures that the kick armint b=0, active1=0, active2=0;
+int DELAY=25;int LIGHT_LEVEL=42;
+task main{
+Sensor(IN_1, IN_LIGHT);Sensor(IN_3, IN_SWITCH);
+Fwd(OUT_A,1);
+start kick_off;while(true){
+wait(IN_1<=LIGHT_LEVEL);
+if(b==0){
+ClearTimer(1);
+active1=1;
+}if(b==1){
+ClearTimer(2);
+active2=1;
+}
+b=-b+1;
+wait(IN_1>LIGHT_LEVEL);
+}
+}
+Figure11.The maincontroltask,whichisre-
+sponsible for observing LEGO bricks run-
+ning on the belt and resetting appropriate
+timersinorderforthe kickofftasktoknow
+when toinvokethekick arm.
+is brought to halt in exactly the same position for all kicks
+it performs. If alternatively, the arm was just stopped after
+somepartofthekick,thearmmightcomeoutofadjustmentafteranumberofkicks.
+The timed automata models generated by our program
+rcx2uppaal from the two tasks mainandkick
+off
+areshownin Figure16and17ofthe Appendix6.
+4.3 Environment: Bricksand Arms
+The timed automaton in Figure 13 models a black
+LEGObrick. This particular brick will start to pass by
+the light intensity sensor no later than 100.000 time units(correspondingto one second) after system initiation. This
+is done by setting the integer representing the light inten-
+sity,IN
+1, to the value 35% which is precisely what hap-
+penswhenablackLEGO brickstarttopassby Sensor1 .
+The brick will remain in this locationfor 25.000time units
+correspondingto a quarter of a second whereafter the light
+intensity is set back to 50%, this modeling the duration for
+the brick to pass the sensor. Next the black brick will let
+6The ﬁgures are mainly intended to illustrate the size of the generated
+automata.
+6
+
+--- Page 9 ---
+task kick_off{
+while(true){
+wait(Timer(1)>DELAY && active1==1);
+active1=0;
+Rev(OUT_C,1);Sleep(6);Fwd(OUT_C,1);
+wait(IN_3==1);
+Off(OUT_C);wait(Timer(2)>DELAY && active2==1);
+active2=0;
+Rev(OUT_C,1);Sleep(6);
+Fwd(OUT_C,1);
+wait(IN_3==1);Off(OUT_C);
+}
+}
+Figure12.The kickofftaskwhichwillalter-
+natebetweenreactingonvaluesof Timer(1)
+andTimer(2) . The presence of booleans
+active1 andactive2 isnecessarysincethe
+timers are running all the time, also when no
+bricks are onthebelt.
+time pass until a total time of 250.000time units, (2.5 sec-
+onds), since it was ﬁrst noticed by the sensor has elapsed.
+Hereafter ,the brick will during 20.000 time units (0.2 sec)
+acceptasynchronizationonaction kickwiththekickarm
+herebybeingpushedoffthebelt. Incasenosynchronization
+is made the brick will time–outmodeling that it has ﬁnallypast the kick arm and eventually will fall off at the end of
+thebelt.
+AllblackbrickscanbemodeledasinFigure13,theonly
+differencebeingthestartingintervalmodeledbytheinvari-
+antinlocation B0andtheguardonthetransitiontolocation
+B1. Also red bricks follow this skeleton, the only differ-
+ence from black bricks being that the light intensity is set
+to a value larger than 42. The parameterized template fa-cility in U
+PPAALprovides an easy way to create a number
+of black and red bricks. It is important to note that due to
+progressionof time a brickwill eventuallyreachoneof the
+two locations KickedoffandPassed. Which one of these
+two locations the brick reaches depends on it being kickedawayornot. Thepropertiestocheckintheveriﬁcationpre-
+sented in the next section will then be very simple: namely
+that black bricks will never reach the location Passedand
+thatredbrickswill neverreach Kicked
+off.
+The timed automaton in Figure 14 models the physical
+kickarm. It will wait for threeintegervariablesto be set to
+appropriatevaluesafterwhichitstartsmoving. After6.000
+time units it is willing to kick off a brick during 500 timeB1
+k <= 25000 B3
+k <= 250000 
+PassedKicked_offB0
+k <= 100000 
+Sort4
+k <= 270000 k == 25000 
+RCX_IN_1 := 50 
+kick ? k == 270000 k == 250000 k >= 0 
+RCX_IN_1 := 35 , 
+k := 0 
+Figure 13. A timed automaton modeling a
+black brick. This brick will enter the area of
+Sensor1 nolaterthan100.000timeunits(cor-
+responding to one second) after the system
+initiation.
+units. Now,thearmwilleitherreversedirectioniftold,orit
+willcrashintothegateitisattachedto(seeFigure9). Itwill
+be part of the veriﬁcation to check that the kick arm under
+nocircumstanceswillcrashintothe gate.
+K0 K1
+s<=6000
+K3
+s<=24000
+CRASHK4
+s<=6000K5K2
+s<=6500RCX_OutDir_C==-1,
+RCX_OutMode_C==1,RCX_OutPwr_C==1
+s:=0 Hurry?
+s==24000RCX_OutDir_C==1,
+RCX_OutMode_C==1,RCX_OutPwr_C==1s:=0 Hurry?s==6000
+RCX_IN_3:=1,s:=0RCX_OutMode_C==0RCX_IN_3:=0
+Hurry?s==6000
+s==6500
+s:=0 s:=0kick!
+Figure 14. A timed automaton modeling the
+physical kick arm.
+5 Veriﬁcation
+Thepurposeofthebricksorteristohaveallblackbricks
+(and only those) kicked off the belt. Thus, it should hold
+for a black brick that the location Kickedoffis reachable
+and that the location Passedis not reachable. That is, for
+a black brick named BlackBrick1 the following properties
+shouldhold.
+7
+
+--- Page 10 ---
+E<>(BlackBrick.Kicked_off)
+A[]not(BlackBrick.Passed)
+We haveveriﬁedboththesepropertiesalthoughourknowl-
+edge of the time progression in the brick timed automatontells us that checking the last property would sufﬁce. Du-
+ally,fortheredbrickwe will haveto verifythe properties
+E<>(RedBrick.Passed)
+A[]not(RedBrick.Kicked_off)
+As for the black brick, the satisfaction of this property to-
+gether with the progression of time ensures that the brickwill eventuallyreachthe endofthebelt.
+5.1 VeriﬁcationResults
+WehaveanalyzedseveralversionsoftheU PPAALmodel
+of the brick sorter. The most simple scenarios are whenjust a single brick (either red or black) is placed on the
+conveyor belt. These scenarios were checked by U
+PPAAL
+within10seconds(andfortunatelytheanswersweretheex-
+pectedonesaswell!).
+A more interesting scenario is when two black bricks
+may simultaneously be on the conveyor belt. We will as-
+sume that the ﬁrst brick passes Sensor 1 at time 0. As for
+the the second brick we only make the assumption, that itwill appear on the belt no later than 250.000 time units af-
+tertheﬁrstbrick
+7. AlthoughU PPAALis insensitivetolarge
+constantsinclockguardsthepresenceoftheschedulerhasasomewhatnegativeinﬂuenceontheperformanceofthever-
+iﬁcation. The problem is that the scheduler chops the time
+intosmalltinypiecesoflength18timeunitsthusyieldingaremarkable number of states that made veriﬁcation impos-
+sibleinpractice. However,bylimitingtheentrancetimefor
+thesecondblackbrickto anintervalof50timeunitsveriﬁ-
+cationcanbedonewithinafewseconds. Consequently,we
+choppedthetimeintervalfrom25.000to300.000intosmallpiecesof duration50 time unitsand veriﬁed the system for
+allthese duringless than10hours.
+As mentioned earlier the control program is developed
+to handle at most two black bricks on the conveyor belt at
+a time, andassuch we havenoreasonto expectcorrectbe-
+haviorinotherscenarios. Ontheotherhand,itmaybeofin-
+terestto ﬁgureoutexactlywhatwill happenif a thirdblack
+brick is added on the belt, in a situation where two blackbricks are already there. We therefore extended the U
+P-
+PAALmodelofthe environmentbya thirdblackbrick8and
+tooursurprisetheresultoftheveriﬁcationwasthattheextrabrick was indeed kicked off the belt, whereas the two ﬁrst
+7In case the second brick isput on the conveyor belt later than 250.000
+time units after the ﬁrst brick, the experiment would correspond to twoone–brick–scenarios.
+8Again, the third black brick having a starting time less than 250.000
+time units after the ﬁrst brick.bricks were wrongly doomed to pass the kick arm without
+everbeinghitbyit. ThediagnostictracefacilityofU PPAAL
+wasthenusedintheprocessofunderstandingthisbehavior,the reason being as follows. Brick 1, 2 and 3 set timers 1,2 and 1, and thus the ﬁrst brick is ’forgotten’ by the con-
+trol program since the third brick overwrites Timer(1) .
+Now,Timer(2) will time out ﬁrst, and ideally the sec-
+ondbrickoughttobekickedofftheconveyorbeltcorrectly.
+However, the Kick
+offtask (see Figure 12), is waiting
+forTimer(1) (connected to the third brick) to time out
+ﬁrst and consequentlythe third brick (and only this one) is
+kicked off the belt. This erroneous behavior predicted by
+UPPAAL,matchestheexperimentallyobservedbehavior.
+6C o n c l u s i o n
+In this paper, we have presented a method for auto-
+matic veriﬁcationofreal-timecontrolprogramsrunningon
+LEGORCXbricksusingtheveriﬁcationtool U PPAAL.
+The control programs — consisting of a ﬁxed number oftasks running concurrently — are automatically translated
+into the timed automata model of U
+PPAAL.T h e ﬁ x e d
+scheduling algorithm used by the LEGO RCXproces-
+sorismodeledinU PPAAL,andsupplyofsimilar(sufﬁcient)
+timedautomatamodelsfortheenvironmentallowsanalysis
+oftheoverallreal-timesystem usingthetoolsof U PPAAL.
+To illustrate our techniques we have constructed a ma-
+chine for sorting LEGO bricks by color. U PPAALis suc-
+cessfully applied to prove that indeed the bricks are sorted
+correctly. Additionally U PPAALsuccedsin pointing outan
+error in a setting where the model of the environmentdoesnotsatisfy theassumptionsmadebythecontrolprogram.
+In the brick sorting example in this paper only a single
+RCXbrickisnecessary. However,whensystemsbecome
+too complex for a single RCX , the IR ports may be used
+to make two or more RCX es collaborate. We have de-
+velopedandanalyzedaprotocolforthecommunicationbe-
+tween two RCX es which allows a task on one RCX to
+access variables and ports on the other. This so-called IR-protocolisapplicationindependent.
+Finally, we are convinced that our framework is appli-
+cable to real-time control programs and systems in gen-
+eral and notonly to RCX programsand LEGO MIND-
+STORMS systems.
+References
+[1] R. Alur and D. Dill. Automata for Modelling Real-Time Systems.
+Theoretical Computer Science , 126(2):183–236, April 1994.
+[2] David Baum. NQC — Not Quite C . Web site at
+http://www.enteract.com/dbaum/nqc/ .
+[3] LarsBj¨ ornfot. Adaand TimedAutomata. In Proc.of AdainEurope ,
+number1031inLectureNotesinComputerScience, pages389–405.Springer–Verlag, 1995.
+8
+
+--- Page 11 ---
+[4] James C. Corbett. Modeling and Analysis of Real–Time Ada Task-
+ing Programs. In Proceedings of the Real-Time Systems Symposium ,
+IEEEComputer Society Press, December 1994.
+[5] Thomas A. Henzinger, Pei-Hsin Ho, and Howard Wong-Toi.
+HYTECH:TheNextGeneration. In Proc.ofthe16 thIEEEReal-Time
+Systems Symposium , pages 56–65. IEEE Computer Society Press,
+December 1995.
+[6] Thomas Hune. Modelling a real-time language. In Proc. of the 4 th
+Workshop on FormalMethods for Industrial Critical Systems , 1999.
+[7] ThomasHune, Kim G. Larsen, and Paul Pettersson. Guided Synthe-
+sisof Control ProgramsUsing U PPAAL. Accepted forpublication at
+DSVV’00,2000.
+[8] Torsten K. Iversen and Cris. B. Thomasen. Automatic Veriﬁcation
+ofLEGORCXSystemsUsin U PPAAL. Technical report, Institute of
+Computer Science, Aalborg University, 1999.
+[9] KimG.Larsen,PaulPettersson,andWangYi. U PPAALinaNutshell.
+Int. Journal on Software Tools forTechnology Transfer , 1(1–2):134–
+152, October 1997.
+[10] Morten Laursen, Rune G. Madsen, and Steffen K. Mortensen. Veri-
+fying Distributed LEGO RCX Programs Using U PPAAL. Technical
+report, Institute of Computer Science, Aalborg University, 1999.
+[11] LEGO. Software developers kit , November 1998. See
+http://www.legomindstorms.com/ .
+Appendix
+RCX_main_0_S0 RCX_main_0_S1RCX_main_0_S2
+RCX_timer <= 21
+RCX_main_2_S0
+RCX_main_2_S1
+RCX_main_2_S2RCX_timer <= 20 RCX_main_2_S3RCX_main_timer<=100000RCX_main_6_S0RCX_main_6_S1RCX_timer <= 20RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_speaker:=1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_active[0]:=0
+RCX_timer==20
+RCX_main_timer:=0RCX_Go!RCX_main_timer==100000RCX_active[0]:=1RCX_currentTask==0RCX_timer:=0
+RCX_Go?RCX_timer==20RCX_Go!
+Figure15.Thetimedautomatonmodelgener-
+atedby rcx2uppaal fortheprogramsshown
+in Figure2and 3.RCX_main_0_S0 RCX_main_0_S1RCX_main_0_S2
+RCX_timer <= 21
+RCX_main_5_S0
+RCX_main_5_S1 RCX_main_5_S2
+RCX_timer <= 21RCX_main_10_S0RCX_main_10_S1
+RCX_main_10_S2
+RCX_timer <= 21
+RCX_main_15_S0
+RCX_main_15_S1 RCX_main_15_S2
+RCX_timer <= 21RCX_main_20_S0 RCX_main_20_S1RCX_main_20_S2
+RCX_timer <= 21
+RCX_main_25_S0
+RCX_main_25_S1
+RCX_main_25_S2
+RCX_timer <= 21
+RCX_main_28_S0 RCX_main_28_S1 RCX_main_28_S2
+RCX_timer <= 21RCX_main_31_S0 RCX_main_31_S1RCX_main_31_S2
+RCX_timer <= 21
+RCX_main_34_S0
+RCX_main_34_S1
+RCX_main_34_S2
+RCX_timer <= 21
+RCX_main_37_S0
+RCX_main_37_S1 RCX_main_37_S2
+RCX_timer <= 21RCX_main_39_S0 RCX_main_39_S1 RCX_main_39_S2
+RCX_timer <= 21RCX_main_41_S0RCX_main_41_S1
+RCX_main_41_S2
+RCX_timer <= 21
+RCX_main_49_S0
+RCX_main_49_S1
+RCX_main_49_S2
+RCX_timer <= 27
+RCX_main_51_S0
+RCX_main_51_S1 RCX_main_51_S2
+RCX_timer <= 143RCX_main_51_S3
+RCX_timer <= 143RCX_main_59_S0 RCX_main_59_S1
+RCX_timer <= 20RCX_main_62_S0 RCX_main_62_S1RCX_main_62_S2
+RCX_timer <= 143
+RCX_main_62_S3
+RCX_timer <= 143
+RCX_main_70_S0
+RCX_main_70_S1
+RCX_main_70_S2
+RCX_timer <= 27
+RCX_main_72_S0
+RCX_main_72_S1
+RCX_main_72_S2
+RCX_timer <= 21RCX_main_77_S0 RCX_main_77_S1 RCX_main_77_S2
+RCX_timer <= 143RCX_main_77_S3
+RCX_timer <= 143RCX_main_85_S0 RCX_main_85_S1 RCX_main_85_S2
+RCX_timer <= 27RCX_main_87_S0
+RCX_main_87_S1
+RCX_main_87_S2
+RCX_timer <= 21
+RCX_main_92_S0
+RCX_main_92_S1
+RCX_main_92_S2
+RCX_timer <= 21
+RCX_main_97_S0
+RCX_main_97_S1
+RCX_main_97_S2
+RCX_timer <= 25RCX_main_102_S0 RCX_main_102_S1 RCX_main_102_S2
+RCX_timer <= 21RCX_main_107_S0 RCX_main_107_S1 RCX_main_107_S2
+RCX_timer <= 25RCX_main_112_S0 RCX_main_112_S1RCX_main_112_S2
+RCX_timer <= 21
+RCX_main_114_S0
+RCX_main_114_S1
+RCX_main_114_S2
+RCX_timer <= 143
+RCX_main_114_S3
+RCX_timer <= 143
+RCX_main_122_S0
+RCX_main_122_S1
+RCX_timer <= 20RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_timer==21
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_b:=0
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_a1:=0RCX_timer==21
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_a2:=0RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_InType_1:=0
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_InMode_1:=0RCX_timer==21
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_InType_3:=0RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_InMode_3:=0
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_OutDir_A:=1RCX_timer==21
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_OutMode_A:=1RCX_timer==21
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_OutPwr_A:=1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_active[1]:=1
+RCX_timer==27
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_IN_1<=42 RCX_IN_1>42 RCX_timer==143
+RCX_Go!RCX_timer==143RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_timer==20
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?0!=RCX_b
+0==RCX_b RCX_timer==143
+RCX_Go!RCX_timer==143RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_timer_1:=0
+RCX_timer==27
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_a1:=1
+RCX_timer==21
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?1!=RCX_b 1==RCX_bRCX_timer==143
+RCX_Go!
+RCX_timer==143RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_timer_2:=0RCX_timer==27
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_a2:=1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX___temp_5:=0
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX___temp_5:=RCX___temp_5-RCX_b
+RCX_timer==25
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_b:=RCX___temp_5RCX_timer==21
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_b:=RCX_b+1RCX_timer==25
+RCX_Go!RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_speaker:=1RCX_timer==21
+RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?
+RCX_IN_1<=42
+RCX_IN_1>42RCX_timer==143
+RCX_Go!
+RCX_timer==143RCX_Go!
+RCX_currentTask==0
+RCX_timer:=0RCX_Go?RCX_timer==20
+RCX_Go!
+Figure16.Thetimedautomatonmodelofthe
+maintaskshownin Figure11.
+RCX_skub_af_0_S0 RCX_skub_af_0_S1RCX_skub_af_0_S2
+RCX_timer <= 143
+RCX_skub_af_0_S3
+RCX_timer <= 143
+RCX_skub_af_8_S0 RCX_skub_af_8_S1 RCX_skub_af_8_S2
+RCX_timer <= 143RCX_skub_af_8_S3
+RCX_timer <= 143
+RCX_skub_af_16_S0
+RCX_skub_af_16_S1
+RCX_skub_af_16_S2
+RCX_timer <= 21RCX_skub_af_21_S0 RCX_skub_af_21_S1 RCX_skub_af_21_S2
+RCX_timer <= 21RCX_skub_af_23_S0
+RCX_skub_af_23_S1
+RCX_skub_af_23_S2
+RCX_timer <= 21
+RCX_skub_af_25_S0
+RCX_skub_af_25_S1 RCX_skub_af_25_S2
+RCX_timer <= 21RCX_skub_af_29_S0 RCX_skub_af_29_S1 RCX_skub_af_29_S2
+RCX_timer <= 20RCX_skub_af_29_S3
+RCX_skub_af_timer<=6000
+RCX_skub_af_33_S0
+RCX_skub_af_33_S1
+RCX_skub_af_33_S2
+RCX_timer <= 21
+RCX_skub_af_35_S0
+RCX_skub_af_35_S1 RCX_skub_af_35_S2
+RCX_timer <= 21RCX_skub_af_37_S0 RCX_skub_af_37_S1 RCX_skub_af_37_S2
+RCX_timer <= 21RCX_skub_af_41_S0RCX_skub_af_41_S1
+RCX_skub_af_41_S2
+RCX_timer <= 143
+RCX_skub_af_41_S3
+RCX_timer <= 143
+RCX_skub_af_49_S0
+RCX_skub_af_49_S1
+RCX_skub_af_49_S2
+RCX_timer <= 21
+RCX_skub_af_51_S0 RCX_skub_af_51_S1 RCX_skub_af_51_S2
+RCX_timer <= 143RCX_skub_af_51_S3
+RCX_timer <= 143RCX_skub_af_59_S0 RCX_skub_af_59_S1 RCX_skub_af_59_S2
+RCX_timer <= 143RCX_skub_af_59_S3
+RCX_timer <= 143
+RCX_skub_af_67_S0
+RCX_skub_af_67_S1
+RCX_skub_af_67_S2
+RCX_timer <= 21
+RCX_skub_af_72_S0
+RCX_skub_af_72_S1
+RCX_skub_af_72_S2
+RCX_timer <= 21
+RCX_skub_af_74_S0 RCX_skub_af_74_S1 RCX_skub_af_74_S2
+RCX_timer <= 21RCX_skub_af_76_S0 RCX_skub_af_76_S1 RCX_skub_af_76_S2
+RCX_timer <= 21RCX_skub_af_80_S0 RCX_skub_af_80_S1RCX_skub_af_80_S2
+RCX_timer <= 20
+RCX_skub_af_80_S3
+RCX_skub_af_timer<=6000
+RCX_skub_af_84_S0
+RCX_skub_af_84_S1
+RCX_skub_af_84_S2
+RCX_timer <= 21
+RCX_skub_af_86_S0
+RCX_skub_af_86_S1
+RCX_skub_af_86_S2
+RCX_timer <= 21
+RCX_skub_af_88_S0 RCX_skub_af_88_S1 RCX_skub_af_88_S2
+RCX_timer <= 21RCX_skub_af_92_S0 RCX_skub_af_92_S1 RCX_skub_af_92_S2
+RCX_timer <= 143RCX_skub_af_92_S3
+RCX_timer <= 143RCX_skub_af_100_S0 RCX_skub_af_100_S1RCX_skub_af_100_S2
+RCX_timer <= 21
+RCX_skub_af_102_S0
+RCX_skub_af_102_S1
+RCX_timer <= 20RCX_currentTask==1
+RCX_timer:=0RCX_Go?RCX_timer_1<=250000
+RCX_timer_1>250000RCX_timer==143
+RCX_Go!
+RCX_timer==143RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?1!=RCX_a11==RCX_a1
+RCX_timer==143
+RCX_Go!RCX_timer==143RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_a1:=0
+RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutDir_C:=-1RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutMode_C:=1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutPwr_C:=1RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_active[1]:=0RCX_timer==20
+RCX_skub_af_timer:=0RCX_Go!RCX_skub_af_timer==6000
+RCX_active[1]:=1
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutDir_C:=1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutMode_C:=1RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutPwr_C:=1RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?1!=RCX_IN_3
+1==RCX_IN_3
+RCX_timer==143
+RCX_Go!RCX_timer==143RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutMode_C:=0
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?RCX_timer_2<=250000 RCX_timer_2>250000 RCX_timer==143
+RCX_Go!RCX_timer==143RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?1!=RCX_a21==RCX_a2
+RCX_timer==143
+RCX_Go!RCX_timer==143RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_a2:=0
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutDir_C:=-1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutMode_C:=1RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutPwr_C:=1RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?RCX_active[1]:=0RCX_timer==20
+RCX_skub_af_timer:=0RCX_Go!
+RCX_skub_af_timer==6000
+RCX_active[1]:=1
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutDir_C:=1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutMode_C:=1
+RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?
+RCX_OutPwr_C:=1RCX_timer==21
+RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?1!=RCX_IN_3 1==RCX_IN_3 RCX_timer==143
+RCX_Go!RCX_timer==143RCX_Go!RCX_currentTask==1
+RCX_timer:=0RCX_Go?RCX_OutMode_C:=0RCX_timer==21
+RCX_Go!
+RCX_currentTask==1
+RCX_timer:=0RCX_Go?RCX_timer==20
+RCX_Go!
+Figure17.Thetimedautomatonmodelofthe
+thekickofftaskin shownFigure12.
+9
+
+--- Page 12 ---
+RecentBRICS ReportSeriesPublications
+RS-99-53 Torsten K. Iversen, K ˚are J. Kristoffersen, Kim G. Larsen,
+MortenLaursen,RuneG.Madsen,SteffenK.Mortensen,PaulPettersson, and Chris B. Thomasen. Model-Checking Real-
+TimeControlPrograms—VerifyingLEGOMindstormsSystems
+Using UPPAAL . December 1999. 9 pp.
+RS-99-52 JesperG.Henriksen,MadhavanMukund,K.NarayanKumar,
+andP. S.Thiagarajan. Towardsa TheoryofRegularMSCLan-
+guages. December 1999.
+RS-99-51 OlivierDanvy. FormalizingImplementationStrategiesforFirst-
+Class Continuations . December 1999. Extended version of
+an article to appear in Programming Languages and Systems:
+Ninth European Symposium on Programming ,E S O P’ 0 0P r o -
+ceedings, LNCS, 2000.
+RS-99-50 Gerth Stølting Brodal and Srinivasan Venkatesh. Improved
+Bounds for Dictionary Look-up with One Error . December
+1999. 5 pp.
+RS-99-49 Alexander A.AgeevandMaximI. Sviridenko. An Approxima-
+tion Algorithm for Hypergraph Max k-Cut with Given Sizes of
+Parts. December 1999. 12 pp.
+RS-99-48 Rasmus Pagh. Faster Deterministic Dictionaries . December
+1999. 14 pp. To appear in The Eleventh Annual ACM-SIAM
+Symposium on Discrete Algorithms , SODA ’00 Proceedings,
+2000.
+RS-99-47 Peter Bro Miltersen and Vinodchandran N. Variyam. Deran-
+domizing Arthur-Merlin Games using Hitting Sets . December
+1999. 21 pp. Appears in Beame, editor, 40th Annual Sympo-
+sium on Foundations of Computer Science , FOCS ’99 Proceed-
+ings, 1999,pages 71–80.
+RS-99-46 Peter Bro Miltersen, Vinodchandran N. Variyam, and Osamu
+Watanabe. Super-Polynomial Versus Half-Exponential Circuit
+Size in the Exponential Hierarchy . December 1999. 14 pp.
+Appears in Asano, Imai, Lee, Nakano and Tokuyama, editors,
+Computing and Combinatorics: 5th Annual International Con-ference, COCOON ’99 Proceedings, LNCS 1627, 1999, pages
+210–220.
