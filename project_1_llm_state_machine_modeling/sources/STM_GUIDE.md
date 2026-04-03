@@ -314,6 +314,30 @@
 5. 摘录时优先保留原文上下文，以便后面的自然语言整理和逐句溯源有足够依据。
 6. 若不同句子的依据分散在多个位置，应保留多个摘录块，不要强行拼成一段伪引文。
 
+#### 高频补摘 checklist
+
+本轮对 `7` 条降级条目回刷后，以下几类信息被证明最容易在摘录阶段漏掉；后续凡是原文里出现，就应默认补进 `### 1. 原文摘录`：
+
+1. **显式状态名与阶段名**
+   - 例如 `idle / Entry / CalcSlipRate / Exit`、`idle / commanded / proved / occupied`、`LRI / AVI / URI / PVARP / VRP`。
+   - 若状态名承载行为语义，不要只摘“系统经历若干阶段”这种概括句。
+2. **精确 guard、比较式、阈值区间与赋值**
+   - 例如 `v<5*(v-w*R)`、`v==0 [torqueABS=0]`、`0-30% -> 90 seconds`。
+   - 对 `EFSM / Hybrid` 条目，这类内容通常必须有至少一段原文直引支撑。
+3. **clock / timer 名称、时间窗边界与 reset / restart 规则**
+   - 例如 `clk`、`clk_AnSw`、`exec = 2`、`CLOSED_INIT / CLOSED_FIN / OPEN`、`TLRI-TAVI / TAVI / TURI`。
+   - 不能只摘“存在时间约束”，还要摘“何时开始计时、何时复位、超时后做什么”。
+4. **异常、降级、恢复与 fallback 链**
+   - 例如 retry 计数、priority tier、alarm、manual fallback、mode switch、释放条件。
+   - 这类内容常散落在 requirement list、图注和正文段落中，必要时应多摘几块。
+5. **接口读写节拍与同步开始/停止**
+   - 对构件级 TA / FunctionPrototype / block behavior，若原文区分 `read / execute / write`、`behstart / behstop`、更新阶段，应把这些执行节拍单独摘出来。
+6. **层次 / 并行 / sibling 子机 / 资源关系**
+   - 例如四个 sibling movement machines、父子职责边界、资源锁闭/释放条件、共享锁变量。
+   - 不能只摘顶层摘要，而把真正决定结构的子机名和资源规则漏掉。
+7. **离散映射表**
+   - 若控制逻辑是“输入区间/模式 -> 输出动作/持续时间”，要把整张映射补齐，不要只摘其中一两个 bucket。
+
 ### 5.5 `### 2. 基于原文整理后的自然语言描述`
 
 这是最终要服务数据集构建的核心内容。
@@ -351,6 +375,30 @@
    - “该状态机有 4 个状态”
    - “发生事件 e1 后从 s1 转到 s2”
 11. 但如果论文原文本身就以这种方式表述，而且这是必要事实，则可以谨慎保留。
+
+#### 高频降级点 checklist
+
+本轮 `7` 条回刷说明，描述稿最常见的降级方式不是“完全写错”，而是把原文中真正决定建模质量的细节压没。后续写第 `2` 节时，默认额外检查下面几类问题：
+
+1. **状态名被压没**
+   - 若状态名本身承载语义，应直接保留，而不是改写成“进入某阶段”“完成计算后退出”。
+   - 特别是 lifecycle state、timing cycle、父子子机名、read/write stage。
+2. **guard 被压成模糊条件**
+   - 若原文给了精确 guard、阈值、区间边界或变量赋值，描述中也应尽量保留数值、比较方向和动作结果。
+   - 不要把 `v<5*(v-w*R)` 写成“滑移过大时”，也不要把 `0-30% -> 90s` 写成“低密度时延长绿灯”。
+3. **时间语义只剩“带定时器”**
+   - 若原文给了 clock 名、reset 点、hold/restart 规则、deadline / refractory / execution time，描述中必须写清这些时间事实如何影响迁移。
+4. **异常/降级/恢复链缺失**
+   - 若原文有 retry、priority tier、alarm、manual fallback、release condition、mode switch、恢复返回路径，描述里不能只保 nominal path。
+5. **结构被压平成单线流程**
+   - 对 `HSM / 并行 / Resource-flow / Protocol` 条目，描述里应保住子机、角色、资源或并发事实。
+   - 不要把四个 sibling 子机、共享资源锁闭、请求-授权-确认链压成一句“系统执行相应动作”。
+6. **接口节拍与更新阶段缺失**
+   - 对构件级 `EFSM / Hybrid`，若原文有 `read / execute / write` 节拍、同步开始/停止或专门的变量更新阶段，应在描述中保住。
+7. **离散映射被压成“自适应调整”**
+   - 对 bucket-to-action / bucket-to-duration 逻辑，描述中应保住完整映射或至少保住全部关键 bucket，不能只剩泛泛结论。
+
+如果原文按当前口径可达 `🟢 A / 🟡 B`，但描述中仍丢了上述任一关键件，默认应视为**待继续补摘录或重写**，不应直接把该条目标成完成。
 
 推荐标准：
 
