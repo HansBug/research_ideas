@@ -1,0 +1,1373 @@
+--- Page 1 ---
+Acta Informatica manuscript No.
+(will be inserted by the editor)
+Timed Automata with Urgent Transitions?
+Roberto Barbuti, Luca Tesei
+Dipartimento di Informatica - Universit a di Pisa,
+via F. Buonarroti, 2 56127 Pisa - Italy,
+e-mail: fbarbuti,tesei g@di.unipi.it
+The date of receipt and acceptance will be inserted by the editor
+Abstract. In this paper we propose an extension to the formalism of
+timed automata by allowing urgent transitions. An urgent transition
+is a transition which must be taken within a xed time interval from
+its enabling time and it has higher priority than other non-urgent
+transitions enabled in the same state. We give a set of rules formally
+describing the behavior of urgent transitions and we show that, from
+a language theoretic point of view, the addition of urgency does not
+improve the expressive power of timed automata. From a specica-
+tion point of view, the use of urgent transitions allows shorter and
+clear specications of behaviors involving urgency and priority. We
+use timed automata with urgent transitions for specifying a multicast
+protocol for mobile computing.
+Keywords: real-time systems, timed automata, modular specica-
+tion, parallel composition.
+1 Introduction
+Timed automata are widely recognized as a standard model for de-
+scribing systems in which the time plays a fundamental role [7,8].
+Since their introduction, timed automata have been widely studied
+from dierent points of view [5,6,9,10], in particular for their possible
+use in the verication of real-time systems [1,2,4,11,27,28,31].
+?A rst version of this paper appeared in [15]
+
+--- Page 2 ---
+2 Roberto Barbuti, Luca Tesei
+Usually the expressiveness of timed automata is given in terms of
+accepted timed languages, but, because of their use as a specication
+formalism, also the ease to describe real-time systems must be taken
+into account. For this purpose many extensions to the basic model
+have been proposed (see for example [14,23,24,26,29]). All these ex-
+tensions have been discussed with respect to the expressiveness of the
+original model.
+In this paper we present a further extension: timed automata with
+urgent transitions . The notion of urgency in timed systems was al-
+ready introduced in [18,20,19], where the urgency of transitions out-
+going from a state is induced by a time progress condition associated
+to the state and derived from deadlines associated to the transitions.
+The semantics imposes the impossibility to stay in the state if the
+condition is not satised while the time elapses. In this paper we
+consider a slightly dierent notion of urgency. Urgent transitions are
+transitions which must be performed within a given time interval
+starting from their enabling and, in this situation, have priority upon
+non-urgent transitions.
+From the expressiveness point of view, both our approach and the
+one of [18,20,19] are suitable for specifying timed systems. The lat-
+ter allows, in some cases, more general urgency conditions, while, in
+other cases, such as \as soon as possible" transitions, our approach
+allows more general time constraints. Moreover, the semantic setting
+is dierent. In op. cit. the behaviors of a timed automaton are all pos-
+sible derivations of the semantic transition system in which the time
+progress conditions are kept satised. In this paper we adopt a model
+of behavior in which conditions in the states are not used and some
+behaviors of the semantic transition system are discarded according
+to the B uchi acceptance condition for timed automata (see Section 2).
+Section 8 contains a more detailed discussion on the dierences of the
+two approaches.
+We show that, from the language theoretic point of view, timed
+automata and timed automata with urgent transitions are equivalent.
+This is proved by dening a transformation from a timed automaton
+with urgent transitions to a timed automaton which accepts the same
+language.
+From a specication point of view, urgent transitions provide an
+easy and eective way to express some important types of behaviors
+of real time systems, which, otherwise, should be simulated using
+complex constructions. These usually yield a dicult to understand
+specication and increase the probability of mistakes.
+
+--- Page 3 ---
+Timed Automata with Urgent Transitions 3
+The notions of priority and urgency captured by our denitions
+are inherently non-compositional and, hence, the transformation is
+not a congruence with respect to parallel composition. Thus, in the
+specication task, one has to design components considering that the
+urgency of their actions can be aected and/or enhanced by other
+components and by the synchronization mechanism of the parallel
+composition. This aspect is explained in Sections 5 and 6. The latter
+contains an example of specication of a multicast protocol for mo-
+bile computing, which is used to illustrate the possible use and the
+features of timed automata with urgent transitions. Finally, Section
+7 contains some remarks and suggestions for an eective use of timed
+automata with urgent transitions in the verication of systems.
+2 Timed automata
+We recall the denition of timed automata [8]. In the following, R
+is the set of real numbers, R0the set of non-negative real numbers
+andR+is the set of positive real-numbers. Qis the set of rational
+numbers andQ+is the set of positive rational numbers. A clock takes
+values fromR0. Given a setXof clocks, a clock valuation overXis a
+function that assigns a non-negative real number to every clock. The
+set of valuations of X, denotedVX, is the set of total functions from
+XtoR0. Given2VXand2R0, we use+(resp.) to
+denote the valuation that maps each clock x2X into(x) +(resp.
+(x)). Note that if there exists x2X such that(x) <0,
+is not a clock valuation.
+Given a setXof clocks, a resetis a subset ofX. The set of all
+resets ofXis denoted by X. Given a valuation 2VXand a reset
+, withnwe denote the valuation
+n(x) =8
+<
+:0 ifx2
+(x) ifx62
+Given a setXof clocks, the set 	Xofclock constraints overXare
+dened by the following grammar:
+ ::=truejfalsej ^ jx#t
+wherex2 X,t2 N is a natural number, and # is a binary
+operator inf<;>;;;=g. Note that the negation operator is not
+needed because the negation of an atomic constraint x#t(# dierent
+from =) can be expressed as another constraint of the same kind. The
+negation of a constraint x=tis the disjunction of x<t andx>t .
+
+--- Page 4 ---
+4 Roberto Barbuti, Luca Tesei
+This disjunction can be simulated, as usual, by the non-deterministic
+choice.
+Clock constraints are evaluated over clock valuations. The satis-
+faction by a valuation 2VXof the clock constraint  2	X, denoted
+j= , is dened as follows:
+j=true
+6j=false
+j= 1^ 2ij= 1andj= 2
+j=x#ti(x)#t
+Denition 1 (Timed automaton). A timed automaton Tis a tu-
+ple(Q;;E;I;R;X), where:Qis a nite set of states, is a nite
+alphabet of actions, Eis a nite set of edges, IQis the set of
+initial states, RQis the set of repeated states, Xis a nite set of
+clocks. Each edge e2E is a tuple in Q	XXQ.
+Ife= (q; ;;;q0)is an edge, qis the source ,q0is the target , 
+is the constraint ,is the label ,is the reset .
+The semantics of a timed automaton Tis given in terms of its
+accepted timed language. The denition of such a language is based
+on an innite transition system S(T) = (S;!), whereSis a set of
+states and!is the transition relation. The states SofS(T) are pairs
+(q;), whereq2Qis a state of T, andis a valuation. An initial
+state ofS(T) is a state ( q;), whereq2Iis an initial state of Tand
+is the valuation which assigns 0 to every clock in X. At any state
+q, given a valuation ,Tcan stay idle or it can perform an action
+labeling an outgoing edge e. IfTstays idle, a transition is possible to
+a state ofS(T) where the state of Tis the same, but the valuation
+has been modied according to the elapsed time. If Tmoves along
+an outgoing edge e= (q; ;;;q0), this corresponds to a transition,
+labeled by, ofS(T) from the state ( q;) to the state q0;n. This
+transition is possible only if the current clock valuation respects the
+constraint ofe. The rules to derive the transitions of S(T) are the
+following:
+1:2R+
+(q;)!(q;+)2:(q; ;;;q0)2E;j= 
+(q;)!(q0;n)
+Rule 1:represents the case in which Tstays idle in a state and
+the time passes, while Rule 2 :corresponds to the occurrence of an
+action.
+
+--- Page 5 ---
+Timed Automata with Urgent Transitions 5
+Denition 2 (Action sequence, Run). LetT= (Q;;E;I;R;X)
+be a timed automaton and let r=s0l0!s1l1!:::be an innite
+derivation of the transition system S(T):
+- The time sequence tjof the time elapsed from state s0to statesj
+inris dened as follows:
+t0= 0
+ti+1=ti+8
+<
+:0ifli2
+liotherwise
+- The event sequence ofris the sequence of the events occurred
+duringrincluding the elapsed times: (l0;t0)(l1;t1):::
+- The action sequence ofris the projection of the event sequence of
+ron the pairsf(l;t)jl2g
+- The state sequence ofris the projection of the sequence s0s1s2
+on the statesfqi2Qjsi= (qi;i); i= 0_(i1^li12)g.
+- We say that ris arun ofTif it satises the B uchi acceptance
+condition : there exists a state q2Rsuch thatqoccurs innitely
+many times along the state sequence of r.
+The B uchi acceptance condition discards all the nite runs and
+expresses a constraint on the innite sequence of states taken by the
+automaton by edges in E. Thus, an innite derivation may exist which
+is not a run of the automaton because it violates the B uchi condition.
+For instance, a derivation whose state sequence ends with an innite
+sequence of the same state q(obtained, say, by a self-loop transition
+in the state qof the timed automaton) is not considered as a run if q
+does not belong to R.
+Denition 3 (Timed Word, Timed Language). Letbe an al-
+phabet. A timed word overis an innite sequence of pairs
+(0;t0)(1;t1):::such thati2, andti2R0andtiti+1, for
+alli2IN.
+Atimed language overis a subset of the set of all timed words
+over.
+Denition 4 (Acceptance). Given a timed automaton
+T= (Q;;E;I;R;X), a timed word woverisaccepted byTif a
+runrofTexists such that w=v, wherevis the action sequence of r.
+The set of timed words accepted by Tis called the accepted language
+ofTand it is denoted by L(T).
+A synchronized product is dened on timed transition tables, that
+is to say, timed automata without the set of repeated states. A timed
+
+--- Page 6 ---
+6 Roberto Barbuti, Luca Tesei
+transition table of a certain timed automaton Tcan be considered
+an automaton that accept the action sequences of all innite deriva-
+tions of the transition system S(T) dening the semantics of T. A
+subset of such set of action sequences is L(T), according to the B uchi
+acceptance condition.
+Denition 5 (Timed transition table). LetT= (Q;;E;I;R;X)
+be a timed automaton. The timed transition table of Tis denoted ^T
+and it is the tuple (Q;;E;I;X).
+Denition 6 (Product). LetT1= (Q1;1;E1;I1;R1;X1)and
+T2= (Q2;2;E2;I2;R2;X2)be two timed automata with X1\X 2=;.
+The product of the timed transition table of T1and ofT2, denoted by
+^T1k^T2, is given as follows:
+^T1k^T2=hQ1Q2;1[2;E;I1I2;X1[X 2i
+whereEis dened by:
+1.Synchronization actions
+821\2;8(q1; 1;1;;q0
+1)2E 1;8(q2; 2;2;;q0
+2)2E 2
+Econtains ((q1;q2); 1^ 2;1[2;;(q0
+1;q0
+2))
+2.T1actions
+821n2;8(q; ;;;q0)2E 1;8s2Q2
+Econtains ((q;s); ;;; (q0;s))
+3.T2actions
+822n1;8(q; ;;;q0)2E 2;8s2Q1
+Econtains ((s;q); ;;; (s;q0))
+This denition shows what we expect in parallel behaviors:
+{Common symbols of the alphabets are synchronization actions.
+A synchronization action can be executed if and only if all the
+component automata involved can execute it. The action must be
+executed synchronously by all of them.
+{Other symbols can be executed by each component independently
+according to its original specication.
+The product of timed transition tables is a simplication of the
+denition of the parallel composition between timed automata. This
+parallel composition operation requires that in every run rof the
+obtained automaton, the projection of the states of ron each compo-
+nentjresults in a sequence of states that represents a run of the j-th
+automaton. Thus, the parallel composition automaton has to be de-
+ned such that an innite action sequence is a run if and only all the
+
+--- Page 7 ---
+Timed Automata with Urgent Transitions 7
+correspondent action sequences of the components satisfy the B uchi
+acceptance condition according to their sets of repeated states.
+This can be done, as in [8], by adding a component at each state
+of the product automaton. This new component behaves as a counter
+that keeps track of which components entered one of their repeated
+states. Consider the automata T1andT2of the previous denition.
+The set of states of their parallel composition is Q1Q2f0;1;2g.
+Initially the counter is 0. If the rst component enter a state belonging
+toR1by a transition, the new state have the third component equal
+to 1. Then, when the second component will enter a state belonging to
+R2the new state will have the counter at 2. The subsequent transition
+reset the counter to 0. The set of repeated states of the composed
+automaton is R1R2f2g. In this way if the composition has a
+run with B uchi acceptance condition, this is true, by construction,
+also for the two components. Conversely, again by construction, if
+the components have a run with B uchi acceptance condition, the
+resulting run of the automaton satises the B uchi condition. For the
+details see [8].
+3 Timed automata with urgent transitions
+In this section we extend the model of timed automata with a new
+feature which is useful in the specication of real-time systems. The
+idea is to provide, in each state of the automaton, the possibility
+of labeling some outgoing edges as urgent . Intuitively an urgent la-
+beled edge must be taken with higher priority with respect to the
+non-urgent ones and it must be taken within a certain time interval
+starting from its enabling.
+Letqbe a state of a timed automaton and let ebe an outgoing
+transition from q. We usehbs
+e;be
+eito denote the time interval in which
+the transition eis enabled, according to its constraint, in the state q
+during a derivation of the semantic transition system of the automa-
+ton. Note that such an interval is represented by its bounds, bs
+eand
+be
+e, which can be closed or open; that is bs
+e2f(t;[tgandbe
+e2ft);t]g,
+wheretis, in general, a non-negative rational value.
+Let`2Q+be a xed parameter associated to the timed automa-
+ton. Lettqbe the time instant in which the state qis entered. Suppose
+eis an urgent transition. The time interval in which emust be taken
+starts at time bs
+e, but if the constraint of eis already satised when
+qis entered then the interval starts at time tq. The interval stops `
+time units after its start. However, if the constraints of ebecomes
+false before, the interval stops at instant be
+e. Figure 1 shows three
+
+--- Page 8 ---
+8 Roberto Barbuti, Luca Tesei
+cases. The point-lled areas are the intervals in which eis enabled.
+The oblique-line-lled areas are the intervals in which eis enabled
+but not executable. The case (a) is the basic case in which the in-
+terval has length `, starts at the enabling time of eand stops after
+`time units while eis still enabled. Case (b) shows the situation in
+whichebecomes disabled before `time units elapsed and the interval
+is shorter than `. In case (c) the transition is already enabled when
+the state is entered: the interval starts at tqand its length is `.
+Fig. 1 The semantics of urgency
+This notion of urgency allows us to dene precisely the behavior of
+urgent actions. The intuitive idea \urgent transitions must be taken
+as soon as possible" introduces some problems when applied in a
+model with a dense time domain. To see this, consider a state of a
+timed automaton in which the current value of clock xis in [0;1]
+and there is an outgoing urgent transition with a clock constraint
+x > 1. Letting the time to elapse, at which time should the urgent
+transition be executed? It is not possible to answer precisely this
+question since the time domain is dense. To avoid this problem we
+introduce the constant `and the interval within the action must be
+executed. Adopting this solution, the problem does not arise and the
+semantics of urgency is clear in all cases.
+To complete the specication of the proposed notion of urgency we
+have to specify the nature of the bounds of the interval. The choice is
+arbitrary in principle, but the following seems to be the most natural.
+If the left bound of the interval is open, then we set the right bound
+closed, i.e. for the urgent action with constraint x>1 of the example
+above, the interval in which such an action must be taken is that in
+whichx2(1;1+`]. Conversely, if the left bound is closed then we set
+
+--- Page 9 ---
+Timed Automata with Urgent Transitions 9
+the right bound open. For instance, if the transition has a constraint
+of the form of x1, instead of x > 1, then the interval in which
+it must be taken is that in which x2[1;1 +`). When the state is
+entered and the urgent transition is already satised, the left bound
+of the interval is considered closed. In this way the interval is always
+well dened.
+The denseness also imposes that the constant `be greater than
+0. The choice `= 0 could be interpreted as \immediately", but this
+leads, in some cases, to the problem discussed above. However, since
+`2Q+, it can be chosen as small as needed. In other words, the \as
+soon as possible" limit behavior can be approximated with arbitrary
+precision.
+Note that the parameter `can be local to each urgent transition,
+but for the sake of simplicity we discuss the case in which `is a global
+parameter. The case of local specication can be caught by a slight
+modication of the denition, the semantics and the transformation.
+When a state qhas a setUqof outgoing urgent transitions, they
+are treated as follows. Let bsbe the lower bound of the rst interval, in
+the state, in which some urgent transition becomes enabled. Let Sq=
+fu1;u2;:::;ukgbe the set of urgent transitions which become enabled
+afterbsand letIui=hbs
+ui;be
+uii,i= 1;:::;k be their enabling time
+intervals. The time interval in which at least one urgent transition
+must be taken ishbs;minbound (bs+`;be
+u1;:::;be
+uk)i, where minbound
+gives the more restrictive interval upper bound. In this interval all
+enabled urgent transitions have the same priority and one of them is
+executed non-deterministically. Figure 2 shows two possible scenarios.
+The white area gives the interval in which at least an urgent transition
+must be taken. In ( a)u1is the rst enabled transition. u2has the
+minimal upper bound, thus the interval in which one urgent transition
+must be taken starts with bs
+u1and ends with be
+u2. In this interval one
+ofu1;u2andu3(in the sub-interval in which it is enabled) can be
+taken. In (b), the rst urgent transition enabled is u1and it remains
+enabled also after `time units. Thus, in this case, the interval to
+consider has length `because the other ones are still enabled. Within
+this interval u2andu3can be taken, when enabled, as well.
+If a state has no urgent outgoing edges then the behavior is the
+usual one of timed automata. This also happens when a state is en-
+tered and no urgent transitions are enabled.
+Moreover, when some urgent transition is enabled in a state, the
+unique way to continue the run is to execute it or another urgent
+transition following the rules expressed above.
+
+--- Page 10 ---
+10 Roberto Barbuti, Luca Tesei
+Fig. 2 The case of more than one urgent transitions overlapping
+Denition 7 (Timed Automaton with Urgent Transitions).
+Let`2Q+be a constant. A timed automaton with urgent transitions
+T`
+uis a tuple (Q;;E;U;I;R;X)whereQis a nite set of states, 
+is a nite alphabet of actions, EandUare nite sets of edges, the
+non-urgent and the urgent ones, IQis the set of initial states,
+RQis the set of repeated states, Xis a nite set of clocks. Each
+edgee2E[U is a tuple in Q	XXQ.
+The class of all timed automata with urgent transitions will be
+denoted byT`
+u.
+In the following the superscript `could be omitted and, when this
+happens, it should be considered implicitly dened.
+The semantics of a timed automaton with urgent transitions T`
+u
+is dened, as for timed automata, in terms of its accepted language.
+This is dened in the same way of the accepted language for timed
+automata. The dierence is that we use another innite transition
+system to dene action sequences and runs: the transition system
+S(T`
+u) = (Su;!). The states Suare triples ( q;;q) such that q2Qis
+the current state of the automaton T`
+u,is the current clock valuation
+andq2R0is a number recording the time elapsed since the state
+qhas been entered. The rules to derive the transitions of S(T`
+u) are
+the following:
+
+--- Page 11 ---
+Timed Automata with Urgent Transitions 11
+(Time)2R+
+(q;;q)!(q;+;q+)
+(Non-Urgent)(q; ;;;q0)2E; j= ;
+(8(q; u;u;u;q0
+u)2U:(:9:(0q^j= u)))
+(q;;q)!(q0;n;0)
+(Urgent)(q; u;u;u;q0)2U; j= u;
+(:9u0= (q; u0;u0;u0;q0
+u0)2U:
+(9:0q^`^j= u0));
+(:9u0= (q; u0;u0;u0;q0
+u0)2U:
+(9:0q^6j= u0^j= u0)
+(q;;q)u!(q0;nu;0)
+Rule (Time) lets the time elapse in a state and updates both
+the clock valuation and the time elapsed in the state. Recall that,
+due to the acceptance condition semantics, some states, in the action
+sequence, must be entered innitely many times. Thus the automaton
+is not allowed to elapse time in a state innitely.
+Rule (Non-Urgent) can be used when T`
+uis in a state without
+outgoing urgent edges (the 8condition is trivially true). In this case
+the behavior is the same as timed automata. When T`
+uis in a state
+with a set of urgent outgoing transition, the \ :9" condition in the
+rule requires that every urgent transition has never been enabled since
+the current state was entered. If this is false the rule is not applicable.
+Note that when a new state is entered the time elapsed is set to 0.
+Rule(Urgent) executes an urgent action u. The rst \:9" con-
+dition ensures that the urgent transition that is going to be executed
+is taken before a time `has elapsed after the enabling time of any
+urgent transition. The second \ :9" forbids the execution of the ur-
+gent transition if there is a urgent transition which was enabled and
+it is no longer so.
+Example 1. Figure 3 shows an example of a timed automaton with a
+urgent transition (graphically, we show this by attaching a \ u" to the
+edge). In this example we consider `= 1. The automaton can execute
+the actionbwhen the value of the clock xis in the interval (0 ;1]. When
+the value of xbecomes greater than 1, bcannot be performed any
+longer and the urgent action amust be executed. Moreover, because
+of the urgency, amust be performed while the value of xis in the
+interval (1;2].
+
+--- Page 12 ---
+12 Roberto Barbuti, Luca Tesei
+Fig. 3 An automaton with urgent transitions, T1
+u
+4 The expressive power of timed automata with urgent
+transitions
+In this section we show that, from a language theoretic point of view,
+the expressive power of timed automata with urgent transitions is
+equivalent to the one of timed automata. This is shown by providing
+a three-steps transformation which preserves the accepted language.
+Because timed automata are special cases of timed automata with
+urgent transitions ( U=;), the transformation is only given starting
+from the latter ones.
+4.1 The region form of a timed automaton
+LetT`
+ube a timed automaton with urgent transitions. We give a trans-
+formation that builds a timed automata accepting the same timed
+language.
+Note that if `=a
+bwithaandbnatural numbers ( b6= 0), it is
+always possible to transform a Ta
+buautomaton to an isomorphic one
+Ta
+uby multiplying all the constants in the clock constraints by b.
+Practically this means that a dierent scale is used to measure time
+and, indeed, this does not aect specication/verication tasks. So
+we can assume without loss of generality that `is a positive natural
+number.
+Given a set of clocks X, a clock region, as dened in [8], is an
+equivalence class of clock evaluations such that, given two clock eval-
+uationsand0belonging to it, for every clock constraint  ,j= 
+i0j= . Note that, given a timed automaton Tand a set of clocks
+X, the clock regions are nite. Let us denote such a set by Reg(T;X).
+We denote the equivalence class of a clock evaluation as []. A clock
+region2Reg(T;X) can be uniquely identied by specifying both
+- for every clock x2X, one clock constraint of the set
+Cx=fx=cjc= 0;1;:::;cxg[fc1<x<cjc= 1;2;:::cxg[
+fx>cxg
+
+--- Page 13 ---
+Timed Automata with Urgent Transitions 13
+wherecxis the greatest constant, in the constraints of T, whichx
+is compared to,
+- for every pair of clocks xandy, with associated constraint c1<
+x < c andd1< y < d , for some c;d, an inequality of type
+fract (x)#fract (y) where #2 f<;=;>gand fract (x) is the
+fractional part of the value of clock x.
+Given a clock region 2Reg(T;X) andx2X we denote by
+RT(;x) the unique clock constraint in Cxin the specication of .
+In [8] it is shown how to construct, given a clock region 2
+Reg(T;X), the ordered set of clock regions that are time successors
+of. We denote such set by succ (). The orderof the clock
+regions in the set succ () is total and such that 0i0is a
+time successor of 1.
+Given a clock region 2Reg(T;X) and a reset X, we denote
+by [!0]the clock region such that, for all x2, the constraint
+inforxis substituted by x= 0.
+In the following we need a transformation of clock constraints that,
+starting from a constraint  , gives a logically equivalent constraint
+min( ) such that it does not contain redundancies. Essentially the
+transformation drops from  the atomic constraints which are implied
+by others, yielding a minimal conjunction of constraints.
+Denition 8. Given a constraint  over a setXof clocks. min( )
+is the equivalent constraint where there is only one constraint of the
+formx=c,x#c,c#x#0dorc#x, where #;#02f<;gfor
+every clock x2X.
+Givenx2X, we denote by select (min( );x)such unique con-
+straint forx.
+The following denition describes a rst transformation, in region
+form, of a timed automaton with urgent transitions. To this purpose
+a state of the transformed automaton records both the state of the
+original one and the equivalence class (clock region) of the values of
+clocks when the state is entered. The resulting automaton is a timed
+automaton that is equivalent to the original one and has a structural
+property that will be used in the next step of the transformation for
+proving the correctness of the transformation itself.
+Denition 9. LetTu= (Q;;E;U;I;R;X)be a timed automaton
+with urgent transitions. The corresponding timed automaton in region
+form ,Tr
+u= (Qr;;Er;Ur;Ir;Rr;X)is dened as follows:
+1This has to be imposed for those cases in which does not belong to succ()
+i.e. points or lines regions.
+
+--- Page 14 ---
+14 Roberto Barbuti, Luca Tesei
+- the states in Qr(resp.Rr) are of the form hq;iwhereq2Q
+(resp.R) andis a clock region,
+- the states in Irare of the formhq;[0]iwhereq2Iand0(x) = 0
+for allx2X
+-(hq;i;min( )^V
+x2XRTu(00;x);;;hq0;[!0]00i)2Er(resp.
+Ur) i
+(q; ;;;q0)2E (resp.U),2Reg(Tu;X), and002succ ().
+Note that the new states are built exactly as the ones of the region
+automaton as dened in [8]. This construction diers from the one
+for region automaton because constraints and resets are maintained
+on the edges. These constraints are modied in order to force the cor-
+responding edge to enter only one of the time successor clock regions
+(in the sense that for other regions the constraint is always false).
+Also note that this step can be applied to any timed automaton
+yielding the following result.
+Proposition 1. Given a timed automaton with urgent transitions Tu,
+letTr
+ubeTuin region form. Then, L(Tu) =L(Tr
+u).
+Proof. By region construction correctness. u t
+We want to remark that the region form of a timed automaton
+can be, in general, a useful device for reasoning about the automaton
+itself and its structure. In particular, we exploit, in the next step of
+the transformation, the following property:
+Proposition 2. LetTube a timed automaton with urgent transitions
+and letTr
+ubeTuin region form. In every derivation of the transi-
+tion systemS(Tr
+u), if a state (hq;i;)is entered by performing a
+transition labeled by 2, then [] =.
+Proof. By denition 9. u t
+Example 2. In Figure 4 it is shown the automaton of Figure 3 in region
+form, denoted by T1r
+u. Note that the constraints explicitly show the
+time successor clock region to which they refer. Note that all the
+edges with a false constraint have been removed and, in the states,
+there is only the [ x= 0] region because both the original edges reset
+x.
+4.2 Making the urgent transitions `-consistent
+The second step of the transformation will adapt the constraints of
+the urgent transitions of Tr
+umaking them consistent with the seman-
+tics we gave in Section 3. More precisely clock constraints are adapted
+
+--- Page 15 ---
+Timed Automata with Urgent Transitions 15
+Fig. 4 Automaton T1r
+u
+according to the behavior expressed by the rule (Urgent) . In this
+step we consider only the urgent actions and neglect the other ones
+which remain unchanged. The third step will adapt these according
+to the semantics.
+Lethq;ibe a state of Tr
+usuch that in state qofTuthere was a
+set of outgoing urgent transitions Uq=fu1;:::;ukg, whereui=
+(q; ui;ui;ui;q0
+ui),i= 1;2;:::;k . Each of these transitions be-
+comes, inTr
+u, a set of transitions
+E
+ui=f(hq;i;min( ui)^V
+x2XRTu(00;x);ui;ui;hq0
+ui;[ui!0]00i)j
+002succ ()g
+We need to determine the minimal upper bound of the enabling
+interval of all the urgent actions which can be enabled in a state. By
+the semantics of Section 3, we know that urgent transitions must be
+taken before such a bound.
+Using the total order dened in the set succ () and the prop-
+erty of states expressed by Proposition 2 we can determine the set of
+urgent actions which will be enabled.
+Fhq;i=fui2Uqj902succ ()[fg:0)min( ui)g
+If this set is empty, the state hq;iand its outgoing urgent tran-
+sitions remain unchanged. Otherwise we add to each outgoing urgent
+transition an explicit constraint which forces it to respect both the
+expiry time expressed by `and the minimal upper bound of the en-
+abling interval of other urgent transitions. Such an explicit constraint
+does not modify the behavior of the automaton, but explicitly adds
+to the transition constraint the conditions expressed by the semantic
+rules of Section 3.
+
+--- Page 16 ---
+16 Roberto Barbuti, Luca Tesei
+If inFhq;ithere are transitions that are already enabled when the
+state is entered we simply add to each transition inSk
+i=1E
+uia new
+constraint imposing that the time elapsed in the state be less than
+`. To do this we add in Tr
+ua new clock variable. Whenever a state
+is entered this clock is reset, so it can be used in the constraints of
+outgoing edges as a measure of the time elapsed in the state.
+If inFhq;ithere are only transitions that are enabled after some
+time, we determine the rst clock region which satises a constraint of
+an urgent action fstsucc (;min( ui)) =min02succ ()[fg(0)
+min( ui)^ui2Fhq;i). Note that if fstsucc (;min( ui)) =then
+the urgent transition is already enabled when the state is entered
+(remember Proposition 2). By convention, if the clock constraint
+min( ui) is equivalent to false or it is consistent, but it will never be
+true letting the time to elapse from , the result of fstsucc is>and
+it has the property of being greater than any element of succ ()[fg.
+Moreover we can establish the immediate predecessor, according to
+the total order, of a clock region 0in the set succ (). Let us denote
+this by prec (0). Again, if 0is the minimum in succ (), then its
+predecessor is .
+Denition 10 (Set of Crucial Clocks). If6)min( ui), then we
+dene the set cruc (;min( ui))as the setXfx2Xj
+RTu(prec (fstsucc (;min( ui)));x))select (min( ui);x)g. It con-
+tains the only clocks that determine the truth of the constraint min( ui)
+in the region fstsucc (;min( ui)).
+Example 3. Let us explain the concept of \ crucial". Let min( ui)
+be 0< x < 2^1< y < 3. Ifis [x= 0^0< y < 1] then
+fstsucc (;min( ui)) = [1< y < 2^0< x < 1;fract (y)<
+fract (x)] and prec (fstsucc (;min( ui))) = [y= 1^0< x < 1].
+Inprec (fstsucc (;min( ui))), the value of clock x, 0< x < 1,
+implies the atomic constraint select (min( ui);x) = 0< x < 2,
+soxis not crucial for min( ui). Instead, the value of y,y= 1,
+does not imply select (min( ui);y) = 1< y < 3. Thus, we have
+y2cruc (;min( ui)).
+Ifis [y= 1^x= 0] then fstsucc (;min( ui)) = [1<y< 2^
+0< x < 1;fract (y) =fract (x)] and prec (fstsucc (;min( ui)))
+isitself. Here both xandyare crucial clocks.
+Proposition 3. The set of crucial clocks always contains at least one
+element.
+Proof. By absurd, suppose it is empty. Then, the clock region
+prec (fstsucc (;min( ui))) would imply min( ui). But, by deni-
+tion, fstsucc (;min( ui)) is the minimum clock region that implies
+
+--- Page 17 ---
+Timed Automata with Urgent Transitions 17
+min( ui) and prec (fstsucc (;min( ui))) is strictly less than it us-
+ing the order dened in succ ()[fg. A contradiction. u t
+Letui2Fhq;i. The constraint select (min( ui);x), given any
+crucial clock x, can be used to determine a constraint that force the
+urgent action to be executed within `time units from the time in
+which it becomes enabled (and respecting the rules discussed in Sec-
+tion 3). To do this we add to any transition inSk
+i=1E
+uithe additional
+constraint add(;min( ui))) constructed as follows. Given any crucial
+clockxformin( ui),x2cruc (;min( ui)):
+{add(;min( ui))) is (x < c +`) ifselect (min( ui);x) is either
+(x=c) or (cx#d) or (cx), wherec<d and #2f;<g.
+{add(;min( ui))) is (xc+`) ifselect (min( ui);x) is either
+(c<x #d) or (c<x ) wherec<d and #2f;<g.
+The nal step in the construction of a `consistent timed automa-
+ton is to add to all urgent transitions a constraint which forces all
+of them to be executed (if possible) before the upper bound of the
+enabling interval of the rst disabled one: recall Figure 2(a). If such
+an urgent transition does not exist, this step, for the current state,
+ends. To formalize this search, we exploit again the total order de-
+ned in succ (). Given the set Fhq;i, we search, for each element
+(q; ui;ui;ui;q0
+ui) of this set, the clock region, in succ (), in which
+the constraint min( ui) becomes false, if any. fstdis(;min( ui))
+denote such clock region. If the constraint will never be false, letting
+the time to elapse, in the current state, the result of this operation
+is, by convention, >and has the property of being greater than any
+element of succ (). Now we can explicitly dene the set of enabled
+urgent transition which are rst disabled.
+Lhq;i=fui2Fhq;ijfstdis(;min( ui))6=> ^ 8uj2Fhq;i:
+fstdis(;min( ui))fstdis(;min( uj))g
+Taking any transition uiin this set, we have to nd the clock
+constraint to add to other urgent transitions that disables them when
+uiis disabled. To this purpose we introduce the following denition.
+Denition 11. Let be a constraint without redundancies over a set
+of clocksX.
+Thelower openingO( )of is obtained by deleting from  all
+the constraints of the form cxandc < x , and by substituting all
+the constraints of the form x=cbyxc, for allx2X.
+Analogously, the upper openingO+( )of is obtained by deleting
+from all the constraints of the form xcandx < c , and by
+
+--- Page 18 ---
+18 Roberto Barbuti, Luca Tesei
+substituting all the constraints of the form x=cbycx, for all
+x2X.
+Clearly this denition requires constraints of the form c#x#d,
+#2f<;g, to be considered as c#x^x#d.
+Thus if we want that all the urgent transitions will be disabled
+whenuiis disabled, we need to add to all of them the constraint
+O(min( ui)) which becomes false at the same time of the rst dis-
+abled urgent transition.
+Denition 12. LetTr
+u= (Qr;;Er;Ur;Ir;Rr;X)be a timed au-
+tomaton with urgent transitions in region form. The `-consistent ver-
+sion of it, `Tr
+u, is the timed automaton (Qr;;Er;Ur
+`;Ir;Rr;Xr)
+whereXr=X[fxtime stategandUr
+`is constructed as follows:
+1.(hq;i; ;[fxtime stateg;;hq0;0i)2Ur
+`i(hq;i; ;;;hq0;0i)2
+UrandFhq;i=;
+2.(hq;i; ^xtime state<`;[fxtime stateg;;hq0;0i)2Ur
+`i
+(hq;i; ;;;hq0;0i)2Urandu2Fhq;iand)min( u)and
+Lhq;i=;
+3.(hq;i; ^xtime state<`^O(min( u0));[fxtime stateg;;hq0;0i)2
+Ur
+`i(hq;i; ;;;hq0;0i)2Urandu2Fhq;iand)min( u)
+andu02Lhq;i
+4.(hq;i; ^add(;min( u));[fxtime stateg;;hq0;0i)2Ur
+`i
+(hq;i; ;;;hq0;0i)2Urandu2Fhq;iand6)min( u)and
+Lhq;i=;
+5.(hq;i; ^add(;min( u))^O(min( u0));[fxtime stateg;;
+hq0;0i)2Ur
+`i(hq;i; ;;;hq0;0i)2Urandu2Fhq;iand
+6)min( u)andu02Lhq;i
+Proposition 4. Given a timed automaton with urgent transitions
+in region form Tr
+uand its`-consistent version `Tr
+u, thenL(Tr
+u) =
+L(`Tr
+u).
+Proof. Let us rst add the clock xtime state to all edges of Tr
+u. This
+operation results in an equivalent timed automaton with urgent tran-
+sitions.
+The proof proceeds for cases.
+Case 1. Consider the hypothesis Fhq;i=;.
+We have
+Fhq;i=;
+fBy denition of Fhq;ig
+:9u2Uq:(902succ ()[fg:0)min( u))
+
+--- Page 19 ---
+Timed Automata with Urgent Transitions 19
+fBy Proposition 2g
+:9(hq;i; ;;;hq0;0i)2Ur:[]2[succ ()^j= 
+Thus, no urgent action can be performed in hq;iand the state
+is equivalent in both Tr
+uand`Tr
+u.
+Case 2. Consider the hypothesis u2Fhq;iand)min( u) and
+Lhq;i=;.
+We have:
+(a)
+(u2Fhq;i^)min( u))^Lhq;i=;
+)fby denition of Lhq;ig
+(u2Fhq;i^)min( u))^
+(:9u2Fhq;i:j(902succ ():fstdis(;min( u))6=>))
+)fby denition of Fhq;i,Lhq;iand Proposition 2 g
+8: []2[succ ():
+(8hq;i`:(9u=hq;i; ;;;hq0;0i)2Ur:(9:0hq;i^
+`^j= ))^
+(8hq;i< `:(:9u=hq;i; ;;;hq0;0i)2 Ur:(9:0
+hq;i^`^j= ))^
+8hq;i:(:9u=hq;i; ;;;hq0;0i)2Ur:(9:0hq;i^6j=
+ ^j= )
+Now, let us consider ( hq;i; ;;;hq0;0i)2Ur.
+The condition for performing such an action, given by the (Ur-
+gent) rule is:
+j= ^
+(:9u0= (hq;i; u0;u0;u0;hq0;0i)2Ur:
+(9:0hq;i^`^j= u0))
+(:9u0= (hq;i; u0;u0;u0;hq0;0i)2Ur:
+(9:0hq;i^6j= u0^j= u0))
+which, under the hypothesis and proof (a), is equivalent to:
+j= ^hq;i<`
+Nowj= ^hq;i<`ij= ( ^xtime state<`), thus an urgent
+action (hq;i; ^xtime state<`;[fxtime stateg;;hq0;0i)2Ur
+`
+can be performed if and only if ( hq;i; ;;;hq0;0i)2Urcan
+be performed.
+Case 3. Consider the hypothesis u2Fhq;iand)min( u) and
+u02Lhq;i.
+Under the hypothesis u2Fhq;iand)min( u), the proof of
+Case 2. states that the introduction of the constraint xtime state<
+
+--- Page 20 ---
+20 Roberto Barbuti, Luca Tesei
+`guarantees that no urgent action can be performed after `time
+units from the enabling of the rst urgent action.
+Now we have an additional hypothesis:
+u02Lhq;i
+)fBy the denitions of Lhq;i,Oand the hypothesis g
+8: []2[succ ():6j=O(min( u0))((9:0hq;i^
+6j= u0^j= u0))
+Thus, for the (Urgent) rule, an urgent action could be performed
+only ifj=O(min( u0)). We can conclude that an urgent action
+(hq;i; ^xtime state<`^O(min( u0);[fxtime stateg;;hq0;0i)2
+Ur
+`can be performed if and only if ( hq;i; ;;;hq0;0i)2Urcan
+be performed.
+Cases 4. and 5. The proof proceeds analogously to the ones of
+the other cases.
+u t
+4.3 The quiet version of a timed automaton with urgent transitions
+Now, in order to achieve the desired behavior, in each state of `Tr
+u
+we have to turn o all the originally non-urgent outgoing transitions
+when at least one of the edges obtained by the originally urgent tran-
+sition is enabled. This is the third transformation step.
+Lete= (hq;i; ;;;hq0;0i) be a non-urgent outgoing transi-
+tion from a state in `Tr
+u. We mapein some transitions e0= (hq;i; ^
+;;;hq0;0i) of the new automaton where is the constraint that
+will become false when at least one of the outgoing urgent transitions
+of the statehq;iin`Tr
+ubecomes true. The disjunction of the up-
+per opening (Denition 11) of all urgent edges constraints (without
+redundancies) outgoing from a state in `Tr
+u, describes a right-innite
+time interval to the beginning of which an urgent transition must
+be taken. The negation of this disjunction must be added to all the
+constraints of non-urgent edges of Tr
+uoutgoing from the same state.
+The negation of a complex formula can introduce disjunction of
+constraints. We denote by DNF+an operation that, given a constraint
+which contains negations, push the negation operator inside, using the
+logical axioms for :;^;_, until it is applied to atomic constraints.
+Then it transforms the negations of these constraints to the corre-
+spondent positive ones ( x=cwill be translated into x<c_c<x ).
+Finally, it transforms the formula in disjunctive normal form. It re-
+turns the set containing all the conjunctive components of the for-
+mula.
+
+--- Page 21 ---
+Timed Automata with Urgent Transitions 21
+Denition 13. Let`Tr
+u= (Qr;;Er;Ur
+`;Ir;Rr;Xr)be the`-consistent
+version of a timed automaton with urgent transitions in region form
+Tr
+u. The quiet version of it, Tquiet
+u, is the timed automaton (Qr;;E=
+Ur
+`[E0;Ir;Rr;Xr)whereE0is constructed as follows:
+(hq;i; ^;[fxhq0;0ig;;hq0;0i)2E0i(hq;i; ;;;hq0;0i)2
+Er, and2DNF+(:(W
+uO+(min( u)))for all (hq;i; u;u;u;hq00;00i)2
+Ur
+`.
+Example 4. Figure 5 shows the automaton T1quietwhich is the 1-
+consistent and quieted version of the automaton T1
+uof Figure 3. Note
+that the constraint 1 <xon one of the edges for bhas been modied
+to 1<x^x1 by the last transformation. Thus, being always false
+has been removed. In gure, the clock xtime state is omitted because
+it is useless in this case.
+Fig. 5 Automaton T1quiet
+Theorem 1. LetTube a timed automaton with urgent transitions,
+Tr
+uthe corresponding timed automata in region form and Tquiet
+u its
+quiet version. Then L(Tu) =L(Tquiet).
+Proof. Starting from the result of Proposition 4, the proof proceeds
+analogously to the one of Proposition 4 itself. u t
+As a last remark of this section we want to discuss the size of the
+output of the transformation. Indeed, it turns out that our notion
+of urgent actions is a succinct way to express urgency. To see this
+consider that one could just design his/her automaton as the quiet
+version we obtain by the transformation. That is to say, one can think
+about states as pairs hq;iand use suitable constraints to express
+urgency as we do by the algorithm.
+However, it is clear that the quiet automaton has a larger size
+than the automaton with urgent transitions. As a rst approximation
+
+--- Page 22 ---
+22 Roberto Barbuti, Luca Tesei
+the size of the quiet version of the automaton is at least the size of
+the region automaton of [8]. Here we consider the size of a timed
+automaton as the sum of the number of states and the number of clock
+constraints on the edges. The size of the quiet version is greater than
+that because we add constraints (and edges) to induce the behavior
+specied by the formal semantics.
+5 Using timed automata with urgent transitions as a
+specication formalism
+In the previous section we dened a new feature for the timed au-
+tomata specication formalism. After that we showed how to compile
+a timed automaton with urgent transition into a standard timed au-
+tomaton.
+Indeed, a specication formalism needs a way to dene systems as
+a composition of components. For timed automata this mechanism is
+the parallel composition (see Section 2). The parallel composition of
+timed automata with urgent transitions is dened in the same way,
+but the following remarks:
+{the urgency of a transition of a component with a synchronization
+actionextends to the transition obtained using the rule ( i) of
+Denition 6,
+{the urgency of a transition of a component extends to the transi-
+tion obtained by the rules ( ii) and (iii) of Denition 6.
+It is easy to see that the transformation dened in the previous
+section is not a congruence with respect to parallel composition . In
+other words if we have two timed automata, T1
+uandT2
+u, with urgent
+transition the automaton T1
+ukT2
+u, when dened, is not equivalent, in
+general, to Tquiet
+1kTquiet
+2 (the standard parallel composition of the
+quiet version of them).
+Fig. 6 Automaton A1
+uand its quiet version A1quiet
+
+--- Page 23 ---
+Timed Automata with Urgent Transitions 23
+Example 5. Consider the automaton A1
+uof Figure 6(a), the automa-
+tonT1
+uof Figure 3 and the parallel composition T1
+ukA1
+u. The action
+c, having the constraint y>0 and being urgent, surely preempts the
+actionbat the beginning of every run. The parallel composition of the
+quiet version of T1
+u(Figure 5) and of the quiet version of A1
+u(Figure
+6(b)) has a dierent behavior: in the automaton T1quietkA1quietthe
+actionbcan be performed at the beginning of a run before the urgent
+actionc. This is because the transformation of T1
+uintoT1quietdoes
+not consider the urgency of the action cbelonging to the component
+A1quiet.
+Thus, the interpretation of the non-urgent outgoing transitions in
+a state of an automaton respect to the urgency of a transition de-
+pends on the context in which the automaton is considered. If it is
+viewed as a component instead of a stand-alone system, the enabling
+of those transitions should change taking into account other compo-
+nent's urgent transitions that could interleave with them. This aspect
+turns out explicitly in the example of the following section.
+6 An example
+As an example of specication of a system with urgent actions we use
+a part of a multicast protocol for mobile computing presented in [12].
+There the protocol is specied by the Calculus of Communicating
+Systems (CCS) [30], and the Concurrency Workbench tool [13] is
+used to state some required properties.
+Let us start with an informal description of the protocol, quoted
+from [12]:
+\. . . We consider a system composed of mobile hosts and stationary
+hosts.
+Communication occurs solely via message-passing. Some station-
+ary hosts (gateways) are connected to a wired network that provides
+reliable and FIFO-ordered communication and to a wireless link, that
+covers a spatially limited cellnearby the gateway. Mobile hosts may
+move and communicate through wireless links. A gateway may broad-
+cast messages to all mobile hosts in its cell. A mobile host may only
+exchange messages with the gateway of the cell where it happens to
+be located.
+We shall associate a dierent meaning with the terms \receiving"
+and \delivering" a message. A host Creceives a messagemsg when
+msg arrives at its protocol layer. Upon receiving msg, the protocol
+may discard msg or passmsg up to one of its applications. In the
+latter case, Cis said to delivermsg.
+
+--- Page 24 ---
+24 Roberto Barbuti, Luca Tesei
+The protocol works as follows. A dedicated stationary host acts
+as the coordinator , denoted as SC. A mobile host generates a mul-
+ticast by sending a message to a gateway, which forward it to SC.
+SC constructs a message containing an increasing sequence number,
+then transmits the resulting message to gateways through a FIFO-
+multicast. Gateways broadcast this message to mobile hosts in the
+respective cells.
+Due to its movement across cells, any mobile host mcould receive
+duplicates or could miss multicasts. By maintaining a history of the
+received sequence numbers, mdiscards duplicates in the former case
+and sends to the stationary hosts a proper nack message in the latter
+(e.g., upon receiving an out-of-order message). Upon receiving a nack ,
+the stationary host will relay to ma copy of the missing multicasts."
+The protocol was designed to guarantee several properties, in par-
+ticular: "Each mobile host mdelivers each multicast under reasonable
+assumptions, as follows: mstops delivering messages if: (i) mstarts
+entering and leaving cells so quickly that its messages never arrive
+to any stationary host or messages from gateways are systematically
+lost; and (ii) this pattern of movements persists forever.
+. . . "
+The explicit assumption in the formulation of the property is due
+to the fact that CCS specications cannot express constraints on the
+speed of mobile hosts. Thus, using this specications, the system can
+have \bad" behaviors, which must be ruled out in the property formu-
+lation. This means that the verication of the property is restricted
+to all the possible \good" behaviors. That is, the execution paths
+in which the mobile host enters and leaves cells without getting any
+message, although possible, are disregarded.
+With timed automata with urgent transitions we can easily de-
+scribe the behavior of the components involved in the protocol to-
+gether with important time parameters such as the speed of a mobile
+agents, that is the minimal amount of time it can stay in a cell or
+the frequency it exchanges messages with the stationary hosts. This
+allows to state the property on the whole system behavior which, due
+to time parameters, should not allow \bad" executions.
+To make a simple example of this feature of timed automata with
+urgent transitions, we extract from the above presented protocol the
+part dealing with the iterated request of a mobile host to broadcast a
+message until it eectively receive it. For reasons of simplicity we as-
+sume only one mobile host, two stationary ones and the coordinator,
+as shown in Figure 7. Of course, the mobile host, being unique, can-
+
+--- Page 25 ---
+Timed Automata with Urgent Transitions 25
+not receive multicasts generated by other mobile hosts. We assume
+that multicasts are generated directly by the gateways.
+The system is specied by the parallel composition of the au-
+tomata specifying each entity.
+Fig. 7 The scenario
+The coordinator SC is dened in Figure 8. It accepts a request
+from a gateway gj(reqgj(i)) for broadcasting the ithmessage.
+Then it tries to contact all the gateways to signal that the ith
+message must be sent to their cells. Note that the coordinator tries to
+contact the stationary hosts sequentially, it passes to contact the next
+one only if either the previous accepted the request ( signalgj(i)) or it
+does not respond for twenty time units ( failgj). Note that in the latter
+case the coordinator proceeds in, at most, twenty one time units. It
+is important to remark that the action of contacting the stationary
+hosts is urgent. That is, when enabled, it cannot be skipped and it
+must be done within a given time interval. One could observe that the
+automaton always have the urgent transition enabled when it enters
+state 2 (and 3) and so the failg1(i) (failg2(i)) transition can never
+be taken. But, as observed in Section 5, this automaton has to be
+understood as a component of a whole system. This means that the
+semantics of urgency is dened in terms of the whole system where the
+action signalg1(i) (and signalg1(i)) is a synchronization action and
+can be executed only if the partner (the gateway) can execute it. This
+depends on the state in which it currently is. Thus, in some runs of the
+whole system, it could happen that the action failg1(i) (failg2(i))
+is taken depending on the relative speed of the components and on
+the interleaving of non-synchronization actions. Note that without
+urgent transitions we cannot impose the priority and the urgency
+of the action signalg1(i) (signalg1(i)) with respect to the action
+
+--- Page 26 ---
+26 Roberto Barbuti, Luca Tesei
+failg1(i) (failg2(i)) in state 2 (3) because the standard semantics
+of timed automata would execute them non-deterministically.
+Fig. 8 The coordinator SC
+A gateway gjis dened in Figure 9. It passes the requests for
+broadcasting the ithmessage from the mobile host ( reqmgj(i)) to
+the coordinator ( reqgj(i)), and broadcasts the message msggj(i) on
+its cell upon request of the coordinator ( signalgj(i)). Note that the
+action of sending the message is urgent, it can be skipped only if the
+mobile host do not respond within ten time units. The same remarks
+on urgency on parallel composition given above applies here.
+Fig. 9 The gateway gj
+Finally, the mobile host mis dened in Figure 10. It tries, every
+two units of time, and for a duration of two time units, to contact
+the gateway for requesting to broadcast the ithmessage. When
+theithmessage is received and delivered a message counter is
+increased. Note that, due to parallel composition, both actions are
+urgent, so they must be done if enabled. Moreover, the mobile host
+can move from a cell to another; however its speed cannot allow to
+
+--- Page 27 ---
+Timed Automata with Urgent Transitions 27
+stay in a cell less than fty time units. This action is not urgent, that
+is a host can stay in a cell also if the action of moving is enabled.
+Fig. 10 The mobile host m
+Our notion of urgency expresses both a priority among actions and
+a time constraint on their execution. Both these concepts are useful in
+specifying real systems. In the scenario of Figure 7, the mobile host,
+when staying within a cell, must rst of all try to communicate with
+the gateway and, if possible, it must do it immediately. If we remove
+the urgency annotation from the previous automata, the mobile host
+could never communicate while waiting for the time of moving.
+With this specication, the correctness property of the protocol
+can be simply restated as: \Each mobile host mdelivers each multi-
+cast".
+Because we have not yet a tool implementing our notion of ur-
+gency, we have used the features of UPPAAL [16] (a verication tool
+for timed automata) to verify the protocol. In particular we used its
+notions of urgent states and urgent channels to simulate our notion
+of urgency. These features are not sucient to express the notion
+that we have introduced in this paper and thus the system that we
+have tested is an approximation of the one shown in this section. We
+do not report here the details of this test. It results that the prop-
+erty expressed in the previous paragraph is veried by a system in
+which there are two gateways, a mobile host and a xed number n
+of broadcast messages. It is interesting to report that with dierent
+relative times in the constraints of the mobile host in Figure 10 the
+property is not veried. This means that the speed of the mobile host
+is a crucial parameter for determining the truth of the property.
+
+--- Page 28 ---
+28 Roberto Barbuti, Luca Tesei
+7 Notes on Implementation
+In this section we address two problems that arise in the eective use
+of timed automata with urgent transitions and the dened transfor-
+mation. The rst is the progress model used by the automata and
+the second is the state explosion due to the region automaton con-
+struction.
+We have used in this paper the original model of timed automata
+[8] in which the semantics of an automaton is its accepted timed
+language according to the B uchi acceptance condition. Moreover the
+states of an automaton have not invariant constraints to satisfy. This
+type of model always allows time to advance in a state (recall rule
+1 of the transition system for the semantics of timed automata in
+Section 2 or rule (Time) of the one for timed automata with urgent
+transitions in Section 3). If in a derivation the time advance too much
+so that the automaton cannot perform transitions any more, then the
+derivation is discarded by the acceptance condition and is not con-
+sidered as a behavior of the system. The problem with this model is
+the fact that we cannot decide how to progress, from each state, into
+a correct run using only the information of the state. In other words
+the progress of a correct run requires, in each local state, an informa-
+tion that is global to the automaton. It is dicult to implement or to
+construct a simulator for this model. For this reason, in verication
+and model checking tools, the used model is dierent. The informa-
+tion required for the progress is local: the states are equipped with an
+invariant condition which must be always true when the control is in
+the state (the absence of a condition corresponds to a true one). This
+feature can be used to assures the progress of every derivation of the
+transition system dening the semantics of the automaton. Accep-
+tance conditions are not used and the implementation of the model
+is relatively easy. This model was introduced in [28] and is used in
+all simulators and verication tools developed for timed automata.
+From a technical point of view, the local progress model corre-
+spond to the one dened in Sections 2 and 3 with the following dif-
+ferences:
+{the states of the automaton can be associated with invariants
+(clock constraints)
+{the rules of the transition system that lets the time to elapse (see
+above) have one more premise of the form 80:0< 0)
++0j=whereis the state invariant.
+{the semantics of a timed automaton is the set of all innite, time
+divergent derivations of the transition system.
+
+--- Page 29 ---
+Timed Automata with Urgent Transitions 29
+It is easy to see that the denition of timed automata with urgent
+transitions and the transformation that we have developed is the
+same if the model of local progress is used. The only dierence is in
+the construction of the region form of the automaton in which every
+statehs;ihas the invariant condition of the state sin the original
+automaton. The proof of correctness is the same.
+The real dierence between the two models is in the process of
+specication and/or design of a real-time system by a timed automa-
+ton. It is in that process that one decides the progress model to adopt
+and then, accordingly, writes the automaton. Thus, we remark that
+our denition and transformation is correct w.r.t. both the models.
+We have chosen the original one because in that context we can state
+that the expressing power (the set of timed languages recognizable
+by one device) of timed automata with urgent transitions is the same
+than the one of original timed automata (Theorem 1).
+The problem of state explosion in verication using timed au-
+tomata is a serious aspect that has been attacked from the beginning
+of the presentation of the model. The main source of this explosion is
+the region construction that we have recalled in Section 4. The num-
+ber of regions is exponential in the number of clocks and in the mag-
+nitude of the largest integer constant used in the clock constraints.
+The main tool to contain this complexity is the use of clock zones in-
+stead of clock regions. A clock zone is a convex union of clock regions
+and, like these ones, can be expressed by a conjunction of clock con-
+straints. The use of zones and of other suitable data structures (e.g.
+dierence-bound matrices) have been very useful in making practi-
+cally feasible the verication of properties of timed system specied
+by timed automata (see, for instance, [5,31,2,3]).
+For the sake of simplicity and clarity of exposition we have used,
+in our transformation of Section 4, the region form of a timed au-
+tomaton (Denition 9). Such device is very useful to dene and, for
+its properties, also to prove the correctness of the transformation.
+However, it suers of the problem of state explosion. With regard
+to this, we state that it is possible to dene a transformation that
+uses clock zones instead of clock regions. Such a transformation starts
+with the denition of the zone form of a timed automaton. This au-
+tomaton is the analogous of the region form of the timed automaton
+if the zone automaton construction [5,31,3] is used instead of the re-
+gion automaton construction. The second and the third step of the
+transformation remain unchanged.
+
+--- Page 30 ---
+30 Roberto Barbuti, Luca Tesei
+8 Related works
+The notion of urgency and/or priority for timed formalisms has been
+studied in the past. In [17] the urgency of actions has been investi-
+gated in the process algebra eld with the concept of discrete time.
+Dierent notions of priority have been introduced for timed automata
+in [25] and for timed process algebras in [22,21].
+A closer approach to ours can be found in [18,20,19]. There the
+states of a timed automaton are associated with time progress condi-
+tions (TPC ).TPC are state conditions which specify that the time
+can progress at a state by only if all the intermediate times 0,
+00<, satisfy it.
+TPC are computed from deadlines . Deadlines are clock constraints
+associated to transitions in addition to the usual constraints (which,
+in this setting, are called guards ). The dened class of timed automata
+is called Timed Automata with Deadlines (TAD ).
+Given a state q, itsTPC is intuitively computed as follows. Con-
+sider the set I=fijtiis a transition outgoing from qgof indexes
+of transitions from q. TheTPC ofq,cq, is obtained as the negation
+of the disjunction of the deadlines, di, of all the transitions from q,
+cq=:W
+i2Idi. In a state of a run, ( q;), the time can progress by ,
+(q;)!(q;+), if80<: +0j=cq.
+Given a transition in a TAD , with guard  and deadline d, we
+can found in [20] the following remark.
+\The relative position of dwith respect to  determines the ur-
+gency of the action. For a given  , the corresponding dmay take two
+extreme values: rst, d= , meaning that the action is eager and,
+second,d=false , meaning that the action is lazy. A particularly
+interesting case is the one of a delayable action wheredis the falling
+edge of a right-closed guard  (cannot be disabled without enforcing
+its execution).
+The condition d) guarantees that if time cannot progress at
+some state, then at least one action is enabled from this state. Restric-
+tion to right-open TPC guarantees that deadlines can be reached by
+continuous time trajectories and permits to avoid deadlock situations
+in the case of eager transitions. For instance, consider the case where
+d= =x > 2, implying the TPC x2, which is not right-open.
+Then, ifxis initially 2, time cannot progress by any delay  , accord-
+ing to above denition. The guard  is not satised either, thus, the
+system is deadlocked."
+This limitation is very intuitive: if the eager transition has a left-
+open guard, the time at which it can be red is undened. Using
+
+--- Page 31 ---
+Timed Automata with Urgent Transitions 31
+our concept of urgent transition we avoid this problem because the
+transition can be red in the interval in which xis in [2;2+`). On the
+other hand, if a transition with a left-closed guard, say x2, need
+to be red \as soon as possible" we can approximate this behavior
+using a constant `small as needed.
+With regard to the problem of right-closed TPC s it is also in-
+teresting to note that the introduction of urgent transitions in the
+tools of verication of timed automata is a dicult task. By now,
+the latest version of UPPAAL2has introduced the concept of \ur-
+gent channels"3which model transitions that must be red as soon
+as possible. But their use is very restricting because a guard cannot
+be associated with them.
+References
+1. L. Aceto, P. Bouyer, A. Burgue~ no, and K. G. Larsen. The power of reach-
+ability testing for timed automata. In Proceedings of the 18th Confer-
+ence on Foundations Software Technology and Theoretical Computer Science
+(FSTTCS'98) , number 1530 in Lecture Notes in Computer Science, pages
+245{256. Springer, Berlin, 1998.
+2. L. Aceto, A. Burgue~ no, and K. Guldstrand Larsen. Model checking via reach-
+ability testing for timed automata. In Proceedings of the 4th International
+Conference on Tools and Algorithms for the Construction and Analysis of
+Systems (TACAS'98) , number 1384 in Lecture Notes in Computer Science,
+pages 263{280. Springer, Berlin, 1998.
+3. R. Alur. Timed automata. In Proceedings of the 11th International Conference
+on Computer-Aided Verication (CAV'99) , number 1633 in Lecture Notes in
+Computer Science, pages 8{22. Springer, Berlin, 1999.
+4. R. Alur, C. Courcoubetis, and D. L. Dill. Model-checking in dense real-time.
+Information and Computation , 104:2{34, 1993.
+5. R. Alur, C. Courcoubetis, N. Halbwachs, D. L. Dill, and H. Wong-Toi. Min-
+imization of timed transition systems. In In Proceedings of the 3rd Inter-
+national Conference on Concurrency Theory (CONCUR'92) , number 630 in
+Lecture Notes in Computer Science, pages 340{354. Springer, Berlin, 1992.
+6. R. Alur, C. Courcoubetis, and T. A. Henzinger. The observational power of
+clocks. In Proceedings of the 5th International Conference on Concurrency
+Theory (CONCUR'94) , number 836 in Lecture Notes in Computer Science,
+pages 162{177. Springer, Berlin, 1994.
+7. R. Alur and D. L. Dill. Automata for modeling real-time systems. In Pro-
+ceedings of the 17th Colloquium on Automata, Languages and Programming
+(ICALP'90) , number 443 in Lecture Notes in Computer Science, pages 322{
+335. Springer, Berlin, 1990.
+8. R. Alur and D. L. Dill. A theory of timed automata. Theoretical Computer
+Science , 126:183{235, 1994.
+2UPPAAL Version 3.4.2 downloadable at http://www.uppaal.com
+3See the documentation at http://www.uppaal.com
+
+--- Page 32 ---
+32 Roberto Barbuti, Luca Tesei
+9. R. Alur, L. Fix, and T. A. Henzinger. Event-clock automata: A determinizable
+class of timed automata. Theoretical Computer Science , 211:253{273, 1999.
+10. R. Alur and T. A. Henzinger. Back to the future: Towards a theory of timed
+regular languages. In Proceedings of the 33th Annual IEEE Symposium on
+Foundations of Computer Science (FOCS'92) , pages 177{186. IEEE Com-
+puter Society Press, 1992.
+11. R. Alur and T. A. Henzinger. A really temporal logic. Journal of the ACM ,
+41:181{204, 1994.
+12. G. Anastasi, A. Bartoli, N. De Francesco, and A. Santone. Ecient verica-
+tion of a multicast protocol for mobile computing. The Computer Journal ,
+44:21{30, 2000.
+13. R. Cleaveland anf S. Sims. The ncsu concurrency workbench. In Proceedings
+of the 8th conference on Computer Aided Verication (CAV'96) , number 1102
+in Lecture Notes in Computer Science, pages 394{397. Springer, Berlin, 1996.
+14. R. Barbuti, N. De Francesco, and L. Tesei. Timed automata with non-
+instantaneous actions. Fundamenta Informaticae , 47(3-4):189{200, 2001.
+15. R. Barbuti and L. Tesei. Timed automata with urgent transitions. In F. Cor-
+radini and W. Vogler, editors, Proceedings of the 2nd International Work-
+shop on Models for Time-Critical systems (MTCS'01) , number NS-01-5 in
+BRICS Notes, pages 3{21. Department of Computer Science, Aarhus Univer-
+sity Press, 2001.
+16. J. Bengtsson, K. G. Larsen, F. Larsson, P. Pettersson, and W. Yi. UPPAAL {
+a tool suite for automatic verication of real-time systems. In Proceedings of
+the 4th DIMACS Workshop on Verication and Control of Hybrid Systems ,
+number 1066 in Lecture Notes in Computer Science, pages 232{243. Springer,
+Berlin, 1996.
+17. T. Bolognesi and F. Lucidi. Timed process algebras with urgent interactions
+and a unique powerful binary operator. In Proceedings of Real-Time: Theory
+in Practice Workshop (REX Workshop 1991) , number 600 in Lecture Notes
+in Computer Science, pages 124{148. Springer, Berlin, 1992.
+18. S. Bornot and J. Sifakis. Relating time progress and deadlines in hybrid
+systems. In Proceedings of International Workshop on Hybrid and Real-Time
+Systems (HART'97) , number 1201 in Lecture Notes in Computer Science,
+pages 286{300. Springer, Berlin, 1997.
+19. S. Bornot and J. Sifakis. An algebraic framework for urgency. Information
+and Computation , 163(1):172{202, 2000.
+20. S. Bornot, J. Sifakis, and S. Tripakis. Modeling urgency in timed systems.
+InProceedings of Compositionality Meeting (COMPOS'97) , number 1536 in
+Lecture Notes in Computer Science, pages 103{129. Springer, Berlin, 1998.
+21. P. Br emond-Gr egoire and I. Lee. A process algebra of communicating shared
+resources with dense time and priorities. Theoretical Computer Science , 189(1-
+2):179{219, 1997.
+22. M. Buchholtz, J. Andersen, and H. H. Lovengreen. Towards a process algebra
+for shared processors. In F. Corradini and W. Vogler, editors, Electronic Notes
+in Theoretical Computer Science , volume 52. Elsevier, 2002.
+23. C. Chorut and M. Goldwurm. Timed automata with periodic clock con-
+straints. Journal of Automata, Languages and Combinatorics , 5(4):371{403,
+2000.
+24. F. Demichelis and W. Zielonka. Controlled timed automata. In Proceedings of
+9th International Conference on Concurrency Theory (CONCUR'98) , number
+
+--- Page 33 ---
+Timed Automata with Urgent Transitions 33
+1466 in Lecture Notes in Computer Science, pages 455{469. Springer, Berlin,
+1998.
+25. E. Fersman, P. Petterson, and W. Yi. Timed automata with asynchronous
+processes: Schedulability and decidability. In Proceedings of TACAS 2002 ,
+number 2280 in Lecture Notes in Computer Science, pages 67{82. Springer,
+Berlin, 2002.
+26. V. Gupta, T. A. Henzinger, and R. Jagadeesan. Robust timed automata.
+InProceedings of International Workshop on Hybrid and Real-Time Systems
+(HART'97) , number 1201 in Lecture Notes in Computer Science, pages 331{
+345. Springer, Berlin, 1997.
+27. T. A. Henzinger and P. W. Kopke. Verication methods for the divergent
+runs of clock systems. In Proceedings of the 2nd International Symposium on
+Formal Techniques in Real-Time and Fault-Tolerant Systems (FTRTFT'94) ,
+number 863 in Lecture Notes in Computer Science, pages 351{372. Springer,
+Berlin, 1994.
+28. T. A. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine. Symbolic model check-
+ing for real-time systems. Information and Computation , 111:193{244, 1994.
+29. R. Lanotte, A. Maggiolo-Schettini, and A. Peron. Timed cooperating au-
+tomata. Fundamenta Informaticae , 43:153{173, 2000.
+30. R. Milner. A Calculus of Communicating Systems . Springer, Berlin, 1980.
+31. S. Yovine. Model checking timed automata. In Lectures on Embedded Systems ,
+number 1494 in Lecture Notes in Computer Science, pages 114{152. Springer,
+Berlin, 1996.
