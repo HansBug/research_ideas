@@ -1,0 +1,638 @@
+--- Page 1 ---
+ 
+ 
+ 
+ 
+ 
+Edinburgh Research Explorer  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Recursive Markov Decision Processes and Recursive Stochastic
+Games
+Citation for published version:
+Etessami, K & Yannakakis, M 2005, Recursive Markov Decision Processes and Recursive Stochastic
+Games. in ICALP. Springer, pp. 891-903.
+Link:
+Link to publication record in Edinburgh Research Explorer
+Document Version:
+Peer reviewed version
+Published In:
+ICALP
+General rights
+Copyright for the publications made accessible via the Edinburgh Research Explorer is retained by the author(s)
+and / or other copyright owners and it is a condition of accessing these publications that users recognise and
+abide by the legal requirements associated with these rights.
+Take down policy
+The University of Edinburgh has made every reasonable effort to ensure that Edinburgh Research Explorer
+content complies with UK legislation. If you believe that the public display of this file breaches copyright please
+contact openaccess@ed.ac.uk providing details, and we will remove access to the work immediately and
+investigate your claim.
+Download date: 04. Apr. 2026
+
+--- Page 2 ---
+Recursive Markov Decision Processes
+and Recursive Stochastic Games
+Kousha Etessami1and Mihalis Yannakakis2
+1LFCS, School of Informatics, University of Edinburgh
+2Department of Computer Science, Columbia University
+Abstract. We introduce Recursive Markov Decision Processes (RMDPs)
+and Recursive Simple Stochastic Games (RSSGs), and study the decid-ability and complexity of algorithms for their analysis and veriﬁcation.
+These models extend Recursive Markov Chains (RMCs), introduced in
+[EY05a,EY05b] as a natural model for veriﬁcation of probabilistic proce-dural programs and related systems involving both recursion and proba-
+bilistic behavior. RMCs deﬁne a class of denumerable Markov chains with
+a rich theory generalizing that of stochastic context-free grammars andmulti-type branching processes, and they are also intimately related toprobabilistic pushdown systems. RMDPs & RSSGs extend RMCs with
+one controller or two adversarial players, respectively. Such extensions
+are useful for modeling nondeterministic and concurrent behavior, aswell as modeling a system’s interactions with an environment.
+We provide upper and lower bounds for deciding, given an RMDP (or
+RSSG) Aand probability p, whether player 1 has a strategy to force
+termination at a desired exit with probability at least p. We also address
+“qualitative” termination, where p= 1, and model checking questions.
+1 Introduction
+Markov Decision Processes (MDPs) are a fundamental formalism for modeling
+control optimization problems in sequential stochastic environments. They have
+found widespread applications in many ﬁelds (see, e.g., [Put94,FS02]). They
+have also been studied extensively in recent years for veriﬁcation of probabilistic
+systems. Stochastic games generalize MDPs with multiple players, and in their
+2-player zero-sum version are also known as Competitive MDPs (see [FV97]).Simple Stochastic Games (SSGs) [Con92] are a special class of 2-player zero-
+sum stochastic games, where the goal of one player is to reach a given terminal
+state, while the other aims to avoid it. SSGs generalize parity games and otherimportant games for model checking, and the termination problem for ﬁnite
+SSGs already presents a well-known algorithmic challenge: it is in NP ∩coNP,
+but no P-time algorithm is known ([Con92]).
+Recursive Markov Chains (RMCs) were i ntroduced and studied in our earlier
+work ([EY05a,EY05b]) as a natural model of probabilistic procedural programsand systems exhibiting both recursion and probabilistic behavior. There we pro-
+vided strong upper and lower bounds for both reachability and ω-regular model
+
+--- Page 3 ---
+checking questions for RMCs. Informally, a RMC consists of a (ﬁnite) collection
+of ﬁnite state Markov chains that can call each other in a potentially recursivemanner. RMCs deﬁne a class of denumerable Markov chains with a rich the-
+ory generalizing that of Stochastic Con text-Free Grammars (SCFGs) (see, e.g.,
+[MS99]) and Multi-Type Branching Processes ([Har63]), both of which corre-
+spond to 1-exit RMCs: RMCs in which each component Markov chain has 1
+terminating exit state where it can return control back to a component thatcalled it. RMCs are also intimately related to probabilistic Pushdown Systems
+(pPDSs), which have also been studied r ecently in connection to veriﬁcation of
+probabilistic programs ([EKM04,BKS05]).
+For veriﬁcation, it is natural and useful to extend RMCs with nondetermin-
+istic choice, where some states are cont rolled by the system while others exhibit
+probabilistic behavior. Indeed, ﬁnite MDPs have been studied extensively for ver-
+iﬁcation of probabilistic systems, and optimized veriﬁcation tools already exist
+for them (see, e.g.,[CY98,Var85,dAKN
++00,Kwi03]; [Kwi03] is a recent survey).
+SSGs extend MDPs with a second (adversarial) player. Like non-probabilistic
+game graphs, they can also be used to model and analyze the interactions be-
+tween a controlled (but probabilistic) system and an (adversarial) environment.
+In this paper we focus on precisely such extensions of RMCs: we introduce
+Recursive Markov Decision Processes (RMDPs) and Recursive Simple Stochas-
+tic Games (RSSGs), which deﬁne natural classes of countable MDPs and SSGs,
+respectively. In the stochastic dynamic programming literature, MDPs are stud-ied under many diﬀerent reward criteria, such as average reward, discounted
+reward, etc. Our focus here is on veriﬁcation of probabilistic systems, and for
+this purpose we study RMDPs and RSSGs under reachability criteria which arecentral to any analysis like model ch ecking. In particular, we ask the quantita-
+tive termination question: given an RMDP (or RSSG) Aand a probability p,
+is there a strategy for the controller where (regardless of the strategy used bythe adversary, in the case of RSSGs) the process terminates at a desired exit
+with probability at least p(or at most p)? We also ask the qualitative question
+of whether the controller has a strategy to force termination with probability 1.
+Lastly, we address model checking questions.
+Our positive results apply primarily to 1-exit RMDPs and 1-exit RSSGs,
+which correspond to controlled and game extensions, respectively, of both SCFGs
+and Multi-Type Branching Processes (MT-BPs). Branching processes are an im-portant class of stochastic processes, dating back to the early work of Galton and
+Watson in the 19th century (they studied the single-type case, a subcase of 1-exit
+1-entry 1-component RMCs), and continuing in the 20th century in the work ofKolmogorov, Sevastianov, Harris and others for MT-BPs and beyond (see, e.g.,
+[Har63]). These have been used to model a wide variety of applications, includ-
+ing in population genetics ([Jag75]), nuclear chain reactions, and RNA modeling
+in computational biology (based on SCFGs) ([SBH
++94]). SCFGs are also fun-
+damental models in statistical natural language processing (see, e.g., [MS99]).1-exit RMDPs correspond to a controlled version of MT-BPs (and SCFGs): the
+reproduction of some types can be controlled, while the dynamics of other types
+
+--- Page 4 ---
+is probabilistic as in ordinary MT-BPs. This model would also be suitable for
+analysis of population dynamics under worst-case (or best-case) assumptions forsome types and probabilistic assumptions for others. Such controlled MT-BPs
+can be readily translated to 1-entry, 1-exit RMDPs, where the number of com-
+ponents is bounded by the number of types (a reverse translation is possible,
+but will not in general preserve the numbe r of components, i.e., 1-entry, 1-exit
+RMDPS with a bounded number of components are more general than MT-BPswith a bounded number of types). Thus, our results on 1-exit RMDPs apply,
+among other things, to such controlled MT-BPs; these do not appear to have
+been studied in the rich Branching Proces s literature. Indeed, even some basic
+algorithmic problems about SCFGs and M T-BPs had received limited attention
+prior to our work in [EY05a,EY05b].
+We now outline our main results in this paper:
+–We show that the Least Fixed Point so lution of certain systems of nonlin-
+ear min/max equations captures optimal termination probabilities for 1-exitRMDPs & 1-exit RSSGs. These equations generalize linear Bellman’s equa-
+tions for ﬁnite MDPs (see, e.g., [Put94,FV97]) and also generalize the mono-
+tone systems of nonlinear equations for RMCs that we studied in ([EY05a]).
+–We show a quite nontrivial Stackless & Memoryless (S&M) Determinacy
+result for 1-exit RSSG termination, whereas we observe this fails badly even
+for 2-exit RMDPs (namely, optimal strategies of any kind do not always existfor 2-exit RMDP termination; one must make do with /epsilon1-optimal strategies).
+–Using the equations, we show that quantitative termination for 1-exit RMDPs
+and 1-exit RSSGs is decidable in PSPACE. This matches our PSPACE upperbound for the special case of 1-exit RMCs in [EY05a] and, as shown there, it
+can not be improved without resolving a long standing open problem in the
+complexity of numerical computation, namely the square-root sum problem.
+–Using S&M-determinacy, we show qualitative termination (where p=1 )c a n
+be decided in NP for 1-exit RMDPs , and in Σ
+P
+2∩ΠP
+2for 1-exit RSSGs.
+–For the special case of linearly recursive 1-exit RMDPs (RSSGs), we show
+that the exact optimal, and rational, termination probabilities can be com-
+puted in polynomial time (in NP ∩co-NP, respectively).
+–Lastly, and unfortunately, we show that for multi-exit RMDPs &RSSGs the
+situation is far worse: even qualitat ive termination for general RMDPs is
+undecidable, even when the number of exits in bounded by a ﬁxed constant
+and the RMDP is restricted to be linearl y-recursive. It is even undecidable,
+for any ﬁxed /epsilon1>0, to distinguish whether the optimal value is 1 or </epsilon1.
+So optimal probabilities can not be approximated in a strong sense, with
+any resources. Furthermore, we show undecidability applies already to qual-
+itative model checking of 1-exit RMDPs, against regular or LTL properties.
+Our undecidability results are derived from classic and recent undecidabil-ity results for Probabilistic Finite Automata (PFA) [Paz71,CL89,BC03]. We
+show PFAs can be viewed as essentially a special case of multi-exit RMDPs.
+Related work. Both MDPs and Stochastic Games have a vast literature,
+dating back to Bellman and Shapley (see, e.g., [Put94,FS02,FV97]). MDPs are
+
+--- Page 5 ---
+studied in both ﬁnite state and inﬁnite state variants. Veriﬁcation of ﬁnite state
+MDPs, also called concurrent Markov chains, has been studied for a long time(see, e.g., [CY98,CY95,Var85,HSP83]). [CY98] provides eﬃcient algorithms for
+ω-regular model checking of ﬁnite MDPs. Model checking tools like PRISM
+contain optimized implementations of b ranching-time model checkers for ﬁnite
+MDPs (see, e.g., [dAKN
++00,Kwi03]).
+Our earlier work [EY05a,EY05b] developed the basic theory of RMCs and
+studied eﬃcient algorithms for both their reachability analysis and model check-
+ing. We showed, among many results, that qualitative model checking of ω-
+regular properties for 1-exit RMCs can be decided in polynomial time in thesize of the RMC, and that quantitative model checking of RMCs can be done
+in PSPACE in the size of the RMC. As mentioned, 1-exit RMCs correspond
+to both MT-BPs and SCFGs (see, e.g., [Har63] and [MS99]), while generalRMCs are intimately related to probabilistic Pushdown Systems (pPDSs). Model
+checking questions for pPDSs, for both linear and branching time properties,
+have also been recently studied in [E KM04,BKS05]. RMDPs and RSSGs are
+natural extensions of RMCs, introducing nondeterministic and game behavior.
+Countable state MDPs are studied extensively in the MDP literature (see, e.g.,[Put94,FS02]), but the concise representations aﬀorded by RMDPs and its algo-
+rithmic properties, appear not to have been studied prior to our work.
+2B a s i c s
+ARecursive Simple Stochastic Game (RSSG) ,A, is a tuple A=(A1,...,A k),
+where each component graph Ai=(Ni,Bi,Yi,En i,Ex i,pli,δi) consists of:
+–As e t Niofnodes.L e tN=∪k
+i=1Nibe the (disjoint) union of all nodes of A.
+–A distinguished subset of entry nodes Eni⊆Ni, and a disjoint subset of exit
+nodes Exi⊆Ni.L e tEn=∪k
+i=1EniandEx=∪k
+i=1Exi.
+–As e t Biofboxes.L e tB=∪k
+i=1Bibe the (disjoint) union of all boxes of A.
+–A mapping Yi:Bi/mapsto→{1,...,k }that assigns to every box (the index of)
+of a component. Let Y=∪k
+i=1Yibe the map Y:B/mapsto→{1,...,k }where
+Y|Bi=Yi,f o r1 ≤i≤k.
+–To each box b∈Bi, we associate a set of call ports ,Call b={(b,en)|en∈
+EnY(b)},a n das e to f return ports ,Return b={(b,ex)|ex∈ExY(b)}.L e t
+Calli=∪b∈BiCall band let Call=∪k
+i=1Callidenote all calls in A. Similarly,
+deﬁne ReturniandReturn .
+–We let Qi=Ni∪Calli∪Returni, denote collectively the nodes, call ports,
+and return ports, We will use the term vertex ofAito refer to elements of
+Qi.W el e t Q=/uniontextk
+i=1Qibe the set of all vertices of the RSSG A.
+–A mapping pli:Qi/mapsto→{0,1,2}that assigns to every vertex a player
+ (Player
+0 represents “chance” or “nature”). We assume pli(ex) = 0 for all ex∈Exi.
+Letpl=∪k
+i=1plidenote pl:Q/mapsto→{0,1,2}where pl|Qi=pli,f o r1 ≤i≤k.
+–A transition relation δi⊆(Qi×(R∪{ ⊥ } )×Qi), where for each tuple
+(u,x,v )∈δi, the source u∈(Ni\Exi)∪Returni, the destination v∈
+
+--- Page 6 ---
+(Ni\Eni)∪Calli,a n dxis either (i) a real number pu,v∈[0,1] (the transition
+probability) if pl(u) = 0, or (ii) x=⊥ifpl(u) = 1 or 2. For computational
+purposes we assume that the given probabilities pu,vare rational. Further-
+more they must satisfy the consistency property: for every u∈pl−1(0),/summationtext
+{v/prime|(u,pu,v /prime,v/prime)∈δi}pu,v/prime= 1, unless uis a call port or exit node, neither of
+which have outgoing transitions, in which case by default/summationtext
+v/primepu,v/prime=0 .
+Letδ=∪iδibe the set of all transitions of A.
+An RSSG Adeﬁnes a global denumerable Simple Stochastic Game (SSG)
+MA=(V=V0∪V1∪V2,Δ ,pl) as follows. The global states V⊆B∗×Qof
+MAare pairs of the form /angbracketleftβ,u/angbracketright,w h e r e β∈B∗is a (possibly empty) sequence
+of boxes and u∈Qis avertex ofA. More precisely, the states V⊆B∗×Qand
+transitions Δare deﬁned inductively as follows:
+1./angbracketleft/epsilon1,u/angbracketright∈V,f o ru∈Q.(/epsilon1denotes the empty string.)
+2. if/angbracketleftβ,u/angbracketright∈V&(u,x,v )∈δ,t h e n /angbracketleftβ,v/angbracketright∈Vand (/angbracketleftβ,u/angbracketright,x ,/angbracketleftβ,v/angbracketright)∈Δ.
+3.if/angbracketleftβ,(b, en )/angbracketright∈V&(b, en )∈Call b,t h e n /angbracketleftβb,en /angbracketright∈V&(/angbracketleftβ,(b, en )/angbracketright,1,/angbracketleftβb,en /angbracketright)∈Δ.
+4.if/angbracketleftβb,ex /angbracketright∈V&(b, ex)∈Return b,t h e n /angbracketleftβ,(b, ex)/angbracketright∈V&(/angbracketleftβb,ex /angbracketright,1,/angbracketleftβ,(b,ex)/angbracketright)∈Δ.
+Item 1 corresponds to the possible initial states, item 2 corresponds to control
+staying within a component, item 3 is when a new component is entered via abox, item 4 is when control exits a box and returns to the calling component.
+The mapping pl:V/mapsto→{0,1,2}is given as follows: pl(/angbracketleftβ,u/angbracketright)=pl(u)i fuis in
+Q\(Call∪Ex), and pl(/angbracketleftβ,u/angbracketright)=0i f u∈Call∪Ex. The set of vertices Vis
+partitioned into V
+0,V1,a n d V2,w h e r e Vi=pl−1(i).
+We consider MAwith various initial states of the form /angbracketleft/epsilon1,u/angbracketright,d e n o t i n gt h i sb y
+Mu
+A. Some states of MAareterminating states and have no outgoing transitions.
+These are states /angbracketleft/epsilon1,ex/angbracketright,w h e r e exis an exit node.
+An RSSG where V2=∅(V1=∅) is called a maximizing (minimizing, respec-
+tively) Recursive Markov Decision Process (RMDP); an RSSG where V1∪V2=∅
+is called a Recursive Markov Chain (RMC) ([EY05a,EY05b]); an RSSG where
+V0∪V2=∅is called a Recursive Graph ([AEY01]); an RSSG where V0=∅is
+called a Recursive Game Graph (see [ATM03,Ete04]). We use 1-exit RSSG to
+refer to RSSGs where every component has 1 exit. W.l.o.g., we can assume every
+component has 1 entry, because multi-entry RSSGs can be transformed to equiv-
+alent 1-entry RSSGs with polynomial blowup (similar to RSM transformations
+[AEY01]). This is decidedly not so for exits: 1-exit RSSGs form an importantsub-class of RSSGs and are the main focus of our upper bounds. We shall call a
+RSSG (RMDP, RMC, etc.) linearly-recursive (denoted lr-RSSG, etc.) if there in
+no path of transitions in any component from any return port to a call port. lr-
+RMCs are much easier to analyse than general RMCs: reachability probabilities
+are rational and both reachability analysis and model checking can be performed
+with the same complexity as for ﬁnite Markov chains, using the decomposed New-
+ton’s method [EY05a] and techniques we developed in [EY05a,EY05b] (although
+lr-RMCs were not mentioned explicitly in [EY05a,EY05b]).
+A basic goal is to answer termination questions for RSSGs: “Does player 1
+have a strategy to force the game to terminate at ex(i.e., reach state /angbracketleft/epsilon1,ex/angbracketright),
+
+--- Page 7 ---
+starting at /angbracketleft/epsilon1,u/angbracketright,w i t hp r o b a b i l i t y ≥p, regardless of how player 2 plays?” .A
+strategy σfor player i,i∈{1,2}, is a function σ:V∗Vi/mapsto→V,w h e r e ,g i v e nt h e
+history ws∈V∗Viof play so far, with s∈Vi(i.e., it is player i’s turn to play
+am o v e ) , σ(ws)=s/primedetermines the next move of player i,w h e r e( s,⊥,s/prime)∈Δ.
+(We could also allow randomized strategies.)
+LetΨidenote the set of all strategies for player i. A pair of strategies σ∈Ψ1
+andτ∈Ψ2induce in a straightforward way a Markov chain Mσ,τ
+A=(V∗,Δ/prime),
+whose set of states is the set V∗of histories. Given initial vertex u, a ﬁnal exit ex
+i nt h es a m ec o m p o n e n t ,a n da k≥0, letqk,σ,τ
+(u,ex)be the probability that, in Mσ,τ
+A,
+starting at initial state /angbracketleft/epsilon1,u/angbracketright, we will reach a state w/angbracketleft/epsilon1,ex/angbracketrightin at most k“steps”
+(i.e., where |w|≤k). Let q∗,σ,τ
+(u,ex)= lim k→∞qk,σ,τ
+(u,ex)be the probability of ever
+terminating at ex, i.e., reaching /angbracketleft/epsilon1,ex/angbracketright(the limit exists: the sequence is mono-
+tonically non-decreasing &bounded by 1). Let qk
+(u,ex)=m a x σ∈Ψ1minτ∈Ψ2qk,σ,τ
+(u,ex)
+and let q∗
+(u,ex)=s u pσ∈Ψ1infτ∈Ψ2q∗,σ,τ
+(u,ex). Next, for a strategy σ∈Ψ1,l e tqk,σ
+(u,ex)=
+minτ∈Ψ2qk,σ,τ
+(u,ex),a n dl e t q∗,σ
+(u,ex)=i n f τ∈Ψ2q∗,σ,τ
+(u,ex). Lastly, given instead a strategy
+τ∈Ψ2,l e tqk,·,τ
+(u,ex)=m a x σ∈Ψ1qk,σ,τ
+(u,ex),a n dl e t q∗,·,τ
+(u,ex)=s u pσ∈Ψ1q∗,σ,τ
+(u,ex).
+From very general determinacy result s (eg. Martin’s “Blackwell determi-
+nacy” [Mar98]) it follows that the games MAaredetermined , meaning that
+supσ∈Ψ1infτ∈Ψ2q∗,σ,τ
+(u,ex)=i n f τ∈Ψ2supσ∈Ψ1q∗,σ,τ
+(u,ex).Of course, ﬁnite SSGs are even
+memorylessly determined ([Con92]), meaning that the strategies of either player
+can be restricted to memoryless strategies which ignore the history prior to the
+current position, without harming the optimal outcome. As we shall see, 1-exitRSSGs exhibit memoryless determinacy in an even stronger sense, namely, the
+strategy is also independent of the call stack. This fails badly for multi-exit
+RMDPs, as we will see. We are interested in the following questions:
+(1) The qualitative termination problem: Is q
+∗
+(u,ex)=1 ?
+(2) The quantitative termination problems: Given r∈[0,1], is q∗
+(u,ex)≥r?I s
+q∗
+(u,ex)=r? Or we may wish to compute or approximate probabilities q∗
+(u,ex).
+More generally, we can ask model checking questions, where, given a Σ-labeling
+of vertices, and e.g., an LTL formula ϕoverΣ, we ask what is the supremum
+probability with which player 1 can force the satisfaction of property ϕ?W e
+refrain from formal deﬁnitions due to space (see,e.g., [CY98,EY05b]). Our re-
+sults for model checking will be negative: undecidability, stemming from theundecidability of termination problems for general RMDPs.
+3 Systems of nonlinear min-max equations for 1-exit RSSGs
+We generalize the monotone nonlinear system of equations for RMCs ([EY05a])
+to monotone nonlinear min-max systems for 1-exit RSSGs, whose Least Fixed
+Point yields the desired probabilities q∗
+(u,ex). Let us use a variable x(u,ex)for
+each unknown q∗
+(u,ex). We will often ﬁnd it convenient to index the variables
+x(u,ex)according to a ﬁxed order (say lexic ographical), so we can refer to them
+
+--- Page 8 ---
+also as x1,...,x n,w i t he a c h x(u,ex)identiﬁed with xjfor some j.I nt h i sw a yw e
+obtain a vector of variables: x=(x1x2...x n)T.
+Deﬁnition 1. Given 1-exit RSSG A=(A1,...,A k), we deﬁne a system of
+polynomial/min-max equations, SA, over the variables x(u,ex),w h e r e u∈Qi
+andex∈Exi,f o r1≤i≤k. The system contains one equation of the form
+x(u,ex)=P(u,ex)(x), for each variable x(u,ex). There are 5 cases to distinguish,
+based on what “type” of vertex uis:
+1. Type I: u=ex. In this case: x(ex,ex )=1.
+2. Type II: pl(u)=0 &u∈(Ni\{ex})∪Returni:x(u,ex)=/summationtext
+{v|(u,pu,v,v)∈δ}pu,vx(v,ex).
+(Ifuhas no outgoing transitions, this equation is by deﬁnition x(u,ex)=0.)
+3. Type III: u=(b,en)is a call port: x((b,en),ex)=x(en,ex/prime)·x((b,ex/prime),ex),w h e r e
+ex/prime∈ExY(b)is the unique exit of AY(b).
+4. Type IV: pl(u)=1 &u∈(Ni\{ex})∪Returni:x(u,ex)=m a x {v|(u,⊥,v)∈δ}x(v,ex).
+(Ifuhas no outgoing transitions, we deﬁne max(∅)=0 .)
+5. Type V: pl(u)=2 andu∈(Ni\{ex})∪Returni:x(u,ex)=m i n {v|(u,⊥,v)∈δ}x(v,ex).
+(Ifuhas no outgoing transitions, we deﬁne min(∅)=0 .)
+In vector notation, we denote SA=(xj=Pj(x)|j=1,...,n )by:x=P(x).
+Given 1-exit RSSG A, we can easily construct x=P(x) in linear time. We
+now identify a particular solution to x=P(x), called the Least Fixed Point
+(LFP) solution, which gives precisely the termination game values. For vectors
+x,y∈Rn, deﬁne the partial-order x/precedesequalyto mean xj≤yjfor every coordinate
+j.F o r D⊆Rn, we call a mapping H:Rn/mapsto→Rnmonotone onD, if: for
+allx,y∈D,i fx/precedesequalythenH(x)/precedesequalH(y). Deﬁne P1(x)=P(x), and deﬁne
+Pk(x)=P(Pk−1(x)), for k>1. Let q∗∈Rndenote the n-vector q∗
+(u,ex)(using
+the same indexing as used for x). For k≥0, let qkdenote, similarly, the n-vector
+qk
+(u,ex).L e t 0(1)d e n o t et h e n-vector consisting of 0 (respectively, 1) in every
+coordinate. Deﬁne x0=0,a n df o r k≥1, deﬁne xk=P(xk−1)=Pk(0).
+Theorem 1. Letx=P(x)be the system SAassociated with 1-exit RSSG A.
+1.P:Rn/mapsto→Rnis monotone on Rn
+≥0.H e n c e ,f o r k≥0,0/precedesequalxk/precedesequalxk+1.
+2. For all k≥0,qk/precedesequalxk+1/precedesequalq2k.
+3.q∗=P(q∗).I no t h e rw o r d s , q∗is aﬁxed point of the map P.
+4. For all k≥0,xk/precedesequalq∗.
+5. For all q/prime∈Rn
+≥0,i fq/prime=P(q/prime),t h e n q∗/precedesequalq/prime.
+In other words, q∗is the Least Fixed Point ,LFP(P),o fP:Rn
+≥0/mapsto→Rn
+≥0.
+6.q∗= lim k→∞xk= lim k→∞qk.
+The proofs are omitted due to space. They are similar to those of an analogous
+theorem in [EY05a] for nonlinear systems associated with RMCs, but some parts
+are substantially more tricky because of the players. We sketch here the idea for
+part (5). Consider any ﬁxpoint q/primeof the equations, i.e., q/prime=P(q/prime). Let τ/primebe the
+( S & M )s t r a t e g yf o rp l a y e r2t h a ta l w a y sp i c k s ,a ta n ys t a t e /angbracketleftβ,u/angbracketright,f o rv e r t e x u∈
+pl−1(2), the particular successor vofusuch that v=a r gm i n {v|(u,⊥,v)∈δ}q/prime
+(v,ex)
+
+--- Page 9 ---
+(breaking ties, say, lexicographically). Then we prove a lemma stating that, for
+all strategies σ∈Ψ1of player 1, and for all k≥0,qk,σ,τ/prime/precedesequalq/prime. The lemma implies
+thatq∗,σ,τ/prime= lim k→∞qk,σ,τ/prime/precedesequalq/prime. This holds for any strategy σ∈Ψ1.T h e r e -
+fore, supσ∈Ψ1q∗,σ,τ/prime
+(u,ex)≤q/prime
+(u,ex), for every vertex u. Thus, by the determinacy of
+RSSG games, it follows that q∗
+(u,ex)=i n f τ∈Ψ2supσ∈Ψ1q∗,σ,τ
+(u,ex)≤supσ∈Ψ1q∗,σ,τ/prime
+(u,ex)≤
+q/prime
+(u,ex), for all vertices u.I no t h e rw o r d s , q∗/precedesequalq/prime. /intersectionsq/unionsq
+4S & M D e t e r m i n a c y
+We now identify a very restricted kind of strategy that suﬃces as an optimal
+strategy in 1-exit RSSGs. Call a strategy Stackless & Memoryless (S&M) if it
+is not only independent of the history of the game, but also independent of the
+current call stack, i.e., only depends on the current vertex. (See also [ATM03],
+where such strategies are called modular strategies.)
+Corollary 1. In every 1-exit RSSG termination g ame, player 2 (the minimizer)
+has an optimal S&M strategy.
+Proof. Consider the strategy τ/primein the proof of part (5) of Theorem 1, chosen
+not for just any ﬁxed point q/prime, but for q∗itself. /intersectionsq/unionsq
+Far less trivially, we establish next that player 1 (the maximizer) also has
+an optimal S&M strategy and thus the game is S&M-determined , meaning both
+players have optimal S&M strategies. (Note that the game is not symmetric withrespect to the two players.)
+Theorem 2. Every 1-exit RSSG termination game is S&M-determined.
+Although the statement is intuitive, the proof is quite nontrivial and delicate;
+the full proof is given in the full paper. We sketch the approach here. By Corollary
+1, we only need to show that player 1 has an optimal S&M strategy. Let σbe any
+S&M strategy for player 1, and let q
+∗,σ=i n f τ∈Ψ2q∗,σ,τ.I fq∗,σis a ﬁxpoint of
+the equations then it follows that it is the least ﬁxpoint and σis optimal. On the
+other hand, it can be shown that q∗,σsatisﬁes all the equations except possibly
+for some type IV equations. We argue that if uis such a vertex (belonging
+to player 1) whose equation is violated, then switching to another strategy σ/prime
+where upicks another successor leads to a strictly better strategy than σ(for
+any strategy of player 2). This is the heart of the proof. We parameterize the
+game with respect to the value tat vertex u, and we express the optimal values
+of the other vertices z(for all strategies τof player 2) as functions fz(t). We then
+carefully analyze the properties of these functions, which are power series in t
+with non-negative coeﬃcients, and we analyze their ﬁxpoints, and conclude that
+switching the choice at vertex uleads to a strategy σ/primethat has at least as great
+value as σat every vertex, and strictly better at u. We repeat the process until
+we arrive at a S&M strategy σ∗whose probabilities satisfy all the equations, and
+hence it is optimal. We refer to the full paper for the details. /intersectionsq/unionsq
+
+--- Page 10 ---
+RL1ex1
+ex21/21/2
+enA1
+b:A1
+Fig. 1. 2-exit RMDPs: no optimal strategy exists for terminating at ex1.
+Already for 2-exit RMDP termination, not only are there no optimal S&M
+strategies for player 1, there are in general no optimal strategies at all! Figure
+1 illustrates this. In this 2-exit maximizing RMDP the supremum probability
+of terminating at exit ex1starting from enis 1. However, no strategy player
+1 achieves this. Speciﬁcally, for n≥0, the strategy LnRterminates at ex1
+with probability (1 −1
+2n). Note that any S&M strategy for player 1 would yield
+probability 0 of terminating at ex1, so such strategies are the worst possible.
+5 Termination problems for 1-exit RMDPs &RSSGs
+Using Corollary 1 and Theorem 2, and results from [EY05a], we can show the
+following results for qualitative termination of 1-exit RMDPs and 1-exit RSSGs:
+Theorem 3.
+1. We can decide in P-time if the value of a 1-exit RSSG termination game
+(and optimal termination probability in a maximizing or minimizing 1-exit
+R M D P )i se x a c t l y0 .
+2. We can decide in NP whether the maximum probability of termination in a
+maximizing 1-exit RMDP is exactly 1, and in coNP whether the minimum
+probability of termination in a minimizing 1-exit RMDP is exactly 1.
+3. Deciding whether a 1-exit RSSG termination game has value 1 is in ΣP
+2∩ΠP
+2.
+4. For 1-exit lr-RMDPs we can compute the exact optimal (rational) termi-
+nation probability in P-time, and for 1-exit lr- R S S G sw ec a nc o m p u t et h e
+exact optimal (rational) value of the termination game in NP ∩co-NP.
+Part (1) is done via a ﬁxpoint algorithm; parts (2) and (3) involve guessing
+the optimal S&M strategies and verifying the optimality with the appropriate
+complexity using techniques from [EY05a]; part (4) exploits the fact that for 1-exitlr-RMDPs
+&lr-RSSGs the non-linear system x=P(x) can be decomposed
+into linear parts that can be solved sequentially by linear programming (and by
+guessing strategies for RSSGs); see the full paper. /intersectionsq/unionsq
+We next show that quantitative termination questions for 1-exit RMDPs
+and 1-exit RSSGs can be answered in PSPACE by appealing to the deep al-
+gorithms for deciding the Existential Theory of Reals ,ExTh (R). A ﬁrst-order
+
+--- Page 11 ---
+sentence in the theory of reals is form ed from quantiﬁers and boolean connec-
+tives over a vocabulary with “atomic predicates” of the form: fi(x)Δ0, where
+thefi, are multi-variate polynomials with rational coeﬃcients over the variables
+x=x1,...,x n,a n d Δis any comparison operator: = ,<,or≤.T h e existential
+theory of reals ,ExTh (R), consists of prenex sentences: ∃x1,...,x nR(x1,...,x n),
+where Ris a boolean combination of “atomic predicates”. Beginning with Tarski,
+algorithms for deciding the theory of reals and fragments such as ExTh (R)h a v e
+been deeply investigated . Current, it is known that ExTh (R) can be decided in
+PSPACE [Can88,Ren92,BPR96]. Furthermore, it can be decided in exponential
+time where the exponent depends (linearly) only on the number of variables;hence for a ﬁxed number of variables the time is polynomial.
+Suppose we want to decide whether a vector c=[c
+1,...,c n]Tof rational
+numbers is LFP(P), where x=P(x) is the system of equations for a given
+1-exit RSSG. Consider the sentence:
+ϕ≡∃x1,...,x nn/logicalanddisplay
+i=1(Pi(x1,...,x n)=xi)∧n/logicalanddisplay
+i=1(xi=ci)
+ϕis true iﬀ c=P(c). For type I, II, and III nodes, Piis a polynomial. It remains
+to show how to encode, in arithmetic, the predicate “ Pi(x1,...,x n)=xi”i n
+the case (IV) where Pi(x1,...,x n)=m a x j∈Jxj,a n di nt h ec a s e( V )w h e r e
+Pi(x1,...,x n)=m i n j∈Jxj, for some subset J⊆{1,...,n }. For type IV nodes,
+note that xi=m a x j∈Jxjiﬀ/logicalandtext
+j∈Jxi≥xj∧(/logicalortext
+j∈Jxi≤xj). Likewise, for type
+Vn o d e s , xi=m i n j∈Jxjiﬀ/logicalandtext
+j∈Jxi≤xj∧(/logicalortext
+j∈Jxi≥xj). Thus, we can encode
+the predicates xi=Pi(x1,...,x n) as a boolean combination of quantiﬁer-free
+predicates, and we can encode the sentence ϕinExTh (R). To guarantee that
+c=L F P ( P), we need in addition to check the following sentence:
+ψ≡∃x1,...,x nn/logicalanddisplay
+i=1(Pi(x1,...,x n)=xi)∧n/logicalanddisplay
+i=1(0≤xi)∧n/logicalordisplay
+i=1(xi<ci)
+ψis false iﬀ there is no solution z∈Rn
+≥0tox=P(x) such that c/negationslash/precedesequalz. Hence,
+to decide whether c=L F P ( P), we only need two queries to ExTh (R). Namely,
+we check that ϕis true, and hence c=P(c), and that ψis false, and hence
+c=L F P ( P). If we only want to check an inequality q∗
+j≤cj,t h e nl e t ϕ/primebe
+ϕwith the last conjunction of equations replaced by/logicalandtextn
+i=1(0≤xi)∧(xj≤cj).
+Applying the results on ExTh (R), we obtain the following:
+Theorem 4. Given a 1-exit RSSG Aand a vector of rational probabilities c,
+there is a PSPACE algorithm to decide whether q∗=c,a sw e l la st od e c i d e
+whether q∗
+jΔcj, for any comparison operator Δ. Moreover, the running time is
+O(|A|O(1)·2O(n))where nis the number of variables in x=P(x).H e n c et h e
+running time is polynomial if nis bounded.
+Since 0≤LFP(P)≤1, we can use such queries to ExTh (R) in a “binary
+search” to “narrow in” on the value of each coordinate of LFP( P). Via obvious
+modiﬁcations of sentences like ψ, we can gain one extra bit of precision on the
+exact value of each ciwith one extra query to ExTh (R). This yields:
+
+--- Page 12 ---
+Theorem 5. Given 1-exit RSSG Aa n dan u m b e r jin unary, there is an algo-
+rithm that approximates every coordinate of q∗to within jbits of precision in
+PSPACE. Moreover, the running time is O(j·|A|O(1)·2O(n)),w h e r e nis the
+number of variables in x=P(x).
+6 Multi-exit RMDP termination and 1-exit RMDP
+model checking: Undecidability
+We next show strong undecidability results for RMDPs, and thus for RSSGs.
+Theorem 6. Given a multi-exit linearly-recursive RMDP, A,e n t r y enand exit
+ex, it is undecidable whether q∗
+(en,ex )=1. This is so even when the number of
+exits in each component of Ais bounded by a ﬁxed constant. Furthermore, there
+is no algorithm that approximates the probability q∗
+(en,ex )within any constant
+(multiplicative) factor. In particular:
+1. For any ﬁxed rational /epsilon1with0</epsilon1< 1, given lr-RMDP Awith only one
+component such that either q∗
+(en,ex )>1−/epsilon1orq∗
+(en,ex )</epsilon1, it is undecidable to
+distinguish which is the case.2. For any ﬁxed rational /epsilon1with0</epsilon1< 1, given a lr-RMDP Awith only two
+components such that either q
+∗
+(en,ex )=1 orq∗
+(en,ex )</epsilon1, it is undecidable to
+distinguish which is the case.
+We have two proofs: one is a reduction from the halting problem for 2-counter
+machines. The second is a reduction from the emptiness problem for Probabilistic
+Finite Automata (PFAs). The latter reduction is simpler and connects RMDPs
+to the well-studied area of PFAs, allowing us to leverage extensive research in
+that area [Paz71,CL89,BC03]. We show that PFAs are, in eﬀect, a special case of
+RMDPs. Recall, a PFA is a FA whose transitions from a state on a given input
+are probabilistic. The PFA emptiness problem is to decide for a given PFA A
+and threshold λ, whether there is a word accepted by Awith probability >λ.
+It is undecidable in strong ways ([Paz71,CL89,BC03]). Our reduction constructs
+from a PFA Aalr-RMDP whose termination probability under the optimal
+strategy is precisely the supremum probability of acceptance of any word by A.
+Please see the full paper for details. With a modiﬁed construction we show:
+Theorem 7. Qualitative &quantitative LTL model checking for 1-exit lr-RMDPs
+is undecidable; this holds even for a ﬁxed property; moreover, the optimum prob-
+ability of the property can’t be approximated within any constant factor.
+Acknowledgement Thanks to Amir Pnueli for asking us about lr-RMCs.
+References
+[AEY01] R. Alur, K. Etessami, and M. Yannakakis. Analysis of recursive state
+machines. In Proc. of 13th CAV , pages 304–313, 2001.
+[ATM03] R. Alur, S. La Torre, and P. Madhusudan. Modular strategies for recursive
+game graphs. In TACAS , volume 2619 of LNCS , pages 363–378, 2003.
+
+--- Page 13 ---
+[BC03] V. Blondel and V. Canterini. Undecidable problems for probabilistic au-
+tomata of ﬁxed dimension. Theory of Comput. Sys. , 36:231–245, 2003.
+[BKS05] T. Br´ azdil, A. Kuˇ cera, and O. Straˇ zovsk´ y. Decidability of temporal prop-
+erties of probabilistic pushdown automata. In Proc. of STACS’05 , 2005.
+[BPR96] S. Basu, R. Pollack, and M. F. Roy. On the combinatorial and algebraic
+complexity of quantiﬁer elimination. J. ACM , 43(6):1002–1045, 1996.
+[Can88] J. Canny. Some algebraic and geometric computations in PSPACE. In
+Prof. of 20th ACM STOC , pages 460–467, 1988.
+[CL89] A. Condon and R. Lipton. The complexity of space bounded interactive
+proofs. In Proc. of 30th IEEE FOCS , 1989.
+[Con92] A. Condon. The complexity of stochastic games. Inf. & Comp. , 96(2):203–
+224, 1992.
+[CY95] C. Courcoubetis and M. Yannakakis. The complexity of probabilistic ver-
+iﬁcation. Journal of the ACM , 42(4):857–907, 1995.
+[CY98] C. Courcoubetis and M. Yannakakis. Markov decision processes and reg-
+ular events. IEEE Trans. on Automatic Control , 43(10):1399–1418, 1998.
+[dAKN+00] L. de Alfaro, M. Kwiatkowska, G. Norman, D. Parker, and R. Segala.
+Symbolic model checking of probabilistic processes using MTBDDs andthe kronecker representation. In P r o c .o f6 t hT A C A S , pages 395–410, 2000.
+[EKM04] J. Esparza, A. Kuˇ cera, and R. Mayr. Model checking probabilistic push-
+down automata. In Proc. of 19th IEEE LICS’04 , 2004.
+[Ete04] K. Etessami. Analysis of recursive game graphs using data ﬂow equations.
+InProc. 5th VMCAI , vol. 2937 LNCS , pages 282–296. Springer, 2004.
+[EY05a] K. Etessami and M. Yannakakis. Recursive markov chains, stochastic
+grammars, and monotone systems of non-linear equations. In Proc. of 22nd
+STACS’05 . Springer, 2005. (Tech. Report, U. Edinburgh, June 2004).
+[EY05b] K. Etessami and M. Yannakakis. Algorithmic veriﬁcation of recursive prob-
+abilistic state machines. In Proc. 11th TACAS , vol. 3440 of LNCS, 2005.
+[FS02] E. Feinberg and A. Shwartz, editors. Handbook of Markov Decision Pro-
+cesses . Kluwer, 2002.
+[FV97] J. Filar and K. Vrieze. Competitive Markov Decision Processes . Springer, 1997.
+[Har63] T. E. Harris. The Theory of Branching Processes . Springer-Verlag, 1963.
+[HSP83] S. Hart, M. Sharir, and A. Pnueli. Termination of probabilistic concurrent
+programs. ACM Trans. Prog. Lang. & Sys. , 5(3):356–380, 1983.
+[Jag75] P. Jagers. Branching Processes with Biological Applications . Wiley, 1975.
+[Kwi03] M. Kwiatkowska. Model checking for probability and time: from theory to
+practice. In 18th IEEE LICS , pages 351–360, 2003.
+[Mar98] D. A. Martin. Determinacy of Blackwell games. J. Symb. Logic ,
+63(4):1565–1581, 1998.
+[MS99] C. Manning and H. Sch¨ utze. Foundations of Statistical Natural Language
+Processing . MIT Press, 1999.
+[Paz71] A. Paz. Introduction to Probabilistic Automata . Academic Press, 1971.
+[Put94] M. L. Puterman. Markov Decision Processes . Wiley, 1994.
+[Ren92] J. Renegar. On the computational complexity and geometry of the ﬁrst-
+order theory of the reals, parts I-III. J. Symb. Comp. , 13(3):255–352, 1992.
+[SBH
++94] Y. Sakakibara, M. Brown, R Hughey, I.S. Mian, K. Sjolander, R. Un-
+derwood, and D. Haussler. Stochasti c context-free grammars for tRNA
+modeling. Nucleic Acids Research , 22(23):5112–5120, 1994.
+[Var85] M. Vardi. Automatic veriﬁcation of probabilistic concurrent ﬁnite-state
+programs. In Proc. of 26th IEEE FOCS , pages 327–338, 1985.
