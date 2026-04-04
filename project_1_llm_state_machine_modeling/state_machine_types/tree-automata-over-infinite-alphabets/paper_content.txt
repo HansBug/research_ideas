@@ -1,0 +1,1653 @@
+--- Page 1 ---
+Tree Automata over Inﬁnite Alphabets
+Michael Kaminski and Tony Tan
+Department of Computer Science, Technion – Israel Institute of Technology,
+Haifa 32000, Israel
+{kaminski,tantony }@cs.technion.ac.il
+Dedicated to Boris (Boaz) Trakhtenbrot
+on the occasion of his 85thbirthday.
+Abstract. A number of models of computation on trees labeled with
+symbols from an inﬁnite alphabet is considered. We study closure and
+decision properties of each of the models and compare their computation
+power.
+1 Introduction
+In recent years a new application area f or regular word and tree languages has
+evolved during one of the most important developments in World Wide Web
+(WWW) – the emergence of the Extensible Markup Language (XML). For many
+purposes, XML documents are modeled as labeled ﬁnite trees, where the ﬁnite
+set of labels corresponds to the set of element names allowed in the document.
+Thus, concepts from regular word and tree languages became important in XML
+research; see [1,8,11,9,12,14,18].
+However, this abstraction ignores an important aspect of XML – the presence
+ofattributes attached to the leaves of trees. S ince attributes may assume values
+from an inﬁnite set, modeling XML documents by trees over a ﬁnite alphabet
+is not adequate in any scenario. Therefore, a more natural way to model XML
+documents in this setting is to allow, besides the ﬁnite set of element labels,
+aninﬁnite set of possible data values. Consequently, there is a need to extend
+the notion of regular and tree languages in such a way that, on one hand, as
+many as possible settings involving attributes can be captured and (most of) the
+desirable properties of the language class are retained on the other.
+In this paper we extend ﬁnite-memory automata ; see [2,5,6], to treeautomata
+overinﬁnite alphabets .
+It should be noted, however, that there is a diﬀerent model of computa-
+tion over inﬁnite alphabets, called pebble automata over inﬁnite alphabets ;s e e
+[8,10,13]. They are “orthogonal” to ﬁnite-memory automata. Also, the tree walk-
+ingautomata with pebbles ([8]) naturally extend to inﬁnite alphabets for type-
+checking purposes. In our opinion, all these automata are inappropriate for
+modeling XML. This is because the tree la nguages they accept lack basic deci-
+sion properties, though, unlike the language considered in this paper, they are
+closed under complement . However, for practical pur poses it is very common to
+A. Avron et al. (Eds.): Trakhtenbrot/Festschrift, LNCS 4800, pp. 386–423, 2008.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2008
+
+--- Page 2 ---
+Tree Automata over Inﬁnite Alphabets 387
+ask whether an XML scheme admits even one document. Since the emptiness
+problem for pebble automata is undecidable, using these automata for modeling
+XML documents is, at least, arguable.
+In our extension of ﬁnite-memory automata to trees eachhead scanning a
+symbol at the tree node is equipped with a ﬁnite number of registers. This
+number is the same for all heads of the automaton. There are two ways to scan
+an input tree: top-down from the root to the leaves; see [15], and bottom-up
+from the leaves to the root; see [4,17].1When moving top-down from a parent
+node to its children, the automaton splits the head and the corresponding set of
+registers; and when moving bottom-up from the child nodes to their parent node,
+the automaton replaces the two2heads by one and merges the corresponding set
+of registers by forgetting some of their contents. Whereas the deﬁnition of a
+top-down ﬁnite-memory tree automata is very natural: the split results in two
+heads each carrying a set of registers with the same contents, the deﬁnition of
+the bottom-up one is less obvious, because it requires an automaton to merge
+two sets of registers whose contents may be quite diﬀerent and even disjoint.
+In addition, there are (at least) two possibilities of updating the content of
+the automaton registers. One possibility is to replace the content of one of the
+registers with the currently scanned newinput symbol, as was done in [5,6], and
+the other is to replace the content of one of the registers with any newsymbol
+from the inﬁnite input alphabet, as was done in [2]. That is, in the latter case,
+the automaton does not necessarily have to arrive to the symbol in order to
+store it in its registers. Such ability will be referred to as a nondeterministic
+reassignment .
+The above two distinctions result in four models of ﬁnite-memory tree au-
+tomata which we consider in our paper. It appears that both top-down and
+bottom-up models with deterministic reassignment (the ﬁrst possibility) are not
+strong enough for modeling XML. The former cannot even accept the tree lan-
+guage consisting of all trees having two diﬀerent leaves labeled with the same
+symbol; see Example 2,3whereas the latter c annot accept a very simple tree lan-
+guage consisting of all trees whose root label diﬀers from the labels of all other
+nodes. In fact, unlike in the case of a ﬁnite alphabet, the computation powers of
+these two models are incomparable.
+In contrast with the above, the computation models with nondeterministic
+reassignment, which are stronger than those with the deterministic one, seem
+to be appropriate for modeling XML. We show that top-down and bottom-up
+tree automata with nondeterministic reassignment have the same computation
+power (which indicates that the deﬁnition is robust) and are proper extensions
+1Recall that in Computer Science trees grow top-down.
+2This paper deals with binary trees, only. Since ﬁnite branching trees can be encoded
+by binary trees in a standard manner, our computation models naturally generalize
+to unranked trees.
+3For some purposes, an XML document might require certain integrity constraints.
+For example, it might require that the value at a certain position of a document also
+occurs (or diﬀers from the value) at some other position.
+
+--- Page 3 ---
+388 M. Kaminski and T. Tan
+of the deterministic reassignment models. In particular, the tree languages from
+the above two examples are accepted by t ree automata with nondeterministic
+reassignment.
+Also, we establish some closure and decision properties of tree languages ac-
+cepted by tree automata wit h deterministic and nondeterministic reassignment
+and show how these tree languages are related to context-free languages over
+inﬁnite alphabets introduced in [2]. This relationship is of importance, because
+the latter are tightly connected to Document Type Deﬁnitions which deﬁne XML
+documents.
+The paper is organized as follows. In the next section we give a rough review
+of XML concepts. Section 3 contains the notation used throughout this paper.
+In Sect. 4 and 5 we introduce the tree automata with deterministic and non-
+deterministic reassignment, respectivel y. Section 6 deals with decision problems
+related to our models of computation. In Sect. 7 we establish a relationship be-
+tween the tree languages deﬁned in this paper and the context-free languages
+introduced in [2]. Finally, Appendices A and B contain the proof of equivalence
+of top-down and bottom-up tree automata with nondeterministic reassignment
+and Appendix C summarizes the closure pr operties of tree languages accepted
+by our tree automata.
+2B a s i c N o t i o n s o f X M L
+In this section we brieﬂy sketch the core idea of XML and its connection to tree
+languages. This is done via an example below. Readers interested in the details
+are referred to [16] or [19].
+Consider the following XML document that displays information about a
+factory.
+<factory name = "super">
+<section name = "productions">
+<product id = 011>
+<No.> 1 </No.>
+<label> notebook </label>
+</product>
+<product id = 294>
+<No.> 2 </No.>
+<label> pencil </label>
+</product>
+</section>
+<section name = "advertisement">
+<product id = 011>
+<No.> 1 </No.>
+<label> notebook </label>
+</product>
+</section>
+</factory>
+
+--- Page 4 ---
+Tree Automata over Inﬁnite Alphabets 389
+Like in the case of HTML, the building blocks of XML are elements which
+are delimited by the start- and end-tags. A start-tag of a product -element, for
+example, is <product> and the end-tag is </product> . Everything in between
+<product> and</product> constitutes a product -element.
+An element can be nested into another one. For example, the element <No.>
+1</No.> is a subelement of the outer product -element. Elements may also
+have attributes. These are name value pairs separated by the equality sign. For
+example, <product id = 011> indicates that the value of the idattribute of
+that particular product -element is 011.
+An XML document can be viewed as a tree in a natural way. Fig. 1 below
+shows the above XML document in form of a tree.
+factory[name = "super"]
+bbbbbbbb""""""""
+production
+e
+e
+e
+e
+ee%
+%
+%
+%
+%%advertisement
+product
+[id = 011]
+A
+A
+A
+AA
+
+
+product
+[id = 294]
+A
+A
+A
+AA
+
+
+product
+[id = 011]
+A
+A
+A
+AA
+
+
+
+No.
+ name
+ No.
+ name
+ No.
+ name
+1 notebook 2 pencil 1 notebook
+Fig.1. A tree representation of an XML document
+XML documents can be deﬁned by Document Type Deﬁnitions (DTDs). These
+are, basically, extended context-free grammars (cf. context-free grammars over
+inﬁnite alphabets in Sect. 7), i.e., context-free grammars with regular expressions
+at the right-hand sides. For example, the DTD in Fig. 2 deﬁnes the scheme of
+an XML document for a “factory.”
+This DTD speciﬁes that the element factory is the outermost and consists
+of theproduction -a n dt h e advertisement -elements. Each of them, in turn,
+
+--- Page 5 ---
+390 M. Kaminski and T. Tan
+<!DOCTYPE factory [
+<!ELEMENT factory (production, advertisement)>
+<!ELEMENT production (product)*>
+<!ELEMENT advertisement (product)*>
+<!ELEMENT product (No.,name) | /epsilon1>
+<!ELEMENT No. (#PCDATA)>
+<!ELEMENT name (#PCDATA)>
+<!ATTLIST factory name #PCDATA>
+<!ATTLIST product id #PCDATA>
+]>
+Fig.2. The DTD scheme for the XML document in Fig. 1
+consists of a ﬁnite number of product -elements. A product -element can either
+consist of nothing (i.e., the empty word /epsilon1), or of the No.-a n dt h e name-elements.
+TheNo.-a n dname-elements do not consist of any other elements, but a word, as
+the term #PCDATA indicates. The DTD also indicates that the factory -a n d
+theproduct -elements have attributes attached to it: nameandid, respectively.
+These attributes take the data value #PCDATA ,t h a ti saw o r d .
+Furthermore, in addition to conforming to the DTD, an XML document may
+require some constraints imposed on the data values of the attributes. For ex-
+ample, the DTD factory may require that the advertised product is produced
+by the factory itself. This constraint is deﬁned by the following formula in which
+the binary predicate Parent (x, y) is, naturally, read as “ xis the parent of y”a n d
+yis the advertised product.
+∃x(Parent (x, y)∧x.label =advertisement ∧y.label =product )→
+∃u∃v(Parent (u,v)∧u.label =production ∧v.label =product ∧v.id=y.id)
+So, any product -element that appears under the advertisement -element
+must also appear under the production -element. As product -element is identi-
+ﬁed by its id-attribute, the number of possible product -elements is unbound.
+3N o t a t i o n
+We ﬁx an inﬁnite alphabet Σnot containing # that is reserved to denote an
+empty register. For a word w=w1w2···wroverΣ∪{#}, we deﬁne the content
+ofw, denoted [ w], by [ w]={wj/negationslash=#: j=1,2,...,r }.T h a ti s ,[ w] consists of
+all symbols of Σwhich appear in w.
+Aw o r d w1···wrsuch that wi=wjandi/negationslash=jimply wi= # is called an
+assignment . That is, an assignment is a word over Σ∪{#}where each sym-
+bol from Σappears at most one time. Assignments represent the contents of the
+
+--- Page 6 ---
+Tree Automata over Inﬁnite Alphabets 391
+registers of an automaton: the symbol in the ith register is wi.I fwi=# ,t h e n
+theith register is empty. The set of all assignments of length ris denoted by
+Σr/negationslash=.
+As e to fw o r d s T⊆{0,1}∗is called a (binary) treeif it satisﬁes the following
+two conditions.
+–For each n∈Tand each preﬁx n/primeofn,n/prime∈T.T h a ti s , Tispreﬁx closed .
+–Ifn∈T, then either both or none of {n0,n1}are in T.
+We write n1/precedesorcurlyn2,i fn1is a preﬁx of n2.
+Elements of a tree are called nodes.T h e rooto ft h et r e ei st h ee m p t yw o r d
+/epsilon1. A node nof a tree Tis called a leaf, if neither of {n0,n1}belongs to T.I f
+nis not a leaf, then nodes n0a n d n1 are called the leftandright children of
+n, respectively, and nis called the parent of both n0a n d n1. A node n1is an
+ancestor of n2,o rn2is a descendant of n1,i fn1/precedesorcurlyn2.
+The hight of a node nin a tree Tis the length of n.T h er o o t /epsilon1is of hight 0.
+The hight of a tree Tis the hight of the longest node of T.
+AΣ-treeis a map σfrom a tree into Σ.T h es e to fa l l Σ-trees is denoted by
+T(Σ). We denote by dom(σ)=T, the domain of σ:T→Σ.
+Finally, let σ:T→Σbe aΣ-tree and let n1,n2,...,n mbe the list of all
+leaf nodes of Tin the lexicographical order. The Σ-word σ(n1)σ(n2)···σ(nm)
+is called the frontier ofσand is denoted by /lscript(σ).
+4 Tree Automata with Deterministic Reassignment
+In this section we deﬁne the tree version of ﬁnite memory automata (FMA)
+introduce in [6], both the top-down and bottom-up cases. We start with the
+top-down case, which is a straightforward extension of the ordinary word FMA.
+4.1 Top-Down Finite-Memory Automata with Deterministic
+Reassignment
+Deﬁnition 1. (Cf. [6, Deﬁnition 1].) Atop-down ﬁnite-memory automaton with
+deterministic reassignment (↓-FMA) is a system A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketright,w h e r e
+–Sis ﬁnite set of states.
+–s0∈Sis the initial state.
+–u=u1u2···ur∈Σr/negationslash=is the initial assignment to the rregisters of A.
+–ρ:S→{1,2,...,r }is a function from Sinto{1,2,...,r }called the deter-
+ministic reassignment . The intuitive meaning of ρis as follows. If Ais in
+a state pand the input symbol appears in no register, then the automaton
+reassigns the ρ(p)th register with the input symbol.
+–μ⊆S×{1,2,...,r }×S2is the transition relation, whose elements are called
+transitions and are also written in the form
+(p,i)→(p0,p1),
+
+--- Page 7 ---
+392 M. Kaminski and T. Tan
+where p,p0,p1∈Sandi∈{1,2,...,r }. Intuitively, in a Σ-treeσthe tran-
+sition (p,i)→(p0,p1)“applies” at a node nifnis labeled with the state p
+and the content of the ith register is σ(n). Subsequently, the children n0and
+n1ofnare labeled with the states p0andp1, respectively.
+–F⊆S×{1,2,...,r }is the set of ﬁnal relations .
+Like in the case of FMA, an actual state of Ais a state of Stogether with the
+content of all registers. That is, Ahas inﬁnitely many states which are pairs
+(p,w), where p∈Sandw∈Σr/negationslash=is the content of the registers of A.T h e s ea r e
+called conﬁgurations ofA. The set of all conﬁgurations of Ais denoted by Sc.
+The pair ( s0,u), denoted sc
+0, is called the initial conﬁguration.
+The transition relation μinduces the following relation μconSc×Σ×(Sc×Sc),
+whose elements are written in the form
+(p,w),σ→(p0,w0),(p1,w1),
+where p,p0,p1∈Sandw,w0,w1∈Σr/negationslash=.
+Letw=w1w2···wr,w0=w0,1w0,2···w0,r,a n d w1=w1,1w1,2···w1,r.
+Then ( p,w),σ→(p0,w0),(p1,w1) belongs to μcif and only if the following
+conditions are satisﬁed.
+–Ifσ=wi∈[w], then w0=w1=wand (p,i,(p0,p1))∈μ.
+–Ifσ/negationslash∈[w], then w0,ρ(p)=w1,ρ(p)=σ,w0,i=w1,i=wifor each i/negationslash=ρ(p),
+and (p,ρ(p),(p0,p1))∈μ.
+The set of ﬁnal relations Fdeﬁnes the set of ﬁnal“Σ-relations” Fc.Ap a i r
+((p,w),σ)∈Fcif the following holds.
+–Ifσ=wi,t h e n( p,i)∈F;a n d
+–ifσ/negationslash∈[w1w2···wr], then ( p,ρ(p))∈F.
+ArunofAon aΣ-treeσ:T→Σis a mapping R:T→Scsuch that
+–R(/epsilon1)=sc
+0(recall that sc
+0=(s0,u) is the initial conﬁguration of A)a n d
+–for each non-leaf node n∈T,(R(n),σ(n))→(R(n0),R(n1))∈μc.
+We say that Aaccepts aΣ-treeσ:T→Σ, if there exists a run RofAonσ,
+called an accepting run, such that for each leaf nofT,(R(n),σ(n))∈Fc.T h e
+set of all trees accepted by Ais denoted by L(A).
+Example 1. LetA/epsilon1=/angbracketleft{s0,p},s0,##,ρ ,μ ,{(s0,1),(p,2)}/angbracketright,w h e r e
+–ρ(s0)=1 , ρ(p) = 2, and
+–μ={(s0,1,(p,p)),(p,2,(p,p))}.
+Then L(A/epsilon1)=L/epsilon1,w h e r e
+L/epsilon1={σ:T→Σ:f o r e a c h n∈T\{/epsilon1},σ(n)/negationslash=σ(/epsilon1)}.
+For example, an accepting run R:T→{s0,p}×Σ2/negationslash=ofA/epsilon1on aΣ-treeσ:T→
+Σsuch that for each n∈T\{/epsilon1},σ(n)/negationslash=σ(/epsilon1) is deﬁned by
+
+--- Page 8 ---
+Tree Automata over Inﬁnite Alphabets 393
+–R(/epsilon1)=(s0,##),
+–R(0) = ( p,σ(/epsilon1)#),
+–R(1) = ( p,σ(/epsilon1)#), and
+–forn/negationslash=/epsilon1andi=0,1,R(ni)=(p,σ(/epsilon1)σ(n)).
+Example 2. In this example we show that the tree language
+L2=/braceleftbigg
+σ:T→Σ:there exist two diﬀerent leaves n/prime,n/prime/prime∈T
+such that σ(n/prime)=σ(n/prime/prime)/bracerightbigg
+is not accepted by a top-down ﬁnite-memory automaton.
+Indeed, assume to the contrary there exists a top-down tree ﬁnite-memory
+automaton A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketrightthat accepts L2.I np a r t i c u l a r , Aaccepts the
+Σ-treeσ:{/epsilon1,0,1}→Σ,w h e r e σ(/epsilon1)/negationslash=σ(0) and σ(0) = σ(1)/negationslash∈[u]. Let R
+be an accepting run of AonσandR(0) = ( q,w), Then, σ(0)/negationslash∈[w], implying
+(q,ρ(q))∈F.
+Consider the Σ-treeσ/prime:{/epsilon1,0,1}→Σ,w h e r e σ/prime(/epsilon1)=σ(/epsilon1),σ/prime(0)/negationslash=σ(0),
+σ/prime(0)/negationslash∈[u]∪{σ(/epsilon1)},a n d σ/prime(1) = σ(1). Then Ris also a run of Aonσ/prime.S i n c e
+σ/prime(/epsilon1)=σ(/epsilon1),R(0) = ( q,w). In addition, σ/prime(0)/negationslash∈[w]a n d( q,ρ(q))∈Fimply
+σ/prime∈L(A). However, this contradicts L(A)=L2.
+4.2 Bottom-Up Finite-Memory A utomata with Deterministic
+Reassignment
+To deﬁne bottom-up automata we need to choose rsymbols (to ﬁll rregisters at
+the parent node) out of, possibly, 2 rs y m b o l ss t o r e di nt h er e g i s t e r sa tt h ec h i l d
+nodes. Such a choice is based on the notion of a typedeﬁned below.
+Deﬁnition 2. Anr-typeis a subset tof{1,2,...,r }×{1,2,...,r }such that
+for all (i0,i1),(j0,j1)∈t,
+(i0,i1)/negationslash=(j0,j1)implies both i0/negationslash=i1andj0/negationslash=j1.
+The set of all r-types is denoted by Tr.
+For two assignments w0=w0,1w0,2···w0,randw1=w1,1w1,2···w1,rwe
+deﬁne the type t(w0,w1)by
+t(w0,w1)={(i/prime,i/prime/prime):w0,i/prime=w1,i/prime/prime}.4
+Af u n c t i o n f:{1,...,r }→{ 0,1}×{1,...,r }is said to be a valid selector
+for an r-typetif for all 1≤i<j≤r,
+f(i)=( 0 ,i/prime)andf(j)=( 1 ,j/prime)imply (i/prime,j/prime)/negationslash∈t.
+Intuitively, fis used to select rregisters out of 2 rregisters for the assignment at
+the parent node. If f(i)=( 0 ,i/prime), then the content of the ith register at the parent
+node comes from the i/primeth register of the left child. Similarly, if f(i)=( 1 ,i/prime), then
+4That is, the elements of t(w0,w1) indicate the registers with the same content. It
+follows from the deﬁntion of an assignment that the type t(w0,w1) is well deﬁned.
+
+--- Page 9 ---
+394 M. Kaminski and T. Tan
+the content of the ith register at the parent node comes from the i/primeth register
+of the right child. By deﬁnition, if fis a valid selector for an r-type t, then the
+resulting assignment does not have two registers with the same content.
+A triple of assignments ( u,v,w) is an instance of ( t, f), where t∈Trandf
+is a valid selector for tif
+–t=t(u,v), and
+–w=w1···wris deﬁned by
+wi=/braceleftbiggujiff(i)=( 0 ,j)
+vjiff(i)=( 1 ,j),
+where u=u1···urandv=v1···vr.
+Intuitively, the assignment wis the result of merging the assignments uand
+vaccording to the the function f.S i n c e fis a valid selector for t,wdoes not
+have two registers with the same content.
+Deﬁnition 3. Abottom-up ﬁnite-memory automaton with deterministic reas-
+signment (↑-FMA) is a system A=/angbracketleftS, s0,u,ρ ,τ,μ ,F /angbracketright,w h e r e
+–Sis a ﬁnite set of states.
+–s0∈Sis the initial state.
+–u=u1u2···ur∈Σr/negationslash=is the initial assignment to the rregisters of A.
+–ρ:S→{1,2,...,r }is the deterministic reassignment .
+–μ⊆(S×{1,2,...,r })2×Sis the transition relation, whose elements are
+transitions and are also written in the form
+(p0,k0),(p1,k1)→p,
+where p0,p1,p∈Sandk0,k1∈{1,2,...,r }. The intuitive meaning of tran-
+sition (p0,k0),(p1,k1)→pis as follows. In a Σ-treeσit “applies” at nodes
+n0andn1labeled states p0andp1, respectively, if the content of the k0th
+register at node n0isσ(n0)and the content of the k1th register at node n1
+isσ(n1). Then the label of nisp.
+–τis amerging relation whose elements are of the form
+((p0,k0),(p1,k1),t ,f),
+where p0,p1∈Sandk0,k1∈{1,2,...,r },t∈Tr,a n d fis a valid selector
+fort. The intuitive meaning of an element ((p0,k0),(p1,k1),t ,f)ofτis
+as follows. In a Σ-treeσit “applies” at nodes n0andn1labeled p0and
+p1, respectively, if the content of the k0th register at node n0isσ(n0)and
+the content of the k1th register at node n1isσ(n1)and the type of the
+assignments at n0andn1ist. Then the assignments are merged according
+tof.
+–F⊆S×{1,2,...,r }is the set of ﬁnal relations .
+
+--- Page 10 ---
+Tree Automata over Inﬁnite Alphabets 395
+The transition relation μinduces the following relation μcon (Sc×Σ)2×Sc
+whose elements are also written in the form
+(p0,w0,σ0),(p1,w1,σ1)→(p,w),
+where p,p0,p1∈Sandw,w0,w1∈Σr/negationslash=.
+Letw=w1w2···wr,w0=w0,1w0,2···w0,r,a n d w1=w1,1w1,2···w1,r.
+Then ( p0,w0,σ0),(p1,w1,σ1)→(p,w) belongs to μcif and only if there exist
+v0,v1∈Σr/negationslash=,v0=v0,1v0,2···v0,randv1=v1,1v1,2···v1,r,(p0,k0),(p1,k1)→
+p∈μ,a n d( ( p0,k0),(p1,k1),t ,f)∈τsuch that the following conditions are
+satisﬁed.
+–Ifσ0∈[w0], then v0=w0.O t h e r w i s e ,
+v0,i=/braceleftbiggw0,iifi/negationslash=ρ(p0)
+σ0ifi=ρ(p0).
+–Similarly, if σ1∈[w1], then v1=w1.O t h e r w i s e ,
+v1,i=/braceleftbiggw1,iifi/negationslash=ρ(p1)
+σ1ifi=ρ(p1).
+–v0,k0=σ0andv1,k1=σ1.5
+–t=t(v0,v1).
+–(v0,v1,w) is an instance of ( t, f).
+ArunofAon aΣ-treeσ:T→Σis a mapping R:T→Scsuch that
+–for each leaf nofT,R(n)=sc
+0(recall that sc
+0=(s0,u) is the initial conﬁg-
+uration of A), and
+–for each non-leaf node n∈T,(R(n0),σ(n0)),(R(n1),σ(n1))→R(n)∈μc.
+The set of ﬁnal relations Fdeﬁnes the following set ﬁnal“Σ-relations” Fc.A
+pair (( p,w),σ)i si n Fcif the following holds.
+–Ifσ=wi,t h e n( p,i)∈F;a n d
+–ifσ/negationslash∈[w1w2···wr], then ( p,ρ(p))∈F.
+We say that Aaccepts aΣ-treeσ:T→Σif there exists a run RofAonσ,
+called an accepting run, such that ( R(/epsilon1),σ(/epsilon1))∈Fc. The set of all trees accepted
+byAis denoted by L(A).
+Example 3. (Cf. Example 1.) The set of Σ-trees L/epsilon1from Example 1 is not ac-
+cepted by bottom-up ﬁnite-memory automata.
+Indeed, assume to the contrary L/epsilon1is accepted by an r-register bottom-up
+automaton Awith the initial assignment u.C o n s i d e rat r e e σ∈L/epsilon1,w h e r e σ(/epsilon1)/negationslash∈
+[u]a n d σ(n1)/negationslash=σ(n2), whenever n1/negationslash=n2. During the course of computation,
+5Note that if σ0/negationslash∈[w0]( r e s p e c t i v e l y , σ1/negationslash∈[w1]), then k0=ρ(p0)( r e s p e c t i v e l y ,
+k1=ρ(p1)).
+
+--- Page 11 ---
+396 M. Kaminski and T. Tan
+till the last step, σ(/epsilon1) does not appear in the registers of A.W h e n Areaches the
+root, it reassigns one of the registers with σ(/epsilon1) and veriﬁes whether one of the
+ﬁnalΣ-relations holds.
+Assume, in addition, that the range of σcontains more than rdiﬀerent sym-
+bols. Therefore, when Areaches the root of the tree, there is a node nsuch that
+σ(n) is no longer in the registers of A. If we replace σ(/epsilon1)w i t h σ(n),Awould
+still accept the obtained Σ-tree, in contradiction with L(A)=L/epsilon1.
+Example 4. (Cf. Example 2.) The set of Σ-trees L2from Example 2 is accepted
+by a bottom-up ﬁnite-memory automaton that operates as follows. It “guesses”
+two diﬀerent nodes, remembers their labels, and carries them up to the node
+where the paths from the two guessed nodes meet. At this meeting node the
+automaton checks whether the labels at the two guessed nodes are the same.
+5 Tree Automata with Nondeterministic Reassignment
+In this section we introduce the notion of tree automata with nondeterministic
+reassignment – both for the top-down and the bottom-up cases. Unlike the de-
+terministic reassignment automata which may only reassign one of their registers
+with the current input symbol, these automata are allowed to reassign a number
+of registers with arbitrary symbols from Σ. That is, the reassignment function
+ρ:S→2{1,...,r}mapping the states from Sinto the power set 2{1,...,r}.
+5.1 Top-Down Finite-Memory Automata with Nondeterministic
+Reassignment
+Deﬁnition 4 below is the top-down tree counterpart of the inﬁnite-al phabet push-
+down automata introduced in [2] and the look-ahead ﬁnite-memory automata
+introduced in [20].
+Deﬁnition 4. Atop-down ﬁnite-memory automaton with nondeterministic re-
+assignment (↓-NR-FMA) is a system A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketright, where all compo-
+nents of A,e x c e p t ρ, are as Deﬁnition 1. The nondeterministic reassignment ρ
+is a function from Sinto2{1,2,...,r}. The intuitive meaning of ρis as follows.
+In state pthe automaton may reassign the registers whose indices belong to ρ(p)
+withanypairwise diﬀerent symbols of Σ.O fc o u r s e ,t h e s es y m b o l sm u s td i ﬀ e r
+from those in the registers whose indices do not belong to ρ(p).
+The transition relation μconSc×Σ×(Sc×Sc) is deﬁned similarly to that
+of top-down ﬁnite-memory automata. Let p,p0,p1∈Sandw,w0,w1∈Σr/negationslash=.
+Then ( p,w),σ→(p0,w0),(p1,w1) belongs to μcif and only if the following
+conditions are satisﬁed. Let w=w1w2···wr,w0=w0,1w0,2···w0,r,a n d w1=
+w1,1w1,2···w1,r.T h e n
+–w0=w1,
+–for all i/negationslash∈ρ(p),w0,i(=w1,i)=wi,
+
+--- Page 12 ---
+Tree Automata over Inﬁnite Alphabets 397
+–for some k=1,2,...,r ,w0,k=σ(=w1,k), and
+–(p,k)→(p0,p1)∈μ.
+To extend FontoSc×Σwe need one more bit of notation. For two assignments
+v,w∈Σr/negationslash=,v=v1···vrandw=w1···wr,a n d S⊆{1,...,r },w ew r i t e
+v=Swif for all i/negationslash∈S,vi=wi.T h a ti s , vandware equal “modulo” the
+symbols in the positions in S.
+The set of ﬁnal“Σ-relations” Fcis deﬁned as follows. A pair (( p,w),σ)∈Fc
+if for some w/prime∈Σr/negationslash=,w/prime=w/prime
+1w/prime
+2···w/prime
+r, such that w=ρ(p)w/prime,σ=w/prime
+i,a n d
+(p,i)∈F.
+Now a run and acceptance of for ↓-NR-FMAs are deﬁned exactly as for ↓-
+FMAs.
+Example 5. (Cf. Example 2.) The set of Σ-trees L2from Example 2 is accepted
+by a↓-NR-FMA that operates as follows. In the root of the input it “guesses”
+the symbol that appears at two diﬀerent nodes and then (nondeterministically)
+veriﬁes that the guess is correct.
+Proposition 1. If a set of Σ-trees is accepted by a ↓-FMA, then it is also
+accepted by a ↓-NR-FMA.
+Proof. Given a ↓-FMA A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketright, consider the following two ↓-NR-
+FMAs A−=/angbracketleftS/prime,s−
+0,u,ρ/prime,μ/prime,F/prime/angbracketrightandA+=/angbracketleftS/prime,s+
+0,u,ρ/prime,μ/prime,F/prime/angbracketright,w h e r e
+–S/prime=/uniontext
+s∈S{s−,s+};6
+–ρ/prime(s−)=∅andρ/prime(s+)={ρ(s)},p∈S;
+–μ/primeis the union of
+•{(s−,i,s∓
+0,s∓
+1):(s,i,s 0,s1)∈μ}and
+•{(s+,ρ(s),s∓
+0,s∓
+1):(s, ρ(s),s0,s1)∈μ};
+and
+–F/prime=/uniontext
+s∈F{s−,s+}.
+It can be easily seen that L(A)=L(A)∪L(A+). Indeed, both automata are
+allowed to make a nondeterministic reassignment (according to ρ) only in states
+of the form s+, but they have to use it immediately. Consequently, the reassigned
+symbol must be the current input. Thus, actually, both of them behave like A,
+except, possibly, the ﬁrst move at the root of the input Σ-tree.
+Since ↓-NR-FMA languages are closed under union; see Appendix C, the
+proposition follows. /intersectionsq/unionsq
+5.2 Bottom-Up Finite-Memory Aut omata with Nondeterministic
+Reassignment
+Deﬁnition 5 below is the “bottom-up” counterpart of Deﬁnition 4.
+6That is, S/primeconsists of two copies of S.
+
+--- Page 13 ---
+398 M. Kaminski and T. Tan
+Deﬁnition 5. Abottom-up ﬁnite-memory automaton with nondeterministic
+reassignment (↑-NR-FMA) is a system A=/angbracketleftS, s0,u,ρ ,τ,μ ,F /angbracketright, where all com-
+ponents of A,b u tρare as Deﬁnition 1 and the nondeterministic reassignment
+ρis a function from Sinto2{1,2,...,r}.
+The relation μconSc×Σ×(Sc×Sc) is deﬁned similarly to that of bottom-up
+ﬁnite-memory automata. The only diﬀerence is that each head may reassign non-
+deterministically a set of their registers before merging. Namely, for p,p0,p1∈S
+andw,w0,w1∈Σr/negationslash=,(p0,w0,σ0),(p1,w1,σ1)→(p,w) belongs to μcif and
+only if the following holds.
+Letw=w1w2···wr,w0=w0,1w0,2···w0,r,a n d w1=w1,1w1,2···w1,r.
+Then there exist assignments v0=v0,1···v0,randv1=v1,1···v1,r, a transition
+(p0,k0),(p1,k1)→p∈μ, and a merging relation (( p0,k0),(p1,k1),t ,f)∈τsuch
+that
+–v0,i=w0,ifor all i/negationslash∈ρ(p0);
+–v1,i=w1,ifor all i/negationslash∈ρ(p1);
+–v0,k0=σ0andv1,k1=σ1;
+–t=t(v0,v1); and
+–(v0,v1,w) is an instance of ( t, f).
+That is, for the assignment wat the parent node, fselects rout of 2 rvalues
+of the “reassigned”assignments at the child nodes.
+The set of ﬁnal relations Fdeﬁnes the set of ﬁnal“Σ-relations” Fc.Ap a i r
+((p,w),σ)∈Fcif for some w/prime∈Σr/negationslash=,w/prime=w/prime
+1w/prime
+2···w/prime
+r, such that w=ρ(p)w/prime
+σ=w/prime
+i,a n d( p,i)∈F.
+Example 6. (Cf. Example 3.) The set of Σ-trees L/epsilon1from Example 1 is accepted
+by a↑-NR-FMA that operates as follows. In each leaf of the input the automaton
+“guesses” the symbol that appears at the root. Then, going down, it veriﬁes that
+the input symbols are diﬀerent from those at the leaves and that the “guessed”
+symbols are the same. Finally, when arriving to the root the automaton veriﬁes
+that the guess is correct, i.e., the guessed symbol is one that appears at the root.
+Proposition 2. If a set of Σ-trees is accepted by a ↑-FMA, then it is also
+accepted by a ↑-NR-FMA.
+The proof of Proposition 2 is similar to that of Proposition 1 and is omitted.
+5.3 The Main Result
+We conclude this section with the main result of our paper stating that top-
+down and bottom-up ﬁnite-memory automata with nondeterministic reassign-
+ment have the same computation power.
+Theorem 1. As e to f Σ-trees is accepted by a ↓-NR-FMA if and only if it
+is accepted by a ↑-NR-FMA. Moreover, the conversions of a ↓-NR-FMA to its
+equivalent ↑-NR-FMA and vice versa are eﬀective.
+
+--- Page 14 ---
+Tree Automata over Inﬁnite Alphabets 399
+The proof of Theorem 1 is long and techni cal. It is presented in the appendices
+in the end of this paper.
+Corollary 1. Both↓-FMA and ↑-FMA can be simulated by either of ↓-NR-FMA
+or↑-NR-FMA.
+Note that by Examples 1, 2, 3, and 4, the inclusions provided by Corollary 1 are
+proper.
+6 Decision Properties
+In this section we show that the membership and emptiness problems for ↓-
+NR-FMAs are decidable. Thus, by Theorem 1 and Propositions 1 and 2, these
+problems are decidable for all other models of automata introduced in this paper.
+We also show that the universality and, consequently, the inclusion problems are
+undecidable for all models of automata introduced in this paper.
+Propositions 3 and 4 below deal with decidability of the membership and
+emptiness problems. The former asks whether a given ↓-NR-FMA accepts a
+given Σ-tree, and the latter asks whether the language of a given ↓-NR-FMA is
+empty.
+Proposition 3. The membership problem for ↓-NR-FMAs is decidable.
+Proof. LetA=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketrightbe a↓-NR-FMA and let σ:T→Σbe aΣ-
+tree. We contend that σ∈L(A) if and only if there is an accepting run of Aon
+σin which the assignment at each node belongs to Σr/negationslash=
+0,w h e r e
+Σ0=σ(T)∪[u]∪{#}∪{θ1,θ2,...,θ r},θ i/negationslash∈σ(T),i=1,2,...,r .
+The “if” direction is immediate, and for the proof of the “only if” direction
+we just replace the symbols which appear in an accepting run of Aonσ, but
+do not belong to σ(T)∪[u]∪{#}with appropriate elements of {θ1,θ2,...,θ r}.7
+Therefore, given an input Σ-treeσ:T→Σ, we may restrict ourselves to the
+conﬁgurations of AfromS×Σr/negationslash=
+0, which brings us to an ordinary ﬁnite alphabet
+tree automaton. Since the membership problem for the latter is decidable, the
+proposition follows. /intersectionsq/unionsq
+Proposition 4. The emptiness problem for ↓-NR-FMAs is decidable.
+The proof of Proposition 4 is based on Lemma 1 below.
+Lemma 1. LetA=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketrightbe an r-register ↓-NR-FMA such that
+L(A)/negationslash=∅and let Σr={θ1,θ2,...,θ r}be an r-element subset of Σthat in-
+cludes [u]. Then there is a Σ-treeσ:T→ΣrinL(A).
+Proof. Letσ:T→Σ∈L(A)a n dl e t R:T→Scbe an accepting run of
+Aonσ.T oc o n s t r u c ta Σ-treeσ:T→ΣrinL(A) we need the function
+I:T→{1,2,...,r }deﬁned below.
+7Obviously, such symbols can be introduced by reassignment, only.
+
+--- Page 15 ---
+400 M. Kaminski and T. Tan
+–For a non-leaf node n∈T,i fR(n0) = ( p,w1w2···wr)a n d σ(n)=wi,t h e n
+I(n)=i.
+–For a leaf node n∈T,i fR(n)=( p,w1w2···wr)a n d w/prime∈Σr/negationslash=,w/prime=
+w/prime
+1w/prime
+2···w/prime
+r, is such that w=ρ(p)w/prime,σ=w/prime
+i,a n d( p,i)∈F,t h e n I(n)=i.
+Letu=u1···ur. We may assume that for each i=1,2,...,r ,ui/negationslash= # implies
+ui=θi.T h e na Σ-treeσr:T→Σrsatisfying the lemma is deﬁned by σr(n)=
+θI(n),n∈T.T h i s Σ-tree is accepted by the run of Awhose state components are
+the same as of Rand that always reassignsthe iregisterwith Θi,i=1,2,...,r ./intersectionsq/unionsq
+Proof. (of Proposition 4) Let A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketrightbe an r-register ↓-NR-FMA
+and let Σr={θ1,θ2,...,θ r}be an r-element subset of Σthat includes [ u]. It
+follows from Lemma 1 that L(A)/negationslash=∅if and only if there is a Σ-treeσ:T→Σr
+inL(A).
+Since on the inputs σ:T→Σrthe conﬁgurations of Abelong to S×Σr/negationslash=r,
+the emptiness of Ais reduced to the emptiness of an ordinary ﬁnite alphabet tree
+automaton that is is decidable. /intersectionsq/unionsq
+It was shown that in [13] the universality problem of ﬁnite-memory automata
+is undecidable.8Consequently, this problem is also undecidable for all above
+models of tree automata.
+Proposition 5. The universality problem for ↓-FMAs and ↑-FMAs is undecid-
+able.
+Corollary 2. The inclusion problem for ↓-FMAs and ↑- F M A si su n d e c i d a b l e .
+7 Context-Free Languages over Inﬁnite Alphabets and
+Their Relationship with Tree Automata
+In this section we recall the deﬁnition of quasi context-free languages from [2]
+and show how they are related to the tree languages introduced in this paper.
+In short, a quasi context-free grammar is a context-free grammar, where each
+variable carries the same number rof of registers. The terminal alphabet of
+a grammar Gis the set {1,2,...,r }.L e t Vbe the set of variables of G.T h e
+productions of Gare of the form
+(A, k)→α1α2···αn,
+where 1 ≤k≤randαi∈V∪{1,...,r },i=1,2,...,n . The above production
+allows us
+–to replace the content of the kth register carried by Awith any symbol of
+Σthat diﬀers from the symbols stored in the other registers,9and
+8That is, is undecidable whether a given ﬁnite-memory automaton accepts Σ∗.
+9Actually, automata with nondeterministic reassignment were motivated by [2].
+
+--- Page 16 ---
+Tree Automata over Inﬁnite Alphabets 401
+–to replace Awith the word β1···βn,w h e r e βiis the content of the jth
+register, if αi=j,a n di s αi,i fαiis a variable, i=1,2,...,n .
+The language generated by Gconsists of all words in Σ∗obtained by repeatedly
+applying the productions of G, starting with the startvariable. It is called a
+quasi context-free language, cf. DTDs in Sect. 2. The precise deﬁnition of quasi
+context-free grammars and languages is as follows.
+Deﬁnition 6. ([2, Deﬁnition 1]) Aninﬁnite-alphabet context-free grammar is
+as y s t e m G=/angbracketleftV,u,R,S/angbracketright,w h e r e
+–Vis a ﬁnite set of variables disjoint with Σ;
+–u=u1u2···ur∈Σr/negationslash=is the initial assignment;
+–R⊆(V×{1,2,...,r })×(V∪{1,2,...,r })∗is a set of productions , whose
+elements are written in the form (A, i,a)as(A, i)→a,w h e r e A∈V,
+i=1,2,...,r ,a n d a∈(V∪{1,2,...,r })∗;a n d
+–S∈Vis the startvariable.
+ForA∈V,w=w1w2···wr∈Σr/negationslash=,a n d X=X1X2···Xn∈(Σ∪(V×
+Σr/negationslash=))∗,w ew r i t e( A,w)⇒Xif there exist a production ( A, i)→a∈R,
+a=a1a2···an∈(V∪{1,2,...,r })∗,a n das y m b o l σ/negationslash∈[w]\{wi}such that the
+condition below is satisﬁed.
+Letw/prime∈Σr/negationslash=be obtained from wby replacing wiwithσ. Then, for j=
+1,2,...,n the following holds.
+–Ifaj=kfor some k=1,2,...,r ,t h e n Xj=w/prime
+k.
+–Ifaj=Bfor some B∈V,t h e n Xj=(B,w/prime).
+For two words XandYoverΣ∪(V×Σr/negationslash=), we write X⇒Yif there exist
+words X1,X2,a n d X3overΣ∪(V×Σr/negationslash=)a n d( A,w)∈V×Σr/negationslash=, such that
+X=X1(A,w)X2,Y=X1X3X2,a n d( A,w)⇒X3.
+As usual, the reﬂexive and transitive closure of ⇒is denoted by ⇒∗.T h e
+language L(G) generated by Gis deﬁned by L(G)={σ∈Σ∗:(S,u)⇒∗σ}
+and is referred to as a quasi-context-free language.
+Example 7. LetGbe a 1-register grammar with the set of variables V={S},
+theinitial assignment #, and the following two production.
+(S,1)→1S1|/epsilon1.
+Then L(G)={σσR|σ∈Σ∗}.10For example, the word σ1σ2σ3σ3σ2σ1is
+derived as follows.
+(S,#)⇒σ1(S, σ1)σ1⇒σ1σ2(S, σ2)σ2σ1
+⇒σ1σ2σ3(S, σ3)σ3σ2σ1⇒σ1σ2σ3σ3σ2σ1.
+10As usual, σRis the reversal ofσ.
+
+--- Page 17 ---
+402 M. Kaminski and T. Tan
+We end this paper with the theorem belo w that relates quasi context-free
+languages to the tree languages introduced in this paper. Recall that for a Σ-
+treeσ:T→Σ,t h efrontier /lscript(σ)o fσis the word σ(n1)σ(n2)···σ(nm),
+where n1,n2,...,n mis the list of all leaf nodes of Tin the lexicographical order.
+Below the set frontiers of all elements of a set of Σ-trees Lis denoted by /lscript(L):
+/lscript(L)={/lscript(σ):σ∈L}.
+Theorem 2. LetLbe a tree language accepted by a top-down (or bottom-up)
+ﬁnite-memory automaton Awith a deterministic (or non-deterministic) reas-
+signment. Then /lscript(L)is quasi-context-free language.
+Conversely, for every quasi-context-free language L, there exists a top-down (or
+bottom-up) ﬁnite-memory automata Awith deterministic (or non-deterministic)
+reassignment such that /lscript(L(A)) =L.
+We omit the proof that is quite straightforward. For example, any Σ-t r e e σ
+accepted by a ↓-FMA A, after an appropriate modiﬁcation, can be thought of
+as a derivation tree of the word /lscript(σ). Conversely, given a quasi context-free
+grammar G, we may assume that all derivation trees of the words in L(G)a r e
+binary.11Therefore, the set of productions of Gcan be thought of as the set of
+transition of a ↓-FMA A, implying that /lscript(L(A)) is exactly the language generated
+byG.
+Acknowledgment
+This research was supported by the Jewish communities of Germany research
+fund, by the Technion vice-president fund for the promotion of research at the
+Technion, and by a grant from the Software Technology Laboratory (STL) in
+the Department of Computer Science, the Technion. In addition, the work of the
+second author was supported by the Raphael and Miriam Mishan Fellowship.
+References
+1. Bex, G.J., Maneth, S., Neven, F.: A formal model for an expressive fragment of
+XSLT. Information and System 27(1), 21–39 (2002)
+2. Cheng, E.Y.C., Kaminski, M.: Context-free languages over inﬁnite alphabets. Acta
+Informatica 35, 245–267 (1998)
+3. Comon, H., et al.: Tree Automata Techniques and Applications (2005),
+http://www.grappa.univ-lille3.fr/tata/
+4. Doner, J.E.: Tree acceptors and some of their applications. Journal of Computer
+and System Sciences 4, 406–451 (1970)
+5. Kaminski, M., Francez, N.: Finite-memory automata. In: Proceedings of the 31th
+Annual IEEE Symposium on Foundati ons of Computer Sc ience, pp. 683–688. IEEE
+Computer Society Press, Los Alamitos (1990)
+11It is well known that any tree can be converted to a binary tree that preserves the
+order of the leaves.
+
+--- Page 18 ---
+Tree Automata over Inﬁnite Alphabets 403
+6. Kaminski, M., Francez, N.: Finite-memory automata. Theoretical Computer Sci-
+ence 138, 329–363 (1994)
+7. Kaminski, M., Tan, T.: Regular expressions for languages over inﬁnite alphabets.
+Fundamenta Informa ticae 69, 301–318 (2006)
+8. Milo, T., Suciu, D., Vianu, V.: Type checking for XML transformers. Journal of
+Computer and System Sciences 66, 66–97 (2003)
+9. Neven, F., Schwentick, T.: Expressive and eﬃcient pattern languages for tree-
+structured data. In: Proceedings of the Nineteenth International Symposium on
+Principles of Database Systems, pp. 145–156. ACM Press, New York (2000)
+10. Neven, F., Schwentick, T., Vianu, V.: Towards regular languages over inﬁnite al-
+phabets. In: Sgall, J., Pultr, A., Kolman, P. (eds.) MFCS 2001. LNCS, vol. 2136,
+pp. 560–572. Springer, Heidelberg (2001)
+11. Neven, F.: Automata, logic and XML. In: Bradﬁeld, J.C. (ed.) CSL 2002 and
+EACSL 2002. LNCS, vol. 2471, pp. 2–26. Springer, Heidelberg (2002)
+12. Neven, F., Schwentick, T.: Query automata on ﬁnite trees. Theoretical Computer
+Science 275, 633–674 (2002)
+13. Neven, F., Schwentick, T., Vianu, V.: Finite state machines for strings over inﬁnite
+alphabets. ACM Transactions on Computational Logic 5, 403–435 (2004)
+14. Papakonstantinou, Y., Vianu, V.: DTD inference for views of XML data. In: Pro-
+ceedings of the Twentieth International Symposium on Principles of Database Sys-
+tems, pp. 35–46. ACM Press, New York (2001)
+15. Rabin, M.: Decidability of second order theories and automata on inﬁnite trees.
+Transactions of the American Mathematical Society 141, 1–35 (1969)
+16. Ray, E.: Learning XML. O’Reilly & Associates, Inc, Sebastopol (2001)
+17. Thatcher, J., Wright, J.: Generalized ﬁnite automata theory. Mathematical System
+Theory 2, 57–81 (1968)
+18. Vianu, V.: A web odyssey: from Codd to XML. In: Proceedings of the 20th In-
+ternational Symposium on Principles of Database Systems, pp. 1–15. ACM Press,
+New York (2001)
+19. XML Core Working Group: Extensible Markup Language (XML). World Wide
+Web Consortium, http://www.w3.org/XML/
+20. Zeitlin, D.: Look-ahead ﬁnite-memory automata. Master’s thesis, Department of
+Computer Science, Technion - Israel Institute of Technology (2006)
+A Proof of the “only if” Part of Theorem 1
+For an r-register ↓-NR-FMA A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketrightwe construct an r-register
+↑-NR-FMA /tildewideA=/angbracketleft/tildewideS,/tildewides0,/tildewideu,/tildewideρ,/tildewideτ,/tildewideμ,/tildewideF/angbracketrightsuch that L(A)=L(/tildewideA).
+Similarly to the proof of [7, Lemma 5.1] it can be shown that, without loss of
+generality, the following assumptions hold.
+–u=#r−mθ1···θm,w h e r e θ1,...,θ m∈Σ,a n d
+–only the ﬁrst r−mregisters of Acan be reassigned, i.e, the range of ρis a
+subset of {1,2,...,r −m}.
+We precede the formal description of /tildewideAwith a general intuitive explanation.
+One would expect the construction to be just the transition reversing, i.e., a
+transition ( p,k)→(p0,p1)o fAto become a “transition” (( p0,p1),k)→pof/tildewideA.
+
+--- Page 19 ---
+404 M. Kaminski and T. Tan
+This is indeed almost so, but with the following modiﬁcation. Since transitions
+of a↑-NR-FMA merge two heads and depend on two input symbols from Σ,
+we combine two transitions of Ainto one “reversed” transition of /tildewideA.T h a ti s ,
+two transitions ( p0,k0)→(p00,p01)a n d( p1,k1)→(p10,p11)o fAare combined
+into one transition (( p00,p01),k0),((p10,p11),k1)→(p0,p1)o f/tildewideAand “moved”
+one level up, as illustrated in Fig. 3 and 4 below. Fig. 3 shows an application of
+two top-down transitions at two nodes (sharing the same parent node) labeled
+σ0andσ1. Fig. 4 shows their reversal bottom-up transition applied at the same
+two nodes, but in the converse direction.
+Fig.3. An application of two transitions of A
+Fig.4. Reversing and combining two transitions of A
+Note that assignments w0andw1equal to w“modulo” the symbols in the po-
+sitions belonging to ρ(p0)a n d ρ(p1), respectively; and except for the symbols at
+the positions in ρ(p0)∩ρ(p1),wcan be recovered from w0andw1.T h es y m b o l s
+at the positions in ρ(p0)∩ρ(p1) can be “guessed” by a nondeterministic reassign-
+ment of the “reversal” automaton /tildewideA.T h u s ,f o r p0,p1∈S,w el e t /tildewideρ((p0,p1)) be
+ρ(p0)∩ρ(p1). In fact, the reversed transitions in /tildewideAyield the assignments v,v0,v1
+such that v=ρ(p0)∩ρ(p1)w,v0=ρ(p00)∩ρ(p01)w0andv1=ρ(p10)∩ρ(p11)w1.
+To deﬁne the transition relation /tildewideμand the merging relation /tildewideτwe need the
+following deﬁnition and the corresponding auxiliary result.
+
+--- Page 20 ---
+Tree Automata over Inﬁnite Alphabets 405
+Lettbe an r-type and let fbe a valid selector for t. The pair ( t, f) is called
+aninverse structure associated with a pair of states (p0,p1) if the following con-
+ditions are satisﬁed.
+–(i,i)∈tfor all i∈{1,...,r }−(ρ(p0)∪ρ(p1)).
+–f(i)=⎧
+⎨
+⎩(0,i)o r( 1 ,i)f o ri∈{1,...,r }\(ρ(p0)∪ρ(p1))
+(1,i)f o r i∈ρ(p0)\ρ(p1)
+(0,i)f o r i∈ρ(p1)\ρ(p0)
+Note that the value of fon the elements of ρ(p0)∩ρ(p1)is arbitrary. The set
+of all inverse structures asso ciated with a pair of states ( p0,p1) will be denoted
+I(p0,p1).
+Lemma 2. Let(t, f)be an inverse structure associated with a pair of states
+(p0,p1)and let v0,v1,v,w∈Σr/negationslash=be such that v0=ρ(p0)wandv1=ρ(p1)w.
+Then (v0,v1,v)is an instance of (t, f)if and only if v=ρ(p0)∩ρ(p1)w.
+Moreover, if v=ρ(p0)∩ρ(p1)wand(v0,v1,v)is an instance of (t, f),t h e n
+v0=ρ(p0)wandv1=ρ(p1)w.
+Proof. Letv0=v0,1···v0,r,v1=v1,1···v1,r,v=v1···vr,a n d w=w1···wr.
+It immediately follows from the deﬁnition that ( v0,v1,v) is an instance of ( t, f)
+if and only if
+vi=/braceleftbigg
+v0,i=wiifi/negationslash∈ρ(p1)
+v1,i=wiifi/negationslash∈ρ(p0),i=1,...,r ,
+which is equivalent to v=ρ(p0)∩ρ(p1)w.
+Now we prove the second part. Let v=ρ(p0)∩ρ(p1)w. In particular, for all
+i/negationslash∈ρ(p0),wi=vi.I f(v0,v1,v) is an instance of ( t, f), by the deﬁnition of
+(t, f),vi=v0,i. Therefore, w=ρ(p0)v0. In a similar way we can show that
+w=ρ(p1)v1. /intersectionsq/unionsq
+Now we are ready to deﬁne the desired ↑-NR-FMA /tildewideA=/angbracketleft/tildewideS,/tildewides0,/tildewideu,/tildewideρ,/tildewideτ,/tildewideμ,/tildewideF/angbracketright.
+–/tildewideS=S×S∪{/tildewides0},w h e r e /tildewides0is a new state.
+–The initial state of /tildewideAis/tildewides0.
+–/tildewideu=#r−mθ1···θm.
+–/tildewideρ(/tildewides0)={1,...,r −m},a n d
+/tildewideρ((p0,p1)) =ρ(p0)∩ρ(p1), for all ( p0,p1)∈/tildewideS.
+–/tildewideμ=/tildewideμ1∪/tildewideμ2∪/tildewideμ3∪/tildewideμ4,w h e r e
+•/tildewideμ1={(/tildewides0,k0),(/tildewides0,k1)→(p0,p1):(p0,k0),(p1,k1)∈F};
+•/tildewideμ2={(/tildewides0,k0),((p10,p11),k1)→(p0,p1):
+(p0,k0)∈Fand (p1,k1)→(p10,p11)∈μ};
+•/tildewideμ3={((p00,p01),k0),(/tildewides0,k1)→(p0,p1):
+(p0,k0)→(p00,p01)∈μand (p1,k1)∈F};
+•/tildewideμ4={((p00,p01),k0),((p10,p11),k1)→(p0,p1):
+(p0,k0)→(p00,p01),(p1,k1)→(p10,p11)∈μ}.
+–/tildewideτ=/tildewideτ1∪/tildewideτ2∪/tildewideτ3∪/tildewideτ4,w h e r e
+
+--- Page 21 ---
+406 M. Kaminski and T. Tan
+•/tildewideτ1={((/tildewides0,k0),(/tildewides0,k1),t ,f):
+for some p0,p1∈S,(p0,k0),(p1,k1)∈Fand (t, f)∈I(p0,p1)};12
+•/tildewideτ2={((/tildewides0,k0),((p1,0,p1,1),k1),t ,f):
+for some p0,p1∈S,(p0,k0)∈Fand (p1,k1)→(p1,0,p1,1)∈μand
+(t, f)∈I(p0,p1)};
+•/tildewideτ3={(((p0,0,p0,1),k0),(/tildewides0,k1),t ,f):
+for some p0,p1∈S,(p0,k0)→(p0,0,p0,1)∈μand (p1,k1)∈Fand
+(t, f)∈I(p0,p1)};
+•/tildewideτ4={(((p00,p01),k0),((p10,p11),k1),t ,f):
+for some p0,p1∈S,(p0,k0)→(p00,p01),(p1,k1)→(p10,p11)∈μand
+(t, f)∈I(p0,p1)}.
+–/tildewideF={(q0,q1),k):(s0,k)→(q0,q1)∈μ}.
+The proof of the equality L(/tildewideA)=L(A) is based on Lemma 3 below. Roughly
+speaking, Lemma 3 is the formal description of the construction in Fig. 3 and 4.
+It shows how an accepting run of Acan be “reversed” into an accepting run of /tildewideA,
+or more precisely, it shows how transitions from μcare converted into transitions
+from/tildewideμc,a n dv i c ev e r s a .
+Lemma 3 consists of four parts corresponding to the type of nodes on which
+transitions take place. Its part ( i) shows how an accepting run of Acan be
+“reversed” into an accepting run of /tildewideAat the leaf nodes and vice versa. Part ( ii)
+shows how an accepting run of Acan be “reversed” into an accepting run of /tildewideA
+when one of the two sibling nodes is a leaf and the other is an interior node.
+Part ( iii) of the lemma settles the case of the interior nodes. Finally, part ( iv)
+of Lemma 3 deals with the case of the root node /epsilon1.
+Lemma 3
+(i) (See Fig. 5 and 6.) If((p0,w),σ0),((p1,w),σ1)∈Fc, then there is an
+assignment v=/CTρ(p0,p1)wsuch that
+((/tildewides0,/tildewideu),σ0),((/tildewides0,/tildewideu),σ1)→((p0,p1),v)∈/tildewideμc.
+Conversely, if
+((/tildewides0,/tildewideu),σ0),((/tildewides0,/tildewideu),σ1)→((p0,p1),v)∈/tildewideμc.
+andw=/CTρ(p0,p1)v,t h e n ((p0,w),σ0),((p1,w),σ1)∈Fc.
+(ii) (a) (See Fig. 7 and 8.) If((p0,w),σ0)∈Fc,
+((p1,w),σ1)→(p10,w1),(p11,w1)∈μc
+andv1=/CTρ(p10,p11)w1, then there is an assignment v=/CTρ(p0,p1)wsuch
+that
+((/tildewides0,/tildewideu),σ0),(((p10,p11),v1),σ1)→((p0,p1),v)∈/tildewideμc.
+12Recall that I(p0,p1) denotes the set of all inverse structures associated with the pair
+of states ( p0,p1).
+
+--- Page 22 ---
+Tree Automata over Inﬁnite Alphabets 407
+pppppppppppppppppp/ppppppppppppppppppw
+((p0,w),σ0)∈Fc((p1,w),σ1)∈Fc
+Fig.5. Application of two ﬁnal relations
+ofA(p0,p1),v
+7
+SSSSSSo
+( /CTs0,
+/CTu),σ0 ( /CTs0,
+/CTu),σ1
+Fig.6. Reversing and combining two ﬁ-
+nal relations of A
+Conversely, if
+((/tildewides0,/tildewideu),σ0),(((p10,p11),v1),σ1)→((p0,p1),v)∈/tildewideμc
+andw=/CTρ(p0,p1)v,t h e n ((p0,w),σ0)∈Fcand there is an assignment
+w1=/CTρ(p10,p11)v1such that
+((p1,w),σ1)→(p10,w1),(p11,w1)∈μc.
+(b)If
+((p0,w),σ0)→(p00,w0),(p01,w0)∈μc,
+((p1,w),σ1)∈Fcandv0=/CTρ(p00,p01)w0, then there is an assignment
+v=/CTρ(p0,p1)wsuch that
+(((p00,p01),v0),σ0),((/tildewides0,/tildewideu),σ1)→((p0,p1),v)∈/tildewideμc.
+Conversely, if
+(((p00,p01),v0),σ0),((/tildewides0,/tildewideu),σ1)→((p0,p1),v)∈/tildewideμc
+andw=/CTρ(p0,p1)v, then there is an assignment w0=/CTρ(p00,p01)v0such
+that
+((p0,w),σ0)→(p00,w0),(p01,w0)∈μc
+and((p1,w),σ1)∈Fc.
+(iii) (See Fig. 3 and 4.) If
+((p0,w),σ0)→(p00,w0),(p01,w0)∈μc,
+((p1,w),σ1)→(p10,w1),(p11,w1)∈μc,
+v0=/CTρ(p00,p01)w0andv1=/CTρ(p10,p11)w1, then there is an assignment
+v=/CTρ(p0,p1)wsuch that
+(((p00,p01),v0),σ0),(((p10,p11),v1),σ1)→((p0,p1),v)∈/tildewideμc.
+Conversely, if
+(((p00,p01),v0),σ0),(((p10,p11),v1),σ1)→((p0,p1),v)∈/tildewideμc
+
+--- Page 23 ---
+408 M. Kaminski and T. Tan
+ppppppppppppppppppppppp	pppppppppppppppppppppppR
+((p0,w),σ0)∈Fc((p1,w),σ1)
+
+
+
+/S
+S
+S
+Sw
+(p10,w1)( p11,w1)
+Fig.7. An application of a ﬁnal relation
+and a transitions of A(p0,p1),v
+@@@@@I
+
+( /CTs0,
+/CTu),σ0 ((p10,p11),v1),σ1
+pppppppppppppo
+ppppppppppppp7
+Fig.8. Reversing a ﬁnal relation and a
+transition of Ainto a transition of
+/CTA
+andw=/CTρ(p0,p1)v, then there are assignments w0=/CTρ(p00,p01)v0and
+w1=/CTρ(p10,p11)v1such that
+((p0,w),σ0)→(p00,w0),(p01,w0)∈μc
+and
+((p1,w),σ1)→(p10,w1),(p11,w1)∈μc.
+(iv) (See Fig. 9 and 10.) If
+((s0,u),σ)→(p0,w),(p1,w)∈μc
+andv=/CTρ(p0,p1)w,t h e n (((p0,p1),v),σ)∈/tildewideFc.
+Conversely, if (((p0,p1),v),σ)∈/tildewideFc, then there is an assignment w=/CTρ(p0,p1)vsuch that
+((s0,u),σ)→(p0,w),(p1,w)∈μc.
+We postpone the proof of the lemma to the end of this appendix and prove
+the “only if” part of Theorem 1 ﬁrst.
+Proof. (of the “only if” part of Theorem 1.) We prove that L(A)=L(/tildewideA)b y
+showing how to convert an accepting run of Aon aΣ-treeσ:T→Σ,i n t oa n
+accepting run of /tildewideAonσ,a n dv i c ev e r s a .
+For an accepting run R:T→Sc,R(n)=(pn,wn),n∈T,o fAonσwe
+construct an accepting run /tildewideR:T→Scof/tildewideAonσbottom-up, i.e., from the
+leaves to the root, by induction, as follows.
+By deﬁnition, for a leaf node n∈T,/tildewideR(n)=/tildewides0c=(/tildewides0,/tildewideu), and for an interior
+noden∈T,/tildewideR(n)=( ( pn0,pn1),vn), where the assignment vn=/CTρ(pn0,pn1)wn0(=
+wn1) is deﬁned as follows.13
+13Recall that by deﬁnition of μc,wn0=wn1.
+
+--- Page 24 ---
+Tree Automata over Inﬁnite Alphabets 409
+(s0,u),σ
+
+
+
+/S
+S
+S
+SSw
+(p0,w)( p1,w)
+Fig.9. An application of a transition of
+Aat the root node(((p0,p1),v),σ)∈
+/CTFc
+pppppppppppppppo
+ppppppppppppppp7
+Fig.10. Reversing a transition of Aat
+the root node into a ﬁnal relation of
+/CTA
+–If both children of nare leaf nodes, then vnis provided by part ( i)o f
+Lemma 3.
+–If one child of nis a leaf node and the other is an interior node, then vnis
+provided by part ( ii) of Lemma 3.
+–Finally, if both children of nare interior nodes, then vnis provided by
+part ( iii) of Lemma 3.
+Now, by part ( iv) of Lemma 3, /tildewideRis an accepting run of /tildewideAonσ.
+The converse direction can shown in a similar manner. That is, an accepting
+runRofAonσis constructed from an accepting run /tildewideRof/tildewideAby applying the
+converse direction of Lemma 3. /intersectionsq/unionsq
+It remains to prove Lemma 3.
+Proof. (of Lemma 3) We will prove only part ( iii) of the lemma. The proofs of
+the other parts are very similar.
+Let
+(p0,w),σ0→(p00,w0),(p01,w0)∈μc
+and
+(p1,w),σ1→(p10,w1),(p11,w1)∈μc,
+w=w1···wr,w0=w0,1···w0,randw1=w1,1···w1,r.T h a ti s ,
+–(p0,k0)→(p00,p01)∈μandw0,k0=σ0;
+–(p1,k1)→(p10,p11)∈μandw1,k1=σ1.
+Then, by the deﬁnition of /tildewideμ4,
+((p00,p01),k0),((p10,p11),k1)→(p0,p1)∈/tildewideμ4
+and
+(((p00,p01),k0),((p10,p11),k1),t ,f)∈/tildewideτ4,
+where ( t, f) is an inverse structure of ( p0,p1); see the deﬁnition of /tildewideμand/tildewideτ.
+Letv0=/CTρ(p00,p01)w0,v1=/CTρ(p10,p11)w1, and let an assignment vbe such that
+(w0,w1,v) is an instance of ( t, f). Then
+(((p00,p01),v0),σ0),(((p10,p11),v1),σ1)→((p0,p1),v)∈/tildewideμc.
+Sincew0=ρ(p0)wandw1=ρ(p1)w, by the ﬁrst part of Lemma 2, v=/CTρ(p0,p1)w.14
+14Recall that /CTρ(p0,p1)=ρ(p0)∩ρ(p1).
+
+--- Page 25 ---
+410 M. Kaminski and T. Tan
+For the proof of the converse part of the lemma, let
+(((p00,p01),v0),σ0),(((p10,p11),v1),σ1)→((p0,p1),v)∈/tildewideμc.
+That is, there exist
+–v/prime
+0∈Σr/negationslash=,v/prime
+0=v/prime
+0,1v/prime
+0,2···v/prime
+0,r, such that v/prime
+0=/CTρ(p00,p01)v0;
+–v/prime
+1∈Σr/negationslash=,v/prime
+1=v/prime
+1,1v/prime
+1,2···v/prime
+1,r, such that v/prime
+1=/CTρ(p10,p11)v1;
+–((p00,p01),k0),((p10,p11),k1)→(p0,p1)∈/tildewideμ,w h e r e v/prime
+0,k0=σ0andv/prime
+1,k1=
+σ1;a n d
+–((p00,p01),k0,(p10,p11),k1,t ,f)∈/tildewideτ,w h e r e( v/prime
+0,v/prime
+1,v) is an instance of ( t, f).
+By the deﬁnition of /tildewideμ, both transitions ( p0,k0)→(p00,p01)a n d( p1,k1)→
+(p10,p11)a r ei n μ;a n d( t, f) is an inverse structure of ( p0,p1).
+Letwbe an assignment such that w=/CTρ(p0,p1)v.S i n c e w=/CTρ(p0,p1)vand
+(v/prime
+0,v/prime
+1,v) is an instance of ( t, f), by the second part of Lemma 2, w=ρ(p0)v/prime
+0
+andw=ρ(p1)v/prime
+1. Therefore, we can put w0=v/prime
+0andw1=v/prime
+1, implying
+(p0,w),σ0→(p00,w0),(p01,w0)∈μc
+and
+(p1,w),σ1→(p10,w1),(p11,w1)∈μc.
+Since v/prime
+0=/CTρ(p00,p01)v0andv/prime
+1=/CTρ(p10,p11)v1, the converse part of the lemma
+follows. /intersectionsq/unionsq
+B Proof of the “if” Part of Theorem 1
+For an r-register ↑-NR-FMA A=/angbracketleftS, s0,u,ρ ,τ,μ ,F /angbracketrightwe construct a 2 r-register
+↓-NR-FMA /tildewideA=/angbracketleft/tildewideS,/tildewides0,/tildewideu,/tildewideρ,/tildewideμ,/tildewideF/angbracketrightsuch that L(A)=L(/tildewideA).
+Like in the previous proof, we assume that
+–u=#r−mθ1···θm,w h e r e θ1,...,θ m∈Σ,a n d
+–only the ﬁrst r−mregisters of Acan be reassigned, i.e, the range of ρis a
+subset of {1,2,...,r −m}.
+We precede the formal description of /tildewideAwith a general intuitive explana-
+tion. One would expect the construction t o resemble the reversing the classical
+automata, i.e., a transition ( p0,k0),(p1,k1)→pofAto become the “transi-
+tion” ( p,k0,k1)→(p0,p1)o f/tildewideA. This is indeed almost so, but with the fol-
+lowing modiﬁcation. Dually to the construction in Appendix A, reversing of a
+bottom-up transition ( p0,k0),(p1,k1)→presults in two top-down transitions
+((p,0),k0)→(p0,0),(p0,1) and (( p,1),k1)→(p1,0),(p1,1) at the lower level.
+The state components 0 and 1 indicate the child nodes of the parent node,
+where these transitions are applied: 0 indicates the left child and 1 indicates the
+right one.
+One half of the 2 rregisters of /tildewideA,t h emain registers, is intended to contain
+the corresponding assignment of Aat the parent node, while the other half is
+
+--- Page 26 ---
+Tree Automata over Inﬁnite Alphabets 411
+intended to “recover” the symbols forgotten in the merging. To identify the ( r
+out of 2 r) main registers, the states of /tildewideAare equipped with a pointer function
+π:{1,2,...,r }→{ 1,2,...,2r},
+where the value π(i) is the index of the register of /tildewideAcontaining the symbol
+stored in ith register of A. These pointers are also used to mimic the merging
+relation. That is, the pointers at the child nodes and the pointers at the parent
+node are deﬁned in such a way that mimics the type and the valid selector used
+to merge the assignments at the child nodes.
+More precisely,
+/tildewideS=S×{0,1}×Π2
+r×T r×F r∪{/tildewides0},
+where /tildewides0is anewstate (the initial state of /tildewideA),Πris the set of all injective
+functions from {1,...,r }into{1,...,2r},a n d Fris the set of functions from
+{1,...,r }into{0,1}×{1,...,r }. A bottom-up transition ( p0,k0),(p1,k1)→p
+and a corresponding “merging attribute” (( p0,k0),(p1,k1),t ,f)a r es i m u l a t e db y
+two top-down transitions
+((p,0,π,π 0,t ,f),π0(k0))→(p0,0,π0,π/prime
+0,t0,f0),(p0,1,π0,π/prime/prime
+0,t0,f0)
+and
+((p,1,π,π 1,t ,f),π1(k1))→(p1,0,π1,π/prime
+1,t1,f1),(p1,1,π1,π/prime/prime
+1,t1,f1),
+where
+1.π0(i)=π1(j) implies ( i,j)∈t,a n d
+2.π(j)=/braceleftbigg
+π0(i)i ff(j)=( 0 ,i)
+π1(i)i ff(j)=( 1 ,i)
+At r i p l eo fp o i n t e r s( π0,π1,π) satisfying the above conditions 1 and 2 is said to
+comply with the pair ( t, f).
+The pointers π0andπ1in the states ( p,0,π,π 0,t ,f)a n d( p,1,π,π 1,t ,f),
+respectively, point at the assignments of Aat the corresponding child nodes,
+and the pointer πpoints at the assignment Aat the parent node.
+The registers whose indices lie outside of the ranges of π0andπ1are intended
+to contain the forgotten symbols which are recovered by a non-deterministic
+reassignment. That is, we deﬁne
+/tildewideρ(p,0,π,π 0,t ,f)=
+{π0(i):f(j)=( 0 ,i)a n d j∈ρ(s)}∪/parenleftBig
+{1,...,2r}\Range( π0)/parenrightBig
+and
+
+--- Page 27 ---
+412 M. Kaminski and T. Tan
+/tildewideρ(p,1,π,π 1,t ,f)=
+{π1(i):f(j)=( 1 ,i)a n d j∈ρ(s)}∪/parenleftBig
+{1,...,2r}\Range( π1)/parenrightBig
+.
+The above description of /tildewideAis illustrated in Fig. 11 and 12 below. In Fig. 11 w,
+w0,a n d w1are the assignments at the nodes labeled with the states p,p0,a n d
+p1, respectively,15in a run of A. Fig. 12 shows the reversing of the transition
+in Fig. 11. The intended meaning of the states in Fig. 12 (that depicts the
+corresponding run of /tildewideA)i st h a t π0(v0)=ρ(p0)w0,π1(v1)=ρ(p1)w1,π(v)=ρ(p)
+w,16andtandfare the type and the valid selector applied in the merging
+transition of Athat results in w.
+Fig.11. An application of a bottom-up transition of A
+Fig.12. Reversing and “splitting” the transition of Ain Fig. 11
+We proceed with the formal description of /tildewideA=/angbracketleft/tildewideS,/tildewides0,/tildewideu,/tildewideρ,/tildewideμ,/tildewideF/angbracketright(that has 2 r
+registers). Even though some of the components of /tildewideAhave been deﬁne earlier,
+we list them one more time fore the sake of continuity.
+15In particular, wresults in merging w0andw1after reassignment.
+16π(w1···wr) denotes wπ(1)···wπ(r),e t c . .
+
+--- Page 28 ---
+Tree Automata over Inﬁnite Alphabets 413
+–/tildewideS=S×{0,1}×Π2
+r×T r×F r∪{/tildewides0},w h e r e /tildewides0is a new state.
+–/tildewides0is the initial state.
+–/tildewideu=#r−mθ1···θm#r.
+–The reassignment /tildewideρis deﬁned as follows.
+/tildewideρ(/tildewides0)={1,...,r −m}∪{r+1,...,2r},
+and for each p∈S,
+/tildewideρ(p,0,π,π 0,t ,f)=
+{π0(i):f(j)=( 0 ,i)a n d j∈ρ(p)}∪/parenleftBig
+{1,...,2r}\Range( π0)/parenrightBig
+and
+/tildewideρ(p,1,π,π 1,t ,f)=
+{π1(i):f(j)=( 1 ,i)a n d j∈ρ(p)}∪/parenleftBig
+{1,...,2r}\Range( π1)/parenrightBig
+.
+–The transition relation /tildewideμconsists of the following transitions.
+•For each ( p,k)∈Fand all π0,π1such that ( π0,π1,πid)17complies with
+(t, f)i tc o n t a i n s
+(/tildewides0,k)→(p,0,πid,π0,t ,f),(p,1,πid,π1,t ,f);
+and
+•for each ( p0,k0),(p1,k1)→p∈μ,e a c h( ( p0,k0),(p1,k1),t ,f)∈τ,a n d
+allπ,π0,π1,π00,π01,π10,π11∈Πr,t0,t1∈T r,a n d f0,f1∈F rsuch
+that ( π0,π1,π) complies with ( t, f), (π00,π01,π0) complies with ( t0,f0),
+and (π10,π11,π1) complies with ( t1,f1), it contains both
+(p,0,π,π 0,t ,f),π0(k0)→(p0,0,π0,π00,t0,f0),(p1,1,π0,π01,t0,f0),
+and
+(p,1,π,π 1,t ,f),π1(k1)→(p1,0,π1,π10,t1,f1),(p1,1,π1,π11,t1,f1).
+–Finally, /tildewideFis deﬁned as follows. For each ( s0,k0),(s0,k1)→p∈μ(that starts
+from the initial state s0)e a c h( ( s0,k0),(s0,k1),t ,f)∈τ,a n da l l π,π0,π1∈
+Πrsuch that ( π0,π1,π) complies with ( t, f), it contains
+((p,0,π,π 0,t ,f),π0(k0))
+and
+((p,1,π,π 1,t ,f),π1(k1)).
+The proof of the equality L(/tildewideA)=L(A) is based on Lemma 4 below that is
+a formalization of Fig. 11 and 12 . It shows how an accepting run of Acan be
+“reversed” into an accepting run of /tildewideA, or more precisely, it shows how transitions
+fromμcare converted into transitions from /tildewideμc,a n dv i c ev e r s a .
+17Here πiddenotes the identity function on {1,2,...,r }.T h a ti s , πid(i)=i, for all
+i=1,...,r .
+
+--- Page 29 ---
+414 M. Kaminski and T. Tan
+Lemma 4 consists of four parts corresponding to the type of nodes on which
+transitions take place. Its part ( i) deals with the case of the root node /epsilon1.P a r t
+(ii) of the lemma settles the case of the interior nodes. Part ( iii) shows how an
+accepting run of Acan be “reversed” into an accepting run of /tildewideAwhen one of the
+two sibling nodes is a leaf and the other is an interior node. Finally, part ( iv)o f
+Lemma 3 shows how an accepting run of Acan be “reversed” into an accepting
+run of /tildewideAat the leaf nodes and vice versa.
+Lemma 4
+(i) (See Fig. 13 and 14.) For all pointers π0,π1,a l lt y p e s t, all valid selec-
+torsffortsuch that (π0,π1,πid)comply with (t, f), and all ﬁnal relations
+((p,w),σ)∈Fc, there is an assignment vsuch that πid(v)=ρ(p)wand
+((/tildewides0,/tildewideu),σ)→((p,0,πid,π0,t ,f),v),((p,1,πid,π1,t ,f),v)∈/tildewideμc.
+Conversely, for all
+((/tildewides0,/tildewideu),σ)→((p,0,πid,π0,t ,f),v),((p,1,πid,π1,t ,f),v)∈/tildewideμc
+and all assignments wsuch that w=ρ(p)πid(v),((p,w),σ)∈Fc.
+((p,w),σ)∈Fc
+pppppppppppppppppppppp7
+ppppppppppppppppppppppo
+Fig.13. An application of a ﬁnal
+relation of Aat the root node( /CTs0,
+/CTu),σ
+S
+S
+S
+S
+S
+Sw
+
+
+
+
+/
+((p,0,πid,π0,t,f),v),σ0((p,1,πid,π1,t,f),v),σ1
+Fig.14. Reversing the ﬁnal relation of Aat the
+root node in Fig. 13
+(ii) (See Fig. 11 and 12.) For all
+(p0,w0),σ0,(p1,w1),σ1→(p,w)∈μc,
+all types tand all valid selectors ffortwhich yield win the above tran-
+sition, all assignments vsuch that π(v)= ρ(p)w,a l lp o i n t e r s π,π0,π1,
+π00,π01,π10,π11,a n da l lt y p e s t0andt1and valid selectors f0andf1for
+t0andt1, respectively, such that (π0,π1,π)comply with (t, f),(π00,π01,π0)
+comply with (t0,f0),a n d (π10,π11,π1)comply with (t1,f1), there are assign-
+ments v0andv1such that π0(v0)=ρ(p0)w0,π1(v1)=ρ(p1)w1,a n db o t h
+transitions
+
+--- Page 30 ---
+Tree Automata over Inﬁnite Alphabets 415
+(((p,0,π,π 0,t ,f),v),σ0)→
+((p0,0,π0,π00,t0,f0),v0,(p0,1,π0,π01,t0,f0),v0)
+and
+(((p,1,π,π 1,t ,f),v),σ1)→
+((p1,0,π1,π10,t1,f1),v1,(p1,1,π1,π11,t1,f1),v1)
+are in /tildewideμc.
+Conversely, for all transitions
+(((p,0,π,π 0,t ,f),v),σ0)→
+((p0,0,π0,π00,t0,f0),v0,(p0,1,π0,π01,t0,f0),v0)
+and
+(((p,1,π,π 1,t ,f),v),σ1)→
+((p1,0,π1,π10,t1,f1),v1,(p1,1,π1,π11,t1,f1),v1)
+in/tildewideμcand all assignments w0andw1such that π0(v0)= ρ(p0)w0and
+π1(v1)=ρ(p1)w1, there is an assignment wsuch that π(v)=ρ(p)wand
+(p0,w0),σ0,(p1,w1),σ1→(p,w)∈μc,
+(iii)(a) (See Fig. 15 and 16.) For all transitions
+((p0,w0),σ0),((s0,u),σ1)→(p,w)∈μc,
+all types tand all valid selectors ffortwhich yield win the above
+transition, all assignments vsuch that π(v)=ρ(p)w,a l lp o i n t e r s π,
+π0,π1,π00,π01,a n da l lt y p e s t0and valid selectors f0fort0such that
+(π0,π1,π)comply with (t, f)and(π00,π01,π0)comply with (t0,f0),
+there is an assignment v0such that π0(v0)=ρ(p0)w0,
+(((p,1,π,π 1,t ,f),v),σ1)∈/tildewideFc,
+and
+(((p,0,π,π 0,t ,f),v),σ0)→
+((p0,0,π0,π00,t0,f0),v0,(p0,1,π0,π01,t0,f0),v0)∈/tildewideμc.
+Conversely, for all
+(((p,1,π,π 1,t ,f),v),σ1)∈/tildewideFc,
+and
+((p,0,π,π 0,t ,f),v),σ0→
+((p0,0,π0,π00,t0,f0),v0,(p0,1,π0,π01,t0,f0),v0∈/tildewideμc,
+
+--- Page 31 ---
+416 M. Kaminski and T. Tan
+and all assignment w0such that w0=ρ(p0)π0(v0), there is an as-
+signment wsuch that w=ρ(p)π(v)and
+((p0,w0),σ0),((s0,u),σ1)→(p,w)∈μc.
+(b)For all transitions
+((s0,u),σ0),((p1,w1),σ1)→(p,w)∈μc,
+all types tand all valid selectors ffortwhich yield win the above
+transition, all assignments vsuch that π(v)=ρ(p)wand for all point-
+ersπ,π0,π1,π10,π11,a da l lt y p e s t1and valid selectors f1fort1
+such that (π0,π1,π)comply with (t, f)and(π10,π11,π1)comply with
+(t1,f1), there is an assignment v1such that π1(v1)=ρ(p1)w1,
+(((p,0,π,π 0,t ,f),v),σ0)∈/tildewideFc
+and
+((p,1,π,π 1,t ,f),v),σ1→
+(p1,0,π1,π10,t1,f1),v1,(p1,1,π1,π11,t1,f1),v1∈/tildewideμc.
+Conversely, for all
+((p,1,π,π 1,t ,f),v),σ1→
+(p1,0,π1,π10,t1,f1),v1,(p1,1,π1,π11,t1,f1),v1∈/tildewideμc,
+and
+(((p,0,π,π 0,t ,f),v),σ0)∈/tildewideFc,
+and all assignments w1such that w1=ρ(p1)π1(v1), there is an as-
+signment wsuch that w=ρ(p)π(v)and
+((s0,u),σ0),((p1,w1),σ1)→(p,w)∈μc.
+(iv) (See Fig. 17 and 18.) For all
+((s0,u),σ0),((s0,u),σ1)→(p,w)∈μc,
+all types tand all valid selectors ffortwhich yield win the above
+transition, all assignments vsuch that π(v)=ρ(p)w, and for all pointers
+π,π0,π1such that (π0,π1,π)comply with (t, f),
+(((p,0,π,π 0,t ,f),v),σ0)∈/tildewideFc
+and
+(((p,1,π,π 1,t ,f),v),σ1)∈/tildewideFc.
+
+--- Page 32 ---
+Tree Automata over Inﬁnite Alphabets 417
+(p,w)
+7
+SSSSSSo
+(p0,w0),σ0 (s0,u),σ1
+pppppppppppppppppppp
+ppppppppppppppppppppK
+Fig.15. An application of a transition of Aat a leaf node
+pppppppppppppppppppppwppppppppppppppppppppp/
+((p,0,π,π 0,t,f),v),σ0((p,1,π,π 1,t,f),v),σ1∈
+/CTFc
+(p0,0,π0,π00,t0,f0),v0(p0,1,π0,π01,t0,f0),v0
+
+
+
+/S
+S
+S
+S
+SSw
+Fig.16. Reversing and “splitting” the transition of Ain Fig. 15 into a transition and
+a ﬁnal relation
+Conversely, for all pairs of ﬁnal relations
+(((p,0,π,π 0,t ,f),v),σ0),(((p,1,π,π 1,t ,f),v),σ1)∈/tildewideFc,
+there is an assignment wsuch that w=ρ(p)π(v)and
+((s0,u),σ0),((s0,u),σ1)→(p,w)∈μc.
+We postpone the proof of the lemmas to the end of this appendix and prove
+the “if” part of Theorem 1 ﬁrst.
+Proof. (of the “if” part of Theorem 1.) We prove that L(A)=L(/tildewideA) by showing
+how to convert an accepting run of Aon aΣ-treeσ:T→Σ, into an accepting
+run of /tildewideAonσ,a n dv i c ev e r s a .
+
+--- Page 33 ---
+418 M. Kaminski and T. Tan
+(p,w)
+
+@@@@@@I
+(s0,u),σ0 (s0,u),σ1
+Fig.17. An application of a transition of Aat two leaf nodes
+pppppppppppppppppppppRppppppppppppppppppppp	((p,0,π,π 0,t,f),v),σ0∈
+/CTFc((p,1,π,π 1,t,f),v),σ1∈
+/CTFc
+Fig.18. Reversing and “splitting” the transition of Ain Fig. 17 into two ﬁnal relations
+of
+/CTA
+For an accepting run R:T→Sc,R(n)=(pn,wn),n∈T,o fAonσwe
+construct an accepting run /tildewideR:T→Scof/tildewideAonσtop-down, i.e., from the root
+to the leaves, by induction for which we shall employ the following notation. For
+an interior node n∈T,
+–tnandfnare the type and the valid selector used in the transition
+(R(n0),σ(n0)),(R(n1),σ(n1))→R(n);
+–πn0,πn1,a n dπnare pointers such that ( πn0,πn1,πn) complies with ( tn,fn);
+and
+–π/epsilon1=πid.
+By deﬁnition, for the root node /epsilon1,/tildewideR(/epsilon1)=/tildewides0c=(/tildewides0,/tildewideu), and assume that /tildewideR(n)
+has been constructed for a non-leaf node n∈T.T h e n
+–/tildewideR(n0) = (( pn,0,πn,πn0,tn,fn),vn)a n d
+–/tildewideR(n1) = (( pn,1,πn,πn1,tn,fn),vn),
+where πid(vn)=ρ(pn)wnis deﬁned below..
+–The assignment v/epsilon1is provided by part ( i) of Lemma 4, and
+–for non-root interior node n, the assignment vnis provided by part ( ii)o f
+Lemma 4.
+By parts ( iii)a n d( iv) of Lemma 4, /tildewideRis an accepting run of /tildewideAonσ.
+The converse direction can shown in a similar manner. That is, an accepting
+runRofAonσis constructed from an accepting run /tildewideRof/tildewideAby applying the
+converse direction of Lemma 4. /intersectionsq/unionsq
+
+--- Page 34 ---
+Tree Automata over Inﬁnite Alphabets 419
+It remains to prove Lemma 4.
+Proof. (of Lemma 4.) We will prove only part ( ii) of the lemma. The proofs of
+the other parts are very similar.
+Let
+(p0,w0),σ0,(p1,w1),σ1→(p,w)∈μc.
+That is, there exist
+–assignments w/prime
+0=w/prime
+0,1w/prime
+0,2···w/prime
+0,randw/prime
+1=w/prime
+1,1w/prime
+1,2···w/prime
+1,rsuch that
+w/prime
+0=ρ(p0)w0andw/prime
+1=ρ(p1)w1;
+–a transition ( p0,k0),(p1,k1)→p∈μsuch that w/prime
+0,k0=σ0andw/prime
+1,k1=σ1;
+and
+–a merging relation (( p0,k0),(p1,k1),t ,f)∈τsuch that ( w/prime
+0,w/prime
+1,w)i sa n
+instance of ( t, f).
+Letπ0,π1,π,π 00,π01,π0,π10,π11,π1be pointers and t0,t1andf0,f1be types
+and the corresponding valid selectors such that ( π0,π1,π) complies with ( t, f),
+(π00,π01,π0) complies with ( t0,f0), and ( π10,π11,π1) complies with ( t1,f1).
+By deﬁnition, /tildewideμcontains both
+(p,0,π,π 0,t ,f),π0(k0)→(p,0,π0,π00,t0,f0),(p,1,π0,π01,t0,f0)
+and
+(p,0,π,π 1,t ,f),π1(k1)→(p,0,π1,π10,t1,f1),(p,1,π1,π11,t1,f1)
+Letvbe an assignment such that π(v)=ρ(p)w. By the deﬁnition of the
+reassignments /tildewideρ((p,0,π,π 0,t ,f)) and /tildewideρ((p,1,π,π 0,t ,f)), there are assignments
+–v0=/CTρ((p,0,π,π0,t,f))vsuch that π0(v0)=w/prime
+0,a n d
+–v1=/CTρ((p,1,π,π0,t,f))vsuch that π1(v1)=w/prime
+1.
+Since ( π0,π1,π)c o m p l yw i t h( t, f),π(v0)=w=π(v1). Thus, both
+((p,0,π,π 0,t ,f),v),σ0→(p0,0,π0,π00,t0,f0),v0,(p0,1,π0,π01,t0,f0),v0
+and
+((p,1,π,π 1,t ,f),v),σ1→(p1,0,π1,π10,t1,f1),v1,(p1,1,π1,π11,t1,f1),v1
+are in /tildewideμc.
+For the proof of converse part of the lemma, let
+((p,0,π,π 0,t ,f),v),σ0→(p0,0,π0,π00,t0,f0),v0,(p0,1,π0,π01,t0,f0),v0∈/tildewideμc
+and
+((p,1,π,π 1,t ,f),v),σ1→(p1,0,π1,π10,t1,f1),v1,(p1,1,π1,π11,t1,f1),v1∈/tildewideμc
+
+--- Page 35 ---
+420 M. Kaminski and T. Tan
+where v0=/CTρ((p,0,π,π0,t,f))v,v1=/CTρ((p,1,π,π1,t,f))v,a n d( π0,π1,π), (π00,π01,π0),
+and (π10,π11,π1)c o m p l yw i t h( t, f), (t0,f0), and ( t1,f1), respectively.
+Therefore, by deﬁnition, there are transitions
+(p,0,π,π 0,t ,f),π0(k0)→(p0,0,π0,π00,t0,f0),(p0,1,π0,π01,t0,f0)∈/tildewideμ
+and
+(p,1,π,π 1,t ,f),π1(k1)→(p1,0,π1,π10,t1,f1),(p1,1,π1,π11,t1,f1)∈/tildewideμ
+such that v0,π0(k0)=σ0andv1,π1(k1)=σ1.
+By the deﬁnition of /tildewideμ,
+(p0,k0),(p1,k1)→p∈μ
+and
+((p0,k0),(p1,k1),t ,f)∈τ.
+Letw0,w1be assignments such that w0=ρ(p0)π0(v)a n d w1=ρ(p1)π1(v),
+and let denote w/prime
+0=π0(v)a n d w/prime
+1=π1(v).
+Since w0,k0=vπ0(k0)=σ0andw1,k1=vπ1(k1)=σ1,
+(p0,w0),σ0,(p1,w1),σ1→(p,w)∈μc
+where wis an assignment such that ( w/prime
+0,w/prime
+1,w) is an instance of ( t, f).
+Thus, the proof will be complete if we show that π(v)=ρ(p)w.L e ti/negationslash∈ρ(p).
+Since ( π0,π1,π) complies with ( t, f), and ( w/prime
+0,w/prime
+1,w) is an instance of ( t, f),
+vπ(i)=/braceleftbiggvπ0(j)=v0,π0(j)=w/prime
+0,j=wi,where f(j)=( 0 ,i)
+vπ1(j)=v1,π1(j)=w/prime
+1,j=wi,where f(j)=( 1 ,i)
+and the converse part of the lemma follows. /intersectionsq/unionsq
+C Closure Properties
+In this section we establish some basic closure properties of the tree languages
+deﬁned deﬁned by ↓-NR-FMAs. The proofs are pretty standard and can be easily
+modiﬁed for all other models of tree automata introduced in this paper.
+LetAi=/angbracketleftSi,s0,i,ui,ρi,μi,Fi/angbracketright,i=1,2, be↓-FMAs. Without loss of general-
+ity, we assume that A1andA2possess the following properties.
+1. The sets of states S1andS2are disjoint.
+2. Both the initial states s0,1ands0,2are not accessible from the other states
+of the corresponding automaton. That is, there is no transition of the form
+(q,k)→(s0,i,q/prime)o r(q,k)→(q/prime,s0,i),i=1,2.
+3. Both automata have the same initial assignment of the form θ1···θm#r,a n d
+registers 1 ,...,m are never reset.18This property can be v eriﬁed similarly
+to the proof of [7, Lemma 5.1].
+
+--- Page 36 ---
+Tree Automata over Inﬁnite Alphabets 421
+
+s
+
+
+
+
+
+JJJJJ]A1 A2
+Fig.19. The diagram of A
+Closure under union. We construct an automaton Athat accepts L(A1)∪L(A2)
+as the “union” of A1andA2. The initial state of Ais a new state s.¿ F r o mt h i s
+stateAcan simulate either of A1andA2, as illustrated in Fig. 19.
+The initial assignment of Aisθ1···θm#2r. Except for the input symbols from
+{θ1,θ2,...,θ m},A1is simulated by the registers ( m+1 )t o( m+r), while A2
+is simulated by the last rregisters. The transitions of A2are renamed from
+(q,k)→(q0,q1)t o( q,k+r)→(q0,q1) for all k=m+1,m+2,···,m+r.
+For the inputs from {θ1,θ2,...,θ m},b o t h A1andA2use the ﬁrst mregisters.
+Finally, ρ(s)=ρ(s1)∪{k+r:k∈ρ(s2)}.
+Closure under concatenation.19An automaton Aaccepting L(A1)L(A2)r e s u l t s
+in “extending” A1withA2.T h a ti s , Astarts by simulating A1until it reaches a
+ﬁnal relation. Then it continues by simulating A2. This is achieved by changing
+all the ﬁnal relations ( q,k)∈F1to (q,k)→(s0,2,s0,2). The set of ﬁnal relations
+ofAisF2.
+Closure under Kleene star.20The construction is similar to the concatenation
+case. To accept L(A1)∗, the automaton Asimulate A1a number of times, which
+is achieved by adding the transition ( q,k)→(s0,1,s0,1)t oμ1for each ﬁnal
+relation ( q,k)∈F1and setting ρ(s0,1)={m+1,...,m +r}.
+Closure under intersection. The construction here is a bit more involved. The
+basic idea is to use the (equivalent) tree automata model similar to the M-FMA
+introduced in [6, Sect. 3]. These automat a are allowed to “consult” a number of
+registers at the same time.
+Deﬁnition 7. (Cf. [20, Deﬁnition 5. pp. 20-22].) Atop-down M-ﬁnite-memory
+automaton (↓-M-FMA) is a system A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketright,w h e r e
+18Consequently, only registers m+1,...,m +rmay be reset.
+19The concatenation of two tree languages L1andL2is deﬁned by extending each leaf
+in every tree from L1with two child nodes in each of which a tree from L2is rooted.
+In terms of the corresponding deﬁnition in [3, Sect. 2.2, p. 52], we can view this as
+ﬁrst extending each leaf in every tree from L1with two children labeled with a new
+symbol 2and then applying ·2.
+20For a tree language L,L∗is the collection of all iterated concatenations of L∪{2},
+where 2is the “empty tree,” i.e., a single node labeled with the symbol 2.I nt e r m s
+of the corresponding deﬁnition in [3, Sect. 2.2, p. 54], L∗=L∗,2(=
+/CB
+n≥0Ln,2).
+
+--- Page 37 ---
+422 M. Kaminski and T. Tan
+–Sis the ﬁnite set of states.
+–s0is the initial state.
+–u=θ1···θm#···#/bracehtipupleft
+/bracehtipdownright/bracehtipdownleft
+/bracehtipupright
+r#···#/bracehtipupleft
+/bracehtipdownright/bracehtipdownleft
+/bracehtipupright
+r∈(Σ∪{#})(m+2r)is the initial assignment.
+–ρ:S→{m+1,...,m +r}×{m+r+1,...,m +2r}is the reassignment
+function.
+–μis the set of transitions of the following form
+•(p,k)→(p0,p1)∈S×{1,...,m }×S×S,
+•(p,(k0,k1))→(p0,p1)∈S×{m+1,...,m +r}×{m+r+1,...,m +
+2r}×S×S.
+–Fis the set of ﬁnal relations of the following form
+•(p,k)∈S×{1,...,m },
+•(p,(k0,k1))∈S×{m+1,...,m +r}×{m+r+1,...,m +2r}.
+Similarly, the transition relation μinduces the following relation μcwhich is
+deﬁned as follows. ( p,w),σ→(p0,w/prime),(p1,w/prime) belongs to μcif and only if the
+following conditions are satisﬁed. w/prime=w/prime
+1···w/prime
+m+2r,w h e r e w/prime
+i=wi, for all
+i/negationslash∈{i,j:(i,j)∈ρ(p)}and
+1. Ifσ∈{θ1,...,θ m},t h e n w/prime
+k=θand (p,k,(p0,p1))∈μ.
+2. Ifσ/negationslash∈{θ1,...,θ m},t h e n σ=w/prime
+k0=w/prime
+k1,f o rs o m e k0<k1and the triple
+(p,(k0,k1),(p0,p1)) belongs to μ.
+The relation Fcis deﬁned as follows. A pair (( p,w),σ)∈Fcif the following
+holds.
+–Ifσ∈{θ1,...,θ m},t h e n w/prime
+k=θand (p,k,(p0,p1))∈F.
+–Ifσ/negationslash∈{θ1,...,θ m},t h e n σ=w/prime
+k0=w/prime
+k1,w h e r e m<k 0<k1and
+(p,(k0,k1),(p0,p1)) belong to F.
+Proposition 6. For each ↓-M-NR-FMA Athere exists an ↓-NR-FMA A/primesuch
+thatL(A)=L(A/prime).
+Proof. We convert Ai n t oas t a n d a r d( m+r2)-register ↓-NR-FMA A/primewhose
+initial assignment is θ1···θm#r2.
+Letϕ:{m+1,...,m +r}×{m+r+1,...,m +2r}→{ m+1,...,m +
+r2}be a one-to-one function. The simulation of AbyA/primeis done by referring
+each pair of registers ( k0,k1) to a single register ϕ(k,k/prime)o fA/prime. Formally, A/prime=
+/angbracketleftS/prime,s/prime
+0,u/prime,ρ/prime,μ/prime,F/prime/angbracketrightis deﬁned as follows.
+–S/prime=Sands/prime
+0=s0.
+–u/prime=θ1···θm#r2.
+–ρ(q1,q2)=ϕ(ρ(q1)×{m+r+1,...,m +2r}∪{m+1,...,m +r}×ρ(q2)).
+–μ/primeconsists of the following two types of transitions:
+•for every (( q1,q2)(k1,k2))→((q/prime
+1,q/prime/prime
+1)(q2,q/prime/prime
+2))∈μit contains
+((q,q/prime),ϕ((k,k/prime)))→((q0,q/prime
+0),(q1,q/prime
+1)),
+
+--- Page 38 ---
+Tree Automata over Inﬁnite Alphabets 423
+•for every (( q1,q2),k)→((q/prime
+1,q/prime/prime
+2),(q2,q/prime/prime
+2))∈μ,i tc o n t a i n s
+((q1,q2),k)→((q/prime
+1,q/prime/prime
+2),(q2,q/prime/prime
+2))
+itself.
+–F/primeconsists of the following two types of relations:
+•for every (( q1,q2),(k1,k2))∈Fit contains (( q1,q2),ϕ(k1,k2)), and
+•for every (( q1,q2),k)∈Fit contains (( q1,q2),k)i t s e l f . /intersectionsq/unionsq
+Now we construct an ↓-M-FMA Athat accepts L(A1)∩L(A2) by simultaneously
+simulating A1andA2. This is done by deﬁning Aas the product of A1andA2.
+The precise description of Ais as follows. Like in the case of the closure under
+union, the initial assignment of Aisθ1···θm#2rand the automata A1andA2are
+simulated on the registers {1,...,m +r}and{1,...,m }∪{m+r+1...,m +2r},
+respectively. That is, A=/angbracketleftS, s0,u,ρ ,μ ,F /angbracketrightis deﬁned as follows.
+–S=S1×S2.
+–s0=(s0,1,s0,2).
+–u=θ1···θm#2r.
+–ρ(q1,q2)={ρ1(q1),ρ2(q2)+r}.
+–μconsists of the following two types of transitions:
+•for every ( q1,k1)→(q/prime
+1,q/prime/prime
+1)∈μ1and every ( q2,k2)→(q/prime
+2,q/prime/prime
+2)∈μ2
+such that m≤k1,k2≤m+r,i tc o n t a i n s( ( q1,q2),(k1,k2+r))→
+(q/prime
+1,q/prime
+2)(q/prime/prime
+1,q/prime/prime
+1), and
+•for every ( q1,k)→(q/prime
+1,q/prime/prime
+1)∈μ1and every ( q2,k)→(q/prime
+2,q/prime/prime
+2)∈μ2such
+that 1 ≤k≤m,i tc o n t a i n s( ( q1,q2),k)→(q/prime
+1,q/prime
+2)(q/prime/prime
+1,q/prime/prime
+1).
+–Fconsists of the following two types of relations:
+•for every ( q1,k1)∈F1and every ( q2,k2)∈F2such that m≤k1,k2≤
+m+r,i tc o n t a i n s( ( q1,q2),(k1,k2+r)), and
+•for every ( q1,k)∈F1and every ( q2,k)∈F2such that 1 ≤k≤m,i t
+contains (( q1,q2),k).
