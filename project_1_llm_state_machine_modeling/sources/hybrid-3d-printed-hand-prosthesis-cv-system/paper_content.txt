@@ -1,0 +1,706 @@
+--- Page 1 ---
+ORIGINAL RESEARCH
+published: 24 January 2022
+doi: 10.3389/fnbot.2021.751282
+Frontiers in Neurorobotics | www.frontiersin.org 1 January 2022 | Volume 15 | Article 751282Editedby:
+FranciscoRomeroSánchez,
+UniversityofExtremadura,Spain
+Reviewedby:
+VikramShenoyHandiru,
+CenterforMobilityandRehabilitation
+EngineeringResearch,Kessler
+Foundation,UnitedStates
+JavierAndrés-Esperanza,
+UniversityofJaumeI,Spain
+*Correspondence:
+MariaClaudiaF.Castro
+mclaudia@fei.edu.br
+Received: 31July2021
+Accepted: 07December2021
+Published: 24January2022
+Citation:
+CastroMCF,PinheiroWCand
+RigolinG(2022)AHybrid3DPrinted
+HandProsthesisPrototypeBasedon
+sEMGandaFullyEmbedded
+ComputerVisionSystem.
+Front.Neurorobot.15:751282.
+doi:10.3389/fnbot.2021.751282A Hybrid 3D Printed Hand Prosthesis
+Prototype Based on sEMG and a Fully
+Embedded Computer Vision System
+MariaClaudiaF.Castro1*,WellingtonC.Pinheiro2andGlaucoRigolin1
+1ElectricalEngineeringDepartment,CentroUniversitário FEI,SãoBernardodoCambo,Brazil,2MechanicalEngineering
+Department,CentroUniversitárioFEI,SãoBernardodoCambo ,Brazil
+This study presents a new approach for an sEMG hand prosthesi s based on a 3D
+printed model with a fully embedded computer vision (CV) sys tem in a hybrid version.
+A modiﬁed 5-layer Smaller Visual Geometry Group (VGG) convo lutional neural network
+(CNN),runningonaRaspberryPi3microcomputerconnectedt oawebcam,recognizes
+the shape of daily use objects, and deﬁnes the pattern of the p rosthetic grasp/gesture
+among ﬁve classes: Palmar Neutral, Palmar Pronated, Tripod Pinch, Key Grasp, and
+Index Finger Extension. Using the Myoware board and a ﬁnite s tate machine, the user’s
+intention,depictedbyamyoelectricsignal,startsthepro cess,photographingtheobject,
+proceeding to the grasp/gesture classiﬁcation, and comman ds the prosthetic motors
+to execute the movements. Keras software was used as an appli cation programming
+interface and TensorFlow as numerical computing software. The proposed system
+obtained99%accuracy,97%sensitivity,and99%speciﬁcity ,showingthattheCVsystem
+isapromisingtechnologytoassistthedeﬁnitionofthegras ppatterninprostheticdevices.
+Keywords: hand prosthesis, computer vision, myoelectric sig nal, convolutional neural network, 3D printed
+1. INTRODUCTION
+The main function of the human hand and upper limb is to grasp and manipulate objects. Thus,
+this loss aﬀects the ability of the amputees to carry out activi ties of daily living, leading to a
+signiﬁcant impact on their independence and quality of life. To day there are some sophisticated
+commercialrobothandsavailableinthemarket,suchasiLim bUltraandiLimbQuantumby Össur
+(2021b,a)andBebionicHandandMichelangeloProstheticHandby Ottobock (2021a,b).However,
+the need for aﬀordable prosthetic devices has driven the devel opment of 3D printing systems in
+order to enable their use by a greater number of people. OpenBionics (2021) andInMoov(2021)
+areopen-sourceinitiativesforthedevelopmentofaﬀordable, lightweight,andmodularmyoelectric
+prostheticdevicesthatcanbeeasilyreproducedwithcommerc iallyavailablematerials.
+The simple structural design of DC or servo motor wired-drive n mechanisms controlled by a
+surfacemyoelectricsignal(sEMG)becamepopular( Abarcaetal.,2019;Kuetal.,2019;Sureshbabu
+et al., 2019;Mohammadi et al., 2020;Wahit et al.,2020; Khane t al., 2021 ).The sEMG control can
+be as simple as an on-oﬀ control scheme, proportional where move ment velocity depends on the
+musclecontractionintensity,andevenbypatternrecogniti on,whichclassiﬁesthesEMGintogrip
+patternclasses,havealsobeenused( Geethanjali,2016 ).However,whileintheformer,thenumber
+ofpossiblegrasppatternsislimited,thesuccessofthelatter inclinicalapplicationsdependsonthe
+users’abilitytogeneratedistinctcommandsinareproducib lemanner,beingdiﬃculttoamputees.
+Usersmaygetfrustratedandstopusingtheprosthesisquickl y(SchemeandEnglehart,2011;Jiang
+etal.,2012;Palermoetal.,2017;Zhaietal.,2017 ).
+
+--- Page 2 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+Computer vision (CV) can help the system to better
+understand the visual world, simulating tasks in the same wa y
+thathumanvisiondoes.Algorithmsthatgiveavisualpercepti on
+to the system can, for example, identify the type of object to
+be picked up and associate it with the appropriate grasp to
+beperformed.
+Dosen et al. (2010) andDosen and Popovic (2010) proposed
+asimplescheme,usingawebcameraandanultrasounddistance
+sensor. After processing grayscale images at a resolution of 320
+×240 pixels, using LabView 2009 running on a standard laptop
+(dual-core 2 GHz Pentium), they extracted parameters such as
+the lengths of the long and short axes and the orientation ang le
+ofthelongaxisconcerningthehorizontalaxisoftheimagepl ane.
+Basedontheobjectsizeandseriesofrules,oneoffourgrasp types
+wasselected,beingpinch,keygrasp,palmar,orspherical.
+The InMoov hand was modiﬁed by Sidher and Shen (2017)
+enabling the opposability of the thumb and the introduction of
+twocamerasandproximity sensorsonthepalm,allowing object
+detection and automatic grasp deﬁnition. Two Raspberry Pi 3
+(RPI3) were used to control the cameras, and the control of the
+servos was achieved by an Arduino Mega, all controlled by a
+Matlab algorithm running on a PC. However, in Sidher(2017)
+testsweremadeonlywithgeometricalobjectswithatripodgr asp.
+DeGol et al. (2016) proposed the inclusion of a CV based
+on a convolutional neural network (CNN) with an architectur e
+basedontheVGG-VeryDeep-16inaprosthesisfortheautomatic
+selection of the grasp to be performed into ﬁve classes: power
+grasp, pinch, tripod pinch, tool, and key grasps. The system
+achieved93.2%accuracyrunningonanNVIDIATegraGPUfor
+imageprocessing.
+InAndradeetal. (2017),theimagecapturedbyanembedded
+camera was processed on an external server through the
+Inception-v3 and Tensorﬂow, and the suggested grasp returne d
+to the local processing unit, an RPI3. The user could accept
+or cancel the result. If accepted, the resulting grasp pattern
+went to the V-rep simulator system, which had 14 grasp pattern
+possibilities: relaxed hand, active index ﬁnger, tool, abdu cted
+thumb, index ﬂexion, hook, key grasp, use with a computer
+mouse, open palm, pinch, power, precision gripper opening,
+precision gripper closing, and tripod pinch. The Myo armband
+was used to trigger a state machine to take a picture, validate a
+proposed grasp, ask for another grasp, or cancel an operation,
+using“wavein,”“waveout,”and“ﬁst”contractions.
+Another study that also used a CV system with a two-layer
+CNN to classify objects into their respective grasp patterns
+was presented by Ghazaei et al. (2017). Over 500 objects from
+AmsterdamandNewcastleGraspLibrarieswerecategorizedi nto
+four grasp classes, named: pinch, tripod, palmar wrist neutral,
+and palmar wrist pronated. The classiﬁcation accuracy in the
+oﬄine tests reached 75%. In a real-time experiment with a set of
+thenovelaswellasseenbutrandomly-rotatedobjects,thes ystem
+achievedanoverallscoreof84%,implementedinMATLABona
+LenovolaptopwithanIntelCorei7-4559UCPU(2.10GHz).
+A multimodal system was proposed by Shi et al. (2019)
+combiningeyetracking,CV,sEMG,andanInertialMeasurement
+Unit(IMU)integratedintotheHITAIDHandprostheticdevice.
+The Kinect 2.0 (Microsoft, USA), a 3D Camera, collected color,depth,andinfraredsceneimagesfromtheuser’sperspective.Th e
+selectionofthetargetobjectswasthroughgazing(Eye-Tra cking),
+and the grasp pattern was deﬁned among four based on a
+convolutional network model. The user controls the prosthesis
+incollaborationwithbothsEMGandIMU.
+A more sophisticated system was proposed by Shi et al.
+(2020) showing that depth data play an important role in
+a grasp pattern deﬁnition. Adopting bimodal data scheme,
+grayscale, and depth information, they improved in 12% the
+classiﬁcation accuracy using four types of grasp patterns, na med
+tripod, cylindrical, lateral, and spherical. A speciﬁc datase t
+was built using Kinect 2.0 with objects of diﬀerent sizes and
+shapes. After alignment and ﬁltering, color image with reduc ed
+resolution, grayscale images, and depth images (all in 32 ×32)
+were used as the inputs of the two channels of independent
+convolutional networks, based on the Cifar-10 model, runni ng
+on a personal Laptop (Intel Core i5-3210M, 2.5 GHz, 64 bits,
+Win10) and connected to a prosthetic device. sEMG control
+was also provided, based on two ﬁnite state machines set up
+to divide the hand control into coding and motion states. The
+system accuracy was 93.9%, and the tripod grasp was the main
+misclassiﬁcationpattern.
+As can be seen, image processing systems usually use
+robust external computers (CPU), which make the application
+unfeasiblefordailylivingactivitiescontext.Thebestclas siﬁcation
+rate was 93% achieved by both Shi et al.(2020) andDeGol et al.
+(2016).Theﬁrstuseda3Dcameraprovidingdepthdataandtwo
+channels of independent convolutional networks based on the
+Cifar-10 model for four classes (cylindrical, key grasp, spher ical,
+and tripod), while the latter used a 16-layer VGG-VeryDeep-16
+convolution neural network for ﬁve classes (power grasp, pinch
+grasp,toolgrasp,3-jawchuck,andkeygrasp).
+Withinthiscontext,anewintelligenthybridprosthesismode l
+is proposed, commanded by a simple sEMG system aided by
+a fully embedded CV system. A modiﬁed 5-layer SmallerVGG
+convolutional neural network classiﬁes objects regarding t he
+hand gestures used to interact with them without explicitly
+identifying them. The system oﬀers ﬁve modes: palmar grasp
+with the wrist in a neutral position and with the wrist pronated,
+tripod pinch, key grasp, and the index ﬁnger extension gesture.
+Thisintelligentmodelfacilitatesandwillspeeduptheproces sof
+learningandusingtheprosthesis.
+2. MATERIALS AND METHODS
+2.1. System Design
+The prosthesis prototype system ( Figure1) is composed of
+a 3D printed model, an Arduino Nano board, a Myoware
+sEMG system, a CV system, and an RPI3. The 3D model
+was based on Buchanan’s Kwawu Arm 2.0 and printed
+on lactic polyacid (PLA). The Arduino system commands
+the start of image processing, opening, and closing of
+the prosthesis using servo motors, based on the user’s
+intention detected by the sEMG system and a ﬁnite state
+machine. The CV system is responsible for capturing the
+image of the object the user wants to grasp, and a CNN,
+Frontiers in Neurorobotics | www.frontiersin.org 2 January 2022 | Volume 15 | Article 751282
+
+--- Page 3 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+FIGURE 1 | Prosthesis prototype diagram system.
+FIGURE 2 | 3D prosthesis prototype with the camera, laser point, and LE Ds.
+Frontiers in Neurorobotics | www.frontiersin.org 3 January 2022 | Volume 15 | Article 751282
+
+--- Page 4 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+running on the RPI3, classiﬁes it according to the ﬁve hand
+posturepatterns.
+The3Dprosthesismodelwasmodiﬁedafterbeingprintedfor
+the camera, laser point, and LEDs installation. A USB camera,
+APP-TECH model of 16 Megapixels, and a laser point indicator
+were installed in the palm area, as shown in Figure2. The laser
+pointindicatestheobjecttobephotographedandhandledbythe
+user.LEDsonthebackoftheprosthesisprototypeinformwhich
+graspclasswasproposedbytheneuralclassiﬁer.
+2.2. Control System
+The sEMG system is comprised of the Myoware Muscle Sensor
+from Advancer Technologies. It is an Arduino-powered all-
+in-one sEMG board with adjustable gain, providing the raw
+and the envelope of the ﬁltered and rectiﬁed signal. In this
+application, the latter was used. The wearable design allows t he
+disposable electrode attachment directly to the board throu gh
+embedded electrode connectors. Adhesive disposable electr odes
+fromMeditracewereusedtocapturesEMGsignals.TheArduino
+Nano board, which makes the analog/digital conversion, has
+a sampling rate of 9,600 samples per second and 10 bits
+ofresolution.
+The control system is expressed by a ﬁnite state machine,
+whichdiagramcanbeseenin Figure3.Foreachsuprathreshold
+musclecontraction,thecontrolsystemreceivesaninputpuls e.A
+muscle contraction activates the laser point, so the user vis ually
+conﬁrms the object to be picked up, photographs it, and starts
+the classiﬁcation process by the CNN. The pattern chosen by
+the neural network is displayed on the LEDs on the back of the
+prosthesis.Theuserhastwooptions:rejectandrestartthepro cess
+or accept and command the movement. In the latter, another
+muscle contraction deﬁnes the object release, and the prosth esis
+returnstoitsinitialcondition.
+The total estimated time for this state machine to grasp the
+object since rest is 1.4 s, excluding the time the user takes
+to accept the suggested grasp pattern. The estimated time for
+each sEMG pulse is 100 ms, the laser point takes 350 ms,
+the classiﬁcation time since camera activation was less tha n
+250 ms, and the time for motor activation and movement was
+approximately600ms.
+A 5-layer VGG network ( Rosebrock, 2018a,b ), a modiﬁed
+version of the VGG-16 ( Simonyan and Zisserman, 2015 ), was
+used. The input image with 96 ×96 pixels ×3 channels passes
+through a 3 ×3 convolution ﬁlter, followed by a linear rectiﬁed
+function (RELU) and a normalization function (BATCH). The
+network’s ﬁrst pooling layer uses a 3 ×3 matrix to reduce image
+dimensionality to 32 ×32 pixels. In the consecutive layers, the
+dimensionoftheconvolutionﬁltersischangedfrom32to64a nd
+ﬁnallyfrom64to128.Inallintermediatelayers,theDROPOUT
+functionisapplied,whichdisconnects25%ofthelayer’sneur ons
+to reduce overﬁtting. The ﬁnal layer is fully connected throu gh
+theDENSEfunctionthatusesalinearrectiﬁeractivationfu nction
+and then goes through a SOFTMAX function to return the
+value of the probability of classiﬁcation of each class. Kera s
+software was used as an application programming interface and
+TensorFlowasnumericalcomputingsoftware.The training and validation phases were conducted on a Mac
+mini2012computer(2.3GHz,quad-corei7,16GB)andtheﬁnal
+CNN model run on the RPI3 (1.2 GHz, Quad-Core Boadcom
+BCM2837, 1 GB, running with the Raspbian system) for the
+ﬁnal testing.Thealgorithmconverts theimages tograyscal eand
+resizesthemto96 ×96pixels.Allimagescontainasingleobject,
+blackbackground,andweretakenwithambientlighting.
+2.3. Experiments
+Three experiments were carried out using images from the
+Newcastle Grasp Library (NGL) associated with the Amsterdam
+Library of Object Images (ALOI), while the ﬁnal tests were
+carried out with a set of 24 objects ( Figure4) plus 14 keyboard
+images, establishing a total of 182 images not presented in th e
+training/validation set. This set of images allowed compari sons
+ofexperimentperformance.
+For experiment 1, the objective was to compare the
+classiﬁcation results of the modiﬁed 5-layer SmallerVGG
+network with the experiment of Ghazaei et al. (2017).
+The training/validation set had 7,632 images for the pinch
+classiﬁcation pattern, 11,810 images for the tripod pinch, 8,7 77
+imagesforthepalmargraspwithneutralwristposition(neutral) ,
+and 11,304 images for the palmar grasp with pronated wrist
+(pronated). The 182 images for the test phase had 42 images for
+the pinch classiﬁcation pattern, 42 for the tripod, 42 for neutr al,
+and56forthepronated.
+Due to the experiment 1 results, changes were made to
+the experiment 2 dataset, eliminating images of objects with
+similar shapes from diﬀerent classes, choosing only tripod pinch
+(between the precision grasps), and adding the key grasp class.
+The CNN training set had 6,900 images for the tripod pinch,
+8,345 images for the neutral pattern, 8,280 images for the
+pronated,and2,188imagesforthekeygraspclass.Thetestswe re
+performedwith70imagesforthetripodpinch,42forneutral,56
+forpronated,and14forthekeygrasp.
+Forexperiment3,8.354imageswereaddedtotheexperiment
+2 dataset, being 3,210 computer keyboard images, 2,808 music al
+keyboard images, and 2,336 tablet images. Classiﬁcations f rom
+thesethreenewimageclassesresultintheindexﬁngerexten sion
+movement. The tests were performed with 182 images being 70
+for the tripod pinch pattern, 42 for neutral, 42 for pronated, 14
+forkeygrasppattern,and14forindexﬁngerextension.
+For the test phases mentioned before, a set of 24 objects, like
+those used by Ghazaei et al. (2017) (Figure4), plus 14 images
+of keyboards and tablets were used, establishing a total of 18 2
+images allowing for result comparisons. Just as Ghazaei et al.
+(2017),sevenimagesforeachobject withrandom anglesofview
+werepresentedtotheclassiﬁer.
+3. RESULTS
+Table1shows the confusion matrix and Table2shows the
+sensitivity, speciﬁcity, and accuracy values, for experimen t 1. It
+can be noted from Table1that pinch and pronated patterns
+had an excellent result, with almost 100% of classiﬁcation (4 1
+from 42 and 51 from 56, respectively). On the other hand, a
+hugemisclassiﬁcation(41from42trials)appearedforthetripo d
+Frontiers in Neurorobotics | www.frontiersin.org 4 January 2022 | Volume 15 | Article 751282
+
+--- Page 5 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+FIGURE 3 | Finite state machine diagram.
+FIGURE 4 | Objects used for comparison between experiments.
+Frontiers in Neurorobotics | www.frontiersin.org 5 January 2022 | Volume 15 | Article 751282
+
+--- Page 6 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+FIGURE 5 | Different tube positions allowing the use of different gras ps, such as pronated palmar, tripod, pinch, and neutral palm ar.
+pattern that was classiﬁed as pinch, and a smaller one appeared
+for the neutral pattern (11 from 42 trials) that was classiﬁed
+as pronated. Following these results, Table2reﬂect the impact
+of the right and wrong classiﬁcations for each pattern, showi ng
+a high sensitivity, but lower speciﬁcity for pinch, a very low
+sensitivity, but high speciﬁcity for tripod, a low sensitivit y, but
+high speciﬁcity for neutral, and high sensitivity and speciﬁc ity
+forpronated.
+Table3shows the confusion matrix and Table4shows the
+sensitivity, speciﬁcity, and accuracy values, for experimen t 2. In
+Table3, it can be noted that all patterns had an excellent result,
+with almost 100% of classiﬁcation, resulting in high sensit ivities,
+speciﬁcities,andaccuraciesupto96%.
+Table5shows the confusion matrix and Table6shows the
+sensitivity, speciﬁcity, and accuracy values, for experimen t 3.
+In this experiment, despite having one more class, the results
+ofTable5showed almost 100% of classiﬁcation with very low
+misclassiﬁcations,resultinginhighsensitivities,speci ﬁcities,and
+accuraciesupto98%.
+4. DISCUSSION
+Deﬁning the type of grasp to pick up objects is not as
+easy as it may seem because there is no consensus. Even
+with studies like Feix et al. (2016) andAbbasi et al. (2019),
+which propose grasp taxonomies, the number of grasp patterns
+is impractical in such type of system. Furthermore, it is
+reasonable to pick up an object in diﬀerent ways, whether
+it is in the same position or if it is arranged in diﬀerent
+orientations, as shown in Figure5. Thus, it is often a matter
+ofconvention.
+The proposed 5-layer SmallerVGG trained in experiment
+1, with the same image dataset as Ghazaei et al. (2017),
+achieved an accuracy of 84%, with new objects, as shown in
+Table2. The same result was reached by the original work
+with new and seen images but randomly-rotated objects. Themisclassiﬁcations,shownin Table1,resultedinahighsensitivity
+but low speciﬁcity for pinch, a very low sensitivity but high
+speciﬁcityfortripod,andalowsensitivitybybuthighspeciﬁci ty
+for neutral ( Table2). Sensitivity is a measure of how well a
+test can identify true positives, and speciﬁcity is a measure o f
+how well a test can identify true negatives. The overall resu lt
+for experiment 1 was sensitivity equal to 68% and speciﬁcity
+equal to 89%, which will frustrate the user and make the system
+non-functional. Since the classiﬁcation feature was based o n
+object shapes, the explanation of these misclassiﬁcations was
+the arrangement of objects with similar shapes in diﬀerent
+classes. Clear examples can be seen in Figures6 and7.Figure6
+shows objects with rectangular shape, and despite the possibil ity
+of using both neutral and pronated palmar grasps to pick
+them, as the system use the shape as a classiﬁcation feature,
+it is not reasonable to have them into diﬀerent classes. The
+same situation occurs for the balls with diﬀerent sizes of
+Figure7.
+In order to resolve this incompatibility and have a better
+model, changes were made to the experiment 2 dataset,
+eliminating images of objects with similar shapes of diﬀerent
+classes, choosing only tripod pinch between the precision
+grasps, since it covers both types of objects, and adding
+the key grasp class due to its importance, according to
+Feix et al. (2016) and aiming to keep the same number
+of classes. These modiﬁcations improved the accuracy to
+98%, sensitivity to 96%, and speciﬁcity to 99% as shown in
+Table4, for experiment 2, proving the fragility of the original
+imagebank.
+In experiment 3, the proposed 5-layer CNN trained with
+the modiﬁed image bank added with the extension index class
+obtained 99% of accuracy, 97% of sensitivity, and 99% of
+speciﬁcity as shown in Table6. It can be said that the proposed
+CNN,trainedfortheneutralandpronatedpalmargrasps,tripod
+pinch,andkeygrasp,recognizespatterns,whileforthecomputer
+and music keyboards, and tablet classes, the network recogni ze
+objects.Evenwithonlyﬁveconvolutionallayers,theSmall erVGG
+Frontiers in Neurorobotics | www.frontiersin.org 6 January 2022 | Volume 15 | Article 751282
+
+--- Page 7 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+FIGURE 6 | Objects with similar shapes placed in different classes: ﬁrs t line neutral palmar, second and third lines pronated palma r.
+Frontiers in Neurorobotics | www.frontiersin.org 7 January 2022 | Volume 15 | Article 751282
+
+--- Page 8 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+FIGURE 7 | Objects with similar shapes placed in different classes: pi nch, tripod, and pronated palmar, respectively.
+network showed high accuracy in classifying these patterns a nd
+objectsinahybridconﬁguration.
+Comparing the sensitivity and speciﬁcity values, experiments
+2 and 3 showed greater eﬀectiveness in classiﬁcation
+than experiment 1, due to the consistency of the image
+dataset, presenting a smaller number of false-negative
+and false-positive results, showing the importance of
+the adequacy of the image set for the success of theclassiﬁcation. These results contribute to user satisfacti on
+andsystemfunctionality.
+Compared with other works in the literature that used a
+CV system to deﬁne the grasp patterns for the prosthesis, the
+proposed system with a 5-layer SmallerVGG CNN achieved an
+accuracy higher than those proposed by DeGol et al. (2016) and
+Shietal.(2020)thatpresentedaccuraciesof93%withabimodal
+dataschemeandaVGG-VeryDeep-16,respectively.
+Frontiers in Neurorobotics | www.frontiersin.org 8 January 2022 | Volume 15 | Article 751282
+
+--- Page 9 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+TABLE 1 | Confusion matrix for experiment 1.
+Pinch Tripod Neutral Pronated Total
+Pinch 41 0 0 1 42
+Tripod 41 1 0 0 42
+Neutral 0 0 31 11 42
+Pronated 3 2 0 51 56
+Total 85 3 31 63 182
+TABLE 2 | Performance metrics of experiment 1 [Se, sensitivity (%); S p, speciﬁcity
+(%); Acc, accuracy (%)].
+Se Sp Acc
+Pinch 98 69 75
+Tripod 2 99 76
+Neutral 74 100 94
+Pronated 91 90 91
+Total 68 89 84
+TABLE 3 | Confusion matrix for experiment 2.
+Tripod Neutral Pronated Key grasp Total
+Tripod 68 0 0 2 70
+Neutral 0 41 1 0 42
+Pronated 0 0 54 2 56
+Key grasp 3 0 0 11 14
+Total 71 41 55 15 182
+TABLE 4 | Performance metrics of experiment 2 [Se, sensitivity (%); S p, speciﬁcity
+(%); Acc, accuracy (%)].
+Se Sp Acc
+Tripod 97 97 97
+Neutral 98 100 99
+Pronated 96 99 98
+Key grasp 79 98 96
+Total 96 99 98
+TABLE 5 | Confusion matrix for experiment 3.
+Tripod Neutral Pronated Key grasp Index ﬁnger ext. Total
+Tripod 68 0 0 2 0 70
+Neutral 0 42 0 0 0 42
+Pronated 0 0 41 0 1 42
+Key grasp 1 0 0 12 1 14
+Index ﬁnger ext. 0 0 0 0 14 14
+Total 69 42 41 14 16 182
+Using an RPI 3 microcomputer instead of a computer for
+real-time analysis associated with a 3D printed model prosthe sis
+turned the project into a low-cost portable prototype. It is aTABLE 6 | Performance metrics of experiment 3 [Se, sensitivity (%); S p, speciﬁcity
+(%); Acc, accuracy (%)].
+Se Sp Acc
+Tripod 97 99 98
+Neutral 100 100 100
+Pronated 98 100 99
+Key grasp 86 99 98
+Index ﬁnger extension 100 99 99
+Total 97 99 99
+full embedded control system, with higher accuracy than tho se
+proposed by Dosen et al. (2010),Dosen and Popovic (2010),
+Ghazaeietal. (2017),andShietal.(2020)inwhichtheprocessing
+wasdoneinaseparateunitasastandardPC.
+Moreover,theproposedhandprosthesisprototypefocusedon
+a more natural appearance, incorporating a discreet webcam in
+the palm, unlike the proposals by DeGol et al. (2016),Ghazaei
+et al.(2017),Dosen et al. (2010), andDosen and Popovic (2010)
+who used an external webcam. The Arduino Nano board used
+to command the servos can be substituted, as the RPI3 can
+perform this task. This change would reduce the internal wires
+and cables and increase the space available inside the prosthes is
+prototypebody.
+The Myoware sensor board has a gain adjustment of the
+sEMGsignal,andthesoftwarehasathresholdadjustment,whic h
+allows for the customization required for each user due to the
+sEMG electrode positioning and physical conditions. Despite its
+simplicity, it seems to be enough to the proposed application of
+statemachinetrigger,insteadofamoresophisticatedonesu chas
+Myoarmbandasusedby Andradeetal. (2017)orDelsysTrigno
+usedbyGhazaeietal. (2017).
+The total estimated time for the state machine to grasp the
+object since rest is approximately 1.4 s, which is reasonable
+for prosthetic control. However, the time taken for the user to
+conﬁrm the grasp patternwas not considered. The time for each
+sEMG pulse was estimated at 100 ms, and it depends on the
+user’s ability to fast contract above the selected threshol d. The
+laser point of 350 ms aims only to conﬁrm the selected object to
+be grasped. The classiﬁcation time since camera activation w as
+approximately 250 ms, and the time for motor activation and
+movementwasapproximately600ms.
+Ghazaei et al. (2017) reported 150 ms for the average time
+needed for pre-processing and classiﬁcation in computer-based
+real-time performance analysis, and 300 ms using a short
+ﬂexion contraction above a threshold. Sidher(2017) reported
+classiﬁcationtimesvaryingfrom223msto1.963sforgeomet rical
+objects using RPI 3. Compared with the previous studied, the
+proposedsystemcontrolpresentspromisingbehavior.
+On the other hand, the presented prototype did not intend
+to be a ﬁnal prosthesis proposal but a proof of concept of the
+feasibility of a fully embedded hybrid system based on a hybri d
+approachusingsEMGandCVtoovercomethelimitationsofthe
+strictsEMGcontrolsystems.Therefore,theexperimentsreport ed
+inthisstudywererelatedtotheCVtechnicalaspects.
+Frontiers in Neurorobotics | www.frontiersin.org 9 January 2022 | Volume 15 | Article 751282
+
+--- Page 10 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+Some improvements could be performed, such as adding
+new classes to the CV classiﬁcation system or some common
+gesturesasauserchoiceoptionviathesEMGﬁnitestatemachin e.
+Examplesoftheﬁrstareparallelextension,hook,andpowergri p,
+andforthelatterarepoint(indexﬁngerextension),oksign, and
+thumbsup.
+Furthermore, the results were obtained in a controlled
+environment, with ﬁxed prototype distance and height related
+to the object. These parameters could change the classiﬁcati on
+accuracies due to the classiﬁer model’s dependence on object
+shape patterns. Adding distance sensors like Dosen et al.
+(2010),Dosen and Popovic (2010), andSidher(2017) did, seem
+reasonabletoovercometheproblemofsimilarshapebutdiﬀeren t
+sizeobjects,asshownin Figure7.
+Therefore, the prosthesis’s functional performance evaluat ion
+in a clinical trial is essential to guarantee its eﬀectivenes s. The
+Southampton Hand Assessment Procedure (SHAP) is a well-
+known, simple, and replicable protocol based on the assessment
+of the eﬀectiveness of the prosthetic device with a focus on
+performing a set of tasks by the user ( Light et al., 2002; Andres-
+Esperanza et al., in press ).Dosen et al. (2010) showed that
+the average time to accomplish the “reach, pick up and place”
+task with 13 healthy subjects decreases with training, reac hing
+approximately 10 s after 100 trials. Shi et al. (2020) reported
+an average time of 6.4 s in an experimental protocol with four
+healthy subjects performing a total of 320 trials, comparing
+Vision-EMG and Coding-EMG control. Ghazaei et al. (2017)
+reported an average time of 7s for two trans-radial amputee
+volunteers to accomplish the “reach, pick up, and place” task.
+However, this evaluation is not the focus of this study and wi ll
+bethesubjectoffutureinvestigation.
+5. CONCLUSION
+This study presented a hybrid 3D printed hand prosthesis
+prototypebasedonansEMGcontrolledﬁnitestatemachineand
+a fully embedded CV system. A modiﬁed 5-layer Smaller Visual
+Geometry Group (VGG) CNN running on an RPi 3 connected
+toawebcamrecognizestheshapeofdailyuseobjectsanddeﬁne s
+thegrasp/gesturepatternfortheprostheticprototype.ThesEMG
+signal, representing the user’s intention, starts the proces s and
+commandstheprostheticmotorstomovementexecution.Theproposedsystemobtained99%accuracy,97%sensitivity,
+and 99% speciﬁcity for grasping objects from neutral and
+pronated palmar grasp, tripod pinch, key grasp, and index
+ﬁnger extension gesture. Compared with other studies in
+the literature that used a CV system for prosthetics, the
+proposed system achieved a higher accuracy with a full
+embedded system. Furthermore, it is a low-cost technology
+with a reduced user training time, considering the simple use
+ofsEMG.
+This study showed that the use of a vision system to
+help deﬁne the pattern of grasping and manipulating
+objects is a promising alternative and that studies in
+this area should be performed. For the continuity
+of this study, it is proposed the improvement of the
+prosthesis for thumb movement; prosthetic functional
+performance evaluation in clinical measurements to guarante e
+itseﬀectiveness.
+DATA AVAILABILITY STATEMENT
+Therawdatasupportingtheconclusionsofthisarticleisavai lable
+at:https://doi.org/10.5281/zenodo.5749745.
+AUTHOR CONTRIBUTIONS
+GR was the engineer and developer of all presented
+platforms. MC masterfully coordinated the work
+and was a major contributor in writing the
+manuscript. WP contributed to reviewing the
+manuscript. All authors read and approved the
+ﬁnalmanuscript.
+FUNDING
+This study was ﬁnanced in part by the Coordenação de
+Aperfeiçoamento de Pessoal de Nível Superior—Brazil
+(CAPES)—FinanceCode001.
+ACKNOWLEDGMENTS
+The authors would like to thank the CAPES and FAPESP for
+theirsupport.
+REFERENCES
+Abarca, V. E., Flores, K. M., and Elias, D. (2019). “The octa hand : an aﬀordable
+multi-grasping 3d-printed robotic prosthesis for transradial amputees, ” in5th
+InternationalConferenceonControl,AutomationandRoboti cs(Beijing:IEEE),
+92–97.doi:10.1109/ICCAR.2019.8813417
+Abbasi, B., Sharifzadeh, M., Noohi, E., Parastegari, S., and Ze fran, M. (2019).
+“Grasptaxonomyforrobotassistantsinferredfromﬁngerpressureand ﬂexion,”
+inInternational Symposium on Medical Robotics (ISMR) (Atlanta, GA: IEEE),
+1154–1159.doi:10.1109/ISMR.2019.8710191
+Andrade, D. T. G., Ishikawa, A., Munoz, A. D., and Rohmer, E. (20 17).
+“A hybrid approach for the actuation of upper limb prostheses based
+on computer vision,” in Latin American Robotics Symposium (LARS)and 2017 Brazilian Symposium on Robotics (SBR) (Curitiba: IEEE), 1–6.
+doi:10.1109/SBR-LARS-R.2017.8215308
+Andres-Esperanza, J., Iserte-Vilar, J. L., Llop-Harillo, I., and Perez -
+Gonzalez, A. (in press). Aﬀordable 3D-printed tendon prosthetic hand s:
+expectations and benchmarking questioned. Eng. Sci. Technol. Int. J .
+doi:10.1016/j.jestch.2021.08.010
+DeGol, J., Akhtar, A., Manja, B., and Bretl, T. (2016). “Automati c grasp selection
+using a camera in a hand prosthesis,” in IEEE Eng Med Biol Soc . (Orlando, FL:
+IEEE),431–434.doi:10.1109/EMBC.2016.7590732
+Dosen, S., Cipriani, C., Kostic, M., Controzzi, M., Carrozza, M. C ., and
+Popovic, D. B. (2010). Cognitive vision system for control of d exterous
+prosthetic hands: experimental evaluation. J. Neuroeng. Rehabil . 7, 1–14.
+doi:10.1186/1743-0003-7-42
+Frontiers in Neurorobotics | www.frontiersin.org 10 January 2022 | Volume 15 | Article 751282
+
+--- Page 11 ---
+Castro et al. Computer Vision-Based Hand Prosthesis
+Dosen, S., and Popovic, D. B. (2010). Transradial prosthesis:
+artiﬁcial vision for control of prehension. Artif. Organs 35, 37–48.
+doi:10.1111/j.1525-1594.2010.01040.x
+Feix, T., Romero, J., Schmiedmayer, H.-B., Dollar, A. M., and Kragic, D. (2016).
+The grasp taxonomy of human grasp types. IEEE Trans. Hum. Mach. Syst . 46,
+66–77.doi:10.1109/THMS.2015.2470657
+Geethanjali, P. (2016). Myolelectric control of prosthetic hand: s tat-of-the-art
+review.Med.DevicesEvid.Res .9,247–255.doi:10.2147/MDER.S91102
+Ghazaei, G., Alameer, A., Degenaar, P., Morgan, G., and Nazarpou r, K. (2017).
+Deep learning-based artiﬁcial vision for grasp classiﬁcation in myoelectric
+hands.J.NeuralEng .14,1–18.doi:10.1088/1741-2552/aa6802
+InMoov (2021). Hand and Forarm . Available online at: http://inmoov.fr/hand-
+and-forarm/(accessedMay15,2021).
+Jiang, N., Dosen, S., Muller, K.-R., and Farina, D. (2012). Myoe lectric control of
+artiﬁcial limbs–Is there a need to change focus? IEEE Signal Process. Mag . 29,
+150–152.doi:10.1109/MSP.2012.2203480
+Khan,S.S.A.,Ferdous,S.J.,andChakraborty,S.(2021).Desig nanddevelopment
+ofa3Dprintedmyoelectric-controlledprosthesishandusingsEMGsens or.Int.
+J.Biomed.Biol.Eng .15,10127–10134.Availableonlineat:https://publications.
+waset.org/10011734/pdf
+Ku, I., Lee, G. K., Park, C. Y., Lee, J., and Jeong, E. (2019). Cli nical outcomes
+of a low-cost single-channel myoelectric-interface three-dimens ional hand
+prosthesis. Arch.PlasticSurg .46,303–310.doi:10.5999/aps.2018.01375
+Light, C. M., Chappell, P. H., and Kyberd, P. J. (2002). Establishing a
+standardized clinical assessment tool of pathologic and prostheti c hand
+function:normativedata,reliability,andvalidity. Arch.Phys.Med.Rehabil .83,
+776–783.doi:10.1053/apmr.2002.32737
+Mohammadi, A.,Lavranos,J.,Zhou,H.,Mutlu,R.,Alici,G.,Tan,Y. ,etal.(2020).
+A practical 3D-printed soft robotic prosthetic hand with multi-articu lating
+capabilities. PLoSONE 15:e0232766.doi:10.1371/journal.pone.0232766
+Openbionics(2021).Prosthetichands.Availableonlineat:https ://openbionics.org/
+aﬀordableprosthetichands/(accessedMay15,2021).
+Össur (2021a). i-limb Quantum . Available online at: https://www.ossur.com/
+en-us/prosthetics/arms/i-limb-quantum?tab=speciﬁcation (acce ssed May 15,
+2021).
+Össur (2021b). i-limb Ultra . Available online at: https://www.ossur.com/en-us/
+prosthetics/arms/i-limb-ultra(accessedMay15,2021).
+Ottobock (2021a). Bebionic. Available online at: https://www.ottobockus.
+com/prosthetics/upper-limb-prosthetics/solution-overview/bebi onic-hand/
+(accessedJune15,2021).
+Ottobock (2021b). Michelangelo Prosthetic Hand . Available online at: https://
+www.ottobockus.com/prosthetics/upper-limb-prosthetics/solutio n-overview/
+michelangelo-prosthetic-hand/(accessedMay15,2021).
+Palermo, F., Cognolato, M., Gijsberts, A., Muller, H., Caputo, B., and Atzori, M.
+(2017). “Repeatability of grasp recognition for robotic hand prost hesis control
+based on SEMG data,” in International Conference on Rehabilitation Robotics
+(ICORR) (London:IEEE),1–7.doi:10.1109/ICORR.2017.8009405
+Rosebrock, A. (2018a). Keras and Convolutional Neural Networks (CNNs) .
+Available online at: https://www.pyimagesearch.com/2018/04/16 /keras-and-
+convolutional-neural-networks-cnns/(accessedJune27,2021) .
+Rosebrock, A. (2018b). Pyimagesearch -smallerVGGNet: Multi-Label
+Classiﬁcation With Keras . Available online at: https://www.pyimagesearch.com/2018/05/07/multi-label-classiﬁcation-with-keras/ (acces sed June
+27,2021).
+Scheme, E., and Englehart, K. (2011). Electromyogram pattern recognit ion for
+control of powered upper-limb prostheses: state of the art and challenges for
+clinicaluse. J.Rehabil.Res.Dev .48,643–659.doi:10.1682/JRRD.2010.09.0177
+Shi,C.,Qi,L.,Yang,D.,Zhao,J.,andLiu,H.(2019).“Anovel methodofcombining
+computervision,eye-tracking,EMG,andIMUtocontroldexterous prosthetic
+hand,” in IEEE International Conference on Robotics and Biomimetics (Dali:
+IEEE),2614–2618.doi:10.1109/ROBIO49542.2019.8961582
+Shi, C., Yang, D., Z.hao, J., and Liu, H. (2020). Computer vision -based grasp
+pattern recognition with application to myoelectric control of dextero us
+hand prosthesis. IEEE Trans. Neural Syst. and Rehabil. Eng . 28, 2090–2098.
+doi:10.1109/TNSRE.2020.3007625
+Sidher, A. (2017). Prosthesis design and object recognition based grasping of a 3d
+printedanthropomorphicartiﬁcialhand (Master’sthesis).UniversityofNevada,
+Reno,UnitedStates.
+Sidher, A., and Shen, Y. (2017). “Improving a 3D-printed artiﬁcial
+anthropomorphic hand using the human hand model,” in IEEE International
+Conference on Real-time Computing and Robotics (RCAR) (Okinawa: IEEE),
+739–744.doi:10.1109/RCAR.2017.8311952
+Simonyan, K., and Zisserman, A. (2015). “Very deep convolutional networks
+for large-scale image recognition,” in International Conference on Learning
+Representations(ICLR) (SanDiego,CA),1–14.
+Sureshbabu, A. V., Rass, D., and Zimmermann, M. (2019). “A lightwei ght
+transradial hand prosthesis with a variable position thumb and
+thermoregulation,” in 19th International Conference on Advanced Robotics
+(ICAR)(BeloHorizonte:IEEE),61–68.doi:10.1109/ICAR46387.2019. 8981665
+Wahit, M. A. A., Ahmad, S. A., Marhaban, M. H., Wada, C., and Izha r, L. I.
+(2020).3Dprintedrobothandstructureusingfour-barlinkagemech anismfor
+prostheticapplication. Sensors20,1–22.doi:10.3390/s20154174
+Zhai, X., Jelfs, B., Chan, R. H. M., and Tin, C. (2017). Self-recalib rating surface
+EMG pattern recognition for neuroprosthesis control based on convo lutional
+neuralnetwork. Front.Neurosci .11:379.doi:10.3389/fnins.2017.00379
+Conﬂict of Interest: The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be c onstrued as a
+potentialconﬂictofinterest.
+Publisher’sNote: Allclaimsexpressedinthisarticlearesolelythoseoftheauthors
+and do not necessarily represent those oftheir aﬃliated organizat ions, or those of
+thepublisher,theeditorsandthereviewers.Anyproductthatmayb eevaluatedin
+this article, or claim that may be made by its manufacturer, is not gua ranteed or
+endorsedbythepublisher.
+Copyright © 2022 Castro, Pinheiro and Rigolin. This is an open-ac cess article
+distributed under the terms of the Creative Commons Attribu tion License (CC BY).
+The use, distribution or reproduction in other forums is perm itted, provided the
+original author(s) and the copyright owner(s) are credited a nd that the original
+publication in this journal is cited, in accordance with acc epted academic practice.
+No use, distribution or reproduction is permitted which doe s not comply with these
+terms.
+Frontiers in Neurorobotics | www.frontiersin.org 11 January 2022 | Volume 15 | Article 751282
