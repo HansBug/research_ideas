@@ -1,0 +1,1335 @@
+--- Page 1 ---
+ORIGINAL RESEARCH
+published: 11 April 2018
+doi: 10.3389/frobt.2018.00036
+Frontiers in Robotics and AI | www.frontiersin.org 1 April 2018 | Volume 5 | Article 36Editedby:
+JörnMalzahn,
+FondazioneIstitutoItalianodi
+Technologia,Italy
+Reviewedby:
+ArturoForner-Cordero,
+UniversidadedeSãoPaulo,Brazil
+JanaR.Jeffers,
+UniversityofColoradoBoulder,
+UnitedStates
+*Correspondence:
+KiisaC.Nishikawa
+kiisa.nishikawa@nau.edu
+Specialtysection:
+Thisarticlewassubmittedto
+BionicsandBiomimetics,
+asectionofthejournal
+FrontiersinRoboticsandAI
+Received: 17November2017
+Accepted: 19March2018
+Published: 11April2018
+Citation:
+TahirU,HesselAL,LockwoodER,
+TesterJT,HanZ,RiveraDJ,CoveyKL,
+HuckTG,RiceNAandNishikawaKC
+(2018)CaseStudy:ABio-Inspired
+ControlAlgorithmforaRobotic
+Foot-AnkleProsthesisProvides
+AdaptiveControlofLevelWalkingand
+StairAscent.Front.Robot.AI5:36.
+doi:10.3389/frobt.2018.00036Case Study: A Bio-Inspired Control
+Algorithm for a Robotic Foot-Ankle
+Prosthesis Provides Adaptive Control
+of Level Walking and Stair Ascent
+UzmaTahir1,AnthonyL.Hessel1,EricR.Lockwood2,JohnT.Tester2,ZhixiuHan3,
+DanielJ.Rivera2,KaitlynL.Covey2,ThomasG.Huck1,NicoleA.Rice1and
+KiisaC.Nishikawa1*
+1CenterforBioengineeringInnovationandDepartmentofBiol ogicalSciences,NorthernArizonaUniversity,Flagstaff, AZ,
+UnitedStates,2DepartmentofMechanicalEngineering,NorthernArizonaUn iversity,Flagstaff,AZ,UnitedStates,3BionX
+MedicalTechnologies,Inc.,Bedford,MA,UnitedStates
+Powered ankle-foot prostheses assist users through planta rﬂexion during stance and
+dorsiﬂexion during swing. Provision of motor power permits faster preferred walking
+speeds than passive devices, but use of active motor power ra ises the issue of control.
+Whileseveralcommerciallyavailablealgorithmsprovideto rquecontrolformanyintended
+activities and variations of terrain, control approaches t ypically exhibit no inherent
+adaptation. In contrast, muscles adapt instantaneously to changes in load without
+sensory feedback due to the intrinsic property that their st iffness changes with length
+and velocity. We previously developed a “winding ﬁlament” h ypothesis (WFH) for muscle
+contraction that accounts for intrinsic muscle properties by incorporating the giant titin
+protein. The goals of this study were to develop a WFH-based co ntrol algorithm for a
+powered prosthesis and to test its robustness during level w alking and stair ascent in a
+case study of two subjects with 4–5 years of experience using a powered prosthesis. In
+the WFH algorithm, ankle moments produced by virtual muscles are calculated based
+on muscle length and activation. Net ankle moment determine s the current applied
+to the motor. Using this algorithm implemented in a BiOM T2 pr osthesis, we tested
+subjects during level walking and stair ascent. During leve l walking at variable speeds,
+the WFH algorithm produced plantarﬂexion angles (range = −8 to−19◦) and ankle
+moments (range =1 to 1.5 Nm/kg) similar to those produced by the BiOM T2 stock
+controller and to people with no amputation. During stair as cent, the WFH algorithm
+producedplantarﬂexionangles(range −15to−19◦)thatweresimilartopersonswithno
+amputation and were ∼5 times larger on average at 80 steps/min than those produced
+by the stock controller. This case study provides proof-of- concept that, by emulating
+muscle properties, the WFH algorithm provides robust, adapt ive control of level walking
+at variable speed and stair ascent with minimal sensing and n o change in parameters.
+Keywords: biomechanics, level walking, muscle model, powered prosthesis, preﬂex, stair ascent, trans-tibial
+amputation
+
+--- Page 2 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+INTRODUCTION
+The development of prostheses is expanding rapidly, resulting
+in a new generation of robotic devices that behave like the
+limbs they are designed to replace ( Aaron et al., 2006; LeMoyne,
+2016).Despitethedemonstrablesuccessofthenewtechnologies,
+signiﬁcantchallengesremain.Comparedtointactlimbs,sta te-of-
+the-artpoweredprosthesesarelimitedintermsoftheirspeeda nd
+adaptability. Foot-ankle prostheses are typically used for ei ther
+walking ( Herr and Grabowski, 2012 ) or running ( McGowan
+et al., 2012 ), but not both. Adaptation to changing conditions or
+variation in terrain remains a signiﬁcant issue ( Farrell and Herr,
+2011; Sinitski et al., 2012; Tkach and Hargrove, 2013; Kanna pe
+and Herr, 2014 ). Advances in prosthesis development have
+been driven largely by technology (e.g., light-weight mate rials,
+long-life batteries, programmable electronics, and wirele ss
+communication), rather than by advances in understanding o f
+thebiologicalprinciplesunderlyinghumanmovement.
+Powered, ankle-foot prostheses have shown great promise
+in normalizing gait for people with a unilateral trans-tibial
+amputation ( Aldridge et al., 2012; Sinitski et al., 2012; Agrawal
+et al., 2013; Gates et al., 2013; Grabowski and D’Andrea, 201 3;
+D’Andrea et al., 2014; Esposito et al., 2014 ). By assisting users
+through powered plantarﬂexion during stance and dorsiﬂexion
+during swing, the BiOM T2 prosthesis normalizes metabolic
+costs, preferred walking speed, and ankle biomechanics ( Herr
+and Grabowski, 2012 ). However, not all users beneﬁt equally
+(Gardinier et al., 2017 ) and many challenges remain, especially
+for ambulation over varying terrain ( Aldridge et al., 2012; Pickle
+etal.,2016;RussellEspositoetal.,2016 ).
+While provision of motor power permits faster preferred
+walking speeds than can be produced using only passive devices
+(Herr and Grabowski, 2012 ), the use of active motor power
+raises the issue of control; speciﬁcally, when and how much
+torque assistance to provide under varying terrain conditio ns
+(Farrell and Herr, 2011; Tkach and Hargrove, 2013; Kannape
+andHerr,2014 ).State-basedcontrolschemestypicallydependon
+pattern recognition algorithms to select among a set of contr ol
+strategies that may diﬀer among the phases of a particular gait
+(e.g., stance vs. swing phases of level walking; Au et al., 2007 ) or
+among gaits associatedwith diﬀerent terrains (e.g.,level w alking
+vs. stair ascent; Wilken et al., 2011 ). It is commonly presumed
+that, because control approaches typically exhibit no inheren t
+adaptation to varying terrain conditions, some combination of
+mechanicalsensing,manualactuation(e.g., Alimusajetal.,2009 ),
+or other volitional signals (e.g., EMG; Kannape and Herr, 2014 )
+are required to detect the need for a transition from one cont rol
+strategy to another, and to deliver the appropriate torque for t he
+newconditions( TkachandHargrove,2013 ).
+In contrast, muscles adjust their stiﬀness instantaneously in
+responsetochangesinload(“preﬂexes”)withoutrequiringin put
+from the nervous system ( Nichols and Houk, 1976; Dickinson
+et al., 2000; Monroy et al., 2007; Nishikawa et al., 2007, 2013 ).
+When an applied load stretches a muscle, its stiﬀness increases
+toresistoverstretch.Likewiseduringunloading,muscles become
+more compliant. Muscles behave as non-linear, self-stabilizi ng
+springs (e.g., Rack and Westbury, 1974; Richardson et al., 2005 ),and play an important role in control of movement ( Hogan,
+1985), particularly in response to unexpected perturbations
+(Daleyetal.,2009;DaleyandBiewener,2011 ).Althoughdiﬃcult
+or impossible to test experimentally, it seems likely that muscle s
+contribute generally to motor control ( Seiberl et al., 2013, 2015;
+Hesseletal.,2017 ).
+Werecentlydevelopedanovel“windingﬁlament”hypothesis
+formusclecontraction( Nishikawaetal.,2012;Nishikawa,2016 ),
+which provides a biologically plausible mechanism to account
+for the intrinsic adaptive properties of muscle ( Monroy et al.,
+2007; Nishikawa et al., 2007, 2013 ). In the winding ﬁlament
+hypothesis, the engagement of the titin spring upon muscle
+activation provides for a mechanism by which nearly invarian t
+muscleforceoutputcanbeproducedwhenmusclesareactivated
+at varying initial positions ( Nishikawa et al., 2013 ). The winding
+oftitinonthethinﬁlamentsuponactivationprovidesforchang es
+in muscle stiﬀness, not only as a function of muscle recruitmen t
+butalsoinresponsetoappliedlengthchanges.
+The goals of the present study were to develop a control
+algorithm based on the winding ﬁlament hypothesis (WFH), to
+implementthealgorithmusingthepoweredBiOMT2foot-ankle
+prosthesis as a platform, and to test its robustness by comparing
+performance during level walking at variable speed and stair
+ascent.Incomputerscience,robustnessreferstothepropertyt hat
+algorithmsperformwellnotonlyundertheconditionsforwhi ch
+theyweredesigned,butalsounderdiﬀerentconditionsthats tress
+the original design assumptions. For this study, we tested th e
+robustnessofWFHandBiOMT2stockcontrollersbycomparing
+theirperformanceduringlevelwalkingatvariablespeed,the task
+for which their design was optimized, vs. stair ascent, a nove l
+condition with diﬀerent biomechanical requirements for whi ch
+thecontrollerswerenotexplicitlyoptimized.
+METHODS
+We ﬁrst describe the WFH muscle model and the BiOM T2
+prosthesis, and next describe our methods for implementing th e
+control algorithm using the BiOM prosthesis as a platform and
+for subject-speciﬁc tuning of each algorithm. We then descri be
+the methods used to compare the performance of the WFH and
+BiOMstockcontrollersduringlevelwalkingandstairascen t,and
+lastlywedescribemethodsforstatisticalanalysisofdata.
+Muscle Model Based on the Winding
+Filament Hypothesis
+Previous attempts to use bio-inspired neuromuscular control
+approaches have been limited by the use of Hill models which
+fail to predict the history-dependence of muscle force ( Lee
+et al., 2013; McGowan et al., 2013 ). The WFH proposes that
+muscle cross bridges not only translate but also rotate the th in
+ﬁlaments, which wind titin upon them, storing elastic energy
+during isometric force development ( Nishikawa et al., 2012 ).
+In this way, the WFH accounts for history-dependent muscle
+properties including force enhancement with stretch and forc e
+depression with shortening ( Nishikawa et al., 2013; Nishikawa,
+2016). A muscle model ( Figure1) based on the WFH includes
+Frontiers in Robotics and AI | www.frontiersin.org 2 April 2018 | Volume 5 | Article 36
+
+--- Page 3 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+FIGURE 1 | Schematic representation of the muscle model based on the
+winding ﬁlament hypothesis (WFH). The contractile element ( CE) is a linear
+motor with displacement (Xce) and force (Fce). The force vel ocity relationship
+of the contractile element is approximated by a viscous damp er (Cce), with
+different coefﬁcients for lengthening and shortening. A mas sless,
+dimensionless pulley represents the thin ﬁlaments in muscle sarcomeres. The
+pulley translates (X p) due to applied forces that stretch or shorten the muscle
+(Xm). The titin spring (k ts, Fts) is wound around the pulley by activation of the
+CE and unwinds during deactivation. The titin spring is elon gated (X ts) by
+applied forces that translate the pulley toward or away from the contractile
+element. The series spring (k ss, Fss) represents muscle tendons, aponeuroses
+and other series elastic elements. Arrows indicate positiv e direction. See text
+for further explanation and equations.
+a contractile element ( CE) that represents myosin cross bridges,
+a damper ( Cce) in parallel with the CE that represents the
+muscle force-velocity relationship, a pulley that represents actin
+ﬁlaments, and two springs representing titin ( kts) and series
+elasticelements( kss).
+The contractile element is a linear force generator, simila r
+to theCEof Hill muscle models ( Zajac, 1989 ). TheCEis
+characterized by an active force-length relationship, ﬂ(Xm),
+whereXmis muscle length, based on overlap between actin and
+myosin ﬁlaments, and a maximum isometric force ( P0) related
+to muscle cross-sectional area. In the model, the active forc e-
+length relationship was measured in mouse soleus muscles an d
+approximated using a second order polynomial ( Petak, 2014 ).
+Activation of the CEresults in counter-clockwise rotation of
+the pulley. This rotation causes the titin spring to wind on the
+pulley, increasing strain in the free portion of the spring ( Xts).
+Displacement of the titin spring produces a force ( Fts) that
+limitsfurthercounter-clockwiserotationofthepulley.Wh enthe
+CEdeactivates, the titin force ( Fts) rotates the pulley clockwise
+back to its initial angular position. The parallel damper ( Cce)
+has diﬀerent coeﬃcients for lengthening ( Cce_l) and shortening
+(Cce_s),alinearapproximationtothelengtheningandshortening
+sidesoftheforce-velocityrelationship( Zajac,1989 ).
+The undamped, linear titin spring ( kts) is connected in series
+and in parallel to the CEvia a cable wrapped around the
+pulley in a no-slip conﬁguration ( Figure1). The force of the
+titin spring ( Fts) is modulated by activating or deactivating the
+contractile element, or by applied forces that displace the pulle y
+toward or away from the CE, which decreases or increases the
+strain in the titin spring, respectively ( Figure1). An undamped,
+linear spring ( kss) in series with the pulley system ( Figure1)
+represents the tendon, aponeurosis, and extracellular matrix of
+the muscle. The series spring ( kss) attaches at the axle of thepulley and is deﬂected by translation of the pulley but not by it s
+rotation.
+The model derivation follows Hooke’s law, in which force is
+theproductofthespringdeﬂection( Xi)andspringconstant( ki).
+Similarly, the force of the damper is the product of the velocit y
+of the contractile element ( ˙xCE) and the directional damping
+constant ( Cce_lorCce_s). The balance of forces is calculated by
+superposition of the two degrees of freedom (translation and
+rotation)aboutthepulley( Petak,2014;Lockwood,2016 ).Euler’s
+method is used to calculate the velocity of the damper and the
+changes in spring lengths at each time step, updated in real time
+at500Hz.
+Theforceofthecontractileelement( Fce)isgivenbyEquation
+(1):
+Fce=act(t)∗ﬂ(Xm)∗P0 (1)
+whereactivationlevel, act(t),isaninputparameterrangingfrom
+0 to 1, whose value is speciﬁed for each stage of the gait cycle
+and is tuned to user preference (see section Subject-Speciﬁc
+Tuning). The force-length relationship, ﬂ(Xm)equals 1 at the
+plateau of muscle optimal length ( L0) and decreases toward 0
+at shorter or longer muscle lengths ( Zajac, 1989 ). The peak
+isometric force ( P0) is also tuned to user preference prior to
+experimentalwalkingtrials.
+The rotational force balance around the pulley is given by
+Equations (2, 3), and the translational force balance is giv en by
+Equations(4,5):
+Rotationalforcebalance
+Fce+Cce˙Xce=ktsXts (2)
+˙Xce=ktsXts−Fce
+Cce(3)
+Translationalforcebalance
+Fce+cce˙Xce+ktsXts=kss(Xm−Xp) (4)
+˙Xce=kss(Xm−Xp)−Fce−ktsXts
+Cce(5)
+whereFceis the force of the contractile element, Cceis the
+directionaldampingconstantofthecontractileelement, ˙xceisthe
+velocityofthecontractileelement, ktsisthetitinspringconstant,
+Xtsis the titin spring displacement; kssis the series elastic
+spring constant, Xmis the muscle length, and Xpis the pulley
+displacement. Given input parameters Xmfrom the BiOM’s
+position sensor and act(t)from subject-speciﬁc tuning (see
+section Subject-Speciﬁc Tuning), the velocity of the contra ctile
+element ( ˙xce) is determined by substitution from the sum of
+rotational (Equations 2, 3) and translational (Equations 4 , 5)
+forcesactingonthepulley.Therotationalandtranslationa lforces
+areindependentandcombineusingsuperpositiontoyieldthenet
+forceactingonthepulley(Equation6)
+Superposition ˙Xce=ktsXts Fce
+Cce+/bracketleftbig
+kss/parenleftbig
+Xm−Xp/parenrightbig
+−Fce ktsXts/bracketrightbig
+Cce
+(6)
+The derivation assumes equilibrium about the pulley at all ti mes
+(t),anddisregardsbothpulleymassandnon-conservativeforc es
+Frontiers in Robotics and AI | www.frontiersin.org 3 April 2018 | Volume 5 | Article 36
+
+--- Page 4 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+(e.g., friction). The muscle model was validated using isok inetic
+lengthening and shortening data from mouse soleus muscles
+(Petak, 2014 ) to demonstrate that it accurately accounts for
+intrinsic muscle properties, including force enhancement wi th
+stretchandforcedepressionwithshortening.
+BiOM T2 Prosthesis Platform
+Currently, three types of lower limb prosthetic devices
+are available commercially for persons with a trans-tibial
+amputation: passive, quasi-passive, and powered prostheses
+(LeMoyne,2016 ).TheBiOMT2providespoweredplantarﬂexion
+and dorsiﬂexion during variable-speed walking ( Herr and
+Grabowski, 2012 ). It performs negative and positive work by
+employing a series-elastic actuator comprising a transverse -ﬂux
+motor and ball-screw transmission in series with a carbon-
+composite leaf spring ( Au et al., 2007; Eilenberg et al., 2010;
+Markowitz et al., 2011 ). The motor’s rotary motion is converted
+into linear motion through the ball-screw transmission. Th e
+in-series leaf spring improves motor eﬃciency by storing and
+returning some of the energy delivered by the motor, storing
+energyforprostheticankleangles <90◦andbecomingdetached
+at angles >90◦. A carbon-composite foot at the base of the
+prosthesis provides additional compliance in the heel and
+forefoot. The mass of the prosthesis is 2kg, designed to emula te
+themassofabiologicalfootandpartialshankofan80kgperson
+(Dempster, 1955 ). The overall conﬁguration is autonomous;
+all of the electronic components and the lithium-polymer
+battery that provides energy to the motor are housed within th e
+prosthesis.
+A wireless communication system (Bluetooth) allows for
+ankle stiﬀness and power delivery to be adjusted in real time
+while a person with an amputation walks using the prosthesis.
+The magnitude and timing of power delivery is calculated
+within the prosthesis and then adjusted for each wearer to
+match the performance of a biological ankle during the initia l
+prosthesis ﬁtting. The sensors include motor shaft and ankle
+joint output encoders, and a 6 degree-of-freedom inertial
+measurement unit (IMU) comprising three accelerometers and
+three rate gyroscopes. The BiOM stock controller employs a
+state-based approach to command ankle torques using a set
+of algorithms that are implemented in speciﬁc stages of the
+walking gait cycle (early swing, late swing, early stance, mi d-
+stance,latestance).Previous studiesdemonstrate thatth eBiOM
+prosthesis signiﬁcantly outperforms passive-elastic prosthe ses,
+and permits metabolic energy costs, preferred walking velocit ies
+and biomechanical patterns over level terrain that are simil ar to
+thoseofpeoplewithoutamputation( HerrandGrabowski,2012 ).
+Implementation of the WFH Control
+Algorithm Using the BiOM Prosthesis
+Platform
+The WFH control algorithm was developed in MATLAB and
+translated to C code to replace the portion of the commercially
+available BiOM stock controller that determines the motor
+torqueappliedtotheprostheticanklejoint.TheWFHalgorithm
+(Figure2) includes a simpliﬁed musculo-skeletal model of the
+FIGURE 2 | Schematic representation of the WFH algorithm developed fo r the
+BiOM prosthesis. The algorithm consists of an anterior and a posterior muscle
+(represented by WFH muscle models, see Figure 1 ) with lengths (Lm Aand
+LmP), foot moment arms (FMA Aand FMA P), shank attachment lengths (SAL A
+and SAL P), and muscle attachment angles ( α,β) determined from published
+values or calculated using geometry (see Table 1).θ=ankle joint angle. See
+text for further explanation.
+shank (tibia/ﬁbula) and foot, using a simple hinge to represent
+the ankle joint. A pair of virtual muscles provides dorsiﬂexion
+and plantarﬂexion torque, similar to Au et al. (2005) . The
+tibialis anterior and its synergists were approximated as an
+anterior muscle group ( Figure2) with muscle length ( LmA),
+shankattachmentlength( SALA)andfootmomentarm( FMAA).
+The soleus, gastrocnemius, and plantaris were approximated as
+a single posterior muscle group ( Figure2) with muscle length
+(LmP), shank attachment length ( SALP) and foot moment arm
+(FMAP). The algorithm thus ignores the biarticular function of
+thegastrocnemiusmuscles( Cleatheretal.,2015 )whichattachto
+thedistalfemur( Visseretal.,1990 ).Eachvirtualmusclegroupis
+representedbyaWFHmusclemodel(see Figure1)scaledusing
+anthropomorphic estimates of length and maximum voluntary
+force(see Table1).
+Model parameters were determined using a combination of
+published values, a local optimization process, simulation-b ased
+tuning, and user preference ( Table1). Initial values of peak
+Frontiers in Robotics and AI | www.frontiersin.org 4 April 2018 | Volume 5 | Article 36
+
+--- Page 5 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+TABLE 1 | WFH controller parameters established using published val ues, local optimization, and/or user preference.
+Parameter Deﬁnition Value Source
+ﬂ(Xm) Muscle force-length relationship (Equation 1) 0–1 Measure d [1]
+PoA Peak isometric force, AM (Equation 1) 1,799N [2],[3],[5]
+PoP Peak isometric force, PM (Equation 1) 1,654N [2],[3],[5]
+kssA series spring constant, AM ( Figure 1 , Equation 6) 1,499 N*cm [4],[5]
+kssP series spring constant, PM ( Figure 1 , Equation 6) 1,559 N*cm [4],[5]
+ktsA titin spring constant, AM ( Figure 1 , Equation 6) 159 N*cm Local optimization
+ktsP titin spring constant, PM ( Figure 1 , Equation 6) 205 N*cm Local optimization
+Cce_lA CE damping constant lengthening, AM ( Figure 1 ) 97 N*s/cm Local optimization
+Cce_lP CE damping constant lengthening, PM ( Figure 1 ) 102 N*s/cm Local optimization
+Cce_sA CE damping constant shortening, AM ( Figure 1 ) 182 N*s/cm Local optimization
+Cce_sP CE damping constant shortening, PM ( Figure 1 ) 57 N*s/cm Local optimization
+LmA Anterior muscle length ( Figure 2 ) Variable Angle sensor input
+LmP Posterior muscle length ( Figure 2 ) Variable Angle sensor input
+SALA Shank attachment length, AM ( Figure 2 ) 29cm [5]
+SALP Shank attachment length, PM ( Figure 2 ) 33cm [5]
+FMAA Foot moment arm, AM ( Figure 2 ) 4cm [6],[7]
+FMAP Foot moment arm, PM ( Figure 2 ) 5.5cm [5],[7]
+α Attachment angle, AM ( Figure 2 ) Degrees Calculated from geometry
+β Attachment angle, PM ( Figure 2 ) Degrees Calculated from geometry
+θ Ankle joint angle ( Figure 2 ) Variable Angle sensor input
+Act(A2) Activation, AM Stage 2 (Equation 1) 0.93, 0.63 User preferen ce
+Act(A3) Activation, AM Stage 3 (Equation 1) 0.28, 0.48 User preferen ce
+Act(A4) Activation, AM Stage 4 (Equation 1) 0.31, 0.51 User preferen ce
+Act(A5) Activation, AM Stage 5 (Equation 1) 0 [8]
+Act(A6) Activation, AM Stage 6 (Equation 1) 0 [8]
+Act(P2) Activation, PM Stage 2 (Equation 1) 0 [8]
+Act(P3) Activation, PM Stage 3 (Equation 1) 0 [8]
+Act(P4) Activation, PM Stage 4 (Equation 1) 0 [8]
+Act(P5) Activation, PM Stage 5 (Equation 1) 0 [8]
+Act(P6) Activation, PM Stage 6 (Equation 1) 0.44, 0.69 User preferen ce
+[1]Petak(2014) .
+[2]HoppelerandFlück(2002) .
+[3]Fukunagaetal.(1992) .
+[4]MaganarisandPaul(1999) .
+[5]Arnoldetal.(2010) .
+[6]MaganarisandPaul(1999) .
+[7]Baxteretal.(2012) .
+[8]Krishnaswamyetal.(2011) .
+AM, anterior muscle; PM, posterior muscle. Activation parameters Act( A2-4) and Act(P6) are given for Subject 1 and Subject 2, respectively. All other parameters were the same for
+bothsubjects.Modiﬁedfrom Petak(2014) .
+isometric force ( P0,Table1) were based on published values
+of the cross-sectional area of human shank muscles ( Fukunaga
+et al., 1992; Arnold et al., 2010 ), scaled by 9.5 N/cm2for
+peak voluntary contraction ( Hoppeler and Flück, 2002 ). Initial
+parameter values for muscle and tendon lengths, foot moment
+arms, and attachment angles of the anterior and posterior
+muscles were determined using published values ( Table1).
+Maximum isometric muscle force, P 0, as well as spring and
+damping constants were optimized using a local optimization
+function (Matlab FMINCON), and adjusted for best ﬁt to the
+observed ankle torque data collected during walking trials u sing
+theBiOMstockcontroller.The ankle joint angle was calculated in real-time using input
+from the BiOM’s ankle angle encoder and shank geometry. The
+law of cosines allows calculation of virtual muscle lengths f rom
+theBiOM’sankleangleencoder.Givenvirtualmusclelengtha nd
+activation act(t)for each muscle, the WFH algorithm calculates
+the ankle moment of each muscle, and computes net ankle joint
+moment which, after compensating for mechanical resistance, is
+sentasacommandtotheBiOMmotor.
+The walking gait cycle of humans consists of stance ( ∼60%)
+andswing( ∼40%)phases( Vaughanetal.,1990 ).TheBiOMstate
+detection algorithm further distinguishes early swing (sta te 2),
+late swing (state 3), early stance (state 4), late stance (sta te 5),
+Frontiers in Robotics and AI | www.frontiersin.org 5 April 2018 | Volume 5 | Article 36
+
+--- Page 6 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+and powered plantarﬂexion (state 6) on the basis of torque and
+timing.Duringhumanwalking,muscleactivationpatternsdi ﬀer
+depending on the stage of walking ( Krishnaswamy et al., 2011 ).
+Thetibialisanteriormuscle,whichprovidesankledorsiﬂex ion,is
+activated just prior to toe-oﬀ, and remains activated throug hout
+swing and into early stance. The posterior muscles, soleus, a nd
+gastrocnemius,areactiveduringthestancephaseofwalkinga nd
+silent while the foot is in the air ( Lichtwark and Wilson, 2006;
+Krishnaswamyetal.,2011 ).
+The WFH control algorithm uses the BiOM state machine
+onlytoprovidephase-dependentactivation(0–100%ofmaximal
+isometricmuscleforce,P 0)oftheanteriorandposteriormuscles
+that approximates biological muscle activation patterns. The
+anteriormusclegroupisactive( ∼60–90%P 0)duringearlyswing,
+late swing ( ∼30–50% P 0), and early stance ( ∼30–50% P 0) and
+the posterior muscle group is only active ( ∼40–70% P 0) during
+powered plantar ﬂexion. The activation levels were adjusted t o
+user preference during tuning sessions preceding experimenta l
+trials(seesectionSubject-SpeciﬁcTuning).
+A series of simulations was conducted to determine the
+sensitivity of the model to the parameter values (see Table1).
+For a representative level walking trial (Subject 1, 1.65 m/s ),
+the parameter values were varied systematically over a wide
+range (typically 0.5–250% of the optimal value). The predicted
+ankle moment for each parameter set was compared to the
+experimentallyobservedanklemomentduringtherepresentat ive
+trial using error analysis and the results reported as R2. The
+sensitivity analysis showed that the WFH algorithm predicts
+similar ankle torques over a wide range of parameter values. A
+changeof ±25%inparametervaluesresultedina <2%changein
+R2for all variables except PoP,Cce_sP,andAct(P6),for which R2
+decreasedby11,4,and9%respectively.
+Subject-Speciﬁc Tuning
+Two healthy male adults (age 34 and 35 years; height
+181 and 184cm; weight 82 and 109kg), with traumatic,
+unilateral trans-tibial amputation 10, and 11 years prior to t he
+study and no neuromuscular disorders or injuries, gave free
+informed consent to participate in this study. Both subjects
+had prosthetic ambulation skills for variable cadence, trav ersing
+most environmental barriers, and for vocational, therapeuti c,
+or exercise activity that demands prosthetic use beyond simpl e
+locomotion(i.e.,K3/K4ambulation).
+At the time of the study, both subjects had owned and used
+a BiOM T2 prosthesis in daily ambulatory activities for 4 and 5
+years.Bothsubjectsusedtheirownsocketandfootplateatta ched
+toaBiOMT2prosthesisspeciﬁcallymodiﬁedforthisstudywith
+asofterhard-stopspringthatallowedupto2◦ofdorsiﬂexionand
+withsoftwareenabledtorunbothstockandWFHcontrollers.
+The BiOM stock and WFH controller parameters were tuned
+for each subject in three phases during at least two tuning
+sessions. Subject-speciﬁc tuning of the BiOM stock controll er
+used standard operating procedures recommended by the
+manufacturer and included: (1) accounting for subject mass ; (2)
+adjustinganklestiﬀnessatheelstrikebyincreasingordecr easing
+early stance stiﬀness; and (3) adjusting the power provided at
+slow and fast walking speeds during powered plantarﬂexionbased on user preference. For the WFH controller, P 0and
+activation levels (0–100%) of the anterior and posterior muscle
+groups (Table1) during each phase of walking were determined
+based on subject preference. Once parameters for the stock and
+WFH controllers were determined for each subject during lev el
+walking, the same parameter values were used in all trials (level
+walkingandstairascent)forthatsubject.
+Testing Subjects With a Trans-Tibial
+Amputation
+Metabolic Cost of Transport
+We measured the metabolic cost of walking with the WFH
+vs. stock controllers at walking speeds of 0.75, 1.2, and 1.65
+m/s. Gross rates of oxygen consumption and carbon dioxide
+production were measured using a ParvoMedics TrueOne 2400
+(Sandy,UT)metaboliccart,whilesubjectswalkedonaWoodwa y
+Desmo (Waukesha, WI) treadmill. The order of velocities tes ted
+was randomized and subjects rested for at least 5min between
+trials. Steady-state metabolic power (W) from 4–6min of each
+trial was estimated using a standard equation ( Brockway, 1987 ).
+The metabolic power was divided by each participant’s weight
+andspeedtocalculatethemetaboliccostoftransport(JNm−1).
+Inverse Dynamics vs. BiOM Torque Sensor
+Walking kinematics and kinetics were quantiﬁed at three spee ds
+(0.75, 1.25, and 1.65 m/s) for each subject using an AccuGait
+Optimizedforce-plate(AdvanceMedicalTechnology,Inc.),ei ght
+ViconTMcameras, and Nexus 2.3 motion analysis software. An
+infrared timing system (Brower Timing Systems, Draper, Utah,
+USA)wasusedtodetermineaveragewalkingspeed.Trialsfalli ng
+±0.05 m/s outside of the prescribed speed were discarded. The
+force-plate was embedded in a 2.9m walkway. The cameras
+were operated at 100Hz, the same rate as the force plate.
+IR-reﬂecting markers were placed on the subjects at standard
+locations( Winter,1990;Davisetal.,1991 )totracklimbposition.
+TheNexus2.3lowerlegplug-ingaitdynamicsfunctionwasused
+toestimateankletorquefrominversedynamics.Anthropomet ric
+variables were measured for each subject, including body ma ss
+(kg), height (mm), left and right leg length (mm), left and ri ght
+kneewidth(mm),andleftandrightanklewidth(mm).
+Foreachalgorithm,anklemomentsestimatedusingtheBiOM
+torque sensor and inverse kinematics (derived from video an d
+force plate data) were compared at three speeds (0.75, 1.25, and
+1.65m/s).TheBiOM’sstatemachinewasusedtoidentifystrid es
+ontheprosthesisside,witheachstridestartingatoneheel- strike
+event (0% gait cycle) and ending at the next heel-strike event on
+theprostheticside.Forlevelwalking,7–12strideswereana lyzed
+foreachsubjectandeachcontrollerateachspeed( n=55strides
+forSubject1; n=64stridesforSubject2).
+Level Walking at Variable Speed
+The BiOM’s sensors, validated using inverse dynamics (see
+section Inverse Dynamics vs. BiOM Torque Sensor below) were
+used to estimate peak ankle moment (Nm/kg), plantarﬂexion
+angle during stance (degrees), and peak ankle power (W/kg) in
+thesagittalplaneduringlevelwalkingatthreespeeds(0.75, 1.25,
+and1.65m/s)andduringstairascent.Plantarﬂexionwasdeﬁn ed
+Frontiers in Robotics and AI | www.frontiersin.org 6 April 2018 | Volume 5 | Article 36
+
+--- Page 7 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+as a negative ankle angle and dorsiﬂexion as a positive angle,
+where 0◦represents the neutral position in which the foot is
+∼perpendicular to the shank. Due to noise in the time stamps
+fortheencodeddatafromtheBiOMsensorsandvariationinth e
+duration of each stride, the raw data were interpolated to obt ain
+100datapointsforeachstridebasedontotalstrideduration .The
+interpolated data were used to calculate ankle angular veloc ity
+andanklepower.
+Stair Ascent
+Subjects were asked to ascend stairs in a step-over-step mann er
+at self-selected speed and at 80 steps per minute. During stair
+ascent, subjects were asked to land on each step with the ball
+of the foot, as they naturally do with the intact limb ( Kannape
+and Herr, 2014 ). To normalize the self-selected speed, subjects
+were given the prompt “walk upstairs at a comfortable, safe pace
+that would allow you to maintain a conversation with someone
+walkingwithyou. ”Eachsubjecttook2–6levelgroundstepswith
+the prosthesis and then transitioned to the ﬁrst step with the ir
+intact limb. After ascending four stairs on the prosthesis si de,
+the subjects continued walking on level ground for another t wo
+stridesontheprosthesissideandthenascendedfourmoresta irs.
+A total of 11–62 steps was analyzed for each subject, speed and
+control algorithm ( n=179 steps for Subject 1; n=96 steps for
+Subject2).
+To compare the robustness of stock and WFH algorithms,
+we deﬁned robustness operationally as maintenance or
+improvement of prosthesis performance on stairs vs. level
+walking relative to average values for control subjects wit h no
+amputation performing the same tasks as published in Aldridge
+et al. (2012) . For example, the average plantarﬂexion angle for
+Subject 1 using the WFH control algorithm was −11.6◦during
+level walking at 0.75 m/s and it increased to −15.9◦during
+stair ascent at 80 steps/min, so the algorithm is robust becau se
+the average plantarﬂexion angle of control subjects with no
+amputationascendingstairsat80msteps/minwas −14.7◦.
+Statistics
+Statistical comparisons were performed using JMP Pro 13 (SAS
+Institute,Inc.).BiOMstockandWFHcontrollerswerecompar ed
+separately for each subjects. Peak ground reaction force was
+compared using two-way ANOVA ( α=0.05) with controller
+(BiOM stock vs. WFH), walking speed (0.75, 1.25, 1.65 m/s),
+and controller x speed as the main eﬀects. One-way ANOVA
+(α=0.05) was used to compare ankle moment estimates
+from the BiOM’s torque sensor to the estimates based on
+inverse kinematics within each combination of controller a nd
+walking speed. For level walking, peak ankle moment (Nm/kg),
+plantarﬂexion angle (degrees), and ankle power (W/kg) were
+compared using two-way ANOVA ( α=0.05), with controller,
+walking speed and controller x speed as the main eﬀects. For
+stair ascent, peak ankle moment (Nm/kg), plantarﬂexion angle
+(degrees), and ankle power (W/kg) were compared separately
+at each speed (self-selected vs. 80 steps/min) using one-way
+ANOVA ( α=0.05) with controller as the main eﬀect. To
+comparerobustnessofstockandWFHalgorithms,weusedtwo-
+way ANOVA with controller (stock vs. WFH), condition (levelwalking vs. stair ascent) and controller ×condition as main
+eﬀects.Theanalysiswasperformedseparatelyforslow(0.75m/s
+level walking vs. 80 steps/min stair ascent) and medium speeds
+(1.25m/slevelwalkingvs.self-selectedspeedforstairascent ).
+For parametric analyses, assumptions of normality were
+evaluated using Shapiro-Wilk tests within each combination of
+controller and speed. Equality of variances was evaluated usi ng
+Levene tests for normally distributed data and Brown-Forsyth e
+testsfornon-normaldata.Eachdatasetwastestedfornorma lity
+and all comparisons between controllers for each speed and
+subjectweretestedforequalityofvariancesbeforeandaft erbest
+Box-Coxtransformations.Foreachsubject,atotalof9depen dent
+variables (including vertical ground reaction force; peak a nkle
+moment from BiOM torque encoder vs. inverse dynamics; and
+sagittal plane peak ankle moment, ankle plantarﬂexion angle,
+and ankle power during level walking and stair ascent) were
+measured for each controller (BiOM stock and WFH) and
+walking speed (two for stairs and three for level walking), for a
+total of 48 data sets per subject. Due to persistent violations o f
+normality and homoscedasticity even after transformation ( see
+results), between-controller comparisons were also tested usin g
+non-parametricSteel-Dwasstests.
+RESULTS
+For Subject 1, 15 of 48 data sets failed the normality test
+and 10 of 32 comparisons failed the equal variances test after
+transformation. For Subject 2, 12 of 48 data sets failed the
+normalitytestand11of32comparisonsfailedtheequalvarianc e
+tests after transformation. ANOVA results are presented in
+Tables2–4, and results from the more conservative Steel-Dwass
+tests are indicated by asterisks in Figures3 –6. Where ANOVA
+and non-parametric tests diﬀered, we report the results of the
+moreconservativenon-parametrictests.
+Ground Reaction Force
+The BiOM stock and WFH controllers produced similar vertical
+ground reaction forces (GRF) for both subjects during level
+walking at all speeds ( Figure3A ). For both subjects, peak
+GRF increased with walking speed (two-way ANOVA, both
+P<0.0001,Table2). The subjects diﬀered in eﬀects of the
+controllers on peak GRF. For Subject 1, peak GRF was 6.7%
+TABLE 2 | Vertical ground reaction force for two subjects.
+Peak GRF (Nm/kg) Subject 1bSubject 2a,b
+Effect F-ratio P-value F-ratio P-value
+Speed 161.30 <0.0001 43.94 <0.0001
+Controller 11.63 0.0013 3.87 0.0574
+Speed x Controller 5.77 0.0057 3.10 0.058
+Resultsoftwo-wayANOVAafterBox—CoxtransformationforstockandWFHcontrol lers
+duringlevelwalkingatthreespeeds(0.75,1.25,and1.65m/s).See Figure3formeans ±
+SEM.aNot normally distributed after Box–Cox transformation;bVariances not equal after
+Box–Coxtransformation.
+Frontiers in Robotics and AI | www.frontiersin.org 7 April 2018 | Volume 5 | Article 36
+
+--- Page 8 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+TABLE 3 | Peak sagittal plane ankle moment, plantarﬂexion angle, and a nkle
+power for two subjects during level walking at variable spee d.
+Peak ankle moment (Nm/kg) Subject 1aSubject 2b
+Effect F-ratio P-value F-ratio P-value
+Speed 120.01 <0.0001 109.81 <0.0001
+Controller 10.02 0.0027 45.14 <0.0001
+Speed x Controller 0.73 0.4857 2.52 0.0896
+Plantarﬂexion angle (degrees) Subject 1aSubject 2a
+Effect F-ratio P-value F-ratio P-value
+Speed 86.63 <0.0001 10.40 0.0021
+Controller 2357.59 <0.0001 35.63 <0.0001
+Speed x Controller 148.07 <0.0001 47.00 <0.0001
+Ankle power (W/kg) Subject 1a,bSubject 2a
+Effect F-ratio P-value F-ratio P-value
+Speed 366.04 <0.0001 99.82 <0.0001
+Controller 356.45 <0.0001 227.89 <0.0001
+Speed x Controller 33.82 <0.0001 5.50 0.0066
+Results of two-way ANOVA after Box–Cox transformation for stock and W FH controllers
+duringlevelwalkingatthreespeeds(0.75,1.25,and1.65m/s).See Figure5formeans
+±SEM.aNotnormallydistributed;bVariancesnotequal.
+TABLE 4 | Peak sagittal plane ankle moment (Nm/kg), plantarﬂexion angl e
+(degrees), and ankle power (W/kg) for two subjects while asce nding stairs.
+Variable F-ratio P-value F-ratio P-value
+Self-selected speed Subject 1 Subject 2
+Peak ankle moment (Nm/kg) 34.21b<0.0001 44.64a<0.0001
+Plantarﬂexion angle (degrees) 4.32a<0.0001 11.14a0.0015
+Ankle power (W/kg) 13.92a,b0.0003 34.96a,b<0.0001
+80 steps/min Subject 1 Subject 2
+Peak ankle moment (Nm/kg) 5.0a0.028 640.27a<0.0001
+Plantarﬂexion angle (degrees) 302.16a<0.0001 68484.5b<0.0001
+Ankle power (W/kg) 948.89a<0.0001 584.59 <0.0001
+Results of one-way ANOVA after Box–Cox transformation for stock vs. WFH controllers
+during stair ascent at self-selected speed and 80 steps/min. See Figure6for means ±
+SEM.aNotnormallydistributed;bVariancesnotequal.
+higher on average for the stock controller at the two faster
+walking speeds ( Figure3B , Steel-Dwass tests, P<0.0198). For
+Subject 2, peak GRF was 8.7% higher for the WFH controller at
+thelowestspeed( Figure3B ;Steel-Dwasstest, P=0.0065).
+Metabolic Cost of Transport
+The metabolic cost of transport for the two control algorithm s
+diﬀered between subjects. Subject 1 had the lowest cost of
+transport at all speeds using the stock controller ( Figure4). The
+WFH-controller performed nearlyaswell asthestockcontrol ler
+at0.75m/sbutwalkingwaslesseﬃcientwiththeWFHcontroll erthan with the stock controller at the faster speeds. Subject 2 had
+the lowest cost of transport when using the WFH-controller at
+the slow and intermediate speeds, but the stock controller ha d
+thelowestcostoftransportatthefastestspeed( Figure4).
+Inverse Dynamics vs. BiOM Torque Sensor
+The accuracy of the BiOM torque sensor was assessed by
+comparingthepeakanklemomentestimatedbythesensortothe
+peakanklemomentestimatedfrominversedynamicswithineac h
+combination of control algorithm (stock vs. WFH) and speed
+(0.75,1.25,and1.65m/s)foreachsubject(12comparisonstot al).
+Inonlyoneof12ANOVAcomparisonswasthereadiﬀerencein
+peak ankle moment between estimates from the BiOM’s sensors
+and inverse dynamics after Box-Cox transformation (Subjec t 1,
+0.75 m/s; p=0.0041). In this case, the BiOM torque sensor
+underestimated the peak torque by ∼8% relative to the estimate
+from inverse dynamics. Because these results suggest that t he
+BiOM’s sensor provide a reliable measure of ankle moment, we
+useddatafromtheBiOMsensorsforsubsequentcomparisonsof
+algorithmperformance.
+Level Walking at Variable Speed
+During level walking, maximum forces of the virtual muscle-
+tendonsunit(MTU)were ∼800Nfortheanteriormusclemodel
+and∼1200N for the posterior muscle model, which are within
+the range of peak shank muscle forces in observed in human
+studies(Arnoldetal.,2010 ).Anklemomentproﬁlesweresimilar
+for the BiOM stock and WFH control algorithms at all speeds
+for both subjects ( Figure5A ). Peak ankle moment increased
+signiﬁcantly with walking speed for both controllers ( Figure5B ,
+two-way ANOVA, p<0.0001,Table3). Subject 1 achieved
+a 3.6% higher peak ankle moment during walking using the
+BiOM stock controller at the intermediate speed ( Figure5B ,
+Steel-Dwass test, P=0.0036), while Subject 2 achieved a 13.2%
+higherpeakanklemomentusingtheWFHalgorithmatallspeeds
+(Figure5B ;Steel-Dwasstests, P<0.017).
+For Subject 1, peak plantarﬂexion angle achieved during
+stance (Figures5C,D ) was 38% larger on average for the stock
+algorithm than for the WFH algorithm at all three speeds
+(Figure5D ,Table3; Steel-Dwass tests, P<0.0004). For Subject
+2 (Figure5D ), the plantarﬂexion angle was 20% smaller for the
+WFH algorithm than the stock algorithm at the slowest speed
+(Steel-Dwass test, P=0.0001), similar for both controllers at
+the intermediate speed, and 10% larger for the stock controll er
+at the fastest speed (Steel-Dwass test, P=0.0004). Ankle power
+(Figures5E,F ) increased with speed for both algorithms (two-
+way ANOVA, p<0.0001;Table3) and was signiﬁcantly larger
+for the stock algorithm (average 44% for Subject 1 and 29% for
+Subject 2)forbothsubjects atallspeeds( Figure5F ,Steel-Dwass
+tests,P≤0.0092). Both subjects reported a preference for the
+stock controller during level walking, which was not surpris ing
+based on their extensive previous experience using the BiOM
+prosthesiswiththestockcontroller.
+Stair Ascent
+Using the same parameters as for level walking, ankle moment
+proﬁles were again similar for the stock and WFH controllers
+Frontiers in Robotics and AI | www.frontiersin.org 8 April 2018 | Volume 5 | Article 36
+
+--- Page 9 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+FIGURE 3 | WFH (gray) and BiOM stock (black) controllers produce simil ar ground reaction forces during level walking at variable s peed.(A)Average ground reaction
+force (N/kg) ±SEM vs. % stance for Subject 1 at three speeds. Left, 0.75 m/s; c enter, 1.25 m/s; right, 1.65 m/s. (B)Average peak ground reaction force (N/kg) ±
+SEM for two subjects. Asterisks (*) represent statistical d ifferences ( P<0.05) using Steel-Dwass non-parametric comparisons of med ian values.
+FIGURE 4 | WFH (gray) and BiOM stock (black) controllers produce simil ar
+metabolic cost of transport during level walking at variabl e speed. Cost of
+transport (J/Nm) for two subjects at three walking speeds (0. 75, 1.2, and 1.65
+m/s). Broken lines =Subject 1; solid lines =Subject 2.
+when ascending stairs ( Figure6A ). There was no consistent
+pattern of variation in peak ankle moment ( Figure6B ,Table4)
+between stock and WFH controllers. For Subject 1, the stock
+controller hadan 12.4% higher peak moment at the self-select ed
+speed (Figure6B , Steel-Dwass test, P<0.0001), and the WFH
+controller had a 3.7% higher peak moment at 80 steps/min
+(Figure6B , Steel-Dwass tests, P≤0.0007). For Subject 2, there
+was no diﬀerence between controllers at the self-selected spe ed,
+and the stock controller had a 146% higher peak ankle moment
+at80steps/min( Figure6B ,Steel-Dwasstests, P=0.0001).For both subjects at self-selected speed and 80 steps/min, the
+plantarﬂexion angle ( Figures6C,D ) was signiﬁcantly greater for
+the WFH controller than for the stock controller ( Figure6D ,
+Steel-Dwass tests, P<0.0001). The WFH controller increased
+ankle angle by 35 and 20.2% at self-selected walking speed and
+by 383 and 1193% at 80 steps/min for Subject 1 and Subject
+2, respectively. For both subjects and both speeds, ankle power
+(Figures6E,F ) was greater for the WFH controller than for
+the stock controller ( Figure6F , Steel-Dwass tests, P<0.0093),
+increasing by 0.7 and 39% at self-selected speed and by 255 and
+435%at80steps/minforSubject1andSubject2,respectively.
+The mechanics of level walking and stair ascent are markedly
+diﬀerent. In contrast to level walking, stair ascent involve s two
+cycles controlled dorsiﬂexion and powered plantarﬂexion; th e
+ﬁrstcyclepullsthecenterofmassupfromthepreviousstair,a nd
+the second cycle pushes the center of mass up to the next stair
+(Wilken et al., 2011; Aldridge et al., 2012 ). Both the BiOM stock
+and WFH algorithms produced relatively smooth transitions
+from level steps to stair steps and back to level steps ( Figure7.
+Pull-upmomentsinearlystanceweresimilarforbothalgorit hms
+(Figures7A,C ),butpush-oﬀmomentslaterinstancewerehigher
+relativetopull-up moments forthestock( Figure7C )compared
+to WFH controller ( Figure7A ). Plantarﬂexion angles were also
+smallerandmorevariableforthestock( Figure7D )comparedto
+theWFH( Figure7B )controller,especiallyduringthetransitions
+fromleveltostairsandviceversa.TheWFHcontrollerproduc ed
+reliable moments and plantarﬂexion angles during level to st airs
+transitions and vice versa with minimal sensing (i.e., ankle angle
+inputonly)andnochangeinparameters.
+Both subjects expressed a strong preference for the WFH
+algorithm when ascending stairs. One subject reported that t he
+Frontiers in Robotics and AI | www.frontiersin.org 9 April 2018 | Volume 5 | Article 36
+
+--- Page 10 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+FIGURE 5 | Ankle kinematics and kinetics during level walking at varia ble speed using WFH (gray) and BiOM stock (black) controller s.(A)Average ankle moment
+(Nm/kg)±SEM vs. % gait cycle. (B)Peak ankle moment (Nm/kg) ±SEM for two subjects at three walking speeds. (C)Average plantarﬂexion angle (degrees) ±SEM
+vs. % gait cycle. (D)Peak plantarﬂexion angle (degrees) ±SEM for two subjects at three walking speeds. (E)Average ankle power (W/kg) ±SEM vs. % gait cycle. (F)
+Peak ankle power (W/kg) ±SEM for two subjects at three walking speeds. Data in (A,C,E)are from for Subject 1 walking at 1.25 m/s. Asterisks (*) repre sent statistical
+differences ( P<0.05) using Steel-Dwass non-parametric tests.
+FIGURE 6 | Ankle kinematics and kinetics during stair ascent using WFH (gray) and BiOM stock (black) controllers. (A)Average ankle moment (Nm/kg) ±SEM vs. %
+step cycle. (B)Peak ankle moment (Nm/kg) ±SEM for two subjects ascending stairs at self-selected spee d and 80 steps/min. (C)Average plantarﬂexion angle
+(degrees) ±SEM vs. % step cycle. (D)Peak plantarﬂexion angle (degrees) ±SEM for two subjects ascending stairs at self-selected spee d and 80 steps/min.
+(E)Average ankle power (W/kg) ±SEM vs. % gait cycle. (F)Peak ankle power (W/kg) ±SEM for two subjects ascending stairs at self-selected spee d and 80
+steps/min. Data in (A,C,E)from Subject 2 ascending stairs at 80 steps/min. Asterisks (* ) represent statistical differences ( P<0.05) using Steel-Dwass non-parametric
+tests.
+WFH controller appeared to compensate for the BiOM’s weight,
+so he did not feel that he had to carry the prosthesis up the
+stairs using his own muscles. Both subjects reported that theWFH algorithm allowed them to ascend stairs in a more natural
+step-over-step manner than the commercially available stock
+controllerwhichtheyhadmoreexperiencewithusing.
+Frontiers in Robotics and AI | www.frontiersin.org 10 April 2018 | Volume 5 | Article 36
+
+--- Page 11 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+FIGURE 7 | Adaptability of the WFH control algorithm. Ankle moments (A,C)and plantarﬂexion angles (B,D)for Subject 1 during the transition from level walking to
+stair ascent and back to level walking at self-selected spee d using the WFH (gray, A,B) and stock (black, C,D) controllers. Eight consecutive strides are shown in each
+ﬁgure. The subject ﬁrst takes two strides on level ground, then ascends four stairs on the prosthetic side, and ﬁnally takes t wo level strides at the top of the stairs. For
+the WFH controller, there is no change in muscle activation o r other parameters during transitions from level walking to stair ascent and back to level walking.
+Robustness of the WFH Algorithm
+To illustrate therobustness of the WFH algorithm, we evalua ted
+the behavior of the anterior and posterior muscle models
+during level walking at 1.25 m/s and stair ascent at self-sel ected
+speed (Figure8). The reciprocal lengths of the anterior and
+posteriormusclesaredeterminedstrictlybytheankleangle input
+(Figure8A ) as a function of their moment arms and tendon
+stiﬀness. During level walking (solid line), the virtual ant erior
+muscle is stretched during late stance ( Figure8A ) and shortens
+rapidlyduringearlyswing,asobservedinpreviousstudiesdu ring
+normal walking ( Lichtwark and Wilson, 2006 ). The posterior
+muscle shows a reciprocal pattern, stretching during swing an d
+shortening during stance to power plantarﬂexion. During stai r
+ascent, the peak plantarﬂexion angle was larger and occurred
+later in the gait cycle than during level walking, as also obs erved
+inpreviousstudies( LichtwarkandWilson,2006;Spanjaardetal.,
+2007).
+In the WFH algorithm, the net ankle moments produced by
+the muscle models are the sum of: (1) the contractile element
+forces (Fce) determined by the activation parameters; (2) spring
+forces determined by a combination of activation and muscle
+length (XmA,XmP); and (3) damping forces determined by the
+velocity of the contractile element ( ˙xCE). During level walking,
+theanteriormuscle( Figure8B )producesadorsiﬂexionmoment
+during swing, and the posterior muscle ( Figure8C ) producesa plantarﬂexion moment during stance. The net ankle moment
+(Figure8D ),thesumofanteriorandposteriormusclemoments,
+isthecommandsenttothemotor.
+The diﬀerence in net moment produced by the WFH
+algorithm during level walking and stair ascent illustrate s the
+algorithm’srobustness.Theonlydiﬀerencebetweenlevelwa lking
+andstairascentwastheankleangleinput( Figure8A ).Therewas
+no change in virtual muscle activation or any other parameter s.
+Yet,theplantarﬂexionmomentproducedbytheposteriormuscle
+(Figure8C ) rose earlier during stance and was larger during
+late stance during stair ascent than during level walking. T he
+nettorque( Figure8D )alsoroseearlierduringstanceproducing
+a double peak ( Figure8D , dashed line) in net ankle moment
+typical of normal stair ascent ( Sinitski et al., 2012 ) in contrast
+to the single peak produced during level walking ( Figure8D ,
+solid line). By emulating muscle intrinsic response to length
+changes(providedasinputviatheBiOMankleanglesensor),the
+algorithm provides robust control of ankle moment during sta ir
+ascentwithoutrequiringachangeinparameters.
+Statistical analysis demonstrated the diﬀerence in robustness
+between WFH and stock controllers in the two subjects who
+participated in this case study. For this analysis, peak ankle
+moment, maximum plantarﬂexion angle, and peak ankle power
+were compared between the controllers at two speeds (slow and
+medium) for each subject, for a total of 12 two-way ANOVA
+Frontiers in Robotics and AI | www.frontiersin.org 11 April 2018 | Volume 5 | Article 36
+
+--- Page 12 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+FIGURE 8 | Robustness of the WFH algorithm during level walking (solid lines) and stair ascent (dotted lines). (A)Between level walking and stair ascent, the only
+difference in parameters is the ankle angle. Ankle plantarﬂe xion is larger and occurs later in the gait cycle during stair ascent than during level walking. The change in
+ankle angle results in different virtual muscle lengths and velocities, which in turn affect the ankle moments produced by the anterior (B)and posterior (C)muscle
+models. The net ankle moment (D)is the torque command sent to the motor. Lines represent mean ±1 SEM.
+tests. A controller was considered to be robust if the change
+in average value of the dependent variable (e.g., peak ankle
+moment) either stayed the same during stair ascent or became
+closer to the average value of that variable observed in cont rol
+subjectswithnoamputationperformingthesametask,publishe d
+inAldridge et al. (2012) . Of 12 comparisons, both controllers
+showed robust behavior from level walking to stairs for peak
+ankle power at medium speed (both subjects) and for peak
+ankle torque in Subject 2 at medium speed. Neither controller
+showed robustness for peak ankle torque of Subject 1 at both
+speeds. For all other comparisons (7/12), the WFH algorithm
+showed robust performance during stair ascent whereas the
+stockcontrollerdidnot.Parametervaluesofthestockcont roller
+moved signiﬁcantly away from values for control subjects fo r
+maximum plantarﬂexion angle of both subjects at both speeds,
+for peak ankle torque of Subject 2 at the slower speed, and for
+peak ankle power of both subjects at the slower speed (two-way
+ANOVA, post-hoct -tests,allP<0.05).
+DISCUSSION
+Although this case study was limited to only two subjects, it
+represents one of the few studies that includes subjects with
+extensive experience (4–5 years) using a powered prosthesisfor daily activities. Despite the similar history of the two
+subjects in terms of the time since amputation and experience
+using the BiOM T2, there were diﬀerences between subjects in
+performancebetweenthestockandWFHcontrollersduringlev el
+walking.Subject1hadalowercostoftransport,largerpeakankl e
+moment, and larger plantarﬂexion angle during stance when
+using the stock controller than when using the WFH controller .
+ThereversewastrueforSubject2,forwhomthecostoftranspor t
+was lower, peak ankle moment was larger, and plantarﬂexion
+angle during stance was larger at slow and intermediate speed s
+when using the WFH controller than when using the stock
+controller.Forlevelwalking,theBiOMstockcontrollerprod uced
+higher ankle power for both subjects at all speeds. Given their
+extensive experience using the stock controller, we expected a
+larger diﬀerence in performance between controllers than was
+observed.
+During stair ascent, the WFH controller increased both
+plantarﬂexion angle and ankle power for both subjects at the
+self-selected speed and at 80 steps/min. In a previous study
+of stair ascent using the BiOM T2 prosthesis, Aldridge et al.
+(2012)demonstrated that the BiOM T2 prosthesis improved
+ankle plantarﬂexion angle by ∼10◦relative to an elastic storage
+andreturnprosthesisatboth80steps/min( −4.5◦vs.+5.8◦)and
+self-selected speed ( −4.9◦vs.+5.8◦). However, even with the
+Frontiers in Robotics and AI | www.frontiersin.org 12 April 2018 | Volume 5 | Article 36
+
+--- Page 13 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+BiOM T2 prosthesis, the plantarﬂexion angle was signiﬁcantly
+lower compared to controls with no amputation ( −14.7◦at 80
+steps/minand −15.2◦atself-selectedspeed).Inthepresentstudy,
+bothsubjectsachievedankleplantarﬂexionanglesaveragin gfrom
+−15.1to−16.7◦atself-selectedspeedand −16.2to−19.5◦at80
+steps/min when using the WFH controller, equivalent to those
+of control subjects in the previous study ( Aldridge et al., 2012 ).
+In contrast in the present study, the stock controller produce d
+signiﬁcantly smallerankle plantarﬂexionangles averaging −11.2
+to−13.9◦at the self-selected speed and −0.9 to−3.4 at 80
+steps/min.
+The experienced BiOM users in the present study had larger
+plantarﬂexionanglesduringstairascentattheself-select edspeed
+(−11.2 to−13.9◦) than subjects in Aldridge’s et al. (2012) study
+(−4.9◦vs.+5.8◦), who had acclimated to the BiOM for only
+∼43days on average. This diﬀerence could be due to the greater
+experience of the subjects in the present study, to the modiﬁed
+hard-stop spring which allows greater dorsiﬂexion than the
+commerciallyavailableBiOMT2prosthesis,orboth.
+Although more ankle power is required to accelerate the
+center of mass during stair ascent than during level walking
+(Wilkenetal.,2011 ),itappearsthatmaintaininganklekinematics
+is also important for stair ascent. Ankle plantarﬂexion plays a n
+important role in transitioning oﬀ the trailing limb onto the
+leading limb, and a decrease in ankle plantarﬂexion requires
+increasedhipextensiontoraisethecenterofmass( Aldridgeetal.,
+2012). Although Aldridge et al. (2012) reported no diﬀerence in
+ankle plantarﬂexor moment or ankle power between the BiOM
+T2 prosthetic limb and controls with no amputation, the intact
+limb generated more ankle power than control subjects, and
+use of the asymmetric “hip strategy,” typically used by people
+with a unilateral trans-tibial amputation while ascending s tairs
+(Powers et al., 1997; Alimusaj et al., 2009 ), was not reduced. An
+important question for future work is whether, by increasing
+both plantarﬂexion angle and ankle power during stair ascent
+comparedtothestockcontroller,theWFHcontrollercanredu ce
+or eliminate use of the “hip strategy,” which increases both
+gait asymmetry and muscular eﬀort. Increased plantarﬂexion
+and ankle power when climbing stairs, as well as smooth
+transitions between diﬀerent terrains, may provide a signiﬁc ant
+improvement in quality of life and cardiovascular ﬁtness for
+persons with an amputation ( Sansam et al., 2009; Sagawa et al.,
+2011).
+The ability of the WFH controller to produce walking at
+variable speed and stair ascent with minimal real-time sensi ng
+(only ankle angle) and no change in virtual muscle activatio n
+or other parameters is a signiﬁcant achievement due to the
+fundamental diﬀerences in gait when ambulating these terrai ns
+(Wilken et al., 2011 ). While the phases of level walking
+from heel-strike to heel-strike include controlled plantar ﬂexion,
+controlled dorsiﬂexion, powered plantarﬂexion, and swing ( Au
+et al., 2008 ), the phase transitions during stair ascent include
+an additional pair of controlled dorsiﬂexion and powered
+plantarﬂexion phases before the swing phase. The ﬁrst pair of
+controlled dorsiﬂexion and powered plantarﬂexion phases pull
+the center of mass up from the previous stair, whereas thesecond pair pushes the center of mass up to the next stair
+(Wilken et al., 2011; Aldridge et al., 2012 ). Subjects using the
+WFH algorithm transitioned smoothly from level walking to
+stair ascent and vice versa using the same set of equations and
+parameter values. Ankle kinematics and kinetics were much
+more variable for both subjects during transitions from lev el to
+stairs and back when using the stock controller. The adaptati on
+of ankle torque assistance provided by the WFH controller
+during gait transitions depends only upon the diﬀerent ankle
+angle input, which in turn represents the eﬀects of external
+forces applied to the virtual muscles at the ankle joint (see
+Figure8).
+Although many previous studies presume that diﬀerent
+operational modes are required for ambulation in diﬀerent
+terrains (Tkach and Hargrove, 2013 ), the present study provides
+proof of concept that a controller based on muscle intrinsic
+properties can provide adaptive torque control using the same
+set of equations and parameters across diﬀerent gaits and
+terrains. In principle, this is the same control strategy that
+animals and humans use during unexpected perturbations
+when muscles instantaneously adjust their force and stiﬀness
+in response to applied length changes long before reﬂex
+feedback can modify muscle activation ( Daley et al., 2009;
+Daley and Biewener, 2011 ). By demonstrating the suﬃciency
+of muscle intrinsic properties for control of level walking
+and stair ascent, the results suggest the likelihood that the se
+properties may contribute to control of voluntary human
+movements.
+LIMITATIONS
+One major limitation of this study is the small sample size of
+two subjects. Although many previous studies have compared
+the BiOM T2 prosthesis to passive and quasi-passive prostheses
+and to control subjects with no amputation, during both level
+walking ( Herr and Grabowski, 2012 ) and stair ascent ( Aldridge
+et al., 2012; Pickle et al., 2014 ), a much larger sample is needed
+to test the repeatability of the results from this small case s tudy.
+Future studies are also needed to assess whether the WFH
+algorithm can improve the kinematics and kinetics not only of
+theaﬀectedlimbbutalsotheunaﬀectedlimbduringlevelwalki ng
+and stair ascent, as well as regulation of whole body angular
+momentum.
+There are also some limitations associated with the design o f
+the WFH control algorithm that could be addressed in future
+studies. The ﬁrst is use of square-waves to simulate activat ion of
+the virtual muscles during the diﬀerent phases of the gait cycl e.
+The sensitivity analysis showed that square-wave activatio n of
+thevirtualmusclesatspeciﬁcphasesduringthegaitcycleres ults
+in ﬂuctuation of the damping forces when muscle activation
+changes abruptly. These ﬂuctuations in simulated muscle forc e
+reduce dorsiﬂexion during swing at the stance-swing transit ion,
+and also increase plantarﬂexion moment in early stance, whic h
+may decrease eﬃciency and performance of the WFH controller
+during level walking. Future work should include development
+of activation strategies that reduce discontinuities in mu scle
+Frontiers in Robotics and AI | www.frontiersin.org 13 April 2018 | Volume 5 | Article 36
+
+--- Page 14 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+activationacrossthegaitcycle.Inthelongterm,acontrol strategy
+for virtual muscle activation that eliminates the requirem ent for
+state-basedcontrolandprovidesvolitionalcontrol,sucha sEMG
+from the residual limb, would also likely improve performance
+andenergyeﬃciency.
+CONCLUSION
+The results of this case study of two experienced BiOM users
+provide proof-of-concept that a WFH control algorithm based
+on muscle intrinsic properties can produce ankle kinematics
+and kinetics during level walking at variable speed and stair
+ascent that are similar to those produced by the BiOM’s stock
+controlalgorithmandbypeoplewithnoamputation.Therobust
+WFH controller transitions from level walking to stairs and vice
+versa with no change in muscle activation or other parameters ,
+and without requiring information about the user’s intende d
+activity. Future work should address optimization of algori thm
+performanceandassessmentofitsimpactonthekinematicsand
+kinetics of the ankle, knee, and hip on aﬀected and unaﬀected
+sides,aswellaswhole-bodybiomechanics.
+ETHICS STATEMENT
+This study was carried out in accordance with the
+recommendations of Ethical Principles and Guidelines for th e
+ProtectionofHumanSubjectsinResearchandNorthernArizon a
+University’s Institutional Review Board for the Protection o f
+Human Subjects. All subjects gave written informed consent in
+accordance with the Declaration of Helsinki. The protocol wa s
+approvedbytheInstitutionalReviewBoardfortheProtectiono f
+HumanSubjectsatNorthernArizonaUniversity.
+Animal studies were carried out in accordance with
+the recommendations of the United States Department of
+Agriculture (USDA) Animal Welfare Act and Regulations
+(AWA), the Guide for the Care and Use of LaboratoryAnimals, Public Health Services Policy on Humane Care and
+Use of Laboratory Animals, Occupational Safety and Health
+Administration (OSHA), and Environmental Protection Agen cy
+(EPA) regulations, Northern Arizona University’s Instituti onal
+Animal Care and Use Committee policies and procedures.
+The research was approved by Northern Arizona University’s
+InstitutionalAnimalCareandUseCommittee.
+AUTHOR CONTRIBUTIONS
+TheexperimentsweredesignedbyKN,ZH,andJT.UT,AH,and
+ZH: recruited subjects. UT, EL, AH, KC, and DR: improved the
+experimental design, performed the experiments, and collecte d
+data.UT,EL,KC,NR,andDR:analyzeddatausingcustomcode.
+UT,NR,andTH:preparedtheﬁgures.UT,JT,andKN:prepared
+theﬁrstdraftofthemanuscript.Allauthorsreviewedandedi ted
+themanuscript.
+FUNDING
+ThisworkwassupportedinpartbyawardsfromtheW.M.Keck
+Foundation, the National Science Foundation (IOS-0732949 ,
+IOS-1025806, IOS-1456868; IIP-1237878, and IIP-1521231) , the
+Technology Research Initiative Fund of Northern Arizona
+University, and the Achievement Rewards for College Scientist s
+Foundation(AH).
+ACKNOWLEDGMENTS
+The authors wish to thank Dr. Kathleen Ganley for use of the
+force-plateandmotioncapturesystemandDr.PamelaBoschfor
+use of the treadmill and metabolic cart at the NAU—Phoenix
+Biomedical Campus. Kirsten Lopez, Nathanial Johnson, Shelby
+Martin,andIsaacRomeroassistedindatacollectionandanaly sis.
+Drs. Zachary Lerner and Stan Lindstedt provided constructive
+commentsonearlierversionsofthismanuscript.
+REFERENCES
+Aaron, R. K., Herr, H. M., Ciombor, D. M., Hochberg, L. R., Donoghue, J.
+P., Briant, C. L., et al. (2006). Horizons in prosthesis development fo r the
+restoration of limb function. J. Am. Acad. Orthop. Surg. 14, S198–S204.
+doi:10.5435/00124635-200600001-00043
+Agrawal, V., Gailey, R. S., Gaunaurd, I. A., O’Toole, C., and Finni eston, A.
+A. (2013). Comparison between microprocessor-controlled ankle/foot
+and conventional prosthetic feet during stair negotiation in pe ople
+with unilateral transtibial amputation. J. Rehabil. Res. Dev. 50, 941–950.
+doi:10.1682/JRRD.2012.05.0093
+Aldridge,J.M.,Sturdy,J.T.,andWilken,J.M.(2012).Stairasc entkinematicsand
+kineticswithapoweredlowerlegsystemfollowingtranstibialamputa tion.Gait
+Posture36,291–295.doi:10.1016/j.gaitpost.2012.03.013
+Alimusaj, M., Fradet, L., Braatz, F., Gerner, H. J., and Wolf, S. I. (2 009).
+Kinematics and kinetics with an adaptive ankle foot system durin g
+stair ambulation of transtibial amputees. Gait Posture 30, 356–363.
+doi:10.1016/j.gaitpost.2009.06.009
+Arnold, E. M., Ward, S. R., Lieber, R. L., and Delp, S. L. (2010). A mod el of the
+lower limb for analysis of human movement. Ann. Biomed. Eng. 38, 269–279.
+doi:10.1007/s10439-009-9852-5Au, S. K., Bonato, P., and Herr, H. (2005). “An EMG-position contro lled
+system for an active ankle-foot prosthesis: an initial experiment al study,”
+in9th International Conference on Rehabilitation Robotics. IC ORR. (IEEE)
+(Chicago,IL),375–379.
+Au, S. K., Weber, J., and Herr, H. (2007). “Biomechanical design o f a powered
+ankle-foot prosthesis,” in IEEE 10th International Conference on Rehabilitation
+Robotics(IEEE) (Noordwijk),298–303.
+Au, S., Berniker, M., and Herr, H. (2008). Powered ankle-foot prosthe sis
+to assist level-ground and stair-descent gaits. Neural Netw. 21, 654–666.
+doi:10.1016/j.neunet.2008.03.006
+Baxter, J. R., Novack, T. A., Van Werkhoven, H., Pennell, D. R., an d
+Piazza, S. J. (2012). Ankle joint mechanics and foot proportions di ﬀer
+between human sprinters and non-sprinters. Proc. Biol. Sci. 279, 2018–2024.
+doi:10.1098/rspb.2011.2358
+Brockway, J. M. (1987). Derivation of formulae used to calculate ene rgy
+expenditureinman. Hum.Nutr.Clin.Nutr .41,463–471.
+Cleather,D.J.,Southgate,D.F.,andBull,A.M.(2015).Theroleo fthebiarticular
+hamstringsandgastrocnemiusmusclesinclosedchainlowerlimbextens ion.J.
+Theor.Biol. 365,217–225.doi:10.1016/j.jtbi.2014.10.020
+D’Andrea, S., Wilhelm, N., Silverman, A. K., and Grabowski, A. M. (201 4). Does
+useofapoweredankle-footprosthesisrestorewhole-bodyangularmomen tum
+Frontiers in Robotics and AI | www.frontiersin.org 14 April 2018 | Volume 5 | Article 36
+
+--- Page 15 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+during walking at diﬀerent speeds? Clin. Orthop. Relat. Res. 472, 3044–3054.
+doi:10.1007/s11999-014-3647-
+Daley, M. A., and Biewener, A. A. (2011). Leg muscles that mediate stability:
+mechanics and control of two distal extensor muscles during obsta cle
+negotiation in the guinea fowl. Philos. Trans. R. Soc. Lond. B Biol. Sci. 366,
+1580–1591.doi:10.1098/rstb.2010.0338
+Daley, M. A., Voloshina, A., and Biewener, A. A. (2009). The role o f intrinsic
+musclemechanicsintheneuromuscularcontrolofstablerunninginthe guinea
+fowl.J.Physiol. 587,2693–2707.doi:10.1113/jphysiol.2009.171017
+Davis, R., Ounpuu, S., Tyburski, D., and Gage, J. (1991). A gai t analysis
+data collection and reduction technique. Hum. Mov. Sci. 10, 575–587.
+doi:10.1016/0167-9457(91)90046-Z
+Dempster,W.T.(1955).Theanthropometryofbodyaction. Ann.N.Y.Acad.Sci.
+63,559–585.doi:10.1111/j.1749-6632.1955.tb32112.x
+Dickinson, M. H., Farley, C. T., Full, R. J., Koehl, M. A., Kram, R., and Lehman,
+S. (2000). How animals move: an integrative view. Science288, 100–106.
+doi:10.1126/science.288.5463.100
+Eilenberg, M. F., Geyer, H., and Herr, H. (2010). Control of a powered a nkle-foot
+prosthesis based on a neuromuscular model. IEEE Trans. Neural Syst. Rehabil.
+Eng.18,164–173.doi:10.1109/TNSRE.2009.2039620
+Esposito, E. R., Rodriguez, K. M., Ràbago, C. A., and Wilken, J. M . (2014). Does
+unilateral transtibial amputation lead to greater metabolic demand du ring
+walking? J.Rehabil.Res.Dev. 51,1287–1296.doi:10.1682/JRRD.2014.06.0141
+Farrell, M. T., and Herr, H. (2011). A method to determine the optimal featu res
+forcontrolofapoweredlower-limbprostheses. IEEEEng.Med.Biol.Soc. 2011,
+6041–6046.doi:10.1109/IEMBS.2011.6091493
+Fukunaga, T., Roy, R. R., Shellock, F. G., Hodgson, J. A., Day, M. K.,
+Lee, P. L., et al. (1992). Physiological cross-sectional area of human leg
+muscles based on magnetic resonance imaging. J. Orthop. Res. 10, 928–934.
+doi:10.1002/jor.1100100623
+Gardinier, E. S., Kelly, B. M., Wensman, J., and Gates, D. H. (2017) . A
+controlled clinical trial of a clinically-tuned powered ankle prosthesis
+in people with transtibial amputation. Clin. Rehabil. 32, 319–329.
+doi:10.1177/0269215517723054
+Gates, D. H., Aldridge, J. M., and Wilken, J. M. (2013). Kinematic c omparison
+of walking on uneven ground using powered and unpowered prostheses. Clin.
+Biomech. 28,467–472.doi:10.1016/j.clinbiomech.2013.03.005
+Grabowski, A. M., and D’Andrea, S. (2013). Eﬀects of a powered ank le-foot
+prosthesisonkineticloadingoftheunaﬀectedlegduringlevel-grou ndwalking.
+J.Neuroeng.Rehabil. 10:49.doi:10.1186/1743-0003-10-49
+Herr,H.M.,andGrabowski,A.M.(2012).Bionicankle-footprosthes isnormalizes
+walking gait for persons with leg amputation. Proc. Biol. Sci. 279, 457–464.
+doi:10.1098/rspb.2011.1194
+Hessel, A. L., Lindstedt, S. L., and Nishikawa, K. C. (2017). Ph ysiological
+mechanisms of eccentric contraction and its applications: a role for t he giant
+titinprotein. Front.Physiol. 8:70.doi:10.3389/fphys.2017.00070
+Hogan, N. (1985). The mechanics of multi-joint posture and movement c ontrol.
+Biol.Cybern. 52,315–331.doi:10.1007/BF00355754
+Hoppeler, H., and Flück, M. (2002). Normal mammalian skeletal muscle and its
+phenotypicplasticity. J.Exp.Biol. 205,2143–2152.
+Kannape,O.A.,andHerr,H.M.(2014).Volitionalcontrolofankleplan tarﬂexion
+in a powered transtibial prosthesis during stair-ambulation. IEEE Eng. Med.
+Biol.Soc. 2014,1662–1665.doi:10.1109/EMBC.2014.6943925
+Krishnaswamy, P., Brown, E. N., and Herr, H. M. (2011). Human leg model
+predicts ankle muscle-tendon morphology, state, roles and energetics i n
+walking.PLoSComput.Biol. 7:e1001107.doi:10.1371/journal.pcbi.1001107
+Lee, S. S., Arnold, A. S., Miara, M.de., B., Biewener, A. A., and W akeling, J. M.
+(2013).Accuracyofgastrocnemiusmusclesforcesinwalkingandrun ninggoats
+predicted by one-element and two-element Hill-type models. J. Biomech. 46,
+2288–2295.doi:10.1016/j.jbiomech.2013.06.001
+LeMoyne,R.(2016). AdvancesforProstheticTechnology .Tokyo:Springer.
+Lichtwark, G. A., and Wilson, A. M. (2006). Interactions betwee n the human
+gastrocnemiusmuscleandtheAchillestendonduringincline,levelan ddecline
+locomotion. J.Exp.Biol. 209,4379–4388.doi:10.1242/jeb.02434
+Lockwood, E. R. (2016). Integrating the Winding Filament Model Clutch into
+BionX’s Control Algorithm . Master’s thesis, Northern Arizona University,
+Flagstaﬀ,AZ.Maganaris, C. N., and Paul, J. P. (1999). In vivo human
+tendon mechanical properties. J. Physiol. 521(Pt 1), 307–313.
+doi:10.1111/j.1469-7793.1999.00307.x
+Markowitz, J., Krishnaswamy, P., Eilenberg, M. F., Endo, K., Barn hart, C., and
+Herr,H.(2011).Speedadaptationinapoweredtranstibialprosthesisc ontrolled
+with a neuromuscular model. Philos. Trans. R. Soc. Lond. B Biol. Sci. 366,
+1621–1631.doi:10.1098/rstb.2010.0347
+McGowan, C. P., Grabowski, A. M., McDermott, W. J., Herr, H. M., and K ram,
+R.(2012).Legstiﬀnessofsprintersusingrunning-speciﬁcprosth eses.J.R.Soc.
+Interface9,1975–1982.doi:10.1098/rsif.2011.0877
+McGowan, C. P., Neptune, R. R., and Herzog, W. (2013). A phenomenolo gical
+muscle model to assess history dependent eﬀects in human movement. J.
+Biomech. 46,151–157.doi:10.1016/j.jbiomech.2012.10.034
+Monroy, J. A., Lappin, A. K., and Nishikawa, K. C. (2007). Elastic properties
+of active muscle–on the rebound? Exerc. Sport Sci. Rev. 35, 174–179.
+doi:10.1097/jes.0b013e318156e0e6
+Nichols,T.R.,andHouk,J.C.(1976).Improvementinlinearityandreg ulationof
+stiﬀnessthatresultsfromactionsofstretchreﬂex. J.Neurophysiol. 39,119–142.
+doi:10.1152/jn.1976.39.1.119
+Nishikawa, K. (2016). Eccentric contraction: unraveling mechan isms of
+force enhancement and energy conservation. J. Exp. Biol. 219, 189–196.
+doi:10.1242/jeb.124057
+Nishikawa, K. C., Monroy, J. A., Powers, K. L., Gilmore, L. A., Uyen o, T.
+A., and Lindstedt, S. L. (2013). A molecular basis for intrinsic mu scle
+properties: implications for motor control. Adv. Exp. Med. Biol. 782, 111–125.
+doi:10.1007/978-1-4614-5465-6_6
+Nishikawa,K.C.,Monroy,J.A.,Uyeno,T.E.,Yeo,S.H.,Pai,D.K .,andLindstedt,
+S. L. (2012). Is titin a “winding ﬁlament”? A new twist on muscle co ntraction.
+Proc.Biol.Sci. 279,981–990.doi:10.1098/rspb.2011.1304
+Nishikawa, K., Biewener, A. A., Aerts, P., Ahn, A. N., Chiel, H. J ., Daley, M.
+A., et al. (2007). Neuromechanics: an integrative approach for unde rstanding
+motorcontrol. Integr.Comp.Biol. 47,16–54.doi:10.1093/icb/icm024
+Petak,J.L.(2014). PerformanceTestingofaMusculoskeletalModelControllerfo ra
+RoboticProsthesis .Master’sthesis,NorthernArizonaUniversity,Flagstaﬀ,AZ.
+Pickle, N. T., Wilken, J. M., Aldridge Whitehead, J. M., and Silverma n, A.
+K. (2016). Whole-body angular momentum during sloped walking using
+passive and powered lower-limb prostheses. J. Biomech. 49, 3397–3406.
+doi:10.1016/j.jbiomech.2016.09.010
+Pickle, N. T., Wilken, J. M., Aldridge, J. M., Neptune, R. R., and Si lverman,
+A. K. (2014). Whole-body angular momentum during stair walking usi ng
+passive and powered lower-limb prostheses. J. Biomech. 47, 3380–3389.
+doi:10.1016/j.jbiomech.2014.08.001
+Powers, C. M., Boyd, L. A., Torburn, L., and Perry, J. (1997). Sta ir ambulation
+in persons with transtibial amputation: an analysis of the Seattle LightFoot. J.
+Rehabil.Res.Dev. 34,9–18.
+Rack, P. M., and Westbury, D. R. (1974). The short range stiﬀness of active
+mammalian muscle and its eﬀect on mechanical properties. J. Physiol. 240,
+331–350.doi:10.1113/jphysiol.1974.sp010613
+Richardson, A. G., Slotine, J.-J., Bizzi, E., and Tresch, M. C. ( 2005). Intrinsic
+musculoskeletal properties stabilize wiping movements in the spinalized frog.
+J.Neurosci. 25,3181–3191.doi:10.1523/JNEUROSCI.4945-04.2005
+Russell Esposito, E., Aldridge Whitehead, J. M., and Wilken, J. M. (2016).
+Step-to-step transition work during level and inclined walking usi ng passive
+and powered ankle-foot prostheses. Prosthet. Orthot. Int. 40, 311–319.
+doi:10.1177/0309364614564021
+Sagawa, Y. Jr., Turcot, K., Armand, S., Thevenon, A., Vuillerme, N., and
+Watelain, E. (2011). Biomechanics and physiological parameters du ring gait
+in lower limb amputees: a systematic review. Gait Posture 33, 511–526.
+doi:10.1016/j.gaitpost.2011.02.003
+Sansam,K.,Neumann,V.,O’Connor,R.,andBhakta,B.(2009).P redictingwalking
+abilityfollowinglowerlimbamputation:asystematicreviewofthelite rature.J.
+Rehabil.Med. 41,593–603.doi:10.2340/16501977-0393
+Seiberl, W., Paternoster, F., Achatz, F., Schwirtz, A., and Hahn , D. (2013). On
+the relevance of residual force enhancement for everyday human move ment.
+J.Biomech. 46,1996–2001.doi:10.1016/j.jbiomech.2013.06.014
+Seiberl,W.,Power,G.A.,Herzog,W.,andHahn,D.(2015).Thestre tch-shortening
+cycle (SSC) revisited: residual force enhancement contributes t o increased
+Frontiers in Robotics and AI | www.frontiersin.org 15 April 2018 | Volume 5 | Article 36
+
+--- Page 16 ---
+Tahir et al. Bio-Inspired Prosthesis Control Algorithm
+performance during fast SSCs of human m. adductor pollicis. Physiol. Rep.
+3:e12401.doi:10.14814/phy2.12401
+Sinitski, E. H., Hansen, A. H., and Wilken, J. M. (2012). Biomecha nics of the
+ankle-footsystemduringstairambulation:implicationsfordesig nofadvanced
+ankle-foot prostheses. J. Biomech. 45, 588–594. doi: 10.1016/j.jbiomech.2011.
+11.007
+Spanjaard, M., Reeves, N. D., van Dieën, J. H., Baltzopoulos, V., an d Maganaris,
+C. N. (2007). Gastrocnemius muscle fascicle behavior during stair negotiation
+in humans. J. Appl. Physiol. 102, 1618–1623. doi: 10.1152/japplphysiol.
+00353.2006
+Tkach, D. C., and Hargrove, L. J. (2013). Neuromechanical senso r fusion
+yields highest accuracies in predicting ambulation mode transition s
+for trans-tibial amputees. IEEE Eng. Med. Biol. Soc. 2013, 3074–3077.
+doi:10.1109/EMBC.2013.6610190
+Vaughan,C.L.,Davis,B.L.,andO’Connor,J.C.(1990). DynamicsofHumanGait .
+Champaign,IL:HumanKineticsPublishers.
+Visser,J.J.,Hoogkamer,J.E.,Bobbert,M.F.,andHuijing,P.A. (1990).Lengthand
+moment arm of human legmuscles as afunction of kneeand hip-joint angle s.
+Eur.J.Appl.Physiol.Occup.Physiol. 61,453–460.doi:10.1007/BF00236067Wilken, J. M., Sinitski, E. H., and Bagg, E. A. (2011). The role of lo wer
+extremityjointpowersinsuccessfulstairambulation. GaitPosture 34,142–144.
+doi:10.1016/j.gaitpost.2011.03.015
+Winter, D. A. (1990). Biomechanics and Motor Control of Human Movement .
+NewYork,NY:JohnWiley&Sons,Inc.
+Zajac,F.E.(1989).Muscleandtendon:properties,models,scaling, andapplication
+tobiomechanicsandmotorcontrol. Crit.Rev.Biomed.Eng. 17,359–411.
+Conﬂict of Interest Statement: The authors declare that the research was
+conducted in the absence of any commercial or ﬁnancial relations hips that could
+beconstruedasapotentialconﬂictofinterest.
+Copyright © 2018 Tahir, Hessel, Lockwood, Tester, Han, Rivera, Co vey, Huck,
+Rice and Nishikawa. This is an open-access article distribu ted under the terms
+of the Creative Commons Attribution License (CC BY). The use , distribution or
+reproduction in other forums is permitted, provided the orig inal author(s) and the
+copyrightownerarecreditedandthattheoriginalpublicati oninthisjournaliscited,
+inaccordancewithacceptedacademicpractice.Nouse,dist ributionorreproduction
+ispermittedwhichdoesnotcomplywiththeseterms.
+Frontiers in Robotics and AI | www.frontiersin.org 16 April 2018 | Volume 5 | Article 36

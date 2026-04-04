@@ -25,11 +25,11 @@
 
 以下关键词簇用于指导后续增量检索，目标不是泛泛地搜“形式化方法”或“建模”，而是优先命中**具有具体控制系统客体**、并且更可能包含可提取状态机自然语言描述的论文。
 
-当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `84` 条条目看，`EFSM` 占 `52` 条、`T1` 占 `45` 条、`HSM` 占 `27` 条、`FSM` 占 `5` 条，主体已扩展为 `PLC / SCADA / mission supervisor / robot manipulator / greenhouse inspection / cotton harvesting rover / smart shunt / pediatric knee exoskeleton / transfemoral prosthesis / post-stroke knee orthosis plus walker / sit-to-stand exoskeleton / gait-training exoskeleton / variable-impedance hybrid neuroprosthesis / muscle-driven paraplegia exoskeleton / modular neuroprosthesis / smart prosthetic hand / powered knee-ankle prosthesis / powered hip exoskeleton / soft lower-limb exoskeleton / hybrid gait restoration system / CyberLimb prosthesis / ASV trailer docking / cotton laser weeding robot / low-altitude helicopter / underground-mine UAV / MINDWALKER exoskeleton / peritoneal dialysis machine` 风格的离散工程控制与模式管理样本。
+当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `89` 条条目看，`EFSM` 占 `54` 条、`T1` 占 `48` 条、`HSM` 占 `30` 条、`FSM` 占 `5` 条，主体已扩展为 `PLC / SCADA / mission supervisor / robot manipulator / greenhouse inspection / cotton harvesting rover / smart shunt / pediatric knee exoskeleton / transfemoral prosthesis / post-stroke knee orthosis plus walker / sit-to-stand exoskeleton / gait-training exoskeleton / variable-impedance hybrid neuroprosthesis / muscle-driven paraplegia exoskeleton / modular neuroprosthesis / smart prosthetic hand / powered knee-ankle prosthesis / powered hip exoskeleton / soft lower-limb exoskeleton / hybrid gait restoration system / CyberLimb prosthesis / powered foot-ankle prosthesis / FES walking assistance system / portable lower-limb exoskeleton / ASV trailer docking / cotton laser weeding robot / low-altitude helicopter / underground-mine UAV / MINDWALKER exoskeleton / peritoneal dialysis machine` 风格的离散工程控制与模式管理样本。
 
 ### 当前推荐关键词簇
 
-- 主线优先改成 `具体控制对象 + control/controller/system + design/implementation/development/specification/modeling`，对象优先补 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging line`、`water level/head tank`、`railway level crossing`、`landing gear`、`CubeSat flight software`、`UAV mission management`、`rotorcraft UAS`、`Mars sample return robot software`、`rover decision making`、`crusher circuit`、`mobile robot supervisor`、`greenhouse inspection robot`、`waste management mobile robot`、`cotton harvesting rover`、`hydraulic pulse system`、`hybrid energy system`、`LNG ship energy management`、`urban driving`、`autonomous rendezvous`、`low-altitude helicopter flight`、`underground mine UAV inspection`、`Orion RPOD sequencing`、`robotic knee exoskeleton`、`sit-to-stand exoskeleton`、`wearable exoskeleton gait training`、`modular neuroprosthesis`、`transradial prosthesis hand`、`transfemoral prosthesis`、`smart shunt`、`autonomous surface vehicle docking`、`cotton laser weeding robot`、`pediatric knee exoskeleton`、`peritoneal dialysis machine`。
+- 主线优先改成 `具体控制对象 + control/controller/system + design/implementation/development/specification/modeling`，对象优先补 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging line`、`water level/head tank`、`railway level crossing`、`landing gear`、`CubeSat flight software`、`UAV mission management`、`rotorcraft UAS`、`Mars sample return robot software`、`rover decision making`、`crusher circuit`、`mobile robot supervisor`、`greenhouse inspection robot`、`waste management mobile robot`、`cotton harvesting rover`、`hydraulic pulse system`、`hybrid energy system`、`LNG ship energy management`、`urban driving`、`autonomous rendezvous`、`low-altitude helicopter flight`、`underground mine UAV inspection`、`Orion RPOD sequencing`、`robotic knee exoskeleton`、`sit-to-stand exoskeleton`、`wearable exoskeleton gait training`、`modular neuroprosthesis`、`hybrid walking neuroprosthesis`、`FES walking assistance`、`portable lower-limb exoskeleton`、`foot-ankle prosthesis`、`transradial prosthesis hand`、`transfemoral prosthesis`、`smart shunt`、`autonomous surface vehicle docking`、`cotton laser weeding robot`、`pediatric knee exoskeleton`、`peritoneal dialysis machine`。
 - 状态机显式词优先保留 `state machine`、`FSM`、`HSM`、`mode`、`operation mode`、`sequence`、`cycle`、`procedure`、`priority override`、`control logic`，因为它们更容易导向 `FSM/HSM/EFSM + T0/T1` 的离散控制链。
 - 工程控制高命中组合继续强化：`PLC/SCADA + sensor/float/proximity/photoelectric/RFID/hall call + valve/pump/motor/door/light + delay/timer/sequence/cycle`。
 - 航空航天方向继续优先找模式管理而不是连续控制：`landing gear + handle + door + extend/retract + cockpit indication`，`CubeSat + LEOP/NOM/HSAFE + safe mode + finite state machine`，`UAV + FMM/FTM/HSB/CSB + fault flag`，`mission management + FSM/SMACH + task activation + interrupt/deactivate`，`low-altitude helicopter + threat avoidance + visibility judgement + circuitous flight`，`underground mine UAV + mission state machine + pillar inspection`，`RPOD + PSAM + burn config + docking + hold retreat`，`dynamic platform landing + GPS following + vision following + shutdown`，`small USV landing + ArUco marker + Hold mode + finite state machine`。
@@ -39,7 +39,7 @@
 ### 已观察到的高命中标题/关键词特征
 
 - 双 A 目标样本最稳的标题画像，是**具体控制对象名**与 `controller / control system / control program / flight software / mission management` 同时出现。
-- `PLC` 与 `SCADA` 仍是最强的工程离散控制信号；当前双 A 的 `FSM/HSM/EFSM + T0/T1` 条目里，高频标题词明显集中在 `PLC`、`SCADA`、`traffic`、`elevator`、`bottle filling`、`washing machine`、`packaging`、`water level`、`finite state machine`、`control system`，并进一步扩展到 `smart shunt`、`pediatric knee exoskeleton`、`transfemoral prosthesis`、`trailer loading`、`laser weeding robot`、`dialysis machine`、`small USV landing` 这类更具体的控制客体。
+- `PLC` 与 `SCADA` 仍是最强的工程离散控制信号；当前双 A 的 `FSM/HSM/EFSM + T0/T1` 条目里，高频标题词明显集中在 `PLC`、`SCADA`、`traffic`、`elevator`、`bottle filling`、`washing machine`、`packaging`、`water level`、`finite state machine`、`control system`，并进一步扩展到 `smart shunt`、`pediatric knee exoskeleton`、`transfemoral prosthesis`、`foot-ankle prosthesis`、`walking assistance system`、`portable exoskeleton`、`trailer loading`、`laser weeding robot`、`dialysis machine`、`small USV landing` 这类更具体的控制客体。
 - `sequence`、`cycle`、`mode`、`operation mode`、`procedure`、`priority`、`override`、`task activation` 这类词，比泛泛的 `verification` 更能命中可直接抽成状态机描述的文本。
 - 标题或摘要同时出现**输入感知词**与**输出执行词**时命中率更高，例如 `float switch / proximity sensor / hall call / RFID / camera` 搭配 `valve / pump / door / motor / light / beacon`。
 - `T1` 样本常伴随 `delay`、`timer`、`countdown`、`interval`、`wash/rinse/dehydrate`、`fill/drain`、`door cycle`、`torque pulse duration`、`dwell phase`、`shift timeout`、`laser duration`、`predefined time` 这类局部工程定时词。
@@ -61,15 +61,15 @@
 - 在 `PLC/SCADA` 工程控制方向，可优先复用 `object + controller/system/program + sensor + actuator + delay/timer/sequence/cycle` 这条模板，而不是只搜宽泛 `formal methods`。
 - 在 `✈️ / ⚙️` 方向，优先找 `safe mode / LEOP / HSAFE / FTM / standby / mission supervisor / SMACH / recovery / return / extend-retract sequence / PSAM / relay / burn config / docking / heading correction / replan / laser duration / shift timing / braking stop` 这类离散模式词，而不是连续估计、轨迹跟踪和扰动抑制。
 - 在多个方向都可命中时，优先补当前更稀缺但高价值的 `FSM/HSM + T0/T1` 样本，不要让 `EFSM + PLC` 一类继续单边膨胀。
-- 在 `🩺` 方向，优先补 `robotic knee exoskeleton / pediatric knee exoskeleton / sit-to-stand exoskeleton / gait-training exoskeleton / modular neuroprosthesis / prosthetic hand controller / transfemoral prosthesis / smart shunt / gait rehabilitation exoskeleton / MINDWALKER / dialysis / ventilator / infusion / pacemaker` 这类**模式链明确、传感器或定时 guard 明确**的设备控制论文，而不是只写临床效果或连续控制性能的论文。
+- 在 `🩺` 方向，优先补 `robotic knee exoskeleton / pediatric knee exoskeleton / sit-to-stand exoskeleton / gait-training exoskeleton / modular neuroprosthesis / hybrid walking neuroprosthesis / FES walking assistance / foot-ankle prosthesis / portable lower-limb exoskeleton / prosthetic hand controller / transfemoral prosthesis / smart shunt / gait rehabilitation exoskeleton / MINDWALKER / dialysis / ventilator / infusion / pacemaker` 这类**模式链明确、传感器或定时 guard 明确**的设备控制论文，而不是只写临床效果或连续控制性能的论文。
 - 新词允许扩展，但必须能解释它为什么会导向“可做简单仿真的离散控制链”，并在每轮更新时整合回本节。
 
 ## 当前收录统计
 
-- 已收录论文：**204** 篇
+- 已收录论文：**209** 篇
 - 本轮新增论文：**5** 篇
 - 本轮下载失败记录：**63** 条
-- 已完成 STM 梳理：**204** 篇
+- 已完成 STM 梳理：**209** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 [STM_GUIDE.md](./STM_GUIDE.md) 补齐 `STM.md`。
 
@@ -96,28 +96,29 @@
 
 ### 领域分布（按论文篇数统计）
 
-- 统计口径：按 `## 论文清单` 中已收录的 **204** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `## 论文清单` 中已收录的 **209** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 24 | 11.8% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
-| 🚆 轨道交通与铁路控制 | 21 | 10.3% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
-| ✈️ 航空航天与飞行/空管控制 | 32 | 15.7% | 机场起飞流程、飞行引导模式、起落架、UAV 任务控制、CubeSat 模式管理、自主交会、航天机器人、低空直升机任务、动态平台降落、小型 USV 回收与地下矿井 UAV 测绘控制 |
-| 🩺 医疗设备与生命支持控制 | 31 | 15.2% | 起搏器、输液泵、机械通气控制、智能分流器、下肢外骨骼、神经假体、主动股骨假肢、SmartHand 假手、MINDWALKER、动力髋外骨骼、软式外骨骼、混合步态恢复系统、共享控制假肢与自动腹膜透析机相关文献 |
-| 🏭 工业自动化与离散制造 | 18 | 8.8% | IEC 61499/61131、PLC、输送、灌装、包装、液压脉冲与制造控制 |
-| 🏢 楼宇机电与电梯控制 | 15 | 7.4% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
-| 🌡️ 过程与环境控制 | 9 | 4.4% | 液位、水处理、灌溉、锅炉、破碎回路、混合能源系统与批处理等过程/环境控制 |
-| 🚦 道路交通信号控制 | 18 | 8.8% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
-| 🅿️ 智慧停车与车位管理 | 13 | 6.4% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
-| 🧩 建模方法与系统工程 | 4 | 2.0% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
-| 🔐 安全/安保分析 | 4 | 2.0% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
-| ⚙️ 通用控制与形式化工具 | 15 | 7.4% | 混成系统、实时系统、农业/服务机器人监督器、执行机构控制，以及 `ASV` 对接与棉田激光除草监督控制文献 |
-| **合计** | **204** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 24 | 11.5% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🚆 轨道交通与铁路控制 | 21 | 10.0% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
+| ✈️ 航空航天与飞行/空管控制 | 32 | 15.3% | 机场起飞流程、飞行引导模式、起落架、UAV 任务控制、CubeSat 模式管理、自主交会、航天机器人、低空直升机任务、动态平台降落、小型 USV 回收与地下矿井 UAV 测绘控制 |
+| 🩺 医疗设备与生命支持控制 | 36 | 17.2% | 起搏器、输液泵、机械通气控制、智能分流器、下肢外骨骼、神经假体、主动股骨/足踝假肢、SmartHand 假手、MINDWALKER、动力髋外骨骼、软式外骨骼、混合步态恢复系统、FES 步行辅助、便携外骨骼、共享控制假肢与自动腹膜透析机相关文献 |
+| 🏭 工业自动化与离散制造 | 18 | 8.6% | IEC 61499/61131、PLC、输送、灌装、包装、液压脉冲与制造控制 |
+| 🏢 楼宇机电与电梯控制 | 15 | 7.2% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
+| 🌡️ 过程与环境控制 | 9 | 4.3% | 液位、水处理、灌溉、锅炉、破碎回路、混合能源系统与批处理等过程/环境控制 |
+| 🚦 道路交通信号控制 | 18 | 8.6% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
+| 🅿️ 智慧停车与车位管理 | 13 | 6.2% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
+| 🧩 建模方法与系统工程 | 4 | 1.9% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
+| 🔐 安全/安保分析 | 4 | 1.9% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
+| ⚙️ 通用控制与形式化工具 | 15 | 7.2% | 混成系统、实时系统、农业/服务机器人监督器、执行机构控制，以及 `ASV` 对接与棉田激光除草监督控制文献 |
+| **合计** | **209** | **100.0%** | - |
 
 ### 更新日志
 
 | 时间 | 更新内容 | 检索策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-04-04 15:52:15 | 新增 **5** 篇，当前累计 **209** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt`、并完成 `bibtex.bib + STM.md` 的新论文；检索重点转向 `powered transfemoral prosthesis + slope + finite state machine`、`hybrid walking neuroprosthesis + finite state machine`、`robotic foot-ankle prosthesis + state machine`、`FES walking assistance + finite state machine`、`portable exoskeleton + state machine`，并仅保留原文与描述均可达到 `🟢 A`、且至少含 `1` 条 `FSM / EFSM / HSM + T0 / T1` 正例的开放获取候选。 | 动力股骨假肢斜坡步态相位 EFSM、混合 walking neuroprosthesis 分层 step-sequencing 控制、机器人足踝假肢 phase-dependent virtual-muscle 控制、FES 步行辅助 gait-event 分层刺激控制、`MAK` 便携外骨骼 mode-and-phase assistance 控制。 |
 | 2026-04-04 14:55:49 | 新增 **5** 篇，当前累计 **204** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt`、并完成 `bibtex.bib + STM.md` 的新论文；检索重点转向 `powered hip exoskeleton + state machine`、`soft exoskeleton + clutch + finite state machine`、`spinal cord injury + hybrid gait restoration + finite state machine`、`robotic knee-ankle prosthesis + shared neural control + finite state machine`、`transradial prosthesis + shared control + finite state machine`，并仅保留原文与描述均可达到 `🟢 A`、且至少含 `1` 条 `FSM / EFSM / HSM + T0 / T1` 正例的开放获取候选。 | 动力髋外骨骼四态 torque supervisor、`XoSoft` 六相 quasi-passive gait scheduler、`MAHNP` 分层 gait-event supervisor、shared-neural 膝踝假肢两态监督器、`CyberLimb` wrist-gripper 并行任务 FSM。 |
 | 2026-04-04 14:12:30 | 新增 **5** 篇，当前累计 **199** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt`、并完成 `bibtex.bib + STM.md` 的新论文；检索重点转向 `active knee orthosis + walker + finite state machine`、`variable impedance hybrid neuroprosthesis + finite state control`、`paraplegia exoskeleton + stepping + finite state machine`、`transfemoral prosthesis + whole body awareness + finite state machine`、`powered knee-ankle prosthesis + unified control + finite state machine`，并仅保留原文与描述均可达到 `🟢 A`、且至少含 `1` 条 `FSM / EFSM / HSM + T0 / T1` 正例的开放获取候选。 | 主动膝矫形器加助行器 gait-assistance HSM、`VIKM-HNP` 五态步行控制、截瘫肌肉驱动外骨骼 stepping HSM、`WBAC` 主动股骨假肢双层监督器、统一膝踝假肢两态接触控制。 |
 | 2026-04-04 13:20:28 | 新增 **5** 篇，当前累计 **194** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt`、并完成 `bibtex.bib + STM.md` 的新论文；检索重点转向 `sit-to-stand exoskeleton + finite state machine`、`powered exoskeleton + gait phase + finite state machine`、`wearable exoskeleton + BMI + finite state machine`、`neuroprosthesis + gait sub-phase + finite state machine`、`prosthetic hand + finite state machine`，并仅保留原文与描述均可达到 `🟢 A`、且至少含 `1` 条 `FSM / EFSM / HSM + T0 / T1` 正例的开放获取候选。 | sit-to-stand 外骨骼分层监督器、腓肠肌仿生外骨骼 gait/squat FSM、BMI 触发 gait-training FSM、混合 `FES-robot` 神经假体 gait FSM、SmartHand 层次抓握与功耗管理控制。 |
@@ -345,6 +346,11 @@
 | 202 | 🩺 | A Muscle-First, Electromechanical Hybrid Gait Restoration System in People With Spinal Cord Injury | 2021 | `MAHNP` 混合步态恢复系统分层监督控制 | `spinal cord injury, hybrid gait restoration, finite state machine, left swing, double stance` | [muscle-first-hybrid-gait-restoration-spinal-cord-injury](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/) |
 | 203 | 🩺 | Stand-Up, Squat, Lunge, and Walk With a Robotic Knee and Ankle Prosthesis Under Shared Neural Control | 2021 | 主动膝踝假肢 shared neural 两态监督控制 | `robotic knee ankle prosthesis, finite-state machine, stance, swing, EMG` | [robotic-knee-ankle-prosthesis-shared-neural-control](./robotic-knee-ankle-prosthesis-shared-neural-control/) |
 | 204 | 🩺 | CyberLimb: a novel robotic prosthesis concept with shared and intuitive control | 2022 | `CyberLimb` 上肢假肢 wrist-gripper 并行任务控制 | `transradial prosthesis, finite state machine, wrist leveling, gripper, shared control` | [cyberlimb-shared-intuitive-control](./cyberlimb-shared-intuitive-control/) |
+| 205 | 🩺 | Control Framework for Sloped Walking With a Powered Transfemoral Prosthesis | 2021 | 斜坡步行动力股骨假肢相位监督控制 | `powered transfemoral prosthesis, finite state machine, slope angle, heel strike, toe-off` | [control-framework-for-sloped-walking-powered-transfemoral-prosthesis](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/) |
+| 206 | 🩺 | A Control Scheme That Uses Dynamic Postural Synergies to Coordinate a Hybrid Walking Neuroprosthesis: Theory and Experiments | 2018 | 混合 walking neuroprosthesis 的 step-sequencing 分层控制 | `hybrid walking neuroprosthesis, finite state machine, dynamic postural synergy, progression button, FES` | [dynamic-postural-synergies-hybrid-walking-neuroprosthesis](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/) |
+| 207 | 🩺 | Case Study: A Bio-Inspired Control Algorithm for a Robotic Foot-Ankle Prosthesis Provides Adaptive Control of Level Walking and Stair Ascent | 2018 | 机器人足踝假肢 phase-dependent virtual-muscle 控制 | `robotic foot-ankle prosthesis, BiOM state machine, virtual muscle, level walking, stair ascent` | [bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/) |
+| 208 | 🩺 | An adaptive reflexive control strategy for walking assistance system based on functional electrical stimulation | 2022 | FES 步行辅助 gait-event 分层刺激控制 | `FES walking assistance, finite state machine, gait event, stimulation sequence, pulse width` | [adaptive-reflexive-control-fes-walking-assistance-system](./adaptive-reflexive-control-fes-walking-assistance-system/) |
+| 209 | 🩺 | A new lower limb portable exoskeleton for gait assistance in neurological patients: a proof of concept study | 2020 | `MAK` 便携外骨骼 mode-and-phase assistance 控制 | `portable exoskeleton, gait assistance, state machine, support phase, swing phase` | [new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/) |
 ## 本轮下载失败记录
 
 以下条目是在本轮检索中实际尝试下载但未成功的候选文献。记录失败时间与原因，便于后续避开近期重复尝试。
@@ -422,6 +428,7 @@
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-04-04 15:52:15 | 新增 `#205-209` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、补齐 `5` 个 `bibtex.bib`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `209/209` 篇文献的 STM 盘点。 |
 | 2026-04-04 14:55:49 | 新增 `#200-204` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、补齐 `5` 个 `bibtex.bib`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `204/204` 篇文献的 STM 盘点。 |
 | 2026-04-04 14:12:30 | 新增 `#195-199` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、补齐 `5` 个 `bibtex.bib`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `199/199` 篇文献的 STM 盘点。 |
 | 2026-04-04 13:20:28 | 新增 `#190-194` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、补齐 `5` 个 `bibtex.bib`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `194/194` 篇文献的 STM 盘点。 |
@@ -457,7 +464,7 @@
 
 ### 4. 总体统计（已按新口径回刷）
 
-> 说明：本节涉及 `163` 条正例时统一以 `163` 为分母；涉及 `56` 个 `⚪ 未收获` 文件时统一以 `56` 为分母；涉及 `204` 个 `STM.md` 文件的整体覆盖统计时统一以 `204` 为分母。百分比统一保留 `1` 位小数。
+> 说明：本节涉及 `168` 条正例时统一以 `168` 为分母；涉及 `56` 个 `⚪ 未收获` 文件时统一以 `56` 为分母；涉及 `209` 个 `STM.md` 文件的整体覆盖统计时统一以 `209` 为分母。百分比统一保留 `1` 位小数。
 >
 > 角色说明：本节的 `💎 / 🧰 / 🪫 / ⛔` 采用本轮新边界**重新计算**。也就是说，`💎` 与 `🪫` 都要求“原文与描述都达到 `🟢 A / 🟡 B` 且未降级”，二者差别只在是否属于 `🔁` 强趋同簇。
 
@@ -465,76 +472,76 @@
 
 | 指标 | 数量 | 占比 | 说明 |
 |---|---:|---:|---|
-| `STM.md` 文件总数 | 204 | 100.0% | 覆盖 `sources/` 当前全部目录 |
-| 含正例条目的文件数 | 148 | 72.5% | 至少含 `1` 条正例条目 |
-| `⚪ 未收获` 文件数 | 56 | 27.5% | 当前不作正样本，但可转作 hard negative |
-| 正例条目总数 | 163 | 79.9% | 相对 `204` 个文件的规模参考值；折算为每个含正例文件平均 `1.10` 条 |
-| `原文 = 🟢 A / 🟡 B` 条目数 | 148 | 90.8% | 源材料本身达到主数据集候选下限 |
-| `描述 = 🟢 A / 🟡 B` 条目数 | 148 | 90.8% | 当前描述文本本身达到主数据集候选下限 |
-| `🔁` 强趋同条目数 | 28 | 17.2% | 强趋同问题是真实存在的治理压力 |
+| `STM.md` 文件总数 | 209 | 100.0% | 覆盖 `sources/` 当前全部目录 |
+| 含正例条目的文件数 | 153 | 73.2% | 至少含 `1` 条正例条目 |
+| `⚪ 未收获` 文件数 | 56 | 26.8% | 当前不作正样本，但可转作 hard negative |
+| 正例条目总数 | 168 | 80.4% | 相对 `209` 个文件的规模参考值；折算为每个含正例文件平均 `1.10` 条 |
+| `原文 = 🟢 A / 🟡 B` 条目数 | 153 | 91.1% | 源材料本身达到主数据集候选下限 |
+| `描述 = 🟢 A / 🟡 B` 条目数 | 153 | 91.1% | 当前描述文本本身达到主数据集候选下限 |
+| `🔁` 强趋同条目数 | 28 | 16.7% | 强趋同问题是真实存在的治理压力 |
 
 #### 4.2 原文细节充实度分布
 
 | 原文细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 84 | 51.5% |
-| `🟡 B` | 64 | 39.3% |
-| `🟠 C` | 13 | 8.0% |
+| `🟢 A` | 89 | 53.0% |
+| `🟡 B` | 64 | 38.1% |
+| `🟠 C` | 13 | 7.7% |
 | `🔴 D` | 2 | 1.2% |
-| `🟢 A + 🟡 B` | 148 | 90.8% |
-| `🟠 C + 🔴 D` | 15 | 9.2% |
+| `🟢 A + 🟡 B` | 153 | 91.1% |
+| `🟠 C + 🔴 D` | 15 | 8.9% |
 
-这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在新增 `#200-204` 这批双 A 样本后，原文侧达到 `🟢 A / 🟡 B` 的条目升到 `148` 条，其中 `🟢 A` 已升至 `84` 条；但仍有 `15` 条（`9.2%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
+这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在新增 `#205-209` 这批双 A 样本后，原文侧达到 `🟢 A / 🟡 B` 的条目升到 `153` 条，其中 `🟢 A` 已升至 `89` 条；但仍有 `15` 条（`8.9%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
 
 #### 4.3 描述细节充实度分布
 
 | 描述细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 84 | 51.5% |
-| `🟡 B` | 64 | 39.3% |
-| `🟠 C` | 14 | 8.6% |
+| `🟢 A` | 89 | 53.0% |
+| `🟡 B` | 64 | 38.1% |
+| `🟠 C` | 14 | 8.3% |
 | `🔴 D` | 1 | 0.6% |
-| `🟢 A + 🟡 B` | 148 | 90.8% |
-| `🟠 C + 🔴 D` | 15 | 9.2% |
+| `🟢 A + 🟡 B` | 153 | 91.1% |
+| `🟠 C + 🔴 D` | 15 | 8.9% |
 
-在新增 `#200-204` 这批双 A 样本后，描述侧的 `🟢 A + 🟡 B` 也同步升到 `148` 条，与原文侧**完全追平**，且 `🟢 A` 已同步升至 `84` 条；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
+在新增 `#205-209` 这批双 A 样本后，描述侧的 `🟢 A + 🟡 B` 也同步升到 `153` 条，与原文侧**完全追平**，且 `🟢 A` 已同步升至 `89` 条；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
 
 #### 4.4 原文细节充实度 vs 描述细节充实度二维对照
 
 | 原文 \\ 描述 | `🟢 A` | `🟡 B` | `🟠 C` | `🔴 D` | 行合计 |
 |---|---:|---:|---:|---:|---:|
-| `🟢 A` | `84 / 51.5%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `84 / 51.5%` |
-| `🟡 B` | `0 / 0.0%` | `64 / 39.3%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 39.3%` |
-| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 8.0%` | `0 / 0.0%` | `13 / 8.0%` |
+| `🟢 A` | `89 / 53.0%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `89 / 53.0%` |
+| `🟡 B` | `0 / 0.0%` | `64 / 38.1%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 38.1%` |
+| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 7.7%` | `0 / 0.0%` | `13 / 7.7%` |
 | `🔴 D` | `0 / 0.0%` | `0 / 0.0%` | `1 / 0.6%` | `1 / 0.6%` | `2 / 1.2%` |
-| 列合计 | `84 / 51.5%` | `64 / 39.3%` | `14 / 8.6%` | `1 / 0.6%` | `163 / 100.0%` |
+| 列合计 | `89 / 53.0%` | `64 / 38.1%` | `14 / 8.3%` | `1 / 0.6%` | `168 / 100.0%` |
 
 从二维表看，有三个直接结论：
 
-1. 对角线共有 `157` 条，占 `99.4%`，说明当前绝大多数条目已经做到“原文什么级，描述就保持什么级”。
+1. 对角线共有 `162` 条，占 `99.4%`，说明当前绝大多数条目已经做到“原文什么级，描述就保持什么级”。
 2. 非对角线只剩 `1` 条，占 `0.6%`，说明描述层面的系统性失真已经基本清掉。
 3. 这 `1` 条剩余非对角线是 `🔴 D -> 🟠 C`，不再属于“原文够、描述抽薄”的风险格；当前已经没有 `🟢 A -> 🟡 B / 🔴 D` 与 `🟡 B -> 🟠 C` 这类优先补写对象。
 
 #### 4.5 `原文 = 🟢 A / 🟡 B` 条目的一致性检查
 
-| 检查项 | 数量 | 占全部 `163` 条比例 | 占 `原文 = 🟢 A / 🟡 B` 子集比例 |
+| 检查项 | 数量 | 占全部 `168` 条比例 | 占 `原文 = 🟢 A / 🟡 B` 子集比例 |
 |---|---:|---:|---:|
-| `原文 = 🟢 A / 🟡 B` 条目总数 | 148 | 90.8% | 100.0% |
-| 描述未降级 | 148 | 90.8% | 100.0% |
+| `原文 = 🟢 A / 🟡 B` 条目总数 | 153 | 91.1% | 100.0% |
+| 描述未降级 | 153 | 91.1% | 100.0% |
 | 描述降级或显著关键信息缺失 | 0 | 0.0% | 0.0% |
 
-继此前锁定的降级条目回刷之后，本轮新增 `#200-204` 也全部保持“原文够、描述不降级”；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
+继此前锁定的降级条目回刷之后，本轮新增 `#205-209` 也全部保持“原文够、描述不降级”；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
 
 #### 4.6 状态机类型分布
 
 | 状态机类型 | 条目数 | 占比 |
 |---|---:|---:|
-| `EFSM` | 87 | 53.4% |
-| `Hybrid` | 16 | 9.8% |
-| `Resource-flow` | 13 | 8.0% |
-| `HSM` | 36 | 22.1% |
+| `EFSM` | 89 | 53.0% |
+| `Hybrid` | 16 | 9.5% |
+| `Resource-flow` | 13 | 7.7% |
+| `HSM` | 39 | 23.2% |
 | `Protocol` | 4 | 2.5% |
-| `FSM` | 7 | 4.3% |
+| `FSM` | 7 | 4.2% |
 
 当前 `sources` 正例主体仍然是 **`EFSM` 导向样本**。这对 `NL -> state machine` 的主任务是好事，但也意味着后续若不补 `Protocol / HSM / Resource-flow / Hybrid`，模型会被训练成偏好“变量 guard + 阈值 + 顺序流程”的单一习惯。
 
@@ -542,12 +549,12 @@
 
 | 时间级别 | 条目数 | 占比 |
 |---|---:|---:|
-| `T0` | 68 | 41.7% |
-| `T1` | 68 | 41.7% |
-| `T2` | 15 | 9.2% |
-| `T3` | 12 | 7.4% |
+| `T0` | 70 | 41.7% |
+| `T1` | 71 | 42.3% |
+| `T2` | 15 | 8.9% |
+| `T3` | 12 | 7.1% |
 
-时间语义上，当前库里 `T0 + T1` 合计 `136` 条，占 `83.4%`；真正带强实时窗口或混成时间语义的 `T2 + T3` 只有 `27` 条，占 `16.6%`。这说明如果后续实验要验证“带强时间约束的自动建模”，当前数据仍偏薄。
+时间语义上，当前库里 `T0 + T1` 合计 `141` 条，占 `83.9%`；真正带强实时窗口或混成时间语义的 `T2 + T3` 只有 `27` 条，占 `16.1%`。这说明如果后续实验要验证“带强时间约束的自动建模”，当前数据仍偏薄。
 
 #### 4.8 结构标签覆盖率（多标签口径）
 
@@ -555,13 +562,13 @@
 
 | 结构标签 | 条目数 | 占比 |
 |---|---:|---:|
-| `显式时钟` | 45 | 27.6% |
-| `连续耦合` | 17 | 10.4% |
-| `资源互斥` | 14 | 8.6% |
-| `层次` | 37 | 22.7% |
-| `协议交互` | 9 | 5.5% |
-| `并行` | 12 | 7.4% |
-| `-`（无额外结构标签） | 57 | 35.0% |
+| `显式时钟` | 45 | 26.8% |
+| `连续耦合` | 17 | 10.1% |
+| `资源互斥` | 14 | 8.3% |
+| `层次` | 40 | 23.8% |
+| `协议交互` | 9 | 5.4% |
+| `并行` | 12 | 7.1% |
+| `-`（无额外结构标签） | 59 | 35.1% |
 
 从标签覆盖率看，`显式时钟` 是最常见的额外结构信号；但 `层次 / 并行 / 协议交互 / 资源互斥 / 连续耦合` 这些更“非普通流程图”的语义仍然偏少，后续若想训练更复杂的结构恢复能力，仍需要专项补样。
 
@@ -569,18 +576,18 @@
 
 | 口径 | 类别 | 数量 | 占比 | 判定边界摘要 |
 |---|---|---:|---:|---|
-| 条目级 | `💎 核心保留` | 123 | 75.5% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
-| 条目级 | `🧰 清洗后保留` | 15 | 9.2% | 原文偏薄，尚不足以直接进主集 |
-| 条目级 | `🪫 降采样保留` | 25 | 15.3% | `原文/描述均为 A/B`、未降级、但 `属于 🔁` |
-| 文件级 | `⛔ 不作正样本` | 56 | 27.5% | 对应 `56` 个 `⚪ 未收获` 文件 |
+| 条目级 | `💎 核心保留` | 128 | 76.2% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
+| 条目级 | `🧰 清洗后保留` | 15 | 8.9% | 原文偏薄，尚不足以直接进主集 |
+| 条目级 | `🪫 降采样保留` | 25 | 14.9% | `原文/描述均为 A/B`、未降级、但 `属于 🔁` |
+| 文件级 | `⛔ 不作正样本` | 56 | 26.8% | 对应 `56` 个 `⚪ 未收获` 文件 |
 
-如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `148` 条，占 `90.8%`；剩余 `15` 条（`9.2%`）应先停在 `🧰`，不能直接混入主训练集。
+如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `153` 条，占 `91.1%`；剩余 `15` 条（`8.9%`）应先停在 `🧰`，不能直接混入主训练集。
 
 再把角色与双细节充实度边界对照起来看：
 
 | 角色 | 条目数 | 原文 `A/B` | 原文 `C/D` | 描述 `A/B` | 描述 `C/D` |
 |---|---:|---:|---:|---:|---:|
-| `💎 核心保留` | 123 | `123 / 100.0%` | `0 / 0.0%` | `123 / 100.0%` | `0 / 0.0%` |
+| `💎 核心保留` | 128 | `128 / 100.0%` | `0 / 0.0%` | `128 / 100.0%` | `0 / 0.0%` |
 | `🧰 清洗后保留` | 15 | `0 / 0.0%` | `15 / 100.0%` | `0 / 0.0%` | `15 / 100.0%` |
 | `🪫 降采样保留` | 25 | `25 / 100.0%` | `0 / 0.0%` | `25 / 100.0%` | `0 / 0.0%` |
 
@@ -592,22 +599,22 @@
 
 #### 4.10 领域分布（正例文件 vs 正例条目 vs `⚪ 未收获` 文件）
 
-| 领域 | 含正例文件数 | 占 `148` 个含正例文件比例 | 正例条目数 | 占 `163` 条正例比例 | 未收获文件数 | 占 `56` 个未收获文件比例 |
+| 领域 | 含正例文件数 | 占 `153` 个含正例文件比例 | 正例条目数 | 占 `168` 条正例比例 | 未收获文件数 | 占 `56` 个未收获文件比例 |
 |---|---:|---:|---:|---:|---:|---:|
-| `🚦` | 18 | 12.2% | 19 | 11.7% | 0 | 0.0% |
-| `🚆` | 14 | 9.5% | 16 | 9.8% | 7 | 12.5% |
-| `🏢` | 12 | 8.1% | 12 | 7.4% | 3 | 5.4% |
-| `✈️` | 22 | 14.9% | 22 | 13.5% | 10 | 17.9% |
-| `🅿️` | 10 | 6.8% | 13 | 8.0% | 3 | 5.4% |
-| `🏭` | 11 | 7.4% | 15 | 9.2% | 7 | 12.5% |
-| `🚗` | 10 | 6.8% | 11 | 6.7% | 14 | 25.0% |
-| `🌡️` | 8 | 5.4% | 9 | 5.5% | 1 | 1.8% |
-| `🩺` | 29 | 19.6% | 32 | 19.6% | 2 | 3.6% |
+| `🚦` | 18 | 11.8% | 19 | 11.3% | 0 | 0.0% |
+| `🚆` | 14 | 9.2% | 16 | 9.5% | 7 | 12.5% |
+| `🏢` | 12 | 7.8% | 12 | 7.1% | 3 | 5.4% |
+| `✈️` | 22 | 14.4% | 22 | 13.1% | 10 | 17.9% |
+| `🅿️` | 10 | 6.5% | 13 | 7.7% | 3 | 5.4% |
+| `🏭` | 11 | 7.2% | 15 | 8.9% | 7 | 12.5% |
+| `🚗` | 10 | 6.5% | 11 | 6.5% | 14 | 25.0% |
+| `🌡️` | 8 | 5.2% | 9 | 5.4% | 1 | 1.8% |
+| `🩺` | 34 | 22.2% | 37 | 22.0% | 2 | 3.6% |
 | `🧩` | 1 | 0.7% | 1 | 0.6% | 3 | 5.4% |
-| `⚙️` | 13 | 8.8% | 13 | 8.0% | 2 | 3.6% |
+| `⚙️` | 13 | 8.5% | 13 | 7.7% | 2 | 3.6% |
 | `🔐` | 0 | 0.0% | 0 | 0.0% | 4 | 7.1% |
 
-领域分布上，`🩺 / ✈️ / 🚦 / 🚆 / ⚙️` 已形成更均衡的主样本池；本轮新增的 `5` 篇 `🩺` 双 A 样本，进一步补强了动力髋外骨骼、软式下肢外骨骼、`MAHNP` 混合步态恢复系统、shared-neural 主动膝踝假肢与 `CyberLimb` 共享控制假肢这些此前仍偏稀的医疗控制样本方向。
+领域分布上，`🩺 / ✈️ / 🚦 / 🚆 / ⚙️` 已形成更均衡的主样本池；本轮新增的 `5` 篇 `🩺` 双 A 样本，进一步补强了斜坡步行动力股骨假肢、混合 walking neuroprosthesis、仿生足踝假肢、FES 步行辅助系统与 `MAK` 便携外骨骼这些此前仍偏稀的医疗控制样本方向。
 
 #### 4.11 `⚪ 未收获` 的主要成因
 
@@ -652,19 +659,19 @@
 1. **真实控制对象多**：不是泛泛的 UML/工具论文，而是大量具体控制对象，如联锁、电梯、交通灯、液位、泊车、医疗装置、起落架、车队等。
 2. **绝大多数正例条目都写成了“可生成输出”的最终口吻**：这对做 `NL -> state machine` 的目标输出很友好。
 3. **正负样本边界已经开始显化**：`⚪ 未收获` 文件可以直接转化为 hard negative，而不必简单丢弃。
-4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **148** 条（**90.8%**），`描述 = 🟢 A / 🟡 B` 也有 **148** 条（**90.8%**），其中 `💎` 已有 **123** 条，按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **148** 条（**90.8%**）。
+4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **153** 条（**91.1%**），`描述 = 🟢 A / 🟡 B` 也有 **153** 条（**91.1%**），其中 `💎` 已有 **128** 条，按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **153** 条（**91.1%**）。
 
 #### 6.2 现在最需要警惕的问题
 
-1. **强趋同问题真实存在**：`🔁` 强趋同条目有 **28** 条，占正例条目的 **17.2%**。这不是“有点像”，而是足以污染训练分布。
+1. **强趋同问题真实存在**：`🔁` 强趋同条目有 **28** 条，占正例条目的 **16.7%**。这不是“有点像”，而是足以污染训练分布。
 2. **系统级、构件级、语义级样本混在一起**：例如 IEC 61499、EAST-ADL、ViTAL、部分 SysML/ECC/构件执行语义条目，并不是坏样本，但如果不打标签，会让训练目标粒度漂移。
-3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **15** 条（**9.2%**），`描述 = 🟠 C / 🔴 D` 也有 **15** 条（**9.2%**）；此前锁定的“原文够但描述降级”条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
+3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **15** 条（**8.9%**），`描述 = 🟠 C / 🔴 D` 也有 **15** 条（**8.9%**）；此前锁定的“原文够但描述降级”条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
 4. **异常/恢复链仍然偏少**：很多条目保住了 nominal path，但没有把 fault、degraded、manual takeover、recovery 条件完整保住。
 5. **领域分布并不均匀**：交通灯、联锁、电梯、工业 PLC 占比较高；医疗样本已明显回升，但过程控制与真正的时间约束样本仍然偏少。
 
 #### 6.3 如果今天就拿它做数据集，我建议这样分桶
 
-1. `主训练集`：以当前 **123** 条 `💎 核心保留` 为主，并从 **25** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
+1. `主训练集`：以当前 **128** 条 `💎 核心保留` 为主，并从 **25** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
 2. `待清洗正样本池`：全部 **15** 条 `🧰 清洗后保留` 条目。由于描述降级问题已清空，后续清洗重点应回到补原文可追溯细节，例如 guard、阈值、定时值、异常链、显式状态名。
 3. `降采样补充池`：`🪫` 条目只用于增强鲁棒性，不作为主训练集主力。
 4. `hard negative / background`：全部 `⛔ 不作正样本` 文件，尤其是连续控制、工具流程和综述型条目。
@@ -677,12 +684,12 @@
 4. 对 `⚪ 未收获` 文件增加 hard negative 标签，而不是只留下“未收获”四个字。
 5. 后续如果继续扩库，应优先补那些当前样本稀少但对控制系统自动建模更有区分度的对象：医疗模式管理、故障退化、时间约束、协议/协调控制、复杂恢复链。
 
-### 7. 文件级全量总表（204 个 `STM.md` 全覆盖，已按新口径回刷）
+### 7. 文件级全量总表（209 个 `STM.md` 全覆盖，已按新口径回刷）
 
 > 说明 1：文件级角色不是把整篇论文“平均打分”，而是按条目级结果做数据集入库路由聚合。
 > 说明 2：聚合顺序固定为：无正例条目则 `⛔`；只要存在 `💎` 条目就判 `💎 含核心样本`；若全部正例都只是 `🪫`，才判 `🪫 主要用于降采样池`；其余统一判 `🧰 需清洗样本`。
 > 说明 3：`代表状态机类型 / 代表时间级别 / 结构标签概况` 仅汇总该 `STM.md` 中已入账的正例条目，不对 `⚪ 未收获` 文件做臆测补齐。
-> 当前文件级分布：`💎 115`、`🧰 11`、`🪫 22`、`⛔ 56`。
+> 当前文件级分布：`💎 120`、`🧰 11`、`🪫 22`、`⛔ 56`。
 
 | # | 领域 | 文件级角色 | 代表状态机类型 | 代表时间级别 | 结构标签概况 | 原始评级 | 条目数 | 论文 | 跳转 | 文件级判断 |
 |---:|---|---|---|---|---|---|---:|---|---|---|
@@ -890,8 +897,13 @@
 | 202 | 🩺 | `💎 含核心样本` | `HSM` | `T1` | `层次` | `🟢 直接可用` | 1 | [《A Muscle-First, Electromechanical Hybrid Gait Restoration System in People With Spinal Cord Injury》](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/STM.md) | [STM](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/STM.md) / [TXT](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/paper_content.txt) / [Bib](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `timed stimulation + GED FSM + transition states` 层次结构、四 gait states、FSR/button triggers 与 `250 µs / 60-30 ms` 时间参数。 |
 | 203 | 🩺 | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Stand-Up, Squat, Lunge, and Walk With a Robotic Knee and Ankle Prosthesis Under Shared Neural Control》](./robotic-knee-ankle-prosthesis-shared-neural-control/STM.md) | [STM](./robotic-knee-ankle-prosthesis-shared-neural-control/STM.md) / [TXT](./robotic-knee-ankle-prosthesis-shared-neural-control/paper_content.txt) / [Bib](./robotic-knee-ankle-prosthesis-shared-neural-control/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `Stance / Swing` 两态骨架、`50 N` 接地阈值、position-dependent EMG gain 与 knee-ankle coupling。 |
 | 204 | 🩺 | `💎 含核心样本` | `HSM` | `T0` | `层次, 并行` | `🟢 直接可用` | 1 | [《CyberLimb: a novel robotic prosthesis concept with shared and intuitive control》](./cyberlimb-shared-intuitive-control/STM.md) | [STM](./cyberlimb-shared-intuitive-control/STM.md) / [TXT](./cyberlimb-shared-intuitive-control/paper_content.txt) / [Bib](./cyberlimb-shared-intuitive-control/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 wrist/gripper 并行 FSM、smartphone/headband thresholds、`Horizontal/Max Leveling` 与 task-specific 自动动作序列。 |
+| 205 | 🩺 | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Control Framework for Sloped Walking With a Powered Transfemoral Prosthesis》](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/STM.md) | [STM](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/STM.md) / [TXT](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/paper_content.txt) / [Bib](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住斜坡步行动力股骨假肢的 gait-phase supervisor、`heel-strike / flat-foot / heel-off / toe-off` 切换点，以及坡度角驱动的 `K / D / θref` 参数映射。 |
+| 206 | 🩺 | `💎 含核心样本` | `HSM` | `T1` | `层次` | `🟢 直接可用` | 1 | [《A Control Scheme That Uses Dynamic Postural Synergies to Coordinate a Hybrid Walking Neuroprosthesis: Theory and Experiments》](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/STM.md) | [STM](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/STM.md) / [TXT](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/paper_content.txt) / [Bib](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `State 0/1/2/3` step-sequencing 顶层机、双腿 synergy controller 分工、progression/safety button 触发，以及 `35 Hz / 400 µs / 1 kHz` 的刺激与实现参数。 |
+| 207 | 🩺 | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Case Study: A Bio-Inspired Control Algorithm for a Robotic Foot-Ankle Prosthesis Provides Adaptive Control of Level Walking and Stair Ascent》](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/STM.md) | [STM](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/STM.md) / [TXT](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/paper_content.txt) / [Bib](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `BiOM` gait state machine、`early/late swing` 与 `early/mid/late stance` 阶段性激活，以及 level walking 到 stair ascent 的无重配置切换。 |
+| 208 | 🩺 | `💎 含核心样本` | `HSM` | `T1` | `层次` | `🟢 直接可用` | 1 | [《An adaptive reflexive control strategy for walking assistance system based on functional electrical stimulation》](./adaptive-reflexive-control-fes-walking-assistance-system/STM.md) | [STM](./adaptive-reflexive-control-fes-walking-assistance-system/STM.md) / [TXT](./adaptive-reflexive-control-fes-walking-assistance-system/paper_content.txt) / [Bib](./adaptive-reflexive-control-fes-walking-assistance-system/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `HS / FF / HO / TO / STA` 事件检测、`LR / ST / PS / SW / TSW` 相位机、分肌群 impulse 映射，以及 `0.04 s`、`20 µs`、`250-500 µs` 的在线更新时间参数。 |
+| 209 | 🩺 | `💎 含核心样本` | `HSM` | `T1` | `层次` | `🟢 直接可用` | 1 | [《A new lower limb portable exoskeleton for gait assistance in neurological patients: a proof of concept study》](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/STM.md) | [STM](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/STM.md) / [TXT](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/paper_content.txt) / [Bib](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `F0 / M1 / M3` 模式层、support/swing 相位机、knee angle/insole pressure/knee force triggers，以及由对侧 swing duration 调度的局部速度语义。 |
 
-### 8. 条目级全量总表（163 条正例全覆盖）
+### 8. 条目级全量总表（168 条正例全覆盖）
 
 说明：本表是这份讨论稿的核心。只要某个 `STM.md` 中实际写出了正例条目，这里都会逐条入账，不遗漏任何一条。
 
@@ -1064,6 +1076,11 @@
 | 161 | 🩺 | `HSM` | `T1` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | 🪞 邻近相似 | [《A Muscle-First, Electromechanical Hybrid Gait Restoration System in People With Spinal Cord Injury》](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/STM.md) / Hierarchical gait-event supervisor for the MAHNP hybrid restoration system | `MAHNP` 混合神经刺激/外骨骼步态恢复系统 | [STM](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/STM.md) / [TXT](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/paper_content.txt) / [Bib](./muscle-first-hybrid-gait-restoration-spinal-cord-injury/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `timed stimulation + GED FSM + transition states` 层次结构、四 gait states、button/heel FSR triggers 与 `250 µs / 60-30 ms` 刺激参数。 |
 | 162 | 🩺 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Stand-Up, Squat, Lunge, and Walk With a Robotic Knee and Ankle Prosthesis Under Shared Neural Control》](./robotic-knee-ankle-prosthesis-shared-neural-control/STM.md) / Two-state shared-neural supervisor for the robotic knee-ankle prosthesis | 机器人膝踝假肢的 shared neural high-level controller | [STM](./robotic-knee-ankle-prosthesis-shared-neural-control/STM.md) / [TXT](./robotic-knee-ankle-prosthesis-shared-neural-control/paper_content.txt) / [Bib](./robotic-knee-ankle-prosthesis-shared-neural-control/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `Stance / Swing` 两态、`50 N` 接地阈值、position-dependent EMG gain 与 knee-coupled ankle equilibrium。 |
 | 163 | 🩺 | `HSM` | `T0` | `层次, 并行` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《CyberLimb: a novel robotic prosthesis concept with shared and intuitive control》](./cyberlimb-shared-intuitive-control/STM.md) / Parallel wrist-gripper shared-control supervisor for the CyberLimb prosthesis | `CyberLimb` 经桡假肢的 wrist-gripper shared-control supervisor | [STM](./cyberlimb-shared-intuitive-control/STM.md) / [TXT](./cyberlimb-shared-intuitive-control/paper_content.txt) / [Bib](./cyberlimb-shared-intuitive-control/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 wrist/gripper 并行 FSM、smartphone/headband mode switching、`Horizontal/Max Leveling` 与 `Scissors/Haptic Task` 自动动作序列。 |
+| 164 | 🩺 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | 🪞 邻近相似 | [《Control Framework for Sloped Walking With a Powered Transfemoral Prosthesis》](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/STM.md) / Slope-adaptive gait-phase supervisor for a powered transfemoral prosthesis | 动力股骨假肢在上下坡行走中的 knee/ankle gait-phase controller | [STM](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/STM.md) / [TXT](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/paper_content.txt) / [Bib](./control-framework-for-sloped-walking-powered-transfemoral-prosthesis/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 ankle 四态与 knee 五态的 gait-phase 骨架、`heel-strike / flat-foot / heel-off / toe-off` 切换点，以及坡度角驱动的 `K / D / θref` 调参链。 |
+| 165 | 🩺 | `HSM` | `T1` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | 🪞 邻近相似 | [《A Control Scheme That Uses Dynamic Postural Synergies to Coordinate a Hybrid Walking Neuroprosthesis: Theory and Experiments》](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/STM.md) / Hierarchical step-sequencing supervisor for the hybrid walking neuroprosthesis | 混合 walking neuroprosthesis 的 step-sequencing FSM 与双边 synergy-based gait controller | [STM](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/STM.md) / [TXT](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/paper_content.txt) / [Bib](./dynamic-postural-synergies-hybrid-walking-neuroprosthesis/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `State 0/1/2/3` 步序监督器、stance/swing leg 角色切换、button-driven 迁移，以及 `35 Hz / 400 µs / 1 kHz` 的刺激与实时执行参数。 |
+| 166 | 🩺 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Case Study: A Bio-Inspired Control Algorithm for a Robotic Foot-Ankle Prosthesis Provides Adaptive Control of Level Walking and Stair Ascent》](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/STM.md) / Phase-dependent virtual-muscle supervisor for the robotic foot-ankle prosthesis | 机器人足踝假肢的 `BiOM` gait-state supervisor 与 WFH virtual-muscle controller | [STM](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/STM.md) / [TXT](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/paper_content.txt) / [Bib](./bio-inspired-control-robotic-foot-ankle-prosthesis-level-walking-stair-ascent/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `early/late swing` 与 `early/mid/late stance` 阶段、anterior/posterior virtual muscle activation，以及 level walking 与 stair ascent 间的不改参切换。 |
+| 167 | 🩺 | `HSM` | `T1` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | 🪞 邻近相似 | [《An adaptive reflexive control strategy for walking assistance system based on functional electrical stimulation》](./adaptive-reflexive-control-fes-walking-assistance-system/STM.md) / Hierarchical gait-event FES supervisor with adaptive timing updates | FES walking assistance system 的 gait-event detector 与 multi-channel stimulation controller | [STM](./adaptive-reflexive-control-fes-walking-assistance-system/STM.md) / [TXT](./adaptive-reflexive-control-fes-walking-assistance-system/paper_content.txt) / [Bib](./adaptive-reflexive-control-fes-walking-assistance-system/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `HS / FF / HO / TO / STA` 事件、`LR / ST / PS / SW / TSW` 五相、分肌群 impulse gating，以及 `0.04 s` 阈值和 `20 µs`、`250-500 µs` 的在线参数更新。 |
+| 168 | 🩺 | `HSM` | `T1` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《A new lower limb portable exoskeleton for gait assistance in neurological patients: a proof of concept study》](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/STM.md) / Mode-and-phase assistance supervisor for the MAK portable exoskeleton | `MAK` 下肢便携外骨骼的 active-assistance mode supervisor 与 gait-phase state machine | [STM](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/STM.md) / [TXT](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/paper_content.txt) / [Bib](./new-lower-limb-portable-exoskeleton-gait-assistance-neurological-patients/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `F0 / M1 / M3` 模式层、support/swing 状态机、knee angle/insole pressure/knee-joint-force triggers，以及由对侧 swing duration 约束的局部速度调度。 |
 ### 9. `⚪ 未收获` 文件专表（便于 hard negative 回收）
 
 | # | 领域 | 未收获原因类别 | 论文 | 跳转 | 当前简要判断 |
