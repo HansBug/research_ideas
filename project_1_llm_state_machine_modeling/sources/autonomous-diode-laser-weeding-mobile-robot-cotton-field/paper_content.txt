@@ -1,0 +1,1057 @@
+--- Page 1 ---
+Autonomous diode laser
+weeding mobile robot in cottonﬁeld using deep learning, visual
+servoing and ﬁnite state machine
+Canicius Mwitta1*, Glen C. Rains2*and Eric P. Prostko3
+1College of Engineering, University of Georgia, Athens, GA, United States,2Department of
+Entomology, University of Georgia, Tifton, GA, United States,3Department of Crop and Soil Sciences,
+University of Georgia, Tifton, GA, United States
+Small autonomous robotic platforms can be utilized in agricultural environments
+to target weeds in their early stages of growth and eliminate them. Autonomous
+solutions reduce the need for labor, cut costs, and enhance productivity. To
+eliminate the need for chemicals in weeding, and other solutions that can
+interfere with the crop ’s growth, lasers have emerged as a viable alternative.
+Lasers can precisely target weed stems, effectively eliminating or stunting their
+growth. In this study an autonomous robot that employs a diode laser for weed
+elimination was developed and its performance in removing weeds in a cotton
+ﬁeld was evaluated. The robot utilized a combination of visual servoing for
+motion control, the Robotic operating system (ROS) ﬁnite state machine
+implementation (SMACH) to manage its states, actions, and transitions.
+Furthermore, the robot utilized deep learning for weed detection, as well as
+navigation when combined with GPS and dynamic window approach path
+planning algorithm. Employing its 2D cartesian arm, the robot positioned the
+laser diode attached to a rotating pan-and-tilt mechanism for precise weed
+targeting. In a cotton ﬁeld, without weed tracking, the robot achieved an overall
+weed elimination rate of 47% in a single pass, with a 9.5 second cycle time per
+weed treatment when the laser diode was positioned parallel to the ground.
+When the diode was placed at a 10°downward angle from the horizontal axis, the
+robot achieved a 63% overall elimination rate on a single pass with 8 seconds
+cycle time per weed treatment. With the implementation of weed tracking using
+DeepSORT tracking algorithm, the robot achieved an overall weed elimination
+rate of 72.35% at 8 seconds cycle time per weed treatment. With a strong
+potential for generalizing to other crops, these results provide strong evidence of
+the feasibility of autonomous weed elimination using low-cost diode lasers and
+small robotic platforms.
+KEYWORDS
+non-chemical weeding, robo tic weeding, precision agriculture, weed detection,
+autonomous navigation, weed stem laser targeting
+Frontiers in Agronomy frontiersin.org 01
+OPEN ACCESS
+EDITED BY
+Thomas R. Butts,
+Purdue University, United States
+REVIEWED BY
+Parvathaneni Naga Srinivasu,
+Prasad V. Potluri Siddhartha Institute of
+Technology, India
+Lakshmeeswari Gondi,Gandhi Institute of Technology andManagement (GITAM), India
+*CORRESPONDENCE
+Canicius Mwitta
+cmwitta@uga.edu
+Glen C. Rains
+grains@uga.edu
+RECEIVED 19 February 2024
+ACCEPTED 29 April 2024
+PUBLISHED 16 May 2024
+CITATION
+Mwitta C, Rains GC and Prostko EP (2024)
+Autonomous diode laser weeding mobilerobot in cotton ﬁeld using deep learning,
+visual servoing and ﬁnite state machine.
+Front. Agron. 6:1388452.
+doi: 10.3389/fagro.2024.1388452
+COPYRIGHT
+© 2024 Mwitta, Rains and Prostko. This is anopen-access article distributed under the terms
+of the Creative Commons Attribution License
+(CC BY). The use, distribution or reproduction
+in other forums is permitted, provided theoriginal author(s) and the copyright owner(s)
+are credited and that the original publication
+in this journal is cited, in accordance withaccepted academic practice. No use,distribution or reproduction is permitted
+which does not comply with these terms.TYPE Original Research
+PUBLISHED 16 May 2024
+DOI10.3389/fagro.2024.1388452
+
+--- Page 2 ---
+1 Introduction
+Weeds can have detrimental effects on crop yield, causing heavy
+economic losses ( Pimentel et al., 2000 ;Oerke, 2006 ;Gharde et al.,
+2018 ), and in most cases, even higher losses than pathogens and
+invertebrate pests ( Oerke, 2006 ;Radicetti and Mancinelli, 2021 ).
+Chemical weeding, manual weeding, and mechanical weeding
+have been the common practices for weed control in agricultural
+ﬁelds ( Chauvel et al., 2012 ). Chemical weeding has been the most
+effective and most used weed control method ( Buhler et al., 2000 ;
+Gianessi and Reigner, 2007 ;Abbas et al., 2018 ). However, weeds
+have evolved resistance to many chemistries, posing a threat to
+productivity ( Powles et al., 1996 ;Shaner, 2014 ). Moreover, there
+are concerns about the negative impacts of the chemicals on the
+environment ( Colbach et al., 2010 ;Abbas et al., 2018 ). Mechanical
+weeding approaches are not very ef ﬁcient and can interfere with
+crop activities, potenti ally causing crop injury ( Fogelberg and
+Gustavsson, 1999 ;Abbas et al., 2018 ), while manual weeding
+can be time consuming and is associated with high labor costs
+(Schuster et al., 2007 ;Bastiaans et al., 2008 ;Young et al., 2014 ).
+Weeding can be labor-intensive, necessitating the hiring and
+management of labor. As evidence shows, labor costs in agriculture
+are increasing rapidly due to labor shortages ( Guthman, 2017 ;
+Richards, 2018 ;Zahniser et al., 2018 ). Without alternative
+methods that are less labor-reliant, the development of agriculture
+will fall short of demand. Thanks to technology, multiple potential
+solutions have been investigated and implemented including taking
+advantage of autonomous robots to deliver management tools. The
+affordability of arti ﬁcial intelligence, computer processors and
+sensors has enabled the automation of various agricultural tasks,
+including weeding, planting, and harvesting ( Oliveira et al., 2021 ).
+Autonomous weeding in agricultural ﬁelds demands high
+precision in effectively identifying the weeds, navigating the robot,
+and removing the weeds. These tasks are made dif ﬁcult by the
+outdoor nature of the agricultural environment, which is subject to
+constant changes in illumination, weather, uneven terrain, and
+occlusion. Various techniques have been employed in attempts to
+overcome these challenges. For example, McCool et al. (2018)
+implemented mechanical and spraying mechanisms in their
+autonomous weed management robot, Agbot II, and utilized
+color segmentation in their weed detection. Blasco et al. (2002)
+used machine vision algorithms to identify weeds and remove them
+with an electric discharge. Furthermore, Pe ́rez-Ru ı ́z et al. (2014)
+introduced an autonomous mechanical weeding robot to remove
+intra-row weeds using movable hoes, utilizing odometry data and
+pre-programmed crop planting pattern, while Florance Mary and
+Yogaraman (2021) drilled the weeds to the ground with their
+autonomous robot that utilized deep learning computer
+algorithms for weed detection. Despite their successful
+implementations, these studies focused on destructive mechanical
+solutions with potential of harming crops.
+The limitations of current robotic weeding solutions such as
+potential crop damage, environmental concerns, and inef ﬁciency
+highlight the critical need for more precise methods of targeting and
+removing weeds to ensure ef ﬁcient weed management. Laser
+technology has emerged as a promising alternative. Laser weedingoffers a solution for precise, targeted elimination of weeds,
+minimizing disruption to the surrounding crop and environment.
+Treating weeds with lasers has proved effective in eliminating them
+or stunting their growth ( Heisel et al., 2001 ;Mathiassen et al., 2006 ;
+Marx et al., 2012 ;Kaierle et al., 2013 ;Mwitta et al., 2022 ). Narrow
+beams from lasers can remove both inter-row and intra-row with
+precision targeting.
+The development of autonomous laser weeding robots is still a
+relatively new endeavor being studied. For example, Xiong et al.
+(2017) developed a prototype of an autonomous laser weeding
+robot that utilized color-segmentation for weed identi ﬁcation, fast
+path-planning algorithms, and two laser pointers to target weeds in
+an indoor environment, achieving a hit rate of 97%. However, there
+have been relatively few examp l e so fa p p l i c a t i o n si no u t d o o r
+ﬁeld environments.
+In this study, we developed and tested an autonomous laser
+weeding Ackerman-steered robot with a 2-degrees of freedom
+Cartesian manipulator, stereo v ision system, and a diode laser
+mounted on a pan-and-tilt mechanism. This research builds upon
+our previous studies, Mwitta et al. (2022) , which observed that
+inexpensive low-powered laser diodes can be used as a weed
+control mechanism, leading to portable inexpensive robotic
+platforms, Mwitta et al. (2024) which demonstrated that the
+deep learning model YOLOv4-tiny can be an ideal solution for
+real time robotic application due to its speed of detection and
+satisfactory accuracy in weed detection, and ( Mwitta and Rains
+(2024) ) which explored the effectiveness of combining GPS and
+visual sensors for autonomous navigation in cotton ﬁeld. This
+current study leverages the insi ghts from these preceding studies
+to create a more comprehensive solution for autonomous laser
+weeding in cotton ﬁelds.
+This study is driven by the desire to create an affordable, small-
+scale autonomous robotic platform for farmers. This platform
+would utilize laser weeding technology for precise and effectiveweed elimination, minimizing soil disturbance and environmental
+impact. The potential bene ﬁts of this approach are numerous.
+Autonomous laser weeding offers a more precise and ef ﬁcient
+method of weed control compared to traditional methods,
+potentially reducing herbicide use and promoting sustainable
+agricultural practices with minimal environmental risks.
+Furthermore, autonomous robots can alleviate the need for costly
+manual labor in weed control, leading to increased crop yields by
+effectively managing weeds and minimizing competition for
+resources. Compared to mechanical weeding methods, laser
+weeding minimizes soil disturbance, promoting soil health and
+structure. An additional bene ﬁt is the potential for data-driven
+weed management. Autonomous systems can collect valuable data
+on weed location, species, and density, facilitating the development
+of more targeted weed control strategies. Multiple small robots
+working together can address larger ﬁelds. However, there are
+challenges to address. Autonomous laser weeding technology is
+relatively new and requires further development to improve its
+effectiveness, speed, and reliability under various ﬁeld conditions.
+The system ’s ability to accurately identify and target speci ﬁc weeds
+while avoiding damage to crops needs further re ﬁnement. A
+thorough evaluation of laser weeding ’s potential impact onMwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 02
+
+--- Page 3 ---
+beneﬁcial insects and other non-targeted organisms is crucial, as
+evident in Andreasen et al. (2023) .F i n a l l y ,s a f e t yr e g u l a t i o n s
+governing the use of high-power lasers in agricultural settings
+may need to be developed or adapted.
+The study contributes to the efforts advancing the ﬁeld of
+precision weeding by successfully developing and testing several
+key components in a real-world setting of a cotton ﬁeld such as:
+Agricultural Robotic Platform: We designed and built a
+functional robotic platform speci ﬁcally tailored for
+agricultural applications.
+Weed Detection with Deep Learning: A weed detection
+mechanism was developed utilizing deep learning
+technology to accurately identify weeds in the ﬁeld.
+Weed Tracking: The system incorporates a weed tracking
+mechanism to maintain focus on target weeds as the
+robot navigates.
+Autonomous Navigation in Cotton Fields: A combined
+visual and GPS-based autonomous navigation system was
+developed to enable the robot to ef ﬁciently navigate within
+cotton ﬁelds.
+Precision Laser Weeding: A mechanism for precise weed
+targeting and elimination using diode lasers was integrated
+into the platform.
+The remaining sections of the article delve deeper into the
+speci ﬁcs of this research and its ﬁndings. The “Materials and
+Methods ”section provides a detailed account of the development
+process. It outlines the robotic platform setup, the weed detection
+mechanism using deep learning, the autonomous navigation
+system, the real-time weed tracking approach, and the
+experiments conducted for laser weeding in the cotton ﬁeld.
+Following this, the “Results ”section presents the key ﬁndings and
+observations from the ﬁeld experiments. Finally, the “Discussion ”
+section delves into a broader discussion of the developed platform
+including the strengths and weaknesses identi ﬁed during testing,
+potential challenges to consider for future development, and
+promising avenues for further research.
+2 Materials and methods
+2.1 The platform setup
+The robot (see Figure 1 ) used in this study was an electric-
+powered 4-wheel Ackerman-steered rover with a 2D cartesian
+manipulator mounted on the front. We developed the robot to
+navigate between crop rows of 90 cm or more in agricultural ﬁelds.
+The robot had a length of 123 cm and width of 76 cm (without
+peripherals attached).
+The robot had four main controllers (see contextual diagram;
+Figure 2 ) which controlled all the sensors and actuators mounted on
+the robot: A master controller for coordination of all robot
+activities, a rover controller for navigation, an arm controller for
+manipulation, and a laser controller for weed elimination.2.1.1 Master robot controller
+An embedded computer (Nvidia Jetson Xavier AGX) was used
+as the central processor of the robot. Equipped with an 8-core ARM
+v8.2 64-bit CPU, 32GB of RAM, and a 512-core Volta GPU with
+tensor cores, this embedded computer delivered the needed
+performance, and enabled creation and deployment of end-to-endAI robotic applications while not demanding a lot of power (under
+30W). The computer was responsible for all the autonomous
+operations, such as receiving and interpreting data from sensors
+like the stereo cameras, IMUs, and GPS, running deep learning
+models for weed detection, path planning and navigation between
+rows, and controlling the Arduino microcontrollers which were
+directly connected to relays and drivers for sensors and actuators,
+by sending commands and receive sensors information. The
+information exchange between the computer and other modules
+was done using Robotic Operating System ( Quigley et al., 2009 )
+(ROS 1 - Noetic). The computer was powered by a 22000mAh 6-cell
+Tunigy LIPO battery.
+A single-band EMLID Reach RS+ RTK GNSS receiver was
+mounted on the rover and connected to the embedded computer for
+robot ’s GPS position tracking, ﬁeld mapping, and navigation. To
+track the robot ’s orientation, two PhidgetSpatial Precision 3/3/3
+high resolution inertia measurement units (IMUs) were mounted
+on the robot. The IMUs contained a 3-axis accelerometer, 3-axis
+gyroscope, and 3-axis compass for precise estimation of
+robot ’s orientation.
+FIGURE 1
+The robot platform for laser weeding.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 03
+
+--- Page 4 ---
+Two stereo cameras (Zed 2 and Zed 2i) from Stereo Labs, were
+mounted on the robot and connected to the embedded computer.
+Each of the stereo cameras featured two image sensors that allowed
+for the capture of normal RGB images, depth images, and 3D point
+clouds, facilitating 3D pixel depth estimation. Additionally, they
+were equipped with internal IMUs capable of tracking
+their orientations.
+The platform utilized Zed 2 camera for detecting paths between
+cotton rows, enabling visual navigation, while the Zed 2i camera
+was employed for weed detection in the ﬁeld and the determination
+of their 3D locations relative to the camera. These cameras
+published ROS topics for RGB images and point cloud, to which
+the embedded computer subscribed. To obtain the 3D location of
+detected weed, the Zed ROS coordinate frames (see Figure 3A ) were
+utilized. The Zed 2i camera publishes a 3D point cloud that
+contained ( x,y,z) values representing the center of the detected
+weed. Since the camera is mounted at an angle q=2 50from the
+vertical axis (see Figure 3B ), the position values published had been
+rotated on camera ’s y-axis. To obtain the actual perpendicular
+distances, the values needed to be rotated back (rotated −q
+degrees by y-axis). The rotation matrix by y is given by:
+Ry(−q)=cos   ( −q) 0 sin   ( −q)
+01 0
+−sin   ( −q) 0 cos   ( −q)2
+6643
+775The distances ( X,Y,Z) are given by:
+X
+Y
+Z2
+6643
+775=R
+y(−q)x
+y
+z2
+6643
+775
+With rover to camera distance ( d), camera to end-effector
+distance ( m), and camera to ground height ( H), all known, the
+important distances are calculated as follows:
+Rover  to weed  distance =d+Z
+End effector  to weed  (n)=Y−m
+Weed  height  (h)=H−X
+2.1.2 Rover controller
+An Arduino Mega microcontroller controlled the driving and
+steering of the robot. ROS was used to communicate with the
+embedded computer. Each of the robot wheels was run by a 250W
+Pride Mobility wheelchair motor with the two back wheels
+connected to Quadrature rotary encoders (CUI AMT 102), to
+provide feedback on wheel rotation. The motors were driven by
+two Cytron MDDS30 motor controllers and powered by two
+20000mAh 6-cell Tunigy LIPO batteries. A linear servo (HDA8-
+FIGURE 2
+Contextual block diagram of the autonomous laser weeding robot platform.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 04
+
+--- Page 5 ---
+50) was connected to the front wheels for steering. The robot could
+also be manually controlled using an IRIS+ RC transmitter whichcommunicated with an FrSky X8R receiver connected to
+the Arduino.
+The robot used Ackerman steering geometry (see Figure 4A )t o
+track its position, orientation, and velocity.
+With R, the turning radius of the robot, Lthe wheelbase, Wthe
+width of the robot, Vthe linear velocity of the robot, ∝the
+heading, and qideal front wheel turning angle, the kinematics of the
+robot are described as below:
+_X
+robot=Vcos∝ðÞ
+_Yrobot=Vsin∝ðÞ
+_∝= V
+Ltan ( q)
+To maintain velocity on uneven agricultural terrain, the robot
+employed a PID (Proportional, Integral, and Derivative) controller
+(Ang et al., 2005 ;Wang, 2020 ). A PID controller continuously
+computes the difference between a desired setpoint value and a
+measured variable, subsequently applying corrections to the control
+value based on three pre-tuned gains: proportional, integral, and
+derivative. The PID controller was also used to move the robot to a
+speciﬁc position. For instance, when the position of the detected
+weed relative to the robot ’s end-effector was determined, the robot
+had to move a certain distance to align the end-effector with the
+weed for elimination. The PID controller made sure the robot didn ’t
+overshoot or undershoot the desired position. The feedback
+(measured value) was obtained from the fused wheel encoders.The PID system calculates the motor command required by the
+robot to reach the desired target, whether it is velocity or position,using three gains: proportional gain K
+p, integral gain Ki,a n d
+derivative gain Kd. Given the error e(t) as the difference between
+the current value and the target value, the motor command u(t) was
+calculated as follows:
+u(t)= Kpe(t)+KiZt
+0e(t)dt+Kdde(t)
+dt
+The PID controller was tuned to ﬁnd the values of the three
+gains ( Kp,Ki,Kd) by iteratively adjusting the gains while monitoring
+the step response of the rover to achieve desired performance.
+Due to sensor noise, the accurate estimation of the robot ’s pose
+employs an extended Kalman ﬁlter (EKF) ( Smith et al., 1962 ). The
+EKF is designed to fuse multiple noisy sensors by tuning the
+corresponding sensor variables ’noise covariance matrices,
+resulting in a precise estimate of the robot ’sp o s e .T h eE K F
+implementation fused continuous data from encoders, IMUs and
+GPS using the ROS package Robot_localization ( Moore and Stouch,
+2016 ). Robot_localization package accepts data including position,
+linear velocity, angular velocity, linear acceleration, and angular
+acceleration from sensors, and then estimates robot ’s pose and
+velocity. It utilizes two ROS nodes: a state estimation node
+EKF_localization_node and a sensor processing node
+NavSat_Transform node (see Figure 4B ). These nodes work
+together to fuse the sensor data and publish an accurate estimate
+of the robot ’s pose and velocity.
+Using ROS, the rover controller published the position and
+velocity topics and subscribed to motor command topics from the
+master controller.
+BA
+FIGURE 3
+(A)Zed camera ROS coordinate frames, (B)Camera setup on the rover. qis the camera angle from vertical axis, dis rover to camera distance, mis
+camera to end-effector distance, His camera to ground distance, and his height of the weed.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 05
+
+--- Page 6 ---
+2.1.3 Arm controller
+The robotic manipulator was a 2D cartesian system consisting
+of two Igus drylin®belt drive cantilever axis rails (ZAW-1040
+horizontally oriented, and ZLW-1040 vertically oriented), driven by
+two Igus drylin®NEMA 17 stepper motors. These motors were
+controlled by two SureStep STP-DRV-6575 stepper drivers and
+featured internal rotary encoders to track the position of the rails.
+The arm was controlled by an Arduino Mega microcontroller which
+communicated with the embedded computer using ROS. The arm
+controller published the arm position topic, to which the master
+controller subscribed. It also subscribed to the arm control topic
+from the master controller, receiving commands to move to a
+speciﬁc target position.
+The manipulator could move left, right, up, and down, with
+each axis controlled by its respective PID controller. However, the
+manipulator ’s movement was constrained by the arm kinematics,
+allowing translation in two axes only.
+For visual servoing, the robot utilized the inverse kinematics of
+both the arm and rover. Solving the inverse kinematics problem for
+the robot involved accounting for both the arm movement (X, Y)
+and the rover movement (Z). Consequently, given the ( xw, yw, zw )
+coordinates of the weed obtained from the stereo camera, the robot
+had to move a distance of (X, Y, Z) to reach the weed
+(seeFigure 4C ).2.1.4 Laser controller
+An Arduino Uno was responsible for controlling the release of
+laser beam from a diode laser. The diode laser was attached to a
+pan-and-tilt unit, which was controlled by two HSB-9380TH
+brushless servos, allowing it to rotate to different orientations (see
+Figure 5A ). The Arduino communicated with the computer
+through ROS.
+Due to the challenge of precisely targeting the weed stem, the
+servos would dither the diode dither back-and-forth at a speed of 10
+times per second at an angle of approximately 10°. This motion
+increased the cross-section area of the laser beam and maximized
+the laser beam ’s contact with the weed stem (see Figure 5B ). The
+beam formed about 1cm cross-section at the weed stem
+approximately 3mm above the ground.
+2.2 Weed detection using YOLOv4-tiny
+We trained YOLOv4-tiny detection model to detect Palmer
+Amaranth (Amaranthus palmeri) weed species in the cotton ﬁeld.
+YOLOv4-tiny is a lightweight, compressed version of YOLOv4
+(Bochkovskiy et al., 2020 ), designed with a simpler network
+structure and reduced parameters to make it ideal for deployment
+on mobile and embedded devices. Since the robot was powered by
+B
+CA
+FIGURE 4
+(A)Ackerman steering robot mechanism kinematic model. ( xrobot,yrobot) are the coordinates of the rear axle midpoint, ∝is the robot orientation, qis
+the steering angle, and Lis the wheelbase (image source Mwitta and Rains, 2024 ),(B)Fusing different sensors data with Robot_localization ROS
+package, (C)Inverse kinematics of the robot. Z is the rover movement axis, X and Y are vertical and horizontal movement axis for the arm.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 06
+
+--- Page 7 ---
+an embedded computer, a lighter network was necessary to ensure
+faster inference times. Additionally, performance test on weed
+detection demonstrated that YOLOv4-tiny was only
+approximately 4.7% less precise than YOLOv4. However, it
+offered signi ﬁcantly faster inference, achieving 52 frames per
+second (fps) on the embedded computer as demonstrated in
+Mwitta et al. (2024) .
+Images from the left lens of Zed 2i stereo camera were passed to
+YOLOv4-tiny model for detecting palmer amaranth weeds. The
+model performed well in detecting the weeds (see Figure 6A ), even
+when there were shadows (as shown in Figure 6B ). However, the
+model faced challenges in direct sunlight, resulting in excessive
+reﬂections and signi ﬁcant shadows (as seen in Figure 6C ). This issue
+was more prevalent during the afternoons one hour after solar
+zenith and approximately 3 hours before sunset.
+2.3 Navigation in cotton ﬁelds
+To navigate between the rows of cotton, we employed a
+combination of GPS and visual navigation. We trained a fully
+convolutional neural network (FCN) for semantic segmentation
+model ( Long et al., 2015 ) to detect paths between cotton rows in the
+ﬁeld. The model achieved a pixel accuracy of 93.5% on the testingdataset. The detected path between the cotton rows was then
+mapped from the image domain to the ground plane to obtain
+the points on the ground that the robot could traverse
+(seeFigure 7A ).
+GPS was employed as a global planner to map the entire ﬁeld
+and acquire pre-recorded coordinates of the path that the robot
+should follow (as seen in Figure 7B ).
+We used a local path planner, the Dynamic Window Approach
+(DWA) ( Fox et al., 1997 ), to navigate between the rows and avoid
+running over crops based on the path detected by FCN. The DWA
+algorithm aims to ﬁnd the optimal collision-free velocities for the
+robot ’s navigation, taking the robot ’s kinematics into account. The
+ground coordinates of the detected path boundaries were sampled
+and treated as obstacles in the DWA algorithm (see Figure 7C ).
+While the DWA algorithm proved to be a suitable choice for path
+planning, it came with the potential drawback of increased
+computational cost.
+In summary, the robot attempted to follow the global GPS map
+of pre-recorded GPS coordinates while simultaneously avoiding
+obstacles, represented by the path boundaries from FCN model-
+detected path, using the DWA algorithm. During ﬁeld testing, this
+approach navigated the robot with an average lateral distance error
+of 12.1 cm between the desired path and the robot ’s actual path as
+demonstrated in Mwitta and Rains (2024) .
+BA
+FIGURE 5
+(A)Laser module attached to the arm using a pan-and-tilt mechanism controlled by two servos, (B)Dithering mechanism of the diode laser. Servos
+move the diode laser back and forth.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 07
+
+--- Page 8 ---
+2.4 Overall robot control with ﬁnite
+state machine
+To model the order of task execution and the ﬂow of
+information between the robot controllers, the master controller
+(embedded computer) utilized ROS python library SMACH to
+create a Finite State Machine (FSM). FSM is used to model logic
+and can be in a speci ﬁc state from a ﬁnite set of possible states at any
+given point. Furthermore, it can transition to another state by
+accepting input and producing output.
+We modeled the autonomous weeding robot tasks into eight
+states (actions), with eight transitions from one state to another (seeFigure 8 ). The states were built in a task-level architecture, allowing
+the robotic system to transition smoothly from one state to another.
+The system begins at the entry state ( “get image ”), if the system
+fails to obtain an image from Zed 2i camera, it exits. Otherwise, the
+weed detection model searches for weeds in the image. If no weed is
+detected, the system continues navigating between the rows whileattempting to acquire another image and run the weed detection
+program. When a weed is detected, the system obtains the 3D
+coordinates ( x, y, z ) of the weed relative to the camera and calculates
+the forward distance from the rover to the weed, as well as the
+lateral distance of the weed relative to the laser module attached on
+the arm. The rover then moves to the weed and orients the arm with
+B
+CA
+FIGURE 6
+(A)Palmer amaranth weed detection in the cotton ﬁeld,(B)Detecting weeds in presence of shadows during lower sunlight, (C)Sunlight brightness
+and shadows hindering weed detection.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 08
+
+--- Page 9 ---
+the weed. Subsequently, the arm moves laterally to within 6cm from
+the weed. At this point, the system emits a laser beam for a de ﬁned
+duration while the servos oscillate to increase the contact area with
+the weed stem. The arm then returns to its initial position to avoid
+colliding with cotton in the rows during movement. Then FSM
+transitions back to the beginning state to start all over.
+2.5 Real-time tracking of weeds using
+DeepSORT algorithm
+Relying solely on the PID system to align the robot with the
+weed position has the drawback of occasional overshooting orundershooting the desired position. While the dithering of the
+pan-and-tilt mechanism mitigates part of this problem by
+increasing the cross-section area of the beam, the unevenness of
+the agricultural environment can lead the PID system to miss the
+target by a greater margin than dithering can compensate for. To
+address this issue, tracking the detected weeds across subsequent
+frames increases the likelihood of accurately targeting the weed with
+a laser beam. This is achieved by using the servos on the pan-and-
+tilt mechanism to point the laser in the direction of the closest weed.
+Even if the PID system overshoots or undershoots the position,
+tracking provides the ﬁnal position of the target relative to the
+diode ’s position. The servos then compensate for any error by
+directing the diode laser towards the targeted weed.
+DeepSORT ( Wojke et al., 2018 ), an evolution of the SORT
+(Simple Online and Realtime Tracking) algorithm ( Bewley et al.,
+2016 ), enhances object tracking by incorporating a deep learning
+metric as an appearance descriptor to extract features from images.SORT is a multi-object tracking algorithm that links objects from
+one frame to another using detections from object detection model,
+Kalman Filter ( Kalman, 1960 ) for predicting object movements, a
+data association algorithm [Hungarian algorithm ( Kuhn, 1955 )] for
+associating tracks with detected objects, and a distance metric
+(Mahalanobis distance) for quantifying the association.
+DeepSORT introduces the appearance feature vector, which
+accounts for object appearances and offsets some of the Kalman
+ﬁlter’s limitations in tracking occluded objects or objects viewed
+from different viewpoints.
+The feature descriptor needs a feature extractor, which is a deep
+learning model that can classify and match features of the objects
+B CA
+FIGURE 7
+(A)Path detected between cotton rows using FCN and mapped to the ground plane, (B)The robot ’s movement pattern in the ﬁeld(C)Sampled path
+boundaries treated as obstacles by the DWA path planning algorithm.
+FIGURE 8
+Finite State Machine of the laser weeding robot showing theproposed framework.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 09
+
+--- Page 10 ---
+that are tracked. In this study, a Siamese neural network ( Koch
+et al., 2015 ) was used as a feature extractor. Siamese networks are
+renowned for their pro ﬁciency in feature matching, by ranking
+similarities between inputs using a convolutional architecture. We
+trained the Siamese network model on a dataset of palmer amaranth
+weed species to learn their features, achieving an accuracy of 89%
+when evaluated on testing dataset.
+DeepSORT performed effectively in conjunction with YOLOv4-
+tiny as the object detector, assigning ID to every weed detected (see
+Figure 9A ). It attempted to track and maintain the same ID for each
+weed in subsequent frames. When tested with videos collected by the
+rover in the ﬁeld, DeepSORT achieved a Multiple Object Tracking
+Accuracy (MOTA) of 69.8%. By observing each frame tin a series of
+frames, with FNrepresenting false negatives, FPrepresenting false
+positives, IDSdenoting ID switches, and GTsignifying the ground
+truth object count, the MOTA is calculated by the following formula:
+MOTA =1−otFNt+FPt+IDS t
+otGTt
+Despite the strong performance of the DeepSORT algorithm,
+challenges persisted, including issues with ID switching and missed
+detections in the ﬁeld. To enhance the performance of the weed
+detection model and DeepSORT tracking system, the model can
+beneﬁt from further training with diverse data encompassing a
+wider range of scenarios. Additionally, ﬁne-tuning the detection
+and tracking parameters can further improve accuracy.
+2.6 Experiments
+To evaluate the effectiveness of the autonomous laser weeding
+robot, we conducted three main experiments at University ofGeorgia Tifton campus cotton ﬁelds located at (31°28 ’N 83°
+31’W). In the ﬁrst two experiments, we transplanted around 20
+palmer amaranth weeds per plot in ﬁve 30-feet plots. For the third
+experiment, we transplanted around 10 palmer amaranth weeds per
+plot in ﬁve 15-feet plots. This reduction in weed density was due to
+the experiment being conducted later in the growing season.
+The weeds used in the experiments were collected from the
+University of Georgia research ﬁelds near Ty Ty, GA (31°30 ’N, 83°
+39’W) between one to two weeks after emergence. The weeds were
+transplanted and left for a week to stabilize before treatment. The
+laser treatments were administered by the robot in 4 plots, while the
+ﬁfth plot was left as a control. The autonomous rover navigated
+between the cotton rows, attempting to detect weeds in real-time
+and treating them with laser beam. After treatments. We observed
+the weeds for a week after treatments. A 5W 450nm diode laser
+(measured 5cm from the laser lens using a Gentec Pronto-50-W5
+portable laser power meter.) was employed for the treatments. The
+laser was equipped with a G7 lens and was powered by a 2200mAh
+LiPo battery and a constant current source of 4A and a voltage of
+12V. The robot positioned the laser diode approximately 6cm
+distance from the weed stem before releasing the beam, which
+made the beam width of approximately 4mm at the weed stem.
+The laser treatment duration was 2 seconds, resulting in a
+dosage of 10 Joules (2s*5W). This was selected to maximize the
+weed elimination potential based on the results from our previous
+study ( Mwitta et al., 2022 ), that showed 100% laser effectiveness at
+approximately 10 Joules regardless of the diameter of the weed stem
+(at early stages of growth).
+To mitigate safety risks associated with lasers, a low-power 5W
+diode laser was used, and the beam path was carefully directed only
+to the targeted area. Furthermore, all personnel working near the
+B
+CA
+FIGURE 9
+(A)ID assigned to detected weeds by the DeepSORT tracking algorithm, (B)Diode laser setup parallel to the ground, (C)The laser module
+attachment at an angle (100downwards from horizontal axis), and the laser module attached to it.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 10
+
+--- Page 11 ---
+robot wore appropriate laser safety glasses with an appropriate
+rating suitable for the laser being used, and had comprehensive
+training on laser safety principles and potential hazards. Finally, an
+emergency stop button readily available to immediately disable the
+laser in case of unforeseen circumstances was placed on the robot.
+2.6.1 First experiment
+In the ﬁrst experiment, the laser module was attached to the
+arm, positioned parallel to the ground (see Figure 9B ). However,
+due to the distance from bottom of the laser module and the laser
+mouth, which was approximately 3cm, the laser module needed to
+be in contact with the ground for the beam to hit the weed stem,
+unless the weed exceeded a height of about 4cm which was the
+minimum height for effective tar geting. Consequently, during
+navigation, the arm was raised, and it was lowered when treating
+the weed to prevent the module from scraping against the ground.
+The laser treatment duration for each weed was set at 2 seconds.
+The rover moved at a speed of 0.5 mph, and the robot used a PID
+controller to reach the target position after detecting the weed.
+2.6.2 Second experiment
+The second experiment closely resembled the ﬁrst one, but the
+laser module was placed at an angle of 10° downward from the
+horizontal axis (see Figure 9C ). This adjustment reduced the arm ’s
+up and down movements, thereby increasing the likelihood of
+targeting even shorter weeds effectively and reducing cycle time
+between weeds. The laser beam also terminated at the ground,
+increasing safety from stray laser.
+2.6.3 Third experiment
+In the third experiment, we implemented DeepSORT algorithm
+to track the weeds as the robot moved towards the target. The laser
+conﬁguration remained the same as in the second experiment.
+Preliminary experiments were conducted in a controlled indoor
+environment using 15 weeds, to check how tracking in ﬂuenced the
+targeting of weeds. Then, the robot was tested in the cotton ﬁeld.
+2.7 Evaluation metrics
+We used several metrics to evaluate the effectiveness of the
+robot in targeting and killing weeds. The accuracy metrics included:Total number of detections: All the detections reported by
+the model.
+True positives: All the detections that were correct.
+False positives: All the detections reported by the model as
+the targeted weed but were not the targeted weed.
+Laser beam hits: The total number of weeds that the robot
+attempted to hit and succeeded in hitting them with the
+laser beam.
+Laser beam misses: The total number of weeds that the
+robot attempted to hit with the laser beam but missed.
+Hit and killed: The number of weeds which were hit by the
+laser beam and killed.
+Hit and survived: The number of weeds which were hit by
+the laser beam but survived after one week on monitoring.
+Percentage killed after hit: The percentage of the weeds
+killed out of all that were hit by the laser beam.
+Percentage of weeds killed in the plot: The percentage of
+weeds killed out of all the weeds in the plot.
+The speed of operation was measured by the total treatment
+cycle, which was the total time per single treatment in the worst-
+case scenario.
+3 Results
+3.1 Experiment 1
+Table 1 shows the results for the ﬁrst experiment in the ﬁeld.
+The biggest challenge was aiming on target (see Figures 10A ,Bon
+laser aiming), about 34% of all laser treatments were a miss because
+of either the weed being shorter than the minimum height (about
+38% of the misses), or rover ove rshooting/undershooting the
+position due to imperfect sensors (camera, wheel encoders), or acombination of both (The hit rate was 66%). The detection model
+had a precision of 84%, most of the false positives were due to some
+other plants in the row looking like palmer amaranth, and the
+detection misses were due to inconsistencies of illumination in the
+outside environment, this was minimized by performing the
+experiments in the morning hours before solar zenith. The laser
+treatment performed well when the weed was hit, with 87% of the
+treated weeds killed, but the overall kill rate on a single pass was
+reduced to 47% due to misses in detection and aiming.
+TABLE 1 Treatment results for the ﬁrst experiment.
+Plot
+No.Number
+of
+weedsTotal
+number
+of
+detectionsTrue
+PositivesFalse
+positivesLaser
+beam
+hitsLaser
+beam
+missesHit
+and
+killedHit
+and
+survivedPercentage
+Killed after
+hit (%)Percentage
+of weeds
+killed in the
+plot (%)
+1 21 23 18 5 12 6 10 2 83.33 47.6
+2 20 19 16 3 9 5 9 0 100 45
+3 23 21 20 1 13 7 10 3 76.92 43.474 25 25 20 5 15 5 13 2 86.66 52Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 11
+
+--- Page 12 ---
+The robot achieved a total treatment cycle time of 9.5 seconds
+per weed treatment. The time distribution per task is shown on
+Table 2 . All the weeds in the control plots survived
+during observation.
+3.2 Experiment 2
+From Table 3 , the detection precision was increased to 91% due
+to retraining the model with additional images from the ﬁrst
+experiment. Only about 19% of detected weeds were missed by
+the laser with an 81% hit rate. The kill percentage for the treated
+weeds was about the same (88%), but the overall kill rate on a singlepass increased to 63%.
+The total treatment cycle time was reduced to 8 seconds due to
+reduced arm movements with arm moving to target in 2 seconds
+and arm retracting in 1 second. All the weeds in the control plots
+survived during observation.3.3 Experiment 3
+The preliminary experiments in a controlled environment
+achieved a 93% hit rate through tracking, and the servos rotating
+the diode to point in the direction of the weed (see Figure 11 ) even
+when the PID system overshoot/undershot the position.
+TABLE 2 Time distribution per task for the ﬁrst experiment.
+Action Maximum time spent (s)
+Weed detection Real-time
+Rover moves to target 3
+Arm moves to target 3
+Laser treatment 2
+Arm retract 1.5
+Total treatment cycle 9.5
+BA
+FIGURE 10
+(A)Laser beam turned on and slightly misses the weed stem due to weed being too short, (B)Top view of laser module targeting a weed.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 12
+
+--- Page 13 ---
+In the cotton ﬁeld, as shown in Table 4 , the hit rate was
+increased through tracking to 83.7%, and the overall kill rate for a
+single pass was signi ﬁcantly increased to 72.35%. The treatment
+cycle time remained the same as in experiment 2. All the weeds in
+the control plots survived during observation.
+The were still more than 20% ID switching which proved to be a
+challenge for the tracking algorithm. In future studies, the model
+will need to be trained more on the ﬁeld data obtained from the
+experiments in addition to tuning of parameters to reduce the ID
+switching problem.4 Discussion
+In this study, an autonomous diode laser weeding robot was
+developed and tested in a cotton ﬁeld. The robot used was an
+Ackerman-steering ground rover with a 2D cartesian arm that
+carried a diode laser attached to a pan-and-tilt mechanism to target
+palmer amaranth weed stems for elimination. Real-time weed
+detection using YOLOv4-tiny model was employed to detect
+weeds. The position of the detected weed was determined by the
+point cloud from Zed 2i stereo camera. The robot used GPS, FCN
+FIGURE 11
+Servos rotate the diode laser to compensate the robot overshooting weed position. The direction of diode laser follows the tracked weed.TABLE 3 Treatment results for second experiment.
+Plot
+No.Number
+of
+weedsTotal
+number
+of
+detectionsTrue
+PositivesFalse
+positivesLaser
+beam
+hitsLaser
+beam
+missHit
+and
+killedHit
+and
+survivedPercentage
+Killed
+after hitPercentage
+of weeds
+killed in
+the plot
+1 23 22 21 1 18 3 16 2 88.88 69.57
+2 22 22 19 3 14 5 12 2 85.71 54.543 26 24 22 2 17 5 14 3 82.35 53.80
+4 19 19 17 2 15 2 14 1 93.33 73.68Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 13
+
+--- Page 14 ---
+for semantic segmentation and DWA path planning algorithm to
+navigate between cotton rows.
+Without weed tracking in the ﬁeld, the robot achieved a hit rate
+of 66% and 47% overall weed kill rate on a single pass at 9.5 second
+cycle time per weed treatment when the laser diode was positioned
+parallel to the ground. A hit rate of 81% with 63% overall kill rate on
+a single pass at 8 seconds cycle time per weed treatment wasachieved when the diode was placed at a 10° downward angle.
+Using DeepSORT weed tracking tracking algorithm, a preliminary
+investigation in a controlled environment showed a hit rate of 93%,
+however, when tested in the ﬁeld, the robot achieved a hit rate of
+83.7% with an overall kill rate of 72.35% at 8 seconds cycle time per
+weed treatment.
+Research into autonomous laser weeding is relatively new; there
+haven ’t been many fully implemented solutions. One study similar
+to ours ( Xiong et al., 2017 ), achieved a 97% hit rate; however, the
+experiment was conducted indoors in a controlled environment.
+The study identi ﬁed several key challenges that impacted the
+results, primarily stemming from the inherent complexities of real-
+world agricultural environments. Factors like sudden changes in
+illumination, weather variations, shadows, and unforeseen weed
+emergence signi ﬁcantly affected the robot ’s ability to detect, track,
+and navigate visually. While training the deep learning model with
+more data helped mitigate some of these effects, the system
+occasionally encountered unexpected scenarios that led to errors.
+Real-time operation of the robot was hindered by limitations in
+computational power. This challenge was exacerbated by the
+simultaneous execution of multiple deep learning algorithms: the
+detection model, visual navigation system, and DeepSORT weed
+tracking. The high computational demands of these algorithms
+resulted in delayed system responses, which in turn contributed to
+operational errors in the ﬁeld. Furthermore, the rough terrain of the
+agricultural ﬁeld presented dif ﬁculties in precisely controlling the
+rover ’s velocity and positioning, leading to occasional weed
+targeting errors. Additionally, the low-powered diode laser used
+required extended treatment times for effective weed elimination.
+Future research will explore several promising avenues for
+improvement. To enhance the robustness of the deep learning
+models, we will incorporate a wider range of data encompassing
+diverse ﬁeld conditions into the training process. This will allow the
+models to better handle variations in illumination, weather, and
+weed appearances encountered in real-world settings. Additionally,
+exploring the use of 3D point cloud data for path detection and
+obstacle avoidance holds promise for improved navigation.By providing a clearer understanding of the environment, 3D
+perception can lead to more accurate robot movement, especially
+in challenging terrain. Advanced and adaptable speed control
+mechanisms, such as Model Predictive Control (MPC), will also
+be investigated to improve the rover ’s ability to navigate rough
+terrain precisely. Finally, optimizing laser weeding ef ﬁciency will be
+a key focus. Investigating strategies like multiple passes of the robotin the ﬁeld can ensure more effective weed elimination, however, it
+is crucial to optimize this approach to minimize treatment time and
+avoid crop damage. Furthermore, as the cost of diode lasers per watt
+decreases, exploring the use of more powerful lasers can potentially
+reduce treatment time required for complete weed removal. These
+future studies hold promise for signi ﬁcantly enhancing the
+capabilities and overall effect iveness of the autonomous laser
+weeding platform.
+The aim of the study was to develop an affordable system that
+can be deployed in the ﬁeld multiple times throughout the season
+and target weeds at early stages of growth without using chemicals
+and invasive methods. Despite some minor shortcomings, this
+platform proves the viability of the concept.
+Data availability statement
+The raw data supporting the conclusions of this article will be
+made available by the authors, without undue reservation.
+Author contributions
+CM: Conceptualization, Data c uration, Formal analysis,
+Investigation, Methodology, Software, Validation, Visualization,
+Writing –original draft, Writing –review & editing. GR:
+Conceptualization, Funding acquisition, Project administration,
+Resources, Supervision, Writing –review & editing. EP:
+Supervision, Writing –review & editing.
+Funding
+The author(s) declare ﬁnancial support was received for the
+research, authorship, and/or publication of this article. This studywas partially funded by US Cotton Incorporated Project 22-727,
+and US Georgia Peanut Commission.TABLE 4 Treatment results for third experiment.
+Plot
+No.Number
+of
+weedsTotal
+number
+of
+detectionsTrue
+PositivesFalse
+positivesLaser
+beam
+hitsLaser
+beam
+missHit
+and
+killedHit
+and
+survivedPercentage
+Killed
+after hitPercentage
+of weeds
+killed in
+the plot
+1 11 12 10 1 8 2 8 0 100 72.7
+2 9 8 8 0 7 1 6 1 85.71 66.73 10 12 10 2 9 1 8 1 88.9 80.0
+4 10 13 9 3 7 2 7 0 100 70.0Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 14
+
+--- Page 15 ---
+Acknowledgments
+This study is part of a PhD thesis at the University of Georgia
+titled ‘Development of the autonomous diode laser diode ’(Mwitta,
+2023 ) which has been made available online via ProQuest.
+Conﬂict of interest
+The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be
+construed as a potential con ﬂict of interest.The author(s) declared that they were an editorial board
+member of Frontiers, at the time of submission. This had no
+impact on the peer review process and the ﬁnal decision.
+Publisher ’s note
+All claims expressed in this article are solely those of the authors
+and do not necessarily represent those of their af ﬁliated organizations,
+or those of the publisher, the editors and the reviewers. Any product
+that may be evaluated in this article, or claim that may be made by its
+manufacturer, is not guaranteed or endorsed by the publisher.
+References
+Abbas, T., Zahir, Z. A., Naveed, M., and Kremer, R. J. (2018). Limitations of existing
+weed control practices necessitate development of alternative techniques based onbiological approaches. Adv. Agro . 147, 239 –280. doi: 10.1016/bs.agron.2017.10.005
+Andreasen, C., Vlassi, E., Johannsen, K. S., and Jensen, S. M. (2023). Side-effects of
+laser weeding: quantifying off-target risks to earthworms (Enchytraeids) and insects(Tenebrio molitor and Adalia bipunctata). Front. Agron. 5. doi: 10.3389/
+fagro.2023.1198840
+Ang, K. H., Chong, G., and Li, Y. (2005). PID control system analysis, design, and
+technology. IEEE Trans. Control Syst. Technol. 13, 559 –576. doi: 10.1109/
+TCST.2005.847331
+Bastiaans, L., Paolini, R., and Baumann, D. T. (2008). Focus on ecological weed
+management: What is hindering adoption? Weed Res . 48 (6), 481 –491. doi: 10.1111/
+j.1365-3180.2008.00662.x
+Bewley, A., Ge, Z., Ott, L., Ramos, F., and Upcroft, B. (2016). “Simple online and
+realtime tracking, ”in2016 IEEE international conference on image processing (ICIP) .
+(Phoenix, AZ, USA: IEEE), 3464 –3468.
+Blasco, J., Aleixos, N., Roger, J. M., Rabatel, G., and Molto ́, E. (2002). AE —
+Automation and emerging technologies: robotic weed control using machine vision.
+Biosyst. Eng. 83 (2), 149 –157. doi: 10.1006/bioe.2002.0109
+Bochkovskiy, A., Wang, C.-Y., and Liao, H.-Y. M. (2020). YOLOv4: optimal speed
+and accuracy of object detection. arXiv preprint arXiv:2004.10934 . doi: 10.48550/
+arXiv.2004.10934
+Buhler, D. D., Liebman, M., and Obrycki, J. J. (2000). Theoretical and practical
+challenges to an IPM approach to weed management. Weed Sci . 48 (3), 274 –280.
+doi:10.1614/0043-1745(2000)048[0274:TAPCTA]2.0.CO;2
+Chauvel, B., Guillemin, J. P., Gasquez, J., and Gauvrit, C. (2012). History of chemical
+weeding from 1944 to 2011 in France: Changes and evolution of herbicide molecules.Crop Prot. 42, 320 –326. doi: 10.1016/j.cropro.2012.07.011
+Colbach, N., Kurstjens, D. A. G., Munier-Jolain, N. M., Dalbiès, A., and Dore ́,T .
+(2010). Assessing non-chemical weeding strategies through mechanistic modelling of
+blackgrass (Alopecurus myosuroides Huds.) dynamics. Eur. J. Agron. 32 (3), 205 –218.
+doi:10.1016/j.eja.2009.11.005
+Florance Mary, M., and Yogaraman, D. (2021). Neural network based weeding robot
+for crop and weed discrimination. J. Phys.: Conf. Series . (IOP Publishing) 1979 (1),
+012027. doi: 10.1088/1742-6596/1979/1/012027
+Fogelberg, F., and Gustavsson, A. M. D. (1999). Mechanical damage to annual weeds
+and carrots by in-row brush weeding. Weed Res. 39 (6), 469 –479. doi: 10.1046/j.1365-
+3180.1999.00163.x
+Fox, D., Burgard, W., and Thrun, S. (1997). The dynamic window approach to
+collision avoidance. IEEE Robot Autom. Mag. 4 (1), 23 –33. doi:
+10.1109/100.580977
+Gharde, Y., Singh, P. K., Dubey, R. P., and Gupta, P. K. (2018). Assessment of yield
+and economic losses in agriculture due to weeds in India. Crop Prot. 107, 12 –18.
+doi:10.1016/j.cropro.2018.01.007
+Gianessi, L. P., and Reigner, N. P. (2007). The value of herbicides in U.S. Crop
+production. Weed Technol . 21 (2), 559 –566. doi: 10.1614/wt-06-130.1
+Guthman, J. (2017). Paradoxes of the border: labor shortages and farmworker minor
+agency in reworking California ’s strawberry ﬁelds. Econ. Geogr. 93 (1), 24 –43.
+doi:10.1080/00130095.2016.1180241
+Heisel, T., Schou, J., Christensen, S., and Andreasen, C. (2001). Cutting weeds with a
+CO 2 laser. Weed Res. 41, 19 –29. doi: 10.1046/j.1365-3180.2001.00212.x
+Kaierle, S., Marx, C., Rath, T., and Hustedt, M. (2013). Find and irradiate - lasers used
+for weed control. Laser Technik J. 10, 44 –47. doi: 10.1002/latj.201390038Kalman, R. E. (1960). A new approach to linear ﬁltering and prediction problems. J.
+Fluids Engineer. Trans. ASME 82, 35 –45. doi: 10.1115/1.3662552
+Koch, G., Zemel, R., and Salakhutdinov, R. (2015). Siamese neural networks for one
+shot image learning. ICML Deep Learn. Workshop . 2 (1).
+Kuhn, H. W. (1955). The Hungarian method for the assignment problem. Naval Res.
+Logist. Q. 2( 1–2), 83 –97. doi: 10.1002/nav.3800020109
+Long, J., Shelhamer, E., and Darrell, T. (2015). “Fully convolutional networks for
+semantic segmentation, ”inProceedings of the IEEE Computer Society Conference on
+Computer Vision and Pattern Recognition (Boston, MA, USA: IEEE), 3431 –3440.
+doi:10.1109/CVPR.2015.7298965
+Marx, C., Pastrana Pe ́rez, J. C., Hustedt, M., Barcikowski, S., Haferkamp, H., and
+Rath, T. (2012). Investigations on the absorption and the application of laser radiationfor weed control. Landtechnik 67, 95 –101. doi: 10.15150/lt.2012.277
+Mathiassen, S. K., Bak, T., Christensen, S., and Kudsk, P. (2006). The effect of laser
+treatment as a weed control method. Biosyst. Eng. 95, 497 –505. doi: 10.1016/
+j.biosystemseng.2006.08.010
+McCool, C., Beattie, J., Firn, J., Lehnert, C., Kulk, J., Bawden, O., et al. (2018). Ef ﬁcacy
+of mechanical weeding tools: A study into alternative weed management strategiesenabled by robotics. IEEE Robot Autom. Lett. 3, 1184 –
+1190. doi: 10.1109/
+LRA.2018.2794619
+M o o r e ,T . ,a n dS t o u c h ,D .( 2 0 1 6 ) .Ag e n e r a l i z e de x t e n d e dK a l m a n ﬁlter
+implementation for the robot operating system. Adv. Intell. Syst. Comput. 302, 335 –
+348. doi: 10.1007/978-3-319-08338-4_25
+Mwitta, C., Rains, G. C., and Prostko, E. (2022). Evaluation of diode laser treatments
+to manage weeds in row crops. Agronomy 12 (11), 2681. doi: 10.3390/
+agronomy12112681
+Mwitta, C. J. (2023). Development of the autonomous diode laser weeding robot.
+Georgia, United States: University of Georgia; ProQuest Dissertations and Theses A&I;ProQuest Dissertations and Theses Global. Available at: https://www.proquest.com/
+dissertations-theses/development-autono mous-diode-laser-weed ing-robot/docview/
+2917419514/se-2 . (Order No. 30691955).
+Mwitta, C., and Rains, G. C. (2024). The integration of GPS and Visual navigation for
+autonomous navigation of an Ackerman steering mobile robot in cotton ﬁelds. Front.
+Robot AI 11. doi: 10.3389/frobt.2024.1359887
+Mwitta, C., Rains, G. C., and Prostko, E. (2024). Evaluation of inference performance
+of deep learning models for real-time weed detection in an embedded computer.Sensors 24, 514. doi: 10.3390/s24020514
+Oerke, E. C. (2006). Crop losses to pests. J. Agric. Sci. 144 (1), 31 –43. doi: 10.1017/
+S0021859605005708
+Oliveira, L. F. P., Moreira, A. P., and Silva, M. F. (2021). Advances in agriculture
+robotics: A state-of-the-art review and challenges ahead. Robotics 10 (2), 52.
+doi:10.3390/robotics10020052
+Pe ́rez-Ru ı ́z, M., Slaughter, D. C., Fathallah, F. A., Gliever, C. J., and Miller, B. J.
+(2014). Co-robotic intra-row weed control system. Biosyst. Eng. 126, 45 –55.
+doi:10.1016/j.biosystemseng.2014.07.009
+Pimentel, D., Lach, L., Zuniga, R., and Morrison, D. (2000). Environmental and
+economic costs of nonindigenous species in the United States. Bioscience . 50 (1), 53 –65.
+doi:10.1641/0006-3568(2000)050[0053:EAECON]2.3.CO;2
+Powles, S. B., Preston, C., Bryan, I. B., and Jutsum, A. R. (1996). Herbicide resistance:
+impact and management. Adv. Agron. 58, 57 –93. doi: 10.1016/S0065-2113(08)60253-9
+Quigley, M., Conley, K., Gerkey, B., Faust, J., Foote, T., Leibs, J., et al. (2009). ROS: an
+open-source Robot Operating System. ICRA workshop Open Source Software . 3 (3.2), 5.Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 15
+
+--- Page 16 ---
+Radicetti, E., and Mancinelli, R. (2021). Sustainable weed control in the agro-
+ecosystems. Sustainabil. (Switzerland) 13 (15), 8639. doi: 10.3390/su13158639
+Richards, T. J. (2018). Immigration reform and farm labor markets. Am. J. Agric.
+Econ. 100 (4), 1050 –1071. doi: 10.1093/ajae/aay027
+Schuster, I., Nordmeyer, H., and Rath, T. (2007). Comparison of vision-based and
+manual weed mapping in sugar beet. Biosyst. Eng. 98 (1), 17 –25. doi: 10.1016/
+j.biosystemseng.2007.06.009
+Shaner, D. L. (2014). Lessons learned from the history of herbicide resistance. Weed
+Sci.62 (2), 427 –431. doi: 10.1614/WS-D-13-00109.1
+Smith, G. L., Schmidt, S. F., and McGee, L. A. (1962). Application of statistical ﬁlter
+theory to the optimal estimation of position and velocity on board a circumlunarvehicle. NASA Tech. Rep . vol. 135.
+Wang, L. (2020). “Basics of PID Control, ”inPID Control System Design and
+Automatic Tuning using MATLAB/Simulink . (West Sussex, UK: John Wiley & Sons
+Ltd.). doi: 10.1002/9781119469414.ch1Wojke, N., Bewley, A., and Paulus, D. (2018). “Simple online and realtime
+tracking with a deep association metric, ”inProceedings - International Conference
+on Image Processing, ICIP (Beijing, China: IEEE), 3645 –3649. doi: 10.1109/
+ICIP.2017.8296962
+Xiong, Y., Ge, Y., Liang, Y., and Blackmore, S. (2017). Development of a prototype
+robot and fast path-planning algorithm for static laser weeding. Comput. Electr. Agric.
+142, 494 –503. doi: 10.1016/j.compag.2017.11.023
+Young, S. L., Pierce, F. J., and Nowak, P. (2014). Introduction: Scope of the
+problem —rising costs and demand for environ mental safety for weed control.
+Autom.: Future Weed Control Crop. Sys .1–8. doi: 10.1007/978-94-007-
+7512-1_1
+Zahniser, S., Taylor, J. E., Hertz, T., and Charlton, D. (2018). Farm labor markets in
+the United States and Mexico pose challenges for U. S. Agriculture. USDA Econ. Res.
+Ser. EIB-201. doi: 10.22004/ag.econ.281161Mwitta et al. 10.3389/fagro.2024.1388452
+Frontiers in Agronomy frontiersin.org 16
