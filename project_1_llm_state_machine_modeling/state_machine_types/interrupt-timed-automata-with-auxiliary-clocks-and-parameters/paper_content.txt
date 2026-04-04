@@ -1,0 +1,1227 @@
+--- Page 1 ---
+arXiv:1409.2408v1  [cs.LO]  8 Sep 2014Interrupt Timed Automata with Auxiliary
+Clocks and Parameters⋆
+B. B´ erard1, S. Haddad2, A. Jovanovi´ c3, and D. Lime4
+1Sorbonne Universit´ e, UPMC-Paris 6, CNRS UMR 7606, Paris, F rance
+Beatrice.Berard@lip6.fr
+2ENS Cachan, LSV, CNRS, INRIA, Cachan, France
+haddad@lsv.ens-cachan.fr
+3Department of Computer Science, University of Oxford, Oxfo rd, UK
+Aleksandra.Jovanovic@cs.ox.ac.uk
+4´Ecole Centrale de Nantes, IRCCyN, CNRS, Nantes, France
+Didier.Lime@ec-nantes.fr
+Abstract. InterruptTimedAutomata(ITA),anexpressivetimedmodel,
+has been introduced in order to take into account interrupti ons, accord-
+ing to levels. Due to this feature, this formalism is incompa rable with
+Timed Automata. However several decidability results rela ted to reacha-
+bility and model checkinghave been obtained. We add auxilia ry clocks to
+ITA, thereby extending its expressive power while preservi ng decidabil-
+ity of reachability. Moreover, we deﬁne a parametrized vers ion of ITA,
+with polynomials of parameters appearing in guards and upda tes. While
+parametric reasoning is particularly relevant for timed mo dels, it very
+often leads to undecidability results. We prove that variou s reachability
+problems, including robust reachability , are decidable for this model, and
+we give complexity upperbounds for a ﬁxedor variable number of clocks,
+levels and parameters.
+1 Introduction
+Timed and hybrid models. Inordertomodeltimed systems,the expressivemodel
+ofHybrid Automata(HA) hasbeen proposed[1]. Sinceits expressive powerleads
+to the undecidability of most veriﬁcation problems, several semi-de cision proce-
+dureshavebeendesignedfoHAaswellassubclasseswithdecidability resultslike
+Timed Automata (TA) [2]. The model of interrupt timed automata (IT A) [3,4]
+was proposed as a subclass of hybrid automata, incomparable with t he class of
+timed automata, where task interruptions are taken into account . Hence ITA are
+particularly suited for the modelling of scheduling with preemption.
+Parametric veriﬁcation. Getting a complete knowledge of a system is often im-
+possible, especially when integrating quantitative constraints. Mor eover, even if
+these constraints are known, when the execution of the system s lightly deviates
+⋆This work has been supported by project ImpRo ANR-2010-BLAN -0317
+
+--- Page 2 ---
+from the expected behaviour, due to implementation choices, prev iously estab-
+lished properties may not hold anymore. Additionally, considering a wid e range
+of values for constants allows for a more ﬂexible and robust design.
+Introducing parameters instead of concrete values is an elegant w ay of ad-
+dressing these three issues. Parametrisation however makes ver iﬁcation more
+diﬃcult. Besides, it raises new problems like parameter synthesis, i.e., ﬁnding
+the set (or a subset) of values for which some property holds.
+Parameters for timed models. Among quantitative features, parametric reason-
+ing is particularly relevant for timing requirements, like network delay s, time-
+outs, response times or clock drifts.
+Pioneering work on parametric real time reasoning was presented in [5] for
+the now classical model of timed automata, with parameter expres sions replac-
+ing the constants to be compared with clock values. Since then, man y stud-
+ies have been devoted to the parametric veriﬁcation of timed models [6,7,8],
+mostly establishing undecidability results for questions like parametr ic reacha-
+bility, even for a small number of clocks or parameters. Relaxing com pleteness
+requirement or guaranteed termination, severalmethods and to ols have been de-
+veloped for parameter synthesis in timed automata [9,10,11], as well a s in hybrid
+automata [12,13]. Another research direction consists in deﬁning su bclasses of
+parametric timed models for which some problems become decidable [14 ,15,16].
+Unfortunately, these subclasses are severely restricted. It is t hen a challenging
+issue to deﬁne expressive parametric timed models where reachabilit y problems
+are decidable.
+Contributions. Our contributions are twofold. First we deﬁne a more expressive
+version of ITA, including auxiliary clocks. We prove that this new mode l is
+strictly more expressive than the former one but retains decidabilit y for the
+reachability problem. With respect to the complexity issues, we prov ide upper
+bounds: 2-EXPTIME in the general case, PSPACE when the number of levels is
+ﬁxed and PTIME when the number of clocks is ﬁxed. We also give a PSPA CE
+matching lower bound when the number of levels is ﬁxed.
+Our second contribution is to enrich ITA with parameters in the spirit above.
+A PITA is a parametric version of ITA where polynomial parameter ex pressions
+can be combined with clock values both as additive and multiplicative coe ﬃ-
+cients. Considering only additive parametrisation, we reduce reach ability to the
+same problem in basic ITA. This reduction entails complexity upper bou nds
+of respectively 2-EXPTIME, PSPACE when the number of levels is ﬁxe d and
+PTIME when the number of clocks and parameters is ﬁxed. The multip licative
+setting is much more expressive and also very useful in practice, fo r instance to
+model clock drifts. We prove that reachability in parametric ITA is de cidable
+as well as its robust variant, an important property for implementa tion issues.
+To the best of our knowledge, this is the ﬁrst time such a result has b een ob-
+tained for a model including a multiplicative parametrization. Further more, we
+establish upper bounds for the computational complexity: 2-EXPS PACE and
+
+--- Page 3 ---
+PSPACE when the number of levels is ﬁxed. Our technique combines th e con-
+struction of symbolic class automata from the unparametrized cas e and the ﬁrst
+order theory of real numbers.
+Outline. The model of Interrupt Timed Automata with auxiliary clocks is de-
+ﬁned in Section 2, with reachability analysis in Section 3. The parametr ic ITA
+model is introduced in Section 4. The reachability analysis is split into tw o
+sections: the additive case is handled in Section 5 while the results for the mul-
+tiplicative case are given in Section 6. We conclude and give some perpe ctives
+for this work in Section 7.
+2 Interrupt Timed Automata
+2.1 Notations
+The sets of natural, rational and real numbers are denoted resp ectively by N,
+QandR. Given an alphabet Σ, we denote by Σ∗the set of ﬁnite words over
+Σ, withεthe empty word. The set of timed words over Σis the set of ﬁnite
+sequences of the form ( a1,t1)...(an,tn) where ai∈Σfor alli∈ {1,...,n}
+and (ti)1≤i≤nis a non decreasing sequence of real numbers. A timed language
+is a set of timed words. For a timed word w= (a1,t1)...(an,tn), we deﬁne
+Untime(w) =a1...anas its projection on Σ∗and for a timed language L, we
+setUntime(L) ={Untime(w)|w∈L}.
+Given two sets F,GwithFﬁnite, we denote by Lin(F,G) the set of linear
+expressions/summationtext
+f∈Faff+bwhere the af’s andbbelong to G. We also denote by
+Diﬀ(F) the set of expressions f−f′withf,f′∈F.
+Clock constraints. LetXbe a ﬁnite set of clocks and let Y,Zbe disjoint subsets
+ofX. We denote by C(Y,Z) the set of constraints obtained by conjunctions of
+atomicpropositionsoftheform C ⊲⊳0,where Cisanexpressionin/uniontext
+y∈YLin(Z∪
+{y},Q)∪ Diﬀ(Y) and⊲⊳∈ {>,≥,=,≤,<}. Such a constraint either compares
+with zero a linear expression of clocks in Y∪Zincluding at most one clock of
+Y, or compares two clocks of Y. We also set C(X) =/uniontext
+Y,Z⊆XC(Y,Z).
+Updates. AnupdateoverXisaconjunctionofassignmentsoftheform ∧y∈Yy:=
+Cy, whereY⊆XandCy∈ Lin(X,Q). The set of updates is written U(X). For
+anexpression Candanupdate u,theexpression C[u]isobtainedby“applying” u
+toC,i.e., simultaneouslysubstituting each xbyCxinC, ifx:=Cxisthe update
+forxinu. For instance, for clocks X={x1,x2}, expression C= 2x2−2x1+3
+and the update udeﬁned by x1:= 1∧x2:= 3x1+2, applying utoCyields the
+expression C[u] = 2(3x1+2)−2(1)+3 = 6 x1+5.
+Valuations. Aclock valuation is a mapping v:X/mapsto→R, with0the valuation
+whereallclockshavevalue0.Foravaluation vandanexpression C∈ Lin(X,Q),
+we note v(C)∈Rthe result of evaluating Cw.r.t.v. Given an update uand
+a valuation v, the valuation v[u] is deﬁned by v[u](x) =v(x) ifxis unchanged
+
+--- Page 4 ---
+byuandv[u](x) =v(Cx) ifx:=Cxis the update for xinu. For instance,
+letX={x1,x2,x3}be a set of three clocks. For valuation v= (2,1.5,3) and
+updateudeﬁned by x1:= 1∧x3:=x3−x1, applying utovyields the valuation
+v[u] = (1,1.5,1).
+2.2 Interrupt Timed Automata
+Deﬁnitions. The behaviour of an ITA can be viewed as the one of an operating
+system with interrupt levels. With each level are associated a set of states and
+a set of clocks partitionned into a mainclock and auxiliary clocks. In a state
+of a given level, exactly one clock of this level is active (rate 1), while t he other
+clocks at lower or equal levels are suspended (rate 0), and the cloc ks at higher
+levels are not yet activated and thus contain value 0. The enabling co nditions
+on transitions, called guards, are constraints over clocks of the current level or
+main clocks of lower levels (with some restrictions). Transitions can updatethe
+clockvalues.Ifthe transitiondecreases(resp.increases)the le vel,theneachclock
+which is relevant after (resp. before) the transition can (1) be lef t unchanged, (2)
+beupdatedwithalinearexpressionofmainclocksofstrictlylowerleve lsor(3)be
+updated with another clock at the same level (with some restriction s). Roughly
+speaking, the restrictions are introduced to forbid at some level a ny (direct or
+indirect) inﬂuence of the auxiliary clocks at lower levels on the behavio ur of the
+ITA.
+Deﬁnition 1. Aninterrupt timed automaton (ITA) is a tuple A=/a\}bracketle{tΣ,n,Q,q 0,
+Qf,λ,X,act,∆/a\}bracketri}ht, where:
+–Σis a ﬁnite alphabet;
+–nis the number of levels;
+–Qis a ﬁnite set of states, q0is the initial state and Qfis a subset of Qof
+ﬁnal states. The mapping λ:Q→ {1,...,n}associates with each state its
+level. We denote by Qi=λ−1(i)the set of states at level i;
+–X=/unionmultitextn
+i=1Xiis the set of clocks partitionned according to the levels and
+Xi={xi} ⊎Yiincludes a mainclockxiand a set of auxiliary clocksYi.
+The set of main clocks of levels less than kis denoted by X<k={xi|i < k}
+;
+–act:Q→Xwithq∈Qi⇒act(q)∈Xiassociates with a state its active
+clock;
+–∆⊆Q× C(X)×(Σ∪ {ε})× U(X)×Qis a ﬁnite set of transitions. Let
+qϕ,a,u− −− →q′be a transition in ∆withk=λ(q)andk′=λ(q′). The guard ϕ
+is a constraint in C(Xk,X<k).
+•ifk≤k′then the update uis of the form
+/logicalanddisplay
+z∈/uniontext
+i≤kXiz:=Cz
+
+--- Page 5 ---
+•ifk > k′then the update uis of the form
+/logicalanddisplay
+z∈/uniontext
+i≤k′Xiz:=Cz∧/logicalanddisplay
+z∈/uniontext
+k′<i≤kXiz:= 0
+where, when z∈Xi,
+•eitherCz=z, meaning that zis unchanged;
+•orCz=/summationtext
+j<iajxj+b, i.e.,zis updated by an expression over main
+clocks of lower levels;
+•orCz=z′∈Xiifz∈Yiori=k=k′, i.e.,zis updated by another
+clock at the same level
+under the condition that zis not a main clock of level lower than the
+current one5.
+The semantics of an ITA is described by a transition system, where a conﬁg-
+uration ( q,v) consists of a state qof the ITA and a clock valuation v.
+Deﬁnition 2. The semantics of an ITA Ais deﬁned by the (timed) transition
+systemTA= (S,s0,→). The set of conﬁgurations is S=/braceleftbig
+(q,v)|q∈Q, v∈RX/bracerightbig
+,
+with initial conﬁguration s0= (q0,0). The relation →onSconsists of two types
+of steps:
+Time steps: Only the active clock in a state can evolve, all other clocks a re
+suspended. For a state q, a time step of duration dis deﬁned by (q,v)d− →
+(q,v′)withv′(act(q)) =v(act(q))+dandv′(x) =v(x)for any other clock
+x. We write v′=v+qd.
+Discrete steps: A discrete step (q,v)e− →(q′,v′)can occur for some transition
+e=qϕ,a,u− −− →q′in∆such that v|=ϕandv′=v[u].
+ArunofAis a ﬁnite path in the transition system TA, which can be written
+as an alternating sequence of (possibly null) time and discrete steps . A state
+q∈Qisreachable fromq0if there is a path in TAfrom (q0,0) to (q,v), for
+some valuation v. A run with label d1a1d2a2...dnanisaccepting if it starts in
+(q0,0) and ends in ( q,v), for some q∈Qfand some valuation v. For such a
+run, the timed word w= (a1,d1)(a2,d1+d2)...(an,d1+...+dn) (where pairs
+withεactions are removed) is said to be accepted byA. The timed language
+ofA, denoted by L(A), is the set of timed words accepted by A. The untimed
+language of AisUntime(L(A)).
+We now show several properties of this model linked to the presenc e of aux-
+iliary clocks.
+Example 1 (Simulation of timing policies). The earlier deﬁnition of ITA from [4]
+is a restriction of Deﬁnition 1 without auxiliary clocks but with a policy, w hich
+can be either urgent, delayed or lazy, associated with each state. In a lazy state
+5The motivation for this rather elaborate condition is expla ined in the reachability
+decision procedure.
+
+--- Page 6 ---
+time may elapse, in an urgent state time may not elapse and in a delayed state
+time must elapse. We show in Figure 1 how to model timing policies with a
+dedicated auxiliary clock per level, say yi. When entering a state qof leveli
+from a state q′of levelj≥i,yiis updated with the active clock of q. By
+deﬁnition, when entering a state qof levelifrom a state q′′of levelk < i,yiand
+the active clock of qare null. Thus checking whether time has elapsed in qis
+equivalent to check whether act(q)> yi. Whenqis a lazy state there is nothing
+to check.
+q,iq′,j
+q′′,kyi=act(q)yi:=act(q)
+(a) Urgent state q, withk < i≤jq,iq′,j
+q′′,kyi<act(q)yi:=act(q)
+(b) Delayed state q, withk < i≤j
+Fig.1.Simulating timing policies
+Example 2 (About expressiveness). ConsidertheITA A1ofFigure2withasingle
+level and single ﬁnal state q2. The main clock xis active in all states and yis
+an auxiliary clock. Its untimed language is ( ab)+. In the accepted timed words,
+there is an occurrence of aat each time unit and the successive occurrences of b
+come eachtime closerto the next occurrenceof athan previously.Moreformally,
+its timed language L=L(A1) is deﬁned by:
+L=/braceleftbig
+(a,t1)(b,t2)...(a,t2p+1)(b,t2p+2)|p∈N,
+∀0≤i≤p, t2i+1=i+1 and i+1< t2i+2< i+2,
+∀1≤i≤p, t2i+2−t2i+1< t2i−t2i−1/bracerightbig
+It has been shown in [4] that this timed language cannot be accepted by an ITA
+without auxiliary clocks, which yields the next proposition.
+Proposition 1. There exists a timed language of an ITA with a single level and
+one auxiliary clock that cannot be accepted by an ITA without auxiliary clocks.
+Adding auxiliary clocks also has an impact on the complexity of decision
+problems for ITA. In [4], it is shown that the state reachability proble m is in
+PTIME for a ﬁxed number of levels without auxiliary clocks. The next p roposi-
+tion establishes a lower bound for this problem in ITA with a single level.
+
+--- Page 7 ---
+q0 q1 q2 q3x= 1,a,x:= 0 0< x <1,b,y:=xx= 1,a,x:= 0
+y < x < 1,b,y:=x
+Fig.2.ITAA1with an auxiliary clock
+Proposition 2. The state reachability problem for ITA with a single level is
+PSPACE-hard.
+Proof.We proceed by reducing the planiﬁcation problem to our reachability
+problem.Theplaniﬁcationproblemisdeﬁnedby npropositionalvariables p1,...,p n
+and a set Rofmrules. Each rule r∈Ris deﬁned by a guard/logicalandtextk
+j=1lj, with
+litterals lj∈ {p1,¬p1,...,p n,¬pn}, and an update/logicalandtexth
+j=1pαj:=bjwithbj∈
+{false,true}. Initially all propositions are false and the planiﬁcation problem
+consists in deciding whether there exists a sequence of rules r1...rkapplicable
+from the initial state and leading to the state where all propositions are true.
+The corresponding ITA has nauxiliary clocks y1,...,y nand two states q0(the
+initial one) and q1(the ﬁnal one) both with active clock x1. Each rule yields a
+transition looping around q0and an additional transition from q0toq1“check-
+ing” that the goal has been reached. This reduction is illustrated in F igure 3.
+r1:If¬p1then
+p1:=true;p2:=false
+r2:Ifp1then
+p2:=trueq0 q1y1= 1∧y2= 1,εy1= 0,ε,y1:= 1∧y2:= 1
+y1= 0,ε,y2:= 1
+Fig.3.Illustrating the reduction for PSPACE-hardness
+3 Reachability analysis of ITA
+We prove in this section that the untimed language of an ITA is a regula r lan-
+guage for which a ﬁnite automaton can eﬀectively be built. Similarly to p revious
+
+--- Page 8 ---
+cases, the proof is based on the construction of a (ﬁnite) class gr aph which
+is time abstract bisimilar to the transition system TA. This result also holds
+for inﬁnite words with standard B¨ uchi conditions. As a consequen ce, we obtain
+decidability of the reachability problem, as well as decidability for plain CTL∗
+model-checking.
+The construction of classes is much more involved than in the case of TA.
+More precisely, it depends on the expressions occurring in the guar ds and up-
+dates of the automaton (while in TA it depends only on the maximal con stant
+occurring in the guards). Given an ITA Awithnlevels, we associate with each
+stateqofAa set of expressions Exp(q) with the following meaning. The values
+of clocks giving the same ordering of these expressions correspon d to a class.
+In order to deﬁne Exp(q), we ﬁrst build a family of sets {Ek}1≤k≤nand set
+Exp(q) =/uniontext
+k≤λ(q)Ek. Finally we show in Theorem 1 how to build the class
+graph which proves the regularity of the untimed language. This imme diately
+yields a reachability procedure given in Theorem 2.
+3.1 Construction of {Ek}k≤n
+We ﬁrst recall the normalization operation [4], on expressions relative to some
+level. As explained below, this operation will be used to order express ion values
+at a given level.
+Deﬁnition 3 (Normalization). Letk≤nandC=/summationtext
+i≤kaixi+bbe an ex-
+pression over clocks in X<k+1, thek-normalization ofC, denoted by norm(C,k),
+is deﬁned by:
+–ifak/\e}atio\slash= 0thennorm(C,k) =xk+(1/ak)(/summationtext
+i<kaixi+b);
+–elsenorm(C,k) =C.
+LetC ⊲⊳0 be a guard occurring in a transition outgoing from a state qwith
+levelkandC=akz+/summationtext
+i<kaixi+bwithz∈Xk(in the saturation procedure
+we do not consider guards of the form z−z′withz,z′inXk). By rescaling the
+expression and if necessary changing the comparison operator we may assume
+thatCis written as αz+/summationtext
+i<kaixi+b, withα∈ {0,1}.
+The construction of {Ek}k≤nmust be adapted to handle auxiliary clocks. It
+proceeds top down from level nto level 1 after initialization Ek=Xk∪{0}for
+allk. When level kis handled, new terms are added to Eifor 1≤i≤k. These
+expressions are those needed to compute a (pre)order on the ex pressions in Ek.
+1. At level k, ﬁrst for each expression αz+/summationtext
+i<kaixi+b(withα∈ {0,1}and
+z∈Xk) occurring in a guard of an edge leaving a state of level k, we add
+−/summationtext
+i<kaixi−btoEk.
+2. Then the following procedure is iterated until no new term is added to any
+Eifor 1≤i≤k.
+
+--- Page 9 ---
+(a) Letqϕ,a,u− −− →q′withλ(q)≥kandλ(q′)≥k. For any C∈Ek, we add
+C[u] toEk. Observe that due to our restrictions on updates C[u] is still
+either of the form z∈Xkor of the form/summationtext
+j<kajxj+b.
+(b) Letqϕ,a,u− −− →q′withλ(q)< kandλ(q′)≥k.LetCandC′betwodiﬀerent
+expressions in Ek. We compute C′′=norm(C[u]−C′[u],λ(q)), choosing
+an arbitrary order between CandC′in order to avoid redundancy. Let
+us write C′′asαxλ(q)+/summationtext
+i<λ(q)aixi+bwithα∈ {0,1}. Then we add
+−/summationtext
+i<λ(q)aixi−btoEλ(q).
+Lemma 1. For an ITA A, letHbe the number of constraints in the guards,
+Uthe number of updates in the transitions (we assume U≥2) andM=
+max{card(Xk)|1≤k≤n}. The construction procedure of {Ek}k≤ntermi-
+nates and the size of every Ekis bounded by (H+M)2n−k×U2n(n−k+1).
+Proof.Givensome k,weprovetheterminationofthestagerelativeto k.Observe
+that step 2 of the iteration only adds new expressions to Ehforh < k. Thus
+steps 1 and 2 can be ordered. Let us prove the termination of step 1. We deﬁne
+E0
+kas the set Ekat the beginning of this stage and Ei
+kas this set after insertion
+of theithitem in it. With each added item C[u] can be associated its father
+C. Thus we can view Ekas an increasing forest with ﬁnite degree (due to the
+ﬁniteness of the edges) and ﬁnitely many roots. Assume that this s tep does not
+terminate. Then we havean inﬁnite forest and by K¨ oniglemma, it has an inﬁnite
+branchC0,C1,...whereCi+1=Ci[ui] for some update uisuch that Ci+1/\e}atio\slash=Ci.
+Observe that updates of the form x:=x′do not modify the set. Moreover, the
+number of updates that change the variables x∈Xkis either 0 or 1 since once
+xdisappears it cannot appear again. We split the branch into two part s before
+and after this update or we still consider the whole branch if there is no such
+update. In these (sub)branches, we conclude with the same reas oning that there
+is at most one update that change the variables x∈Xk−1. Iterating this process,
+we conclude that the number of updates is at most 2k−1 and the length of the
+branch is at most 2k.
+The ﬁnal size of Ekis thus at most E0
+k×U2ksince the width of the forest
+is bounded by U. In step 2, we add at most U×(|Ek|×(|Ek|−1))/2 toEifor
+everyi < k. This concludes the proof of termination.
+We now prove by a backward induction that as soon as n≥2,|Ek| ≤
+(H+M)2n−k×U2n(n−k+1). The doubly exponential size of En(proved above) is
+propagated downwards by the saturation procedure. We deﬁne pk=|Ek|.
+Basis case k=n.We have pn≤p0
+n×U2nwherep0
+nis bounded by H+M,
+hencepn≤(H+M)×U2nwhich is the claimed bound.
+Inductive case. Assumethattheboundholdsfor k < j≤n.Duetoallexecutions
+of step 2 of the procedure at strictly higher levels, p0
+kexpressions were added to
+
+--- Page 10 ---
+Ek, with:
+p0
+k≤(H+M)+U×[(pk+1×(pk+1−1))/2+···+(pn×(pn−1))/2]
+p0
+k≤(H+M)+U×/bracketleftBig
+(H+M)2n−kU2n(n−k)+1+···+(H+M)2U2n+1/bracketrightBig
+p0
+k≤(n−k+1)×(H+M)2n−kU2n(n−k)+1(replacing all terms by the largest)
+p0
+k≤(H+M)2n−k×U2n(n−k+1)+n(here we use U≥2 andn≥2)
+Taking into account step 1 of the procedure for level k, we have:
+pk≤(H+M)2n−k×U2n(n−k)+1+2k+n.
+Let us consider the term δ= 2n(n−k+1)−2n(n−k)+1−2k−n= 2n(n−k)+1(2n−1−
+1)−2k−n. We have δ≥2n+1−2n≥0, which yields the claimed bound.
+In order to analyze the space requirements triggered by the satu ration pro-
+cedure, we establish the following lemma bounding the number of bits u sed for
+integers involved in the rational constants of expressions in all Ek.
+Lemma 2. LetAbe an ITA, and let b0be the maximal number of bits for
+integers occurring in A. Ifbis the number of bits of an integer constant,occurring
+in an expression of some Ek, thenb≤((n+1)!)29nb0.
+Proof.Without loss of generality we assume that b0≥2. We also assume that
+there is a single denominator sfor the rationals occurring in updates since it
+only induces a polynomial blow up.
+Letbkbe the number of bits of an integer occurring in some expression bef ore
+operations of level n−kare performed. We establish a relation between bkand
+bk+1. At level n−k,step 1 involvesa normalizationon guards.Thus a numerator
+is multiplied by a denominator to produce the new integers leading to a n umber
+of bits 2bk. For an expression that was already present in En−k, its coeﬃcients
+are modiﬁed in order to get a common denominator by taking the prod uct of the
+original denominators. After this transformation the maximal num ber of bits is
+bounded by ( n−k+1)bk.
+LetC=/summationtext
+i≤n−kaixi+bbe an expression built after step 2(a). Examining
+the successive updates, the coeﬃcient aican be expressed as/summationtext
+d∈D/producttext
+j∈dcd,j
+whereDis the set of subsets of {i,...,n−k}containing iandcd,jare either
+coeﬃcients of the updates or coeﬃcients of an expression built bef ore this step.
+The same reasoning applies to b. Before summing the products over d∈ D, the
+integers are transformed in order to get the same denominator by multiplying
+every denominator (and corresponding numerator) by siwith 0≤i≤n−k.
+So the maximal absolute value of the numerator of such a coeﬃcient is bounded
+by 2n−k(2(n−k+1)bk)n−k+12(n−k)b0≤(22bk+1)(n−k+1)2which implies a maximal
+number of bits equal to ( n−k+1)2(2bk+1) for the numerators of the ai’s andb.
+The maximal absolute value of the denominator of such a coeﬃcient is less than
+(2(n−k+1)bk)n−k+12(n−k)b0which implies a maximal number of bits bounded by
+(n−k+1)2(2bk) for the denominators of the ai’s andb.
+
+--- Page 11 ---
+At step 2(b), the diﬀerence C[u]−C′[u] requires to compute the lcm of two
+denominators (bounded by their product). So the diﬀerence oper ation leads to
+a bound ( n−k+1)2(4bk+2) for the numerators of its coeﬃcients and ( n−k+
+1)2(4bk) for the denominators.
+The ﬁnal step 2(b) consists in multiplying a numerator and a denomina tor of
+some coeﬃcients leading to a bound ( n−k+1)2(8bk+2)≤(n−k+1)2(9bk)
+forbk+1, which yields the desired bound.
+3.2 Construction of the class automaton
+In order to analyze the size of the class automaton deﬁned below, w e recall
+an adaptation of a classical result about partitions of n-dimensional Euclidian
+spaces.
+Deﬁnition 4. Let{Hk}1≤k≤mbe a family of hyperplanes of Rn. Aregionde-
+ﬁned by this family is a connected component of Rn\/uniontext
+1≤k≤mHk. Anextended
+regiondeﬁned by this family is a connected component of/intersectiontext
+k∈IHk\/uniontext
+k/∈IHk
+whereI⊆ {1,...,m}with the convention that/intersectiontext
+k∈∅Hk=Rn.
+Proposition 3.
+1. [17] The number of regions deﬁned by the family {Hk}1≤k≤mis at most/summationtextn
+i=0/parenleftbigm
+i/parenrightbig
+.
+2. [4] The number of extended regions deﬁned by the family {Hk}1≤k≤mis at
+most:/summationtextn
+p=0/parenleftbigm
+p/parenrightbig/summationtextn−p
+i=0/parenleftbigm−p
+i/parenrightbig
+≤e2mn.
+Theorem 1. The untimed language of an ITA is regular.
+Proof.Starting from an ITA A, and handling auxiliary clocks, we build a ﬁnite
+automaton which is time abstract bisimilar to the transition system TAand thus
+acceptsUntime(L(A)).
+Class deﬁnition. A state ofthe automaton, called class, is a syntactical represen-
+tation of a subset of reachable conﬁgurations. It is deﬁned as a pa irR= (q,{/precedesequalk
+}1≤k≤λ(q)) whereqisastate and /precedesequalkisa totalpreorderover Ek, for1≤k≤λ(q).
+The class Rdescribes the set of conﬁgurations:
+[[R]]={(q,v)| ∀k≤λ(q)∀(g,h)∈Ek, g[v]≤h[v] iﬀg/precedesequalkh}
+The initial state is the class R0such that [[ R0]] contains ( q0,0) and can be
+straightforwardlydetermined.Theﬁnalstatesareallclasses R=/parenleftbig
+q,{/precedesequalk}1≤k≤λ(q)/parenrightbig
+withq∈Qf.
+Observe that ﬁxing a state, the set of conﬁgurations [[ R]] of a non empty
+classRis exactly an extended region associated with the hyperplanes deﬁn ed
+by the comparison of two expressions of some Ek. An upper bound for the total
+number of expressions of any level is given by ( H+M)2n×U2n2
+, hence an upper
+bound of the of the number of hyperplanes is obtained by squaring t his number,
+
+--- Page 12 ---
+yielding ( H+M)2n+1×U2n2
+. Using Point 2. of Proposition 3, the number of
+semantically diﬀerent classes for a given state is bounded by:
+e2mn=e2(H+M)K2n+1×UK2n2+1(1)
+whereK=/summationtextn
+k=1card(Xk)≤nMisthetotalnumberofclocks.Sincesemantical
+equality between classes can be tested in polynomial time w.r.t. their s ize [18],
+we implicitely consider in the sequel of the proof classes modulo the se mantical
+equivalence.
+There are two kinds of transitions, corresponding to discrete ste ps and ab-
+stract time steps.
+Discrete step. LetR= (q,{/precedesequalk}1≤k≤λ(q)) andR′= (q′,{/precedesequal′
+k}1≤k≤λ(q′)) be two
+classes. There is a transition Re− →R′for a transition e:qϕ,a,u− −− →q′if there is
+some (q,v)∈[[R]] and (q′,v′)∈[[R′]] such that ( q,v)e− →(q′,v′). In this case, for
+all (q,v)∈[[R]] there is a ( q′,v′)∈[[R′]] such that ( q,v)e− →(q′,v′). This can be
+decided as follows.
+Firability condition. For a transition elike above at level ℓ=λ(q), write
+ϕ=/logicalandtext
+j∈JCj⊲⊳j0. Since we assumed rescaled guards, for every j,Cj=αz+/summationtext
+i<kaixi+b(withα∈ {0,1}andzinXℓ) orCj=z−z′withz,z′∈Xℓ. In
+the ﬁrst case C′
+j=−/summationtext
+i<ℓaixi−bandzbelong to Eℓand in the second case
+z,z′∈Eℓboth by construction. For each j∈J, we deﬁne a condition depending
+on⊲⊳j.Forinstance,intheﬁrstcaseiftheconstraintin ϕisCj≤0,wecheckthat
+αz/precedesequalℓC′
+j, or if the constraint in ϕisCj>0 we check that αz/notprecedesoreqlℓC′
+j∧C′
+j/precedesequalℓαz.
+The second case is handled similarly.
+Successor deﬁnition. ClassR′is deﬁned as follows. Let k≤λ(q′) andg,h∈
+Ek.
+1. Either k≤ℓ, then by construction, g[u],h[u]∈Ektheng/precedesequal′
+khiﬀg[u]/precedesequalk
+h[u].
+2. Ork > ℓ, letD=g[u]−h[u]. Due to our restrictions on updates for i≤ℓ,
+xi[u] can only be equal to xior/summationtext
+j<iαjxj+β. ThusDcan be written as/summationtext
+i≤ℓcixi+d. We set C=norm(D,ℓ) and write C=αxℓ+/summationtext
+i<ℓaixi+b
+(withα∈ {0,1}). By construction, C′=−/summationtext
+i<ℓaixi−b∈Eℓ.
+Whencℓ≥0 theng/precedesequal′
+khiﬀαxℓ/precedesequalℓC′.
+Whencℓ<0 theng/precedesequal′
+khiﬀC′/precedesequalℓαxℓ.
+By deﬁnition of [[ ·]], we obtain:
+–For any ( q,v)∈[[R]], if there exists ( q,v)e− →(q′,v′) then the ﬁrability condi-
+tion is fulﬁlled and ( q′,v′) belongs to [[ R′]].
+–If the ﬁrability condition is fulﬁlled then for each ( q,v)∈[[R]] there exists
+(q′,v′)∈[[R′]] such that ( q,v)e− →(q′,v′).
+
+--- Page 13 ---
+Time step. LetR= (q,{/precedesequalk}1≤k≤λ(q)), with again ℓ=λ(q). There is a transition
+Rsucc− −− →Post(R) forPost(R) = (q,{/precedesequal′
+k}1≤k≤ℓ), the time successor of R, which
+is deﬁned as follows.
+Forevery i < ℓ,wedeﬁne /precedesequal′
+i=/precedesequali.Let∼be theequivalencerelation /precedesequalℓ∩ /precedesequal−1
+ℓ
+induced by the preorder. On equivalence classes, this (total) preo rder becomes
+a (total) order. Let Vbe the equivalence class containing act(q).
+1. Either V={act(q)}and it is the greatest equivalence class. Then /precedesequal′
+ℓ=/precedesequalℓ
+(thusPost(R) =R).
+2. Either V={act(q)}and it is not the greatest equivalence class. Let V′be
+the next equivalence class. Then /precedesequal′
+ℓis obtained by merging VandV′, and
+preserving /precedesequalℓelsewhere.
+3. Either Vis not a singleton. Then we split VintoV\{act(q)}and{act(q)}
+and “extend” /precedesequalℓbyV\{act(q)} /precedesequal′
+ℓ{act(q)}.
+By deﬁnition of [[ ·]], for each ( q,v)∈[[R]], there exists d >0 such that ( q,v+d)∈[[
+Post(R)]] and for each dwith 0≤d′≤d, then (q,v+d′)∈[[R]]∪[[Post(R)]].
+From the properties above, this ﬁnite automaton accepts Untime(L(A)).
+Theorem 2. The reachability problem for Interrupt Timed Automata is de cid-
+able and belongs to 2-EXPTIME. It is in PTIME when the number o f clocks is
+ﬁxed and PSPACE-complete when the number of levels is ﬁxed.
+Proof.The reachability problem is solved by building the class graph and ap-
+plying a standard reachability algorithm. The number of expressions in theEk’s
+is doubly exponential w.r.t the size of the model (see Lemma 1). The s ize of
+an expression is exponential w.r.t. the size of the model (see Lemma 2). So the
+size of a class representation is also doubly exponential in the size of the model.
+The size of the graph, bounded by the number of semantically diﬀere nt classes,
+is only polynomial w.r.t. the size of a class due to Point 2. of Proposition 3.
+This leads to a 2-EXPTIME complexity. Observe that no complexity ga in can
+be obtained by a non deterministic search without building the graph.
+Again using these lemmas and Point 2. of Proposition 3, when the numb er of
+clocks is ﬁxed the size of the graph is at most polynomial in the size of t he
+problem, leading to a PTIME procedure.
+On the other hand, when the number of levels is ﬁxed, the size of a cla ss rep-
+resentation is polynomial while the number of classes is exponential ( seeKin
+Equation (1)). Thus a non deterministic search can be performed w ithout build-
+ing the graph, which yields a complexity in PSPACE. The PSPACE hardne ss is
+a consequence of Proposition 2.
+Remarks. This result should be compared with the similar one for TA. The
+reachability problem for TA is PSPACE-complete and thus less costly t o solve
+than for ITA. Fixing the number of levels in ITA yields the same complex ity.
+Moreover, ﬁxing the number of clocks does not reduce the complex ity for TA
+(when this number is greater than or equal to 3) while this problem be longs
+now to PTIME for ITA. Summarizing, the main source of complexity fo r ITA
+is the number of levels and clocks, while in TA it is the binary encoding of t he
+constants [19].
+
+--- Page 14 ---
+4 Parametric Interrupt Timed Automata
+Parametric ITA are similar to ITA but they include polynomials of param e-
+ters from a set P, in guards and updates. Given two sets F,G, we denote by
+Pol(F,G), the set of polynomials with variables in Fand coeﬃcients in Gand
+byFrac(F,G), the set of rational functions with variables in Fand coeﬃcients
+inG(i.e. quotients of polynomials). Observe that Lin(F,G) can be seen as the
+subset of polynomials with degree at most one.
+Deﬁnition 5. Aparametric interrupt timed automaton (PITA) is a tuple A=
+/a\}bracketle{tP,Σ,n,Q,q 0,Qf,λ,X,act,∆/a\}bracketri}ht, where:
+–Pis a ﬁnite set of parameters,
+–all other elements are deﬁned as for ITA except that expressi ons appearing
+in guards or updates belong to Lin(X,Pol(P,Q)): in such an expression/summationtext
+z∈Zazz+b, theaz’s andbare polynomials over Pwith coeﬃcients in Q.
+This deﬁnition implies that an ITA is a PITA with P=∅. When all expres-
+sions occurringin guardsand updates are in Lin(X∪P,Q) (which can be seen as
+a subset of Lin(X,Pol(P,Q))), the PITA is said to be additively parametrised .
+In contrast, in the general case, it is called multiplicatively parametrised .
+As in the unparametrized case, updates operate on expressions. For instance,
+for clocks in X={x1,x2}, parameters in P={p1,p2,p3}, expression C=
+p2x2−2x1+3p1and the update udeﬁned by x1:= 1∧x2:=p3x1+p2, applying
+utoCyields the expression C[u] =p2p3x1+p2
+2+3p1−2. Note that the use of
+multiplicative parameters for clocks may result in polynomial coeﬃcien ts when
+updates are applied. Here a clock valuation is a mapping v:X/mapsto→ Pol(P,R).
+For a valuation vand an expression C∈ Lin(X,Pol(P,Q)),v(C)∈ Pol(P,R)
+is obtained by evaluating Cw.r.t.v. Given an update uand a valuation v, the
+valuation v[u]isdeﬁnedby v[u](x) =v(Cx)forxinXifx:=Cxistheupdate for
+xinuandv[u](x) =v(x) otherwise. For instance, let X={x1,x2,x3}be a set
+of three clocks. For valuation v= (2p2,1.5,3p2
+1) and update udeﬁned by x1:=
+1∧x3:=p1x3−x1, applying utovyields the valuation v[u] = (1,1.5,3p3
+1−2p2).
+Aparameter valuation is a mapping π:P/mapsto→R. For a parameter valuation
+πand an expression C∈ Lin(X,Pol(P,Q)),π(C)∈ Lin(X,R) is obtained by
+evaluating Cw.r.t.π. IfC∈ Pol(P,Q), thenπ(C)∈R. Given a parameter
+valuation π, a clock valuation vand an expression C∈ Lin(X,Pol(P,Q)) we
+writeπ,v|=C ⊲⊳0 whenπ(v(C))⊲⊳0.
+Givenaparametervaluation πandaPITA A, substitutingthe parametersby
+their value according to πyields an ITA, denoted by A(π), where the coeﬃcients
+ofclocksarein R.Sothesemanticsof Aw.r.t.parametervaluation πisdeﬁnedby
+the (timed) transition system TA(π). A state qis reachable from q0for valuation
+πifqis reachable from q0inA(π).
+Example 3. A PITAA2is depicted in Fig. 4(a), with two interrupt levels. Every
+levelihas only a main clock xi. Fixing the parameter valuation π:p1= 5 and
+
+--- Page 15 ---
+p2=−1, the run ( q1,0,0)4− →(q1,4,0)a− →(q2,4,0)3− →(q1,4,2)b− →(q2,4,3) is
+obtained as follows. After staying in q1for 4 time units, acan be ﬁred and
+the value of x1is then frozen in state q2, whilex2increases. Transition bcan
+be taken if x1+p2x2= 2, hence for x2= 2, after which x2is updated to
+x2= (p1−4p2
+2)4 +p2= 3. A geometric view of this run w.r.t. πis given (in
+bold) in Fig. 4(b).
+q1,1q2,2
+x1< p1,ax1+p2x2= 2
+b
+x2:= (p1−4p2
+2)x1+p2
+(a) A PITA A2with two interrupt levelsx1x2
+423
+5x1=p1
+x1+p2x2= 2
+(b) A possible run in A2forπ
+Fig.4.An example of PITA and a possible execution
+Reachability problems. We consider several reachability problems for this class.
+LetAbe a PITAwith initial state q0andqbe a stateof A. TheExistential (resp.
+Universal) Reachability Problem asks whether qis reachable from q0for some
+(resp.all)parametervaluation(s). Scopedvariantsoftheseproblemsareobtained
+by adding as input a set of parameter valuations given by a ﬁrst orde r formula
+over the reals or a polyhedral constraint. The Robust Reachability Problem asks
+whether there exists a parameter valuation πand a real ε >0 such that for all π′
+with/bardblπ−π′/bardbl∞< ε,qis reachablefrom q0forπ′(where/bardblπ/bardbl∞=maxp∈P|π(p)|).
+When satisﬁed, this property ensures that small parameter pert urbations do not
+modify the reachability result. It is also related to parameter synth esis where a
+valuation has to be enlarged to an open region with the same reachab ility goal.
+5 Reachability Analysis with Additive Parametrization
+We start with the easier particular case of additive parametrization ,i.e., expres-
+sionsoccurringinguardsandupdatesarelinearexpressionsoncloc ksandparam-
+eters with rational coeﬃcients. We ﬁrst prove that the existentia l parametrized
+reachability problem can be reduced to the reachabilityproblem on (n on-param-
+etrized) ITA.
+Proposition 4. For any additively parametrized PITA A, with set of states Q
+and initial state q0, there exists a (non-parametrised) ITA A′, with set of states
+
+--- Page 16 ---
+Q′, containing Q, and initial state q′
+0fulﬁlling the following equivalence. For
+everyq∈Q:
+there exists πsuch that qis reachable from q0inAforπ
+iﬀqis reachable from q′
+0inA′.
+Proof.For any additively parametrized PITA Awithnlevels, and kparameters
+p1,...,pk, we build an equivalent ITA A′withn+k+1 levels and then use the
+complexity results of section 3. The construction is shown in Fig. 5.
+The ITA A′consists of a “preﬁx” (the ﬁrst k+1 levels) connected to the original
+automaton A(with its nlevels). The main clocks of levels 1 to kencode the
+parameters p1,...,p kofA. In order to simplify further references, we also call
+these clocks p1,...,pk. Similarly, the main clock of the ﬁrst level is called p0.
+None of these k+1 ﬁrst level has any auxiliary clock. Since level numbers start
+at 1, each clock piis active in level i+1 in (the preﬁx of) A′.
+In the ﬁrst level of A′, clockp0is active. After some arbitrary time, a transition,
+with no guard, is taken to the state of the second level and clock p0is frozen.
+In the second level, clock p1is active and the same procedure continues: after
+some time a transition to the next level is taken, and clock p1is frozen, and
+so on for the ﬁrst klevels. In these ﬁrst klevels, we any run of A′choses a
+non-negative ﬁxed value for the clocks p0,...,p k−1, and hence almost for the
+parameters of A. Parameters may however have negative values so level k+ 1
+serves as a technicality to choose the ﬁnal sign of the correspond ing clocks. This
+is done by assigning pi−1or−pi−1to clock pi, between each two consecutive
+states, for all i∈[1..k−1], in a run without any delay in any of the states of
+levelk+1(the otherruns,with delaysin the statesoflevel k+1,overlaponthose
+corresponding to other parameter valuations and are therefore not a problem).
+In the last state of level k+ 1, the frozen clocks p1,...,pkcan therefore have
+any arbitrary real value assigned. The automaton ﬁnally proceeds to the initial
+state ofAkeeping the values of these additional clocks. Since they correspo nd to
+levels lower than any level of Athey can be used liberally enough in the guards
+and updates of A. The obtained automaton A′is an ITA and parameters of A
+are modeled as clocks in A′.
+LetXbe the set of clocks in AandX′be the set of clocks in A′(thusX′=X∪
+{p0,...,pk}). For any subset Y⊆Xand a valuation v, we deﬁne the restriction
+ofvtoYas the unique valuation vonYsuch that v|Y(x) =v(x). We now show
+that a conﬁguration s= (q,v) is reachable in Afor some parameter valuation π
+(i.e., inA(π)) iﬀ there exists some conﬁguration s′= (q′,v′), such that q′=q
+and for all x∈X,v′
+|X(x) =v(x), is reachable in A′.
+On the one hand, if there exists a path to reach s′inA′, then by construction
+this path goes through a conﬁguration ( q0,v0) such that ( q0,v0|X) is the initial
+conﬁguration of A(i.e.v0|Xis the zero valuation). Let πbe the parameter
+valuation such that for all i >0,π(pi) =v0(pi), thensis reachable in A(π).
+On the other hand, let πbe a parameter valuation and vbe a clock valuation
+onXsuch that ( q,v) is reachable in A(π). Then using an appropriate run in
+the preﬁx one reaches ( q0,v0) withv0|Xis the zero valuation and for all i >
+
+--- Page 17 ---
+p0p1pk−1pkA nlevels
+truetruetrue
+k+1 levelspk:=pk−1
+pk:=−pk−1pk−1:=pk−2
+pk−1:=−pk−2p1:=p0
+p1:=−p0
+Fig.5.An equivalent ITA A′
+0,v0(pi) =π(pi). Afterwards this run is extended to reach qby mimicking the
+run ofA(π).
+Using Proposition 4 and Theorem 2, we can now give the main result of t his
+section.
+Theorem 3. The (polyhedral scoped) existential reachability problem is decid-
+able for additively parametrised PITA, and belongs to 2-EXP TIME. It belongs
+to PTIME when the number of clocks and parameters is ﬁxed. It i s PSPACE-
+complete when the number of levels and parameters is ﬁxed.
+Proof.Following Proposition 4, every additively parametrised PITA can be
+transformed into an equivalent ITA, and the (unscoped) reachab ility problem
+of additively parametrised PITA is thus reduced to the reachability p roblem
+of ITA, already known to be decidable. The complexity results follow f rom the
+complexity results for ITA given in Theorem 2, since the size of A′is only linear
+in the size of A: if there are nlevels,Nclocks,kparameters, xstates and y
+transitions in A, the number of levels, clocks, states and transitions in A′are
+n+k+1,N+k+1,x+2k+1 and y+3k+1, respectively.
+With a polyhedral scope, given as a ﬁnite union of polyhedra, we need to guard
+the transition between the last state of the preﬁx and the initial st ate ofA, in
+A′, by the given polyhedra (each polyhedra of the union could guard a d iﬀerent
+transition, as well).
+6 Reachability Analysis with Multiplicative
+Parametrization
+We now focus on the multiplicative case and this section is devoted to t he proof
+of the following result:
+
+--- Page 18 ---
+Theorem 4. The (scoped) existential, universal and robust reachabili ty prob-
+lems for PITA are decidable and belong to 2-EXPSPACE. The com plexity re-
+duces to PSPACE when the number of levels is ﬁxed.
+We ﬁrst present the main ideas underlying the proof, which is based o n the
+proof of Theorem 2 but extends it by the handling of parameters. G iven a PITA
+A,theﬁrststepistobuildaﬁnitepartitionoftheset RPofparametervaluations.
+An element Πofthispartitionisspeciﬁed byasatisﬁableﬁrst-orderformulaover
+(R,+,×), with the parameters as variables. Intuitively, inside Πthe qualitative
+behaviour of Adoes not depend on the precise parameter valuation. In a second
+step, we build a ﬁnite automaton R(Π) for each non empty Π. InR(Π), a state
+R, again called a class, deﬁnes a set [[ R]]πof reachable conﬁgurations of TA(π)
+for a valuation π∈Π. The transition relation of R(Π) contains discrete steps
+Re− →R′(for a transition eofA) and abstract time steps R− →Post(R) with the
+following properties:
+Discrete Step (DS): If there is a transition Re− →R′inR(Π) then for each
+π∈Πand each ( q,v)∈[[R]]πthere exists ( q′,v′)∈[[R′]]πsuch that ( q,v)e− →
+(q′,v′).
+Conversely, let π∈Πand (q,v)∈[[R]]π. If there exists a transition ( q,v)e− →
+(q′,v′) inTA(π)then for some R′, there is a transition Re− →R′inR(Π) and
+(q′,v′) belongs to [[ R′]]π.
+Time Step (TS): Letπ∈Πand (q,v)∈[[R]]π. There exists d >0 such that
+(q,v+qd)∈[[Post(R)]]πand for each d′with 0≤d′≤d, (q,v+qd′)∈[[R]]π
+∪[[Post(R)]]π.
+Hence, we obtain a ﬁnite family of abstract time bisimulations of the tr ansition
+systemsTA(π), for all parameter valuations, which gives the decidability result.
+Although the construction of R(Π) is similar to the one for ITA, expressions
+in the sets {Ek}k≤nnow contain polynomials ofparameters. The main diﬀerence
+is the normalization operation of an expression/summationtext
+i≤kaixi+bwhich depends on
+the polynomial ak. For instance, consider expression p2x2+x1−2 which appear
+in automaton A2of Fig. 4(a) with a comparison to 0. For a valuation where
+p2= 0, a normalization should yield x1−2. Ifp2/\e}atio\slash= 0, the operation should yield
+−x1−2
+p2. In addition, the case p2/\e}atio\slash= 0 should be split depending on the sign of p2,
+since the operation could change the comparison operator involved in a guard.
+Therefore, we also need to deﬁne a set PolParof polynomials appearing in the
+denominators like p2.
+6.1 Construction of PolPar and expressions {Ek}k≤n
+In the spirit of normalization, we deﬁne three operations on expres sions, rela-
+tively to a level k, to help building the elements in Ekto which the active clock
+on levelkwill be compared.
+Deﬁnition 6. Letk≤nbe some level and let Cbe an expression in Lin(X<n+1,
+Frac(P,Q)),C=/summationtext
+i≤naixi+bwithak=rk
+sk, for some rkandskinPol(P,Q).
+We associate with Cthe following expressions:
+
+--- Page 19 ---
+–lead(C,k) =rk;
+–iflead(C,k)/∈Q\{0},comp(C,k) =/summationtext
+i<kaixi+b;
+–iflead(C,k)/\e}atio\slash= 0thencompnorm (C,k) =−/summationtext
+i<kai
+akxi−b
+ak.
+In the previous example, compcorresponds to x1−2 whilecompnorm cor-
+responds to −x1−2
+p2. More examples are given after the construction of PolPar
+and{Ek}k≤n. This construction proceeds top down from level nto level 1 after
+initialising PolParto∅andEktoXk∪{0}for allk. When handling level k, we
+add new terms to Eifor 1≤i≤k.
+1. At level kthe ﬁrst step consists in adding new expressions to Ekand new
+polynomials to PolPar. More precisely, let Cbe any expression occurring in
+a guard of an edge leaving a state of level k. We add lead(C,k) toPolPar
+when it does not belong to Qand we add comp(C,k) andcompnorm (C,k) to
+Ekwhen they are deﬁned.
+2. The second step consists in iterating the following procedure unt il no new
+term is added to any Eifor 1≤i≤k.
+(a) Letqϕ,a,u− −− →q′withλ(q)≥kandλ(q′)≥k, and let C∈Ek. Then we
+addC[u] toEk.
+(b) Letqϕ,a,u− −− →q′withλ(q)< kandλ(q′)≥k. Let{C,C′}be a set of two
+expressions in Ek. We compute C′′=C[u]−C′[u], choosing an arbitrary
+order between CandC′. This step ends by handling C′′w.r.t.λ(q) as
+done for Cw.r.t.kin step 1 above.
+Example 4. For the automaton of Fig. 4(a), initially, we have PolPar =∅,
+E1={x1,0}andE2={x2,0}. Starting with level k= 2, we consider in step 1
+theexpression C2=p2x2+x1−2appearingintheguardofthesingleedgeleaving
+q2. We compute lead(C2,2) =p2,comp(C2,2) =x1−2, andcompnorm (C2,2) =
+−x1−2
+p2. We obtain PolPar={p2}andE2={x2,0,x1−2,−x1−2
+p2}. For step 2(a)
+and the same edge, we apply its update to the expressions of E2that contain x2,
+add them to E2, and thus obtain E2={x2,0,x1−2,−x1−2
+p2,(p1−4p2
+2)x1+p2}.
+In step 2(b), considering the single edge from q1toq2, we compute the
+diﬀerences between any two expressions from E2(after applying update which
+means here substituting 0 to x2and letting x1unchanged) and the resulting
+expressions lead,compandcompnorm , which yields:
+PolPar={p2,p2+1,1−p1+4p2
+2,1+p1p2−4p3
+2},
+E1={x1,0,2,−2(p2+1)
+p2,−2−p2,2+p2
+1−p1+4p2
+2,p2
+2−2
+p2,2−p2
+2
+1+p1p2−4p3
+2}.
+We proceed with level1. Since expression C1=x1−p1occurringin the guard
+of the considered edge has leading coeﬃcient equal to 1, there is no term to add
+toPolPar. We add compnorm (C1,1) =p1toE1, hence the ﬁnal result is:
+PolPar={p2,p2+1,1−p1+4p2
+2,1+p1p2−4p3
+2},
+E1={x1,0,2,−2(p2+1)
+p2,−2−p2,2+p2
+1−p1+4p2
+2,p2
+2−2
+p2,2−p2
+2
+1+p1p2−4p3
+2,p1},
+E2={x2,0,x1−2,−x1−2
+p2,(p1−4p2
+2)x1+p2}.
+Lemma 3 below is used for the class automata construction. Its pro of is
+obtained by a straightforward examination of the above procedur e.
+
+--- Page 20 ---
+Lemma 3. LetCbelong to Ekfor some kandc=r
+sbe a coeﬃcient of Cwith
+s /∈Q. Then there exists polynomials P1,...,P ℓ∈PolPar and some constant
+K∈Q\{0}such that s=K./producttext
+1≤i≤ℓPi.
+Lemma 4 is the parametrized version of Lemma 1 and its (omitted) pro of is
+almost identical.
+Lemma 4. For a PITA A, letHbe the number of constraints in the guards,
+Uthe number of updates in the transitions (we assume U≥2) andM=
+max{card(Xk)|1≤k≤n}. The construction procedure of {Ek}k≤ntermi-
+nates and the size of every Ekis bounded by (H+M)2n−k×U2n(n−k+1).
+Lemma 5 is the parametrized version of Lemma 2. However since the c oef-
+ﬁcients are now rational functions, the degree of the polynomials m ust also be
+analyzed.
+Lemma 5. LetAbe a PITA, and let b0be the maximal total number of bits
+for integers of an expression in Aandd0the maximal degree of polynomials,
+occurring in A. Ifbis the total number of bits of the integer constants and dthe
+degree of a polynomial, occurring in an expression of PolParor some Ek, then
+b≤((n+1)!)2(n+1)23n+1b0andd≤(n+1)!5nd0.
+Proof.W.l.o.g. we assume that there is a single denominator for the rationals
+occurring in updates since it only induces a polynomial blow up.
+Assume that before the level n−kis performed, the total number of bits for
+integers occurring in some expression is bk. We establish by induction that bk≤/producttextk
+j=1(n+ 2−j)2(k+ 1)2n+2k+1b0. The basis case is trivial. At level n−k,
+step 1 does induces an increasing only when operation compnorm is applied on a
+original guard whose coeﬃcients are polynomials (instead of rationa l fractions).
+Afterthis operationthe numberofbitsisboundedby( n−k+1)b0≤(n−k+1)bk.
+For an expression that was already present in En−k, its coeﬃcients are modiﬁed
+in order to get a common denominator by taking the product of the o riginal
+denominators. After this transformation the total number of bit s is bounded by
+(n−k+1)2bk.
+Examining one update applied on an expression, the total number of bits of the
+coeﬃcients of the updated expression is increased by ( n−k+ 1)b0. Since an
+expression built after step 2(a) has been obtained by less than 2n−kupdates,
+the total number of bits is less than ( n−k+1)2bk+2n−k(n−k+1)b0.
+At step 2(b), the diﬀerence C[u]−C′[u] requires to compute the lcm of two
+denominators (bounded by their product). So the diﬀerence oper ation leads to
+a bound ( n−k+1)4bk+2n−k+1(n−k+1)b0for the total number of bits.
+The ﬁnal step 2(b) consists in multiplying a numerator and a denomina tor of
+some coeﬃcients leading to a bound:
+(n−k+1)2(4bk+2n−k+1b0)
+≤(n−k+1)2/parenleftBig
+4/producttextk
+j=1(n+2−j)2(k+1)2n+2k+1b0+2n−k+1b0/parenrightBig
+≤/parenleftBig/producttextk+1
+j=1(n+2−j)/parenrightBig2
+((k+1)2n+2(k+1)+1b0+2n+2(k+1)+1b0)
+
+--- Page 21 ---
+=/parenleftBig/producttextk+1
+j=1(n+2−j)/parenrightBig2
+(k+2)(2n+2(k+1)+1b0)
+for the number of bits.
+Assume that before the level n−kis performed, the degree of a polynomial (of
+parameters) occurring in some expression is at most dk. We establish a relation
+between dkanddk+1. At level n−k, step 1 does not induce any increasing
+when operation compnorm is applied on a original guard whose coeﬃcients are
+polynomials (instead of rational fractions). More precisely the num erators of
+rational fractions are unchanged while the denominators are nume rators of some
+previous expressions. For an expression that was already presen t inEn−k, its
+coeﬃcient are modiﬁed in order to get a common denominator by takin g the
+product of the original denominators. After this transformation the maximal
+degree is bounded by ( n−k+1)dk.
+Let us examine an expression C=/summationtext
+i≤n−kaixi+bbuilt after step 2(a). Exam-
+ining the successive updates, the numerator of coeﬃcient aican be expressed
+as/summationtext
+d∈D/producttext
+j∈dcd,jwhereDis the set of subsets of {i,...,n−k}containing i
+andcd,jare all coeﬃcients of the updates (i.e. coeﬃcients of polynomials) ex -
+cept one coeﬃcient of the expression built before this step. The sa me reasoning
+applies to the constant coeﬃcient of the expression. So the degre e of theai’s and
+bis bounded by: ( n−k+ 1)(dk+d0). The denominators are denominators of
+expressions previously built so bounded by ( n−k+1)dk.
+At step 2(b), the diﬀerence C[u]−C′[u] requires to compute the lcm of two
+denominators (bounded by their product). So the diﬀerence oper ation leads to a
+bound (n−k+1)(2dk+d0) forthe numeratorsofits coeﬃcientsand( n−k+1)2dk
+for the denominators.
+The ﬁnal step 2(b) consists in multiplying a numerator and a denomina tor of
+somecoeﬃcientsleadingtoabound ( n−k+1)(4dk+d0).Sodk+1≤(n−k+1)5dk
+yielding the desired bound.
+Wenowexplainthepartitionconstruction.Startingfromtheﬁnites etPolPar,
+we split the set of parameter valuations in parameter regions speciﬁ ed by the
+result of comparisons to 0 of the values of the polynomials in PolPar. For in-
+stance, for the set PolParcomputed above, the inequalities p2<0,p2+1 = 0,
+1−p2−4p2
+1= 0 and 1+ p1p2−4p3
+2= 0 deﬁne a set pregof parameter valuations.
+The parameter region pregis non empty since it contains p1= 5 and p2=−1.
+The set of such constraints yielding non empty regions can be compu ted by
+solving an existential formula of the ﬁrst-order theory of reals.
+Then, given a non empty parameter region preg, we consider the following
+subsetof Ekfor1≤k≤n:Ek,preg={C∈Ek|thedenominatorsofcoeﬃcients
+ofCare non null in preg}. Due to Lemma 3, these subsets are obtained by
+examining the speciﬁcation of preg.
+Observe that expressions in E1,preg\X1belong to Frac(P,Q) and that,
+depending on the parameter valuation, the values of two expressio ns can be dif-
+ferentlyordered.Wereﬁne pregaccordingtoalinearpre-order /precedesequal1onE1,preg\X1
+which is satisﬁable within preg. We denote this reﬁned region by Π= (preg,/precedesequal1)
+and we now build a ﬁnite automaton R(Π).
+
+--- Page 22 ---
+6.2 Construction of the class automata
+In this paragraph, we ﬁx a non empty parameter region Π= (preg,/precedesequal1).
+Class deﬁnition. A state of R(Π), called a class like before, is deﬁned as a
+pairR= (q,{/precedesequalk}1≤k≤λ(q)) whereqis a state of Aand/precedesequalkis a total preorder
+overEk,preg, for 1≤k≤λ(q). For a parameter valuation π∈Π, the class R
+describes the following subset of conﬁgurations in TA,π:
+[[R]]π={(q,v)| ∀k≤λ(q)∀g,h∈Ek,preg, π(v(g))≤π(v(h)) iﬀg/precedesequalkh}
+The initial state of R(Π) is the class R0, such that ( q0,0)∈[[R0]]π, which can
+be straightforwardly determined by extending /precedesequal1toE1,pregwithx/precedesequal10 and
+0/precedesequal1xfor allx∈X1, and closing /precedesequal1by transitivity.
+Transitions in R(Π) consist of the following discrete and time steps:
+Discrete step. LetR= (q,{/precedesequali}1≤i≤λ(q)) andR′= (q′,{/precedesequal′
+i}1≤i≤λ(q′)) be two
+classes and let e:qϕ,a,u− −− →q′be a transition in A. There is a transition Re− →R′
+if for some π∈Π, there are some ( q,v)∈[[R]]πand (q′,v′)∈[[R′]]πsuch that
+(q,v)e− →(q′,v′). In this case, we claim that for all ( q,v)∈[[R]]πthere is a
+(q′,v′)∈[[R′]]πsuch that ( q,v)e− →(q′,v′). For this, we prove in the sequel that
+the existence of transition Re− →R′is independent of π∈Πand of (q,v)∈[[R]]π.
+It can be seen as follows.
+We note ℓ=λ(q) for the level of transition e.
+Firability condition. We write ϕ=/logicalandtext
+j∈JCj⊲⊳j0 with, for each j, eitherCj=
+aℓz+/summationtext
+i<ℓaixi+b(withz∈Xℓ) orCj=z−z′withz,z′∈Xℓ. We consider
+three subcases of the ﬁrst case.
+•Subcase aℓ= 0.ThenCj=comp(Cj,ℓ)∈Eℓ,pregand using the positions of
+0 andCjw.r.t./precedesequalℓ, we can decide whether Cj⊲⊳j0.
+•Subcase aℓ∈Q\{0}.Thencompnorm (Cj,ℓ)∈Eℓ,preg, hence using the sign of
+aℓand the positions of zandcompnorm (Cj,ℓ) w.r.t./precedesequalℓ, we can decide whether
+Cj⊲⊳j0.
+•Subcase aℓ/∈Q.According to the speciﬁcation of preg, we know the sign of
+aℓas it belongs to PolPar. In case aℓ= 0, we decide as in the ﬁrst subcase.
+Otherwise, we decide as in the second subcase.
+The second case Cj=z−z′is handled similarly.
+Successor deﬁnition. To build the successor R′= (q′,{/precedesequal′
+i}1≤i≤λ(q′)) ofR, we
+have to deﬁne the preorders {/precedesequal′
+i}1≤i≤λ(q′). Letk≤λ(q′) andg,h∈Ek,preg.
+1. Either k≤ℓ, by step 2(a) of the construction, g[u],h[u]∈Ek,preg. Then
+g/precedesequal′
+khiﬀg[u]/precedesequalkh[u].
+2. Ork > ℓ, letD=g[u]−h[u] =/summationtext
+i≤ℓaixi+b.There areagainthree subcases.
+•Subcase aℓ= 0.ThenD=comp(D,ℓ)∈Eℓ,preg,sowecandecidewhether
+D/precedesequalℓ0 andg′/precedesequal′
+kh′iﬀD/precedesequalℓ0.
+•Subase aℓ∈Q\ {0}.Thencompnorm (D,ℓ)∈Eℓ,preg. There are four
+possibilities to consider. For instance if aℓ>0 andxℓ/precedesequalℓcompnorm (D,ℓ)
+theng′/precedesequal′
+kh′. The other cases are similar.
+•Subcase aℓ/∈Q.Let us write aℓ=rℓ
+sℓ. According to the speciﬁcation of
+preg, we know the sign of aℓsincerℓbelongs to PolParandsℓis a product
+
+--- Page 23 ---
+of items in PolPar. In case aℓ= 0, we decide g′/precedesequal′
+kh′as in the ﬁrst case.
+Otherwise, we decide in a similar way as in the second case. For instanc e if
+aℓ>0 andxℓ/precedesequalℓcompnorm (D,ℓ) theng′/precedesequal′
+kh′.
+Time step. ForR= (q,{/precedesequalk}1≤k≤ℓ), there is a transition Rsucc− −− →Post(R),
+wherePost(R) = (q,{/precedesequal′
+k}1≤k≤ℓ) is the time successor of R, deﬁned as follows.
+Intuitively, all preorders below ℓ=λ(q) are ﬁxed, so /precedesequal′
+i=/precedesequalifor each i < ℓ. On
+levelℓ, the value of the active clock simply progresses along the one dimens ional
+time line, where the expressions are ordered. More precisely, let ∼be the equiv-
+alence relation /precedesequalℓ∩ /precedesequal−1
+ℓinduced by the preorder. A ∼-equivalence class groups
+expressions yielding the same value, and on these classes, the (tot al) preorder
+becomes a (total) order. Let Vbe the∼-equivalence class containing act(q).
+1. Either V={act(q)}. IfVis the greatest ∼-equivalence class, then /precedesequal′
+ℓ=/precedesequalℓ
+(andPost(R) =R). Otherwise, let V′be the next ∼-equivalence class.
+Then/precedesequal′
+ℓis obtained by merging V={act(q)}andV′, and preserving /precedesequalℓ
+elsewhere.
+2. OrVis not a singleton. Then we split VintoV\{act(q)}and{act(q)}and
+“extend” /precedesequalℓbyV\{act(q)} /precedesequal′
+ℓ{act(q)}.
+To conclude, observe that the automaton R(Π) deﬁned above has the proper-
+ties(DS)and(TS)mentionned previously, and is hence a ﬁnite time abstract
+bisimulation of TA,π, for all parameter valuations π∈Π.
+We are now in position to prove Theorem 4.
+Proof.Starting from a PITA A, we use the above construction, whose termi-
+nation is guaranteed by lemma 4, to design a non deterministic proced ure for
+existential reachability of a given state q:
+1. Build PolParand{Ek}1≤k≤n.
+2. Guess a parameter region ( preg,/precedesequal1).
+3. Check non emptiness of ( preg,/precedesequal1).
+4. Build the class automaton R(preg,/precedesequal1) and check whether qoccurs in some
+class.
+For universal reachability of q, in step 4, one checks whether qdoes not occur
+in any class. This gives us a non deterministic procedure for the comp lementary
+problem. For robust reachability in step 2, one guesses an open par ameter region
+i.e., only speciﬁed by strict inequalities.
+We now analyse the complexity of these procedures. Due to lemmas 4 and 5,
+the ﬁrst step is performed in 2-EXPTIME and in PTIME when the numb er of
+clocks is ﬁxed. Guessing a parameter region has the same complexity .
+The satisﬁability problem for a ﬁrst-order formula is in PSPACE [20]. D ue to
+lemma 4, the number sof (in)equalities specifying the region fulﬁlls s=O((H+
+M)2n×U2n2
+) with the previous notations. Let bbe the total number of bits
+of the integers occurring in a constraint of the speciﬁcation of the region. Due
+to lemma 5, b≤((n+ 1)!)2(n+ 1)23n+1b0. Letdbe the maximal degree of
+
+--- Page 24 ---
+the polynomials occurring in the speciﬁcation of the region. Due to th e same
+lemma,d≤(n+ 1)!5nd0. So the emptiness problem for a region is decided in
+2-EXPSPACE which becomes PSPACE when the number of levels is ﬁxed .
+Observe now that the class automaton R(preg,/precedesequal1) is isomorphic to the class
+automaton of the ITA A(π) that would be obtained from Awith any parameter
+valuation πinΠ= (preg,/precedesequal1). It has been proved in Section 3 that this automa-
+ton can be built in polynomial time w.r.t. the size of the representation of any
+class. As the size of the representation of a class of a PITA has the same order as
+the one of the correspondingITA (dominated by the doubly expone ntial number
+of expressions) and the construction algorithms perform similar op erations, this
+yields a complexity of 2-EXPTIME and PSPACE when the number of leve ls is
+ﬁxed.
+So the dominating factor of this non deterministic procedure is the e mptiness
+check done in 2-EXPSPACE. By Savitch theorem this procedure can be deter-
+minised with the same complexity.
+Example 5. The construction of R(Π) is illustrated on the automaton A2from
+Fig. 4(a), for the region Π= (preg,/precedesequal1), where pregwas deﬁned above by: p2<
+0,p2+1 = 0,1 −p2−4p2
+1= 0 and 1+ p1p2−4p3
+2= 0. For /precedesequal1, we ﬁrst removefrom
+E1the expressions with null denominator: E1,preg={x1,0,2,−2(p2+1)
+p2,−2−
+p2,p2
+2−2
+p2,p1}and we consider the ordering on E1,preg\{x1}speciﬁed by the line
+below.
+−2−p2 0,
+−2(p2+1)
+p2p2
+2−2
+p22 p1
+A part of the resulting class automaton R(Π), including the run correspond-
+ing to the one in Fig. 4(b), is depicted in Fig. 6, where dashed lines indica te
+(abstract) time steps.
+The initial class is R0= (q0,Z0) where Z0is/precedesequal1extended with x1= 0.
+Denoting (slightly abusively) extensions with the symbol ∧, the time successors
+of the initial state are obtained by moving x1to the right along the line: R1
+0=
+(q0,/precedesequal1∧0< x1<p2
+2−2
+p2),R2
+0= (q0,/precedesequal1∧x1=p2
+2−2
+p2),...,up toR7
+0= (q0,/precedesequal1
+∧x1> p1). Transition acan be ﬁred from all classes up to R5
+0(but not from
+R6
+0andR7
+0where the constraint x1< p1is not satisﬁed). In Fig. 6, we represent
+only the one from R5
+0= (q0,Z1) withZ1=/precedesequal1∧2< x1< p1, corresponding to
+the run in Fig. 4(b).
+Alongthisrun,theordering /precedesequal2isdeterminedbyregion ΠandZ1,onE2,preg\
+{x2}={0,x1−2,−x1−2
+p2,(p1−4p2
+2)x1+p2}. It is illustrated on the line below.
+0 x1−2,
+−x1−2
+p2(p1−4p2
+2)x1+p2
+
+--- Page 25 ---
+Firing transition aproduces the class R1= (q1,Z1,/precedesequal2∧x2= 0)). Transition
+bis then ﬁred from the (second) time successor of R1for which x2=−x1−2
+p2.
+R0
+R1
+0
+...
+R5
+0
+...
+R7
+0q1,Z1,/precedesequal2∧
+x2= 0q1,Z1,/precedesequal2∧
+0< x2<−x1−2
+p2q1,Z1,/precedesequal2∧
+x2=−x1−2
+p2q1,Z1,/precedesequal2∧
+x2= (p1−4p2
+2)x1+p2
+q1,Z1,/precedesequal2∧
+x2>(p1−4p2
+2)x1+p2···a
+···ab
+a
+Fig.6.A part of R(Π) forA2
+7 Conclusion
+While seminal results on parametrised timed models leave little hope for de-
+cidability in the general case, we provide here an expressive formalis m for the
+analysis of parametric reachability problems. Our setting includes a r estricted
+form of stopwatches and polynomials in the parameters occurring a s both addi-
+tive and multiplicative coeﬃcients of the clocks in guards and updates . We plan
+to investigate which kind of timed temporal logic would be decidable on P ITA.
+References
+1. Alur, R., Courcoubetis, C., Halbwachs, N., Henzinger, T. A., Ho, P.H., Nicollin,
+X., Olivero, A., Sifakis, J., Yovine, S.: The algorithmic an alysis of hybrid systems.
+Theoretical Computer Science 138(1995) 3–34
+2. Alur, R., Dill, D.L.: Automata for modeling real-time sys tems. In: ICALP’90,
+Springer (1990) 322–335
+3. B´ erard, B., Haddad, S.: Interrupt Timed Automata. In: Fo SSaCS’09. Volume 5504
+of LNCS., Springer (2009) 197–211
+4. B´ erard, B., Haddad, S., Sassolas, M.: Interrupt timed au tomata: Veriﬁcation and
+expressiveness. Formal Methods in System Design 40(1) (2012) 41–87
+
+--- Page 26 ---
+5. Alur, R., Henzinger, T.A., Vardi, M.Y.: Parametric real- time reasoning. In: ACM
+Symp. on Theory of Computing, ACM (1993) 592–601
+6. B´ erard,B., Fribourg,L.: Automatedveriﬁcationofapar ametricreal-time program:
+The ABR conformance protocol. In: CAV’99. Volume 1633 of LNC S., Springer
+(1999) 96–107
+7. Miller, J.S.: Decidability and complexity results for ti med automata and semi-
+linear hybrid automata. In: HSCC’00. Volume 1790 of LNCS., S pringer (2000)
+296–309
+8. Doyen, L.: Robust Parametric Reachability for Timed Auto mata. Information
+Processing Letters 102(5) (2007) 208–213
+9. Andr´ e, ´E., Chatain, Th., Encrenaz, E., Fribourg, L.: An inverse met hod for para-
+metric timed automata. Int. J. of Foundations of Comp. Sci. 20(5) (2009) 819–836
+10. Andr´ e, ´E.,Fribourg,L.,K¨ uhne,U.,Soulat,R.: IMITATOR2.5:Atoo lforanalyzing
+robustness in scheduling problems. In: FM’12. Volume 7436 o f LNCS., Springer
+(2012) 33–36
+11. Jovanovi´ c, A., Lime, D., Roux, O.H.: Integer parameter synthesis for timed au-
+tomata. In: TACAS’13. Volume 7795 of LNCS., Springer (2013) 391–405
+12. Alur,R., Henzinger, T.A., Ho, P.H.: Automatic Symbolic Veriﬁcationof Embedded
+Systems. IEEE Transactions on Software Engineering 22(1996) 181–201
+13. Henzinger, T.A., Ho, P.H., Wong-Toi, H.: HyTech: A Model -Checker for Hybrid
+Systems. Software Tools for Technology Transfer 1(1997) 110–122
+14. Bozzelli, L., Torre, S.L.: Decision problems for lower/ upper bound parametric
+timed automata. Formal Methods in System Design 35(2) (2009) 121–151
+15. Hune, T., Romijn, J., Stoelinga, M., Vaandrager, F.: Lin ear parametric model
+checking of timed automata. J. of Logic and Alg. Prog. 52-53(2002) 183–220
+16. Jovanovi´ c, A., Faucou,S., Lime, D., Roux,O.H.: Real-t ime control with parametric
+timed reachability games. In: WODES’12, IFAC (2012) 323–33 0
+17. Zaslavsky, T.: Facing up to arrangements: Face-count fo rmulas for partitions of
+space by hyperplanes. AMS Memoirs 1(154) (1975)
+18. Roos, C., Terlaky, T., Vial, J.P.: Theory and Algorithms for Linear Optimization.
+An Interior Point Approach. Wiley-Interscience, John Wile y & Sons Ltd (1997)
+19. Courcoubetis, C., Yannakakis, M.: Minimum and maximum d elay problems in
+real-time systems. Formal Methods in System Design 1(4) (1992) 385–415
+20. Canny, J.F.: Some algebraic and geometric computations in PSPACE. In: ACM
+Symp. on Theory of Computing, ACM (1988) 460–467
