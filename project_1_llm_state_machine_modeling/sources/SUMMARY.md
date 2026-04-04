@@ -25,21 +25,21 @@
 
 以下关键词簇用于指导后续增量检索，目标不是泛泛地搜“形式化方法”或“建模”，而是优先命中**具有具体控制系统客体**、并且更可能包含可提取状态机自然语言描述的论文。
 
-当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `49` 条条目看，`EFSM` 占 `28` 条、`T1` 占 `26` 条、`HSM` 占 `16` 条、`FSM` 占 `5` 条，主体已扩展为 `PLC / SCADA / mission supervisor / robot manipulator / greenhouse inspection / cotton harvesting rover / low-altitude helicopter / underground-mine UAV / lower-limb exoskeleton / tracked-vehicle shift supervisor / peritoneal dialysis machine` 风格的离散工程控制与模式管理样本。
+当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `54` 条条目看，`EFSM` 占 `32` 条、`T1` 占 `29` 条、`HSM` 占 `17` 条、`FSM` 占 `5` 条，主体已扩展为 `PLC / SCADA / mission supervisor / robot manipulator / greenhouse inspection / cotton harvesting rover / low-altitude helicopter / underground-mine UAV / robotic knee exoskeleton / gait rehabilitation exoskeleton / pediatric exoskeleton / MINDWALKER exoskeleton / small-USV landing / tracked-vehicle shift supervisor / peritoneal dialysis machine` 风格的离散工程控制与模式管理样本。
 
 ### 当前推荐关键词簇
 
-- 主线优先改成 `具体控制对象 + control/controller/system + design/implementation/development/specification/modeling`，对象优先补 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging line`、`water level/head tank`、`railway level crossing`、`landing gear`、`CubeSat flight software`、`UAV mission management`、`rotorcraft UAS`、`Mars sample return robot software`、`rover decision making`、`crusher circuit`、`mobile robot supervisor`、`greenhouse inspection robot`、`waste management mobile robot`、`cotton harvesting rover`、`hydraulic pulse system`、`hybrid energy system`、`LNG ship energy management`、`urban driving`、`autonomous rendezvous`、`low-altitude helicopter flight`、`underground mine UAV inspection`、`Orion RPOD sequencing`、`lower-limb exoskeleton`、`gait rehabilitation exoskeleton`、`tracked vehicle shift control`、`peritoneal dialysis machine`。
+- 主线优先改成 `具体控制对象 + control/controller/system + design/implementation/development/specification/modeling`，对象优先补 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging line`、`water level/head tank`、`railway level crossing`、`landing gear`、`CubeSat flight software`、`UAV mission management`、`rotorcraft UAS`、`Mars sample return robot software`、`rover decision making`、`crusher circuit`、`mobile robot supervisor`、`greenhouse inspection robot`、`waste management mobile robot`、`cotton harvesting rover`、`hydraulic pulse system`、`hybrid energy system`、`LNG ship energy management`、`urban driving`、`autonomous rendezvous`、`low-altitude helicopter flight`、`underground mine UAV inspection`、`Orion RPOD sequencing`、`robotic knee exoskeleton`、`gait rehabilitation exoskeleton`、`pediatric lower-limb exoskeleton`、`MINDWALKER exoskeleton`、`small USV landing`、`tracked vehicle shift control`、`peritoneal dialysis machine`。
 - 状态机显式词优先保留 `state machine`、`FSM`、`HSM`、`mode`、`operation mode`、`sequence`、`cycle`、`procedure`、`priority override`、`control logic`，因为它们更容易导向 `FSM/HSM/EFSM + T0/T1` 的离散控制链。
 - 工程控制高命中组合继续强化：`PLC/SCADA + sensor/float/proximity/photoelectric/RFID/hall call + valve/pump/motor/door/light + delay/timer/sequence/cycle`。
-- 航空航天方向继续优先找模式管理而不是连续控制：`landing gear + handle + door + extend/retract + cockpit indication`，`CubeSat + LEOP/NOM/HSAFE + safe mode + finite state machine`，`UAV + FMM/FTM/HSB/CSB + fault flag`，`mission management + FSM/SMACH + task activation + interrupt/deactivate`，`low-altitude helicopter + threat avoidance + visibility judgement + circuitous flight`，`underground mine UAV + mission state machine + pillar inspection`，`RPOD + PSAM + burn config + docking + hold retreat`，`dynamic platform landing + GPS following + vision following + shutdown`。
+- 航空航天方向继续优先找模式管理而不是连续控制：`landing gear + handle + door + extend/retract + cockpit indication`，`CubeSat + LEOP/NOM/HSAFE + safe mode + finite state machine`，`UAV + FMM/FTM/HSB/CSB + fault flag`，`mission management + FSM/SMACH + task activation + interrupt/deactivate`，`low-altitude helicopter + threat avoidance + visibility judgement + circuitous flight`，`underground mine UAV + mission state machine + pillar inspection`，`RPOD + PSAM + burn config + docking + hold retreat`，`dynamic platform landing + GPS following + vision following + shutdown`，`small USV landing + ArUco marker + Hold mode + finite state machine`。
 - 离散制造、过程与机器人方向继续保留：`bottle filling + conveyor + valve + level sensor`，`washing machine + rinse + dehydration + water level sensor`，`packaging + count=6 + weighing + reject`，`crusher circuit + CSS + feeder + silo level`，`air-duct robot + Navigate/Recovery/Return`，`greenhouse robot + target alignment + inspect + traverse backward`，`waste robot manipulator + state machine + force control + pick and drop`，`cotton harvesting rover + get image + move arm + pick boll`，`tracked vehicle + shift timing + clutch + gear shift + braking stop`，`dialysis machine + fill + dwell + drain + turbidity + error alarm`。
 - 若某个词簇同时带 `具体对象 + 输入感知 + 输出执行 + 局部 timer/顺序词`，默认优先级高于只写“verification / optimization / framework”的泛词簇。
 
 ### 已观察到的高命中标题/关键词特征
 
 - 双 A 目标样本最稳的标题画像，是**具体控制对象名**与 `controller / control system / control program / flight software / mission management` 同时出现。
-- `PLC` 与 `SCADA` 仍是最强的工程离散控制信号；当前双 A 的 `FSM/HSM/EFSM + T0/T1` 条目里，高频标题词明显集中在 `PLC`、`SCADA`、`traffic`、`elevator`、`bottle filling`、`washing machine`、`packaging`、`water level`、`finite state machine`、`control system`，并新增 `lower-limb exoskeleton`、`paraplegia`、`stroke rehabilitation`、`tracked vehicle`、`shift control`、`dialysis machine`、`autonomous landing platform` 这类更具体的控制客体。
+- `PLC` 与 `SCADA` 仍是最强的工程离散控制信号；当前双 A 的 `FSM/HSM/EFSM + T0/T1` 条目里，高频标题词明显集中在 `PLC`、`SCADA`、`traffic`、`elevator`、`bottle filling`、`washing machine`、`packaging`、`water level`、`finite state machine`、`control system`，并新增 `robotic knee exoskeleton`、`MINDWALKER`、`pediatric lower-limb exoskeleton`、`stroke rehabilitation`、`tracked vehicle`、`shift control`、`dialysis machine`、`small USV landing` 这类更具体的控制客体。
 - `sequence`、`cycle`、`mode`、`operation mode`、`procedure`、`priority`、`override`、`task activation` 这类词，比泛泛的 `verification` 更能命中可直接抽成状态机描述的文本。
 - 标题或摘要同时出现**输入感知词**与**输出执行词**时命中率更高，例如 `float switch / proximity sensor / hall call / RFID / camera` 搭配 `valve / pump / door / motor / light / beacon`。
 - `T1` 样本常伴随 `delay`、`timer`、`countdown`、`interval`、`wash/rinse/dehydrate`、`fill/drain`、`door cycle`、`torque pulse duration`、`dwell phase`、`shift timeout` 这类局部工程定时词。
@@ -61,15 +61,15 @@
 - 在 `PLC/SCADA` 工程控制方向，可优先复用 `object + controller/system/program + sensor + actuator + delay/timer/sequence/cycle` 这条模板，而不是只搜宽泛 `formal methods`。
 - 在 `✈️ / ⚙️` 方向，优先找 `safe mode / LEOP / HSAFE / FTM / standby / mission supervisor / SMACH / recovery / return / extend-retract sequence / PSAM / relay / burn config / docking / GPS following / vision following / shutdown / shift timing / braking stop` 这类离散模式词，而不是连续估计、轨迹跟踪和扰动抑制。
 - 在多个方向都可命中时，优先补当前更稀缺但高价值的 `FSM/HSM + T0/T1` 样本，不要让 `EFSM + PLC` 一类继续单边膨胀。
-- 在 `🩺` 方向，优先补 `exoskeleton / dialysis / ventilator / infusion / pacemaker` 这类**模式链明确、传感器或定时 guard 明确**的设备控制论文，而不是只写临床效果或连续控制性能的论文。
+- 在 `🩺` 方向，优先补 `robotic knee exoskeleton / gait rehabilitation exoskeleton / pediatric exoskeleton / MINDWALKER / dialysis / ventilator / infusion / pacemaker` 这类**模式链明确、传感器或定时 guard 明确**的设备控制论文，而不是只写临床效果或连续控制性能的论文。
 - 新词允许扩展，但必须能解释它为什么会导向“可做简单仿真的离散控制链”，并在每轮更新时整合回本节。
 
 ## 当前收录统计
 
-- 已收录论文：**179** 篇
+- 已收录论文：**184** 篇
 - 本轮新增论文：**5** 篇
 - 本轮下载失败记录：**63** 条
-- 已完成 STM 梳理：**179** 篇
+- 已完成 STM 梳理：**184** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 [STM_GUIDE.md](./STM_GUIDE.md) 补齐 `STM.md` 与用户要求的 `DESC.md`。
 
@@ -96,28 +96,29 @@
 
 ### 领域分布（按论文篇数统计）
 
-- 统计口径：按 `## 论文清单` 中已收录的 **179** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `## 论文清单` 中已收录的 **184** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 24 | 13.4% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
-| 🚆 轨道交通与铁路控制 | 21 | 11.7% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
-| ✈️ 航空航天与飞行/空管控制 | 31 | 17.3% | 机场起飞流程、飞行引导模式、起落架、UAV 任务控制、CubeSat 模式管理、自主交会、航天机器人、低空直升机任务、动态平台降落与地下矿井 UAV 测绘控制 |
-| 🩺 医疗设备与生命支持控制 | 9 | 5.0% | 起搏器、输液泵、机械通气控制、下肢外骨骼与自动腹膜透析机相关文献 |
-| 🏭 工业自动化与离散制造 | 18 | 10.1% | IEC 61499/61131、PLC、输送、灌装、包装、液压脉冲与制造控制 |
-| 🏢 楼宇机电与电梯控制 | 15 | 8.4% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
-| 🌡️ 过程与环境控制 | 9 | 5.0% | 液位、水处理、灌溉、锅炉、破碎回路、混合能源系统与批处理等过程/环境控制 |
-| 🚦 道路交通信号控制 | 18 | 10.1% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
-| 🅿️ 智慧停车与车位管理 | 13 | 7.3% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
+| 🚗 汽车与道路车辆控制 | 24 | 13.0% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🚆 轨道交通与铁路控制 | 21 | 11.4% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
+| ✈️ 航空航天与飞行/空管控制 | 32 | 17.4% | 机场起飞流程、飞行引导模式、起落架、UAV 任务控制、CubeSat 模式管理、自主交会、航天机器人、低空直升机任务、动态平台降落、小型 USV 回收与地下矿井 UAV 测绘控制 |
+| 🩺 医疗设备与生命支持控制 | 13 | 7.1% | 起搏器、输液泵、机械通气控制、膝外骨骼、儿童外骨骼、MINDWALKER 与自动腹膜透析机相关文献 |
+| 🏭 工业自动化与离散制造 | 18 | 9.8% | IEC 61499/61131、PLC、输送、灌装、包装、液压脉冲与制造控制 |
+| 🏢 楼宇机电与电梯控制 | 15 | 8.2% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
+| 🌡️ 过程与环境控制 | 9 | 4.9% | 液位、水处理、灌溉、锅炉、破碎回路、混合能源系统与批处理等过程/环境控制 |
+| 🚦 道路交通信号控制 | 18 | 9.8% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
+| 🅿️ 智慧停车与车位管理 | 13 | 7.1% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
 | 🧩 建模方法与系统工程 | 4 | 2.2% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
 | 🔐 安全/安保分析 | 4 | 2.2% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
-| ⚙️ 通用控制与形式化工具 | 13 | 7.3% | 混成系统、实时系统、农业/服务机器人监督器、执行机构控制与通用控制工具文献 |
-| **合计** | **179** | **100.0%** | - |
+| ⚙️ 通用控制与形式化工具 | 13 | 7.1% | 混成系统、实时系统、农业/服务机器人监督器、执行机构控制与通用控制工具文献 |
+| **合计** | **184** | **100.0%** | - |
 
 ### 更新日志
 
 | 时间 | 更新内容 | 检索策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-04-04 11:34:41 | 新增 **5** 篇，当前累计 **184** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 `1` 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `robotic knee exoskeleton + sEMG + finite state machine`、`hybrid exoskeleton + FES + gait rehabilitation + finite state machine`、`pediatric lower-limb exoskeleton + weight shift + finite state machine`、`quadrotor + small USV + autonomous landing + finite state machine`、`MINDWALKER + exoskeleton + finite state machine` 检索，并只保留已稳定获取开放 PDF 的候选。 | sEMG 膝外骨骼意图驱动监督控制、混合 FES 外骨骼 gait 协同 HSM、儿童外骨骼重心转移步态控制、小型 USV 上 UAV 三阶段自主降落、MINDWALKER CoM 触发步态监督控制。 |
 | 2026-04-04 09:52:37 | 新增 **5** 篇，当前累计 **179** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 `1` 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `lower-limb exoskeleton + paraplegia + finite state machine`、`stroke rehabilitation exoskeleton + gait controller + finite state machine`、`tracked vehicle + shift control + hierarchical finite state machine`、`dynamic platform landing + UAV + finite state machine`、`peritoneal dialysis machine + state machine` 检索，并通过 `PMC` 的 PoW 校验后稳定获取开放 PDF。 | 截瘫下肢外骨骼 sit-stand-walk 监督控制、卒中康复外骨骼 gait assistance HSM、无人重型履带车辆远程换挡 HFSM、动态平台 UAV 四阶段自主降落控制、自动腹膜透析机 APD 过程状态机。 |
 | 2026-04-04 08:54:10 | 新增 **5** 篇，当前累计 **174** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 `1` 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `greenhouse robot + SMACH + inspection`、`waste management mobile robot + state machine + force control`、`cotton harvesting rover + finite state machine + SMACH`、`unmanned helicopter + low-altitude flight + finite state machine`、`underground mine UAV + mission state machine + pillar inspection` 检索，并通过 `mdpi-res.com` 直链稳定获取开放 PDF。 | 温室行间巡检 HSM、垃圾分拣机械臂混合控状态机、棉花采摘车视觉伺服 EFSM、山地低空直升机任务 FSM、地下矿井 UAV mission HSM。 |
 | 2026-04-04 08:11:27 | 新增 **5** 篇，当前累计 **169** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 1 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `small UAV + search and track + SMACH`、`multi-modal rover + drive fly + SMACH`、`stair climbing robot + state machine`、`wheeled mobile robot + asynchronous finite state controller`、`autonomous UAV + surveillance + finite state machine` 检索，并只保留可稳定获取 PDF 的候选。 | search-track 小型无人机、TURVTOL 多模态 drive-fly supervisor、楼梯机器人状态机、WMR 三车道避障换道、监视 UAV 并行跟踪 FSM。 |
@@ -315,6 +316,11 @@
 | 177 | ⚙️ | An Efficient Remote Driving Shift Control Method of Unmanned Heavy Tracked Vehicles Based on Manned Data Mining | 2025 | 无人重型履带车辆远程换挡 HFSM | `tracked vehicle, remote driving, shift control, HFSM, clutch, braking` | [remote-driving-shift-control-unmanned-heavy-tracked-vehicles](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/) |
 | 178 | ✈️ | Proactive Guidance for Accurate UAV Landing on a Dynamic Platform: A Visual-Inertial Approach | 2022 | 动态平台 UAV 四阶段自主降落控制 | `UAV landing, dynamic platform, visual-inertial, finite state machine, shutdown` | [proactive-guidance-uav-landing-dynamic-platform](./proactive-guidance-uav-landing-dynamic-platform/) |
 | 179 | 🩺 | State Machine Design for an Automated Peritoneal Dialysis Machine | 2025 | 自动腹膜透析机 APD 过程状态机 | `peritoneal dialysis machine, finite state machine, dwell timer, turbidity, error alarm` | [state-machine-design-automated-peritoneal-dialysis-machine](./state-machine-design-automated-peritoneal-dialysis-machine/) |
+| 180 | 🩺 | Control of a Robotic Knee Exoskeleton for Assistance and Rehabilitation Based on Motion Intention from sEMG | 2018 | 基于 sEMG 的膝外骨骼意图驱动监督控制 | `robotic knee exoskeleton, sEMG, finite state machine, gait phase, admittance` | [control-of-robotic-knee-exoskeleton-motion-intention-semg](./control-of-robotic-knee-exoskeleton-motion-intention-semg/) |
+| 181 | 🩺 | Hybrid FES-robot cooperative control of ambulatory gait rehabilitation exoskeleton | 2014 | 混合 FES 外骨骼双层 gait 协同控制 | `hybrid exoskeleton, FES, t-FSM, c-FSM, muscle fatigue` | [hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/) |
+| 182 | 🩺 | Design and Control of a Size-Adjustable Pediatric Lower-Limb Exoskeleton Based on Weight Shift | 2023 | 儿童外骨骼重心转移步态监督控制 | `pediatric exoskeleton, weight shift, finite state machine, COM, GRF` | [size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/) |
+| 183 | ✈️ | A Visual Guidance and Control Method for Autonomous Landing of a Quadrotor UAV on a Small USV | 2025 | 小型 USV 上 UAV 三阶段自主降落控制 | `quadrotor UAV, USV, autonomous landing, visual guidance, finite state machine` | [visual-guidance-control-quadrotor-uav-small-usv-landing](./visual-guidance-control-quadrotor-uav-small-usv-landing/) |
+| 184 | 🩺 | Design and Control of the MINDWALKER Exoskeleton | 2015 | MINDWALKER 外骨骼 CoM 触发步态监督控制 | `MINDWALKER, exoskeleton, finite state machine, CoM, XCoM` | [design-and-control-of-the-mindwalker-exoskeleton](./design-and-control-of-the-mindwalker-exoskeleton/) |
 ## 本轮下载失败记录
 
 以下条目是在本轮检索中实际尝试下载但未成功的候选文献。记录失败时间与原因，便于后续避开近期重复尝试。
@@ -392,6 +398,7 @@
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-04-04 11:34:41 | 新增 `#180-184` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `184/184` 篇文献的 STM 盘点。 |
 | 2026-04-04 09:52:37 | 新增 `#175-179` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `179/179` 篇文献的 STM 盘点。 |
 | 2026-04-04 08:54:10 | 新增 `#170-174` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `174/174` 篇文献的 STM 盘点。 |
 | 2026-04-04 08:11:27 | 新增 `#165-169` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 1 条 STM 正例”的收纳门槛；当前已完成 `169/169` 篇文献的 STM 盘点。 |
@@ -423,7 +430,7 @@
 
 ### 4. 总体统计（已按新口径回刷）
 
-> 说明：本节涉及 `138` 条正例时统一以 `138` 为分母；涉及 `56` 个 `⚪ 未收获` 文件时统一以 `56` 为分母；涉及 `179` 个 `STM.md` 文件的整体覆盖统计时统一以 `179` 为分母。百分比统一保留 `1` 位小数。
+> 说明：本节涉及 `143` 条正例时统一以 `143` 为分母；涉及 `56` 个 `⚪ 未收获` 文件时统一以 `56` 为分母；涉及 `184` 个 `STM.md` 文件的整体覆盖统计时统一以 `184` 为分母。百分比统一保留 `1` 位小数。
 >
 > 角色说明：本节的 `💎 / 🧰 / 🪫 / ⛔` 采用本轮新边界**重新计算**。也就是说，`💎` 与 `🪫` 都要求“原文与描述都达到 `🟢 A / 🟡 B` 且未降级”，二者差别只在是否属于 `🔁` 强趋同簇。
 
@@ -431,76 +438,76 @@
 
 | 指标 | 数量 | 占比 | 说明 |
 |---|---:|---:|---|
-| `STM.md` 文件总数 | 179 | 100.0% | 覆盖 `sources/` 当前全部目录 |
-| 含正例条目的文件数 | 123 | 68.7% | 至少含 `1` 条正例条目 |
-| `⚪ 未收获` 文件数 | 56 | 31.3% | 当前不作正样本，但可转作 hard negative |
-| 正例条目总数 | 138 | 77.1% | 相对 `179` 个文件的规模参考值；折算为每个含正例文件平均 `1.12` 条 |
-| `原文 = 🟢 A / 🟡 B` 条目数 | 123 | 89.1% | 源材料本身达到主数据集候选下限 |
-| `描述 = 🟢 A / 🟡 B` 条目数 | 123 | 89.1% | 当前描述文本本身达到主数据集候选下限 |
-| `🔁` 强趋同条目数 | 28 | 20.3% | 强趋同问题是真实存在的治理压力 |
+| `STM.md` 文件总数 | 184 | 100.0% | 覆盖 `sources/` 当前全部目录 |
+| 含正例条目的文件数 | 128 | 69.6% | 至少含 `1` 条正例条目 |
+| `⚪ 未收获` 文件数 | 56 | 30.4% | 当前不作正样本，但可转作 hard negative |
+| 正例条目总数 | 143 | 77.7% | 相对 `184` 个文件的规模参考值；折算为每个含正例文件平均 `1.12` 条 |
+| `原文 = 🟢 A / 🟡 B` 条目数 | 128 | 89.5% | 源材料本身达到主数据集候选下限 |
+| `描述 = 🟢 A / 🟡 B` 条目数 | 128 | 89.5% | 当前描述文本本身达到主数据集候选下限 |
+| `🔁` 强趋同条目数 | 28 | 19.6% | 强趋同问题是真实存在的治理压力 |
 
 #### 4.2 原文细节充实度分布
 
 | 原文细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 59 | 42.8% |
-| `🟡 B` | 64 | 46.4% |
-| `🟠 C` | 13 | 9.4% |
+| `🟢 A` | 64 | 44.8% |
+| `🟡 B` | 64 | 44.8% |
+| `🟠 C` | 13 | 9.1% |
 | `🔴 D` | 2 | 1.4% |
-| `🟢 A + 🟡 B` | 123 | 89.1% |
-| `🟠 C + 🔴 D` | 15 | 10.9% |
+| `🟢 A + 🟡 B` | 128 | 89.5% |
+| `🟠 C + 🔴 D` | 15 | 10.5% |
 
-这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在新增 `#175-179` 这批双 A 样本后，原文侧达到 `🟢 A / 🟡 B` 的条目升到 `123` 条，其中 `🟢 A` 已升至 `59` 条；但仍有 `15` 条（`10.9%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
+这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在新增 `#180-184` 这批双 A 样本后，原文侧达到 `🟢 A / 🟡 B` 的条目升到 `128` 条，其中 `🟢 A` 已升至 `64` 条；但仍有 `15` 条（`10.5%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
 
 #### 4.3 描述细节充实度分布
 
 | 描述细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 59 | 42.8% |
-| `🟡 B` | 64 | 46.4% |
-| `🟠 C` | 14 | 10.1% |
+| `🟢 A` | 64 | 44.8% |
+| `🟡 B` | 64 | 44.8% |
+| `🟠 C` | 14 | 9.8% |
 | `🔴 D` | 1 | 0.7% |
-| `🟢 A + 🟡 B` | 123 | 89.1% |
-| `🟠 C + 🔴 D` | 15 | 10.9% |
+| `🟢 A + 🟡 B` | 128 | 89.5% |
+| `🟠 C + 🔴 D` | 15 | 10.5% |
 
-在新增 `#175-179` 这批双 A 样本后，描述侧的 `🟢 A + 🟡 B` 也同步升到 `123` 条，与原文侧**完全追平**，且 `🟢 A` 已同步升至 `59` 条；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
+在新增 `#180-184` 这批双 A 样本后，描述侧的 `🟢 A + 🟡 B` 也同步升到 `128` 条，与原文侧**完全追平**，且 `🟢 A` 已同步升至 `64` 条；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
 
 #### 4.4 原文细节充实度 vs 描述细节充实度二维对照
 
 | 原文 \\ 描述 | `🟢 A` | `🟡 B` | `🟠 C` | `🔴 D` | 行合计 |
 |---|---:|---:|---:|---:|---:|
-| `🟢 A` | `59 / 42.8%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `59 / 42.8%` |
-| `🟡 B` | `0 / 0.0%` | `64 / 46.4%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 46.4%` |
-| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 9.4%` | `0 / 0.0%` | `13 / 9.4%` |
+| `🟢 A` | `64 / 44.8%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 44.8%` |
+| `🟡 B` | `0 / 0.0%` | `64 / 44.8%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 44.8%` |
+| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 9.1%` | `0 / 0.0%` | `13 / 9.1%` |
 | `🔴 D` | `0 / 0.0%` | `0 / 0.0%` | `1 / 0.7%` | `1 / 0.7%` | `2 / 1.4%` |
-| 列合计 | `59 / 42.8%` | `64 / 46.4%` | `14 / 10.1%` | `1 / 0.7%` | `138 / 100.0%` |
+| 列合计 | `64 / 44.8%` | `64 / 44.8%` | `14 / 9.8%` | `1 / 0.7%` | `143 / 100.0%` |
 
 从二维表看，有三个直接结论：
 
-1. 对角线共有 `137` 条，占 `99.3%`，说明当前绝大多数条目已经做到“原文什么级，描述就保持什么级”。
+1. 对角线共有 `142` 条，占 `99.3%`，说明当前绝大多数条目已经做到“原文什么级，描述就保持什么级”。
 2. 非对角线只剩 `1` 条，占 `0.7%`，说明描述层面的系统性失真已经基本清掉。
 3. 这 `1` 条剩余非对角线是 `🔴 D -> 🟠 C`，不再属于“原文够、描述抽薄”的风险格；当前已经没有 `🟢 A -> 🟡 B / 🔴 D` 与 `🟡 B -> 🟠 C` 这类优先补写对象。
 
 #### 4.5 `原文 = 🟢 A / 🟡 B` 条目的一致性检查
 
-| 检查项 | 数量 | 占全部 `138` 条比例 | 占 `原文 = 🟢 A / 🟡 B` 子集比例 |
+| 检查项 | 数量 | 占全部 `143` 条比例 | 占 `原文 = 🟢 A / 🟡 B` 子集比例 |
 |---|---:|---:|---:|
-| `原文 = 🟢 A / 🟡 B` 条目总数 | 123 | 89.1% | 100.0% |
-| 描述未降级 | 123 | 89.1% | 100.0% |
+| `原文 = 🟢 A / 🟡 B` 条目总数 | 128 | 89.5% | 100.0% |
+| 描述未降级 | 128 | 89.5% | 100.0% |
 | 描述降级或显著关键信息缺失 | 0 | 0.0% | 0.0% |
 
-继此前锁定的降级条目回刷之后，本轮新增 `#175-179` 也全部保持“原文够、描述不降级”；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
+继此前锁定的降级条目回刷之后，本轮新增 `#180-184` 也全部保持“原文够、描述不降级”；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
 
 #### 4.6 状态机类型分布
 
 | 状态机类型 | 条目数 | 占比 |
 |---|---:|---:|
-| `EFSM` | 71 | 51.4% |
-| `Hybrid` | 16 | 11.6% |
-| `Resource-flow` | 13 | 9.4% |
-| `HSM` | 27 | 19.6% |
-| `Protocol` | 4 | 2.9% |
-| `FSM` | 7 | 5.1% |
+| `EFSM` | 75 | 52.4% |
+| `Hybrid` | 16 | 11.2% |
+| `Resource-flow` | 13 | 9.1% |
+| `HSM` | 28 | 19.6% |
+| `Protocol` | 4 | 2.8% |
+| `FSM` | 7 | 4.9% |
 
 当前 `sources` 正例主体仍然是 **`EFSM` 导向样本**。这对 `NL -> state machine` 的主任务是好事，但也意味着后续若不补 `Protocol / HSM / Resource-flow / Hybrid`，模型会被训练成偏好“变量 guard + 阈值 + 顺序流程”的单一习惯。
 
@@ -508,12 +515,12 @@
 
 | 时间级别 | 条目数 | 占比 |
 |---|---:|---:|
-| `T0` | 56 | 40.6% |
-| `T1` | 55 | 39.9% |
-| `T2` | 15 | 10.9% |
-| `T3` | 12 | 8.7% |
+| `T0` | 58 | 40.6% |
+| `T1` | 58 | 40.6% |
+| `T2` | 15 | 10.5% |
+| `T3` | 12 | 8.4% |
 
-时间语义上，当前库里 `T0 + T1` 合计 `111` 条，占 `80.4%`；真正带强实时窗口或混成时间语义的 `T2 + T3` 只有 `27` 条，占 `19.6%`。这说明如果后续实验要验证“带强时间约束的自动建模”，当前数据仍偏薄。
+时间语义上，当前库里 `T0 + T1` 合计 `116` 条，占 `81.1%`；真正带强实时窗口或混成时间语义的 `T2 + T3` 只有 `27` 条，占 `18.9%`。这说明如果后续实验要验证“带强时间约束的自动建模”，当前数据仍偏薄。
 
 #### 4.8 结构标签覆盖率（多标签口径）
 
@@ -521,13 +528,13 @@
 
 | 结构标签 | 条目数 | 占比 |
 |---|---:|---:|
-| `显式时钟` | 45 | 32.6% |
-| `连续耦合` | 17 | 12.3% |
-| `资源互斥` | 14 | 10.1% |
-| `层次` | 28 | 20.3% |
-| `协议交互` | 9 | 6.5% |
-| `并行` | 9 | 6.5% |
-| `-`（无额外结构标签） | 42 | 30.4% |
+| `显式时钟` | 45 | 31.5% |
+| `连续耦合` | 17 | 11.9% |
+| `资源互斥` | 14 | 9.8% |
+| `层次` | 29 | 20.3% |
+| `协议交互` | 9 | 6.3% |
+| `并行` | 9 | 6.3% |
+| `-`（无额外结构标签） | 46 | 32.2% |
 
 从标签覆盖率看，`显式时钟` 是最常见的额外结构信号；但 `层次 / 并行 / 协议交互 / 资源互斥 / 连续耦合` 这些更“非普通流程图”的语义仍然偏少，后续若想训练更复杂的结构恢复能力，仍需要专项补样。
 
@@ -535,18 +542,18 @@
 
 | 口径 | 类别 | 数量 | 占比 | 判定边界摘要 |
 |---|---|---:|---:|---|
-| 条目级 | `💎 核心保留` | 98 | 71.0% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
-| 条目级 | `🧰 清洗后保留` | 15 | 10.9% | 原文偏薄，尚不足以直接进主集 |
-| 条目级 | `🪫 降采样保留` | 25 | 18.1% | `原文/描述均为 A/B`、未降级、但 `属于 🔁` |
-| 文件级 | `⛔ 不作正样本` | 56 | 31.3% | 对应 `56` 个 `⚪ 未收获` 文件 |
+| 条目级 | `💎 核心保留` | 103 | 72.0% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
+| 条目级 | `🧰 清洗后保留` | 15 | 10.5% | 原文偏薄，尚不足以直接进主集 |
+| 条目级 | `🪫 降采样保留` | 25 | 17.5% | `原文/描述均为 A/B`、未降级、但 `属于 🔁` |
+| 文件级 | `⛔ 不作正样本` | 56 | 30.4% | 对应 `56` 个 `⚪ 未收获` 文件 |
 
-如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `123` 条，占 `89.1%`；剩余 `15` 条（`10.9%`）应先停在 `🧰`，不能直接混入主训练集。
+如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `128` 条，占 `89.5%`；剩余 `15` 条（`10.5%`）应先停在 `🧰`，不能直接混入主训练集。
 
 再把角色与双细节充实度边界对照起来看：
 
 | 角色 | 条目数 | 原文 `A/B` | 原文 `C/D` | 描述 `A/B` | 描述 `C/D` |
 |---|---:|---:|---:|---:|---:|
-| `💎 核心保留` | 98 | `98 / 100.0%` | `0 / 0.0%` | `98 / 100.0%` | `0 / 0.0%` |
+| `💎 核心保留` | 103 | `103 / 100.0%` | `0 / 0.0%` | `103 / 100.0%` | `0 / 0.0%` |
 | `🧰 清洗后保留` | 15 | `0 / 0.0%` | `15 / 100.0%` | `0 / 0.0%` | `15 / 100.0%` |
 | `🪫 降采样保留` | 25 | `25 / 100.0%` | `0 / 0.0%` | `25 / 100.0%` | `0 / 0.0%` |
 
@@ -558,22 +565,22 @@
 
 #### 4.10 领域分布（正例文件 vs 正例条目 vs `⚪ 未收获` 文件）
 
-| 领域 | 含正例文件数 | 占 `123` 个含正例文件比例 | 正例条目数 | 占 `138` 条正例比例 | 未收获文件数 | 占 `56` 个未收获文件比例 |
+| 领域 | 含正例文件数 | 占 `128` 个含正例文件比例 | 正例条目数 | 占 `143` 条正例比例 | 未收获文件数 | 占 `56` 个未收获文件比例 |
 |---|---:|---:|---:|---:|---:|---:|
-| `🚦` | 18 | 14.6% | 19 | 13.8% | 0 | 0.0% |
-| `🚆` | 14 | 11.4% | 16 | 11.6% | 7 | 12.5% |
-| `🏢` | 12 | 9.8% | 12 | 8.7% | 3 | 5.4% |
-| `✈️` | 21 | 17.1% | 21 | 15.2% | 10 | 17.9% |
-| `🅿️` | 10 | 8.1% | 13 | 9.4% | 3 | 5.4% |
-| `🏭` | 11 | 8.9% | 15 | 10.9% | 7 | 12.5% |
-| `🚗` | 10 | 8.1% | 11 | 8.0% | 14 | 25.0% |
-| `🌡️` | 8 | 6.5% | 9 | 6.5% | 1 | 1.8% |
-| `🩺` | 7 | 5.7% | 10 | 7.2% | 2 | 3.6% |
+| `🚦` | 18 | 14.1% | 19 | 13.3% | 0 | 0.0% |
+| `🚆` | 14 | 10.9% | 16 | 11.2% | 7 | 12.5% |
+| `🏢` | 12 | 9.4% | 12 | 8.4% | 3 | 5.4% |
+| `✈️` | 22 | 17.2% | 22 | 15.4% | 10 | 17.9% |
+| `🅿️` | 10 | 7.8% | 13 | 9.1% | 3 | 5.4% |
+| `🏭` | 11 | 8.6% | 15 | 10.5% | 7 | 12.5% |
+| `🚗` | 10 | 7.8% | 11 | 7.7% | 14 | 25.0% |
+| `🌡️` | 8 | 6.3% | 9 | 6.3% | 1 | 1.8% |
+| `🩺` | 11 | 8.6% | 14 | 9.8% | 2 | 3.6% |
 | `🧩` | 1 | 0.8% | 1 | 0.7% | 3 | 5.4% |
-| `⚙️` | 11 | 8.9% | 11 | 8.0% | 2 | 3.6% |
+| `⚙️` | 11 | 8.6% | 11 | 7.7% | 2 | 3.6% |
 | `🔐` | 0 | 0.0% | 0 | 0.0% | 4 | 7.1% |
 
-领域分布上，`🚦 / ✈️ / 🚆 / 🏭 / 🏢` 仍然是主样本池；本轮新增的 `3` 篇 `🩺`、`1` 篇 `⚙️` 与 `1` 篇 `✈️` 双 A 样本，进一步补强了截瘫下肢外骨骼、卒中康复外骨骼、自动腹膜透析机、履带车辆换挡监督控制和动态平台 UAV 降落这几个此前仍偏稀的样本方向。
+领域分布上，`🚦 / ✈️ / 🚆 / 🏭 / 🏢` 仍然是主样本池；本轮新增的 `4` 篇 `🩺` 与 `1` 篇 `✈️` 双 A 样本，进一步补强了 sEMG 膝外骨骼、混合 FES gait rehabilitation、儿童外骨骼、MINDWALKER 和小型 USV 上 UAV 自主降落这几个此前仍偏稀的样本方向。
 
 #### 4.11 `⚪ 未收获` 的主要成因
 
@@ -618,7 +625,7 @@
 1. **真实控制对象多**：不是泛泛的 UML/工具论文，而是大量具体控制对象，如联锁、电梯、交通灯、液位、泊车、医疗装置、起落架、车队等。
 2. **绝大多数正例条目都写成了“可生成输出”的最终口吻**：这对做 `NL -> state machine` 的目标输出很友好。
 3. **正负样本边界已经开始显化**：`⚪ 未收获` 文件可以直接转化为 hard negative，而不必简单丢弃。
-4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **123** 条（**89.1%**），`描述 = 🟢 A / 🟡 B` 也有 **123** 条（**89.1%**），其中 `💎` 已有 **98** 条，按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **123** 条（**89.1%**）。
+4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **128** 条（**89.5%**），`描述 = 🟢 A / 🟡 B` 也有 **128** 条（**89.5%**），其中 `💎` 已有 **103** 条，按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **128** 条（**89.5%**）。
 
 #### 6.2 现在最需要警惕的问题
 
@@ -626,11 +633,11 @@
 2. **系统级、构件级、语义级样本混在一起**：例如 IEC 61499、EAST-ADL、ViTAL、部分 SysML/ECC/构件执行语义条目，并不是坏样本，但如果不打标签，会让训练目标粒度漂移。
 3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **15** 条（**10.9%**），`描述 = 🟠 C / 🔴 D` 也有 **15** 条（**10.9%**）；此前锁定的“原文够但描述降级”条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
 4. **异常/恢复链仍然偏少**：很多条目保住了 nominal path，但没有把 fault、degraded、manual takeover、recovery 条件完整保住。
-5. **领域分布并不均匀**：交通灯、联锁、电梯、工业 PLC 占比较高，医疗、过程控制、真正的时间约束样本仍然偏少。
+5. **领域分布并不均匀**：交通灯、联锁、电梯、工业 PLC 占比较高；医疗样本已明显回升，但过程控制与真正的时间约束样本仍然偏少。
 
 #### 6.3 如果今天就拿它做数据集，我建议这样分桶
 
-1. `主训练集`：以当前 **98** 条 `💎 核心保留` 为主，并从 **25** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
+1. `主训练集`：以当前 **103** 条 `💎 核心保留` 为主，并从 **25** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
 2. `待清洗正样本池`：全部 **15** 条 `🧰 清洗后保留` 条目。由于描述降级问题已清空，后续清洗重点应回到补原文可追溯细节，例如 guard、阈值、定时值、异常链、显式状态名。
 3. `降采样补充池`：`🪫` 条目只用于增强鲁棒性，不作为主训练集主力。
 4. `hard negative / background`：全部 `⛔ 不作正样本` 文件，尤其是连续控制、工具流程和综述型条目。
@@ -643,12 +650,12 @@
 4. 对 `⚪ 未收获` 文件增加 hard negative 标签，而不是只留下“未收获”四个字。
 5. 后续如果继续扩库，应优先补那些当前样本稀少但对控制系统自动建模更有区分度的对象：医疗模式管理、故障退化、时间约束、协议/协调控制、复杂恢复链。
 
-### 7. 文件级全量总表（179 个 `STM.md` 全覆盖，已按新口径回刷）
+### 7. 文件级全量总表（184 个 `STM.md` 全覆盖，已按新口径回刷）
 
 > 说明 1：文件级角色不是把整篇论文“平均打分”，而是按条目级结果做数据集入库路由聚合。
 > 说明 2：聚合顺序固定为：无正例条目则 `⛔`；只要存在 `💎` 条目就判 `💎 含核心样本`；若全部正例都只是 `🪫`，才判 `🪫 主要用于降采样池`；其余统一判 `🧰 需清洗样本`。
 > 说明 3：`代表状态机类型 / 代表时间级别 / 结构标签概况` 仅汇总该 `STM.md` 中已入账的正例条目，不对 `⚪ 未收获` 文件做臆测补齐。
-> 当前文件级分布：`💎 90`、`🧰 11`、`🪫 22`、`⛔ 56`。
+> 当前文件级分布：`💎 95`、`🧰 11`、`🪫 22`、`⛔ 56`。
 
 | # | 领域 | 文件级角色 | 代表状态机类型 | 代表时间级别 | 结构标签概况 | 原始评级 | 条目数 | 论文 | 跳转 | 文件级判断 |
 |---:|---|---|---|---|---|---|---:|---|---|---|
@@ -831,8 +838,13 @@
 | 177 | ⚙️ | `💎 含核心样本` | `HSM` | `T1` | `显式时钟, 层次` | `🟢 直接可用` | 1 | [《An Efficient Remote Driving Shift Control Method of Unmanned Heavy Tracked Vehicles Based on Manned Data Mining》](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/STM.md) | [STM](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/STM.md) / [TXT](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/paper_content.txt) / [Bib](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `S4/S6` 双层、`S41-S46` 主链、`S61-S63` 异常链与 `ts/tth_g/tth_s`。 |
 | 178 | ✈️ | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Proactive Guidance for Accurate UAV Landing on a Dynamic Platform: A Visual-Inertial Approach》](./proactive-guidance-uav-landing-dynamic-platform/STM.md) | [STM](./proactive-guidance-uav-landing-dynamic-platform/STM.md) / [TXT](./proactive-guidance-uav-landing-dynamic-platform/paper_content.txt) / [Bib](./proactive-guidance-uav-landing-dynamic-platform/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `GPS following / vision position following / ground-effect free trajectory / shutdown` 四阶段与空间阈值。 |
 | 179 | 🩺 | `💎 含核心样本` | `EFSM` | `T1` | `显式时钟` | `🟢 直接可用` | 1 | [《State Machine Design for an Automated Peritoneal Dialysis Machine》](./state-machine-design-automated-peritoneal-dialysis-machine/STM.md) | [STM](./state-machine-design-automated-peritoneal-dialysis-machine/STM.md) / [TXT](./state-machine-design-automated-peritoneal-dialysis-machine/paper_content.txt) / [Bib](./state-machine-design-automated-peritoneal-dialysis-machine/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `fill / dwell / drain / flush / error`、`16` 输入/`18` 输出、浊度终止与 `11111` 错误态。 |
+| 180 | 🩺 | `💎 含核心样本` | `EFSM` | `T1` | `-` | `🟢 直接可用` | 1 | [《Control of a Robotic Knee Exoskeleton for Assistance and Rehabilitation Based on Motion Intention from sEMG》](./control-of-robotic-knee-exoskeleton-motion-intention-semg/STM.md) | [STM](./control-of-robotic-knee-exoskeleton-motion-intention-semg/STM.md) / [TXT](./control-of-robotic-knee-exoskeleton-motion-intention-semg/paper_content.txt) / [Bib](./control-of-robotic-knee-exoskeleton-motion-intention-semg/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住六类 motion class、walking 子相位、`downtime / uptime` 与动作完成约束。 |
+| 181 | 🩺 | `💎 含核心样本` | `HSM` | `T1` | `层次` | `🟢 直接可用` | 1 | [《Hybrid FES-robot cooperative control of ambulatory gait rehabilitation exoskeleton》](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/STM.md) | [STM](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/STM.md) / [TXT](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/paper_content.txt) / [Bib](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `t-FSM / c-FSM` 双层、`learning / monitoring`、`5%` 收敛与 `19%` fatigue 管理。 |
+| 182 | 🩺 | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Design and Control of a Size-Adjustable Pediatric Lower-Limb Exoskeleton Based on Weight Shift》](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/STM.md) | [STM](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/STM.md) / [TXT](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/paper_content.txt) / [Bib](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `6` 状态、`8` 动作、`COM` minimum-jerk 轨迹与 `GRF` 触发 guard。 |
+| 183 | ✈️ | `💎 含核心样本` | `EFSM` | `T1` | `-` | `🟢 直接可用` | 1 | [《A Visual Guidance and Control Method for Autonomous Landing of a Quadrotor UAV on a Small USV》](./visual-guidance-control-quadrotor-uav-small-usv-landing/STM.md) | [STM](./visual-guidance-control-quadrotor-uav-small-usv-landing/STM.md) / [TXT](./visual-guidance-control-quadrotor-uav-small-usv-landing/paper_content.txt) / [Bib](./visual-guidance-control-quadrotor-uav-small-usv-landing/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `Idle / Approaching / Landing`、bounding box、`75 cm` target point 与 `0.3 s` Hold failsafe。 |
+| 184 | 🩺 | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Design and Control of the MINDWALKER Exoskeleton》](./design-and-control-of-the-mindwalker-exoskeleton/STM.md) | [STM](./design-and-control-of-the-mindwalker-exoskeleton/STM.md) / [TXT](./design-and-control-of-the-mindwalker-exoskeleton/paper_content.txt) / [Bib](./design-and-control-of-the-mindwalker-exoskeleton/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `9` 状态、`CoM` 双系数触发、`STOP` 终止链与 `XCoM` 在线步宽修正。 |
 
-### 8. 条目级全量总表（138 条正例全覆盖）
+### 8. 条目级全量总表（143 条正例全覆盖）
 
 说明：本表是这份讨论稿的核心。只要某个 `STM.md` 中实际写出了正例条目，这里都会逐条入账，不遗漏任何一条。
 
@@ -980,6 +992,11 @@
 | 136 | ⚙️ | `HSM` | `T1` | `显式时钟, 层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《An Efficient Remote Driving Shift Control Method of Unmanned Heavy Tracked Vehicles Based on Manned Data Mining》](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/STM.md) / HFSM-based remote shift supervisor for an unmanned heavy tracked vehicle | 无人重型履带车辆的远程驾驶换挡与异常处理监督控制器 | [STM](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/STM.md) / [TXT](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/paper_content.txt) / [Bib](./remote-driving-shift-control-unmanned-heavy-tracked-vehicles/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `S41-S46` 换挡主链、`S61-S63` 异常链与 `ts/tth_g/tth_s` 定时阈值。 |
 | 137 | ✈️ | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Proactive Guidance for Accurate UAV Landing on a Dynamic Platform: A Visual-Inertial Approach》](./proactive-guidance-uav-landing-dynamic-platform/STM.md) / Dynamic-platform landing supervisor for a quadrotor UAV | 四旋翼 UAV 面向动态平台回收的高层自主降落监督控制器 | [STM](./proactive-guidance-uav-landing-dynamic-platform/STM.md) / [TXT](./proactive-guidance-uav-landing-dynamic-platform/paper_content.txt) / [Bib](./proactive-guidance-uav-landing-dynamic-platform/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住四阶段 landing FSM、`0.1 m` 期望域与 `<5 cm` shutdown 触发。 |
 | 138 | 🩺 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《State Machine Design for an Automated Peritoneal Dialysis Machine》](./state-machine-design-automated-peritoneal-dialysis-machine/STM.md) / APD process supervisor with turbidity-triggered termination and error alarm | 自动腹膜透析机的过程监督控制器 | [STM](./state-machine-design-automated-peritoneal-dialysis-machine/STM.md) / [TXT](./state-machine-design-automated-peritoneal-dialysis-machine/paper_content.txt) / [Bib](./state-machine-design-automated-peritoneal-dialysis-machine/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `fill / dwell / drain / flush / error`、`16` 输入/`18` 输出、浊度终止与 `11111` 错误态。 |
+| 139 | 🩺 | `EFSM` | `T1` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Control of a Robotic Knee Exoskeleton for Assistance and Rehabilitation Based on Motion Intention from sEMG》](./control-of-robotic-knee-exoskeleton-motion-intention-semg/STM.md) / Motion-intention supervisory controller for the ALLOR robotic knee exoskeleton | `ALLOR` 膝外骨骼的运动意图监督控制器 | [STM](./control-of-robotic-knee-exoskeleton-motion-intention-semg/STM.md) / [TXT](./control-of-robotic-knee-exoskeleton-motion-intention-semg/paper_content.txt) / [Bib](./control-of-robotic-knee-exoskeleton-motion-intention-semg/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住六类 motion class、walking 子相位、`4/7/2/1` 增益、`qmin/qmax` 与 `downtime / uptime`。 |
+| 140 | 🩺 | `HSM` | `T1` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Hybrid FES-robot cooperative control of ambulatory gait rehabilitation exoskeleton》](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/STM.md) / Hierarchical cooperative gait controller for the Kinesis hybrid exoskeleton | `Kinesis` 混合外骨骼的步态协同控制器 | [STM](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/STM.md) / [TXT](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/paper_content.txt) / [Bib](./hybrid-fes-robot-cooperative-control-gait-rehabilitation-exoskeleton/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `t-FSM / c-FSM` 双层、stance/swing 分工、`learning / monitoring`、`5%` 收敛与 `19%` fatigue 管理。 |
+| 141 | 🩺 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Design and Control of a Size-Adjustable Pediatric Lower-Limb Exoskeleton Based on Weight Shift》](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/STM.md) / Weight-shift walking supervisor for the pediatric lower-limb exoskeleton | 儿童下肢外骨骼的重心转移步态监督控制器 | [STM](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/STM.md) / [TXT](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/paper_content.txt) / [Bib](./size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `6` 状态、`8` 动作、minimum-jerk `COM` 轨迹、`γGRF` 阈值与 `1 kHz` 实时核心。 |
+| 142 | ✈️ | `EFSM` | `T1` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《A Visual Guidance and Control Method for Autonomous Landing of a Quadrotor UAV on a Small USV》](./visual-guidance-control-quadrotor-uav-small-usv-landing/STM.md) / Small-USV landing supervisor for a quadrotor UAV | 小型 `USV` 回收任务中的 quadrotor `UAV` 自主降落监督控制器 | [STM](./visual-guidance-control-quadrotor-uav-small-usv-landing/STM.md) / [TXT](./visual-guidance-control-quadrotor-uav-small-usv-landing/paper_content.txt) / [Bib](./visual-guidance-control-quadrotor-uav-small-usv-landing/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住三阶段 landing FSM、`60 × 50 × 25 cm` bounding box、`75 cm` 目标点与 `0.3 s` Hold failsafe。 |
+| 143 | 🩺 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Design and Control of the MINDWALKER Exoskeleton》](./design-and-control-of-the-mindwalker-exoskeleton/STM.md) / CoM-triggered gait-assistance supervisor for the MINDWALKER exoskeleton | `MINDWALKER` 外骨骼的 `CoM` 触发步态辅助监督控制器 | [STM](./design-and-control-of-the-mindwalker-exoskeleton/STM.md) / [TXT](./design-and-control-of-the-mindwalker-exoskeleton/paper_content.txt) / [Bib](./design-and-control-of-the-mindwalker-exoskeleton/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `9` 状态、`S2/S6` 重心转移、`STOP -> termination -> half swing -> stand` 链与 `XCoM` 在线步宽修正。 |
 ### 9. `⚪ 未收获` 文件专表（便于 hard negative 回收）
 
 | # | 领域 | 未收获原因类别 | 论文 | 跳转 | 当前简要判断 |
