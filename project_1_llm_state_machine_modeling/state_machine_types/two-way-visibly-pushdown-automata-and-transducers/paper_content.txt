@@ -1,0 +1,2357 @@
+--- Page 1 ---
+Two-Way Visibly Pushdown Automata and Transducers
+Luc Dartois Emmanuel Filiot
+Universit ´e Libre de Bruxelles, Belgium
+fldartois,efiliot g@ulb.ac.bePierre-Alain Reynier Jean-Marc Talbot
+LIF, Aix-Marseille University, CNRS, France
+firstname.lastname @lif.univ-mrs.fr
+Abstract
+Automata-logic connections are pillars of the theory of regular lan-
+guages. Such connections are harder to obtain for transducers, but
+important results have been obtained recently for word-to-word
+transformations, showing that the three following models are equiv-
+alent: deterministic two-way transducers, monadic second-order
+(MSO) transducers, and deterministic one-way automata equipped
+with a ﬁnite number of registers. Nested words are words with a
+nesting structure, allowing to model unranked trees as their depth-
+ﬁrst-search linearisations. In this paper, we consider transforma-
+tions from nested words to words, allowing in particular to produce
+unranked trees if output words have a nesting structure. The model
+of visibly pushdown transducers allows to describe such transfor-
+mations, and we propose a simple deterministic extension of this
+model with two-way moves that has the following properties: i)it is
+asimple computational model , that naturally has a good evaluation
+complexity; ii)it is expressive : it subsumes nested word-to-word
+MSO transducers, and the exact expressiveness of MSO transduc-
+ers is recovered using a simple syntactic restriction; iii)it has good
+algorithmic/closure properties : the model is closed under composi-
+tion with a unambiguous one-way letter-to-letter transducer which
+gives closure under regular look-around, and has a decidable equiv-
+alence problem.
+Keywords Transductions, Pushdown automata, Logic.
+1. Introduction
+Pillars of word language theory The theory of languages is one
+of the deepest and richest theory in computer science, with success-
+ful applications such as, computer-aided veriﬁcation and synthesis.
+A major reason for this success is the strong connections between
+models of languages, with quite different ﬂavours, that are based
+on two important pillars: computation and logic . Perhaps one of
+the most famous example is the effective correspondence for reg-
+ular languages of ﬁnite words between a low-level computational
+Emmanuel Filiot is research associate at FNRS. This work is supported by
+the ARC project Transform (French speaking community of Belgium), the
+Belgian FNRS PDR project Flare , and the French ANR project ExtStream.
+This work has been carried out thanks to the support of the ARCHIMEDE
+Labex (ANR-11-LABX-0033) and the A*MIDEX project (ANR-11-IDEX-
+0001-02) funded by the Investissements dAvenir French Government pro-
+gram, managed by the French National Research Agency (ANR).
+[Copyright notice will appear here once ’preprint’ option is removed.]model, ﬁnite state automata, and a high-level declarative formal-
+ism, monadic second-order logic (MSO). Similar connections have
+been obtained for other structures (e.g. inﬁnite words, ﬁnite and
+inﬁnite trees, nested words) (Thomas 1997; Comon-Lundh et al.
+2007). In some cases, it has been even possible to build a third pil-
+lar based on algebra. The class of regular languages for instance is
+known to be the class of languages with ﬁnite syntactic congruence.
+The logic/two-way/one-way trinity of word transductions To
+model functions from (input) words to (output) words, i.e. word
+transductions , and more generally word binary relations, automata
+have been extended to transducers , i.e. automata with outputs.
+Whenever a transducer reads an input symbol, it can produce on the
+output a ﬁnite word, the ﬁnal output word being the right concate-
+nation of all the ﬁnite words produced along the way. To capture
+functions mirroring or copying twice the input word, transducers
+need to read the input word in both directions: this yields the class
+oftwo-way ﬁnite state transducers (2FST). Two-way transduc-
+ers have appealing properties: they are closed under composition
+(Chytil and J ´akl 1977) and if they are deterministic, their equiva-
+lence problem is decidable (in PSpace ) (Gurari 1982; Culik and
+Karhumaki 1987) and the transduction can be evaluated in constant
+space (for a ﬁxed transducer), the output being produced on-the-ﬂy.
+Impressively, in the late 90s, deterministic two-way transducers
+have been shown in (Engelfriet and Hoogeboom 2001) to corre-
+spond to monadic second-order transducers (MSOT), a powerful
+logical formalism introduced in (Courcelle 1994) in a more gen-
+eral context, with independent motivations. It was the ﬁrst logic-
+transducer connection obtained for a class of word transductions
+expressive enough to capture interesting and desirable transduc-
+tions. This correspondence has been extended to ﬁnite tree trans-
+ductions (Engelfriet and Maneth 1999, 2003; Bloem and Engelfriet
+2000).
+Recently, an MSOT-expressive one-way model, streaming string
+transducers (SST), has been introduced in (Alur and ˇCern ´y 2010,
+2011): it uses registers that can store output words and can be com-
+bined and updated along the run in a linear (copyless) manner (a
+register content cannot be used twice in an update). The main ad-
+vantage of this model is its one-wayness, but the price to pay is the
+space complexity of evaluation: it depends also on the size of the
+register contents.
+The models MSOT, deterministic 2FST and deterministic SST
+have the same expressive power, and we refer to this correspon-
+dence as the logic/two-way/one-way trinity . This trinity has been
+extended to transductions of inﬁnite words (Alur et al. 2012) and
+ranked trees (Courcelle and Engelfriet 2012; Alur and D’Antoni
+2012). For trees, bi-directionality is replaced by a tree walking abil-
+ity: the transducer can move along the edges of the tree in any di-
+rection. However, to capture MSOT, the transducer needs to have
+regular look-around , i.e. needs to be able to test regular properties
+of the context of the tree node in which it is currently positioned
+(Courcelle and Engelfriet 2012). Look-arounds can be removed at
+2-way Visibly Pushdown Automata & Transducers 1 2016/8/29
+
+--- Page 2 ---
+the price of adding a pushdown store (Courcelle and Engelfriet
+2012). For one-way machines, uni-directionality is modeled by ﬁx-
+ing the traversal of the tree to be a depth-ﬁrst left-to-right traversal
+and, as for words, to capture MSOT, the transducer needs to have
+registers (Alur and D’Antoni 2012). Tree-walking transducers with
+look-around, and tree transducers with registers are strictly more
+expressive than MSOT, but restrictions have been deﬁned that cap-
+ture exactly MSOT. Finally, let us mention the macro tree trans-
+ducers, the ﬁrst computational model shown to capture, with suit-
+able restrictions, MSOT ranked tree transductions (Engelfriet and
+Maneth 1999, 2003; Bloem and Engelfriet 2000). This model has
+parallel computations, like a top-down tree automaton, and regis-
+ters.
+Nested words In this paper, we consider transductions of nested
+words to words. Nested words are words with a nesting structure,
+built over symbols of two kinds: call and return symbols1. In par-
+ticular, nested words can model ordered unranked trees, viewed as
+their depth-ﬁrst, left-to-right, linearisation, and in turn are a natural
+model of tree-structured documents, such as XML documents. Vis-
+ibly pushdown automata (VPA ) have been introduced in (Alur and
+Madhusudan 2009) as a model of regularity for languages of nested
+words. They are pushdown automata with a constrained stack pol-
+icy: whenever a call symbol is read, exactly one symbol is pushed
+onto the stack, and when reading a return symbol, exactly one sym-
+bol is popped from the stack. Therefore, at any point, the height
+of the stack corresponds to the nesting level (call depth) of the
+word. Roughly, VPA are tree automata over linearised trees, and
+as such they inherit all the good closure and algorithmic proper-
+ties of tree automata. However, viewing trees as nested words has
+raised motivating questions in the context of tree streams, such as
+streaming XML validation (Picalausa et al. 2011; Segouﬁn and Sir-
+angelo 2007), streaming XML queries (Kumar et al. 2007; Gauwin
+et al. 2011), as well as streaming XML transformations (Filiot et al.
+2011) (see also (Alur 2016) for other applications of VPA ).
+By using a matching predicate M(x;y)that holds true if xis a
+call symbol, yis a return symbol and is the matching return of x,
+MSO logic can be extended from words to nested words, and it is
+known to correspond to regular nested word languages (Alur and
+Madhusudan 2009).
+Nested word to word transductions Besides the motivations
+given before for considering nested words instead of unranked
+trees, we argue that seeing unranked trees as nested word yields
+a natural and simple two-way model for transductions of nested
+words, presented later. On the output, we do not require the words
+to have a particular structure. It is not a weakness: nested words
+are words, and the model we introduce in this paper can as well
+produce output words that are nested.
+VPA have been extended with output, yielding the class of
+visibly pushdown transducers (VPT, (Filiot et al. 2010)). When
+reading an input symbol, VPT can generate a word on the output.
+VPT have good algorithmic and closure properties, and are well-
+suited to a streaming context (Filiot et al. 2011). However, VPT
+suffer from a low expressive power, as they are only one-way,
+without registers.
+Based on MSO for nested words, one can deﬁne MSO trans-
+ducers `a la Courcelle to deﬁne nested word to word transductions.
+From now on, we refer to such MSO transducers as MSOT. A one-
+way model has already been deﬁned in (Alur and D’Antoni 2012)
+that captures exactly MSOT. They extend VPA with registers that
+can store partial output words. Whenever a call symbol is read, the
+1Sometimes, internal symbols are also considered but in this paper, to ease
+the presentation, we omit them. This is wlog as an internal symbol acan be
+harmlessly replaced by a call symbol cafollowed by a return symbol ra.contents of the registers are pushed onto the stack and all the regis-
+ters reset. On reading return symbols, they can combine the content
+of the current registers with the content of the registers stored on the
+stack, in a copyless fashion. The space complexity of evaluation for
+such transducers is linear in the length of the input nested word, and
+they have decidable equivalence problem.
+Objective and two-way visibly pushdown transducers Our main
+goal in this paper is to establish a logic/two-way/one-way trinity
+for nested word to word transductions. Since the logic/one-way
+connection has already been shown in (Alur and D’Antoni 2012),
+we want in particular to deﬁne a two-way computational model with
+the following requirements: it must be conceptually simple , at least
+as expressive as MSOT and have decidable equivalence problem .
+To this aim, we introduce deterministic two-way visibly push-
+down transducers (D2VPT ) and show it meets the later require-
+ments. D2VPT read their input in both directions, and their stack
+behaviour not only depends on the type of symbols they read, but
+also on the reading mode they are in, either backward or forward. In
+a forward mode, they behave just like VPT. On the backward mode,
+they behave like VPT where the call and return types are swapped:
+when reading a return symbol backward, they push a symbol onto
+the stack, and when reading a call symbol backward, they pop a
+symbol from the stack. They can change their mode at any moment,
+and produce words on the output.
+Let us give now an illustrating example of a transduction fsof
+nested words, which will be formalised in Example 1. Assume a
+set of call symbols f1;:::;ngordered by the total order on nat-
+ural numbers, and one return symbol frg. The transduction fs
+sorts an input nested word in ascending order, recursively nest-
+ing level by nesting level, according to the order on calls. We
+assume inputs start and end with special symbols .and/(call
+and return resp.). E.g., fsmaps.22r1rr1r3r/to.1r21r2rr3r/
+and.23r1r2rr2r3r1r/to.1r21r2r3rr2r3r/(see Figure 1). To
+makefsa function in case the same call symbol occurs twice at the
+same level,fspreserves their order of appearance. The tree repre-
+sentation of this mapping is given in Figure 1 (omitting return sym-
+bols). The transduction fsis easily implemented with a D2VPT
+Ts. To process a sequence of siblings at level k,Tsworks as fol-
+lows: forifrom 0ton,Tsperforms a forward pass on the siblings
+(note that a sibling is actually a tree whose linearisation is of the
+formjwr wherewis again a sequence of linearised trees). During
+this forward pass, Tstransforms a sibling jwr intoifj6=i, and
+intoiw0rotherwise, where w0is the result of sorting recursively w.
+To implement the loop, when Tshas ﬁnished the i-th forward pass,
+i.e. when it reads a return symbol at level j 1, it comes back to
+its matching call and starts from there the (i+ 1) -th forward pass,
+ifi<n .
+Contributions By linearising input trees, the simple and well-
+known concept of bi-directionality can be generalised naturally
+from words to trees. While D2VPT , as we show in this paper, allow
+one to lift known results from word transductions to nested word to
+word transductions, we think that D2VPT are an appealing model
+for the following reasons:
+memory efﬁciency Regarding the complexity of evaluation, for a
+ﬁxed D2VPT , computing the output word of an input nested
+wordwcan be done in space O(d(w)), whered(w)is the
+depth ofw. Indeed, only the stack and current state need to
+be kept in memory when processing an input nested word. It
+is an appealing property when transforming large but not deep
+tree-structured documents, such as XML documents in general.
+expressiveness At the same time, we show that this efﬁciency does
+not entail expressive power: D2VPT can express all MSOT
+transductions. They are strictly more expressive than MSOT
+2-way Visibly Pushdown Automata & Transducers 2 2016/8/29
+
+--- Page 3 ---
+.
+2231
+312).
+1223
+123
+.23r1r2rr2r3r1r/. 1r2 1r2r3r r2r3r/
+Figure 1. On top, the transformation of the input. Between siblings
+with the same labeling, the original order is preserved. Below, the
+run of the transducer. Dashed lines are non producing sequences.
+as they can for instance express transduction of exponential
+size increase , while MSOT are only of linear size increase. By
+putting a simple decidable restriction on D2VPT , called single-
+useness ,D2VPT capture exactly MSOT transductions.
+algorithmic properties Despite their high expressive power, D2VPT
+still have decidable equivalence problem . We also prove that
+preprocessing the input of a D2VPT by a letter-to-letter unam-
+biguous VPT does not increase its expressive power, as their
+composition is again a D2VPT .
+The proof of expressiveness relies on an existing correspon-
+dence between tree-walking and MSO transducers of ranked trees
+to words (Courcelle and Engelfriet 2012), and on the classical ﬁrst
+child-next sibling (fcns for short) encoding of unranked trees into
+binary trees. As in (Courcelle and Engelfriet 2012), we use an in-
+termediate automata model equipped with MSO look-around, and
+then show that these look-around tests can be removed. For the
+latter property, our proof differs from that of (Courcelle and Engel-
+friet 2012) in which a pushdown stack is used to update informa-
+tion on MSO-types. On binary trees, their model pushes the stack
+while moving to the ﬁrst-child, but also while moving to the second
+child. This latter push corresponds, through the fcns encoding, to
+pushing a symbol while moving to the next sibling, an operation
+that is not allowed with a visibly pushdown stack. Hence, in order
+to prove that look-around tests can be removed in our model, we
+need a more involved construction, that extends a non-trivial result
+proven in (Hopcroft and Ullman 1967) for two-way automata on
+words. Decidability of D2VPT equivalence is done by reduction
+to deterministic top-down tree to word transducer equivalence, a
+problem which was opened for long and recently solved in (Seidl
+et al. 2015).
+Application 1: Unranked tree to word walking transducers D2VPT
+can easily be translated into a pushdown walking model of un-
+ranked tree to word transductions. It works exactly as in the ranked
+tree case of (Courcelle and Engelfriet 2012): one stack symbol is
+pushed while going downward and popped while going upward.
+While moving along sibling relations, the stack is untouched. As a
+consequence of our results, this model, with single-use restriction,
+captures exactly MSOT. This model is discussed in the last section.
+Application 2: Query 2VPA Deterministic two-way VPA have
+been introduced in (Madhusudan and Viswanathan 2009) as an
+equi-expressive model for MSO-deﬁnable unary queries on nested
+words. Using (Neven and Schwentick 2002; Niehren et al. 2005),
+such queries can be shown to be equivalent to unambiguous VPA
+with special states which select the nested word positions that areanswers to the query. As shown in (Madhusudan and Viswanathan
+2009), unambiguity can be traded for determinism, at the price of
+adding two-wayness. This result comes as a consequence of ours: a
+one-way unambiguous selecting VPA can be seen as a deterministic
+VPT with look-around, that annotates the input positions selected
+by the VPA (look-around resolves nondeterminism), which can be
+transformed into a D2VPT using our results. The main ingredient
+of the proof of (Madhusudan and Viswanathan 2009) is also a
+Hopcroft-Ullman construction, but in a setting simpler than ours2.
+Organisation of the paper In Section 2, we introduce two-way
+VPA and two-way VPA with look-around, deﬁne the notion of
+transition algebra for 2VPA and use this to show that they are
+equivalent to one-way VPA . As a consequence, they have decidable
+(exptime-c) emptiness problem. In Section 3, we introduce D2VPT
+andD2VPT with look-around, show that they are equivalent, and
+study their algorithmic properties. Section 4 is devoted to the ex-
+pressiveness of D2VPT , with a comparison to MSOT and to other
+known models of nested word to word transductions. Due to lack
+of space, some results are proved in Appendix. Finally, all our ex-
+pressiveness equivalences are effective.
+2. Two-way visibly pushdown automata
+2.1 Deﬁnitions
+We introduce in this section two-way visibly pushdown automata,
+following the deﬁnition of (Madhusudan and Viswanathan 2009).
+We consider a structured alphabet deﬁned as the disjoint
+union of call symbols cand return symbols r. The set of words
+overis. As usual,denotes the empty word. Amongst words,
+the set of nested words N()is deﬁned as the least set such that
+2N()and ifw1;w22N()then bothw1w2andcw1r(for
+allc2candr2r) belong toN(). In the following, we
+assume that input words of our models are always nested words.
+This is not restrictive as all our models can recognize and ﬁlter
+nested words.
+For a word w2, its length is denoted by jwjand we
+denote byw(i)itsith symbol. Its set of positions is pos(w) =
+f1;:::;jwjg, and fori;j2pos(w)such thati < j , we say
+that(i;j)is a matching pair ofwifw(i)2c,w(j)2r
+andwcan be decomposed into w=w1w(i)w2w(j)w3, where
+w1;w32;w22N()andjw1j=i 1,jw2j=j i 1.
+Note that ifw2N(), then necessarily, w1w32N().
+When dealing with two-way machines, we assume the struc-
+tured alphabet to be extended into by adding two special sym-
+bols.;/incandrrespectively, and we consider words with
+left and right markers from ./.
+DEFINITION 1.Atwo way visibly pushdown automaton (2VPA
+for short)Aoveris given by (Q;qI;F; ;)whereQis a ﬁnite
+set of states, qI2Qis the initial state, FQis a set of ﬁnal
+states and  is a ﬁnite stack alphabet. Given the set D=f ;!g
+of directions, the transition relation is deﬁned by push[popwhere
+push((Qf!g c)[(Qf g r))((QD) )
+pop((Qf g c )[(Qf!g r ))(QD)
+Additionally, we require that for any states q;q0and any stack
+symbol, if(q; ;.;;q0;d)2popthend=!and if (q;!
+;/;;q0;d)2popthend= .
+Informally, a 2VPA has a reading head pointing between sym-
+bols (and possibly on the left of .and on the right of /). A con-
+ﬁguration of the machine is given by a state, a direction dand a
+2They provide a construction for the composition of a co-deterministic
+VPA with an unambiguous VPA , while we study that of a D2VPA with
+an unambiguous VPA .
+2-way Visibly Pushdown Automata & Transducers 3 2016/8/29
+
+--- Page 4 ---
+stack content. The next symbol to be read is on the right of the
+head ifd=!and on the left if d= . Note that when reading the
+left marker from right to left  (resp. the right marker from left to
+right!), the next direction can only be !(resp. ). The structure
+of the alphabet induces the behaviour of the machine regarding the
+stack when reading the input word: when reading on the right, a call
+symbol leads to push onto the stack while a return symbol pops a
+symbol from the stack. When reading on the left, a dual behaviour
+holds (hence, at a given position in the input word, the height of
+the stack is always constant at each visit to that position in the run).
+Finally, the state and the direction are updated.
+Letw2N(). We setw(0) =.andw(jwj+ 1) =/. For a
+movedand0ijwj, we denote by
+move(d;i)the integeri 1ifd= andi+ 1ifd=!.
+read(w;d;i )the symbolw(i)ifd= andw(i+ 1) ifd=!.
+Formally, a stack is a ﬁnite word over  . The empty stack/word
+over  is denoted?. For a word .w/ wherew2 N () and
+a2VPAA= (Q;qI;F; ;), aconﬁguration ofAis a triple
+(q;i;d; )whereq2Q,0ijwj+ 1,d2Dandis a stack.
+ArunofAon a wordwis a ﬁnite non-empty sequence of conﬁg-
+urations (q0;i0;d0;0)(q1;i1;d1;1):::(q`;i`;d`;`)where for
+all0j`, the conﬁguration (qj+1;ij+1;dj+1;j+1)satisﬁes
+ij+1= move(ij;dj)and
+ifread(w;dj;ij)2canddj=!orread(w;dj;ij)2r
+anddj= then (qj;dj;read(w;dj;ij);qj+1;dj+1;)2
+pushandj+1=j.
+ifread(w;dj;ij)2canddj= orread(w;dj;ij)2r
+anddj=!then (qj;dj;read(w;dj;ij);;qj+1;dj+1)2
+popandj+1=j.
+By the special treatment of .and/ensured by the deﬁnition of
+2VPA , the indices ijall belong tof0;:::;jwj+ 1g. Note also that
+any conﬁguration is actually a run on the empty word . A run on
+a nested word wis accepting whenever q0=qI,i0= 0,d0=!,
+0=?andq`2F,i`=jwj+ 1,d`=!,`=?.
+Note thatAbeing a visibly pushdown automaton, for any
+two conﬁgurations in a run of Aat the same position iin the
+word (q;i;d; )and(q0;i;d0;0), the stack,0have the same
+height/length.
+The languageL(A)deﬁned byAis the set of nested words w
+from such that there exists an accepting run of Aon.w/.
+DEFINITION 2.A two-way visibly pushdown automaton is
+deterministic (D2VPA for short) if we may write push,popas
+functions from ((Qf!g c)[(Qf g r))to
+(QD) and from ((Qf g c )[(Qf!
+gr ))toQDrespectively.
+codeterministic if we may write push,popas injective applica-
+tions, with the same type as in the previous item.
+unambiguous iff for any word w, there exists at most one ac-
+cepting run on w.
+Obviously, if Ais (co)deterministic, for any word wfrom
+N(), there exists a unique run on winAfrom any ﬁxed con-
+ﬁguration. Hence, any (co)deterministic 2VPA is unambiguous.
+Note also that the determinism of Aimplies that any conﬁguration
+can occur only once in some accepting run (otherwise, the machine
+would loop without reaching a ﬁnal conﬁguration).
+A two-way visibly pushdown automaton is a (one-way) visibly
+pushdown automaton (VPA for short) whenever d0=d=!for
+all(q;d;;q0;d0;0)inpushand for all (q;d;;;q0;d0)inpop.
+ForVPA , we may omit directions in the transition relation,
+conﬁgurations and runs.Finally, we will denote DVPA the class of deterministic VPA .
+In this case, the transition relation is deﬁned as a function omitting
+directions.
+2.2 Transition algebra for 2VPA
+Nested words from N() (orN()) induce a natural algebra
+W= (N();:;ffc;rjc2c; r2rg;)where ’:’ is a binary
+operation, the fc;rform a family of unary operations and is a
+constant. The semantics of is the empty word, of :is concatenation
+and for anywinN(),fc;r(w) =cwr. Obviously, the operators
+ﬁnitely generatesN() which can be seen as the free generated
+algebra over this signature quotiented by the associativity of ’ :’ and
+the neutrality of wrt the concatenation ’ :’.
+The traversal congruence Inspired by works on two-way au-
+tomata on words (P ´ecuchet 1985; Shepherdson 1959), we study
+traversals of a 2VPAA. A traversal of some nested word wab-
+stracts a run of Akeeping track only of the fact that it starts read-
+ing the word from the left or from the right (depending on the ini-
+tial direction) in some state pand leaves it in some state q. Now,
+formally, for any states p;q, and any two directions d1;d22D,
+((p;d1);(q;d2))belongs to the traversal of wif there exists a run
+ofAonwstarting in the conﬁguration (p;pos (d1);d1;?)and end-
+ing in (q;pos (d2);d2;?), where
+
+pos(d1) = 0 ifd1=! andpos(d1) =jwjotherwise
+pos(d2) =jwjifd2=! andpos(d2) = 0 otherwise
+Note that the reading starts either at the beginning or at the end
+ofwdepending on the initial current direction and that the ﬁnal
+direction indeed leads to leave the word. One may associate with
+a nested word the set of its traversals and deﬁne a relation on
+nested words such that uvifuandvhave the same traversals.
+Obviously,is an equivalence relation over N() and we
+denote by [w]the set of traversals of a nested word w. We prove
+thatis actually a congruence, that is if w1w2andw0
+1w0
+2
+thenfc;r(w1) =cw1rcw2r=fc;r(w2)andw1:w0
+1w2:w0
+2
+for any nested words w1;w0
+1;w2;w0
+2inN().
+PROPOSITION 1.The relationis a congruence of ﬁnite index.
+The transition algebra TABased on Proposition 1, the congru-
+ence relationinduces a ﬁnite algebra TA= (TravA;:TA;ffTAc;rj
+c2c;r2rg;TA)where the support is Trav Athe set of all
+traversals induced by A,:TAis a binary operation which is asso-
+ciative, each fTAc;ris a unary operation and TAis a constant from
+TravAand a neutral element for :TA. More speciﬁcally, TA= [],
+[u]:TA[v]= [uv]andfTAc;r([u]) = [cur]. These operations
+are well-deﬁned since is a congruence.
+Hence, there exists a unique and canonical morphism TAfrom
+W, the algebra of nested words, onto TA, that satisﬁes TA(w) =
+[w]. We also denote [w]aswTAsince it can be considered as
+the interpretation of w(which is an element W) inTA.
+The correction of this morphism TAdirectly implies:
+PROPOSITION 2.LetA= (Q;qI;F; ;)be a 2VPA .L(A) =
+ 1
+TA(fm2TravAjm\(f(qI;!)gFf!g )6=?g).
+Note that this statement corresponds to the classical notion of
+recognizability by some ﬁnite algebra.
+2.3 From two-way visibly pushdown automata to visibly
+pushdown automata
+In this subsection we give a reduction from 2VPA toVPA . While
+this result can be inferred from (Madhusudan and Viswanathan
+2009), our Shepherdson-inspired approach gives an upper bound
+on the complexity of the procedure. We ﬁrst recall the notion
+of recognizability by ﬁnite algebra and show that this notion is
+2-way Visibly Pushdown Automata & Transducers 4 2016/8/29
+
+--- Page 5 ---
+equivalent to recognazibility by DVPA . Then we prove the main
+result of this section appealing to the transition algebra TA.
+LetA= (DA;:A;(fA
+c;r)(c;r)2cr;A)be a ﬁnite algebra
+such that:Ais associative having Aas neutral element. There exists
+a unique morphism Afrom the algebra of nested words WontoA.
+DEFINITION 3.A languageLN ()is recognized by Aif there
+exists a setLADAsuch thatL= 1
+A(LA).
+As an example, as shown in Proposion 2, a language Ldeﬁned
+by a 2VPA is recognized by the transition algebra TA. We show
+that recognability by ﬁnite algebra implies DVPA recognizability.
+LEMMA 1.IfLis recognized by a ﬁnite algebra Athen it is recog-
+nizable by a DVPABA. Moreover, the size of BAis polynomial in
+the size ofDA, the support of A.
+Proof. ForAand the setLADA, we deﬁne the DVPA
+BA= (DA;A;LA;cDA;BA)whereBA=push
+BA[pop
+BA
+andpush
+BA(mA;c) = (A;(c;mA)),pop
+BA(m0A;r;(c;mA)) =mA
+fA
+c;r(m0A). Obviously, BAis deterministic. Its correctness can be
+proved by induction on nested words showing for all w2N(),
+there exists a run in BAonwfrom (mA;0;?)to(m0A;jwj;?)
+iffm0A=mA:AA(w). And so, for an accepting run on wfrom
+(A;0;?)to(m0A;jwj;?)withm0A2LA,m0A=A(w). Hence,
+L(BA) = 1
+A(LA). Finally, note that the number of states of BA
+is precisely the cardinality of the support of A. 
+We can now come to the main result of this section.
+THEOREM 1.For any 2VPAA, one can compute (in exponential
+time) a DVPABsuch thatL(A) =L(B)and the size of Bis
+exponential in the size of A.
+Proof. One can build from the 2VPAAthe elements off[w]j
+w2N ()gand thus, the transition algebra TA, in exponential
+time. Then, by Lemma 1, a VPABTAis built from TA. The
+correctness follows from Proposition 2 for LTA=fmTA2
+TravAjmTA\(f(qI;!)gFf!g )6=?g. 
+COROLLARY 1.For any 2VPAA, deciding the emptiness of A(ie
+L(A) =?) isEXPTIME-C. The same result holds for D2VPA .
+Proof. We prove the upper-bound for 2VPA and the lower bound
+forD2VPA . For the upper-bound, it sufﬁces to build from Ain ex-
+ponential time a equivalent DVPABpossibly exponentially larger
+thanA(Theorem 1). Then, emptiness of Bcan be tested in poly-
+nomial time (Alur and Madhusudan 2009).
+The proof of the lower bound proceeds by a reduction of the
+emptiness problem of intersection of kdeterministic top-down tree
+automata, that is known to be E XPTIME-C.
+2.4 2VPA with look-around
+As we will later on need the notion of look-around for transducers,
+we introduce it ﬁrst for automata to ease the presentation. Hence,
+we extend the model of 2VPA with look-around. The feature will
+add a guard to each transition of the machine. This guard will
+require to be satisﬁed for the transition to be applied.
+DEFINITION 4.A2VPA with look-around ( 2VPALAfor short) is
+given by a triple (A;;B )such thatAis a2VPA andBa unam-
+biguous VPA andis a mapping from the transitions of Ato the
+states ofB.
+The notion of runs is adapted to take into account look-around
+as follows: in any run on some nested word w, for any two suc-
+cessive conﬁgurations (qj;ij;dj;j)(qj+1;ij+1;dj+1;j+1)ob-
+tained by a transition t, we require that there exists a unique accept-ing run onwinBand that this run contains a conﬁguration of the
+form ((t);read(w;dj;ij);).
+The deﬁnition of accepting runs remains the same and the lan-
+guage deﬁned by such machines is deﬁned accordingly.
+The notion of one-wayness extends trivially to 2VPA with look-
+around. For determinism, we ask the look-around to be disjoint
+on transitions with the same left hand-side: for any two different
+transitions of A,t1= (q;d;a;q0
+1;d0
+1;1),t2= (q;d;a;q0
+2;d0
+2;2)
+inc(resp.t1= (q;d;a;;q0
+1;d0
+1),t2= (q;d;a;;q0
+2;d0
+2)inr),
+it holds that(t1)6=(t2).
+Non-surprisingly, 2VPA are closed under look-around:
+THEOREM 2.Given a 2VPALA(A;;B ), there exists a VPAA0
+such thatL((A;;B )) =L(A0).
+3. Two-way visibly pushdown transducers
+3.1 Deﬁnitions
+Let;be two ﬁnite alphabets such that is structured. Two-way
+visibly pushdown transducers ( 2VPT ) from toextend 2VPA
+overwith a one-way-left-to-right output tape. They are deﬁned as
+a pairT= (A;O)whereAis a2VPA overandOis a morphism
+from the set of rules of Ato words in .
+A run of a 2VPTT= (A;O)on an input word w2N()
+is a runofAonw. We say the run is accepting if it is in A. A
+runmay be simultaneously a run on a word wand on a word
+w06=w, however, when the underlying input word wis given,
+there is a unique sequence of transitions t1t2:::tnassociated with
+andw. In this case, the output produced by the run onwis
+deﬁned as the word v=O(t1)O(t2):::O(tn)2. This word is
+denoted by outw(). Ifcontains a single conﬁguration, then we
+letoutw() =. The transduction deﬁned by Tis the relation
+JTK=f(w;outw())2N()jis an accepting run of Tonwg:
+We say that Tisfunctional ifJTKis a function, and that Tis
+deterministic (resp. unambiguous ) ifAis deterministic (resp. un-
+ambiguous). The class of deterministic two-way visibly pushdown
+transducers is denoted D2VPT . Observe that if Tis determinis-
+tic or unambiguous, then it is trivially functional. Last, when Tis
+functional, we may interpret the relation JTKas a partial function
+onN(): given a word w2N(), denote by JTK(w)the unique
+wordv2such that (w;v)2JTK, whenever it exists. To ease
+readability, we may simply write Tto denote JTKwhen it is clear
+from the context, for example when considering composition of
+functions.
+We consider classes of one-way visibly pushdown transduc-
+ers, obtained by considering the corresponding classes of one-way
+visibly pushdown automata. The notions of functional, determin-
+istic and unambiguous transducers are naturally deﬁned for these
+transducers, and we denote by (D) VPT the class of (deterministic)
+one-way visibly pushdown transducers. Last, we say that a VPT
+T= (A;O)from toisletter-to-letter ifis a structured al-
+phabet and if Omaps every call transition of Ato an element of c
+and every return transition of Ato an element of r.
+2VPT (resp. D2VPT ) can be extended with look-around, as we
+did for 2VPA . Formally, a two-way visibly pushdown transducer
+with look-around ( 2VPTLAfor short) is a pair T= (A0;O)where
+A0= (A;;B )is a2VPALAandOis a morphism from the set
+of rules ofAto words in . We say that such a machine is
+deterministic if the 2VPALAAis deterministic, the resulting class
+being denoted by D2VPTLA.
+EXAMPLE 1.We now formally express the transduction given in
+the introduction (see Figure 1). Let Q=fq1;:::;qng[fqi;jj
+1i;jnori=.g[fqfgbe the set of states with initial state
+q1and ﬁnal state qf, a set of stack symbols   =f?g[fiji=
+2-way Visibly Pushdown Automata & Transducers 5 2016/8/29
+
+--- Page 6 ---
+1;:::;ng, and for alli;j;k2f.;1;:::;ng, we have the rules:
+qi;!iji;+i    !q1;! qn;!rjr; j    !qj;!
+qi;!(j;r)   !qi;!ifj6=i qi;j; (j;r)   !qi;j;!
+qi;!rj; j    !qi;j; ifi<n qi;j;!kj;+j    !qi+1;!
+The markers are treated as letters, except that they push ?in-
+stead of.and upon popping?in stateqn, the transducer goes to
+qfand accepts. The transitions labeled by (j;r)are macros cor-
+responding to moves along matching relation, which can easily be
+implemented.
+Evaluation Observe here that if a transformation is given as a
+D2VPTT, then one can evaluate it using a memory linear in the
+depth of the input word w(we assume wcan be accessed as we
+want on some media). Indeed, one simply needs to store the current
+conﬁguration of T, given as a state and a stack content.
+3.2 Closure under composition
+We prove in this subsection that 2VPT are closed by composition
+with a letter-to-letter unambiguous VPT , extending a similar result
+for transducers on words (Hopcroft and Ullman 1967). This will
+reveal useful to show that D2VPT are closed under look-around.
+First, we extend to nested words a result that was known for ﬁnite
+transducers:
+LEMMA 2.Any unambiguous VPTTcan be written as the com-
+position of two VPTT1T2, whereT1is deterministic and T2is
+letter-to-letter and co-deterministic. Furthermore, if Tis letter-to-
+letter, so isT1.
+THEOREM 3.Given a letter-to-letter DVPTAand a 2VPTB, we
+can construct a 2VPTCthat realizes the composition C=BA.
+If furthermore Bis deterministic, then so is C.
+Proof. We ﬁrst notice that since we are considering visibly push-
+down machines and the ﬁrst machine is letter-to-letter, the stacks
+of both machines are always synchronized, meaning that they have
+the same height on each position. Then, let us remark that when the
+2VPT moves to the right, we can do the simulation in a straight
+forward fashion by simulating it on the production of the one-way.
+It becomes more involved when it moves to the left. We then need
+to rewind the run of the one-way, and nondeterminism can arise. To
+bypass this, let us recall that a similar construction from (Hopcroft
+and Ullman 1967) exists for classical transducers, and that the
+rewinding is done through a back and forth reading of the input,
+backtracking the run up to a position where the nondeterminism is
+cleared, and then moving back to the current position. The method
+is to compute the set of possible candidates for the previous state,
+and keep moving to the left until we reach a position iwhere there
+is only one path left leading to the starting position j. Afterward,
+we simply follow this path along another one from position i+ 1.
+As we know that they will merge at position j, we can stop at po-
+sitionj 1with the correct state. If we reach the beginning of
+the word with multiple candidates, we do the same procedure, the
+correct path being the one starting from the initial state.
+This cannot be done as such on pushdown transducers since
+rewinding the run might lead to popping the stack, and losing in-
+formation. However, if at each push position, we push not only the
+stack symbols but also the current state, we are able, when rewind-
+ing the run, to clear the nondeterminism as soon as we pop this
+information by using it as a local initial state , limiting the back and
+forth reading to the current subhedge. The overall construction can
+be seen as a classical Hopcroft-Ullman construction on hedges, ab-
+stracted as words over the left-to-right traversals of their subhedges,
+which are called summaries in (Alur and Madhusudan 2009) (seecr
+c1r1
+w1c2r2
+w2cnrn
+wnu:
+Figure 2. The nested word cc1w1r1c2w2r2:::cnwnrnris ab-
+stracted as a word uover letters (ci;Si;ri)whereSiis the sum-
+mary ofwi. The position labelled by cserves as initial position of
+the word and the corresponding state was pushed to the stack upon
+reading it.
+Figure 2). These summaries can be computed on-demand by a one-
+way automaton.
+Finally, note that to apply this construction, we need to push
+this local initial state each time we enter a subhedge, whether we
+enter from the right or from the left. This can be maintained since
+when entering from the left, it simply corresponds to the current
+state and when entering from the right, this state is computed by
+the Hopcroft-Ullman construction. Note also that the Hopcroft-
+Ullman routine is deterministic, and consequently the construction
+preserves determinism. 
+THEOREM 4.LetAbe a D2VPT andrelab be an unambiguous
+letter-to-letter VPT . Then the composition Arelab can be deﬁned
+by aD2VPT .
+Proof. The proof is straightforward using previous results. First,
+Lemma 2 states that relab can be decomposed in T1T2, whereT1
+is a deterministic VPT andT2is a co-deterministic one, and both
+are letter-to-letter, i.e Arelab =AT1T2. Now Theorem 3
+states that we can construct a D2VPTA0that realizes the compo-
+sitionAT1. Finally, as a co-deterministic VPT can be seen as a
+deterministic one going right-to-left, a symmetric construction of
+Theorem 3 on A0T2gives a D2VPT that realizes Arelab .
+A look-around can be viewed as an MSO formula with one free
+variable, and it is satisﬁed iff the formula is satisﬁed at this posi-
+tion. In (Madhusudan and Viswanathan 2009), the authors consider
+MSO queries on nested words. An MSO query is an MSO formula
+with one free variable that annotates the positions of the input word
+that satisﬁes it. They proved, using a Hopcroft-Ullman argument,
+thatMSO queries were also implemented by D2VPA . Theorem 4
+proves that looks-around can be done on the ﬂy while following the
+run of an other D2VPA . Since a look-around can be encoded as an
+unambiguous letter-to-letter VPT , we get the following corollary,
+that subsumes the result by (Madhusudan and Viswanathan 2009).
+COROLLARY 2.D2VPT =D2VPTLA.
+3.3 Decision problems
+We consider the following type-checking problem: given a VPA
+A1on, a ﬁnite-state automaton A2on, and a D2VPTTfrom
+N()to, decide whether for every word w2L(A1),JTK(w)
+belongs toL(A2). This property is denoted by T(A1)A23. The
+equivalence problem asks whether given two D2VPT as input, they
+deﬁne the same transduction. We prove the following result:
+THEOREM 5.1. The inverse image of a regular language of words
+by aD2VPT is recognizable by a VPA .
+2. The type-checking problem for D2VPT isEXPTIME-complete.
+3. The equivalence problem for D2VPT is decidable.
+3IfA2is aVPA , the problem is known to be undecidable even for Ta
+DVPT (Raskin and Servais 2008).
+2-way Visibly Pushdown Automata & Transducers 6 2016/8/29
+
+--- Page 7 ---
+Proof. We prove the three results independently.
+(1) Given a D2VPTT= (A;O)and an automaton on words
+B, we can deﬁne a 2VPAA0as a product construction of Aand
+Bwhich simulates Bon the production by O. States ofA0are
+simply pairs of states of AandB, andA0recognizesfw2N()j
+JTK(w)2L(B)g=JTK 1(L(B)). Observe that the construction
+is linear in the sizes of AandB, and that as Bmay be non-
+deterministic, A0may also be non-deterministic.
+(2) E XPTIMEmembership: as in the proof of the previous item,
+we can build a 2VPAAwhose size is linear in the sizes of Tand
+A2, and such thatL(A) = JTK 1(L(A2)). Thus,T(A1)A2
+holds iffL(A1)L(A)holds. This can be checked in E XPTIME
+thanks to Theorem 1.
+EXPTIME hardness: we reduce the problem of emptiness of a
+D2VPAA. FromA, we build a D2VPTT= (A;O)such that O
+maps every transition of Ato the empty word . Then, we let A1
+be aVPA such thatL(A1) =N()andA2such thatL(A2) =;.
+ThenT(A1)A2holds iffL(A) =;.
+(3) As proved in Section 4, D2VPT are included in the class
+of deterministic hedge-to-string transducers with look-ahead, i.e.
+deterministic top-down tree-to-string transducers with look-ahead,
+run on the ﬁrst-child-next-sibling encoding of the input hedge. The
+equivalence problem for these machines has recently been proven
+decidable in (Seidl et al. 2015). 
+4. Expressiveness of Two-Way Visibly Pushdown
+Transducers
+In this section, we study the expressiveness of D2VPT by com-
+paring them with Courcelle’s MSO-transductions casted to nested
+words, the one-way model of (Alur and D’Antoni 2012), and a top-
+down model for hedges, inspired by top-down tree-to-string trans-
+ducers.
+4.1 MSO-deﬁnable Transductions
+We ﬁrst deﬁne MSO for nested words and words, as done in
+(Alur and Madhusudan 2009), and then MSO-transductions from
+nested words to words, based on Courcelle’s MSO-deﬁnable graph
+transductions (Courcelle 1994).
+MSO on nested words and words Letbe a structured alphabet.
+A nested word w2N()is viewed as a structure with pos(w)as
+domain, over the successor predicate S(x;y)interpreted as pairs
+(i;i+ 1) fori2pos(w)nfjwjg, the label predicates (x)for
+2, interpreted by the positions labeled by , and the matching
+predicateM(x;y)interpreted as the set of matching pairs in w.
+Monadic second-order logic (MSO) extends ﬁrst-order logic
+with quantiﬁcation overs sets. First-order variables x;y;::: are
+interpreted by positions of words, while second-order variables
+X;Y;::: are interpreted by sets of positions. MSO formulas for
+nested words over are deﬁned by the following grammar:
+'::=(x)jx2XjS(x;y)jM(x;y)j:'j'_'j9x:'j9X:'
+where2. The semantics of an MSO formula is deﬁned
+in a classical way, and for 'an MSO formula, w2 N (),
+a valuation of the free variables of 'into positions and sets of
+positions of w, we writew;j='to mean that wis a model
+of'under the valuation . When'is a sentence, we just write
+wj='. We denote by MSO nw[]the set of MSO formulas
+for nested words over (and just MSO nwwhen is clear from
+the context). Since we are interested in transductions from nested
+words to words, we also deﬁne MSO for words. Similarly as nested
+words, words are seen as structures but in that case we do not have
+the matching pair predicate M(x;y). MSO formulas on words are
+deﬁned accordingly to this smaller signature.EXAMPLE 2.We interpret MSO nw[]on nested words rather that
+on words in . It is not a restriction since checking whether a
+given relation M(x;y)is a valid matching relation is deﬁnable by
+an MSO formula wn. This formula expresses that Mis a bijection
+between call and return symbols, and that it is well-nested (there is
+no crossing), as follows:
+:9xc;xr;yc;yr:M(xc;xr)^M(yc;yr)^xcycxryr
+^bij(M)^8x;y:M (x;y)!xy
+whereis the transitive closure of S(well-known to be MSO-
+deﬁnable) and bij (M)expresses that Mmaps bijectively call and
+return symbols (it is trivially MSO-deﬁnable).
+MSO transducers from nested words to words MSO-transducers
+deﬁne (partial) functions from nested words to word structures. The
+output word structure is deﬁned by taking a ﬁxed number kof
+copies of the input structure domain. Nodes of these copies can be
+ﬁltered out by MSO nwformulas with one free ﬁrst-order variable.
+In particular, the nodes of the c-th copy are the input positions that
+satisfy some given MSO nwformulac
+pos(x). The label predicates
+(x)and the successor predicate S(x;y)of the output structure
+are deﬁned by MSO nwformulas with respectively one and two free
+ﬁrst-order variables, interpreted over the input structure. Formally,
+an MSO-transducer from nested words to words is a tupleT=
+(k;dom;(c
+pos(x))1ck;(c
+(x))1ck
+2;(c;d
+S(x;y))1c;dk)
+wherek2Nand the formulas dom,c
+pos,c
+aandc;d
+SareMSO nw
+formulas. We denote by MSO [nw2w ]the class of MSO-transducers
+from nested words to words.
+An MSO-transducer Tdeﬁnes a function from nested word
+structures over to word structures over , denoted by JTK.
+The domain of JTKconsists of all nested word structures usuch
+thatuj=dom. Given a nested word structure u2dom(JTK),
+theoutput structure vsuch that (u;v)2JTKis deﬁned by the
+domainDvpos(u)f1;:::;kgsuch thatDv=f(i;c)ji2
+pos(u); c2 f1;:::;kg; uj=c
+pos(i)g, a node (i;c)2Dv
+of the output structure is labeled a2ifuj=c
+a(i), and a
+node (j;d)2Dvis the successor of a node (i;c)2Dvif
+uj=c;d
+S(i;j). Note that the output structure is not necessarily a
+word, because for instance, nothing guarantees that an output node
+is labeled by a unique symbol, or that the successor relation forms a
+linear order on the positions. However, it is not difﬁcult to see that
+it is decidable whether an MSO [nw2w ]transducer produces only
+words (see for instance (Filiot 2015)).
+We say that a function ffrom nested words to words is MSO-
+deﬁnable if there exists an T2MSO [nw2w ]such that JTK=f.
+By deﬁnition of MSO [nw2w ]transducers, for any MSO-deﬁnable
+functionfthere exists k2Nsuch that for all u2Dom(f),
+jf(v)j k:juj(by takingkas the number of copies of the
+MSO [nw2w ]transducer deﬁning f). We say in that case that f
+is of linear-size increase .
+EXAMPLE 3.This example transforms a nested word into the se-
+quence of calls of maximal depth (the leaves). E.g., c1c2r2c3c4r4r3r1
+is mapped to c2c4. This transformation is MSO-deﬁnable. The do-
+main is deﬁned by the formula wn(see Example 2). One needs
+only one copy of the input word, whose positions are ﬁltered out
+by the formula 1
+pos(x) =9y:M(x;y)^S(x;y)which holds true
+iffxis a call position and its successor position yis its matching
+return position. The labels are preserved: 1
+a(x) =a(x)for all
+a2. Finally, the successor relation is deﬁned by 1;1
+S(x;y) =
+1
+pos(x)^1
+pos(y)^xy^:9z:1
+pos(z)^xzy.
+4.2 Logical equivalences
+AnMSO [nw2w ]Tis said to be order-preserving if for any word u
+of the domain of T, any positions i;jofuand any copies c;dofT,
+2-way Visibly Pushdown Automata & Transducers 7 2016/8/29
+
+--- Page 8 ---
+ifuj=c;d
+S(i;j)thenij. This means that the output arrows can
+not point to the right. It is emphasized by the next theorem, which
+echoes a similar result on words proved in (Bojanczyk 2014; Filiot
+2015).
+THEOREM 6.An order-preserving transduction is deﬁnable in
+MSO [nw2w ]if, and only if, it is deﬁnable by a functional4VPT .
+In the following, we show that D2VPT are strictly more ex-
+pressive than MSO [nw2w ], and deﬁne a restriction that capture
+exactly MSO [nw2w ]. The fact that D2VPT are more expressive
+than MSO [nw2w ]can be easily shown, based on a similar result
+for ranked trees established in (Courcelle and Engelfriet 2012).
+Since D2VPT can, using their stack, express transductions of
+exponential-size increase, while MSO-transductions are of linear-
+size increase, they are strictly more expressive than MSO [nw2w ].
+To capture exactly MSO [nw2w ], one deﬁnes the single-use re-
+striction forD2VPT (and D2VPTLA). Intuitively, this restriction
+requires that when a D2VPT passes twice at the same position
+with the same state, then necessarily the transitions ﬁred from these
+states produces .
+DEFINITION 5 (Single-use restriction). AD2VPT (resp. D2VPTLA)
+T= (A;O)withA= (Q;qI;F; ;)a2VPA (resp. 2VPALA)
+issingle-use with respect to a set PQif any transition t
+from a state q62Psatisﬁes O(t) =, and if for all runs
+r= (q0;i0;d0;0):::(q`;i`;d`;`)ofTon a wordwand all
+statesp2P,rdoes not visit twice the same position in state p, i.e.
+if(q;i) = (q;i)for6=, thenq=q62P.
+AD2VPT (resp. D2VPTLA) issingle-use if it is single-use w.r.t.
+some setPQ, and strongly single-use if it is single-use w.r.t. Q.
+We denote by D2VPT su(resp. D2VPTLA
+su) the class of single-
+useD2VPT (resp. D2VPTLA). By reduction to the D2VPA empti-
+ness, we get:
+PROPOSITION 3.Deciding the single use property on a 2VPT is
+EXPTIME-C.
+A single-use restriction was already deﬁned in (Courcelle and
+Engelfriet 2012) for deterministic tree-walking transducers with
+look-around to capture MSO-transductions from trees to trees (and
+words). It requires that in any accepting run, every node is visited at
+most once by a state. It is therefore more restrictive than our single-
+restriction and, as a matter of fact, corresponds to what we call the
+strongly single-use restriction. However, the following result shows
+that the strongly single-use restriction is not powerful enough, in
+our context, to capture all MSO-deﬁnable transductions, even with
+regular look-arounds.
+LEMMA 3.There is an MSO-deﬁnable nested word to word trans-
+ductionfwhich is not deﬁnable by strongly single-use D2VPTLA.
+We now proceed to the ﬁrst logical equivalence, between our
+model and MSO-transductions, which is mainly a consequence of
+results from (Courcelle and Engelfriet 2012).
+THEOREM 7.Letfbe a transduction from nested words to words.
+Thenfis MSO-deﬁnable iff it is deﬁnable by a (look-around)
+D2VPT su, i.e.,
+MSO [nw2w ] =D2VPTLA
+su=D2VPT su.
+Sketch of proof. We show that both other models are equiva-
+lent to D2VPTLA
+su. We have already seen that look-around can be
+4Within the class of VPT , the class of functional VPT is decidable in
+PTime (Filiot et al. 2010)removed from D2VPTLA(Theorem 2), while preserving their ex-
+pressive power. Our Hopcroft-Ullman’s construction can add expo-
+nentially more visits to the same positions, but these visits are only
+-producing. In other words, our Hopcroft-Ullman’s construction
+does not preserve the strongly single-use restriction, but it preserves
+the single-use restriction. As a consequence of this observation and
+Corollary 2, we obtain that D2VPT su=D2VPTLA
+su.
+To show MSO [nw2w ]D2VPTLA
+su, we rely on the equiva-
+lence of (Courcelle and Engelfriet 2012) between deterministic bi-
+nary tree to word walking transducers with look-around (DTWTla)
+and MSO-transductions from binary trees to words ( MSO [b2w]).
+Informally, DTWTlacan follow the directions of binary trees (1st
+child, 2nd child and parent) and take their transitions based on reg-
+ular look-around information. Due to determinism, they are always
+strongly single-use, in the sense that any position is not visited
+twice by the same state. Such a machine, running on ﬁrst-child
+next-sibling encoding of nested words, is easily encoded into an
+equivalent D2VPTLA
+su. In this encoding, a nested word over is en-
+coded as a binary tree over (cr)[f?g , inductively deﬁned as
+fcns(cw1rw2) = (c;r)(fcns(w1);fcns(w2))andfcns() =?. In
+this encoding, moving to a 1st child corresponds to moving from
+ctow1, which can be done by a D2VPTLA
+su, and moving to a
+2nd child corresponds to moving from ctow2. This can be done
+also by a D2VPTLA
+su, but it needs to traverse all the word cw1r,
+while producing only. Similarly, one can encode moves to par-
+ent nodes. The two latter moves implies that the D2VPTLA
+suis not
+strongly single-use anymore, but it remains single-use: the extra
+moves are all -producing. The result follows as MSO [nw2w ] =
+MSO [b2w]fcns.
+To show D2VPTLA
+suMSO [nw2w ], we rely on another cor-
+respondence shown in (Courcelle and Engelfriet 2012), between
+MSO [b2w]and deterministic (visibly) pushdown binary tree to
+word walking transducers with look-around of linear-size increase
+(DPTWTla
+lsi). These transducers extend DTWTlawith a pushdown
+store with a visibly condition: when moving to a child, they push
+one symbol, and moving up, they pop one symbol. The lsi restric-
+tion is semantical: they restrict the class to transducers that deﬁne
+lsi transductions. Any D2VPTLA
+sudeﬁnes an lsi transduction, and
+can be easily encoded into a DPTWTla
+lsirunning on fcns encod-
+ings, which mimics the moves of the D2VPTLA
+su. Again, the result
+follows by the equality MSO [nw2w ] =MSO [b2w]fcns. 
+4.3 Comparison with other transducer models
+In this section, we relate D2VPT to two other transducer mod-
+els, namely streaming tree-to-string transducers and determinis-
+tic hedge-to-string transducers with look-ahead. Streaming tree-to-
+string transducers with a simple copyless restriction of updates will
+serve as the third edge of our trinity. Deterministic hedge-to-string
+transducers with look-ahead is a natural model for which equiva-
+lence is known to be decidable.
+Streaming tree-to-string transducers are deterministic one-way
+machines (Alur and D’Antoni 2012) equipped with registers stor-
+ing words. We ﬁx a ﬁnite alphabet and, given two ﬁnite sets X
+andY, denote byU(X;Y)the set of mappings from Xto([Y).
+DEFINITION 6.Astreaming tree-to-string transducer S(STST for
+short) is a deterministic machine deﬁned over a structured alphabet
+and given by the tuple (Q;qI; ;X;;F)whereQis a ﬁnite set
+of states,qI2Qis the initial state,  is a ﬁnite set of stack symbols
+andXis a ﬁnite set of registers. Finally, Fis a partial mapping
+fromQto([X)and=push]popwherepush:Qc!
+Q U(X;X)andpop:Qr !QU(X;X[X0),
+X0being a disjoint copy of X.
+2-way Visibly Pushdown Automata & Transducers 8 2016/8/29
+
+--- Page 9 ---
+LetV
+Xbe the set of mappings from from Xto. These
+mappings are extended to (X[)by considering them as identity
+over . An accepting run of a STSTSon a nested word w
+is a (non-empty) sequence (q0;0;0;w0):::(q`;`;`;w`)of
+quadruples from QV
+X( V
+X)such thatq0=qI,
+w0=w,w`=,0is the mapping which associates to anyX
+inX,0,`are equal to?the empty stack and for all 0i<` ,
+one has either
+wi=cwi+1and there exists (qi;c;qi+1;;)2push,
+i+1=andi+1=i(;i),
+wi=rwi+1and there exists (qi;r;;qi+1;)2pop,i=
+i+1(;)andi+1=0i, where02V
+X0is deﬁned
+by0(X0) =(X)for allX2X.
+The semantics [ [S] ]of the STSTSis a partial mapping from
+N() tosuch that [ [S] ](w) =vif there exists an accepting
+run onwinSending in some conﬁguration (q`;`;?;)and
+v=`(F(q`)).
+Using a restriction on the updates Uused in STST (so-called
+copyless updates), (Alur and D’Antoni 2012) proved that copyless
+STST andMSO [nw2w ]are expressively equivalent. As a conse-
+quence, we obtain the logic/two-way/one-way trinity announced in
+the introduction:
+THEOREM 8.MSO [nw2w ] =D2VPT su=copyless STST
+A well-known class of transducers running on ranked trees is
+the class of deterministic top-down tree transducers with look-
+ahead. This class can be deﬁned to output strings. We consider
+now the extension of this class to unranked trees, or more precisely
+sequences of unranked trees, that is, hedges.
+DEFINITION 7.Anhedge automaton (HAfor short) over the struc-
+tured alphabet 5is a tuple (Q;F; )whereQis a ﬁnite set of
+states,FQis a set of ﬁnal states and is a transition relation
+such thatQcrQQ.
+An hedge automaton is said to be bottom-up deterministic if
+whenever (q;c;r;q 1;q2)and(q0;c;r;q 1;q2)belongs to, it holds
+thatq=q0. The semantics of an HABis given by means of sets
+LB
+qN ()deﬁned for each q2Qinductively as follows: (i)
+2LB
+qfor allqand(ii)cwrw02LB
+qif(q;c;r;q 1;q2)2and
+w2LB
+q1,w02LB
+q2. The language deﬁned by an HABis thenS
+q2FLB
+q. Note that when Bis bottom-up deterministic whenever
+q16=q2, it holds thatLB
+q1\LB
+q2=?.
+DEFINITION 8.A deterministic hedge-to-string transducer with
+look-ahead ( dH2SLA)Hover the structured alphabet and the
+output alphabet is given by a tuple (Q;I;F;;B )whereQis a
+ﬁnite set of states, qI2Qis an initial state, FQis a set of ﬁnal
+states,Bis a deterministic bottom-up hedge automaton with states
+Q0, andis a transition relation given by a partial mapping
+:QcrQ0Q0!
+Q
+Qis the ﬁnite set of symbols ([fq(xi)j1i2;q2Qg).
+The semantics of a dH2SLAis ﬁrst given by a partial map-
+ping [ [H] ]fromN()Qonto deﬁned inductively as: (i)
+[ [H] ](;q) =ifq2F, and (ii)forw=cw1rw2with
+w1;w22 N (),[ [H] ](w;q) =![qi(xij) [ [H] ](wij;qi)]
+where![qi(xij) [ [H] ](wij;qi)]denotes the word !in which
+each occurrence of qi(xij)has been replaced by [ [H] ](wij;qi)if
+5Usually, such automata are given over a classical unstructured but unary
+alphabet. However, for having a uniform presentation, we choose wlog this
+deﬁnition which corresponds somehow to consider a pair from cras
+single symbol.(q;c;r;q0;q00) =!,w12Lq0
+Bandw22Lq00
+Band undeﬁned
+otherwise.
+Then, the transduction [ [H] ]deﬁned byHis given byf(w;s)j
+w2N(); s= [ [H] ](w;qI)g.
+THEOREM 9.D2VPT (STST andD2VPT (dH2SLA
+Sketch of proof. The two results rely on a same intermediate
+model that extends the transition algebra described in Section 2.
+This algebra allows to describe the possible traversals of a D2VPA .
+One can extend it to D2VPT by storing in matrices the words
+produced by traversals. This yields an inﬁnite algebra, realized by a
+ﬁnite set of operations. We use this to describe effective translations
+intoSTST anddH2SLA.
+As an illustration, in order to build of an equivalent STST ,
+the set of variables considered is the set  =fx(p;d);(p0;d0)j
+(p;d);(p0;d0)2QDg,i.e.one variable for each traversal. This
+generalizes the construction described in (Alur and ˇCern ´y 2010;
+Alur et al. 2012) in order to translate a deterministic two-way
+transducer (on words) into a streaming string transducer.
+The fact that the inclusions are strict relies on a simple argument
+based on size increase: on nested words of bounded depth, D2VPT
+are linear-size increase, while STST anddH2SLAare not. 
+5. Discussion
+Unranked tree to word transductions Since unranked trees t
+can be linearised into nested words lin(t), our result also gives
+a model for unranked tree to word transductions. If one denotes
+byMSO [u2w]the transductions from unranked trees to words
+deﬁnable by an MSO transducer (over the signature of unranked
+trees that has the child and next-sibling predicates), it is easy to
+show that MSO [u2w] =D2VPT sulin:
+One could argue that D2VPT for realising transductions of un-
+ranked trees is not an adequate model, because it performs unnec-
+essary-producing moves to navigate, for instance, from a node n
+to its next-sibling. Indeed, the D2VPT needs to walk through the
+whole subtree rooted at n.
+First, while it is true from an operational point of view, we think
+that the simplicity of D2VPT makes them a good candidate as
+a speciﬁcation model of unranked tree transductions, and to this
+aim, it is easy to deﬁne, as we did for next-sibling moves (rules
+q(c;r)   !p), macros that realise moves given by the predicates
+of unranked trees (and their inverse). Second, for instance in the
+context of stream processing of XML documents, it cannot be
+always assumed that the input document is given by its DOM (with
+the unranked tree predicates) as sometimes, it is just stored as plain
+text, i.e. as its linearisation.
+Finally and most importantly, our result allows one to get an ex-
+tension of a known model of ranked tree to word transductions, to
+unranked tree to word transductions, namely, deterministic push-
+down unranked tree to word walking transducers (DPUWT). To
+avoid technical details, we deﬁne formally this model only in Ap-
+pendix, and rather give intuitions here. DPUWT can walk through
+the unranked tree following the next-sibling and ﬁrst-child pred-
+icates (and their inverse), while producing words on the output.
+They are also equipped with a pushdown store with a visibly con-
+dition: whenever they go down the tree by one level, they have to
+push one symbol onto the stack, and going up, they pop one sym-
+bol. They let the stack unchanged when moving horizontally be-
+tween siblings. With the single-use restriction, deﬁned similarly as
+forD2VPT , we get that MSO [u2w] = DPUWTsu. Therefore, if
+the input is given by an unranked tree, one can rather use a DPUWT
+or aD2VPT on the linearisation.
+2-way Visibly Pushdown Automata & Transducers 9 2016/8/29
+
+--- Page 10 ---
+Nested word to nested word transductions As we claimed earlier,
+D2VPT sucan be used to deﬁne unranked tree transformations
+represented as nested word to nested word transducers, that is, as
+nested word to word tranduscers with a structured output alphabet.
+On the logical side, MSO [nw2w ]transductions can be extended
+with binary formulas 'c;d
+M(x;y)aiming at representing the match-
+ing relation existing on output nested words. As checking whether
+a relation denotes a matching relation is MSO deﬁnable (see Ex-
+ample 2), one can decide whether any input nested word is indeed
+transformed by the MSO [nw2w ]transducer into a nested word by
+testing the validity of the sentence obtained from the logical deﬁ-
+nition of the matching M(Example 2) by replacing the predicate
+MwithW
+c;d'c;d
+M. So, starting from an MSO [nw2w ]transducer
+with a matching relation deﬁned on its output, one may forget this
+matching and view this transducer as an ordinary MSO [nw2w ]
+transducer; this machine turns out to be equivalent in the sense
+that remaining call and returns symbols induce uniquely the erased
+matching. Finally, by the results presented in this paper, one can
+from this MSO [nw2w ]transducer build an equivalent D2VPT su
+whose range will indeed contain only nested words and thus, de-
+ﬁnes an unranked tree transformation.
+Let us point out that our results do not entail the trinity for tree-
+to-tree transformations: the class of D2VPT which produce only
+nested words/trees as output may be a good candidate to complete
+the missing part (the equivalence between MSO transformations
+and streaming tree transducers has already been established in
+(Alur and D’Antoni 2012)). Nonetheless, deciding this class seems
+to be challenging and moreover, there is actually no guarantee that
+it corresponds to the other two cited members of this trinity.
+Input streaming In an input streaming scenario, one assumes
+that the input nested word is given as a stream of call and return
+symbols. In such a scenario, one wants to transform the input
+stream as soon as possible, on-the-ﬂy, and it is not reasonable
+to load the whole stream in memory. An interesting question is
+whether a given D2VPT really needs its two-way ability ? In other
+words, can we decide whether a given D2VPT is equivalent to a
+(one-way) VPT ? For words and two-way ﬁnite transducers, this
+question has been shown to be decidable in (Filiot et al. 2013). As
+future work, we want to extend this result to D2VPT .
+References
+R. Alur. Nested words, 2016. URL https://www.cis.upenn.edu/
+~alur/nw.html .
+R. Alur and P. ˇCern ´y. Expressiveness of streaming string transducers. In
+FSTTCS , volume 8, pages 1–12, 2010.
+R. Alur and P. ˇCern ´y. Streaming transducers for algorithmic veriﬁcation of
+single-pass list-processing programs. In POPL , pages 599–610, 2011.
+R. Alur and L. D’Antoni. Streaming tree transducers. In ICALP (2) , volume
+7392 of LNCS , pages 42–53. Springer, 2012.
+R. Alur and P. Madhusudan. Adding nesting structure to words. J. ACM ,
+56(3), 2009.
+R. Alur, E. Filiot, and A. Trivedi. Regular transformations of inﬁnite strings.
+InLICS , pages 65–74, 2012.
+R. Bloem and J. Engelfriet. A comparison of tree transductions deﬁned by
+monadic second order logic and by attribute grammars. J. Comput. Syst.
+Sci., 61(1):1–50, 2000.
+M. Bojanczyk. Transducers with origin information. In ICALP , volume
+8573 of LNCS , pages 26–37. Springer, 2014.
+M. Chytil and V . J ´akl. Serial composition of 2-way ﬁnite-state transducers
+and simple programs on strings. In ICALP , volume 52 of LNCS , pages
+135–147. Springer, 1977.
+H. Comon-Lundh, M. Dauchet, R. Gilleron, C. L ¨oding, F. Jacquemard,
+D. Lugiez, S. Tison, and M. Tommasi. Tree Automata Techniquesand Applications . online, Nov. 2007. URL http://www.grappa.
+univ-lille3.fr/tata/ .
+B. Courcelle. Monadic second-order deﬁnable graph transductions: a sur-
+vey. Theoretical Computer Science , 126(1):53–75, 1994.
+B. Courcelle and J. Engelfriet. Book: Graph structure and monadic second-
+order logic. A language-theoretic approach. Bulletin of the EATCS , 108:
+179, 2012.
+K. Culik and J. Karhumaki. The equivalence problem for single-valued
+two-way transducers (on NPDT0L languages) is decidable. SIAM J. on
+Computing , 16(2):221–230, 1987.
+J. Engelfriet and H. J. Hoogeboom. MSO deﬁnable string transductions and
+two-way ﬁnite-state transducers. ACM Transactions on Computational
+Logic , 2(2):216–254, 2001.
+J. Engelfriet and S. Maneth. Macro tree transducers, attribute grammars,
+and mso deﬁnable tree translations. Information and Computation , 154
+(1):34–91, 1999.
+J. Engelfriet and S. Maneth. Macro tree translations of linear size increase
+are MSO deﬁnable. SIAM J. of Computing , 32(4):950–1006, 2003.
+E. Filiot. Logic-automata connections for transformations. In ICLA , volume
+8923 of LNCS , pages 30–57. Springer, 2015.
+E. Filiot, J.-F. Raskin, P.-A. Reynier, F. Servais, and J.-M. Talbot. Properties
+of visibly pushdown transducers. In MFCS , volume 6281 of LNCS ,
+pages 355–367. Springer, 2010.
+E. Filiot, O. Gauwin, P.-A. Reynier, and F. Servais. Streamability of nested
+word transductions. In FSTTCS , volume 13 of LIPIcs , pages 312–324,
+2011.
+E. Filiot, O. Gauwin, P.-A. Reynier, and F. Servais. From two-way to one-
+way ﬁnite state transducers. In LICS , pages 468–477. IEEE, 2013.
+O. Gauwin, J. Niehren, and S. Tison. Queries on XML streams with
+bounded delay and concurrency. Information and Computation , 209(3):
+409–442, 2011.
+E. Gurari. The equivalence problem for deterministic two-way sequential
+transducers is decidable. SIAM J. on Computing , 11, 1982.
+J. E. Hopcroft and J. D. Ullman. An approach to a uniﬁed theory of
+automata. BELLTJ: The Bell System Technical Journal , 46:1793–1829,
+1967.
+V . Kumar, P. Madhusudan, and M. Viswanathan. Visibly pushdown au-
+tomata for streaming XML. In WWW , pages 1053–1062. ACM, 2007.
+P. Madhusudan and M. Viswanathan. Query automata for nested words. In
+MFCS , volume 5734 of LNCS , pages 561–573. Springer, 2009.
+F. Neven and T. Schwentick. Query automata over ﬁnite trees. Theoretical
+Computer Science , 275, 2002.
+J. Niehren, L. Planque, J.-M. Talbot, and S. Tison. N-ary queries by tree
+automata. In DBLP , volume 3774 of LNCS , pages 217–231. Springer,
+2005.
+J. P´ecuchet. Automates boustrophedon, semi-groupe de Birget et monoide
+inversif libre. RAIRO - ITA , 19(1):71–100, 1985.
+F. Picalausa, F. Servais, and E. Zim ´anyi. XEvolve: an XML schema
+evolution framework. In SAC, pages 1645–1650. ACM, 2011.
+J. Raskin and F. Servais. Visibly pushdown transducers. In ICALP ,
+volume 5126 of LNCS , pages 386–397. Springer, 2008. doi: 10.
+1007/978-3-540-70583-3 32. URL http://dx.doi.org/10.1007/
+978-3-540-70583-3_32 .
+L. Segouﬁn and C. Sirangelo. Constant-memory validation of streaming
+XML documents against DTDs. In ICDT , volume 4353 of LNCS , pages
+299–313. Springer, 2007.
+H. Seidl, S. Maneth, and G. Kemper. Equivalence of deterministic top-down
+tree-to-string transducers is decidable. In FOCS , pages 943–962. IEEE,
+2015.
+J. C. Shepherdson. The reduction of two-way automata to one-way au-
+tomata. IBM Journal of Research and Development , 3(2):198–200,
+1959.
+W. Thomas. Languages, automata and logic. In A. Salomaa and G. Rozen-
+berg, editors, Handbook of Formal Languages , volume 3, Beyond
+Words. Springer, Berlin, 1997.
+2-way Visibly Pushdown Automata & Transducers 10 2016/8/29
+
+--- Page 11 ---
+A. Appendix
+A.1 Two-way visibly pushdown automata
+PROPOSITION 1.The relationis a congruence of ﬁnite index.
+Proof. We consider Rthe set of binary relations over QD.
+Obviously,Ris ﬁnite. As traversals are subsets of R,is of ﬁnite
+index. Let us now prove that is a congruence relation for the
+binary operation :and the unary ones, fc;r(forc2c;r2r).
+From, we deﬁne four equivalence relations ll;lr;rl;rr
+onQQsuch that for (;2fl;rg), we haveuvif
+[u]\(Qfbdir()gQfedir()g) =
+[v]\(Qfbdir()gQfedir()g)
+wherebdir(l) =edir(r) =!andbdir(r) =edir(l) = .
+Intuitively, (p;q)belongs to [w]ll(respectively to [w]lr) if
+there exists a run of Aonwstarting reading wfrom the leftside,
+ie, with direction!in statepand leaves the word on the left,ie,
+with direction (resp. on the right ,ie, with direction!) in state
+q.
+The relationis uniquely determined by the four relations
+ll;lr;rl;rrand in particular,is a congruence iff all the
+ll;lr;rl;rrare congruences.
+Let us ﬁrst notice that for , one has []ll= []rr=?whereas
+[]lr,[]rlare the identity relation.
+Let us consider u;u0;v;v0inN() and assume that uu0
+(and thus,ullu0,ulru0,urlu0,urru0) andvv0. We
+consideru:vandu:0v0and prove that u:vu:0v0.
+From the deﬁnition of runs and traversals, one has
+[u:v]ll= [u]ll[[u]lr([v]ll[u]rr)[v]ll[u]rl
+[u:v]lr= [u]lr([v]ll[u]rr)[v]lr
+[u:v]rl= [v]rl([u]rr[v]ll)[u]rl
+[u:v]rr= [v]rr[[v]rl([u]rr[v]ll)[u]rr[v]lr
+Hence, [u:v]= [u0:v0]for all;2 fl;rgand so,
+u:vu0:v0. Let us point out that these deﬁnition are similar to
+those deﬁned for words in the case of two-way ﬁnite state automata
+(Shepherdson 1959) and that [(u:v):w]= [u:(v:w)]and
+[u:]= [:u]for all;2fl;rg.
+Now, let us consider u;u0inN() and assume that uu0.
+We consider cur =fc;r(u)andcu0r=fc;r(u0)and show
+thatcurcu0r. Expressing traversals on cur is much more
+intricate. To ensure that traversals abstract properly runs, we need
+to forget about stack contents and thus, reason again only on nested
+words when composing sub-runs of cwr. Hence, new notations are
+needed: we let for dinf ;!gandw2N()
+Zc
+ll;d=n
+(p;q)j(p;!;c;p0; ;)2push;(p0; ;;c;q;d )2popo
+Zcw
+ll;d=[
+2 0
+BB@[
+(  !pc;+   !  !p0)f(p;p0)g[w]ll[
+(  q0c;    ! (q;d))f(q0;q)g1
+CCA
+Zr
+rr;d=n
+(p;q)j(p; ;r;p0;!;)2push;(p0;!;r;;q;d )2popo
+Zcw
+rr;d=[
+2 0
+BB@[
+(  pr;+   !  p0)f(p;p0)g[w]rr[
+(  !q0r;    ! (q;d))f(q0;q)g1
+CCA
+The expressions Zc
+ll;dandZcw
+ll;dstands both for left-to-left traver-
+sal reading twice the initial letter c; the former one represents a
+back-and-forth move on cwhereasZcw
+ll;dimplies that between the
+readings ofca left-to-left traversal of wis performed. If the last
+directiondis then the reading head leaves the word, otherwisethe next reading will be cagain. The expressions Zr
+rr;dandZwr
+rr;dare
+deﬁned dually.
+Tcwr
+lr;d=[
+2 0
+B@[
+(  !pc;+   !  !qf(p;q)g1
+CA[w]lr0
+B@[
+(  !pr;    ! (q;d))f(p;q)g1
+CA
+Tcwr
+rl;d=[
+2 0
+B@[
+(  pr;+   !  qf(p;q)g1
+CA[w]rl0
+B@[
+(  pc;    ! (q;d)f(p;q)g1
+CA
+The expression Tcwr
+lr;drepresents a direct traversal from left-to-
+right, going once through candr.
+Finally, the classes [cwr]ll,[cwr]lr,[cwr]rland[cwr]rrare
+deﬁned in Figure 3.
+Hence, we indeed have that [fc;r(u)]= [cur]=
+[cu0r]= [fc;r(u0)]for all;2fl;rg. 
+COROLLARY 1.For any 2VPAA, deciding the emptiness of A(ie
+L(A) =?) isEXPTIME-C. The same result holds for D2VPA .
+Proof. We detail the hardness proof by reduction from the
+emptiness of kDVPA . The latter problem can be shown to be
+EXPTIME-hard from the E XPTIME-hardness of intersection empti-
+ness ofkdeterministic top-down tree automata and a polyno-
+mial translation of deterministic top-down tree automata into
+DVPA (Alur and Madhusudan 2009). We can then encode this
+problem as emptiness of a D2VPA as follows: the D2VPA simu-
+lates one after the other the DVPA ’sA1;:::;Ak; once the word
+is read from left to right simulating Ai, if a ﬁnal state of Aiis
+reached, one enters a state that move the reading head at the be-
+ginning of the word and then switches to the initial state of Ai+1
+to read the input word once again. Hence, starting initially in the
+initial state of A1, if the ﬁnal state of Akis reached then the input
+nested word belongs to all the Ai’s. 
+A.2 Two-way visibly pushdown transducers
+LEMMA 2.Any unambiguous VPTTcan be written as the com-
+position of two VPTT1T2, whereT1is deterministic and T2is
+letter-to-letter and co-deterministic. Furthermore, if Tis letter-to-
+letter, so isT1.
+Proof. It has been proved in ( ?) that every unambiguous VPT
+can be transformed into a DVPT equipped with a look-ahead lim-
+ited to the current hedge. Formally, such a transducer is deﬁned as
+a triple (T;A; )whereTis aDVPT ,Ais aVPA with no initial
+states, andis a mapping from call transitions of Tto states ofA.
+Given a state pofA, we denote by AptheVPA deﬁned from Aby
+lettingfpgbe the set of initial states. A call transition tofTcan
+then be ﬁred at some position of an input word wonly if the longest
+nested subword of wfrom this position belongs to L(Ap).
+Intuitively, the decomposition of a DVPT with look-ahead
+works as follows: the co-deterministic letter-to-letter VPT does
+a ﬁrst pass enriching the alphabet with the results of the look-ahead
+tests. Then the deterministic VPT simulates the DVPT with look-
+ahead using this additional information.
+Formally, let (T;A; )be aDVPT with look-ahead from to
+, withA= (Q;F;  ;). We ﬁrst deﬁne the structured alphabet
+0as the disjoint union of the set of call symbols c2Q, and the
+set of return symbols r. We deﬁne the co-deterministic letter-to-
+letter VPTT2= (A2;O2)from to0, whereA2is deﬁned as
+the co-determinisation of A. Formally, let us denote by idXthe set
+f(q;q)jq2Xg. We deﬁneA2= (2QQ;I2;idF;r2QQ;)
+whereI2=fSQQjS\IF6=;gand the transitions of
+A2are deﬁned as follows:
+2-way Visibly Pushdown Automata & Transducers 11 2016/8/29
+
+--- Page 12 ---
+[cwr]ll=
+Zc=cw
+ll;![
+Tcwr
+lr; (Zr=wr
+rr; )Tcwr
+rl;!
+Zc=cw
+ll; [
+Tcwr
+lr; (Zw=wr
+rr; )Tcwr
+rl; 
+[cwr]lr=
+Zr=wr
+ll;![
+Tcwr
+lr; (Zr=wr
+rr; )Tcwr
+rl;!
+Tcwr
+lr;![
+Tcwr
+lr; (Zr=wr
+rr; )Zr=wr
+rr;!
+[cwr]rl=
+Zr=wr
+rr; [
+Tcwr
+rl;!(Zc=cw
+ll;!)Tcwr
+lr; 
+Tcwr
+rl; [
+Tcwr
+rl;!(Zc=cw
+ll;!)Zc=cw
+ll; 
+[cwr]rr=
+Zc=cw
+rr; [
+Tcwr
+rl;!(Zc=cw
+ll;!)Tcwr
+lr; 
+Zr=wr
+rr;![
+Tcwr
+rl;!(Zc=cw
+ll;!)Tcwr
+lr;!
+Figure 3. Relations of the transition congruence on cwr, whereZc=cw
+ll;dandZr=wr
+ll;d are deﬁned respectively by Zc
+ll;d[Zcw
+ll;dandZr
+ll;d[Zwr
+ll;d.
+p00q00S00p q
+c;+ r; Update (c;S;r )
+Return transitions: idQr; (r;S)     !S, withr2randS
+QQ
+Call transitions: Sc;+(r;S0)      !S00withc2c,r2rand
+S;S0;S00QQ, iffS=update (c;S00;r)S0where
+update (c;S00;r) =f(p;q)2QQj92 :9(p00;q00)2
+S00:pc;+   !p00andq00r;    !qg
+The mapping O2associatesto every return transition, and as-
+sociatesfp2Qj 9q2F:(p;q)2Sgto the call transition
+Sc;+(r;S0)      !S00. This set corresponds to the set of states psuch
+that the look-ahead constraint pis satisﬁed.
+TheDVPTT1from 0tocan then easily be derived from the
+DVPT with look-ahead Tas the look-aheads tests can be checked
+on the enriched alphabet 0. 
+THEOREM 3.Given a letter-to-letter DVPTAand a 2VPTB, we
+can construct a 2VPTCthat realizes the composition C=BA.
+If furthermore Bis deterministic, then so is C.
+Proof. We ﬁrst notice that since we’re considering visibly push-
+down machines, the stacks of both machines are always synchro-
+nized, meaning that they have the same height on each position.
+Then, let us remark that when the 2VPT moves to the right, we can
+do the simulation in a straight forward fashion by simulating it on
+the production of the one-way, which we can compute. It becomes
+more involved when it moves to the left. We then need to rewind
+the run of the one-way, and nondeterminism can arise. To bypass
+this, let us recall that a similar construction from (Hopcroft and Ull-
+man 1967) exists for classical transducers, and that the rewinding
+is done through a back and forth reading of the input, backtracking
+the run up to a position where the nondeterminism is cleared, and
+then moving back to the current position.
+The main idea is that if we were to consider a hedge as a
+word over subhedges (see Figure 4), we can use the Hopcroft-
+Ullman construction, given that we know the initial state, i.d. the
+state in which the one-way enters the hedge. To overcome this, we
+will ensure the invariant that the stack contains not only the stack
+symbols from the two transducers, but also at each step it contains
+the state in which the one-way enters a hedge. Remark that thanks
+to this, upon moving to the left of a call letter, the state of the one-
+way is directly given by the information in the stack.
+We now explain how we can treat subhedges as letters. First,
+while the subhedge alphabet is inﬁnite, we are actually interested in
+their behaviour in the one-way. Thus we consider an automaton not
+over the subhedge, but over their summaries, which are ﬁnite. We
+can thus compute a ﬁnite automaton of the summaries, and apply
+the Hopcroft-Ullman construction on it. Consequently, we need tocr
+c1r1
+w1c2r2
+w2cnrn
+wnu:
+Figure 4. The well nested word cc1w1r1c2w2r2:::cnwnrncan
+be seen as a word uover letters (ci;Si;ri)whereSiis the summary
+ofwi. The position labelled by cserves as initial position of the
+word.
+be able to compute the summaries of a given subhedge. This is eas-
+ily done on the ﬂy using the determinisation procedure of the VPA s.
+Finally, note that applying the Hopcroft-Ullman construction to the
+automaton of summaries gives the state in which the one-way en-
+ters the previous subhedge (when rewinding a run). This allows us
+to maintain the invariant, and by reading this subhedge we can com-
+pute the state of the one-way at the previous position (from where
+we started).
+Note that the Hopcroft-Ullman routine is deterministic, and
+consequently the construction preserves determinism.
+Formal construction. LetA= ((Q;i;F;  ;);O1)be a letter-
+to-letter DVPT andB= ((P;j;G; ;);O2)be a 2VPT that
+can be composed with A. We assume that Aworks on the alphabet
+equipped with left and right markers and preserves them. Note that
+it can easily be extended if it is not the case.
+We construct C= ((N;k;H; 
+;);O3)a2VPT that realizes
+the composition.
+N=Nm]Nb]Nf]NswhereNm,NbandNfcorrespond
+to the classical sets of the Hopcroft-Ullman construction, and
+Nsis used to compute the summary of a subhedge. We have the
+main modeNm=PQ, the back mode Nb=PQ]PQQ
+and the further mode Nf=PQ2, whileNs=QQ.
+Note that there are also other states like read or states from
+PQfendgthat were omitted. The total size of the omitted
+states is linear in PandQ.
+k= (i;j)is the initial state.
+H=FGis the set of ﬁnal state.
+
+can similarly to Nbe written as the disjoint union of stack
+alphabets for the different modes. We have 
+m=Q ,
+
+b=P(QQ]Q)r,
+f=P((Q )](Q )2)
+and
+s=QQr.
+We now give the transition function . Lowercase letters denote
+element of its uppercase counterpart. The direction of a transition
+is given by the sense of an arrow, and the resulting direction is
+omitted if it doesn’t change. Push transitions are denoted with a
++symbol while pop transitions are denoted by a  symbol. For
+2-way Visibly Pushdown Automata & Transducers 12 2016/8/29
+
+--- Page 13 ---
+example, we write (q; ;r;q0; ;)inpushasq0r;+    qand
+(q;!;r;q0; ;)inpopasqr;    !q0; .
+The ﬁrst three items describe the cases when we are able to di-
+rectly advance in the two runs. These are the simpler cases. The
+fourth corresponds to the end of the Hopcroft-Ullman construc-
+tion, where all the needed information was computed. In these
+cases, the production of O3is the one of the corresponding tran-
+sition of O2. Note that in all other cases, the production of O3
+will be empty and thus omitted.
+(p;q)c;+(q;; )      ! (p0;q0);difO1(qc;+   !q0) =c0and
+pc0;+   !p0;d.
+(p;q)r; (q;; )      ! (p0;q0);difO1(qr;    !q0) =r0and
+pr0;    !p0;d.
+(p0;q0);dc; (q0;;)         (p;q)ifO1(q0c;+   !q) =c0and
+p0;dc0;     p.
+(p0;q0);dr;+(q;; )        (p;q;q0;)where there exists q00
+such that O1(q0r;    !q00) =r0andp0;dr0;+    p.
+WhenBmoves to the left on a recall letter, we engage in the
+Hopcroft-Ullman construction. In order to do that, we need to
+compute the summary of the subhedge we are about to read.
+Note that a similar transition happens when the automaton on
+summaries rewinds one more step. Thus we have the following
+transitions:
+idQr;+(p;q;r)        (p;q).
+idQr;+(p;R;r )         (p;R).
+Computing a summary amounts to determining a VPA . Note
+that we stop when we reach the height we are interested in,
+which is where the stack ﬁrst contains a state of B, which is
+handle by the next item. Given a summary Sandc;ra call
+and return letter respectively, we deﬁne Update (c;S;r ) =
+f(q;q0)j9(q1;q2)2Sand qc;+   !q1andq2r;    !q0g.
+This will reveal to be useful in the remainder of the construc-
+tion.
+idQr;+(S;r)      S.
+S00c; (S0;r)       SwhereS00=S0Update (c;S;r ).
+After reading the ﬁrst subhedge, we get to the point where
+the top stack symbol is of the form (p;q;r ). If there is only
+one candidate, then there is no ambiguity. Otherwise, we start
+rewinding the runs.
+(p;q0;end);!c; (p;q;r)       Sifq0is the only state such that
+(q0;q)belongs toUpdate (c;S;r ).
+(p;R)c; (p;q;r)       SwhereR=f(q0;q0)j(q0;q)2
+Update (c;S;r )g.
+After reading the following subhedges, similar subcases appear,
+depending on whether the nondeterminism is cleared or not.
+If there is only one candidate left, we store a state leading to
+from the next subhedge, as well as a state leading to another
+candidate. They will be used to know when we got to the correct
+position. Otherwise we just update the set of partial runs.
+(p;q;q0);!c; (p;R;r )        SifR(q)is deﬁned,RUpdate (c;S;r )
+QfR(q)gand ifR(q0)is deﬁned and different from R(q).(p;R0)c; (p;R;r )        SwhereR0=RUpdate (c;S;r )and
+R06Qfqgfor anyq.
+It can happen that the nondeterminism has not been cleared
+until we reach the beginning of the hedge. In the same way
+that the Hopcroft-Ullman uses the initial state, we then use the
+information on the top of the stack to decide the candidate.
+(p;q;;q0);!c; (q;; )        (p;R)where ifq00is such that
+qc;+   !q00, bothR(q0)andR(q00)are deﬁned and different.
+Due to the deﬁnition, the model of 2VPT does not allow for di-
+rect u-turns. Consequently, the u-turns have been parametrized
+by speciﬁc states in the previous cases. We know explicit how
+we handle them:
+(p;q;end )c;+(p;q; )      !q0whereqc;+   !q0. We also have
+a subroutine that follows run of Aon this subhedge until it
+ends.
+(p;q;q0)c;+(p;q;q0)       ! read where the state read is a sub-
+routine that only reads the subhedge until it pops the stacked
+information.
+readr; (p;q;q0)       ! (p;q;q0). At the end of the read subrou-
+tine, we start following two runs in parallel, in the same way
+as in the next subcase.
+(p;q;;q0)c;+(q;; )      ! (p;q00;q0)whereqc;+   !q00.
+When we are in states of Nf, i.d. states of the form (p;q;q0), we
+simply follow the two runs in parallel, stacking pand the current
+states on the current height and the stack letters of both runs
+at each step nonetheless. This subroutine ends upon popping a
+stack letter that contains pwhere the two runs collide, meaning
+we reached the original position. We now explicit what happens
+on this position:
+qr; (p;q0;)       ! (p;q0;q;); .
+(q;q0)r; (p;q1;;q2;0)           ! (p;q1;q;); if there exists q00
+such thatqr;    !q00andq0r; 0
+   !q00.
+
+A.3 Expressiveness of Two-Way Visibly Pushdown
+Transducers
+THEOREM 6.An order-preserving transduction is deﬁnable in
+MSO [nw2w ]if, and only if, it is deﬁnable by a functional6VPT .
+Proof. The proof relies on the similar result for ﬁnite words
+from (Filiot 2015) and the equivalence between VPA andMSO nw
+from ( ?). LetTbe a functional VPT . From ( ?), we know that we
+can construct an equivalent unambiguous VPTT0realizing the
+same function. Using ( ?), we can construct an MSO nwformula
+'of the form9X1:::9XjQj (X1;:::;XjQj)that recognizes
+dom(T0). Moreover, given uindom(T0), there exists a unique
+assignment of the variables Xisatisfying , such that a variable
+x2Xiif, and only if, xquantify a position jsuch that the
+unique accepting run of T0onuis in stateqion positionj. Using
+', we can then easily construct an MSO [nw2w ]transduction T00
+usingjQjcopies. The domain formula is ', position formulas are
+q
+pos(x) ='^x2Xq. The successor transition is given by
+q;q0
+S(x;y) =S(x;y)^q
+pos(x)^q0
+pos(y)and we label the q
+copy of a node by the possibly empty production of the transducer
+6Within the class of VPT , the class of functional VPT is decidable in
+PTime (Filiot et al. 2010)
+2-way Visibly Pushdown Automata & Transducers 13 2016/8/29
+
+--- Page 14 ---
+in stateqreading the label of the node. We have, for va production
+ofT,q
+v(x) =W
+a2Aq;va(x)whereAq;v=fa2Aj9q0qajv  !
+q0g. Note that labeling by possibly empty words is not restrictive
+as MSO transductions are closed under composition, and a simple
+transduction can extend words into linear graphs and compress the
+-labeled paths.
+Now given an order-preserving MSO [nw2w ]T, we construct
+an unambiguous VPT that recognizes the same function. As Tis
+order-preserving, for every u=u1:::unindom(T), we can de-
+composeT(u)inv1:::vnwherevicorresponds to the production
+from position i. Let us callBthe ﬁnite set of all possible viappear-
+ing in a such decomposition. For any vinB, we use the formulas
+ofTto construct a formula v(x)that holds on an input word u
+and a position iif in the decomposition of T(u),vi=v. For any
+sequenceI= (c1;:::;ck)ofjvjdifferent copies of T, we de-
+ﬁnev
+I(x) =V
+i<kci;ci+1
+S (x;x)^V
+ikcipos(x)^civi(x)^V
+x=2I:c
+pos(x). The formula v(x)is simply deﬁned as the dis-
+junction of the formulas v
+I(x)on all possible sequences I.
+Then using these formulas, we construct a formula  over the ﬁ-
+nite alphabet Bthat recognizes the language L=f(u;T(u))j
+u2dom(T)g. We deﬁne =0
+dom^8x(a;v)(x)!v(x)
+where0
+dom is obtained from dom by replacing every predicate
+a(x)byW
+v2B(a;v)(x). Now thanks to ( ?), we can construct a
+DVPA that recognizesL=L( ). Finally, we transform it into a
+VPT by replacing transitions reading (a;v)into transitions read-
+ingaand producing v. SinceTrealizes a function, we obtain a
+functional VPT , concluding the proof. 
+PROPOSITION 3.Deciding the single use property on a 2VPT is
+EXPTIME-C.
+Proof. We prove that this problem is equivalent to deciding
+the emptiness of a D2VPA , which concludes the proof thanks to
+Corollary 1.
+Let us ﬁrst remark that if Ais single use, it is single use with
+respect to the set of all states that can produce a non empty word.
+LetAbe a 2VPT on an input alphabet . We deﬁne a 2VPAB
+on the marked alphabet f0;1gas follows. The transducer B
+ﬁrst reads its input to ensure that there is exactly one position with
+a1. It then nondeterministically chooses a producing state qand
+simulatesAon its input. It ﬁnally accepts if it visits the marked
+position twice in state q. ThenAis single use if, and only if, the
+language recognised by Bis empty. Since the size of Bis linear in
+the size ofA, deciding the single use property is Exptime.
+Conversely, let Bbe a 2VPA . We construct a 2VPTAas
+follows. All existing transitions of Bare set to produce the empty
+word, and every accepting transition is replaced by a back and
+forth move on the last position, producing a single letter. Then
+the producing transitions can only be ﬁred in Aif there is a run
+ofBthat ﬁres an accepting transition. If it is the case, then the
+corresponding run on Awill visit the state qtwice in the last
+position while producing non empty words. Thus the language
+recognised by Bis empty if, and only if, Ais single-use. As the
+size ofAis linear in the size of B, we get the Exptime-hardness of
+the single use problem. 
+LEMMA 3.There is an MSO-deﬁnable nested word to word trans-
+ductionfwhich is not deﬁnable by strongly single-use D2VPTLA.
+Proof. We explicit a transformation that is deﬁnable by an
+MSO [nw2w ]transduction but not by a strongly single-use D2VPTLA.
+Consider an alphabet with some special letters candrfrom
+candrrespectively. We deﬁne the transformation fwhich as-
+sociates to a word w0cw1cw2:::wn 1cwnrw0
+n 1:::w0
+2rw0
+1rw0
+where allwi,w0
+iare non empty nested words and do not any con-
+tainc, for0in, the wordw0w0
+0w1w0
+1:::wn 1w0
+n 1wn. Itsw0 w0
+0
+w1 w0
+1
+wn 1w0
+n 1c r
+c r
+c r
+cr 
+wn
+Figure 5. The transformation falternsntimes between positions
+left and right of wn. Thus it has to read wnat least 2ntimes.
+domain is then the set of nested words where any cis matched by
+anr, and all letters cappear successively nested on a given branch.
+The transformation is illustrated in Figure 5.
+Before giving the MSO [nw2w ]that deﬁnesf, we explain how
+it is not deﬁnable by a strongly single use D2VPTLA. As thewiand
+w0
+iare unbounded, they cannot be guessed by look-around. Thus a
+machine realizing it has to visit these subwords in the order they
+are output. But each walk from witow0
+ihas to crosswn. Thuswn
+is read at least 2ntimes. Asnis not bounded, fcannot be realized
+by a strongly single use D2VPTLA.
+Now we deﬁne a MSO [nw2w ]Tthat realizes f. In order to do
+that, we deﬁne a binary predicate H(x;y)which holds is xandy
+are call or return positions of a same hedge. Let Htc(X)be deﬁned
+by the formula:
+8x2Xc(x)! 
+8yM(x;y)_(S(y;x)^r(y))!y2X
+^r(x)! 
+8yM(y;x)_(S(x;y)^c(y))!y2X
+withl(x) =W
+2l(x)forl=c;r. Then a setXsatisﬁes
+Htc(X)if, and only if, it is closed by the relation belong to the
+same hedge . We then simply set H(x;y) =8X x2X^
+Htc(X)!y2X. We also deﬁne the parent relation P(x;y) =
+9zH(x;z)^(8z0H(z;z0)!zz0)^S(y;z)which holds if y
+is the call corresponding to the parent of x.
+We can now deﬁne the domain formula dom=8x c(x)!
+(8y(M(x;y)!r(y))^(P(x;y)!c(y))^(H(x;y)^
+c(y)!x=y)stating exactly what was mentioned earlier. The
+transducerTuses1copy, the position formula pos(x) =:(c(x)_
+(9y M(y;x)^c(y)))simply erases the clabeled positions and
+their matching, the labeling formulas simply maintain the labels,
+and ﬁnally the successor formula S(x;y)is deﬁned by:
+9zS(x;z)^:(c(z)_(9wM(w;z)^c(w)))^y=z)
+_ 
+c(z)^9z0M(z;z0)^S(z0;y)
+_ 
+9z0;z00M(z0;z)^c(z0)^Nextc(z0;z00)^S(z00;y)
+whereNextc(x;y) =x<y^c(y)^8zx<z<y!:c(z).
+THEOREM 7.Letfbe a transduction from nested words to words.
+Thenfis MSO-deﬁnable iff it is deﬁnable by a (look-around)
+D2VPT su, i.e.,
+MSO [nw2w ] =D2VPTLA
+su=D2VPT su.
+Proof. We prove the equivalence MSO [nw2w ] =D2VPTLA
+su.
+Proof overview This result is based on several results of (Cour-
+celle and Engelfriet 2012), on the class of deterministic tree-to-
+word walking transducers (DTWT), possibly augmented with vis-
+ibly pushdown stack (then denoted DPTWT) and a regular look-
+around ability (denoted by an exponent la), and possibly restricted
+to linear-size increase the class of linear-size increase transductions
+(denoted by subscript lsi), or to strongly single-use (denoted by
+2-way Visibly Pushdown Automata & Transducers 14 2016/8/29
+
+--- Page 15 ---
+subscriptssu). We will deﬁne the most general model formally in
+the sequel.
+Let us also denote by MSO [b2w]the class of MSO-deﬁnable
+transductions from (ranked) trees to words. Then, it is shown in
+(Courcelle and Engelfriet 2012) that
+MSO [b2w] =DTWTla=DPTWTla
+lsi
+The inclusion MSO [nw2w ]D2VPTLA
+suis proved using the
+equality MSO [b2w] = DTWTla. Due to determinism, DTWTla
+are always strongly single-use (otherwise they could be stuck in
+a loop), i.e., DTWTla=DTWTla
+ssu(see (Courcelle and Engel-
+friet 2012), in which it is just called single-use). Using a ﬁrst-
+child next-sibling encoding of nested words winto binary trees
+fcns(w), we have MSO [nw2w ] =MSO [b2w]fcns, and therefore
+MSO [nw2w ] =DTWTla
+ssufcns. Then, we show that DTWTla
+ssu
+fcnsD2VPTLA
+suby simulating DTWTla
+ssuthat runs on fcns en-
+coding of nested words by D2VPTLA
+su. In particular, when simulat-
+ing tree walking moves, one do not preserve the strong single-use
+restriction, but the resulting D2VPTLA
+suis single-use.
+To show inclusion D2VPTLA
+suMSO [nw2w ], we use the
+equality MSO [b2w] = DPTWTla
+lsi. Using fcns encoding, we get
+thatMSO [nw2w ] =DPTWTla
+lsifcns= (DPTWTlafcns)\LSI,
+where LSI denotes the class of linear-size increase transductions.
+Then, we establish the inclusion D2VPTLA
+su(DPTWTla
+fcns)\LSI . The single-use restriction of D2VPTLA
+suensures that
+they deﬁne only transductions in LSI. Then, a D2VPTLA
+sucan be
+simulated by a DPTWTlarunning on fcns encodings of nested
+words. Due to the encoding, pushdown moves of the D2VPT are
+simulated by pushdown moves to the 1st child by the DPTWT
+and the look-around are translated in a straightforward fashion.
+The resulting DPTWT does not use the stack while moving to 2nd
+children.
+As a matter of fact, putting things altogether, our result also
+shows that DPTWTlacould be strengthen when they run on binary
+trees, to the following pushdown behaviour, while retaining MSO-
+expressiveness: they only need to push a symbol when moving to
+left children, and not when moving to right children.
+To summarize, we show the following chain of inclusions:
+D2VPTLA
+su(1) ( DPTWTlafcns)\LSI(5)
+(2)
+DTWTla
+sufcns(4) MSO [b2w]fcns=MSO [nw2w ] (3)
+where (1) and (5) are shown in this paper, (3) is immediate, (2) and
+(4) come from (Courcelle and Engelfriet 2012). We now proceed to
+the detailed proof.
+Tree Walking Transducers Letbe a ranked alphabet of binary
+and constant symbols (i.e. is partitioned into 2and0). A tree
+tofis a term inductively deﬁned by t::=f(t;t)ja, where
+f22anda20. We denote by Trees the set of trees over
+. The set of nodes, denoted by Ntof a treet2Trees , is a
+preﬁx-closed subset of f1;2ginductively deﬁned as Na=fg
+andNf(t1;t2)=fg[fi:j2Nti;i2f1;2gg. For a node
+n2Nt, we denote by t(n)the label of node nint. Letbe a ﬁnite
+(unranked) alphabet. A tree to word transduction is a function from
+Trees into.
+Let us explain informally the different classes of tree walking
+transducers we consider in this proof. A deterministic tree to word
+walking transducer walks through the edges of a binary tree (start-
+ing from the root node), and writes a word from left to right on
+some output tape. In a state qof a treetand at a node n, depending
+on the label of n, and the state q, the transducer can move either
+to the father of n(if it exists, otherwise the run rejects), the ﬁrst or
+second child of n(if it exists, otherwise the run rejects), change its
+internal state to a new state, and produces some partial word on theoutput. It can also decide to stop the walk by going to a stopping
+stateqs.
+Such transducers can be augmented with look-around. We de-
+ﬁne look-around by an unambiguous bottom-up tree automaton.
+Prior to starting the computation of the tree walking transducer,
+the tree, if accepted by the look-around automaton, is labeled by
+the states of the accepting run of the automaton. Then, transitions
+are taken depending also on the look-around states.
+Finally, walking transducers can be augmented by a (visibly)
+pushdown store. Initially at the root the pushdown stack contains
+an initial symbol 0, and whenever the transducer goes one step
+downward, it has to push one symbol on the stack. If it moves one
+step upward, it has to pop one symbol. At any moment, it can also
+read the top symbol of the stack.
+Formally, a deterministic pushdown tree to word walking trans-
+ducer with look-around from Trees tois a tupleT=
+(L;Q;q 0;qs; ;0;R)whereLis an unambiguous bottom-up tree
+automaton7over a ﬁnite set of states P(the look-around automa-
+ton),Qis a ﬁnite set of states, q0is the initial state, qsthe stopping
+state,  is a ﬁnite stack alphabet with initial symbol 0,Ris a
+transition function such that
+R:QP !(fqsg[ Qf1;2g[Qf  1g)
+A conﬁguration of Ton a treetis a triple (q;n;;u )2Q
+Nt +. For all trees t2Trees , iftis accepted by the
+look-around automaton, we deﬁne !ta binary relation between
+consecutive conﬁgurations as follows: for all q;q02Q, alln;n02
+Nt, all;02 , all2 , allu;v2,(q;n;;u )!t
+(q0;n0;0;uv)if the accepting run of Llabelsnby a statep2P
+such that (q;p;t (n);)2Dom(R)and either
+(stopping move )R(q;p;t (n);) = (v;qs)andq0=qs,n0=
+n,0=, or
+(downward move )R(q;p;t (n);) = (v;0;q0;i)fori2
+f1;2gand0=0,t(n)22, andn0is thei-th child
+ofn, or
+(upward move )R(q;p;t (n);) = (v;q0; 1)andn6=(i.e.
+nis not the root node), 0=, andn0is the father of n.
+A run ofTon a treetis a ﬁnite sequence of conﬁgurations
+c0c1:::cmsuch thatci!tci+1for alli= 0;:::;m 1. It is
+accepting if c0= (q0;; 0;)andcm= (qs;n;;u )for some
+n2Nt,2 +,u2. SinceRis a function and Lis
+unambiguous, there exists at most one accepting run per input tree
+t, and we call uthe output of t. The transduction realized by T
+is the set of pairs (t;u)such thattis accepted by the look-around
+automaton, and there exists an accepting run of Tontwhose output
+isu. The class of deterministic pushdown tree to word walking
+transducers8is denoted by DPTWTla.
+7We refer the reader to (Comon-Lundh et al. 2007) for a deﬁnition of
+bottom-up tree automata
+8We have slightly changed the deﬁnition of (Courcelle and Engelfriet
+2012) to simplify our presentation, but in an equivalent way, and have
+specialized it to the tree-to-word setting. In (Courcelle and Engelfriet 2012),
+look-around are MSO-formulas on trees, with one free ﬁrst-order variable,
+attached to the transitions of the transducer: a transition can be ﬁred only if
+its look-around formula holds at the current node. It is known that such
+an MSO formula (x)is equivalent to an unambiguous bottom-up tree
+automatonA(Niehren et al. 2005; Neven and Schwentick 2002) in the
+following sense: the automaton as a special set of selecting states S, such
+that on a tree taccepted by the automaton, a node nis such thattj=(n)
+iff this node is labeled by a state of Sin the accepting run of the automaton
+ont. If1(x);:::;n(x)are the look-around formulas appearing on the
+transitions of the tree walking transducer, then by taking the product of the
+unambiguous automata Ai, one obtains an unambiguous automaton Ala
+2-way Visibly Pushdown Automata & Transducers 15 2016/8/29
+
+--- Page 16 ---
+The class DTWTladenotes the class of deterministic tree to
+word walking transducers with look-around (without pushdown
+store), deﬁned similarly as DPTWTlabut with a pushdown alpha-
+bet that consists of one symbol f0gonly. In that case, we can
+omit the pushdown symbols in the transitions, except the initial
+pushdown symbol 0that allows to know whether the current node
+is the root of the tree or not. Instead of keeping the symbol 0in
+the transitions, we use a boolean value which is true if the current
+node is the root, and false otherwise. Therefore, in DTWTla, the
+transitions function has the following type:
+R:QP!(fqsg[Qf  1;1;2g)
+We say that a DTWTlaisstrongly single-use if one any accepting
+runc0:::cnon a tree, a node n2Ntis not visited twice in the
+same state. As a matter of fact, it turns out that DTWTlaare always
+strongly single-use (Courcelle and Engelfriet 2012).
+MSO [b2w]is deﬁned similarly as MSO [nw2w ], except that
+MSO formulas over the signature fS1(x;y);S2(x;y);(a(x))a2g
+are used to deﬁne the transduction, where Si(x;y)holds ifyis the
+i-th child ofx. It is easy to show that MSO [nw2w ]andMSO [b2w]
+are equivalent, modulo suitable encodings. In particular, we will
+need the following equality:
+MSO [nw2w ] =MSO [b2w]fcns (1)
+where fcns encodes nested words into binary trees. Let us describe
+this encoding formally: Let  = c]rbe a structured alphabet.
+We deﬁne the binary alphabet 2= cr, and the unary
+alphabet 0=f?g. We deﬁne fcns the encoding of nested words
+to binary trees inductively as follows, for all w;w02 N ([)] ,
+c2c;r2r:
+fcns(cwrw0) = (c;r)(fcns(w);fcns(w0)) fcns() =?
+We are now equipped to show the following two inclusions, which
+will prove the desired result:
+(2)DTWTlafcnsD2VPTLA
+su
+(3)D2VPTLA
+su(DPTWTlafcns)\LSI
+Proof of inclusion (2) LetT= (L;Q;q 0;qs;R)be DTWTla.
+We construct a D2VPTLA
+suT0such that JTKfcns=JT0K.
+Transitions of Tare simulated only on call symbols, i.e. the
+moves ofTare simulated by moves in T0between call symbols.
+For instance, let c1c2r2c3c4r4r3c5r5r1be a nested word, whose
+fcns encoding is the tree
+(c1;r1)((c2;r2)(?;(c3;r3)((c4;r4);(c5;r5)(?;?))))
+IfTmoves from (c3;r3)to its father (c2;r2), thenT0will move
+fromc3toc2. IfTmoves from (c3;r3)to its ﬁrst child (c4;r4),
+thenT0will move from c3toc4. IfTmoves from (c3;r3)to its
+second-child (c5;r5), thenT0will move from c3toc5.
+Therefore, one-step moves of Tin a binary encoding twof a
+nested wordware simulated by sequences of moves of T0inw. It is
+easy to see however that those sequences of moves can be achieved
+by a D2VPT . The trivial case is a ﬁrst-child move: it sufﬁces to
+such that, on a tree taccepted by Ala, the state label of a node noft
+in the accepting run of Alacontains enough information to decide which
+look-arounds i(x)hold at that node or not.
+Another modiﬁcation of the deﬁnition of (Courcelle and Engelfriet 2012) is
+that we do not have 0-moves, i.e. transitions that stay at the same node. This
+is circumvented by adding the possibility of producing several symbols by
+a single transition, in contrast to (Courcelle and Engelfriet 2012).
+Finally, our transducers produce words over , while in (Courcelle and
+Engelfriet 2012), they produce unary trees, i.e. a sequence of unary symbols
+followed by a constant symbol. As a consequence, when a constant is
+produced, the transducers of (Courcelle and Engelfriet 2012) stop. In our
+deﬁnition, we rather have added a stopping state.move one-step to the right in w. For the second-child move, T0
+has to move to the next call symbol at the right of current one, at
+the same nesting depth: this is done by pushing one special symbol
+2when reading the ﬁrst call, and moving to the right, until 2is
+popped. For a father move, it sufﬁces to move left: if the previous
+symbol is a call, then T0has arrived to the call corresponding to
+the father node. Otherwise, the left symbol is a return symbol:
+again, a special symbol fis pushed, to know, when T0walks left,
+whenever it is at the same depth as the initial call symbol. If after
+poppingf, a call symbol is read again, then it corresponds to the
+father. Note that these walks do not produce anything on the output.
+The look-around LofTis transformed into a look-around of
+T0such that, ifLlabels a tree node labelled (c;r)by a statep, then
+T0will label the call symbol cby the state p, as well as the call
+symbolr. It is possible, since bottom-up tree automata and visi-
+bly pushdown automata correspond modulo ﬁrst-child next-sibling
+encodings, while preserving unambiguity (Alur and Madhusudan
+2009). Therefore, if Pis the set of states of L, then the set of states
+of the look-around automaton of T0isPr.
+Then, a transition (q;p;(c;r);u;(q0;d))whered2f  1;1;2g
+is simulated by T0by a sequence of transitions (depending on
+whetherd= 1,d= 1 ord= 2) that starts in state q(with
+look-around state (p;r)) and ends in state q0, and performs moves
+as explained before.
+There is a last additional technical difﬁculty: fcns encodings
+contain the symbol ?, unlike the encoded nested words. Therefore,
+T0may move to?, whileTcannot. Moves to nodes labeled ?
+can be simulated easily by T0by adding-transitions, which can
+in turn be removed while preserving determinism. It is not difﬁcult
+but unnecessarily technical.
+Finally, since Tis necessarily single-use (due to non-determinism),
+T0is also single-use (the extra states added to simulate one-step
+moves ofTby several moves of T0may be used several times at
+the same tree node, but the transitions ﬁred from those states are
+-producing).
+Proof of inclusion (3) Due to the single-use restriction, any
+D2VPTLA
+sutransduction is LSI. It remains to show that a D2VPTLA
+su
+can be simulated by a DPTWTla. By using again the correspon-
+dence between (unambiguous) visibly pushdown automata and (un-
+ambiguous) bottom-up tree automata, one can simulate their look-
+arounds. Since DPTWTlahave the ability to push stack symbols in
+both directions (ﬁrst-child or second-child), it is not difﬁcult to con-
+struct a DPTWTlathat simulates a D2VPTLA
+su. As a matter of fact,
+pushing symbols when moving to the second-child is not necessary
+to simulate D2VPTLA
+su: indeed, a second-child in a fcns encoding
+correspond to a next-sibling in the nested word, and D2VPTLA
+sudo
+not use their stack for processing symbols that are at the same depth
+(they do not push “horizontally”). 
+A.4 Inclusion into streaming transducers and
+hedge-to-string transducers
+THEOREM 9.D2VPT (STST andD2VPT (dH2SLA
+Proof. The proofs of these two inclusions share a same inter-
+mediate formal description of transformation. It turns out that this
+representation will be an extension of the ﬁnite transition algebra
+TAfor some D2VPAA.
+We recall that elements from the algebra TAare binary relations
+overQDwhereQis the set of states of Aand can thus be
+depicted as Boolean square matrices MTAoverQD. Hence, the
+morphismTAassociates with each word wfromN()a matrix
+fromMTAsuch thatTA(w)((p1;d1);(p2;d2))is true if there
+exists a run on wfrom (p1;d1)to(p2;d2)inA.
+One may extend this notion to transducers as follows. For a
+D2VPTA, we consider square matrices NAoverQDwhose
+2-way Visibly Pushdown Automata & Transducers 16 2016/8/29
+
+--- Page 17 ---
+values range over subsets of . One can deﬁne a mapping 
+fromN() toNAsuch that for all words wfromN(),(w)
+is a matrix NAsatisfying that NA((p1;d1);(p2;d2))is equal
+toLif for eachvinL, there exists a run on wfrom (p1;d1)
+to(p2;d2)inAproducingv. Note in fact that Abeing de-
+terministic,Lis either a singleton or the empty set. One can
+actually prove that one can deﬁne an (inﬁnite) algebra NA=
+(NA;:NA;(fc;r)(c;r)2cr;NA)such that:NAis associative and
+NAis its neutral element. Moreover, the considered mapping 
+turns out toNAbe the canonical morphism from WtoNA. It is
+worth noticing that for all (p;d),(p0;d0),TA(w)((p;d);(p0;d0))
+is false iffNA(w)((p;d);(p0;d0))6=;.
+The operations NA,:NAandfNAc;rcan be represented as matri-
+ces as well. To do so, let us ﬁrst consider the two sets of symbols
+=fx(p;d);(p0;d0)
+j(p;d);(p0;d0)2QDgfor2f1;2g.
+Then, let ^NAbe the set of matrices deﬁned over QDsuch that
+for^NAin^NA, for all (p1;d1),(p2;d2),^NA((p1;d1);(p2;d2))
+is either the empty set ?or a singleton set included into the set
+of words ([1[2). Moreover, for NA, the matrix is pre-
+cisely the one with fgon its main diagonal and ?everywhere
+else. ForfNAc;r, the elements of the matrix are actually included into
+([1). The operation :NAdeals with two matrices ^N1
+Aand
+^N2
+Aand produces the matrix ^N00
+Asatisfying that for all (p1;d1),
+(p2;d2),^N00
+A((p1;d1);(p2;d2))is obtained from ^N0:0
+Athe ma-
+trix of:NAby replacing everywhere in ^N0:0
+A((p1;d1);(p2;d2))the
+symbolx(p;d);(p0;d0)
+ by^N
+A((p;d);(p0;d0))for2f1;2g. The
+application for fNAc;rrepresented by some matrix ^Nfc;r
+A is similar
+with a single matrix as operand.
+The matrices ^N0:0
+Aand^Nfc;r
+A can be deﬁned by means of ex-
+pressions similar to the ones deﬁning recursively the equivalence
+classes of traversals. Hence, these matrices are deﬁned by means of
+unions, concatenations and Kleene star entrywise; the fact that en-
+tries of the matrices contain at most singletons and that Kleene star
+can be expressed as ﬁnite concatenations relies on the determinism
+ofA.
+From the inﬁnite algebra NAand more speciﬁcally the matrices
+representation of the operators ^N0:0
+Aand^Nfc;r
+A from this algebra,
+we are going now to build a streaming tree-to-string transducer on
+the one side and a dH2S on this other side.
+For streaming tree-to-string transducers, the idea is to deﬁne
+from a D2VPTAsuch a machine SAto simulate the computation
+ofNA(w)for any word wor more precisely to compute the value
+associated to ((qI;!);(qf;!))in this matrix, qIbeing the initial
+state of the D2VPTAandqfthe (ﬁnal) state reached by Aafter
+readingwfromqI.
+We recall that we can deﬁne from Athe ﬁnite algebra TA
+whose domain is Trav Aand we consider =fx(p;d);(p0;d0)
+j
+(p;d);(p0;d0)2QDgfor2f1;2g.
+For a D2VPAA, theSTSTSAis deﬁned by (TravA;TA;c
+TravA;1;SA;SA
+F)where
+push
+SA(mTA;c) = (TA;(c;mTA);Id)
+pop
+SA= (m0TA;r;(c;mTA)) = (mTA:TAfTAc;r(m0TA);c;r)
+whereIdis the identity on 1andc;rassociate with each
+x(p;d);(p0;d0)the expression from N((p;d);(p0;d0))where the
+matrixNis deﬁned as N1
+Id:NAfNAc;r(N2
+Id), the matrices N
+Id
+satisfying for all (p1;d1),(p2;d2),N
+Id((p1;d1);(p2;d2)) =
+x(p1;d1);(p2;d2)
+ (for all2f1;2g).
+Let us now consider the case of deterministic hedge-to-string
+transducer. We ﬁrst deﬁne the bottom-up deterministic look-ahead
+automatonBAas(TravA;fT
+Ag;BA)whereBAis the set ofrules of the form f(mTA:TAfTAc;r(m0TA);c;r;mTA;m0TA)with
+mTA;m0TA2TravA.
+Now, we deﬁne the dH2SHAas follows: the set of states QHA
+isfqIg[TravA(QD)2,qIis the initial state, and the set of
+ﬁnal states is QHA. Now, for the transition function, we deﬁne
+(qI;c;r;nTA
+1;nTA
+2) =
+![x(q1;d1);(q2;d2)
+ (nTA;((q1;d1);(q2;d2)))(x)]
+((mTA;((p;d);(p0;d0)));c;r;mTA) =
+![x(q1;d1);(q2;d2)
+ (mTA;((q1;d1);(q2;d2)))(x)]
+where
+for anynTA
+1,nTA
+2such that (fTAc;r(nTA
+1):TAnTA
+2)((qI;!);(qf; 
+))is true for some qf2F.
+for anymTA
+1,mTA
+2such thatfTAc;r(mTA
+1):TAmTA
+2=mTAand
+((p;d);(p0;d0))2mTAand
+!is equal to the word N((p;d);(p0;d0)),Nbeing the matrix
+fNAc;r(N1
+Id):NAN2
+Id, where the matrix N
+Idsatisﬁes for all 2
+f1;2g, for all (p1;d1),(p2;d2),N
+Id((p1;d1);(p2;d2)) =
+x(p1;d1);(p2;d2)
+ .
+Let us prove now that the inclusions are strict. The transforma-
+tion serving as a counter-example is the same for the two classes.
+We consider a transformation Tover the input alphabet c=fcg
+andr=frgand the output alphabet fag. This transformation
+takes as an input words such as (cr)nfor any natural nand outputs
+a2n 1.Tis given by the dH2S with a single state qand with a
+universal look-ahead automaton with q0as unique state by
+(q;c;r;q0) =aq(x1)q(x1)
+The transformation Tcan also be deﬁned by a STST with a single
+stateq, a unique register variable Xand a unique stack symbol .
+The transitions are given by
+push(q;c) = (q;;fX7!aXXg)
+pop(q;r; ) = (q;fX7!Xg)
+The transformation Tcannot be realized by some D2VPT ;
+indeed, for such a machine with stack alphabet  on the shallow
+inputs of the domain, the possible stacks occurring in runs are either
+?or the form for2 . Hence, the possible behaviours of
+such D2VPT are similar to the ones of a deterministic ﬁnite state
+transducer. It is known that deterministic ﬁnite state transducers
+realize only functions that are linear-size increase; this is not the
+case of the transformation T. 
+A.5 Unranked Tree Walking Transducers
+Unranked Trees Letbe a ﬁnite set of symbols. Unranked trees
+toverare deﬁned inductively as t::=aja(t1;:::;tn), for
+alla2, alln1. Unranked trees over can be identiﬁed
+(modulo renaming of nodes) with structures over the signature U
+that consists of the ﬁrst-child predicatefc(x;y)that relates a node
+xto its ﬁrst-child y, the next-sibling predicatens(x;y)that relates
+a nodexto its next-sibling yin a sequence of unranked trees, and
+a(x), for alla2, that holds true in node xif it is labeled a. In
+addition, we also add a parent predicateparent (x;y)that relates
+a node to its parent.
+For instance, the unranked tree a(b;c(a);c)is identiﬁed with
+the structure whose set of nodes is f;1;2;3;21g, where the ﬁrst-
+child predicate is f(;1);(2;21)g, the next-sibling predicate is
+f(1;2);(2;3)g, theapredicate isf;21g, thebpredicate isf1g
+and thecpredicate isf2;3g. The parent predicate is given by
+f(1;);(2;);(3;);(21;2)g.
+2-way Visibly Pushdown Automata & Transducers 17 2016/8/29
+
+--- Page 18 ---
+Unranked Tree Walking Transducers They are deﬁned similarly
+as ranked tree walking transducers, except that they move along
+the next-sibling and ﬁrst-child predicates. They are equipped with
+a (visibly) pushdown store such that whenever they go down the
+ﬁrst-child, they have to push some symbol, whenever they go up
+to the parent of a node, they have pop one symbol from the stack.
+However, when they move horizontally along next-sibling predi-
+cates, they do not touch the stack. Before applying a transition,
+they can test whether the current node is the root, is the ﬁrst-child
+of some node, the last-child, or a leaf. Their move have to be con-
+sistent with the result of such a test. They are also equipped with
+staymoves that stay at the same tree node.
+Formally, a deterministic pushdown unranked tree to word
+walking transducer (DPTuWT) from unranked trees over to
+is a tupleT= (Q;q0;qs; ;0;R)whereQis a ﬁnite set of
+states,q0is the initial state, qsthe stopping state,  is a ﬁnite stack
+alphabet with initial symbol 0,Ris a transition function such that
+R:Q f0;1g4!(fqsg[ Qf#g[Qf!; ;";	g)
+A conﬁguration of Ton a treetwith set of nodes Ntis a triple
+(q;n;;u )2QNt +. We deﬁne!ta binary relation
+between consecutive conﬁgurations as follows: Let n2Ntlabeled
+a2. Letb= (bfc;blc;br;bl)2f0;1g4such thatbfc= 1 iffn
+is a ﬁrst-child, blc= 1 iffnis a last-child, br= 1 iffnis the root,
+bl= 1iffnis a leaf. Then, for all q;q02Q, alln02Nt, all;02
+ , all2 , allu;v2,(q;n;;u )!t(q0;n0;0;uv)if
+(stopping move )R(q;a;;b) = (v;qs)andq0=qs,n0=n,
+0=, or
+(downward move )R(q;a;;b) = (v;0;q0;#),0=0,
+andfc(n;n0), or,
+(upward move )R(q;a;;b) = (v;q0;")and0=, and
+parent (n;n0), or,
+(left sibling move )R(q;a;;b) = (v;q0; )and0=, and
+ns(n0;n), or,
+(right sibling move )R(q;a;;b) = (v;q0;!)and0=, and
+ns(n;n0).
+(stay move )R(q;a;;b) = (v;q0;	)and0=, andn=n0.
+A run ofTon an unranked tree tis a ﬁnite sequence of conﬁgu-
+rationsc0c1:::cmsuch thatci!tci+1for alli= 0;:::;m 1.
+It is accepting if c0= (q0;r; 0;), whereris the root node of t,
+andcm= (qs;n;;u )for some node noft,2 +, andu2.
+SinceRis function, there exists at most one accepting run per input
+treet, and we call uthe output of t. The transduction realized by T
+is the set of pairs (t;u)such that there exists an accepting run of T
+ontwhose output is u.
+Equivalence between D2VPT and DPTuWT Modulo nested
+word linearisation of unranked trees, the two models are equiva-
+lent. Let us brieﬂy sketch why.
+AssumeTis a DPTuWT and let us construct an equivalent
+D2VPTT0. First notice that when Tis positioned at some node
+n, its stack height is exactly the depth of node nin the tree, as
+well as the depth of the call and return symbols corresponding
+tonin the linearisation. Also note that Tcan always read the
+top symbol of the stack, while T0only reads it when it pops a
+symbol. This issue can be overcome by always keeping in the
+state ofT0the top stack symbol. It remains to see how T0can
+simulate the moves of Tand its tests (root, leaf, etc.). We assume
+that ifTis positioned at some tree node n, thenT0is positioned
+at the call position cncorresponding to nin the linearisation of
+the input tree. Then, if Tmoves from nto its next-sibling n0,T0
+has to traverse the whole linearisation of the subtree rooted at n. Itcan be easily done by pushing a special symbol when reading cn
+forward, which is popped once the matching return position of cn
+is met. Simulating previous-sibling moves is done symmetrically.
+Suppose now that a tree node n0is the parent of a tree node n. In
+the linearisation, it means that there is a (sub) nested word of the
+formcn0w1cnw2rnw3rn0, wherew1;w2;w3are nested words. To
+simulate a move of T0fromnton0,T0has to move backward from
+cntocn0, traversingw1. Again, by using a special stack symbol
+when traversing w1,T0can detect when it reads cn0: It is the ﬁrst
+time it does not popped the special stack symbol. To simulate a stay
+move,T0just move one-step forward and one-step backward.
+Finally, we have to show how T0can simulate the tests (root,
+leaf, etc.). By using a special bottom stack symbol, T0can know
+when it is at the root. The other tests can easily be performed by
+T0: For instance, to detect that T0is positioned at a call position
+that corresponds to a ﬁrst-child, it sufﬁces to go one-step backward
+and check whether the previous symbol is call.
+Conversely , letTbe a D2VPT whose input are assumed to
+be linearisations of unranked trees. To construct an equivalent
+DPTuWTT0, one again has to show how the moves of Tare
+simulated by moves of T0.
+IfTmoves forward by reading a call symbol cn, then its next
+position can be either that of a call symbol cn0(which means that
+n0is the ﬁrst-child of n), or that of return symbol rn(which means
+thatnis a leaf). Using a test, Tcan decide whether it is at a leaf or
+not. In the ﬁrst case, it uses a stay transition and in the second case,
+it uses a ﬁrst-child transition.
+Other cases are treated similarly: For instance, if Tmoves
+forward by reading a return symbol rn, then if the next symbol
+is a call symbol cn0, it means that n0is the next-sibling of n, and if
+the next symbol is a return symbol rn0, it means that n0is a parent
+ofn. Using tests, Tcan decide what moves to perform, either next-
+sibling or parent.
+2-way Visibly Pushdown Automata & Transducers 18 2016/8/29
