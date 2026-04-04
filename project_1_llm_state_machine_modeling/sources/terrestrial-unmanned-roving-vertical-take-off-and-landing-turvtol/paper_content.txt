@@ -1,0 +1,1194 @@
+--- Page 1 ---
+Terrestrial Unmanned Roving Vertical Take-oﬀ and Landing
+(TURVTOL)
+Bennett Bartel, Ryan Bonk, Terelle Cadd, Chad Hite, Hunter Huth, Songcheng Lin, Stewart Nelson, Jamie O’Brien,
+Hannah Oliver, Zachary Preston, Nicole Schneider, Catie Spivey, Carson Stebbins, Christopher Titus, and Isaac Vliem∗
+NASA Langley Research Center, Hampton, Virginia, 23666
+Astheusesforautonomousroversanddroneshasincreasedwiththeirvariabilityandutility,
+a fundamental gap has emerged - one which melds multi-modal capabilities into a singular
+unit. Thisprojectaimstoﬁllthatgapwiththeintroductionofamulti-modalunmannedvehicle
+concept that can traverse ground quickly, hop or ﬂy over obstacles and hazardous areas, and
+operate without the use of GPS or a human in the loop. The 2020 NASA Academy at Langley
+has developed a ﬁrst iteration conceptual design of such a vehicle. This design has proven to
+be feasible through analyses conﬁned to simulated environments.
+Nomenclature
+4, = Four Wheel Drive
+$)( = Commercially-Available Oﬀ-The-Shelf
+%* = Central Processing Unit
+43¹Cº= Positional error
+4l¹Cº= Angular error
+ = Electric Ducted Fan
+( = Electronic Speed Controller
+6 = Gravitational Acceleration
+2¹Bº= Controller transfer function
+¹Bº= Diﬀerential drive controller transfer function
+"¹Bº= Motor transfer function
+%( = Global Positioning System
+%* = Graphics Processing Unit
+ = Finite Element Analysis
+(" = Finite State Machine
+"* = Inertial Measurement Unit
+∗NASA Academy Team Research Associates, Aeronautics Research Directorate
+
+--- Page 2 ---
+:3 = Derivative constant
+:8 = Integral constant
+:? = Proportional constant
+"%%) = Maximum Power Point Tracking
+")$, = Maximum Takeoﬀ Weight
+#¹Cº= Noise signal
+?3¹Cº= Desired position
+?¹Cº= Vehicle position
+%¹Bº= S-domain integrator
+l3¹Cº= Desired angular velocity
+% = Proportional-Integral-Derivative
+%," = Pulse-Width Modulation
+' = Radio Control
+'$( = Robot Operating System
+()! = Software in the Loop
+\3¹Cº= Desired vehicle angle
+l¹Cº= Current vehicle angle
+*+ = Unmanned Aerial Vehicle
+E3¹Cº= Desired velocity
+E¹Cº= Vehicle velocity
+I. Introduction
+T/h.sc/e.scTerrestrial Unmanned Roving Vertical Take-Oﬀ and Landing (TURVTOL) rover is a multi-modal vehicle
+conceptdesignedbytheNASAAcademyandsponsoredbytheNASALangleyResearchCenter. Thefollowing
+paper features ongoing work for a vehicle design that can determine its position in GPS denied environments and
+autonomouslytraverseapathbyeithergroundorair. Thepaperbeginswiththehardwaredesignandthenmovesinto
+the software development. The presented work is a full design of a multi-modal vehicle with simulated measurements
+forfutureprototypetesting.Thepaperconcludeswithfutureworkthatneedstobecompletedfollowedbythedesired
+next steps of the project.
+II. Background
+Unmanned, autonomous vehicles are increasingly important in geographical, exploratory, biological and other
+studies. Autonomousrovershaveconductedexperimentsindiverseandextremeterrainsincludingdeserts[ 1],thearctic
+2
+
+--- Page 3 ---
+[2], and even other planets. Autonomous robotic systems generally endure harsher conditions than humans, so they
+fulﬁll a vital task in scientiﬁc research conducted within extreme environments.
+Autonomousroboticshascomealongwayinthepastfewdecades. Thespeedandeﬃciencyofoﬀ-roadroboticshas
+increased as a result of improvements in environmental sensing, environmental representation, algorithms in navigation,
+andprocessors[ 3]. Despitetheseadvances,autonomousvehiclescanbelimitedbytheirmechanicalcapabilities. Wheel
+slippage,steepterrain,andotherenvironmentalchallengesallpresentdiﬃcultiesthatcannotbesolvedbyintelligent
+software. Obstacles that cannot be traversed by traditional means require a new, innovative approach to how unmanned
+vehicles are developed and controlled.
+Multi-modal vehicles can operate using two or more modes of travel. In particular, multiple patents have been ﬁled
+for vehicles that can convert between ﬂight and ground based travel [ 4–6]. An autonomous, multi-modal vehicle would
+allow for scientiﬁc research in terrain that is not conducive to a traditional ground-based vehicle. However, driving still
+has the beneﬁt of reducing power consumption. Therefore, a multi-modal vehicle would allow for extended missions in
+environmentally challenging locations.
+There are two categories for a system which allows for driving and ﬂying. The ﬁrst category involves vehicles
+that use the same method of propulsion for each mode of travel. This allows for a reduction in weight due to fewer
+components. The Hybrid Terrestrial and Aerial Quadrotor (HyTAQ) is a quad-rotor mounted inside a cage with a
+single rotational axis of freedom. The quad-rotor can tilt and produce a forward velocity to roll on the ground. The
+multi-modal version can travel a distance 4 times greater than an aerial-only version [ 7]. Alternatively, a vehicle called
+the Quadroller uses caster wheels attached to the bottom of a quad-rotor to allow for omni-directional ground travel [ 8].
+The other category of multi-modal systems has diﬀerent propulsion methods for both modalities. Having two
+diﬀerent propulsion methods allows for better control and maneuverability. The Flying Sprawl-Tuned Autonomous
+Robot (FSTAR), for example, uses a sprawling chassis to change the angle of the arms holding the rotors and wheels to
+switchbetweenﬂyinganddrivingmodalities[ 9]. Themulti-modalvehicledesigndiscussedherefallsintothiscategory.
+III. Requirements
+The vehicle was designed from a set of requirements that determined its functionality. The requirements guided the
+subsystem design, and more speciﬁc criteria were chosen for each component. These will be discussed in later sections.
+The top level vehicle requirements are shown in Table 1.
+IV. Hardware Sub-System Design
+In order to arrive at the ﬁnal design for the ﬁrst iteration of a vehicle concept, a series of trade studies and
+brainstorming collaborations were conducted. In this section, initial design ideas are explained, the exploration of
+importantdesignconceptsandexamplesarecovered,andtheﬁnaldesignalongwithitsvalidationispresented. The
+3
+
+--- Page 4 ---
+Table 1 Top level vehicle requirements.
+ID Requirements
+1 The system shall operate autonomously and eﬃciently maneuver in extreme terrain.
+2 The system shall operate on a renewable energy source for the duration of its mission proﬁle.
+3 The system shall have land traversing and ﬂight capabilities.
+4The system shall be robust to survive extreme environments: dust, water, wind, low temperatures, etc.
+5 The system shall have an operational range greater than that of traditional multicopters.
+6 The system shall be adaptable to various missions.
+7 The system must be low maintenance to increase survivability.
+description of the design process is organized into the three following sections: preliminary design, detailed design, and
+validation.
+A. Preliminary Design
+The preliminary design process began with several trade studies in which the critical concepts for the design were
+consideredandthevariousoptionswereanalyzedforfeasibilityandperformance. Followingthetradestudies,therewas
+a brainstorming process in which various vehicle designs were considered and evaluated. Finally, the ﬁnal selection is
+discussed at the end of this section.
+1. Trade Studies
+Severaltradestudieswereconductedduringpreliminarydesign. Tradestudieswereconductedforﬂightmode,rotor
+conﬁguration, motor and rotor selection, locomotion, drivetrain design, and power systems. The trade studies and their
+results are detailed in the following sections.
+i. Flight Mode Selection
+Theﬁrsttradestudyperformeddeterminedtheﬂightmodeofthemulti-modalvehicle. Inthiscontext,aﬂight
+modewasamethodtogenerateforcestobeginandsustainﬂight. Allconventionalﬂightmechanismswereconsidered
+andcategorizedintofourmaingroups: helicopter,multicopter,liftingsurfacesandintegratedconcepts. Figure1
+depicts the ﬂight mode alternatives considered along with their respective high level sub-categories.
+Theselectioncriteriafavoredhighlymaneuverableﬂightandtheabilitytotakeoﬀandlandfromroughterrain.
+Range and endurance were not heavily weighted due to the mission requiring short bursts of ﬂight to bypass diﬃcult
+terrain. Therefore, the multicopter ﬂight mode was selected due to its superior maneuverability, reduced energy
+requirements to support ﬂight, and adaptability to missions. Additionally, ducted fans were found capable of
+producing higher max thrust with smaller diameter propellers due to the aerodynamics of the duct, but came with the
+disadvantage of a large amount of energy consumed during the process. It was determined that ducted fans could be
+considered a plausible concept to integrate with the multicopter ﬂight mode in the event greater amounts of thrust or
+4
+
+--- Page 5 ---
+Fig. 1 Flight mode alternatives considered for the initial ﬂight mode trade study.
+a smaller vehicle footprint was deemed necessary. As a result, the multicopter and ducted fan ﬂight modes were
+selected for further research and design application.
+ii. Multirotor Conﬁguration
+Thenextsteptodeterminingthevehicledesignwastochoosehowmanymotorsthevehicleshouldemployfor
+ﬂight. The ﬁrst limiting requirement was the survivability and robustness of the vehicle during mission deployment.
+Itwasdeterminedthatatleastfourmotorsarerequiredtomaintainvehiclereliability,asonemotorfailingona2or3
+motor vehicle conﬁguration would allow for system failure. In addition, the controls of both a tricopter and bicopter
+add excess complexity to the system with the beneﬁt of increased endurance, which was deemed an undesirable trade
+oﬀ. Therefore, bicopters and tricopters were eliminated. Further research on multicopter control showed that an
+evennumberofmotorsisideal,asanoddnumberwouldcreateundesirableyawingbehavior[ 10]. Adatabaseof
+oﬀ-the-shelfmulticopterswascreatedtodeterminetheoperatingenvelopeforeachmotorconﬁguration. Common
+multicoptertypesarequadcopters,hexacopters,octocopters,coaxialoctocoptersandcoaxialdodecacopters. This
+databasedeterminedthatthemaximumnumberofmotorsis12duetothediminishingreturnsofliftproducedvs.
+weight, footprint and complexity added. Due to the expected lifting capability required for the vehicle to operate
+eﬀectively, results of the multirotor conﬁguration trade study determined that hexacopters, octocopters, coaxial
+octocopters, and coaxial dodecacopters were the best suited conﬁgurations.
+iii. Motor/Rotor Selection
+Afterthemulticopterﬂightsystemconﬁgurationwaschosen,acombinationofmotorsandrotorsthatbestmet
+5
+
+--- Page 6 ---
+the design requirements had to be selected. Due to very limited testing capabilities available during the design
+process, the team used original equipment manufacturer data alone to make design decisions [ 11]. A catalog of
+manufacturer product speciﬁcation data was compiled that contained performance characteristics of a variety of
+diﬀerentmotorandrotorcombinationsatvaryingthrottlespercentages. Theresultingdatabasecontainedrotorsfrom
+17to478=indiameterandmotorswithapeakoutputbetween0.6and11 :,at10-90%throttle. Additionally,thrust,
+power, and range approximations were computed for quadcopter, hexacopter, octocopter, coaxial octocopter, and
+coaxialdodecacopterrotorconﬁgurationsusingaspreadsheetthattookinperformanceparametersandoutputvehicle
+capabilities. AgraphicalillustrationdetailingthefunctionalityofthemotorandrotorcalculatorisdepictedinFig.2.
+Fig. 2 Graphical representation of spreadsheet calculator used to compare motor/rotor combinations.
+Using the results from the spreadsheet, various conﬁgurations were ruled out. Both quadcopters and hexacopters
+were eliminated because the conﬁgurations were unable to produce enough thrust to lift the required payload while
+alsoallocatingareasonableamountofmassforthegroundsystem. Octocoptersandcoaxialdodecacopterswere
+capable of producing suﬃcient thrust. However, the large footprint of these conﬁgurations would hinder the ground
+performance and restrict the maneuverability of the vehicle. A compromise between both of these extremes was the
+coaxial octocopter which allowed for a reasonably small footprint, and allocated enough mass for the ground system
+thatthemadethedesignfeasible. Additionally,theintrinsicvalueofthevehiclehadtobeconsidered. Atamaximum
+takeoﬀweight(MTOW)below 20 :6,arelativelysmallpayloadcouldbecarriedwhichgreatlydiminishedtheutility
+of the vehicle. This proved that a pure multicopter seemed more capable of any mission than a hybrid vehicle due to
+thefactthatahybridvehiclehastocarryitsgroundsysteminﬂight,whichtakesupmassthatwouldotherwisebe
+allocated for additional payload. However, as MTOW increases, the vehicle has enough lift to carry larger payloads.
+Above 40:6,thehybridvehicleisestimatedtocarryreasonablepayloadsfurtherthanmanymulticopters. Thevalue
+6
+
+--- Page 7 ---
+ofthe hybridvehiclelies initsability tocarryrelativelylarge payloadslongdistances, anditwas determinedthata
+MTOW of at least 40 :6was required to make the hybrid vehicle design worthwhile. The high lift, small footprint,
+superiormaneuverability,robustness,andVTOLcapabilityofthecoaxialoctocopterledtoitbeingchosenasthe
+ﬁnal rotor conﬁguration for the vehicle.
+iv. Locomotion Trade Study
+The team considered using the rover’s propellers to traverse the land by means of thrust vectoring methods.
+However, a qualitative trade study found that depending solely air propelled ground propulsion would demand
+additionalservomotorsforpivotingthepropellers,whichincreasedsystemweightandcreatedmission-endingfailure
+points. Trackconceptswereconsideredbutwererejectedduetotheexcessiveamountofmovingpartsandfailure
+points. Screw propelled vehicles were used in snowy, swampy, and rocky terrain; however, the team decided to move
+awayfromthisconceptasitdemandedagreatdealofpower.Alocomotiontradestudywasdonetodeterminethebest
+mode of ground travel for the vehicle. Other potential types of locomotionsolutions included vehicles that utilized
+wheels,climber,walker,andarollingcageconcepts. TheseareshowninFig. 3. Alternativemodesweredecided
+againstduetocomplexityintheirdesignsandrobustnessneededfortraveloversub-optimalterrain. Acomparisonof
+the pros and cons between tires and tracks is shown in Table 2.
+Fig. 3 Ground travel alternatives considered for the locomotion trade study.
+v. Drivetrain Design Study
+Following the Locomotion Trade Study, methods for integrating the rover’s drivetrain were explored. Three
+options were considered in a comparative analysis: direct drive, two motors to drive the front and back, or a
+singlemotortodriveeachwheelwithapowertransmissionsystem. Usingsimplicityandlackofknowledgeabout
+transmissionsasabasisinthestudy,theAcademyultimatelysettledonthedirectdrivemethodforpowertransmission.
+This drivetrain was chosen due its simplistic design and required the least amount of components to drive the wheel.
+Another aspect of the drivetrain addressed in this study was steering. The team decided to stick with skid steering for
+7
+
+--- Page 8 ---
+Table 2 Pros and cons of tracks vs. tires for ground travel.
+Pros Cons
+Tires •Low Production Costs
+•Lower Torque
+•High Maneuverability
+•Lightweight
+•Simplicity
+•Wide Range of Materials•Driving Over Obstacles
+Tracks •Power Eﬃciency •Lower Speed
+•Less Maneuverability
+•Breaks Easily
+•Short Life
+•Diﬃcult to Repair
+theﬁrstdesigniteration,largelyinﬂuencedbytimeconstraints. However,moresteeringoptionsaretobeexploredon
+the second pass-through of the design in the future.
+vi. Design of Solar Power System
+One of the unique features and requirements for the rover’s design was that it had to be solely powered by a
+renewable energy source. The team investigated diﬀerent array chemical composition makeups, types of solar cells,
+and costs to determine the best ﬁt for our application. Based upon a quantitative analysis between charging time,
+power output, area, and number of cells required, a silicon based noncrystalline cells were selected. Along with
+generatingpower,theremustbeameansofcapturingthatenergyforstorage. Abatterymanagementsystemwas
+selected based upon the voltage and power requirements of the wheel and propeller motor speciﬁcations. Since the
+geareddrivemotorsforgroundpropulsionrequiredalowervoltage,aconverterwasusedtolowerthevoltagefrom48
++to 24+. To operate the rover’s on board computers, a 48 +to 5+converter was used. These individual electrical
+componentadditionsallowedtheairmotorstoutilize48 +through100 ratedElectronicSpeedControllers(ESCs).
+2. Brainstorming
+After initial trade studies were performed by various Academy subteams, the team began designing preliminary
+integrated rover concepts. After an initial down selection of the preliminary design concepts was completed, the team
+wasleftwithﬁveconceptstoevaluate.TheCoaxialOctocopter,Jarvis,FourWheelDrive(4WD)Wotor,andFSTAR
+were all completed vehicle concepts. However, the ﬁfth concept included a folding ﬂight system that needed to be
+developed into a full vehicle concept.
+i. Coaxial Octocopter With Overlapping Blades
+The Coaxial Octocopter with overlapping blades, shown in Fig. 4, was a concept that featured 8 larger rotors
+arranged in a coaxial conﬁguration by using two levels of four rotors and motor assemblies. The upper level was
+8
+
+--- Page 9 ---
+oﬀset by 45 °to presumably reduce interference in the inﬂow of the lower rotors from the upper rotor downwash and
+improvethrusteﬃciency. Fourwheelswouldbeattachedtothealuminumchassisateachcornertoallowtheroverto
+drive. Large rotors were required to generate suﬃcient thrust, which led to a large structure footprint.
+Fig. 4 Model of the coaxial octocopter with overlapping blades preliminary concept.
+ii. 4WD Wotor
+The 4WD Wotor concept was developed with the purpose of providing a method of protecting the ﬂight system.
+This coaxial octocopter rover was designed to drive on four wheels and protect two rotors in a coaxial set-up within
+each wheel. This wheel design, along with added rotor cages, would protect the rotors in the event of a collision
+during ﬂight or during a hard landing. This also would allow the rover to recover from a crashed position since the
+rotors would still be able to rotate. Additionally, placing the rotors in the wheels would give the rover a mid to lower
+centerofgravityandprovideextrasurfaceareaonthetopoftheroverforsolarcells. Thesecharacteristicsofthe
+4WD Wotor concept can be seen in Fig. 5.
+Fig. 5 Model of the 4WD Wotor preliminary concept.
+9
+
+--- Page 10 ---
+iii. Jarvis
+The Jarvis concept, which is featured in Fig. 6, was developed with the intention of utilizing the high thrust
+capabilities of an Electric Ducted Fan (EDF). This design incorporates a large EDF through the center of the rover to
+supplymajorityofthethrustneededforﬂightwhilefoursmallerrotorsorEDFsprovidedirectionalcontrol. The
+system drives using four wheels coupled with a suspension system. For recharging purposes, an innovative solar
+charging option was designed for the front of the rover to account for the lack of available surface area on the rover’s
+topside. Althoughthesystemwasestimatedtoconsumealargeamountofpower,thisconceptoﬀeredamuchsmaller
+footprint.
+Fig. 6 Sketch of the Jarvis preliminary concept.
+iv. Flying STAR
+The Flying STAR concept was a design that utilized a fold-able center chassis which allowed for transition
+between ﬂying and driving modes [ 9]. By incorporating the rotors into the wheel conﬁguration and reducing motor
+RPM with a gear reduction wheel assembly, this compact design was attractive by only using a single motor to
+drive both the rotor and the wheel. This concept had the ability to recover from crashed positions, crawl below low
+clearances, and transition to ﬂying mode with ease. This design may have been the most ﬂexible and maneuverable
+thattheteamconsidered.Thechangewouldhavebeenmadetothefold-ablechassissothatitwouldhavebeenallowed
+tocrawl,ﬂy,anddrive. TheFlyingSTARcouldﬂipitselfoutofacrashedpositionbypushingitselfoﬀoftheground.
+Althoughthemechanismsofthisdesignwerefairlycomplex,therobustnessofthevehiclewouldallowittotravel
+across any type of terrain and reliably recover from poor conditions to guarantee the mission’s success.
+v. Folding Concepts
+Whiledrivingoverroughterrain,twoissuesarosewhenintegratingamulticopterconﬁgurationwithadriving
+system. Thesewereidentiﬁedastippingandrotordamage. Topreventthese,multiplemechanismsweredesigned
+thatwouldallowtherotorstofoldorretract. TheUmbrellafoldingconceptutilizedlinearactuatorstoretractthe
+10
+
+--- Page 11 ---
+rotorsinatelescopingmanner. ThePancakefoldingconceptconsistedofcircularcagesaroundtherotorsthathinged
+tofoldtherotorsdown. TheFlowerFoldconceptincorporatedrotorarmsthathingedatthecentertofoldtherotorsin.
+Finally, the Butterﬂy concept featured a pivoting suspension that could fold the rotors in while driving and inversely
+fold the wheels in when ﬂying. Sketches of the four folding concepts are depicted in Fig. 7.
+Fig. 7 Sketches of the four preliminary folding concepts, which were named Umbrella (upper left), Pancake
+(upper right), Butterﬂy (lower left), and Flower Fold (lower right).
+3. Final Selection
+After reducing the pool of design concepts to ﬁve potential candidates, a comparison between each design was
+madebyspecifyingcommonalitiesandcomparingqualitiessuchasrange,operationtime,cruisethrottlepercentage,
+vehiclemass,payloadmass,andotherqualitiesnecessarytosatisfyrechargeabilityconstraints. Oncetradestudieswere
+conducted and outcomes were compared, the 4WD Wotor concept was selected as a baseline for theﬁnal design. The
+4WDWotorexhibitedmanyappealingqualitiesthatdeemeditaworthyﬁnalist. Itstoodoutasthebestchoicedueto
+itspartialrotorprotection,largeamountofsurfaceareaforsolarimplementation,anditspotentialtorecoverfroma
+crashed position. Once the decision was made, design optimization and validation had began by building the rover
+from the ground up. Using modeling software and testing it within simulated environments, we proved the design to be
+capable of carrying out our designed mission.
+11
+
+--- Page 12 ---
+B. Detailed Design
+In order to complete the bottom up design for the ﬁrst iteration of the rover, it was quickly recognized that rotor size
+would be the ﬁrst main consideration. With the rotor blades being nested inside of the wheels, the rotor’s diameter
+directlycontributedtothesizeofthewheelconﬁgurationneededandinﬂuencedthevehicle’soverallmaximumallowable
+weight at takeoﬀ. This is where optimization became an important factor. Since MTOW was a function of rotor size, in
+order to have an eﬀective but eﬃcient vehicle, a balance between structure mass and lifting capability needed to be
+established.
+1. Rotor Conﬁguration
+TheﬁnalconﬁgurationwasXoar24x9multicopterrotorbladespairedwithaXoarTA8225120  +motorbased
+onpublisheddatafromthemanufacturer’swebsite[ 12]. Theselectionoftherotorbladeswasdrivenbythedesireto
+minimizerotordiameterwhileprovidingenoughlifttomeetthepayloadandrangerequirementsofthemission. As
+willbediscussedinfuturework,theaddedmassofalargerwheelwasinfactoutweighedbyasubstantiallyimproved
+maximumthrustasaresultoflargerrotors. Thecoaxialrotorspacingwaschosentobeaconservative20%ofrotor
+diameter based on previous research [ 13,14]. However, the 20% separation was based on rotors that were only 16 8=in
+diameter, and research concerning 48 8=diameter rotors suggests that rotor separation has a minuscule eﬀect on thrust
+performance[ 15]. Thereisagapinresearchattherotorsizeof24 8=usedinthisdesign;however,the16 8=diameter
+tests were closest to the dimensions of the chosen rotor so the 20% rotor separation was used. This was also useful
+becauseitwouldallowtherotorstobebroughtcloserifneedbe,andtheresultsfromthisﬁrstiterationwouldproveasa
+useful bound for the second iteration sizing. Having designed the wheel, it was learned that the rotor separation should
+beminimized,astheincreaseinthrustfromhavingalargerotorseparationdramaticallyincreasesthemassofthewheel.
+In the case that more thrust is needed, the rotor should be made bigger instead of separated further.
+2. Wheel Conﬁguration
+Several wheelconﬁgurationswere consideredfor thedesign. The followingsectionsdescribethedecisionsmade
+regarding rims, drivetrains, and hub plates, as well as the ﬁnalized design.
+i. Rim
+To accommodate the 24 8=Xoar rotor blades, the internal diameter of the rim was sized to 29 8=, a common
+bicycle tire diameter. Picking this rim sizemeant that a commercially available solutioncould be purchased thatis
+lightweight and structurally sound. This selection also allowed for matching tires to be purchased, resulting in a
+wheel with an outer diameter of 34.8 8=and a width of 2.3 8=.
+With a Commercially-Available Oﬀ-The-Shelf (COTS) solution chosen for the rim and tire, the Academy had to
+determine how to drive the wheel without interfering with the propellers mounted at the wheel’s center. Utilizing an
+12
+
+--- Page 13 ---
+internal spur gear, the team planned to epoxy this gear directly to the face of the rim’s inner circumference. The
+large contact area between the two surfaces ensured that the aluminum internal rim gear remained ﬁxed to the inner
+circumference of the composite bicycle rim. This design, pictured in Fig. 8, serves as the ﬁnal component of the
+rover’s drivetrain.
+Fig. 8 Section of the rover’s wheel, showing the internal rim gear epoxied to the inside of the rim.
+ii. Drivetrain
+To begin work on the drivetrain, the Academy addressed the following: what rotational speed and torque is
+requiredatthewheel,andwhattypeofdrivetrainwillbeimplemented? Startingwiththeoutputsofthedrivetrain,the
+teamdeterminedthatbecausethewheel’souterdiameterwas34.8 8=andthevehiclecouldnotnavigateautonomously
+at speeds above 2 <B, the target rotational speed for the system must be at least 43.2 '%". Next, the output torque
+was determined through a series of terramechanics calculations [ 16]. The resulting torque per wheel was calculated
+to be 4.23#<to traverse most soil types and achieve the maximum velocity from a stopped position within two
+meters. Withthedesiredoutputsknown,theteamcompiledalistofmotors,documentingtheiroutputspeedand
+torque. A trial-and-error process led to the selection of a 24 +DC motor rated at 3000 '%"and 0.11#<of torque.
+The ﬁnal task was to create a gear ratio that manipulated the motor’s inputs into the desired outputs for the rover.
+Through a two-stage series of gear reductions, a compact gear assembly was imagined, comprised of only
+spursgearsandresultinginanoverallgearratioof54:1. Byadjustingthenumberofteethfordiﬀerentgearsand
+maintainingadiametralpitchof10 8=C44C,thegearingwaskeptwithina9 8=regionandcontainedinsidea3D
+printed custom casing. Shown in Table 3, this gear box could achieve 55.6 '%"and 5.94#<of torque, exceeding
+the target outputs.
+Table 3 The drivetrain’s target actual vs. the target outputs.
+Parameter Target Actual
+RPM 43.2 55.6
+Torque (N-m) 4.23 5.94
+13
+
+--- Page 14 ---
+iii. Hub Plate
+Toencasetheinternalrimgearandprovidestructuralsupportforthewheel,aninnerandouterhubplatewere
+designed. Bothhubplatesattachtothechassisarmtokeepthecoaxialsystemstationary. Theinnerhubplatewas
+designed to be constructed out of 0.5 8=aluminum core honeycomb panel so it could provide the necessary structural
+integrity to support the wheel while remaining lightweight [17]. Since the outer hub plate would only experience a
+fractionoftheload,itwasdesignedtobecraftedoutof17-gauge6061aluminum. Thetwohubplateswereseparated
+by an arrangement of oﬀsetting shafts that incorporated the mating, pinion, and guide gears for the drivetrain. These
+shaftswereheldinplacebyanassemblyfeaturingbrassbushings,washers,snaprings,andhoneycombinsertsforthe
+innerhubplate. Flextapewasinstalledacrosstheinnerportionsofthehubplatestokeepoutsidedebrisfromeroding
+the drivetrain. Additionally, a thin blade seal made of rubber was designed to seal the gap between the hub plate and
+the rotating tire by using a low frictional force, and these seals and the hub plates are pictured in Fig. 9 below.
+Fig. 9 Hub plates and blade shields that provide support and protection.
+iv. Finalized Design
+Withtherover’swheel,drivetrain,andhubplatesdesigned,avirtualmodeloftheassemblywasgenerated,as
+shown in Fig. 10. The result was a coaxial rotor assembly nestled between the rim’s internal spur gear with hub
+platesprotectingthegearingandprovidingstructuralsupportforthewheel. Additionally,thedrivetrainpossessed
+thetorqueandangularvelocitynecessarytosatisfythemissionrequirementsanddrivetheouterrimwhiletherestof
+thewheel’scomponentsremainedstationary. Withthewheelfullyimagined,theteammovedontothechassisto
+complete the rover’s mechanical design.
+3. Chassis
+With the integrated coaxial wheel design complete, a chassis was designed to structurally support a quad-wheel
+conﬁguration. Load cases corresponding to all rotors at maximum thrust, a crash condition of 4.5 6on all four wheels,
+14
+
+--- Page 15 ---
+Fig. 10 This schematic documents the main components of the wheel design with transparent hub plates for
+viewing purposes.
+andacrashconditionof4.5 6onallpairsofwheelsweredeﬁned. Itwasquicklyevidentthatthelimitingcasewouldbe
+the4.56loadingonthefrontandbackwheelpairs. Thiscrashconditionincorporatesasafetyfactorof1.5,sothetarget
+safety factor of the simulation was 1.0 [ 18] . Additionally, geometric constraints such as the location of the wheels, the
+volume the rotors rotate within, and a volume for the payload box were also deﬁned at this point in the design.
+Fig. 11 The shape optimized chassis with deﬁned areas of critical load bearing.
+Withtheseconstraintsinmind,Fusion360’sshapeoptimizationsoftwarewasusedtobegindeterminingtheoptimal
+structure for the chassis. The results from the initial study are shown in Fig. 11, where the gray box is the starting
+volumewhich wasoptimized. The coloredshape representsthe elementsin thatvolume witha highload criticality,
+essentiallyameasureofimportanceofthatelementtothestructuralsoundnessofthepartgivenalloftheloadconditions.
+This was the the ﬁrst iteration outline for the chassis structure.
+The next step was to reﬁne the structure and ensure its manufacturability. The arms were replaced with tubes, and
+gussets were welded to thicken the joints where needed. Through ﬁnite element analysis, the design was reﬁned to
+minimize weight. It was found that a non standard tube thickness was ideal for the tubes, but in order to preserve
+15
+
+--- Page 16 ---
+manufacturability the thickness was rounded up to the nearest standard size. This resulted in about 2 :6of extra mass
+and shows that there is still room for improvement. However, due to time constraints of the project, other aspects had to
+beprioritized,butthiswillbeafocusoffurtheriterations. Anotherlimitofthetubeswasthatthesizewasconstant
+alongthelengthofeachtube,whichledtoexcessstrengthalongthemiddleandlackofstrengthnearthejoints. This
+was counteracted by the aforementioned gussets.
+Fig. 12 Finite Element Analysis (FEA) of optimized chassis model.
+The ﬁnal, optimized model resulted in a chassis capable of surviving all of the speciﬁed load conditions, and is
+picturedaboveinFig. 12. Theresultsoftheﬁnalanalysisindicatethatthechassissurvivesthe2-wheelhardlandingwith
+a 1.09 safety factor, which concludes a suﬃciently strong chassis structure was designed, and that it is well optimized.
+4. Solar Charging
+Itisrequiredthatthevehiclehaveasustainableenergysourcetorechargeitselfduringmissions. Energysources
+suchassolar,wind,geothermal,radioisotope,andbiomasswereconsideredforthisapplication. However,duetoweight,
+time of charge, and vehicle integration, solar charging was selected. The vehicle was equipped with a solar module
+that included fourteen silicon based mono crystalline cells. The solar cell has an eﬃciency that is around 24%, which
+ishighercomparedtooﬀtheshelfsolarcells. Tooptimizethecapturedsolarenergy,asolarchargercontroller,with
+MaximumPowerPointTracking(MPPT),isaddedtothesystem. AnMPPToptimizestheconversionofhighvoltage
+output from the solar module to a lower voltage that is required to charge the batteries. With the addition of MPPT, the
+solar module will be able to charge 80% of the batteries in less than 12 hours in an ideal environment.
+5. Battery Selection
+Oncethemotorsfortheﬂightandgroundsystem,batteryrequirementscouldbespeciﬁed. Thevehiclewouldbe
+ﬂyingshorthopsatlowspeed,sotheaveragepowerrequiredwasestimatedtobe140 ,fromthemanufacturerdata.
+Based on limitations from the autonomous navigation of the vehicle, a speed of 2 <Bwas assumed, so in order to
+16
+
+--- Page 17 ---
+traversetheminimumrangeof300 <,thevehicleneededtobecapableofsustainingﬂightfor150 B. Anadditional60 B
+wasadded to allow adequate timeforthe autonomous system to takeoﬀ and land. The motors required avoltage of 52 +
+and demanded a total of 480 A at max throttle, so the battery needed to be capable of discharging at this rate for at least
+ashortburst. Giventhepower,time,current,andvoltagerequirementsofthesystem,aminimumbatterycapacityof
+737,was determined. Wrapped into this number are the eﬃciency losses (5%), safety factor (10%), and usable
+percentage of battery (80%). From these speciﬁcations, it was possible to identify similar batteries and their power
+density which was used to better reﬁne the mass estimate of the batteries to be 3.57 :6.
+6. Complete Model of the TURVTOL Rover
+Upon completion of battery selection, the entire rover had been created. A virtual model of the design is shown in
+Fig. 13. With this ﬁrst iteration realized, the team brought TURVTOL to life, weighing in at 42.407 :6and satisfying
+all mission requirements.
+Fig. 13 Model of the ﬁrst iteration of TURVTOL.
+C. Validation
+X-Plane 11 pro was used to provide a platform to test the stability and airworthiness of the rover despite the absence
+of a physical model. The data pulled from these simulations, company-provided spec sheets, and in-house thrust stand
+testswerecombinedtodeterminethemaximumamountofliftthatvariousrotorconﬁgurationscouldproduce. These
+results were then analyzed to establish a weight budget which acted as a critical parameter that drove the structural
+aspects of the entire vehicle.
+1. Thrust Testing
+Small-scale thrust testing was performed in order to validate propeller eﬃciency assumptions. The testing
+components used were two RAYCorp 5x3 two-blade bullnose propeller pair and two Multistar Elite 2240 brushless
+17
+
+--- Page 18 ---
+motors. The motors counter-rotated and were mounted to an adjustable base which allowed a maximum and minimum
+separation of the motors of 60% and 10% times the propeller diameter, respectively. This base was then mounted to an
+L-shaped arm which would rotate as a result of the thrust moment produced by the motors. The resulting force of this
+moment was measured by a tared food scale with and accuracy of 16. The motor throttle was varied using an RC
+transmitterandreceivertosendPWMsignalstothemotors. Thesesignalswerealsosenttoaﬂightcontrollerconnected
+viatelemetrytoacomputerrunninggroundstationsoftwaretologdata. Asthethrottlewasincreasedincrementally,the
+values for throttle PWM, battery voltage and current were measured and logged at each thrust test point. Three types of
+thrust tests were performed, all shown in Fig. 14.
+Fig. 14 Depiction of the thrust tests that were performed.
+Thecoaxialseparationtestvariedthespacingbetweenthe propellerstodeterminetheeﬃciencyofcoaxialrotors
+at each separation value. The experimental data was compared against the theoretical data of no coaxial losses to
+determinethevalueofeﬃciency. Thistheoreticaldatawasfoundmeasuringthethrustofonemotorwithnoobstructions
+and multiplying the thrust by 2 to simulate a second idealized motor contribution. It was determined that the ideal
+separationwas30%,butthattheseparationwouldnotscaletoTURVTOLsincecoaxialeﬃcienciesdonotscalelinearly
+with propeller dimensions as previously discussed in rotor conﬁguration section. The blockage test determined the
+experimental eﬀects of the tire on the total thrust. This experiment used a 3-D printed tire geometry scaled to the
+experimental propeller diameter. The experimental data was compared against the theoretical data of the same propeller
+18
+
+--- Page 19 ---
+separation with no blockage to determine the total losses due to the tire geometry. It was determined that the thrust
+losses due to the tire geometry was 5.3% of the total thrust. The reverse thrust test determined the experimental eﬀects
+ofreversingthepolarityofthemotorsinacoaxialset-upwithoutalsoreversingthemotors. Thepurposeofthistestwas
+to verify if TURVTOL would be capable of producing enough thrust to ﬂip over if the vehicle found itself upside down.
+The experimental data was compared against the theoretical data of the same propeller separation with no polarity
+reversalto determinethetotallossesdue tothemotorreversal. It wasdeterminedthatlossesdue tothereveredthrust
+was 45%.
+2. X-Plane
+Fig. 15 Picture of the X-Plane model used for ﬂight testing.
+AnX-Planemodelwascreatedtoallowaerodynamictestinginparallelwiththestructuraltestingbeingperformed
+by the mechanical subteam. Figure 15 shows the model used for testing. The model was created before the actual
+design was ﬁnalized, and because of this the its fuselage and chassis diﬀers from that of the ﬁnal design. However, the
+rotordiameterandperformance,wheelsize,andoveralldimensionsofthevehiclesmatch. Thedetailrepresentedin
+the X-Plane model was limited by the capabilities of the editor, speciﬁcally the complexity of the geometry and the
+number of parts which the simulator will compute the physics for. While creating a more accurate model is possible by
+leveraginglowerlevelchangesinthecode,thisisbeyondthescopeofthisprojectandnottheprimaryfocus. Themodel
+created allowed for a reasonable estimate of the ﬂight performance of the vehicle, and it allowed a degree of validation
+of the design’s ﬂight-worthiness.
+19
+
+--- Page 20 ---
+Fig. 16 Comparison of manufacturer data to parameters pulled from the simulated X-Plane model during
+ﬂight tests and demonstrations.
+ThemostcrucialpartoftheX-Planemodelwasmatchingthemotor/rotorperformancetothemanufacturerdata. This
+wasatrialanderrorprocessfocusedprimarilyonmatchingthethrustandpoweroutputstothecurrentdrawfromthe
+battery. The geometry of the model’s rotor blades and the performance characteristics were tweaked until the thrust and
+power ata givenamperage matched themanufacturer data. Figure16 showsthe ﬁnal resultsof themodel’s rotors and
+motors. Theaveragethrust,power,andcurrentvaluesdiﬀeredbylessthan5%fromthemanufacturerdatawitheven
+closeragreementatthehigherthrottlepercentageswherethevehicleoperates. Itisworthnotingthattherearelarger
+disagreements at lower throttles, but these can be neglected because the vehicle is not capable of ﬂight for these throttle
+percentages. Additionally,RPMvastly diﬀers,butthiswas unavoidableandtheleastimportant ofthevaluesto match
+withmanufacturerdata. ThewheelgeometryintheX-Planemodellacksthehubplatesintheﬁnalmodelwhichwill
+deswirltherotorwake. Thiscausesthemodeltoexhibitbetteryawperformancethanitwouldinreality. X-Planeis
+a program designed primarily for larger planes, not relatively small multicopters, and it can only approximate these
+characteristicstobeginwith. Becauseofthisfact,theﬂighttestsdiscussedlaterwillunavoidablydiﬀerfromreality.
+ThemajorityoftheaerodynamictestingtookplacewithinthevirtualenvironmentofX-Plane,andsimulatedresults
+could only be matched to manufacturer speciﬁcations. Further verifying the simulated results to real world data will be
+a primary goal of future work and prototypes.
+20
+
+--- Page 21 ---
+V. Software Sub-System Design
+The following sections discuss and explain the ideas and motivations behind key design choices for software,
+computerhardware,andautonomouspathplanning. Thesoftwarewillbeimplementedusingtheopen-sourceRobot
+Operating System (ROS) [19], and it is expected to be able to operate without a human in the loop.
+A. On-Board Computer
+The vehicle will have a single on-board computer responsible for processing environmental inputs and performing
+intelligentnavigation/control. ThesoftwarewillbebuiltusingROSasaframeworkforhighlyparallelcomputation[ 19].
+The computer will be running programs for sensor management, localization, environmental mapping, path-planning,
+vehiclecontrollers, and statedetermination in realtime. Thealgorithms used inautonomous navigationare limitedby
+the computational power of the on-board computer. Therefore, a powerful on-board computer is critical.
+Forthisdesign,thereisspecialconsiderationforanon-boardcomputerwithapowerfulgraphicsprocessingunit
+(GPU). A GPU is a programmable processor that is optimized for repetitive and highly parallel operations. [ 20]. GPU
+acceleration has shown signiﬁcant reduction in computation time for image processing mapping and path planning for
+robotics [21–23].
+1. Evaluation Criteria
+Due to the critical importance of the on-board computer, the following list of criteria were used to evaluate
+commercially available computers.
+1)Central Processing Unit(CPU) speed: Emphasis is placed on the CPU because the autonomous nature of the
+project requires environment and location data to be processed in as near real time as possible. Given this, a
+powerful CPU is needed to allow the rover to make decisions as fast as possible. The computer will be running
+multiple programs simultaneously, so a multi-core CPU is required.
+2)Graphical Processing Unit (GPU) speed: In addition to an eﬃcient CPU, another major consideration is
+a powerful GPU. In order to navigate a complex environment autonomously, image processing capability is
+necessary. To process these images eﬃciently and without overtaxing the CPU, an on-board computer with GPU
+accelerationwillbechosen. ThiswouldproveusefulinaidingtheCPUinprocessingimagesinrealtime. In
+addition, GPU acceleration could be used in computationally intensive areas of SLAM and path-planning.
+3)Power eﬃciency: The rover will be powered from a solar powered battery. The battery needs to have adequate
+power for the motors, so it is important that the on-board computer consumes minimal power.
+4)Random Access Memory (RAM) available: Navigation can require large amounts of accessible memory
+for holding images and large maps produced from SLAM. A large amount of RAM will allow for greater
+computational eﬃciency during large memory accesses
+21
+
+--- Page 22 ---
+5)Dimensional Constraints: The computer must be able to ﬁt in the slender design of the rover. Single board
+computers are desirable for their form-factor designs.
+6)Input and Output (I/O) Connections: The navigation system will use a variety of sensors, so the on-board
+computerhastobecapableofhandlingmultiple,simultaneousI/Ooperations. Theremustbeenoughphysical
+connectionstohandlethesensors,andtheconnectionsmusthavethebandwidthtohandlesimultaneousdata
+transfers from multiple cameras.
+7)Operating Temperature Range: Due to the adverse conditions that the rover is expected to perform in, a
+computercapableofhandlingtemperatureextremesisrequired. Thecomputer,withtheaidofthermalinsulation,
+needs to continue operation even in the most adverse of conditions.
+8)External Memory Available: In addition to RAM, the computer needs to have suﬃcient external memory
+available, whether that be an on-board storage drive, or an I/O port that allows for an external storage extension.
+2. Final Decision
+TheJetsonXavierNX(Jetson)[ 24]waschosenastheon-boardcomputerforthevehicle. TheJetsonhasa6core
+CPU pared with a 6 MB L2 cache and a 4 MB L3 cache for running multiple programs in parallel. The Jetson has 8 GB
+of LPDDR4 memory, so it can hold/transfer images and large data sets at a reduced power consumption. This computer
+has an NVIDA GPU with 384 CUDA cores and 48 tensor cores to aid in image processing and accelerating navigation
+algorithms. The Jetson also packs this into a small 103 mm x 90.5 mm x 34 mm package. Furthermore, The power
+consumption of the Jetson can be changed to meet the required computational speed.
+B. SLAM Algorithm: VINS-Fusion with OctoMap
+Simultaneouslocalizationandmapping(SLAM)providestwomajorfunctionsforanautonomousnavigationsystem.
+Itbuildsamapofthesurroundingenvironmentanddeterminesthevehicle’slocationwithinthismap. Thisiscriticalfor
+avoidingcollisionswithobstaclesorgeneralroughterrainduringnavigation. Path-planningisdependentonaccurate
+outputs from SLAM.
+SLAMisusefulinrobotics,speciﬁcallyroboticswhichinvolveanykindofterrainnavigation. SLAMatitsvery
+core is built to help robots map and self localize in a space using various sensory inputs. Sometimes GPS input is either
+unreliable or simply not available. In these cases, it does not bode well to have a robot navigate a complex environment
+on its own. This is where SLAM comes in. SLAM algorithms use sensory inputs from multiple on-board sensors
+including some form of visual/spatial mapping sensor, such as a camera or LiDAR. The algorithm also commonly
+includes inertial information from an IMU or equivalent sensor.
+Visual odometry tracks features between sequential images from a camera to measure the movement of the camera
+betweenframes[ 25]. Invisualinertialodometry(VIO),theslowframerateofacamera(30Hz)canbeaidedbyadding
+22
+
+--- Page 23 ---
+an inertial measurement unit (IMU) to estimate movement between frames [ 26]. An IMU can only provide relative
+movementandissubjecttoanaccumulatingdriftfromtrueposition. Thecameracancorrectforthisdriftforbetter
+localization. Often times, wheel odometry is included in the mix to help with the localization. All of these sensory
+inputs combine and not only allow a robot to build a map of its environment, but also allow a robot to localize itself in
+the environment. This is incredibly helpful when it comes to building path planning algorithms, as we will discuss in a
+later section.
+A large challenge for SLAM with a multi-modal vehicle is using a sensor suite that will be eﬀective in both modes
+of travel. For instance, wheel encoders will have no purpose during ﬂight. Somehow, the SLAM algorithm would need
+to switch sensory inputs from one suite to another in order to make sure it still has the data it needs to ﬂy. This poses a
+number of problems. Not only is it complicated to code such a change, but by doing so, one is introducing a great deal
+of ambiguity around the measurements the SLAM algorithm receives during the movements. No matter how short the
+time interval during which the switch happens, if the robot is moving, some amount of error will be introduced into the
+localization. Furthermore, diﬀerent sensor fusion algorithms could be eﬀective during the two diﬀerent modes of travel.
+VINS-Fusion is an algorithm designed by the Hong Kong University Aerial Robotics Group, and it is an extension
+from the previous VINS-Mono [ 27]. The algorithm is a visual-inertial odometry (VIO) platform that fuses information
+from cameras and an IMU for localization. It is capable of online temporal and spatial calibration between the cameras
+and IMU and has been eﬀective in aerial and ground robotics [28–30].
+TheothercomponentofSLAMisbuildingamapofthesurroundingenvironment. 3Dsensorstypicallyoutputpoint
+clouddatathatmustbeconvertedtoaformthepath-plannercanuseforobstacleavoidance. Twocommonmethods
+aresurfacereconstructionandvolumeestimation. Surfacereconstructionwillusetriangulationtocreatemeshesand
+estimatesurfaces[ 31]. Volumeestimationwillsegmentapointcloudintovoxelsthatoccupyavolumein3Dspace[ 32].
+AnOctoMapisanoctree-basedvoxelizationofapointcloudthatcreatesaprobabilisticrepresentationoffreeor
+occupied3Dspace[ 33]. The3Denvironmentisdividedintonodesofdeterminedresolution,andeachnodesoccupancy
+willbedetermined frompointclouddatafroma sensor. These nodesarewhatwillbe searchedduringpath-planning.
+OctoMap is an open-source software tool.
+1. Design Criteria
+Given the constraints that the SLAM Algorithm needed to operate under, the following criteria were considered
+before coming to any ﬁnal conclusions as to which algorithm would be most eﬀective for the rover project:
+1)Robustness: The planned mission sets the minimum standard for SLAM robustness. Uneven, jagged, or
+generallymisshapenterrainislikelytocauseoccasionalerrorsinthesensorreadings. TheSLAMalgorithm
+needs to be aware of these errors and adjust accordingly to avoid improper path planning due to a poorly
+constructed map. Since the vehicle does not have access to other sources for localization (GPS, compass, etc.), it
+23
+
+--- Page 24 ---
+needs to be proactive with the sensors it has.
+2)Eﬃciency: The SLAM algorithm needs to be as eﬃcient as possible while localizing the rover. Essentially, the
+algorithm cannot overtax the main computer’s resources. Additionally, the algorithm needs to be optimized for
+asclosetorealtimemappingaspossiblesothatwhentheroverisactivelymoving,itcanmakewellfounded
+decisions about where to continue. Another reason for eﬃciency is because of the ﬂight aspect of the rover.
+Whiledrivingonthegroundsimilarlyrequiresrealtimemapping,theconsequencesofshortdelaysarenotas
+all-encompassing as the consequences of delays during ﬂight.
+3)Memory Usage: While the concept of an incredibly detailed and comprehensive mapping of the rover’s
+environment is enticing, it was impractical, especially given the limitations of the on-board hardware. The
+SLAM algorithm is not supposed to take up an overly large amount of memory to allow the computer to run
+other processes. Otherwise, the computer would be overtaxed, leading to bottlenecks elsewhere in the operating
+system.
+2. Final Design
+TheprimarysensorsforlocalizationwillbetheRGB-DcamerasandanIMU.Inparticular,anIntelRealSenseD435i
+willbechosen[ 34]. TheRGB-DcamerawilltakestereoimageswhichwillbefedintotheVIOalgorithmalongwith
+IMU data. RGB-D cameras also output dense point cloud data which will be used for building our environment map.
+VisualinertialodometrywillbeperformedbyVINS-Fusion,whichhasbeenchosenbecauseofitsrobustnessin
+ﬂyinganddriving[ 27]. ThisalgorithmalsoallowsforonlinespatialandtemporalcalibrationoftheIMUandcamera
+[29]. Speciﬁcally,thevehiclewilluseaGPUacceleratedversiontotakeadvantageoftheon-boardcomputer’spowerful
+GPU. VINS-Fusion oﬀers support for both monocular and stereo cameras for localization.
+Thevehiclewillusetheoctree-basedapproachforpoint-cloudvoxelization,OctoMap[33]. OctoMapwillusethe
+localizationfromVINS-Fusionandthepoint-cloudfromtheRGB-Dcameratocreateanenvironmentrepresentationfor
+the path-planner. The output can be seen with simulated terrain in Fig. 17. OctoMap allows for path-planning in three
+dimensionsbyprovidingnodeswith »GHI¼coordinatesforsearchelements. Byusingoctrees,OctoMapalsoreduces
+memory consumption. A resolutionof.1 mwaschosenfor theOctoMapto speedupcomputation whileallowing foran
+occupied node to still ﬁt under the chassis.
+C. Path-Planning Algorithm: Modiﬁed A*
+Aneﬃcientpathplanneriscriticaltonavigatingextraneous,oﬀ-roadterrain. Thenon-uniformityoftheenvironment
+presents challenges because the path planner must be eﬃcient. With a large number of obstacles present, the path
+plannermustchoosetheoptimalrouteoutofalargesetofpossibleroutes. Furthermore,thepathplannermustbefastto
+contributetotherover’sspeedinmaneuverabilitybutrobusttonavigateadangerousenvironment. Mistakesinpath
+24
+
+--- Page 25 ---
+a)
+ b)
+Fig. 17 a) Simulated terrain b) Visual representation of occupied space determined from OctoMap
+planning,especiallyinﬂight,couldcausecollisionsthatcouldcompromisethevehicle. Thepath-plannermustalso
+consider the diﬀerent vehicle kinematics for each mode of travel, so it can plan paths that the vehicle is capable of
+following.
+Thepath-planneriscloselyrelatedtotheperceptionalgorithmsusedtomapsurroundings. In3Dspace,themap
+size can grow at a cubic rate from the dimensions of the map. With using an octree implementation of the environment,
+the total nodes will grow at a cubic rate to the resolution of the octree. For example, doubling the resolution of the
+octreewilloctupletheamountofnodestoexpandduringasearch[ 33]. Therefore, thesearchalgorithmmustdrastically
+reduce the amount of nodes searched in the 3D environment.
+The A* search algorithm [ 35] is similar to djiskta’s algorithm [ 36], but it uses a heuristic function to prioritize
+expanding nodes in the direction of the goal node. The heuristic function scores each node by the distance to reach that
+nodeandthedistancetothegoalnode. Thenodewiththelowestscoreisexpandednext. Thiscandrasticallyreducethe
+search time of the algorithm by always searching the node that has the highest probability of being in the optimal path.
+A*algorithmshavebeenusedinpath-plannersforUAVsbecauseoftheirspeed[ 37]. Sharifet. alshowedtheA*
+canplanenergyeﬃcientpathsformulti-modalvehicles,andthepath-plannerdesignedinthispaperfollowsasimilar
+approach [38]. The algorithm requires accurate localization, environment mapping, and a destination.
+1. Design Criteria
+The following criteria were considered when designing a search algorithm for the multi-modal vehicle platform.
+1)Path Eﬃciency: The paths-generated must be optimal for the vehicle kinematics. The path’s must be optimized
+for low distance, time, and energy consumption.
+2)Computational Speed: The path-planner must be able to generate paths quickly to prevent the vehicle from
+waiting for path generation. The vehicle must also be able to re-plan when the map is updated. This is especially
+25
+
+--- Page 26 ---
+important during ﬂight to prevent energy consumption due to hovering.
+3)Robustness: The paths generated must not contain errors that would cause collisions. The path-planner must be
+able to plan eﬃcient and safe paths in a variety of possible terrain environments.
+2. Modiﬁed A* Search Algorithm
+The pseudo code for the A* implementation can be seen in Algorithm 1.
+Algorithm 1: Multi-modal A*
+Result:Set of way points in 3D space
+next = startNode;
+openList = [];
+closedList = [];
+whilenext != NULL do
+closedList.insert(next);
+ifisDestination(next) == true then
+path = buildPath(next);
+return path;
+else
+foreach neighbor of next do
+ifisCollision(neighbor) == false then
+neighbor.parent = next;
+neighbor.score = getHeuristic(neighbor, next);
+openList.insert(neighbor);
+else
+end
+end
+next = openList.pop;
+end
+Thevehicle’spath-planningalgorithmbeginsatthecurrentpositionofthevehicle. AsseeninFig. 18below,the
+neighboring 26 nodes are individually checked for collisions using the collision checker described in the following
+section. Thedistancebetweennodesis.1 <dependentontheresolutionoftheOctoMap. Greennodes(lateral)will
+cost the least, and blue nodes (diagonal up/down) will cost the most. The yellow nodes (up/down) can only be used
+during ﬂight.
+When a node is discovered and does not result in collision, it is assigned a score based on the energy consumed to
+reachthatnodeandtheeuclideandistancetothedestination. Theenergytoreachanodeiscalculatedbyaddingthe
+26
+
+--- Page 27 ---
+Fig. 18 Graphical representation of the 26 neighboring nodes that can be added to the OPEN list during
+expansion.
+energyrequiredtoreachtheparentnodetotheenergydiﬀerencebetweenthenodes. Thenodesareaddedtoasorted
+linked list called the OPEN list, so nodes with the lowest scores are at the top of the list. This heuristic function ensures
+thatthealgorithmﬁndstheoptimalpathforenergyconsumptionanddistancetravelled[ 39]. Thenextnodetoexpandis
+popped from the top of the OPEN list and added to the CLOSED list. The CLOSED list holds all nodes that have been
+expanded to ensure no node is expanded twice. The process of discovering, checking, and expanding nodes is repeated
+until one of two conditions is met.
+1) The destination node is reached and expanded.
+2)The edge of the mapped environment is reached, so the path should be executed until suﬃcient information has
+been added to the map for re-planning.
+3. Collision Checking
+Collision checking uses a set of coordinates relative to the position of the vehicle to determine if a part of the rover
+collides with the environment. The set of coordinates is a 3D array of locations with a spacing of .1 <to match the
+OctoMapresolution. Thecollisioncheckerusesdiﬀerentcollisionboxesforﬂyinganddriving. Flyingusesasimple1.8
+mx2.0mx3.0mboxtoprovidea .5mbuﬀeroneachsideoftherover. Drivingusesashapesimilartotheroverto
+allow for ground clearance under the chassis. Furthermore, the collision checker will check to make sure the nodes
+below the tires are occupied while driving. Figure 19 shows the collision checker used while driving. The center of the
+physical rover will coincide with the center of the coordinates being checked. The green nodes must be free for this
+to be a valid position. The blue nodes represent the nodes that must be occupied by the ground for this to be a valid
+position. In each columnof blue nodes, only oneof the twomust be occupied. The collision boxeswill be oriented in
+thedirectionoftravel. ToreducetheamountofNodestobechecked,internalboxesarenotchecked. Onlytheouter
+shell of nodes is checked for collisions.
+27
+
+--- Page 28 ---
+Fig. 19 Visual representation of the nodes checked for collision while driving.
+D. Control Loop
+Control loops play a critical role in autonomous robotics and navigation. A control loop accepts an inputted signal
+or value and gives a desired output, with some amount of error. In a closed control loop, the output signal is fed back to
+the input, and the error between the desired output and actual output adjusts the input signal in a continuous loop, with
+the ultimate goal of converging on the desired value.
+An eﬀective control loop for this vehicle is necessary, especially when navigating rough terrain. The automatic
+controls will determine the required velocity for the vehicle as it approaches the next way point. If the loop is unstable,
+this can lead to overshoot or oscillations, which could be dangerous for the vehicle with several obstacles in the vicinity.
+The control loop is designed to take in a series of way points from the path planner and translate them into commands
+for the controllers of the vehicle. The vehicle uses its current location and the global position of the next way point to
+methodically traverse along the given path. There are essentially two loops; one being for the driving controller, and the
+other is for the ﬂight controller.
+1. Design Criteria
+The following criteria were considered when designing the control loop for this vehicle.
+1)Accuracy: Thecontrolloopneedstoaccuratelydirectthevehiclefromitscurrentpositiontothedesiredway
+point. This requires reliable controls and consistent communication with the path planner and the FSM.
+2)Stability: Thecontrolsmustbewelltunedsuchthatthevehicle’spositionconvergesuponthewaypointwith
+minimal overshoot or oscillation.
+3)Vehicle Safety: The control loop is designed with vehicle safety in mind. The ﬁnal implementation will include
+methods of becoming unstuck or regaining traction if the vehicle is sliding. Integration of wheel encoders will
+make this possible with future work.
+28
+
+--- Page 29 ---
+2. Control Loop Design
+Duetothemulti-modalnatureofthevehicle,thecontrolloopneedstoconsistoftwoseparatecontrolloops. The
+designofthecontrolloopsisshowninFig. 20. Theoutermostloopisthenavigationloop,whichwillconsistofthe
+SLAMandpathplannernodes. Theinnerloopsaresplitintoparallelloops,onesettohandleﬂying,andtheothersetto
+handledriving. Thenavigationlooptakesthecurrentpositionanddestination,andoutputsapath. Themiddleloopsare
+the ﬂying and driving controllers that translate commands from the outer loop to the inner loops by taking in the route
+andproducingrelevantvelocitiesfortheinnerloops,whichcontaintheon-boardﬂightcontrollerandthediﬀerential
+drive controller. The inner loops communicate with the motors based on the velocities they receive and publish an error
+that is reported back to the navigation loop.
+Fig. 20 Control loop architecture.
+3. Driving Control
+When the vehicle is on the ground, it will be controlled by the driving controller. When given a new way point, the
+vehicle ﬁrst turns in the direction of the way point until it is within the deﬁned angular threshold. Then, the vehicle
+begins driving forward and turning to approach the way point and improve the accuracy of the angle at which it is
+29
+
+--- Page 30 ---
+approaching. When the vehicle reaches the way point, it stops and begins to turn in the direction of the next way point.
+This process is depicted in Fig. 21.
+Fig. 21 Driving way point following operations.
+The driving controller uses a positional closed control loop, which automatically adjusts for the linear and angular
+errorbetweenthewaypointandthevehiclescurrentpositionandorientation. Thiscontrolloopusesnestedproportional-
+integral-derivative (PID) controllers for both heading and distance, meaning the velocity of the vehicle will change
+basedonitsorientationandpositionrelativetothecurrentwaypoint. Theproportionalcomponentslowsthevehicle
+down as it approaches the angular threshold or the way point itself. The integral component takes a time summation of
+angular error and distance to the next way point, which consequentially increases the speed as time goes on. Finally, the
+derivative component adjusts the speed of the vehicle based on the time derivative of angular error/distance to the way
+point, which ultimately provides stability as the vehicle is approaching the next way point. The three components create
+a stable system that converges on the way point.
+The distance and heading control loops can be seen in Fig. 23. For the distance controller, ?3¹Cºis the desired
+position, and 4?¹Cºis the positional error. E3¹Cºis the desired velocity, and ?F<is the pulse-width modulation signal
+that gets sent to the motors. E¹Cºis the vehicle’s velocity, #¹Cºis a noise signal that represents any disturbances to the
+system,and ?¹Cºisthevehicle’sposition. Forthe headingcontroller, \3¹Cºrepresentsthevehicle’sdesiredangle,and
+4\¹Cºistheangularerror. l3¹Cºisthedesiredangularvelocity,and ?F<isthesignalthatgetssenttothemotors. l¹Cº
+is the vehicle’s current angular velocity, #¹Cºis the noise signal that represents disturbances to the system, and \¹Cºis
+thevehicle’scurrentangle,orheading. Forbothcontrollers, 2¹(ºisthetransferfunctionforthecontroller, ¹Bºis
+the transfer function for the ROS Diﬀerential Drive controller, and "¹Bºrepresents the motor transfer function. %¹(º
+representstheintegralfromvelocitytoposition,orangularvelocitytoheading,whichis 1B. TheROSDiﬀerential
+Drive Controller [ 40] is used, which has its own proportional controller and acts as the nested velocity controllers that
+sendcommandstothemotors. ThePIDtuningconstantsforthedistancecontrollerare :?=011:8=001:3=035,
+30
+
+--- Page 31 ---
+Fig. 22 The controllers for distance and heading.
+andthe constants fortheheading controllerare :?=01:8=00072:3=20. The behaviorof thedistancecontroller
+can be seen in Fig. 23. The root locus shows that the poles are to the left of the imaginary axis, which gives the system
+stable behavior. The step response does display some overshoot, but due to how the control loop operates, this does not
+present a problem. When the distance error is less than 5 centimeters, the control loop switches way points and sets the
+linear velocity to zero such that the vehicle can turn in the direction of the next way point, as described previously. This
+controlstructuresuppressestheovershootofthestepresponse. Thebehavioroftheheadingcontrollercanbeseenin
+Fig. 24. As with the distance controller, the poles are placed such that there will be a stable system while avoiding
+marginal stability, which occurs when poles reside on the imaginary axis. The step response plot shows a small amount
+ofovershoot,butsimilarlytothedistancecontroller,whentheheadingerroriswithinasmallthreshold,theangular
+velocityissettozero,andthevehicledrivesstraighttowardthewaypoint. Thispreventstheovershootshowninthe
+step response, which is further mitigated as the vehicle then adjusts its orientation while driving to the way point. The
+controllers allow the vehicle to drive along the given path accurately.
+a)
+ b)
+Fig. 23 Distance controller a) step response and b) root locus.
+31
+
+--- Page 32 ---
+a)
+ b)
+Fig. 24 Heading controller a) step response and b) root locus.
+4. Flying Control
+The ﬂying control loop is the connection between the path planner and the on-board ﬂight controller. However,
+theon-boardﬂightcontrollerhadnotbeenintegratedintothesimulationbeforetheneedfordemonstration. Forthe
+initial demonstration, the ROS library, Hector Quadrotor [ 41], was used for ﬂying in simulation. The library contains
+thenecessarycontrollers(position,heading,attitude,etc.) forﬂight,aswellastherequiredGazebopluginsforﬂight
+physics for the simulation. Controllers from Hector Quadrotor were utilized in control loops similar to those used with
+the ROS Diﬀerential Drive Controller. This worked for the initial demonstration, but the simulation is being developed
+tousethesimulatedon-boardﬂightcontrollerinsteadofHectorQuadrotor. Sincetheon-boardﬂightcontrollercan
+accept way points on its own, the control loop is a translator between the path planner and said controller. The path
+planner will publish global »GHI¼coordinates to a ROS topic, which the control loop then converts to the vehicle’s
+local reference frame before forwarding the locationinformationthrough the MAVLink [ 42] protocol tothe autopilot
+ﬁrmwareusingMAVROS[ 43]commands. Additionalmessagesaresenttoinitializeﬂightcontrollermodechanges,
+arming/disarmingandtakeoﬀ/landingcommands. Theautopilotinterpretsthesemessagesandsendscorresponding
+signals to the ﬂying motors to enable travel to the way points. The proposed ﬂight controller is the mRo Pixhawk [ 44].
+The Pixhawk was chosen due to its popularity in autonomous unmanned aerial vehicles (UAVs), compatibility with the
+PX4[45]autopilot,andteammemberexperiencewiththeﬂightcontroller. Theautopilotchosenfortheﬂightcontroller
+was PX4 due to it’s comprehensive documentation and SITL simulation support. The primary goal of using a Pixhawk
+boardwithPX4autopilotaretoprovefeasibilitythroughsimulationwhileexpeditingmigrationfromSITLtestingto
+testing with a TURVTOL prototype.
+32
+
+--- Page 33 ---
+5. Vehicle Safety
+The controlloop isresponsible forvehicle safety. Thisresponsibility includesresponding tothe states determined
+bytheFSMaswellasreactingtorelevantenvironmentalsensing. Afewexamplesofsafetymeasuresrequiredinthe
+controlloopincludesensingifthevehicleisslippingorstuckontheterrain. Whiledriving,thecontrolloopwillrun
+continuous comparisons of the vehicle’s pose as obtained through VIO and the wheel encoders. If the VIO determines
+that the vehicle is moving more than is calculated with the wheel encoders, the FSM will assume the vehicle is slipping
+and go into the SLIPPING state. If the opposite situation occurs, the FSM will go into the STUCK state. In either case,
+the control loop will execute protocols to regain traction. Traction regaining protocols will be designed as a part of
+future development.
+E. Finite State Machine (FSM)
+Forthevehicletooperatewithmultiplemodesoftravel,astatecontrolmachineisnecessary. Finitestatecontrol
+is a valuable design such that the vehicle’s behavior can be cleanly organized into a ﬁnite number of discrete states.
+Transition signals, along with the vehicle’s current state, will determine the next state of the vehicle. This type of state
+controlwillallowforcoordinationacrossallofthevariousROSnodes,includingtheSLAMnode,pathplannernode,
+and control loop node.
+1. Design Criteria
+The following criteria were emphasized when desigining this FSM.
+1)Robustness: The ﬁnite state machine needs to be as robust as possible in terms of logic ﬂow and environmental
+response. To meet this requirement, states were deﬁned for the vehicle and ﬁne tuned to consider all possibilities
+of operating conditions. TheFSM was thenfurther ﬁne tunedover several weeks of consideration ofvehicle
+operations.
+2)Eﬃciency: TheFSMisdesignedtomakeothernodesaseﬃcientaspossible. Thestateswillinformothernodes,
+suchasthepathplannerandthecontrolloop, ofthemostoptimalwaytooperate. Forexample, whenthevehicle
+is driving across terrain that would make it diﬃcult for the vehicle to takeoﬀ for ﬂight, the FSM will switch from
+theNORM_DRIVEstatetotheDRIVE_NO_TAKEOFFstate,whichwillinformthepathplannertonoteven
+consider ﬂight paths until the vehicle is back on level terrain. The same thing will occur if the wind is too strong
+for the vehicle to ﬂy safely. This will increase the eﬃciency of the path planner, and subsequently, the vehicle’s
+computation.
+33
+
+--- Page 34 ---
+2. FSM Design
+A ﬁnite state machine (FSM) has been designed and the general structure has been implemented using the ROS
+librarySMACH[ 46]. SMACHisusedbecauseitallowsforrelativelysimpleimplementationofcomplexstatemachines.
+ThehierarchicaldesignisshowninFig. 25. Atahighlevel,thestatesareFLY_OPERATEandDRIVE_OPERATE.
+Both of these states are sub-machines in the hierarchical state machine design. The FLY OPERATE state handles
+operations when the vehicle is in the air, and the DRIVE_OPERATE state handles operations when the vehicle is on the
+ground. The FLY OPERATE sub-machine contains a LANDING sub-machine, which contains states for executing
+search, return, and landing protocols. The DRIVE OPERATE sub-machine contains a TRACTIO_ LOSS sub-machine
+thatexecutesprotocolswhenthevehicleisstuck,slipping,orﬂippedupsidedown. DRIVE_OPERATEalsocontains
+the DORMANT sub-machine, which handleschargingand sleeping states for the vehicle. The lowest level states and
+their respective descriptions are detailed in Table 4.
+Table 4 Descriptions of the lowest level FSM states.
+State Description
+CHARGING Low battery
+DRIVE_NO_FLY Driving operations in circumstances where takeoﬀ would be unsafe
+FLIPPED Vehicle seems to be ﬂipped over
+FLY Normal ﬂying operations
+HOVER Waiting for update from path planner
+LAND Path planner has conﬁrmed landing
+NORM_DRIVE Normal driving operations
+RETURN_TO_LAUNCH Cannot ﬁnd safe landing location; return to known safe location (launch site)
+SEARCH_FOR_LANDING Assesses terrain below for safe landing location
+SLEEPING No current destination; awaiting new mission
+SLIPPING Vehicle seems to be sliding or slipping
+STAND_STILL Waiting for update from path planner
+STUCK Vehicle seems to be stuck
+TAKEOFF Path planner has conﬁrmed takeoﬀ
+34
+
+--- Page 35 ---
+Fig. 25 Visualization of the FSM node, designed as a hierarchical state machine using ROS library SMACH.
+35
+
+--- Page 36 ---
+Additionally,theFSMincludestransitionsignalsthatareassigneddependingonwhattheSLAMalgorithm,path
+planner,andcontrollooparedetectingorcalculating,aswellascertainenvironmentalfactors,suchasthesmoothnessof
+the terrain. The transition signals are designed to keep the vehicle functioning safely by monitoring various parameters,
+suchasbatterylevel,safetyofpotentiallandings/takeoﬀs,andﬂyingconditions,amongotherimportantfactors. The
+transitionsignalsaredescribedinTable5. Currently,theFSMstructurehasbeenimplemented,andfutureworkincludes
+development of methods for each state and integration of the FSM node with the various ROS nodes.
+Table 5 Descriptions of the FSM transition signals.
+Transition Signal True when...
+continue_ﬂight Path planner sends conﬁrmation to continue ﬂying (instead of landing)
+destination_received A New mission has been received
+fully_charged Charging protocols are complete
+ﬂipped VIO indicates that the vehicle has ﬂipped upside down
+init_takeoﬀ Path planner conﬁrms takeoﬀ
+land Either path planner conﬁrms landing or battery is low or there is no current destination
+landing_complete Landing protocols have been completed successfully
+low_battery Battery level is below threshold determined by current state
+nav_error Expected way points are not being published
+nav_regained Way points are once again published as expected
+no_dest The vehicle doesn’t have a destination and must await a new mission
+resume_drive The vehicle has both an adequately charged battery and a destination
+return_complete Vehicle has returned to the site of the most recent safe landing location
+return_to_safe Path planner conﬁrms landing but a safe landing cannot be made within a speciﬁed search radius
+safe_landing Path planner conﬁrms landing and safe landing has been ensured
+safe_takeoﬀ The current terrain is suitable for takeoﬀ and vehicle’s battery is high enough to facilitate safe ﬂight
+slip_ﬂag Vehicle is not moving as expected
+slipping VIO indicates that vehicle is moving more than encoders indicate
+stuck VIO indicates that vehicle is moving less than encoders indicate
+takeoﬀ completed Takeoﬀ protocols have been completed successfully
+36
+
+--- Page 37 ---
+Table 5 Descriptions of the FSM transition signals.
+Transition Signal True when...
+to_drive Path planner conﬁrms switch from ﬂying to driving
+unsafe_takeoﬀ The current terrain is unsuitable for takeoﬀ or the vehicle’s battery is too low to facilitate safe ﬂight
+F. Simulation Testing
+An eﬀective simulation environment allows for the testing of software while the vehicle itself is still being designed
+orbuilt. Implementingroboticbehaviorsinsimulationbeforetestingwithhardwarebothallowsforsafedevelopment
+aswellasfacilitatesworkingremotely. Thegoalofthesimulationenvironmentwastobedirectlytransferabletoour
+hardware prototype and to be able to test the vehicle in realistic conditions.
+1. Simulation Software
+The preferred software of choice in this endeavor was Gazebo due to its common use for simulating robots and
+autonomous systems and its open-source nature. ROS was used because of its many libraries and compatibility with the
+hardwarethatwasbeingused. Threedimensionalvisualmodelswerecreatedfortheprojectusingacombinationof
+SolidWorks and Blender. These models were used to test the path planning and visual-inertial odometry functionalities
+of the rover.
+2. Sensing
+The sensors currently being simulated are Intel RealSense D435 cameras, an inertial measurement unit (IMU), and
+wheelencoders. TheRealSensecamerasarebeingsimulatedusingtheprovidedpluginsfromRealSense. TheIMUis
+currentlysimulatedusingtheGazeboIMUplugin,butthePixhawkhasabuiltinIMU.OncePixhawkintegrationis
+completed,theIMUdatawillbeexportedandusedinplaceoftheGazbeoplugin. Thewheelencodersaresimulated
+through ROS and Gazebo.
+3. Terrain
+The terrain for the simulation was created using Mathew Verbryke’s Gazebo Terrain repository [ 47]. The repository
+allowed us to create terrain from height maps of any area on Earth, which provided us with the opportunity to integrate
+realistictopographyfrompotentialmissionsitesintooursimulation. Terraingeneratedfromheightmapsofareaswithin
+Arizona andHawaiiare shownin Fig. 26. Theseterrainmodels wereused forthetestingof OctoMapandVINS-Fusion
+in simulation to assess the accuracy of feature tracking, localization, and mapping.
+37
+
+--- Page 38 ---
+a)
+ b)
+Fig. 26 Terrain generated from height maps of an areas in a) Arizona Terrain and b) Hawaii.
+4. Results
+By the end of the summer, the vehicle could autonomously navigate both driving and ﬂying paths, as shown in Fig.
+27. Continued development since the end of the summer has included development of the path planning algorithm,
+ability to follow multi-modal paths, and integration of VINS-Fusion with the path planning and control loop nodes.
+Integration is an ongoing task, and progress is discussed more thoroughly in the discussion section.
+a)
+b)
+Fig. 27 a) Vehicle autonomously navigates driving path of 6 way points. b) Vehicle autonomously navigates
+ﬂying path of 4 way points. Note: The rover depicted here is an older model and does not accurately reﬂect the
+rover’s current design.
+VI. Discussion
+A. Hardware
+The ﬂight and ground systems described previously serve as the ﬁrst step in developing a multi-modal autonomous
+vehiclecapableoftacklingchallengesinsurmountablebyeitherapurelydrivingorpurelyﬂyingvehicle. Namely,it
+seekstoallowforlongrange,longdurationmissionswhichtakeplaceprimarilyonroughgroundterrain. Aproblem
+38
+
+--- Page 39 ---
+facedbymanygroundsystemswithsimilarmissionsisdangerousorimpassibleterrain,suchasrockﬁelds,cliﬀs,or
+bodies of water. This design aims to bypass these problems by simply ﬂying over them, allowing for unparalleled
+missionfreedom. Thisworkaddstotherelativelyundevelopedconcept,andproposesafeasibleﬁrstiterationconceptual
+design capable of surmounting these challenges which could be used as a springboard for future research and iterations.
+Oneareawhichdramaticallybeneﬁtedfromtheﬁrstiterationwasthewheelandrotorsizing. Duetotheunique
+wheel conﬁgurationwhich protectsthe rotorsin the caseof atumble, the weightof thewheel andlift of therotors are
+deeplycoupled. Initially,rotorsizewasminimizedtoensurethewheelwouldbefeasibletomanufacture,buthaving
+completed the design, it is clear that there is room for improvement. Speciﬁcally, a rotor of 27" maximizes the eﬀective
+thrust of the system.
+B. Software
+Thesoftwaredescribedintheprevioussectionshasproposedaframeworkandimplementationforamulti-modal
+vehicleplatform. Thesoftwaredesignofthisvehiclehasfocusedonusingalgorithmsandsensorsthatcreateacontinuous
+software ﬂow between ﬂying and driving. The individual algorithms themselves can be tuned to better achieve this goal.
+Visual-inertialodometry,speciﬁcallyVINS-Fusion,waschosenbecauseitisrobustandcanbeGPUaccelerated.
+Furthermore,The requiredsensorsuiteis adeptforbothmodalities ofthevehicle,so nomajorchangesin localization
+would take place during transitions. VINS-Fusion will be paired with OctoMap to provide environmental sensing. Due
+tothesizeofthevehicle,multipleRGB-Dcameraswillbeusedtoprovideafullpictureoftheenvironment. Approaches
+for SLAM with multiple cameras will need to be explored, and they have been shown to be more robust than monocular
+SLAM [48].
+Thepath-plannerusesamodiﬁedA*thatwilloptimizeforpowerconsumptionwhenplanningpathsthatinclude
+ﬂying and driving. The weights used for the search will need to be tuned to produce the desired hopping motion of the
+vehicle. The most problematic aspect of planning is choosing when to land. The weight for landing must be tuned such
+that the rover will choose to land after it has passed the obstacle, but it will not constantly check for landing after each
+lateralmovement. Anotherchallenge isthatthismapwill bedynamicallybuiltasthe rovervisualizesmoreterrain, so
+thepath-plannerwillnottypicallybeabletoplanapaththatwilltakeoﬀandlandinoneiteration. Thevehiclemust
+plan to take oﬀ, and decide where to land in a following iteration.
+A solution of having adapted weights during the search execution to prevent wasting computation time will be
+explored. For example, the weights during ﬂight will grow as the rover has been in the air longer. This will prevent the
+search algorithm from immediately exploring landing after take oﬀ.
+To make the vehicle travel more eﬃciently, the path will be smoothed to account for diﬀerent vehicle kinematics in
+both modes of travel. A multi-modal smoothing technique was not proposed in this research, so this will be a subject of
+future investigation.
+39
+
+--- Page 40 ---
+The control loop currently executes driving paths and ﬂying paths separately. The driving control loop takes in
+globalcoordinatesfromthepathplanner,andbyconvertingthesetorelativecoordinates,traverseswaypointtoway
+pointusingaPIDcontroller. ThedrivingcontrollooputilizesPIDvaluesthatallowthevehicletotraversealongthe
+given path eﬃciently, accurately and in a stable manner. For the purpose of demonstration, the ﬂying control loop
+currentlyutilizestheROSlibrary,HectorQuadrotor[ 41],toconvertadeterminedcommandvelocityintocommandsfor
+thevehicle’shardware. Ideally, HectorQuadrotorwillbe replacedwithPixhawk andPX4. Thisultimately allowsthe
+vehicle to traverse airborne paths. Future development will include the traversal of multi-modal paths, design of vehicle
+safety protocols, and ﬁne tuning the eﬃciency of both control loops.
+TheFSMarchitectureiscurrentlyimplementedusingSMACH.Futureworkwillincludedevelopingmethodsfor
+each state in the FSM and integrating the FSM with the other ROS nodes. The other nodes will need to be modiﬁed to
+publish the signals that the FSM requires to determine the vehicle’s state, as well as react to the vehicle’s current state.
+Additionally,theFSMwillneedtobetestedinsimulationtoensurethatitreactsasexpectedtochangesinthetransition
+signals.
+A Gazebo simulation is currently being developed to test and ﬁne tune the software systems. The simulation in
+developmentwillprovidethemeanstotestandoptimizethesoftwarefortheterrainthevehiclewilllikelyencounter.
+Thesimulationiscurrentlybeingusedtotestindividualcomponentsofthesoftwarestructure,andwillsoonbeused
+to test the integration of all components. Due to the discrepancies between the simulation and physical models, the
+softwarewillneedtobeloadedontoaphysicalprototypeforoﬃcialtestingtodeterminetheeﬃcacyoftheproposed
+software.
+C. Future Work
+A second iteration is currently being designed with the understanding gained from TURVTOL V1. It has been
+resizedtominimizetheextraweightofalargerwheelwhiletakingmaximumadvantageofalargerrotor. Therotors
+have been moved closer together following experimental testing. Additionally, the payload box has been redesigned to
+further reduceits weight, and itis being designedsuch that virtuallyeverycomponent can eitherbe purchased oﬀthe
+shelf or easily manufactured. The second iteration is still a work in progress, but it is estimated to weigh around 60 :6
+with a payload of about 15 :6while still being capable of the same missions as TURVTOL V1 showing the promise of
+the system.
+ThesoftwareﬂowbetweenTURVTOLV1andV2willbethesame. Thesoftwaredesignoutlinedinthispublication
+willcontinuetobedeveloped. Afterthesoftwareisdeveloped,itwillbeﬁne-tunedusinggazebogazebosimulations
+andimplementedinthephysicalprototype. Additionaldesigningforcommunicationsandchargingcapabilitieswill
+occur once the primary algorithms and nodes that are currently in development have been successfully integrated.
+40
+
+--- Page 41 ---
+VII. Conclusion
+This design paper proposes a multi-modal vehicle system capable of ﬂying and driving in extraneous terrain. A
+multi-modalvehiclewouldallowautonomoustravelinexceptionallyhazardousterrain,whichcouldbevaluablefor
+scientiﬁc data collection. The vehicle is propelled by 4 diﬀerential drive wheels with 2 coaxial rotors inside each wheel
+hub. Thevehicleisstillcapableofeﬃcientﬂightwiththereducedliftfromtherotorsbeinglocatedinsidethewheel
+hub. The design allows for minimal footprint for eﬀective ground traversal. A full software design for multi-modal,
+autonomous travel has also been discussed. The software includes environmental sensing, localization, mapping,
+path-planning, control loops, and state determination for a vehicle that drives and ﬂies.
+Funding Sources
+Individual stipends were provided by the Minnesota Space Grant Consortium, NASA Kentucky Space Grant
+Consortium,NorthCarolinaSpaceGrant,OregonSpaceGrantConsortium,PennsylvaniaSpaceGrantConsortium,
+VirginiaSpaceGrantConsortium,WestVirginiaSpaceGrantConsortium,andWisconsinSpaceGrantConsortium.
+Christopher Newport University and NASA Langley Research Center provided funding for the project.
+Acknowledgments
+ThisresearchteamwishestoacknowledgeandthankElizabethWardforherassistanceandsupport. Additionally,
+we would like to thank Zack Bassett, Ryan Bowers, Annabelle Durand, Mary Dijoseph, Thomas Jordan, James Neilan,
+DaveNorth,PatrickQuach,GarryQualls,AaronShepard,KyleSmalling,andLocTranforparticipatingonouradvisory
+committee. We would also like to thank the following:
+NASA Langley Research Center for providing necessary hardware and software access, as well as access to research
+resources.
+Christopher Newport University for providing funding.
+ViGYAN for performing propeller eﬃciency tests.
+41
+
+--- Page 42 ---
+References
+[1]Nathalie A. Cabrol, K. W. E. A. G. J. M. G. C. D. C. S. C. P. C. C. D. J. M. D. L. E. G. F. J. G. C. H. A. N. H. D. J. L. M. E. M.
+G.G.O.J.P.E.P.T.S.K.S.G.T.D.T.A.W.M.W.S.W.M.W.,DavidWettergreen,“LifeintheAtacama: Searchingforlife
+with rovers,” Journal of Geophusical Research: Biogeosciences , Vol. 112, 2007.
+[2]Eric Trautmann, J. L., Laura Ray, “Development of an Autonomous Robot for Ground Penetrating Radar Surveys of Polar Ice,”
+International Conference on Intelligent Robots and Systems , October, 2009.
+[3]KarstenBerns,C.A.,Klaus-DieterKuhnert,“Oﬀ-roadRobotics-AnOverview,” KI-KünstlicheIntelligenzvolume ,Vol.25,
+2011, pp. 109–116.
+[4]Bakker, J. W. D., “Personal land and air vehicle,” , 2011-04-26. URL https://patents.google.com/patent/
+US7931230B2/en .
+[5] Radu, B., “Flying car or drone,” , 2018-09-25. URL https://patents.google.com/patent/US10081424B2/en .
+[6]Stekelenburg, M. A. W., Joore, H., Klok, C. C., Rijn, L. P. V. M. V., Beek, K. R. V. D., and Ruit, E. V. D., “Fly/Drive
+Vehicle That Is Convertible Between A Road Riding Condition And A Flying Condition,” , 2020-02-20. URL https:
+//patents.google.com/patent/US20200055358A1/en .
+[7]ArashKalantari,M.S.,“DesignandExperimentalValidationofHyTAQ,aHybridTerrestrialandAerialQuadrotor,” IEEE
+International Conference on Robotics and Automation , 2013.
+[8]Jared R. Page, P. E. I. P., “The Quadroller: Modeling of a UAV/UGV hybrid quadrotor,” International Conference on intelligent
+Robotics and Systems , 2014.
+[9]Meiri, N., and Zarrouk, D., “Flying STAR, a Hybrid Crawling and Flying Sprawl Tuned Robot,” 2019 International Conference
+on Robotics and Automation (ICRA) , 2019, pp. 5302–5308. https://doi.org/10.1109/ICRA.2019.8794260, ISSN: 2577-087X.
+[10]Du,T.,Schulz,A.,Zhu,B.,Bickel,B.,andMatusik,W.,“ComputationalMulticopterDesign,” ACMTrans.Graph. ,Vol.35,
+No. 6, 2016. https://doi.org/10.1145/2980179.2982427, URL https://doi.org/10.1145/2980179.2982427.
+[11] Xoar, “Xoar Brushless Electric Motors,” , 2020. URL https://www.xoarintl.com/brushless-electric-motors/.
+[12]Xoar,“TitanAirTA82,”,2020. URLhttps://www.xoarintl.com/brushless-electric-motors/titan-air/titan-air-TA82-light-weight-
+pro-series/.
+[13]Lei, Y., Bai, Y., Xu, Z., Gao, Q., and Zhao, C., “An experimental investigation on aerodynamic performance of a coaxial rotor
+system with diﬀerent rotor spacing and wind speed,” Experimental thermal and ﬂuid science , Vol. 44, 2013, pp. 779–785.
+[14]Lei, Y., Ji, Y., and Wang, C., “Optimization of aerodynamic performance for co-axial rotors with diﬀerent rotor spacings,”
+International journal of micro air vehicles , Vol. 10, No. 4, 2018, pp. 362–369.
+42
+
+--- Page 43 ---
+[15]Lim, J., McAlister, K., and Johnson, W., “Hover Performance Correlation for Full-Scale and Model-Scale Coaxial Rotors,”
+Journal of the American Helicopter Society , Vol. 54, 2009, pp. 32005–1. https://doi.org/10.4050/JAHS.54.032005.
+[16] Apostolopoulos, D. S., “Analytical conﬁguration of wheeled robotic locomotion,” , 2001.
+[17]PLASCORE, “Standard Honeycomb Panels - Speciﬁcations for Standard Honeycomb Panels,” , 2008. URL https://www.
+plascore.com/honeycomb/honeycomb-panels/standard-honeycomb-panels/.
+[18] Fisher, B. D., “NASA Langley Aircraft Structural Requirements,” , Mar. 2016.
+[19] “Documentation - ROS Wiki,” , 2020-10-20. URL http://wiki.ros.org/.
+[20]Nickolls, J., and Dally, W. J., “The GPU Computing Era,” IEEE Micro , Vol. 30, No. 2, 2010-03, pp. 56–69. https:
+//doi.org/10.1109/MM.2010.41, conference Name: IEEE Micro.
+[21]Hangün,B., andÖnderEyecioğlu,“PerformanceComparison BetweenOpenCVBuilt inCPUand GPUFunctionson Image
+Processing Operations,” INTERNATIONAL JOURNAL of ENGINEERING SCIENCE AND APPLICATION , Vol. 1, No. 2, 2017.
+[22]Rodriguez-Losada, D., Segundo, P. S., Hernando, M., Puente, P. d. l., and Valero-Gomez, A., “GPU-Mapping: Robotic
+Map Building with Graphical Multiprocessors,” IEEE Robotics Automation Magazine , Vol. 20, No. 2, 2013-06, pp. 40–51.
+https://doi.org/10.1109/MRA.2012.2220503, conference Name: IEEE Robotics Automation Magazine.
+[23] Bleiweiss, A., “GPU Accelerated Pathﬁnding,” Graphics Hardware , 2008.
+[24]“NVIDIA Jetson Xavier NX for Embedded & Edge Systems,” , 2020-10-19. URL https://www.nvidia.com/en-us/autonomous-
+machines/embedded-systems/jetson-xavier-nx/.
+[25]Nister, D., Naroditsky, O., and Bergen, J., “Visual odometry,” Proceedings of the 2004 IEEE Computer Society Conference on
+ComputerVisionandPatternRecognition,2004.CVPR2004. ,Vol.1,2004-06,pp.I–I. https://doi.org/10.1109/CVPR.2004.
+1315094, ISSN: 1063-6919.
+[26]Jones,E.S.,andSoatto,S.,“Visual-inertialnavigation,mappingandlocalization: Ascalablereal-timecausalapproach,”Vol.30,
+No.4,2011-04-01,pp.407–430. https://doi.org/10.1177/0278364910388963,URLhttps://doi.org/10.1177/0278364910388963.
+[27]Qin, T., Li, P., and Shen, S., “VINS-Mono: A Robust and Versatile Monocular Visual-Inertial State Estimator,” IEEE
+Transactions on Robotics , Vol. 34, No. 4, 2018, pp. 1004–1020.
+[28]Qin,T.,andShen,S.,“OnlineTemporalCalibrationforMonocularVisual-InertialSystems,” 2018IEEE/RSJInternational
+Conference on Intelligent Robots and Systems (IROS) , IEEE, 2018, pp. 3662–3669.
+[29]Qin,T.,Pan,J.,Cao,S.,andShen,S.,“AGeneralOptimization-basedFrameworkforLocalOdometryEstimationwithMultiple
+Sensors,” , 2019.
+[30]Qin,T.,Cao,S.,Pan,J.,andShen,S.,“AGeneralOptimization-basedFrameworkforGlobalPoseEstimationwithMultiple
+Sensors,” , 2019.
+43
+
+--- Page 44 ---
+[31]Wiemann, T., Nüchter, A., Lingemann, K., Stiene, S., and Hertzberg, J., “Automatic construction of polygonal maps from point
+cloud data,” 2010 IEEESafety Security andRescue Robotics , 2010-07, pp.1–6. https://doi.org/10.1109/SSRR.2010.5981571.
+[32]JulianRyde,H.H.,“3Dmappingwithmulti-resolutionoccupiedvoxellists,”2010. https://doi.org/10.1007/s10514-009-9158-3.
+[33]Hornung, A., Wurm, K. M., Bennewitz, M., Stachniss, C., and Burgard, W., “OctoMap: An Eﬃcient Probabilistic 3D
+Mapping Framework Based on Octrees,” Autonomous Robots , 2013. https://doi.org/10.1007/s10514-012-9321-0, URL
+http://octomap.github.com, software available at http://octomap.github.com.
+[34] “Depth Camera D435i,” , 2020-10-23. URL https://www.intelrealsense.com/depth-camera-d435i/.
+[35]Peter E. Hart, B. R., Nils J. Nilsson, “A Fromal Basis for the Heuristic of Minimum Cost Paths,” IEEE Transactions of Systems
+Science And Cybernetics , Vol. 4, July, 1968.
+[36] Dijkstra, E., “A Note on Two Problems in Connexion with Graphs,” Numerische Mathematik , Vol. 1, 1959, pp. 169–271.
+[37]JoseLuisSanchez-Lopez,M.A.O.-M.M.M.H.V.,MinWang,“AReal-Time3DPathPlanningSolutionforCollision-Free
+Navigation of Multirotor Aerial Robots in Dynamic Environments,” Journal of Intelligent Robotic Systems , Vol. 93, 2018, pp.
+33–53.
+[38]Amir Sharif, S. H. H. R., H.M. Lahiru, “Energy Eﬃcient Path Planning of Hybrid Fly-Drive Robot (HyFDR) using A*
+Algorithm,” Proceedingsofthe15thInternationalConferenceonInformaticsinControl,Automation,andRobotics ,Vol.2,
+2018, pp. 201–210.
+[39] Ferguson, D., Likhachev, M., and Stentz, A., “A Guide to Heuristic-based Path Planning,” 2005, p. 10.
+[40] Magyar, B., “Diﬀ Drive Controller,” , 2019-06-06. URL http://wiki.ros.org/diﬀ_drive_controller.
+[41] Meyer, J., and Kohlbrecher, S., “Hector Quadrotor,” , 2014-01-07. URL http://wiki.ros.org/hector_quadrotor.
+[42] Project, D., “MAVLink Developer Guide,” , 2020. URL https://mavlink.io/en/.
+[43] Team, P. D., “MAVROS,” , 2020. URL http://wiki.ros.org/mavros.
+[44]Team, P. D., “mRo Pixhawk Flight Controller (Pixhawk 1),” , 2020. URL https://docs.px4.io/master/en/ﬂight_controller/mro_
+pixhawk.html.
+[45] Team, P. D., “PX4,” , 2020. URL https://px4.io/.
+[46] Bohren, J., “SMach,” , 2018. URL http://wiki.ros.org/smach.
+[47] Verbryke, M., “Gazebo Terrain Gen,” , 2019. URL https://github.com/MatthewVerbryke/gazebo_terrain.
+[48]Yang, S., Scherer, S. A., Yi, X., and Zell, A., “Multi-camera visual SLAM for autonomous navigation of micro aerial vehicles,”
+Vol.93,2017-07-01,pp.116–134. https://doi.org/10.1016/j.robot.2017.03.018,URLhttp://www.sciencedirect.com/science/
+article/pii/S0921889015302177.
+44
