@@ -1,0 +1,762 @@
+--- Page 1 ---
+Program Complexity in Hierarchical Module
+Checking?
+Aniello Murano1, Margherita Napoli2, and Mimmo Parente2
+1Universitµ a di Napoli \Federico II", Via Cintia, 80126 - Napoli, Italy
+2Universitµ a di Salerno, Via Ponte don Melillo, 84084 - Fisciano (SA), Italy
+Abstract. Module checking is a well investigated technique for verifying
+the correctness of open systems, which are systems characterized by an
+ongoing interaction with an external environment. In the classical module
+checking framework, in order to check whether an open system satis¯es
+a required property, we ¯rst translate the entire system into an open
+model ( module ) that collects all possible behaviors of the environment
+and then check it with respect to a formal speci¯cation of the property.
+Recently, in the case of closed system, Alur and Yannakakis have consid-
+ered hierarchical structure models in order to have models exponentially
+more succinct. A hierarchical model uses as nodes both ordinary nodes
+and supernodes, which are hierarchical models themselves. For CTL spec-
+i¯cations, it has been shown that for the simple case of models having
+only single-exit supernodes, the hierarchical model checking problem is
+not harder than the classical one. On the contrary, for the more general
+multiple-exit case, the problem becomes Pspace -complete.
+In this paper, we investigate the program complexity of the CTL hierar-
+chical module checking problem , that is, we consider the module checking
+problem for a ¯xed CTL formula and modules having also supernodes
+that are modules themselves. By exploiting an automata-theoretic ap-
+proach through the introduction of hierarchical BÄ uchi tree automata,
+we show that, in the single-exit case, the addressed problem remains in
+Ptime , while in the multiple-exit case, it becomes Pspace -complete.
+1 Introduction
+Module checking is a useful technique that allows to verify the correctness of open
+systems [KVW01]. While the behavior of a closed system is fully characterized
+by internal states, an open system maintains an ongoing interaction with an
+external environment, and its behavior is fully a®ected by this interaction.
+Classically, in order to check whether an open system satis¯es a required
+property, we translate the entire system into a module , that is in a labeled state-
+transition graph whose set of states is partitioned into a set of system states
+(where the system makes a transition) and a set of environment states (where
+the environment makes a transition). Given a module M, describing the system
+?Work partially supported by MIUR PRIN Project no.2007-9E5KM8 and grant \For-
+mal Methods for Closed and Open Systems" ex-60% 2006 Universitµ a di Salerno.
+
+--- Page 2 ---
+2 Aniello Murano, Margherita Napoli, and Mimmo Parente
+to be veri¯ed, and a temporal logic formula ', specifying the desired behavior
+of the system, module checking asks whether, for all possible environments, M
+satis¯es '. Therefore, while in model checking it is su±cient to check whether the
+full computation tree obtained by unwinding Msatis¯es ', in module checking
+it is necessary to verify that all trees obtained from the full computation tree by
+pruning some subtrees rooted in nodes corresponding to choices disabled by the
+environment (those trees represent the interactions of Mwith all the possible
+environments) satisfy '. We collect all such trees in a set named exec(M).
+As a classic example of closed and open systems, we can think of two drink-
+dispensing machines. One machine, which is a closed system, repeatedly boils
+water, makes an internal nondeterministic choice, and serves either co®ee or tea.
+The second machine, which is an open system, repeatedly boils water, asks the
+environment to choose between co®ee and tea, and deterministically serves a
+drink according to the external choice. Both machines induce the same in¯nite
+tree of possible executions. Nevertheless, while the behavior of the ¯rst machine
+is determined by internal choices solely, the behavior of the second machine
+is determined also by external choices, made by its environment. Formally, in
+a closed system, the environment cannot modify any of the system variables.
+In contrast, in an open system, the environment can modify some of them. In
+[KVW01,AMV07], it has been shown that for systems modeled as single modules
+and speci¯cations as branching time temporal logic formulas, module checking
+is exponentially harder than model checking.
+In formal veri¯cation a very interesting question is how complex is to check
+for system correctness in the case we ¯x the speci¯cation. This question is usually
+addressed as the program complexity and in more details concerns the complexity
+of the veri¯cation question for the set fM j M satis¯es 'g, for a ¯xed formula
+'[VW86]. Program complexity is receiving great attention in formal veri¯cation
+due to the fact that often the size of the system widely exceeds that of the
+formula, which is usually very small and therefore considered constant. This
+allows us to use in practice formal veri¯cation techniques whenever they result
+tractable with respect to the system. For example, we recall that for ¯nite-state
+systems and speci¯cations given as formulas of the branching-time temporal logic
+CTL ([CE81]), module checking is Exptime -complete, but the corresponding
+problem with a constant size formula is only Ptime -complete [KVW01].
+Recently, in the case of complex closed systems, hierarchical structure mod-
+els have been usefully considered, in order to have models exponentially more
+succinct. A hierarchical model uses as nodes both ordinary nodes or supernodes,
+which are models themselves [AY01,ABE+05,LNPP08]. The straightforward way
+to analyze a hierarchical closed machine is to °atten it (thus, incurring an ex-
+ponential blow up) and apply a model checking tool on the resulting ordinary
+model. In [AY01], it has been shown that for linear-time speci¯cations such as
+LTL, the cost of °attening can be avoided by showing that the LTL hierarchical
+model checking problem is not harder than the classical one. The same happens
+forCTL speci¯cations, for models having one exit node. In the general case,
+
+--- Page 3 ---
+Lecture Notes in Computer Science 3
+instead, CTL hierarchical model checking becomes exponentially harder and, in
+particular, the program complexity is Pspace -complete.
+In this paper, we investigate the program complexity of the module checking
+problem for CTL in the case of modules expressed by hierarchical modules , that
+is nodes of the module can be ordinary nodes or supernodes which are modules
+themselves. As a simple example, consider again the above drink-dispensing
+machine. Now suppose that both in the cases the environment makes a co®ee or
+tea choice, the system allows the environment to have an extra choice between
+regular sugar or diet sugar. In both cases, we can remand the choice to another
+module. As for non-hierarchical open systems, in case we want to check whether
+it is possible for the designed hierarchical open machine to serve co®ee with
+regular sugar, a straightforward way is to °atten it and then, by using the
+classical module checking technique, check whether the °atten module satis¯es
+theCTL formula AGEF co®e with regular sugar . Unfortunately, by °attening
+the hierarchical module, we increase exponentially the size of the module and we
+immediately get that CTL hierarchical module checking is Exptime w.r.t. both
+the sizes of the hierarchical module and the formula.
+In this paper, we show that for the addressed problem the cost of °attening
+can be avoided. In particular, we show that for single-exit hierarchical modules,
+the program complexity of the CTL hierarchical module checking problem is
+not harder than the classical one, while in the case of multiple-exit hierarchical
+modules, the addressed problem becomes Pspace -complete.
+For the upper bounds, we use an automata-theoretic approach via tree au-
+tomata. In particular, we introduce hierarchical nondeterministic BÄ uchi tree au-
+tomata (HNBT ) and use a reduction to the emptiness problem for this automata.
+In more details, given a hierarchical module Mand a CTL formula ', we ¯rst
+construct in polynomial time an HNBT AMaccepting exec(M). The construc-
+tion of AMwe propose here extends that used in [KVW01] by also taking into
+account that Mis in a hierarchical shape. Thus, AMwill have, for each su-
+pernode in the hierarchical module (which is a hierarchical module itself) a cor-
+responding supernode (which is a hierarchical automaton itself) with the same
+number of exit nodes. From the formula side, accordingly to [KVW00], we con-
+struct in exponential time a nondeterministic BÄ uchi tree automaton ( NBT )A:'
+accepting all models that do not satisfy ', with the intent to check that none
+of them are in exec(M). Thus, we check that Mmodels 'for every possible
+choice of the environment by checking whether L(AM)\ L(A:') is empty. To
+obtain the result, we ¯rst show that the product of the HNBT AMwith the
+NBTA:'can be performed in polynomial time, turning into an HNBT having
+a number of exit nodes that depends on the number of states of A:', which in
+turn depends on the size of '. Since we are interested on the program complex-
+ity of the hierarchical module checking problem, we assume the formula to be
+¯xed. Therefore, the obtained HNBT will have multiple exits if AMdoes, and
+a constant number of exit-nodes otherwise. Then, we show that the emptiness
+problem for an HNBT can be solved in Ptime if it only admits constant (and in
+particular single-) exits, while it is Pspace -complete in the case of multiple ex-
+
+--- Page 4 ---
+4 Aniello Murano, Margherita Napoli, and Mimmo Parente
+its. Thus, we get the desired upper bounds. To show matching lower bounds, for
+the single-exit case, we recall that the program complexity of the classical mod-
+ule checking problem is Ptime -hard and that, for multiple exits, the program
+complexity of CTL hierarchical model checking closed system is Pspace -hard.
+The paper is self-contained and is organized as follows. In the next section,
+we give basic de¯nitions, introduce open hierarchical state machines, and de¯ne
+the hierarchical module checking problem for CTL. In Section 3, we brie°y recall
+NBT and introduce HNBT . Then, we solve the emptiness problem for HNBT .
+Finally, in Section 4, we solve the hierarchical module checking problem for CTL.
+2 Preliminary
+In this section, we introduce the hierarchical module checking problem forCTL.
+LetNbe the set of positive integers. A treeTis a pre¯x closed subset of N¤.
+The elements of Tare called nodes and the empty word "is the rootofT. For
+x2T, the set of children ofx(inT) ischildren (T; x) =fx¢i2Tji2Ng.
+Fork¸1, the complete k-ary tree is the tree f1; : : : ; k g¤. For x2T, a path
+¼ofTfrom xis a set ¼µTsuch that x2¼and for each y2¼such that
+children (T; y)6=;, there is exactly one node in children (T; y) belonging to ¼.
+In the following, for a path of T, we mean a path of Tfrom the root ". For an
+alphabet §, a§-labeled tree is a pair ( T; V), where Tis a tree and V:T!§
+maps each node of Tto a symbol in §.
+In this paper, we consider open systems, i.e. systems that interact with their
+environment and whose behavior depends on this interaction. The global behav-
+ior of such a system is described by a ¯nite state machine (also called module
+[KVW01]) M= (AP; S; E; R; in; L), where APis a ¯nite set of atomic proposi-
+tions, S[Eis a ¯nite set of states partitioned into a set Sofsystem states and a
+setEofenvironment states (we use Wto denote S[E),RµW£Wis a total
+transition relation, in2Wis an initial state, and L:W!2APmaps each state
+wto the set of atomic propositions that hold in w. For ( w; w0)2R, we say that
+w0is a successor of w. For each state w2W, we denote by succ(w) the ordered
+tuple of w's successors. When the module Mis in a system state ws, then all
+the states in succ(ws) are possible next states. On the other hand, when Mis
+in an environment state we, then the possible next states (that are in succ(we))
+depend on the current environment. Since the behavior of the environment is
+not predictable, we have to consider all the possible sub-tuples of succ(we). The
+only constraint, since we consider environments that cannot block the system, is
+that at least one transition from weexists leading into a next state in succ (not
+all these transitions may be disabled by the environment).
+The set of all the maximal computations of Mstarting from the initial state
+inis described by a W-labeled tree ( TM; VM), called computation tree , which is
+obtained by unwinding Min the usual way. The problem of deciding, for a given
+branching-time formula ÃoverAP, whether ( TM; L±VM) satis¯es Ã, denoted
+M j=Ã, is the usual model-checking problem [CE81,QS81]. On the other hand,
+for an open system, ( TM; VM) corresponds to a very speci¯c environment, i.e. a
+
+--- Page 5 ---
+Lecture Notes in Computer Science 5
+maximal environment that never restricts the set of its next states. Therefore,
+when we examine a branching-time speci¯cation Ãw.r.t. a module M,Ãshould
+hold not only in ( TM; VM), but also in all the trees obtained by pruning from
+(TM; VM) subtrees whose root is a child (successor) of a node corresponding to
+an environment state. The set of these labeled trees is denoted by exec(M), and
+is formally de¯ned as follows. ( T; V)2exec(M) i®TµTM,Vis the restriction
+ofVMto the tree T, and for all x2Tthe following holds:
+{ifVM(x) = w2Sandsucc(w) =hw1; : : : ; w ni, then children (T; x) =
+fx¢1; : : : ; x ¢ng(note that for 1 ·i·n,V(x¢i) =VM(x¢i) =wi);
+{ifVM(x) = w2Eandsucc(w) =hw1; : : : ; w ni, then there is a sub-
+tuple hwi1; : : : ; w ipiofsucc(w), with p¸1, such that children (T; x) =
+fx¢i1; : : : ; x ¢ipg(note that for 1 ·j·p,V(x¢ij) =VM(x¢ij) =wij).
+Intuitively, each labeled tree ( T; V) inexec(M) corresponds to a di®erent
+behavior of the environment. In the following, we consider the trees in exec(M)
+as 2AP-labeled trees, i.e. taking the label of a node xto be L(V(x)).
+In this paper, we consider the branching-time temporal logic CTL as sys-
+tem speci¯cation. CTL was introduced by Emerson and Clarke in 1981 [CE81]
+as a tool for specifying and verifying concurrent programs. CTL formulas are
+built from a set APofatomic propositions using boolean operators, the linear-
+temporal operators X(\next time") and U(\until"), coupled with the path
+quanti¯ers A(\for all paths") or E(\for some path"). For a formal de¯nition
+ofCTL see [CGP99]. The closure cl(') of a CTL formula 'is the set of all sub-
+formulas of ', including '. The size j'jof'is de¯ned as the number of elements
+incl('). Given a CTL formula ', we say that ( T; V) satis¯es 'if ((T; V); ")j='.
+For a module Mand a CTL formula Ã, we say that Msatis¯es Ã, denoted
+M j=rÃ, if all the trees in exec(M) satisfy Ã. The problem of deciding whether
+Msatis¯es Ãis called module checking [KVW01]. Note that M j=rÃimplies
+M j=Ã(since ( TM; VM)2exec(M)), but the converse in general does not hold.
+Also, note that M 6j=rÃisnotequivalent to M j=r:Ã. Indeed, M 6j=rÃjust
+states that there is some tree ( T; V)2exec(M) satisfying :Ã.
+Open Hierarchical State Machines. Anopen hierarchical state machine ,
+orhierarchical module Mover a set APof atomic propositions is a tuple
+(M1; : : : ;Mn) ofcomponents , where each Mi= (AP;Si;Ei;Ri; Box i; Oi;ini; Li;
+Yi), 1·i·n, has the following elements:
+{A ¯nite set Siofsystem nodes ;
+{A ¯nite set Eiofenvironment nodes . We assume Si\Ei=;, and Wi=Si[Ei;
+{A ¯nite set Box ofboxes (or supernodes). We assume Wi\Box i=;;
+{An initial node iniofWi;
+{A subset OiofWi, called exit-nodes.
+{A labeling function Li:Wi!2APlabeling each node with a subset of AP.
+{An indexing function Yi:Box i! fi+ 1; : : : ; n gthat maps each box of the
+i-th component to an index greater than i. That is, if Yi(b) =j, for a box b
+ofMi, then bcan be viewed as a reference to the component Mj.
+
+--- Page 6 ---
+6 Aniello Murano, Margherita Napoli, and Mimmo Parente
+{An edge relation Ri. Each edge in Riis a pair ( u; v) with source uand sink
+v: source ueither is a node of Mi, or is a pair ( u1; u2), where u1is a box of
+Miwith Yi(u1) =jandu2is an exit-node of Mj, and the sink vis either
+a node or a box of Mi.
+The edges connect nodes and boxes with one another. Edges entering a box
+implicitly connect to the unique initial node of the component associated with
+that box. On the other hand, edges exiting a box explicitly specify an exit-
+node among the possible exit-nodes of the component associated with that box.
+A hierarchical module is closed (called hierarchical model in [AY01]) if for all
+components Mi, we have Ei=;.
+By extending an idea used for closed hierarchical models, we can associate
+to a hierarchical module an ordinary °at module, by recursively substituting
+each box with the component indexed by the box. Since di®erent boxes can be
+associated with the same component, each node can appear in di®erent contexts.
+The expanded °at module will be denoted Mf. Its states are tuples hu1; : : : ; u hi,
+h¸1, whose last component uhis a node, while all the other are boxes. More-
+over, each ujbelongs to the Miwhich the box uj¡1refers to. A state in the °at
+module is either a system or environment state depending on whether uhis a
+system or an environment node, and also the propositional labeling of the state
+is determined by the labeling of uh.
+Now we proceed to a formal de¯nition of expansion of a hierarchical module
+M=hM1; : : : ;Mni. For each component Mi, we de¯ne the module Mf
+i=
+(AP; Sf
+i; Ef
+i; Rf
+i;inf
+i; Lf
+i) as the expanded structure of Miobtained as follows:
+{inf
+i=hinii;
+{The set Sf
+i(resp., Ef
+i) of system (resp., environment) nodes of Mf
+iis de¯ned
+inductively:
+²ifuis a system (resp., environment) node of Mithenhuibelongs to Sf
+i
+(resp., Ef
+i);
+²ifuis a box of Miwith Yi(u) =j, andhu1; : : : ; u hiis a system (resp.,
+environment) state of Mf
+j, where h¸1, then hu; u1; : : : ; u hibelongs to
+Sf
+i(resp., Ef
+i).
+{The transition relation Rf
+iofMf
+iis de¯ned inductively as follows:
+²for (u; v)2Ri, if the sink vis a node then ( hui;hvi)2Rf
+i, and if vis a
+box with Yi(v) =jthen ( hui;hv;inji)2Rf
+i;
+²ifwis a box of Miwith Yi(w) =j, and ( hu1; : : : ; u hi;hv1; : : : ; v h0i) is
+a transition of Mf
+j, for h; h0¸1, then ( hw; u 1; : : : ; u hi;hw; v1; : : : ; v h0i)
+belongs to Rf
+i.
+{The labeling function Lf
+i:Wf
+i!2APofMf
+i(where Wf
+i=Sf
+i[Ef
+i) is
+de¯ned inductively as follows:
+²ifwis a node of Mi, then Lf
+i(hwi) =Li(w);
+²ifw=hu; u1; : : : ; u hi, where h¸1, and uis a box of Miwith Yi(u) =j,
+then Lf
+i(w) =Lf
+j(hu1; : : : ; u hi).
+
+--- Page 7 ---
+Lecture Notes in Computer Science 7
+The module Mf
+1is the expanded structure of Mand therefore we just indi-
+cate it as Mfin the following.
+The size jMijofMiis the sum of jWij,jBox ij, and jRij. The size of the
+hierarchical module Mis the sum of the sizes of all Mi. The nesting depth of M,
+denoted nd(M), is the length of the longest chain i1; i2; : : : ; i jof indices such that
+a box of Milis mapped to il+1. Observe that each state of the expanded structure
+is a vector of length at most the nesting depth, and the size of the expanded
+module Mfcan be exponential in the nesting depth, and is O(jMjnd(M)).
+Thehierarchical module checking problem forCTL is to decide for a given
+hierarchical module Mand a CTL formula ', whether Mfj=r'.
+As noted above, the last component of every state is a node (all the others
+being boxes), and the system or environment nature of the last component as
+well as its propositional labeling determines the nature and the propositional
+labeling of the entire state, respectively.
+In the following sections we will consider the cases of hierarchical module
+single-exit (all the Oicontain just element), or multiple-exit and the special case
+of hierarchical module with a constant number of exit-nodes ( constant-exit ).
+3 Tree automata
+In order to solve the program complexity of the hierarchical module check-
+ing problem for CTL, we use an automata theoretic approach; in particular,
+we exploit the formalisms of Nondeterministic BÄ uchi Tree Automata (NBT )
+[Rab70,VW86] and introduce Hierarchical Nondeterministic BÄ uchi Tree Automata
+(HNBT ), that is NBT where states can be either ordinary node states or box
+states, which are tree automata themselves. Analogously to hierarchical mod-
+ules, we consider both the cases single- or multiple-exit HNBT .HNBT extend
+to in¯nite trees the notion of hierarchical automata introduced in [ABE+05] on
+in¯nite words.
+Nondeterministic BÄ uchi Tree Automata ( NBT ). Here, we brie°y recall
+the de¯nition of NBT over complete k-ary trees, for a given k¸1. Formally, a
+NBT is a tuple A= (§; Q; in; ±;F), where §is a ¯nite input alphabet, Qand
+inare as in modules and they represent a ¯nite set of states, and an initial state,
+respectively; ±:Q£§!2Qkis a transition function, and F µ Qis a BÄ uchi
+acceptance condition.
+Intuitively, when the automaton is in state q, reading an input node xlabeled
+by¾2§, then the automaton chooses a tuple ( q1; : : : ; q k)2±(q; ¾) and splits
+inkcopies such that for each 1 ·i·k, a copy in state qiis sent to the node
+x¢iin the input tree.
+A run of Aon a §-labeled k-ary tree ( T; V) (where T=f1; : : : ; k g¤) is a
+Q-labeled tree ( T; r) such that r(") =inand for each x2T, we have that
+(r(x¢1); : : : ; r (x¢k))2±(r(x); V(x)). For a path ¼µT, letinfr(¼)µQbe the
+set of states that appear as the labels of in¯nitely many nodes in ¼. For a BÄ uchi
+condition F µQ,¼isaccepting ifinfr(¼)\F 6=;. A run ( T; r) isaccepting if all
+its paths are accepting. The automaton Aaccepts an input tree ( T; V) i® there
+
+--- Page 8 ---
+8 Aniello Murano, Margherita Napoli, and Mimmo Parente
+is an accepting run of Aover ( T; V). The language of A, denoted L(A), is the
+set of §-labeled (complete) k-ary trees accepted by A. The emptiness problem
+forAis to check whether L(A) =;. The sizejAjof an NBTAisjQj+j±j, note
+thatj±jis at most j§j ¢ jQjk+1.
+It is well-known that formulas of CTL can be translated into equivalent tree
+automata (accepting the models of the given formula). In particular, given a CTL
+formula 'one can construct an NBT overk-ary trees, for some degree k¸1,
+having as number of states (independent from k) 2O(j'jlog(j'j)), as stated in the
+following lemma.
+Lemma 1 ([KVW00,Var98]).
+Given a CTL formula 'over APandk¸1, one can construct a NBTA'with
+number of states 2O(j'jlogj'j)(independent from k) that accepts exactly the set
+of2AP-labeled complete k-ary trees that satisfy '.
+Hierarchical Nondeterministic BÄ uchi Tree Automata( HNBT ). We now
+introduce HNBT over complete k-ary trees (for a given k¸1), as a hierarchical
+extension of NBT . An HNBT Aover an alphabet §is a tuple hA1; : : : ;Ani,
+with each Aisuch that Ai= (§; W i; ±i; Box i;ini; Oi; Yi;Fi) where Wi,Box i,
+ini,Oi, and Yiare as in the components of hierarchical modules, FiµWiis a
+set of accepting states, and ±i: (Wi[(Box i£S
+j>iOj))£§!2(Wi[Boxi)k. A
+tuple ( q1; : : : ; q k) is in ±i(q; ¾) only if either q2Wiorqis a pair ( b; s), where
+b2Box iwith Yi(b) =jandsis an exit-node of Aj. Moreover, each qican be
+either a node state or a box state of Ai.
+ThesizejAijisjWij+jBox ij+j±ij, note that j±ijis at most j§j ¢(jWij+
+jBox ij)k+2. The size of Ais the sum of the sizes of all Ai. Similarly to hierarchical
+modules, we can °at a HNBT Ainto an NBTAfby de¯ning the NBT's Af
+i
+similarly to what has been done for Mf
+i. Thus a state of Af
+iis a tuple consisting
+of all box states and having necessarily as last component a node state. A state
+ofAf
+iis ¯nal if its last component is in Fj, with j¸i. A tree ( T; V) is accepted
+by a HNBT Aif there is an accepting run of Afon (T; V). The language L(A)
+accepted by Ais the set of the accepted trees.
+To exploit the automata theoretic approach for the module checking problem
+for hierarchical module, we solve the emptiness problem for HNBT .
+Lemma 2. The emptiness problem for a single-exit HNBT is in Ptime . The
+emptiness problem for a multiple-exit HNBT is inPspace .
+Proof (sketch). For an NBTA, one can check in polynomial time its emptiness
+by simply checking whether there exists in Aa set Gof \good" ¯nal states which
+is reachable by itself (i.e., for each state wofGthere is a run that contains a
+subtree starting from wand whose frontier is contained in G) and that from the
+initial state of Ait is possible to reach G[Rab70,VW86].
+We now prove that also in the case of single-exit HNBT we can check empti-
+ness in polynomial time, by opportunely embedding a component-wise explo-
+ration of the hierarchical automaton into the above NBT 's emptiness algorithm.
+
+--- Page 9 ---
+Lecture Notes in Computer Science 9
+In fact, for a single-exit HNBT A=hA1; : : : ;Aniinstead of checking empti-
+ness for the °at Af
+1we will use a simple property (checkable in polynomial
+time) on suitable NBTs bAiand sets dBox i, constructed from Ai. Let us for
+the moment give a non-constructive de¯nition of these latter sets: for each i,
+letdBox i=fb2Box ijYi(b) = j,L(Af
+j)6=;g. Moreover, let each Ai=
+(§; W i; ±i; Box i; inii; Oi; Yi;Fi), the NBTbAiis a tuple ( §;bQi;bini;b±i;bFi), where
+{bQiµWi[Box iandWiµbQi;
+{bFiµ F i[Box iandFiµbFi;
+To each bAican be associated a set of non complete k-ary trees, possibly
+having some ¯nite paths, which can be seen, roughly speaking, as accepted by a
+Tree Automaton (not a NBT) with the following acceptance conditions: on the
+¯nite paths the acceptance is obtained considering the states of dBox ias ¯nal
+states, while the in¯nite paths are accepted with the usual BÄ uchi condition bFi.
+To check the emptiness for the given HNBT , we will check whether such set of
+trees for bA1is empty. For each bAiwe distinguish three di®erent kinds of paths
+¼of its runs, all starting from bini:
+A.¼either is in¯nite and goes through a state of bFiin¯nitely often or is ¯nite
+and its last state belongs to dBox i.
+B.¼is a ¯nite path whose last state is in Oi(recall that OiµbQi, since WiµbQi)
+and¼does not contain any state of bFi.
+C.¼is a ¯nite path whose last state is in Oiand it does contain at least one
+state of bFi.
+Let us now de¯ne inductively and bottom-up all bAiand the dBox i. For the
+base, let bAn=AnanddBox n=;. Suppose now that for 1 ·i·nwe have
+already de¯ned all bAj, forj > i. The sets bQiandbFicontain WiandFi, respec-
+tively and, given a box b2Box isuch that Yi(b) =j, we have that:
+{if there exists a run of bAjcontaining at least a type- Bpath and all the
+others are either type- Apaths or type- Cpaths, then b2bQi.
+{if there exists a run of bAjcontaining at least a type- Cpath and all the
+remaining are of type- Apaths, then b2bQiandb2bFi.
+{if there exists a run of bAjwhose all paths are of type- Apaths, then b2dBox i
+andb2bQi.
+Moreover bini=iniand
+{forq2Wi,b±i(q; ¾) =±i(q; ¾) and
+{forq2Box i\bQi,b±i(q; ¾) =±i((q; s); ¾) with s2Oi.
+Observe that the set dBox icontains a box b2Box iif it appears in an
+accepting run of Af
+i. Moreover if there exists a run of bAjcontaining a type- C
+path ¼, then this run can be taken in¯nitely often in an accepting run ( T; r) of
+
+--- Page 10 ---
+10 Aniello Murano, Margherita Napoli, and Mimmo Parente
+Af
+i: in this way, in fact, the ¯nal state of bAjoccurring in ¼, appears in¯nitely
+often in some paths of ( T; r). Thus we consider bas a ¯nal state of bAi.
+Now it is easy to see that a tree ( T; V) is accepted by Af
+iif and only if there
+exists a run of bAiwhose paths are all of type- A. Observe that the set dBox iis
+now de¯ned constructively and is consistent with the previous de¯nition.
+Now since L(A)6=;if and only if there exists a tree ( T; V) accepted by Af
+1,
+we have that an algorithm to solve the emptiness problem can be easily given,
+based on the construction of bAi's. Actually it remains to be convinced that the
+existence of the runs required in those constructions can be done in polynomial
+time. This can be accomplished by using a ¯xed-point algorithm which resembles
+the one given by Rabin in [Rab70] for NBT . In an extended version of the paper
+we will give the full details of such algorithm.
+Consider now a multiple-exit HNBT A. We now sketch a nondeterministic
+algorithm running in polynomial space, and from Savitch's theorem, we get our
+result. As in the single-exit case, we will construct some NBT bAi's, but now
+the construction is accomplished nondeterministically and in a top-down way,
+starting from i= 1. To obtain each bAi, the algorithm, for each box b2Box i
+with Yi(b) =j, either guesses that L(Af
+j)6=;or chooses two (possibly empty)
+setsXµOjandYµOjand guesses, for some s2Oj, that there exists a run in
+bAjhaving type- Bpaths from binjtos2Xand type- Cpaths from binjtos2Y.
+According to these choices, the NBT bAiis constructed, similarly as in the case
+of single-exit. Then the algorithm proceeds by checking the guessed property of
+bAYi(b), for each b2Box i. In this step bAYi(b)is constructed, and this obviously,
+implies other guesses for the boxes belonging to AYi(b). This chain of guesses
+naturally ends when bAnhas to be constructed, since Box nis empty. Observe
+that the overall space necessary during the execution of the algorithm does not
+exceed the size of Aand this concludes the proof. u t
+We now conclude this section by showing that the above results are also
+tight. For the single-exit case, notice that NBT are a special case of HNBT and
+forNBT the emptiness problem is already known to be Ptime -hard.
+For the multiple-exit case, we use a polynomial reduction from the model-
+checking problem for multiple-exit hierarchical state machines w.r.t constant
+CTL formulas, which is known to be Pspace -hard [AY01]. In order to apply this
+reduction, we have ¯rst to de¯ne a cross product between an HNBT A0and an
+NBTA00, say it A0­ A00, that allows to construct in polynomial time an HNBT
+whose °attening is equivalent to the Cartesian product of the NBT 'sA0fand
+A00. We now formally show how to construct A0­ A00.
+LetA0=hA1; : : : ;Anibe an HNBT , with Ai= (§; W i; ±i; Box i;ini; Oi; Yi;Fi),
+andA00= (§; Q; in; ±;F00) with Q=fq1; : : : ; q mgandin=q1. The product
+A0­ A00is the HNBT A=hA11; : : : ;A1m; : : : ;An1; : : : ;Anmi, where each com-
+ponent Aij= (§; W i£Q; ±ij; Box i£Q;(ini; qj); Oi£Q; Y ij;Fij), 1·i·m
+and 1 ·j·n, is such that
+{Fij=Fi£ F00
+{Yij(b; q) =m(i0¡1) +j0ifYi(b) =i0andq=qj0,
+
+--- Page 11 ---
+Lecture Notes in Computer Science 11
+{if (q00
+1; : : : ; q00
+k)2±(q00; ¾) and ( q0
+1; : : : ; q0
+k)2±i(q0; ¾) then
+²ifq02Withen (( q0
+1; q00
+1); : : : ; (q0
+k; q00
+k))2±ij((q0; q00); ¾)
+²ifq0= (b; s), with b2Box iands2OYi(b), then (( q0
+1; q00
+1); : : : ; (q0
+k; q00
+k))2
+±ij((b0; s0); ¾), where b0= (b; q), for some q2Q, and s0= (s; q00))
+Lemma 3. Given an HNBT A0and an NBT A00, the HNBT A=A0­ A00
+accepts the language L(A) =L(A0)\ L(A00)and has size O(jQj2¢ jA0j ¢ jA00j).
+Proof. LetA0be an HNBT ,A00be an NBT andA=A0­A00, as described above,
+with components Aij. Since Afis not isomorphic to A0f£ A00, we prove the
+lemma by showing an isomorphism among the run of Afand those of A0f£A00.
+Given a run ( T; r) ofAf, we can de¯ne a run ( T; r0) ofA0fand a run
+(T; r00) ofA00as follows. The run ( T; r0) is obtained by projecting for each
+stateh(q0
+1; q00
+1); : : : ; (q0
+h; q00
+h)iin (T; r) the ¯rst components, thus getting the state
+hq0
+1; : : : ; q0
+hiofA0f. The run ( T; r00) ofA00is obtained by projecting the sec-
+ond component of the node in each state (recall that only ( q0
+h; q00
+h) is a node,
+while all the other are boxes). Symmetrically, given the two runs, we can de¯ne
+(T; r) ofAf. Now it immediately follows that ( T; r) is accepting if and only
+if (T; r0) and ( T; r00) are both accepting runs. Thus the accepted languages is
+L(A) =L(A0)\ L(A00).
+Consider now the size of each component Aij: from the de¯nition of the cross
+product ­, each component Aijis obtained by pairing the initial node iniofAi
+with qj. The number of the states is jWij ¢ jQjand the number of superstates is
+jBox ij ¢ jQj. The size j±ijjof the transition function is bounded by j±ij ¢ j±j ¢ jQj,
+since when the transition is de¯ned on a pair ( b; s) then bcan be paired with
+any state q2Q. Thus the overall size of A=A0­A00isO(jQj2¢jA0j¢jA00j).u t
+Let us now turn back to the desired reduction. Let 'be a ¯xed CTL formula
+andMbe a hierarchical closed state machine with multiple exits. Let AM
+be an HNBT obtained from Mby considering all its states as accepting and
+collecting all its relations in \tree-like" transitions (observe that AMsu±ces
+to be deterministic). More formally, for each Mi= (AP;Si;Ei;Ri; Box i; Oi;
+ini; Li; Yi), inMwe add to AMthe component Ai= (2AP; Wi; ±i; Box i;ini; Oi;
+Yi;Fi), where Wi=Si[Ei,Fi=Wi, and ±i(w; L i(w)) =f(wi; : : : ; w d)gi®,
+for each 1 ·j·d, (w; w d)2Ri. By Lemma 1, we can construct an NBTA'
+accepting all models of '. Note that A'has a ¯xed size, since 'is also ¯xed.
+By Lemma 3, we can construct in polynomial time an HNBT AM­'accepting
+the intersection1ofAKandA'. Clearly, Ksatis¯es 'i®L(AK­')6=;. This,
+together with Lemma 2 leads to the desired result.
+Theorem 1. (i) The emptiness problem for a single-exit HNBT isPtime -
+complete. ( ii) The emptiness problem for a multiple-exit HNBT isPspace -
+complete.
+1One can observe that AMmay not be complete and that AMandA'may disagree
+on the number of node successors. It is not hard to see that, by duplicating successor
+states, we can adapt the previous constructions in order to obtain AMandA'as
+k-ary complete automata.
+
+--- Page 12 ---
+12 Aniello Murano, Margherita Napoli, and Mimmo Parente
+4 Deciding hierarchical Module Checking
+In this section, we solve the program complexity of the CTL hierarchical module
+checking problem. In particular, we show that this problem is in Ptime for
+single-exit modules and in Pspace in the multiple-exit case. By recalling that
+the program complexity for the classical CTL module checking is Ptime -hard
+and the program complexity for the CTL hierarchical model checking is Pspace -
+hard, we get that our results are also tight.
+Our solution to both problems is based on an automata{theoretic approach,
+by extending an idea of [KVW01]. In practice, we take into account that the
+input module is hierarchical. Therefore, we extend [KVW01]'s idea to each com-
+ponent of the module and use the automata product ­introduced in the previous
+section, instead of a classical Cartesian product. In more details, let Mbe a hi-
+erarchial module and 'a ¯xed CTL formula. We decide the module checking
+problem for Magainst 'by building an HNBT AM­: 'asAM­ A:'. Essen-
+tially, the ¯rst automaton, AM, is an HNBT that accepts trees of exec(Mf), and
+the second automaton is an NBTA:'that accepts all trees that do not satisfy
+'. Thus, M j=r'i®L(AM­: ') is empty. Now, recall from Lemma 3 that the
+cross product between AMandA:'corresponds to an HNBT (which can be
+constructed in polynomial time) whose °attening is equivalent to the Cartesian
+product of the NBT 'sAf
+MandA:'. The component automata of the obtained
+HNBT will have a number of exit nodes that depends on the number of states
+ofA:', which in turn depends, by Lemma 1, on the size of the formula '. Since
+here we are interested on the program complexity of the hierarchical module
+checking problem, we assume the formula to be ¯xed. Therefore, AM­: 'will
+have multiple exits i® AMdoes, and a constant number of exit nodes, otherwise.
+Let us now discuss about the emptiness problem for HNBT 's with a constant
+number of exits. That is, we are interested in determining the complexity of the
+emptiness problem for the set fA j A is an HNBT with at most d-exit nodes g, for
+a ¯xed natural number d. First observe that in the algorithm we have proposed
+in Lemma 2 for checking the emptiness of HNBT 's with single exits, each box
+either contributes to check the existence of an accepting run or not at all. On
+the opposite, in the multiple-exit case, we have to remember for each box which
+exit node ensures acceptance and which does not. Therefore, for each box some
+splitting may be required. For instance consider a component Aiwith two exit
+nodes w1andw2. It may be that a run exits in w1trough paths all visiting at
+least a ¯nal state and in w2trough a path that does not. Thus, we need to split
+Aiinto four copies, depending whether both, only w1, only w2, or none can be
+considered in the extended set of ¯nal states. In general, if we start in Lemma 2
+with an HNBT having at most dexit nodes, we need to generate 2dcopies of
+each component automaton, in the worst case. Since dis a ¯xed parameter, it
+turns out that the emptiness problem also for this automata remains in Ptime
+as reported in the following proposition.
+Proposition 1. The emptiness problem for a constant-exit HNBT is inPtime .
+
+--- Page 13 ---
+Lecture Notes in Computer Science 13
+To conclude with our idea of solving the program complexity for CTL hierar-
+chical module checking let us give some details on how to construct AMfor a hi-
+erarchical module M=hM1; : : : ;Mni, with each Mi= (AP;Si;Ei;Ri; Box i; Oi;
+ini; Li; Yi). First, we recall that each component automaton of AMcan only work
+on complete k-ary trees, while trees in exec(Mf) may be not. To overcome this
+problem, we consider an equivalent representation of exec(Mf) in which all nodes
+have degree k=maxfbd(w)jw2S
+iSi[Eig, where bd(w) denotes the branch-
+ing degree of w(i.e. the number of its successors). Now, recall that each tree in
+exec(Mf) is a 2AP-labeled tree that is obtained from ( TMf; VMf) by suitably
+pruning some of its subtrees. We can encode the tree ( TMf; VMf) as a 2AP[f?g -
+labeled complete k-ary tree (where ?is a fresh atomic proposition not belonging
+toAP) in the following way: for each node x2TMwith dchildren ( x¢1; : : : ; x ¢d)
+(note that 1 ·d·kasRiis total), we add the children ( x¢(d+1); : : : ; x ¢k) and
+label these new nodes with ?; ¯nally, for each node xlabeled by ?we add recur-
+sively k-children labeled by ?. Let ( f1; : : : ; k g¤; V0) be the tree thus obtained.
+Then, we can encode a tree ( T; V)2exec(Mf) as the 2AP[ f?g -labeled com-
+plete k-ary tree obtained from ( f1; : : : ; k g¤; V0) preserving all the labels of nodes
+of (f1; : : : ; k g¤; V0) that either are labeled by ?or belong to T, and replacing
+all the labels of nodes (together with the labels of the corresponding subtrees)
+pruned in ( T; V) with the label ?. In this way, all the trees in exec(Mf) have
+the same structure (they all coincide with f1; : : : ; k g¤), and they di®er only in
+their labeling. Thus, the proposition ?is used to denote both \disabled" nodes
+and \completion" nodes2. Moreover, since we consider environments that do
+not block the system, for each node associated with an enabled environment
+node, at least one successor is not labeled by ?. Let us denote by dexec(M) the
+set of all 2AP[ f?g -labeled k-ary trees obtained from ( f1; : : : ; k g¤; V0) in the
+above described manner. We now show an HNBT AMaccepting dexec(M).AM
+is the tuple hA(1;>);A(2;>);A(2;?);A(2;`); : : : ;A(n;>);A(n;?);A(n;`)i, where for
+1·i·nandx2 f? ;>;`g, each A(i;x)=h§; W0
+i; ±i; Box0
+i;(ini; x); O0
+i; Y0
+i; Wii
+is de¯ned as follows (recall Wi=Si[Ei):
+{§= 2AP[ f?g ;
+{W0
+i=Wi£f?;>;`g. The automaton A(i;x) starts from ( ini; x). For example,
+the computation starts from ( ini;?) whenever a box corresponding to Aihas
+been disabled. From states of the form ( w;?),A(i;x)can read only the letter
+?, from states of the form ( w;>), it can read only letters in 2AP. Finally,
+when A(i;x)is in state ( w;`), then it can read both letters in 2APand the
+letter ?. In this last case, it is left to the environment to decide whether the
+transition to a state of the form ( w;`) is enabled. The three types of states
+are used to ensure that the environment enables all transitions from enabled
+system nodes, enables at least one transition from each enabled environment
+node, and disables transitions from disabled nodes.
+{O0
+i=Oi£ f? ;>;`g. Clearly, we can have three types of exit nodes.
+2As stated in [KVW01], the use of the atomic proposition ?must be taken into
+account while building A:'. This can be easily handled by opportunely modifying
+the formula 'by exploiting an argument similar to that used in [KVW01].
+
+--- Page 14 ---
+14 Aniello Murano, Margherita Napoli, and Mimmo Parente
+{Box0
+i=Box i£ f? ;>;`g. As for states, we can have three types of boxes,
+which are used to ensure that, regarding the initial node wof the component
+automaton corresponding to a box, the environment can enable all transi-
+tions from wwhenever wis an enabled system node, enable at least one
+transition from wwhenever wis an enabled environment node, and disables
+transitions from wwhenever wis a disabled node.
+{Y0
+iis such that Y0
+i(b; x) =Yi(b); x. That is, from a box ( b; x),Aicalls the
+automaton A(Yi(b);x). Then the computation continues from ( inYi(b); x) as
+described above.
+{The transition function ±i: (W0
+i[(Box0
+i£S
+j>iO0
+j))£§!2(W0
+i[Box0
+i)kis
+de¯ned as follows. Let z=w2Wiorw2Ojsuch that z= (b; w)2(Box i£S
+j>iOj) and Yi(b) =j. Let succ(z) = (z1; : : : ; z d), with 1 ·d·k, and for
+m; m02 f> ;`;?g, letz0be either ( w; m), ifz=w, orz0= ((b; m0);(w; m)),
+ifz= (b; w). Then, ±iis as follows:
+²Forw2Wi[Ojandm2 f`;?g, we have
+±i(z0;?) =f( (z1;?); : : : ; (zd;?);(z;?); : : : ; (z;?)| {z }
+k pairs)g
+That is, ±i(z0;?) contains exactly one k-tuple. In this case all the suc-
+cessors of the current node are disabled.
+²Forw2Si[(Sj\Oj) and m2 f> ;`gwe have
+±i(z0; Li(w)) =f( (z1;>); : : : ; (zd;>);(z;?); : : : ; (z;?)| {z }
+k pairs)g
+²Form2 f> ;`gand either w2Eiandg=worw2(Ej\Oj) and
+g=bwe have ±i(z0; Li(w)) =
+f((z1;>);(z2;`); : : : ; (zd;`);(g;?); : : : ; (g;?));
+((z1;`);(z2;>); : : : ; (zd;`);(g;?); : : : ; (g;?));
+......
+((z1;`);(z2;`); : : : ; (zd;>);(g;?); : : : ; (g;?) )g:
+That is, ±i(z0; Li(w)) contains d k-tuples. When the automaton proceeds
+according to the i-th tuple, the environment can disable the transitions
+to all successors of the current state, except the transition associated
+with zi, which must be enabled.
+One can be convinced on the fact that Ais polynomial in the size of M, by
+noting that each A(i;x)has 3¢jM ijstates, and j±ijis bounded by O(k¢jRij). Thus,
+by summing up our idea trough the above polynomial construction of AM, the
+exponential-constant time construction given by Lemma 1 for A:', Lemma 3,
+Proposition 1, and Lemma 2 the following result holds.
+Theorem 2. The program complexity for the CTL hierarchical module check-
+ing problem is Ptime -complete in the case of single-exit modules and Pspace -
+complete in in the case of multiple-exit modules.
+
+--- Page 15 ---
+Lecture Notes in Computer Science 15
+5 Conclusions
+In this paper, we have introduced and solved the program complexity for the
+hierarchical module checking problem for CTL, both in the case of single-exit
+and multiple-exit modules. An immediate exponential solution can be obtained
+by °attening the hierarchical module and then apply the classical algorithm. By
+avoiding the °attening, we have shown algorithms having a better performance
+and, in particular, working not harder than those used in the closed hierarchical
+system case. As future directions, it would be worth to consider more involved
+scenarios both on the module checking side (e.g., pushdown module checking
+[BMP05], systems with incomplete information [AMV07]) and on the hierarchi-
+cal side (e.g., recursive state machine [ABE+05], with both nodes and boxes
+labeled with atomic propositions [LNPP08]).
+References
+[ABE+05]R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. W. Reps, and M. Yan-
+nakakis. Analysis of recursive state machines. ACM Trans. Program. Lang.
+Syst., 27(4):786{818, 2005.
+[AMV07] B. Aminof, A. Murano, and M.Y. Vardi. Pushdown module checking
+with imperfect information. In CONCUR '07 , LNCS 4703, pages 461{476.
+Springer-Verlag, 2007.
+[AY01] R. Alur and M. Yannakakis. Model checking of hierarchical state machines.
+ACM Trans. Program. Lang. Syst. , 23(3):273{303, 2001.
+[BMP05] Laura Bozzelli, Aniello Murano, and Adriano Peron. Pushdown module
+checking. In LPAR'05 , LNCS 3835, pages 504{518. Springer-Verlag, 2005.
+[CE81] E.M. Clarke and E.A. Emerson. Design and veri¯cation of synchronization
+skeletons using branching time temporal logic. In Proceedings of Workshop
+on Logic of Programs , LNCS 131, pages 52{71. Springer-Verlag, 1981.
+[CGP99] E.M. Clarke, O. Grumberg, and D. Peled. Model Checking. MIT Press,
+1999.
+[KVW00] O. Kupferman, M.Y. Vardi, and P. Wolper. An Automata-Theoretic Ap-
+proach to Branching-Time Model Checking. J. of the ACM , 47(2):312{360,
+2000.
+[KVW01] O. Kupferman, M.Y. Vardi, and P. Wolper. Module Checking. Information
+and Computation , 164(2):322{344, 2001.
+[LNPP08] S. LaTorre, M. Napoli, M. Parente, and G. Parlato. Veri¯cation of scope-
+dependent hierarchical state machines. Information and Computation .
+206(9,10): 1161-1177, 2008.
+[QS81] J.P. Queille and J. Sifakis. Speci¯cation and veri¯cation of concurrent pro-
+grams in Cesar. In Proceedings of the Fifth International Symposium on
+Programming , LNCS 137, pages 337{351. Springer-Verlag, 1981.
+[Rab70] M.O. Rabin. Weakly de¯nable relations and special automata. Mathematical
+Logic and Foundations of Set theory , 1970.
+[Var98] M.Y. Vardi. Reasoning about the past with two-way automata. In
+ICALP'98 , LNCS 1443, pages 628{641. Springer-Verlag, 1998.
+[VW86] M.Y. Vardi and P. Wolper. Automata-theoretic techniques for modal logics
+of programs. J. of Computer and System Sciences , 32(2):182{221, 1986.
