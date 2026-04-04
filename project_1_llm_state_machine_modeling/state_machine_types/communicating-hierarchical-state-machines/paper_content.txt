@@ -1,0 +1,921 @@
+--- Page 1 ---
+Communicating Hierarchical State Machines *
+
+Rajeev Alur                  Sampath Kannan             Mihalis Yannakakis
+University of Pennsylvania     University of Pennsylvania       Columbia University
+alur @ cis.upenn.edu                kannan @ cis.upenn.edu           mihalis@cs.columbia.edu
+
+August 17, 2005
+
+Abstract
+
+Hierarchical state machines are finite state machines whose states themselves can be other
+machines. In spite of their popularity in many modeling tools for software design, very little is
+known concerning their complexity and expressiveness. In this paper, we study these questions
+for hierarchical state machines as well as for communicating hierarchical state machines, that
+is, finite state machines extended with both hierarchy and concurrency. We present a com-
+prehensive set of results characterizing (1) the complexity of the reachability, emptiness and
+universality problems, (2) the complexity of the language inclusion and equivalence problems,
+and (3) the succinctness relationships between different types of machines.
+
+1 Introduction
+
+Finite state machines (FSMs) are widely used in the modeling of systems in various areas. De-
+scriptions using FSMs are useful to represent the flow of control (as opposed to data manipulation)
+and are amenable to formal analysis such as model checking [CK96, CGP00, Hol97, VW94]. In the
+simplest setting, an FSM consists of a labeled graph whose vertices correspond to system states
+and edges correspond to system transitions. In practice, to describe complex systems using FSMs,
+several extensions are useful such as communicating FSMs in which the system is described by a
+collection of FSMs that operate concurrently and synchronize with one another periodically.
+There is a rich body of theoretical results concerning complexity and expressiveness of state
+machines. By labeling the edges of an FSM with alphabet symbols and by introducing initial and
+final states, FSMs can be used to define regular languages. Analysis problems of interest include
+emptiness of the language, model checking with respect to temporal requirements, and inclusion
+and equivalence of the languages of two machines. For a single FSM, the complexity of some
+problems depends on whether the machine is deterministic or not. For instance, language equiva-
+lence is NL-complete for deterministic machines but PSPACE-complete for nondeterministic ones (cf.
+[HU79]). Introducing concurrency, that is, considering communicating FSMs, usually costs an extra
+exponential. For instance, simple reachability for communicating FSMs is PSPACE-complete, while
+equivalence equivalence is EXPSPACE-complete [HKV97]. Insight into the complexity of analysis
+problems is also provided by the succinctness afforded by various features. For instance, nondeter-
+ministic machines are exponentially more succinct than deterministic ones (cf. [HU79]), concurrent
+
+ 
+
+“A preliminary version of this paper appears in 26th International Colloquium on Automata, Languages, and
+Programming (ICALP), LNCS 1644, pp. 169-178, 1999. This research was supported in part by ARO URI award
+DAAD19-01-1-0473 and NSF award CCR-0306382.
+
+
+--- Page 2 ---
+machines are exponentially more succinct than the sequential ones, and concurrent nondeterministic
+machines are doubly-exponentially more succinct than deterministic FSMs [DH94].
+
+While the impact of features such as nondeterminism and concurrency on complexity and ex-
+pressiveness of finite-state machines is well understood, there is almost no literature on under-
+standing the impact of introducing hierarchy in state machines. In hierarchical (nested) FSMs, the
+states of an FSM can be ordinary states or superstates which are FSMs themselves. The notion of
+hierarchical FSMs was popularized by the introduction of STATECHARTS [Har87], and exists in var-
+ious object-oriented software development methodologies such as RooM [SGW94] and the Unified
+Modeling Language (UML [BJR97]). Hierarchical state machines have two descriptive advantages
+over ordinary FSMs. First, superstates offer a convenient structuring mechanism that allows us to
+specify systems by stepwise refinement, and to view it at different levels of granularity. Second,
+by allowing sharing of component FSMs, we need to specify components only once and then can
+reuse them in different contexts, leading to modularity and succinct system representations. In a
+recent paper, it is shown that the succinctness offered by sequential hierarchical state machines
+comes at no cost: the reachability problem for sequential hierarchical state machines can be solved
+without constructing the equivalent flattened ordinary FSM, and is P-complete [AY01]. In this
+paper, we investigate the reachability question for communicating hierarchical state machines, lan-
+guage equivalence problems for hierarchical and communicating hierarchical state machines, and
+succinctness issues.
+
+Our first set of results concern algorithms for reachability in presence of both the concurrency
+and hierarchy constructs. While reachability of a single hierarchical state machine (HSM) can be
+solved in linear time [AY01], we show that the product of two HSMs is difficult to analyze and has
+a PsPACE-complete reachability problem. For communicating hierarchical state machines (CHM)
+that allow arbitrary nesting of the concurrency and hierarchy constructs, we show the reachability
+problem to be EXPSPACE-complete. This shows that hierarchy, in presence of concurrency, costs an
+extra exponential. Then, we proceed to identify a restriction on the use of the two constructs that
+avoids this extra cost. In well-structured CHMs, communication among hierarchical components
+is allowed only at the top level, and for such machines we show that one needs to pay only for
+concurrency: the reachability problem is PSPACE-complete as in the case of communicating FSMs.
+
+Our second set of results concern checking equivalence of languages of two machines. For
+a sequential HSM, while language emptiness is P-complete, we show checking universality to
+be EXPspACE-complete. It follows that checking language inclusion and equivalence are both
+EXPSPACE-complete problems. In the case of ordinary FSMs, deterministic machines have polynomial-
+time complexity for universality, inclusion, and equivalence, while the corresponding problems are
+PSsPACE-complete for nondeterministic ones. This motivates us to consider these problems for
+deterministic HSMs: while universality becomes easy (P-complete), language inclusion is PSPACE-
+complete, and language equivalence can be solved in PSPACE (a matching lower bound remains an
+open question). When we consider communicating hierarchical machines, the costs due to concur-
+rency and hierarchy add up: all of universality, language inclusion, and language equivalence are
+2EXPSPACE-complete.
+
+Finally, we consider succinctness afforded by the hierarchical construct. Starting with deter-
+ministic FSMs, we know that nondeterminism can add exponential succinctness. We show that
+hierarchy can also add exponential succinctness. Furthermore, nondeterministic FSMs and deter-
+ministic HSMs are incomparable extensions: both can be exponentially more succinct with respect
+to each other. Allowing both nondeterminism and hierarchy gives double-exponential succinctness
+with respect to deterministic FSMs, and curiously enough, this double-exponential gap exists be-
+tween nondeterministic HSMs and deterministic HSMs also. Allowing nondeterminism, hierarchy,
+
+
+--- Page 3 ---
+as well as concurrency, gives triple-exponential succinctness with respect to deterministic FSMs (or
+even deterministic HSMs), and double-exponential succinctness with respect to nondeterministic
+FSMs (or even nondeterministic HSMs)!
+
+2 Communicating Hierarchical State Machines
+
+There are many variants of definitions of finite-state machines. We choose a definition in which
+edges are labeled with alphabet symbols. For simplicity, we restrict ourselves to a single initial
+and a single final state, but generalization to multiple initial and final states poses no technical
+problems. A finite-state machine (FSM) consists of
+
+e a finite set Q of states,
+
+e a finite alphabet ¥,
+
+e an initial state q! € Q,
+
+e a final state g” € Q,
+
+easet >CQx =x Q of transitions.
+
+Given a word p = 0901 ---0,, over the alphabet 4, an accepting run of the FSM M over p is a
+sequence
+00      O1      On
+Go > Gt nt
+
+such that gq equals the initial state q’, ¢n+1 equals the final state q”, and for 0 <i < 1, (qi, 0%, G41)
+is a transition of M. The set of words p € X* over which M has an accepting run is called the
+language of M, denoted L(M).
+
+Now we proceed to add two features: concurrency and hierarchy. For concurrency, a machine is
+composed of a set of component machines which synchronize on transitions labeled with common
+alphabet symbols. For hierarchy, the states of a machine can be other machines. Such states are
+popularly known as superstates [Har87|. The meaning of such a hierarchical definition is obtained by
+recursively substituting each superstate by the machine associated with it. Hierarchical definitions
+allow sharing of patterns. The following formal definition allows arbitrary nesting of the concurrency
+and hierarchy constructs.
+
+A communicating hierarchical state machine (CHM) is one of the following three forms:
+
+Base case: An FSM (Q,5,¢q/,q",-) is a CHM.
+Concurrency: If Mj), Mo,... Mj), are CHMs then Mj||Mo]| --- ||), is a CHM.
+
+Hierarchy: If M is a finite set of CHMs, N = (Q,»,q/,q",—) is an FSM with states Q, and ys
+is a labeling function 4: Q +> M that associates each state q € Q with a CHM in M, then
+the triple (N,M, jz) is a CHM.
+
+A CHM of the form M;||Mo||--- ||), is called a product expression, and each M; is called a compo-
+nent of the product expression. A CHM of the form (N,M, 1) is called a hierarchical expression,
+the FSM NV is called the top-level of the hierarchical expression, and each CHM in M is called a
+component of the hierarchical expression.
+
+As an illustration, see Figure 1 that shows a partial CHM. The machine M is product of
+two hierarchical expressions M, and M2. The states of M, and M») are mapped to lower-level
+
+
+--- Page 4 ---
+M
+
+ 
+
+M,                                                              Mz
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Figure 1: A schematic sample communicating hierarchical state machine
+
+component machines. For instance, one state of M, is mapped to M3, which in turn is a product of
+two machines, while another state of MM, is mapped to the ordinary FSM My. Notice the sharing:
+machine M, is associated with states of both M; and Mo.
+
+The semantics is defined by mapping each CHM M to an FSM [M]:
+
+Base case: If M is an FSM, then [M] equals M.
+
+Concurrency: If M is the product expression Mj ||Mo|--- ||M;,, then [M] is obtained by taking
+the product of the FSMs [M,] corresponding to the components. Formally, suppose [M;] =
+(Qi, Si, 41, q7, i) for each i. Then,
+e The state-space of [M] is Q) x --- x Qx.
+e The alphabet © of [M] is ©; U---UX,.
+e The initial state of [M] is (q/,... qf).
+e The final state of [M] is (qf... qf).
+e For a symbol o € &, [M] has a o-labeled transition from (qi,...q¢) to (wi,..- wp) iff
+— for every i such that o € ©j, the FSM [Mj] has a transition (q;,0, w;), and
+— for every i such that o ¢ Dj, wi = qi.
+Hierarchy: If M = (N,M,,) with top-level FSM N = (Q,%,q',q",—) then
+e A state of [M] is of the form (g,w) where g € Q and w is a state of the FSM [y(q)]
+associated with q.
+
+e A symbol belongs to the alphabet of [/] if o belongs to the alphabet © of the top-level
+FSM N, or if o belongs to the alphabet of [u(q)] for some g € Q.
+
+e The initial state of [ju(q’)] is the initial state of [MJ].
+¢ The final state of [j:(q”)] is the final state of [M].
+[4] has two types of transitions
+
+— For a transition (q,0,q') of the top-lavel FSM N, [M] has a o-labeled transition
+from the final state of [(q)] to the initial state of [u(q’)].
+
+
+--- Page 5 ---
+ 
+
+Mn-1       FL
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+M,     -CO一-人
+
+Figure 2: Counting with hierarchical state machines
+
+— For q € Q, if (w,c,w’) is a transition of [u(q)] then ((g, w), 0, (g, w’)) is a transition
+of [M].
+
+Now we can associate a language with each CHM: the language L(M) of a CHM M is the same as
+the language L([M]) of the FSM associated with M.
+
+A CHM can be represented by a DAG. A terminal node corresponds to the base case, and has
+an associated FSM. An internal node may correspond to a product expression or a hierarchical
+expression. A node for a product expression is labeled with the operator ||, and its children are the
+components of the product. Note that the concurrency operator is associative. Consequently, we
+assume that the immediate children of a product expression are not themselves product expressions.
+A node for a hierarchical expression has the top-level FSM associated with it, and the edges connect
+the states of the top-level FSM with other nodes. When counting the size of the description of a
+CHM, we consider the size of this DAG representation. For instance, in Figure 1, the size of the
+FSM M, is counted only once, even though it appears multiple times. Two important parameters
+of this DAG representation are width and depth: width of a CHM M is the maximum number of
+components in the product nodes, and depth is the length of the longest path in the DAG.
+
+A CHM M is called a hierarchical state machine (HSM) if it does not contain any product
+expression. Thus, HSMs do not involve any concurrency. To illustrate the power of HSMs, we
+show that HSMs can count with exponential succinctness (see Figure 2). The alphabet in this
+example consists of a single symbol o. It is easy to construct a sequence of HSMs M, Mo,...Mn
+as follows. M; is an FSM with L(M;) = {o}, and for i > 1, M; is a hierarchical expression with
+two superstates, each mapped to M;_; so that L(M;) = L(M;_,)-o0-L(M;_1). Thus, the language
+L(M;) of the HSM M; contains precisely the string of length 2' — 1.
+
+or
+
+
+--- Page 6 ---
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Figure 3: Hierarchical state machine accepting strings of the form w #w*
+
+3 Reachability
+
+The reachability problem for a CHM M is to determine if the final state of [MM] is reachable
+from the initial state of [M/]. Alternatively, this can be viewed as checking if the language L(M)
+is empty. The reachability problem for ordinary FSMs is in NL. Introducing hierarchy in FSMs
+comes at a minimal cost: the reachability problem for HSMs can be solved in linear time, and
+is P-complete [AY01]. On the other hand, introducing concurrency in FSMs is expensive: the
+reachability problem for product of FSMs is PSPACE-complete. Now we want to study the impact
+of the combination of the two constructs. We begin by considering product of hierarchical state
+machines.
+
+3.1 Product of HSMs
+
+For ordinary FSMs, the product of two FSMs has a quadratic blow-up. In [AY01], it is shown that
+the product of an HSM with an FSM can be constructed to yield an HSM with quadratic number
+of states. As the next result shows, the product of two HSMs cannot be constructed efficiently.
+
+Before we present the result, consider the sequence Po, P;,...P, of HSMs over the alphabet
+{0,1,#} (see Figure 3). Po is an FSM with L(P9) = {#}, and for i > 0, P; is a hierarchical
+expression with two superstates, each mapped to P;_1, so that L(P;) is the union of 0- L(P;_1) -0
+and 1- L(P;-1)-1. Thus, the language accepted by P, is { w#w" | w € {0,1}” }. It is worth
+noting that the language { w#w | w € {0,1}” } cannot be defined succinctly by HSMs (in fact,
+we can prove that every HSM accepting this language must be of exponential size). Intuitively, an
+HSM can be viewed as a pushdown automaton with bounded stack size.
+
+Recall that for pushdown automata, emptiness of single automaton can be solved in polynomial-
+time, but emptiness of intersection of two pushdown automata is undecidable. In the case of HSMs,
+emptiness of a single HSM is linear-time, but emptiness of the intersection of two HSMs is PSPACE-
+complete.
+
+Proposition 1 Reachability problem for M,||M2, where M, and M2 are HSMs, is PSPACE-complete.
+
+
+--- Page 7 ---
+Proof: To check reachability of M;||M2, we can first flatten the two HSMs, construct ordinary
+FSMs [Mj] and [Mg], and search their product. If n is a bound on the description of the two
+HSMs, and d is a bound on the nesting depths of the two, then the product [M;]||[M2] has at most
+n*4 states, and can be searched in PSPACE, giving the upper bound.
+
+For the lower bound, we reduce the halting problem for linear-bounded automata, a PSPACE-
+complete problem, to checking emptiness of the intersection of two HSMs. Let T bea linear-bounded
+automaton. A configuration of T can be described by a string w of length n. A halting run of T
+can be described by a sequence wo, w1,...w, such that each w; describes a configuration of T, wo
+is the initial configuration, w,; is the halting configuration, and each wj+1 is obtained from w; by a
+legal move of the machine. Consider the language Lr:
+
+{ wotwl # wo Huh # --- Hw, | wo,wi,--. we is a halting run of T }.
+
+We will construct two HSMs M, and M2 such that L(M,)M L(Mz) equals Ly. The HSM M,
+ensures that for each i > 0, the configuration 2i + 1 is a successor of the configuration 2i in the
+reversed order. Similarly, the HSM Mp ensures that for each i > 0, the configuration 2: + 2 is a
+successor of the configuration 27 + 1 in the reversed order. In addition, one of them has to ensure
+that wo is the initial configuration and w; is the halting configuration (this can be easily done by
+even an ordinary FSM).
+
+Each M; is similar to the HSM P, of Figure 3 that accepts strings of the form w#w". Two
+changes are needed. First, the machine M; needs to check repeatedly, which amounts to adding a
+#-labeled transition from the final state to the initial state. Secondly, the string following # is not
+identical to the reverse of the string preceding it, rather a legal successor configuration. This can
+be achieved easily by remembering at each level information about the adjacent levels.           国
+
+3.2. Complexity of CHMs
+
+In CHMs, the concurrency and hierarchy operators are arbitrarily nested, and the product com-
+ponents can synchronize with each other at different levels of hierarchy. These features make the
+reachability problem significantly difficult to solve. In fact, to solve the reachability problem for a
+CHM M, one cannot do better than the obvious solution of constructing the flattened FSM [M]
+(locally), and applying the standard reachability algorithm to it.
+
+Proposition 2 For a CHM M, the number of states of [M] is O(n*"), where each FSM in M
+has at most n states, M has width d > 1 and depth m.
+
+Proof: The proof is by induction on the depth m of the CHM. First let us consider the case when
+m = 0. Then, M is an ordinary FSM, and since [M] equals M, its size is O(n).
+
+Now, consider an FSM M with depth m > 0. The root is either a hierarchical expression or a
+product expression. If it is a hierarchical expression, then its top-level FSM has at most n states,
+each of which is mapped to a CHM of depth m — 1 or less. Consequently, for each state gq, by
+induction, the FSM [ju(q)] is of size O(n®”"), and [M] is of size n- O(n®”).
+
+If the root is a product expression, then it has at most d components Mj,...Mg. Each M; has
+depth m —1 or less, and by induction, [Mj] is of size O(n@”"~'). Since [M] is the product of [Mj],
+its size is O(n®”")4, which is O(n®").                                                            :
+
+This implies that reachability problem for a CHM can be solved in time O(n"), that is, doubly-
+exponential in the depth in the worst case. The precise complexity class is EXPSPACE.
+
+
+--- Page 8 ---
+Theorem 3 Reachability problem for CHMs is EXPSPACE-complete.
+
+Proof: Given a CHM M, the flattened machine [M] need not be constructed explicitly, and can
+be searched in space that is required to represent a single state of [M]. Since [M] has doubly-
+exponentially many states, a state can be represented in exponential space, giving EXPSPACE upper
+bound.
+
+For the lower bound, consider an EXPSPACE Turing machine T. A configuration of T can be
+represented by a string w of length 2” over an appropriate alphabet ©. A halting run of T can be
+described by a sequence wo, w1,...w, such that each w,; describes a configuration of T, wo is the
+initial configuration, w; is the halting configuration, and each w;+1 is obtained from w; by a legal
+move of the machine. Consider the language Lr
+
+{wtwi#w2#u3# --: #we | wo, wi,--. we isa halting run of T }.
+
+We will construct a CHM Mr whose language is Dr, and that will imply the ExpspACE-hardness.
+The CHM Mr is the product of three CHMs M1, Mo, and M3. The machine M, is an HSM that
+ensures that wo is the initial configuration, wz, is the halting configuration, each configuration is
+of length 2”, and successive configurations are separated by the # symbol. The size of M, is only
+O(n), since we know how to count with exponential succinctness. Machine Mp ensures that, for
+every i > 0, the configuration 21+ 1 is a legal successor of the configuration 27. Machine M3 ensures
+that, for every i > 0, the configuration 27 + 2 is a legal successor of the configuration 2i + 1. It
+suffices to describe the construction of Mo.
+
+Before we describe Mg, let us construct a sequence of machines No, Ni,...Nn as follows. The
+machine No accepts strings of the form ¢X?"au*. The machine Ng remembers the first symbol,
+then skips over the next 2” symbols, and checks if the following symbol is same as the remembered
+one. Having defined the machine Nj, the machine Nj+1 is
+
+N; || E2 - Nj.
+
+That is, Nj41 is a product of two machines, the first one being N;. The second one skips over the
+first 2° symbols, and then starts a copy of N;. The second component can be defined as a hierarchical
+two-state machine, whose first state is mapped to a machine that counts 2’, and second state is
+mapped to N;. Observe that since CHMs are represented as DAGs, the size of description of N,, is
+only O(n). Second, a string of the form w # w’, where w and w’ are strings of length 2”, is accepted
+by N,, precisely when w = w’.
+
+The above construction shows how to construct a succinct CHM that ensures copying of an
+exponential-length string. The desired machine M2 requires two changes to the above construction.
+First, we want to ensure that w’ is a legal successor configuration of w, rather than equality of the
+two. This can be achieved by modifying the construction so that a symbol adjoining the read-head
+of T is treated differently. Second, we would like to do the check repeatedly, which amounts to
+restarting N,, after it reaches final state.                                                          /
+
+3.3 Well-structured CHMs
+
+Since reachability problem for CHMs is EXPpsPAcE-hard, we wish to identify subclasses with lower
+complexity. We proceed to define well-structured CHMs where arbitrary levels of hierarchy of
+product components cannot synchronize with each other. A CHM M is said to be well structured if
+for every product expression M’ in M, if a proper component M” of M’ is a hierarchical expression,
+
+
+--- Page 9 ---
+then for every proper component N of M” and every component N’ of M’, the alphabet of [N’] is
+disjoint from the alphabet of [N]. Note that the alphabet plays a crucial role in the definition of the
+concurrency operator since components synchronize on common symbols. The restriction to well
+structured machines ensures that if two (or more) hierarchical machines are composed together,
+then they can synchronize only at the top level. For example, in Figure 1, a is a common symbol
+to the two components M; and M2. Well-structuredness requires that a is used to label transitions
+of only the top-level FSMs of M, and Mo, and cannot appear, for instance, in M3 or My. The
+reachability problem for well structured CHMs is PSPACE-complete, where the exponential cost is
+only due to concurrency, but not hierarchy.
+
+Theorem 4 The reachability problem for a well structured CHM M can be solved in time O(k-n¢),
+where k is the number of operators in M, each FSM in M has at most n states, and d is its width.
+
+Proof: We sketch an algorithm to check emptiness of the language of a well-structured CHM.
+Given a DAG representation of a well-structured CHM M, the algorithm proceeds in a bottom-up
+manner, processing nodes of smallest depth first. For each node processed, the algorithm determines
+if the language of the corresponding machine is empty or not.
+
+To process a node corresponding to an ordinary FSM N, the algorithm simply determines if
+L(N) is empty or not. This can be done using a standard search algorithm with time complexity
+linear in the size of N.
+
+Now consider a node corresponding to a hierarchical expression N, whose top-level FSM is
+N’'. For every state q of N’, we already know if the language of the machine [ju(q)] is empty or
+nonempty. If the language of machine associated with q is empty, we simply delete q from N’.
+Then, the language L(N) is nonempty iff in the top-level FSM N’, after deletion as above, there is
+a path from the initial state to the final state.
+
+Finally, consider the case of a node which corresponds to a product expression N with d com-
+ponents N,,...Ng. Each component N; is either an ordinary FSM or a hierarchical expression.
+If Nj is a hierarchical expression with top-level FSM N/, we delete every state g in N} such that
+the language of the machine associated with gq is empty (this information is already known due
+to bottom-up processing). Then, we can treat N; as an ordinary FSM represented by N/ after
+deletions. This is because, due to well-structuredness requirement, we know that components do
+not synchronize below the level of Nj. Then, we can simply take the product of all ordinary FSMs
+Nj, and check if the product has empty language or not. This costs O(n“) since each FSM has size
+at most n.
+
+Note that the bottom-up approach ensures that each node is processed just once. This leads to
+the time complexity of O(k - n*).                                                                     .
+
+The results of this section are summarized in Figure 4 which lists the complexity of reachability
+for state machines as we add the features of concurrency and hierarchy.
+
+4 Language Equivalence
+
+In this section, we consider equivalence problem for hierarchical state machines and communicating
+hierarchical state machines. Each HSM M defines the language L(M). The emptiness problem for
+HSMs is to determine if L(M) is empty, and can be solved in P using the reachability algorithm.
+The universality problem for HSMs is to determine if the complement of Z(M) is empty. This
+problem turns out to be much harder:
+
+
+--- Page 10 ---
+Communicating Hierarchical: Expspace 一= Well-structured: Pspace
+
+-一 个
+
+Communicating: Pspace                      Hierarchical: P
+
+NO
+
+FSM: NL
+
+Figure 4: Summary of reachability results
+
+Theorem 5 The universality problem for HSMs is EXPSPACE-complete.
+
+Proof: We will show that an HSM can recognize invalid computations of an exponential space tur-
+ing machine. This will show that determining universality of the language of an HSM is EXPSPACE-
+hard.
+
+Recall that the HSM M,, can count to 2” symbols succinctly (see Figure 2). Let T be an
+exponential space Turing Machine with transition function dy and let x be an input to T. Note
+that since we are talking about EXPSPACE, we can assume without loss of generality that T is
+deterministic.
+
+The HSM for recognizing invalid computations will guess one of four types of errors — the
+tableau is ill-formed, the instantaneous description (ID) in the first row does not correspond to the
+input x, the ID in the last row is not accepting, or there exists an ID 7, and a cell position j in the
+i” TD which does not follow from the (i — 1)” ID. The first three types of errors are easy to check.
+For the last case, the HSM non-deterministically guesses the pair (7,7), “remembers” cell positions
+(i—1,7-1),(@@-1,9), and (t— 1,7 +1), uses M, to count upto the width of the tableau (which is
+some fixed exponential function) and then checks that cell (1,7) does not follow by the rules of dr.
+
+To show that the problem is in EXPSPACE, note that the flattened version of the HSM has at
+most doubly exponentially many states and the universality problem can be viewed as a reachability
+problem in the complement of this flattened machine. Since reachability is in NL, this can be done
+in log of doubly exponential, i.e., singly exponential space. Somewhat more precisely, we don’t
+actually construct the doubly exponential sized flattened machine but explore it locally to stay
+within the prescribed space bound.                                                                     国
+
+Two HSMs M; and M2 are trace equivalent if their languages are identical. This problem, and
+also the language inclusion problem, have the same complexity as the universality problem:
+
+Theorem 6 The trace equivalence problem for HSMs is EXPSPACE-complete.
+
+Proof: Since we can test universality of an HSM M by testing its trace equivalence to a simple
+machine that accepts *, it is clear that trace equivalence is EXPSPACE-hard.
+
+For the upper bound, given M; and Mg, it suffices to check emptiness of the product of M;
+with complement of M2, and the emptiness of the product of Mz with complement of M,. This can
+be done by flattening and complementing. For instance, the product of [|] and the complement
+of [M2] has doubly-exponentially many states, and can be searched in EXPSPACE.               国
+
+For ordinary FSMs, problems such as universality, inclusion, and equivalence, are much easier
+if we consider deterministic variants. The results for HSMs show somewhat subtle distinctions
+between these problems. Recall that an FSM is deterministic if for every state q and every symbol
+
+10
+
+
+--- Page 11 ---
+g, there is at most one o-labeled transition with source g. An HSM M is deterministic if [M] is
+deterministic. This entails two requirements: each base FSM and each top-level FSM of a hierar-
+chical expression is deterministic, and furthermore, if a state q of a top-level FSM of a hierarchical
+expression has a o-labeled outgoing transition, then the final state of the FSM associated with q
+has no o-labeled outgoing transition. The latter condition ensures determinism concerning exiting
+lower-level FSMs.
+
+Theorem 7 For deterministic HSMs, the universality problem is P-complete, and the language
+inclusion problem is PSPACE-complete.
+
+Proof: The universality problem is the reachability problem in the complement HSM and is P-
+complete.
+
+Now we show that language inclusion is PSPACE-complete. Let M, and Mp be the two HSMs
+with associated languages LZ; and Ly where the problem is to determine if ZL; C Lo. This is
+equivalent to testing reachability in the product machine formed by M, and the complement of
+My. This is in PSPACE.
+
+To see PSPACE-hardness, observe that proof of Proposition 1 establishing PSPACE-hardness of
+checking emptiness of the intersection of languages of two HSMs, applies to the case of deterministic
+HSMs also. We will show that we can use language inclusion to determine if a tableau represents
+a valid computation of a PSPACE Turing Machine. Let [D,,ID2,...,ID, be the sequence of
+instantaneous descriptions of a (deterministic) PSPACE machine. Note that each of these IDs
+is polynomially long, and without loss of generality, we can take this length to be some fixed
+polynomial. Let us in fact consider the sequence where every even ID is reversed. A product HSM
+can be formed from two HSMs N; and No, where N; checks that every even ID follows from the
+previous one in this modified sequence and Np» checks that every odd ID follows from the previous
+one. This product HSM accepts a string if and only if it represents an accepting tableau of the
+PSPACE machine. To reduce to language inclusion we ask if the language of N; is contained in the
+complement of the language of N2. This is exactly the condition under which the intersection is
+empty and there are no accepting tableaux. Thus, this problem is PSPACE-complete.             [
+
+For deterministic HSMs, trace equivalence can be solved in PSPACE, but its complexity is sand-
+wiched somewhere between that of the P-complete universality problem and the PSPACE-complete
+language inclusion problem. It remains open to determine its exact complexity. Recall that an
+HSM is a pushdown automaton with an a priori bound on the depth of the stack. For determin-
+istic pushdown automata, universality is P-complete, while language inclusion is decidable. The
+language equivalence problem for deterministic pushdown automata was open for several decades,
+and was recently proved to be decidable [Sen01].
+
+Finally, we establish that the universality, language inclusion, and language equivalence prob-
+lems for communicating hierarchical machines are complete for double-exponential space.
+
+Theorem 8 For CHMs, the universality, language inclusion, and language equivalence problems
+are 2EXPSPACE-complete.
+
+Proof: We will only consider universality. Given a CHM M, the size of [M] is at most double-
+exponential, and hence, there exists a triple-exponential deterministic FSM that accepts L(M).
+Universality can be checked by searching this deterministic FSM in space logarithmic in its size,
+that is, doubly-exponential in the size of M. This implies 2EXPSPACE upper bound for checking
+universality of M.
+
+11
+
+
+--- Page 12 ---
+Showing 2EXPSPACE-hardness is perhaps the most challenging proof in this paper. Consider a
+2EXPSPACE Turing machine T. A configuration of T’ can be represented by a string w of length
+2?" over an appropriate alphabet © (assume © does not contain the symbols 0 or 1). We introduce
+an additional binary counter of exponential size to encode the configurations of double-exponential
+length. For an integer 7, let bin(j) be the binary string over {0,1} encoding 7. Then, for each
+configuration w = wo... We2n_1, define
+
+enc(w) = bin(0)wo % bin(1)ws % ... % bin(2?" — 1) wom _, %
+
+A halting run of T can be described by a sequence wo, wi,... wp of configurations w; of the usual
+form. Consider the language Lr
+
+{ enc(wo) # enc(wi) #--- #enc(wr) | wo,wi,--. wz, is a halting run of T }.
+
+We will construct a CHM M that accepts the complement of Ly, which would imply the lower
+bound for checking universality. The machine M needs to check that the string does not encode a
+halting run. Errors concerning initial and halting configurations can be detected easily.
+
+The machine M needs to detect errors in encoding using the binary counter. In Lr, each
+cell a is encoded by a block of length 2” + 2 of the form {0,1}?"0%. Counting with exponential
+succinctness allows to detect a violation of this. Furthermore, an error occurs if the binary counter
+following # is not 0* or preceding # is not 1*. For each cell, the counter of the successive cells
+must be incremented. A violation of this can be detected by a nondeterministic HSM of size O(n)
+due to the properties of a binary counter (left as an exercise).
+
+The tricky part is to detect an error if adjacent configurations are not related by a legal move
+of the machine. For illustration of the basic idea, let us consider it to be an error if there exists
+a cell position 7 such that some two adjacent configurations differ in the contents of the j-th cell.
+even though we do not know how to count with double-exponential succinctness, we can use the
+fact that in our encoding, matching cells of the two configurations must have identical counters.
+We will construct a machine to accept the language
+
+L' = { bo %[{0, 1}? S%]*#[{0, 12" B%]* bo!'% | o £o' and bE {0,1}*" }.
+
+Note that (©U {0,1,%,#})*-L’- (ZU {0,1,%, #})* is the language of all the strings containing
+the desired error. Accepting L’ requires checking that the counters in the first and the last blocks
+are identical. Since 6 is of exponential length, we will use an O(n) CHM that spawns 2” parallel
+machines, each checking one bit of b. This is done along the same lines as the proof of EXPSPACE-
+hardness of reachability of CHMs. In particular, let N; be the machine that remembers the first bit,
+skips over a string whose length is a multiple of 2” + 2 (block length) and which contains precisely
+one # symbol. Then, N; checks that the following symbol matches the remembered bit, and halts
+after reading the following % symbol. Notice that if Nj, is started at the p-th bit of the counter b,
+it will ensure matching of the p-th bit of the counter in the last block before it halts. The machine
+Ni41 equals N; || {0, 1} -N;. The claim is that the machine N,,, in conjunction with a machine
+that enforces the o 4 o’ requirement, accepts the language L’. The key to the construction is that
+even though the exponentially many parallel copies of Ni; guess independently the number of blocks
+to skip over, they halt on the same % symbol following the guess, which enforces synchronization
+(this is like the barrier synchronization).                                                            .
+
+Another popular equivalence for FSMs is bisimulation. To check if two HSMs are bisimilar,
+we can run the standard bisimulation algorithm on their expanded versions. This establishes that
+
+12
+
+
+--- Page 13 ---
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Emptiness | Intersection | Universality    Inclusion | Equivalence
+FSM         NL          NL         PSPACE      PSPACE      PSPACE
+Det FSM       NL          NL           NL           NL           NL
+HSM         P         PSPACE     EXPSPACE    EXPSPACE | EXPSPACE
+Det HSM       P         PSPACE          P          PSPACE     € PSPACE
+CHM     EXPSPACE | EXPSPACE | 2EXPSPACE | 2EXPSPACE | 2EXPSPACE
+
+ 
+
+ 
+
+ 
+
+ 
+
+Figure 5: Summary of complexity results
+
+bisimulation of HSMs can be checked in exponential time. There is no matching lower bound.
+The results concerning HSMs and CHMs are summarized in Figure 5. The table lists the known
+complexity bounds for ordinary FSMs also for comparison.
+
+5 Succinctness
+
+In this section we are concerned with the expressive power of the hierarchical construct, both in
+presence and absence of the concurrency construct. To discuss expressive power, we will look at
+families of languages £ = {L,,|n = 1,2,...} and consider the number of states #(L,n) needed by
+a machine that accepts L, in some particular formalism. Where necessary we adopt the baroque
+practice of denoting the formalism by a superscript for ##(£,n). Thus #"5™(L,n) denotes the
+number of states necessary and sufficient for an FSM to recognize L,. We will say that a formalism
+F, can be exponentially more succinct than a formalism F) if there is a family of languages C for
+which #/"'(L,n) = O(log[#"?(L,n)]).
+
+While hierarchical state machines define regular languages, they can be much more succinct
+than ordinary FSMs. Note that there is an exponential translation from HSMs to FSMs, and the
+translation preserves determinism. Recall that nondeterministic FSMs can be exponentially more
+succinct than deterministic ones. The following proposition is established by showing that the
+language Ly = {w#w® | w € {0,1}"} can be recognized by a deterministic HSM of linear size,
+while any nondeterministic FSM to recognize L, must be at least exponential in n.
+
+Proposition 9 Deterministic HSMs can be exponentially more succinct than nondeterministic
+
+FSMs.
+
+Proof: Consider the language family £ where Ly = {w7#w" | |w| =n,w € {0,1}*}. There is an
+HSM of linear size that recognizes this family (see Figure 3). In other words, #45" (L,n) = O(n).
+Note that the HSM of Figure 3 is deterministic.
+
+On the other hand we can show that any nondeterministic FSM to recognize L,, must use at
+least exponential in n states. To see this, consider the set of all 2” strings that are in the language
+Ly. Let M be a nondeterministic machine for L, and consider the accepting paths in M for each
+of these 2” accepted strings. If two of these accepting paths are in the same state after reading the
+# symbol, say the paths that start with x# and y# for x 4 y, then we can see that the machine
+will also accept 2##y” which it should not. Thus there must be 2” distinct states.                国
+
+The next result establishes that, while nondeterminism introduces exponential succinctness for
+ordinary FSM, it introduces doubly-exponential succinctness in presence of hierarchy. The proof
+uses the language L, = {w | w; = wi4on for some 7} to establish the gap:
+
+13
+
+
+--- Page 14 ---
+Proposition 10 Nondeterministic HSMs are doubly-exponentially more succinct than determinis-
+tic HSMs.
+
+Proof: Let £ be the language family where
+Ly, = {w | |w| = 22” and exists i such that w; = wi4o>}.
+
+Clearly there is a linear-sized nondeterministic HSM for L, where the machine simply guesses the
+position 7, remembers the symbol w;, counts 2” symbols, and checks that the next symbol is in fact
+equal to w;.
+
+On the other hand, we can show that any family of deterministic HSMs for this language family
+must have doubly exponential size.                                                               /
+
+Note that the gap between nondeterministic HSMs and nondeterministic FSMs is singly expo-
+nential. It is interesting to note that nondeterminism and hierarchy are incomparable extensions,
+which is established using the language L, = {w | w; = wi+n for some i}.
+
+Proposition 11 Nondeterministic FSMs can be exponentially more succinct than deterministic
+ASMs.
+
+Proof: Consider the language family where
+Ly, = {w | |w| = 2n and exists i such that w; = witn}-
+
+It is easy to see that there is an O(n) nondeterministic machine to accept L,. A deterministic
+FSM, on the other hand, needs to remember the first n symbols, and thus, has to have at least 2”
+states. Even deterministic HSMs must have 2” states, and this proof is along the lines of the proof
+of the previous proposition.                                                                              :
+
+Finally, we consider the expressive power added by concurrency and show that this is significant.
+
+Proposition 12 A product of two HSMs can be exponentially more succinct than nondeterministic
+ASMs.
+
+Proof: Consider the language family where
+Lyn = {wHw® #w | w€ {0,1}"}.
+
+There is intersection of the languages of two deterministic HSMs. However, it can be shown that
+any HSM for it (even if it is non-deterministic) requires exponential-size.                          7
+
+When unrestricted use of concurrency and hierarchy is allowed, we get double-exponential
+succinctness compared to both FSMs and HSMs, and triple-exponential succinctness compared to
+the deterministic variants of FSMs and HSMs.
+
+Proposition 13 Communicating hierarchical machines can be doubly-exponentially more succinct
+than nondeterministic HSMs (and nondeterministic FSMs), and triply-exponentially more succinct
+than deterministic HSMs (and deterministic FSMs).
+
+14
+
+
+--- Page 15 ---
+CHM_ 2exp > HSM
+
+Bex.        2exp~ lex    Nee
+
+Det HSM           FSM
+
+—_
+lexp
+lexp                                 lexp
+
+Det FSM
+
+Figure 6: Summary of succinctness results
+
+Proof: Consider the language family where
+In = {wo#twi#t:+:#w,z | |w;| = 2” for each i and w; = w; for some i, 7}.
+
+A nondeterministic CHM of size O(n) to accept Ly can be constructed along the lines of the proof
+of 2EXPSPACE-hardness of CHM universality. A nondeterministic machine can guess the position 7,
+but needs to remember the exponentially long string w;, and hence, is at least of double-exponential
+size. A deterministic machine needs to remember all the words w; read so far, and is at least of
+triple-exponential size.                                                                                          国
+
+The various succinctness claims are summarized in Figure 6.
+
+6 Conclusions
+
+In this paper, we have answered several questions concerning complexity and succinctness of hi-
+erarchical state machines. As the summary figures at the end of each section indicate, the com-
+plexity bounds do not change in a uniform way with many peculiarities. In terms of practice, the
+EXpPSspPACE-hardness of the reachability problem in presence of unrestricted use of hierarchy and
+concurrency constructs suggests that modeling languages should enforce well-structured use of the
+constructs to lower the complexity of the analysis problems. The results concerning the reach-
+ability problem should carry over to the more general question of model checking of linear-time
+requirements. We have presented a comprehensive picture that characterizes the power and com-
+plexity of sequential and communicating hierarchical state machines. A few questions concerning
+subclasses of communicating hierarchical machines, such as the precise complexity of equivalence
+of deterministic CHMs, remain to be resolved.
+
+References
+
+[AY01] _ R. Alur and M. Yannakakis. Model checking of hierarchical state machines. ACM Trans-
+actions on Programming Languages and Systems, 23(3):1-31, 2001.
+
+[BJR97] G. Booch, I. Jacobson, and J. Rumbaugh. Unified Modeling Language User Guide. Ad-
+dison Wesley, 1997.
+
+[CGP00] E.M. Clarke, O. Grumberg, and D.A. Peled. Model checking. MIT Press, 2000.
+
+[CK96]__E.M. Clarke and R.P. Kurshan. Computer-aided verification. IEEE Spectrum, 33(6):61—
+67, 1996.
+
+
+--- Page 16 ---
+ 
+
+DH94]
+
+Har87]
+
+HKV97]
+
+Hol97]
+
+HU79]
+
+Sen01]
+
+SGwo4]
+
+Vwo4]
+
+D. Drusinsky and D. Harel. On the power of bounded concurrency I: finite automata.
+Journal of the ACM, 41(3):517-539, 1994.
+
+D. Harel. Statecharts: A visual formalism for complex systems. Science of Computer
+Programming, 8:231-274, 1987.
+
+D. Harel, O. Kupferman, and M.Y. Vardi. On the complexity of verifying concurrent
+transition systems. In Proc. 8th Conferance on Concurrency Theory, LNCS 1243, pages
+258-272. Springer-Verlag, 1997.
+
+G.J. Holzmann. The model checker SPIN. [EEE Transactions on Software Engineering,
+23(5):279-295, 1997.
+
+J.E. Hopcroft and J.D. Ullman. Introduction to Automata Theory, Languages, and Com-
+putation. Addison-Wesley, 1979.
+
+G. Senizergues. L(A) = L(B)? Decidability results from complete formal systems.
+Theoretical Computer Science, 251:1-166, 2001.
+
+B. Selic, G. Gullekson, and P.T. Ward. Real-time object oriented modeling and design.
+J. Wiley, 1994.
+
+M.Y. Vardi and P. Wolper. Reasoning about infinite computations. Information and
+Computation, 115(1):1-37, 1994.
+
+16
+
