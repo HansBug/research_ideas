@@ -1,0 +1,887 @@
+--- Page 1 ---
+Journal of Computer and System Sciences 76 (2010) 778–791
+Contents lists available at ScienceDirect
+Journal of Computer and System Sciences
+www.elsevier.com/locate/jcss
+On pebble automata for data languages with decidable emptiness
+problem✩,✩✩
+Tony Tan
+School of Informatics, University of Edinburgh, United Kingdom
+article info abstract
+Article history:
+Received 6 November 2009Received in revised form 16 February 2010Available online 17 March 2010
+Keywords:Finite state automataInﬁnite alphabetDecidabilityIn this paper we study a subclass of pebble automata (PA) for data languages for which the
+emptiness problem is decidable. Namely, we show that the emptiness problem for weak2-pebble automata is decidable, while the same problem for weak 3-pebble automata is
+undecidable. We also introduce the so-called top view weak PA. Roughly speaking, top view
+weak PA are weak PA where the equality test is performed only between the data values
+seen by the two most recently placed pebbles. The emptiness problem for this model is still
+decidable. It is also robust: alternating, non-deterministic and deterministic top view weak
+PA have the same recognition power; and are strong enough to accept all data languagesexpressible in Linear Temporal Logic with the future-time operators, augmented with one
+register freeze quantiﬁer.
+©2010 Elsevier Inc. All rights reserved.
+1. Introduction
+Regular languages are clearly one of the most important concepts in computer science. They have applications in basically
+all branches of computer science. It can be argued that the following properties contributed to their success.
+1. Expressiveness: In many settings regular languages are powerful enough to capture the kinds of patterns that have to
+be described.
+2. Decidability: Unlike many general computational models, the mechanisms associated with regular languages allow one
+to perform automated semantic analysis.
+3. Eﬃciency: The model checking problem, that is, testing whether a given string is accepted by a given automaton can
+be solved in polynomial time.
+4. Closure properties: The class of regular languages possesses all important closure properties.
+5. Robustness: The class of regular languages has many characterizations, which include ﬁnite state automata, regular
+expressions, monoids and monadic second-order logic.
+Moreover, similar notions of regularity have been successfully generalized to other kinds of structures, including inﬁnite
+strings and ﬁnite, as well as inﬁnite, ranked or unranked, trees. Most recent applications of regular languages (on inﬁnite
+strings and ﬁnite, unranked trees, respectively) are in model checking and XML processing.1
+✩This work was done while the author was in the Department of Computer Science in Technion – Israel Institute of Technology.
+✩✩Its extended abstract version has also been published in Tan (2009) [17].
+E-mail address: ttan@inf.ed.ac.uk .
+1Much of the materials in Section 1 are taken from [3].
+0022-0000/$ – see front matter ©2010 Elsevier Inc. All rights reserved.
+doi:10.1016/j.jcss.2010.03.004
+
+--- Page 2 ---
+T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791 779
+•In model checking a system is a ﬁnite state one and properties are speciﬁed in a logic like LTL. Satisﬁability of a formula
+in a system is checked on the structure that is the product of the system automaton and an automaton corresponding
+to the formula. The step from the “real” system to its ﬁnite state representation usually involves many abstraction,
+especially with respect to data values (variables, process numbers, etc.). Often their range is restricted to a ﬁnite domain.Even though this approach has been successful and found its way into large scale industrial applications, the ﬁnite
+abstraction has some inherent shortcomings. As an example, nidentical processes with mstates each give rise to an
+overall model of size m
+n. If the number of processes is unbounded or unknown in advance, the ﬁnite state approach
+fails. Previous work has shown that even in such setting decidability can be obtained by restricting the problem in
+various ways [1,7].
+•In XML document processing, regular concepts occur in various contexts. For example, the structural speciﬁcation ofXML documents are usually given as regular languages, like DTD or XML schema [12]. However, such speciﬁcations
+usually ignore the attributes and data values. From a database point of view, this is not completely satisfactory, becauseaschemashould allow one to describe not only the structure of the data, but also to deﬁne restrictions on the data
+values via integrity constraints such as key or inclusion constraints. There exists a work addressing this problem [2],
+but like in the case of model checking, the methods rely heavily on a case-to-case analysis.
+So, in the above settings, the ﬁnite state abstraction leads to interesting results, but does not address all problems arising
+in applications. In both cases, it would already be a big advance, if each position, in either a string or a tree, could carry adata value , in addition to its label.
+This paper is part of a broader research program which aims at studying such extensions in a systematic way. As any
+kind of operations on the inﬁnite domain quickly leads to undecidability of basic processing tasks (even a linear order onthe domain is harmful), we concentrate on the setting, where data values can only be tested for equality. Furthermore, in
+this paper we only consider ﬁnite data strings , that is, ﬁnite strings, where each position carries a label from a ﬁnite alphabet
+and a data value from an inﬁnite domain. A data language is a language consisting of ﬁnite data strings. Recently, there has
+been a signiﬁcant amount of work in this direction. See, for example, [3,4,6,9,13,15].
+Roughly speaking, there are two approaches to studying data languages: logic and automata. Below is a brief survey on
+both approaches. For a more comprehensive survey, we refer the reader to [15]. The study of data languages, which can
+also be viewed as languages over inﬁnite alphabets, starts with the introduction of ﬁnite-memory automata (FMA) in [9],
+which are also known as register automata (RA). The study of FMA was continued and extended in [13], in which pebble
+automata (PA) were also introduced. Each of these models has its own advantages and disadvantages. Languages accepted by
+FMA are closed under standard language operations: intersection, union, concatenation, and Kleene star. In addition, from
+the computational point of view, FMA are a much easier model to handle. Their emptiness problem is decidable, whereasthe same problem for PA is not. However, the PA languages possess a very nice logical property: closure under allboolean
+operations, whereas FMA languages are not closed under complementation.
+Later in [4] ﬁrst-order logic for data languages was considered, and, in particular, the so-called data automata was intro-
+duced. It was shown that data automata deﬁne the fragment of existential monadic second-order logic for data languages
+in which the ﬁrst-order part is restricted to two variables only. An important feature of data automata is that their empti-
+ness problem is decidable, even for the inﬁnite words, but is at least as hard as reachability for Petri nets. The automata
+themselves always work nondeterministically and seemingly cannot be determinized, see [3]. It was also shown that the
+satisﬁability problem for the three-variable ﬁrst-order logic is undecidable.
+Another logical approach is via the so-called linear temporal logic with n register freeze quantiﬁer ,d e n o t e dL T L
+↓
+n(X,U), see [6].
+It was shown that one-way alternating nregister automata accept all LTL↓
+n(X,U)languages and the emptiness problem for
+one-way alternating one register automata is decidable. Hence, the satisﬁability problem for LTL↓
+1(X,U)is decidable, as well.
+Adding one more register or past time operators to LTL↓
+1(X,U)makes the satisﬁability problem undecidable.
+In this paper we continue the study of PA, which are ﬁnite state automata with a ﬁnite number of pebbles. The pebbles
+are placed on/lifted from the input word in the stack discipline – ﬁrst in last out – and are intended to mark positionsin the input word. One pebble can only mark one position and the most recently placed pebble serves as the head of the
+automaton. The automaton moves from one state to another depending on the current label and the equality tests among
+data values in the positions currently marked by the pebbles, as well as, the equality tests among the positions of the
+pebbles.
+Furthermore, as deﬁned in [13], there are two types of PA, according to the position of the new pebble placed. In the
+ﬁrst type, the ordinary PA, also called strongPA, the new pebbles are placed at the beginning of the string. In the second
+type, called weakPA, the new pebbles are placed at the position of the most recent pebble. Obviously, two-way weak PA is
+just as expressive as two-way ordinary PA. However, it is known that one-way non-deterministic weak PA are weaker thanone-way ordinary PA, see [13, Theorem 4.5].
+We show that the emptiness problem for one-way weak 2-pebble automata is decidable, while the same problem for
+one-way weak 3-pebble automata is undecidable. We also introduce the so-called top view weak PA. Roughly speaking,
+top view weak PA are one-way weak PA where the equality test is performed only between the data values seen by the
+two most recently placed pebbles. Top view weak PA are quite robust: alternating, non-deterministic and deterministic top
+view weak PA have the same recognition power. To the best of our knowledge, this is the ﬁrst model of computation for
+
+--- Page 3 ---
+780 T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791
+data language with such robustness. It is also shown that top view weak PA can be simulated by one-way alternating
+one-register RA. Therefore, their emptiness problem is decidable. Another interesting feature is that top view weak PA can
+simulate all LTL↓
+1(X,U)languages, and the number of pebbles needed to simulate such LTL sentences corresponds linearly
+to the so-called free quantiﬁer rank of the sentences, the depth of the nesting level of the freeze operators in the sentence.
+This paper is organized as follows. In Section 2 we review the models of computations for data languages considered in
+this paper. We present the proof of the equivalence between alternating and deterministic weak 2-PA in Section 3. Section 4and Section 5 deals with the decidability and the complexity issues of weak PA, respectively. In Section 6 we introduce topview weak PA. We also introduce a simple extension to top view weak PA, called unbounded top view weak PA, in whichthe number of pebbles is unbounded in Section 7. Finally, we end our paper with a brief remark in Section 8.
+2. Models of computation
+In this section we recall the deﬁnitions of weak PA from [13] and of register automata (RA) from [6,9]. We will use the
+following notation. We always denote by
+Σa ﬁnite alphabet of labelsand by Dan inﬁnite set of data values .AΣ-data word
+w=/parenleftbigσ1
+a1/parenrightbig/parenleftbigσ2
+a2/parenrightbig
+···/parenleftbigσn
+an/parenrightbig
+is a ﬁnite sequence over Σ×D, where σi∈Σand ai∈D.AΣ-data language is a set of Σ-data words.
+We will also use the following notations.
+ProjΣ(w)=σ1···σn
+ProjD(w)=a1···an
+Cont Σ(w)={σ1,...,σn}
+ContD(w)={a1,..., an}
+We assume that neither of ΣandDcontain the left-end marker /triangleleftor the right-end marker ⊿.T h ei n p u tw o r dt ot h e
+automaton is of the form /triangleleftw⊿, where /triangleleftand⊿mark the left-end and the right-end of the input word. Finally, the symbols
+ν,ϑ,σ,..., possibly indexed, denote labels in Σand the symbols a,b,c,d,..., possibly indexed, denote data values in D.
+2.1. Pebble automataDeﬁnition 1. (See [13, Deﬁnition 2.3].) A one-way alternating weak k-pebble automaton (k-PA) over
+Σis a system A=
+/angbracketleftΣ,Q,q0,F,μ,U/angbracketrightwhose components are deﬁned as follows.
+•Q,q0∈Qand F⊆Qa r eaﬁ n i t es e to f states,t h e initial state , and the set of ﬁnal states , respectively;
+•U⊆Q−Fis the set of universal states; and
+•μ⊆C×Dis the set of transitions, where
+–Cis a set whose elements are of the form (i,σ,V,q), where 1 /lessorequalslanti/lessorequalslantk,σ∈Σ,V⊆{i+1,..., k}and q∈Q; and
+–Dis a set whose elements are of the form (q,act), where q∈Qandactis either stay,right,place-pebble
+orlift-pebble .
+Elements of μwill be written as (i,σ,V,q)→(p,act).
+Given a word w=/parenleftbigσ1
+a1/parenrightbig
+···/parenleftbigσn
+an/parenrightbig
+∈(Σ×D)∗,aconﬁguration of Aon/triangleleftw⊿is a triple [i,q,θ], where i∈{1,..., k},q∈Q,
+andθ:{i,i+1,..., k}→{0,1,..., n,n+1}, where 0 and n+1 are positions of the end markers /triangleleftand⊿, respectively. The
+function θdeﬁnes the position of the pebbles and is called the pebble assignment .T h e initialconﬁguration is γ0=[k,q0,θ0],
+where θ0(k)=0i st h e initialpebble assignment. A conﬁguration [i,q,θ]with q∈Fis called an accepting conﬁguration.
+A transition (i,σ,V,p)→βapplies to a conﬁguration [j,q,θ],i f
+(1)i=jand p=q,
+(2)V={l>i:aθ(l)=aθ(i)}, and
+(3)σθ(i)=σ.
+Note that in a conﬁguration [i,q,θ], pebble iis in control, serving as the head pebble.
+Next, we deﬁne the transition relation /turnstileleftAas follows: [i,q,θ]/turnstileleftA[i/prime,q/prime,θ/prime], if there is a transition α→(p,act)∈μthat
+applies to [i,q,θ]such that q/prime=p,θ/prime(j)=θ(j),f o ra l l j>i, and
+–i fact=stay,t h e n i/prime=iandθ/prime(i)=θ(i);
+–i fact=right,t h e n i/prime=iandθ/prime(i)=θ(i)+1;
+–i fact=lift-pebble ,t h e n i/prime=i+1;
+–i fact=place-pebble ,t h e n i/prime=i−1,θ/prime(i−1)=θ/prime(i)=θ(i).
+As usual, we denote the reﬂexive transitive closure of /turnstileleftAby/turnstileleft∗
+A. When the automaton Ais clear from the context, we
+will omit the subscript A.
+
+--- Page 4 ---
+T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791 781
+Remark 2. Note the pebble numbering that differs from that in [13]. In the above deﬁnition we adopt the pebble numbering
+from [5] in which the pebbles placed on the input word are numbered from ktoiand not from 1 to ias in [13]. The
+reason for this reverse numbering is that it allows us to view the computation between placing and lifting pebble ias a
+computation of an (i−1)-pebble automaton.
+Furthermore, the automaton is no longer equipped with the ability to compare positional equality, in contrast with the
+ordinary PA introduced in [13]. Such ability no longer makes any difference because of the “weak” manner in which thenew pebbles are placed.
+The acceptance criteria are based on the notion of leads to acceptance below. For every conﬁguration
+γ=[i,q,θ],
+•ifq∈F,t h e n γleads to acceptance;
+•ifq∈U,t h e n γleads to acceptance if and only if for all conﬁgurations γ/primesuch that γ/turnstileleftγ/prime,γ/primeleads to acceptance;
+•ifq/∈F∪U,t h e n γleads to acceptance if and only if there is at least one conﬁguration γ/primesuch that γ/turnstileleftγ/primeand
+γ/primeleads to acceptance.
+AΣ-data word w∈(Σ×D)∗is accepted by A,i fγ0leads to acceptance. The language L(A)consists of all data words
+accepted by A.
+The automaton Aisnon-deterministic ,i ft h es e t U=∅, and it is deterministic , if there is exactly one transition that
+applies for each conﬁguration. It turns out that weak PA languages are quite robust.
+Theorem 3. For all k /greaterorequalslant1, alternating, non-deterministic and deterministic weak k-PA have the same recognition power.
+The proof is quite standard. We will sketch the proof for the case of k=2 in the next section. The extension to the
+general case is straightforward, thus, omitted. In view of Theorem 3, we will always assume that our weak k-PA is deter-
+ministic.
+We end this subsection with an example of a language accepted by weak 2-PA. This example will be useful in the
+subsequent section.
+Example 4. Consider a Σ-data language L∼deﬁned as follows. A Σ-data word w=/parenleftbigσ1
+a1/parenrightbig
+···/parenleftbigσn
+an/parenrightbig
+∈L∼if and only if for all
+i,j=1,..., n,i fai=aj,t h e nσi=σj. That is, w∈L∼if and only if whenever two positions in wcarry the same data value,
+their labels are the same.
+The language L∼is accepted by weak 2-PA which works in the following manner. Pebble 2 iterates through all possible
+positions in w. At each iteration, the automaton stores the label seen by pebble 2 in the state and places pebble 1. Then,
+pebble 1 scans through all the positions to the right of pebble 2, checking whether there is a position with the same datavalue as pebble 2. If there is such a position, then the label seen by pebble 1 must be the same as the label seen by
+pebble 2, which has previously been stored in the state. After that, pebble 1 is lifted, and the control returns to pebble 2
+and the iteration continues.
+2.2. Register automata
+We are only going to sketch roughly the deﬁnition of register automata. Readers interested in its more formal treatment
+can consult [6,9]. In essence, kregister automaton, or, shortly k-RA, is a ﬁnite state automaton equipped with a header to
+scan the input and kregisters, numbered from 1 to k. Each register can store exactly one data value from
+D. The automaton
+istwo-way if the header can move to the left or to the right. It is alternating if it is allowed to branch into a ﬁnite number
+of parallel computations.
+More formally, a two-way alternating k-RA over the label Σis a tuple A=/angbracketleftΣ,Q,q0,u0,μ,F/angbracketrightwhere
+•Q0,q0∈Qand F⊆Qare the ﬁnite state of states, the initial state and the set of ﬁnal states, respectively.
+•u0=a1···akis the initial content of the registers.
+•μis a set of transitions of the following form.
+(i)(q,σ)→q/primewhere σ∈{ /triangleleft,⊿}and q,q/prime∈Q.
+That is, if the automaton Ais in state qand the header is currently reading either of the symbols /triangleleft,⊿, then the
+automaton can enter the state q/prime.
+(ii)(q,σ,V)→q/primewhere σ∈Σ,V⊆{1,..., k}and q,q/prime∈Q.
+That is, if the automaton Ais in state qand the header is currently reading a position labeled with σand Vis
+the set of all registers containing the current data value, then the automaton can enter the state q/prime.
+(iii) q→(q/prime,I)where I⊆{1,..., k}and q,q/prime∈Q.
+That is, if the automaton Ais in state q, then the automaton can enter the state q/primeand store the current data value
+into the registers whose indices belong to I.
+
+--- Page 5 ---
+782 T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791
+(iv) q→(q1∧···∧ qi)and q→(q1∨···∨ qi)where i/greaterorequalslant1 and q,q/prime∈Q.
+That is, if the automaton Ais in state q, then it can decide to perform conjunctive or disjunctive branching into
+the states q1,..., qi.
+(v)q→(q/prime,act)where act∈{left,right }and q,q/prime∈Q.
+That is, if the automaton Ais in state q, then it can enter the state q/primeand move to the next or the previous word
+position.
+A register automaton is called non-deterministic if the branchings of state (in item (iv)) are all disjunctive. It is called one-way
+i ft h eh e a d e ri sn o ta l l o w e dt om o v et ot h ep r e v i o u sw o r dp o s i t i o n .
+Aconﬁguration γ=[j,q,b1···bk]of the automaton Aconsists of the current position of the header in the input word j,
+the state of the automaton qand the content of the registers b1···bk. The conﬁguration γis called accepting if the state is
+a ﬁnal state in F.
+From each conﬁguration γ, the automaton performs legitimate computation according to the transition relation and
+enters another conﬁguration γ/prime. If the transition is branching, then it can split into several conﬁgurations γ/prime
+1,...,γ/prime
+m.
+Similarly, we can deﬁne the notion of leads to acceptance for a conﬁguration γas in previous subsection. An input word w
+is accepted by Aif the initial conﬁguration leads to acceptance. As usual, L(A)denotes the language accepted by A.
+3. Equivalence between alternating and deterministic one-way weak 2-PA
+For every one-way alternating weak 2-PA, we will construct its equivalent one-way deterministic weak 2-PA. This is done
+in two steps.
+1. First, we transform the one-way alternating weak 2-PA into its equivalent one-way non-deterministic weak 2-PA.
+2. Then, we transform the one-way non-deterministic weak 2-PA into its equivalent one-way deterministic weak 2-PA.
+We present step 2 ﬁrst.
+3.1. From non-deterministic to deterministic
+LetA=/angbracketleftQ,q0,F,μ/angbracketrightbe a non-deterministic weak 2-PA. We start by normalizing the behavior of Aas follows.
+N1. For every conﬁguration γofA, there exists a transition in μthat applies to it.
+N2. There is no staytransition in A. On each transition the automaton Amoves the head pebble to the right, lifts the
+current head pebble, or places a new pebble.
+N3. The automaton can only enter a ﬁnal state when the control is in pebble 2. Furthermore, it does so only after it reads
+the right-end marker ⊿.
+N4. Immediately after pebble 2 moves right, pebble 1 is placed.
+N5. Pebble 1 is lifted only when it reaches the right-end marker ⊿.
+Such normalization can be done by adding some extra states to A(or, extra transitions in the case of N2). The normalization
+N5 is especially crucial, as it implies that non-deterministism on pebble 1 is now limited only to deciding which state toenter. There is no non-deterministism in choosing which action to take, i.e. either to lift pebble 1 or to keep on movingright.
+Next, we note that immediately after pebble 1 is lifted, there can be two choices of actions for pebble 2:
+– to place pebble 1 again; or
+– to move pebble 2 to the right.
+The following sixth normalization handles this situation:N6. Immediately after pebble 1 is lifted, pebble 2 moves right.In other words, while pebble 2 is reading a speciﬁc position, pebble 1 makes exactly one pass, from the position of pebble 2
+to the right end of the input, instead of making several rounds of passes by placing pebble 1 again immediately after it is
+lifted.
+Since there are only ﬁnitely many states, there can only be ﬁnitely many passes. So, the normalization N6 can be achieved
+by simultaneously simulating all possible passes in one pass.
+With the normalizations N1–N6, there is no non-deterministism in choosing which action to take for pebble 2. Similar
+to pebble 1, non-deterministism of pebble 2 is now limited only in deciding which states to take. This is summed up in the
+following remark.
+
+--- Page 6 ---
+T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791 783
+Remark 5. For each i=1,2, if(i,P,V,p)→(q1,act1)and(i,P,V,p)→(q2,act2),t h e n act1=act2.
+Now that the non-deterministism is reduced to deciding which state to enter, the determinization of Abecomes straight-
+forward. Similar to the classical proof of the equivalence between non-deterministic and deterministic ﬁnite state automata,we can take the power set of the states of
+Ato deterministically simulate A.
+Remark 6. We note that the normalization steps N1–N5 can be performed similarly for weak k-PAA,f o re v e r y k=1,2,....
+The determinization of non-deterministic weak k-PA can then be done in a similar manner.
+3.2. From alternating to non-deterministic
+LetA=/angbracketleftΣ,Q,q0,μ,F,U/angbracketrightbe a one-way alternating weak 2-PA. Adding some extra states, we can normalize Aas
+follows.
+A1. For every p∈U,i f(i,σ,V,p)→(q,act)∈μ,t h e n act=stay.
+A2. Every pebble can be lifted only after it reads the right-end marker ⊿.
+A3. Only pebble 2 can enter a ﬁnal state and it does so only after it reads the right-end marker ⊿.
+We assume that Qis partitioned into Q1∪Q2where Qiis the set of states, where pebble iis the head pebble, for each
+i=1,2. We can further partition each Qiinto four sets of states: Qi,stay,Qi,right,Qi,place,Qi,liftsuch that for every
+i=1,2,σ∈Σ,V⊆{1,2}, and q,p∈Q,
+A4. If q∈Qi,stayand(i,σ,V,q)→(p,act)∈μ,t h e n act=stay.
+A5. If q∈Qi,rightand(i,σ,V,q)→(p,act)∈μ,t h e n act=right.
+A6. If q∈Qi,placeand(i,σ,V,q)→(p,act)∈μ,t h e n act=place-pebble .
+A7. If q∈Qi,liftand(i,σ,V,q)→(p,act)∈μ,t h e n act=lift-pebble .
+The intuitive meaning of these states are clear. We partition the states of Aaccording to all possible actions of A.E s p e c i a l l y ,
+by restricting the set Uof universal states to be inside Q1,stay∪Q2,stay, the non-determinization process of Awill be
+much easier.
+The non-determinization process itself is a pretty straightforward simulation of all possible computation paths of A.O n
+an input w=/parenleftbigσ1
+a1/parenrightbig
+···/parenleftbigσn
+an/parenrightbig
+, due to universal branching, the automaton Acan be in several states when it reaches a certain
+position i, where 1 /lessorequalslanti/lessorequalslantn. Since the number of states is ﬁnite, to simulate the run of Aonw,i ti st h e ns u ﬃ c i e n tt o
+remember all these states and simulates all possible transitions from these states.
+Formally, we deﬁne the non-deterministic weak 2-PA A/prime=/angbracketleftΣ,Q/prime,q/prime
+0,μ/prime,F/prime/angbracketright, where
+•Q/prime=2Q2∪(2Q2×2Q1);
+•q/prime
+0={q0};
+•F/prime=2F−{ ∅ }.
+The set μ/primecontains the following transitions.
+•The transitions, when pebble 2 is the head, are as follows. For every S⊆Q2and for every σ∈Σ, we have the following
+transitions.–I f Scontains a state q
+∈U,t h e n
+(2,σ,∅,S)→/parenleftbig/parenleftbig
+S−{q}/parenrightbig
+∪Uq,stay/parenrightbig
+∈μ/prime
+where Uq={p|(2,σ,∅,q)→(p,stay)∈μ}.
+–I f Scontains a state q∈Q2,stayand S∩U=∅,t h e n
+(2,σ,V,S)→/parenleftbig/parenleftbig
+S−{q}/parenrightbig
+∪Nq,stay/parenrightbig
+∈μ/prime
+for every Nq⊆{p|(i,σ,∅,q)→(p,stay)∈μ}and Nq/negationslash= ∅.
+–I f Scontains a state q∈Q2,placeand S∩Q2,stay=∅,t h e n
+(2,σ,∅,S)→/parenleftbig/parenleftbig
+S−{q},{p}/parenrightbig
+,place-pebble/parenrightbig
+∈μ/prime
+where (2,σ,∅,q)→(p,place-pebble )∈μ.
+–I f S⊆Q2,right,t h e n
+(2,σ,∅,S)→/parenleftbig
+S/prime,right/parenrightbig
+∈μ/prime
+where S/prime={p|(2,σ,∅,q)→(p,right )∈μand q∈S}.
+
+--- Page 7 ---
+784 T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791
+•The transitions, when pebble 1 is the head, are as follows. For every S2⊆Q2,S1⊆Q1,V⊆{2}and for every σ∈Σ,
+we have the following transitions.
+–I f S1contains a state q∈U,t h e n
+/parenleftbig
+1,σ,V,(S2,S1)/parenrightbig
+→/parenleftbig/parenleftbig
+S2,/parenleftbig
+S1−{q}/parenrightbig
+∪Uq/parenrightbig
+,stay/parenrightbig
+∈μ/prime
+where Uq={p|(1,σ,V,q)→(p,stay)∈μ}.
+–I f S1contains a state q∈Q1,stayand S∩U=∅,t h e n
+/parenleftbig
+1,σ,V,(S2,S1)/parenrightbig
+→/parenleftbig/parenleftbig
+S1,/parenleftbig
+S1−{q}/parenrightbig
+∪Nq/parenrightbig
+,stay/parenrightbig
+∈μ/prime
+for every Nq⊆{p|(1,σ,V,q)→(p,stay)∈μ}and Nq/negationslash= ∅.
+–I f S1⊆Q1,right,t h e n
+/parenleftbig
+1,σ,V,(S1,S1)/parenrightbig
+→/parenleftbig/parenleftbig
+S1,S/prime
+1/parenrightbig
+,right/parenrightbig
+∈μ/prime
+where S/prime
+1={p|(1,σ,V,q)→(p,right )∈μand q∈S∩Q1}.
+–I f S1⊆Q1,lift,t h e n
+/parenleftbig
+1,⊿,V,(S2,S1)/parenrightbig
+→(S2∪R,lift-pebble )∈μ/prime
+where R={p|(1,σ,V,q)→(p,lift-pebble )∈μand q∈S1}.
+The proof that L(A)=L(A/prime)is pretty straightforward, thus, omitted.
+Remark 7. We note that the normalizations A1–A7 can be performed similarly on alternating weak k-PA, for every k=
+1,2,.... Converting an alternating weak k-PAAto the non-deterministic version A/primecan be done as follows. The set of
+states of A/primefor general kis the set
+2Qk∪/parenleftbig
+2Qk×2Qk−1/parenrightbig
+∪···∪/parenleftbig
+2Qk×2Qk−1×···×2Q1/parenrightbig
+The initial state and the set of ﬁnal states are the same {q0}and 2F−{∅}, respectively. The set of transitions can be deﬁned
+in a similar manner as above.
+4. Decidability and undecidability of weak PA
+In this section we will discuss the decidability issue of weak PA. We show that the emptiness problem for weak 3-PA is
+undecidable, while the same problem for weak 2-PA is decidable. The proof of the decidability of the emptiness problem
+for weak 2-PA will be the basis of the proof of the decidability of the same problem for top view weak PA.
+Theorem 8 is similar to the proof of the undecidability of the emptiness problem for weak 5-PA in [13]. The main
+technical step in the proof of the undecidability of the emptiness problem of weak 3-PA is to show that the following
+Σ-data language
+Lord=/braceleftbigg/parenleftbiggσ
+a1/parenrightbigg
+···/parenleftbiggσ
+an/parenrightbigg/parenleftbigg$
+d/parenrightbigg/parenleftbiggσ
+a1/parenrightbigg
+···/parenleftbiggσ
+an/parenrightbigg
+:a1,..., anare pairwisedifferent/bracerightbigg
+is accepted by weak 3-PA, where Σ={σ,$}. This is similar to the proof of the same problem for weak 5-PA. Our main
+observation is that weak 3-PA are suﬃcient to accept the language Lord. From this step, the undecidability can be easily
+obtained via a reduction from the Post Correspondence Problem (PCP). The formal details are presented in the following
+theorem.
+Theorem 8. The emptiness problem for weak 3-PA is undecidable.
+Proof.As mentioned above, the proof uses a reduction from the Post Correspondence Problem (PCP), which is well known
+to be undecidable [8].
+Aninstance of PCP is a sequence of pairs (x1,y1),...,( xn,yn), where each x1,y1,..., xn,yn∈{α,β}∗. This instance has a
+solution if there exist indexes i1,..., im∈{1,..., n}such that xi1···xim=yi1···yim. The PCP asks whether a given instance
+of the problem has a solution.
+In the following we show how to encode a solution of an instance of PCP into a data word which possesses properties
+that can be checked by a weak 3-PA. Let Σ={1,..., n,α,β,$}and xi=νi,1···νi,li,f o re a c h i=1,..., n.E a c hs t r i n g xiis
+encoded as Enc(xi)=/parenleftbigνi,1
+ai,1/parenrightbig
+···/parenleftbigνi,liai,li/parenrightbig
+where ai,1,..., ai,liare pairwise different.
+The string xi1xi2···ximcan be encoded as
+Enc(xi1,xi2,..., xim)=/parenleftbiggi1
+b1/parenrightbigg
+Enc(xi1)/parenleftbiggi2
+b2/parenrightbigg
+Enc(xi2)···/parenleftbiggim
+bm/parenrightbigg
+Enc(xim)
+
+--- Page 8 ---
+T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791 785
+where all the data values that appear in it are pairwise different. Note that even if ij=ij/primefor some j,j/prime,t h ed a t av a l u e s
+that appear in Enc(xij)do not appear in Enc(xij/prime)and vice versa. The idea is that each data value is used to mark a place
+in the string.
+Similarly, the string yj1yj2···yjlcan be encoded as
+Enc(yj1,yj2,..., yjl)=/parenleftbiggj1
+c1/parenrightbigg
+Enc(yj1)/parenleftbiggj2
+c2/parenrightbigg
+Enc(yj2)···/parenleftbiggjl
+cl/parenrightbigg
+Enc(yjl)
+where the data values that appear in it are pairwise different.
+The data word
+/parenleftbiggi1
+b1/parenrightbigg
+Enc(xi1)···/parenleftbiggim
+bm/parenrightbigg
+Enc(xim)/parenleftbigg$
+d/parenrightbigg/parenleftbiggj1
+c1/parenrightbigg
+Enc(yj1)···/parenleftbiggjl
+cl/parenrightbigg
+Enc(yjl)
+constitutes a solution to the instance of PCP if and only if
+i1i2···im=j1j2···jl (1)
+ProjΣ/parenleftbig
+Enc(xi1)···Enc(xim)/parenrightbig
+=ProjΣ/parenleftbig
+Enc(yj1)···Enc(yjl)/parenrightbig
+(2)
+Now, in order to be able to check such property with weak 3-PA, we demand the following additional criteria.
+1.b1···bm=c1···cl.
+2.ProjD(Enc(xi1)···Enc(xim))=ProjD(Enc(yj1)···Enc(yjl)).
+3. For any two positions h1and h2where h1is to the left of the delimiter/parenleftbig$
+d/parenrightbig
+and h2is to the right of the delimiter/parenleftbig$
+d/parenrightbig
+,
+if both of them have the same data value, then both of them are labeled with the same label.
+All the criteria 1–3 imply Eqs. (1) and (2). Also note that criteria 1–2 resemble the language Lord.
+Because the data values that appear in ProjD(Enc(xi1),..., Enc(xim))are pairwise different, all of them are checkable by
+three pebbles in the “weak” manner. For example, to check criterion 1, the automaton does the following.
+•Check that b1=c1.
+•Check that for each i=1,..., m−1, there exists jsuch that aiai+1=bjbj+1.
+It can be done by placing pebble 3 to read aiand pebble 2 to read ai+1, then using pebble 1 to search on the other
+side of $ for the index j.
+•Finally, check that bm=cl.
+Criterion 2 can be checked similarly and criterion 3 is straightforward. The reduction is now complete and we prove that
+the emptiness problem for weak 3-PA is undecidable.
+Now we are going to show that the emptiness problem for weak 2-PA is decidable. The proof is by simulating weak 2-PA
+by one-way alternating one register automata (1-RA). See [6] for the deﬁnition of alternating RA.
+In fact, the simulation can be easily generalized to arbitrary number of pebbles. That is, weak k-PA can be simulated
+by one-way alternating (k−1)-RA. (Here (k−1)-RA stands for (k−1)-register automata.) This result settles a question left
+open in [13]: Can weak PA be simulated by alternating RA?
+Theorem 9. For every weak k-PA A, there exists a one-way alternating (k−1)-RAA/primesuch that L (A)=L(A/prime). Moreover, the con-
+struction of A/primefrom Ais effective.
+Now, by Theorem 9, we immediately obtain the decidability of the emptiness problem for weak 2-PA because the same
+problem for one-way alternating 1-RA is decidable [6, Theorem 4.4].
+Corollary 10. The emptiness problem for weak 2-PA is decidable.
+We devote the rest of this section to the proof of Theorem 9 for k=2. Its generalization to arbitrary k/greaterorequalslant3 is pretty
+straightforward.
+Recall that we may always assume that weak PA are deterministic. Let A=/angbracketleftΣ,Q,q0,μ,F/angbracketrightbe a weak 2-PA. As in
+Section 3.1, we normalize the behavior of Aas follows.
+•Pebble 1 is lifted only after it reads the right-end marker ⊿.
+•The automaton can only enter a ﬁnal state when the control is in pebble 2. Furthermore, it does so only after pebble 2reads the right-end marker
+⊿.
+
+--- Page 9 ---
+786 T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791
+/fill114 q0/fill54
+/triangleleft/fill114 q1/fill54 /parenleftbigσ1
+d1/parenrightbig/fill114 q2/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill114qn/fill54
+/parenleftbigσn
+dn/parenrightbig/fill114 qn+1/fill54
+⊿/fill114 qf
+p1,1/fill26/fill26/fill26/fill26/fill62
+/parenleftbigσ1
+d1/parenrightbig/fill114p1,2/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill114
+p1,n/fill26/fill26/fill26/fill26/fill62
+/parenleftbigσn
+dn/parenrightbig/fill114p1,n+1/fill26/fill26/fill26/fill26/fill62
+⊿/fill114p1
+/fill114pn,n/fill26/fill26/fill26/fill26/fill62
+/parenleftbigσn
+dn/parenrightbig/fill114pn,n+1/fill26/fill26/fill26/fill26/fill62
+⊿/fill114pn
+Fig. 1.T h et r e er e p r e s e n t a t i o no far u no f Aon the data word w=/parenleftbigσ1
+d1/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+.
+•Immediately after pebble 2 moves right, pebble 1 is placed.
+•Immediately after pebble 1 is lifted, pebble 2 moves right.
+On input word w=/parenleftbigσ1
+d1/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+,t h er u no f Aon/triangleleftw⊿can be depicted as a tree shown in Fig. 1.
+T h em e a n i n go ft h et r e ei sa sf o l l o w s .
+•q0,q1,..., qn,qn+1are the states of Awhen pebble 2 is the head pebble reading the positions 0 ,1,..., n,n+1, respec-
+tively, that is, the symbols /triangleleft,/parenleftbigσ1
+d1/parenrightbig
+,...,/parenleftbigσn
+dn/parenrightbig
+,⊿, respectively.
+•qfis the state of Aafter pebble 2 reads the symbol ⊿.
+•For 1/lessorequalslanti/lessorequalslantj/lessorequalslantn,pi,jis the state of Awhen pebble 1 is the head pebble reading the position j, while pebble 2 is
+above the position i.
+•For 1/lessorequalslanti/lessorequalslantn, the state piis the state of Aimmediately after pebble 1 is lifted and pebble 2 is above the position i.
+It must be noted that there is a transition (2,σi,∅,pi)→(qi+1,right )applied by Athat is not depicted in the ﬁgure.
+Now the simulation of Aby a one-way alternating 1-RA A/primebecomes straightforward if we view the tree in Fig. 1 as a
+tree depicting the computation of A/primeon the same word w. Fig. 2 shows the corresponding run of A/primeon the same word.
+Roughly, the automaton A/primeis deﬁned as follows.
+•The states of A/primeare elements of Q∪(Q×Q);
+•the initial state is q0; and
+•the set of ﬁnal states is F∪{(p,p):p∈Q}.
+For each placement of pebble 1 on position i, the automaton performs the following “Guess–Split–Verify” procedure which
+consists of the following steps.
+1. From the state qi, the automaton A/prime“guesses” (by disjunctive branching) the state in which pebble 1 is eventually lifted,
+i.e. the state pi.I ts t o r e s piin its internal state and simulates the transition (2,σi,∅,∅,qi)→(pi,i,place-pebble )∈μ
+to enter into the state (pi,i,pi).
+2. The automaton A/prime“splits” its computation (by conjunctive branching) into two branches.
+•In one branch, assuming that the guess piis correct, A/primemoves right and enters into the state qi+1, simulating the
+transition (2,∅,pi)→(qi+1,right ).
+After this, it recursively performs the Guess–Split–Verify procedure for the next placement of pebble 1 on position
+(i+1).
+•In the other branch A/primestores the data value diin its register and simulates the run of pebble 1 on/parenleftbigσi
+di/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+,
+starting from the state pi,i, to “verify” that the guess piis correct.
+
+--- Page 10 ---
+T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791 787
+/fill114 qf
+⊿/fill54
+/fill114 qn+1
+/parenleftbigσn
+dn/parenrightbig/fill54
+/fill114
+(pn,n,pn)
+/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112
+/fill114q2
+/parenleftbigσ1
+d1/parenrightbig/fill54
+/fill114
+(p1,1,p1)/fill54
+⇐A/prime“guesses” the state p1and then “splits”
+/fill114 q1
+/triangleleft/fill54
+/fill114 q0/parenleftbigσ1
+d1/parenrightbig
+/fill26/fill26/fill26/fill26/fill62(p1,2,p1)/fill114/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112/fill112
+(p1,n,p1)/fill114/parenleftbigσn
+dn/parenrightbig
+/fill26/fill26/fill26/fill26/fill62(p1,n+1,p1)/fill114⊿
+/fill26/fill26/fill26/fill26/fill62(p1,p1)/fill114⇓A/prime“veriﬁes” the guess p1
+/parenleftbigσn
+dn/parenrightbig
+/fill26/fill26/fill26/fill26/fill62/fill114
+(pn,n+1,pn)⊿
+/fill26/fill26/fill26/fill26/fill62/fill114
+(pn,pn)
+Fig. 2.The corresponding run of A/primethe data word w=/parenleftbigσ1
+d1/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+to the one in Fig. 1.
+During the simulation, the states of A/primeare(pi,i,pi),...,( pi,n+1,pi).A/primeaccepts when the simulation ends in the
+state(pi,pi), that is, when the guess piis “correct.”
+5. Complexity of weak 2-PA
+In this section we study the time complexity of three speciﬁc problems related to weak 2-PA.
+Emptiness problem. The emptiness problem for weak 2-PA. That is, given a weak 2-PA A,i sL(A)=∅?
+Labeling problem. Given a deterministic weak 2-PA Aover the labels Σand a sequence of data values d1···dn∈Dn,i s
+there a sequence of labels σ1···σn∈Σnsuch that/parenleftbigσ1
+d1/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+∈L(A)?
+Data value membership problem. Given a deterministic weak 2-PA Aover the labels Σand a sequence of ﬁnite labels
+σ1···σn∈Σn, is there a sequence of data values d1···dn∈Dnsuch that/parenleftbigσ1
+d1/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+∈L(A)?
+The emptiness problem, as we have seen in the previous section, is decidable. The labeling and data value membership
+problem are in NP. To solve the labeling problem, one simply guesses a sequence σ1···σn∈Σnand runs Ato check
+whether/parenleftbigσ1
+d1/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+∈L(A). Similarly, to solve the data value membership problem, one can guess a sequence of data
+values d1···dnand run Ato check whether/parenleftbigσ1
+d1/parenrightbig
+···/parenleftbigσn
+dn/parenrightbig
+∈L(A).
+We will show that the emptiness problem is not primitive recursive, while both the labeling and data value membership
+problems are NP-complete.
+Theorem 11. The emptiness problem for weak 2-PA is not primitive recursive.
+The proof of Theorem 11 is by simulation of incrementing counter automata and follows closely the proof of a similar
+lower bound for one-way alternating 1-RA [6, Theorem 2.9].
+Anincrementing counter automaton is a ﬁnite, non-deterministic automaton extended with ncounters, numbered from 1
+ton. The transition relation is a subset of
+Q×Σ×/braceleftbig
+inc(i),dec(i),if-zero(i)/vextendsingle/vextendsinglei=1,..., n/bracerightbig
+×Q
+In each step, the automaton can change its state and modify the counters (either increment incor decrement decthem),
+or testing whether they are zero ( if-zero), according to the current state and the current symbol. Moreover, in each step
+
+--- Page 11 ---
+788 T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791
+an incremental error may occur and the content of the counters may increase, hence the name incrementing . As usual, the
+automaton starts the computation in the initial state and accepts a word if it ends in one of the designated ﬁnal states.
+The main technical step of the proof of Theorem 11 is to show that the following Σ-data language Lincwhich consists
+of the data words of the form:/parenleftbigα
+a1/parenrightbig
+···/parenleftbigα
+am/parenrightbig/parenleftbigβ
+b1/parenrightbig
+···/parenleftbigβ
+bn/parenrightbig
+;where
+•Σ={α,β};
+•the data values a1,..., amare pairwise different;
+•the data values b1,..., bnare pairwise different;
+•each aiappears among b1,..., bn
+is accepted by a weak 2-PA. The intuition of this language is to represent the inequality m/lessorequalslantn, which is used to simulate
+the incrementing error of the counters. Since the emptiness problem of incrementing counter automata is not primitive
+recursive [11] (but still decidable [14]), Theorem 11 follows.
+Now we are going to show the NP-hardness of the labeling problem. It is by a reduction from graph 3-colorability
+problem which states as follows. Given an undirected graph G=(V,E),i sG3-colorable?
+In the following we may assume that the data values are taken from the set of natural numbers {1,2,...}.L e t
+V={1,..., n}and E={(i1,j1),...,( im,jm)}. Assuming that Dcontains the natural numbers, we take i1j1···imjmas the
+sequence of data values. Then, we construct a weak 2-PA Aover the alphabet Σ={ϑR,ϑG,ϑB}that accepts data words of
+even length in which the following hold.
+•For all odd position x, the label on position xis different from the label on position x+1.
+•For every two positions xand y, if they have the same data value, then they have the same label. (See Example 4.)
+Thus, the graph Gis 3-colorable if and only if there exists
+σ1···σ2m∈{ϑR,ϑG,ϑB}∗
+such that/parenleftbigσ1
+i1/parenrightbig/parenleftbigσ2
+j1/parenrightbig
+···/parenleftbigσ2m−1
+im/parenrightbig/parenleftbigσ2m
+jm/parenrightbig
+∈L(A), and the NP-hardness, hence the NP-completeness, of the labeling problem follows.
+The NP-hardness of data value membership problem can be established in a similar spirit. The reduction is from the
+following variant of graph 3-colorability, called 3-colorability with constraint. Given a graph G=(V,E)and three integers nr,
+ng,nb, is the graph G3-colorable with the colors R,Gand Bsuch that the numbers of vertices colored with R,Gand B
+arenr,ngand nb, respectively?
+The polynomial time reduction to data value membership problem is as follows. Let V={1,..., n}and E=
+{(i1,j1),...,( im,jm)}.
+We deﬁne Σ={ϑR,ϑG,ϑB,ν1,...,νn}and take
+νi1νj1···νimνjmϑR···ϑR/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+nrtimesϑG···ϑG/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+ngtimesϑB···ϑB/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+nbtimes
+as the sequence of ﬁnite labels. Then, we construct a weak 2-PA over Σthat accepts data words of the form
+/parenleftbiggνi1
+c1/parenrightbigg/parenleftbiggνj1
+d1/parenrightbigg
+···/parenleftbiggνim
+cm/parenrightbigg/parenleftbiggνjm
+dm/parenrightbigg/parenleftbiggϑR
+a1/parenrightbigg
+···/parenleftbiggϑR
+anr/parenrightbigg/parenleftbiggϑG
+a/prime
+1/parenrightbigg
+···/parenleftbiggϑG
+a/prime
+ng/parenrightbigg/parenleftbiggϑB
+a/prime/prime
+1/parenrightbigg
+···/parenleftbiggϑB
+a/prime/prime
+nb/parenrightbigg
+where
+•νi1,νj1,...,νim,νjm∈{ν1,...,νn};
+•in the sub-word/parenleftbigνi1c1/parenrightbig/parenleftbigνj1
+d1/parenrightbig
+···/parenleftbigνim
+cm/parenrightbig/parenleftbigνjm
+dm/parenrightbig
+, every two positions with the same labels have the same data value (see Exam-
+ple 4);
+•the data values a1,..., anr,a/prime
+1,..., a/prime
+ng,a/prime/prime
+1,..., a/prime/prime
+nbare pairwise different;
+•for each i=1,..., m,t h ev a l u e s ci,diappear among a1,..., anr,a/prime
+1,..., a/prime
+ng,a/prime/prime
+1,..., a/prime/prime
+nbsuch that the following holds:
+–i f ciappears among
+a1,..., anr
+then diappears either among
+a/prime
+1,..., a/prime
+ngor a/prime/prime
+1,..., a/prime/prime
+nb
+–i f ciappears among
+a/prime
+1,..., a/prime
+ng
+
+--- Page 12 ---
+T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791 789
+then diappears either among
+a1,..., anror a/prime/prime
+1,..., a/prime/prime
+nb
+–i f ciappears among
+a/prime/prime
+1,..., a/prime/prime
+nb
+then diappears either among
+a1,..., anror a/prime
+1,..., a/prime
+ng
+Note that we can store the integers r,g,band min the internal states of A, thus, enable Ato “count” up to nr,ng,nb
+and m. We have each state for the numbers 1 ,..., nr,1,..., ng,1,..., nband 1,..., m. The number of states in Ais still
+polynomial on n.
+Now the graph Gis 3-colorable with the constraints nr,ng,nbif and only if there exists
+c1d1···cmdma1···anra/prime
+1···a/prime
+nga/prime/prime
+1···a/prime/prime
+nbsuch that
+/parenleftbiggνi1
+c1/parenrightbigg/parenleftbiggνj1
+d1/parenrightbigg
+···/parenleftbiggνim
+cm/parenrightbigg/parenleftbiggνjm
+dm/parenrightbigg/parenleftbiggϑR
+a1/parenrightbigg
+···/parenleftbiggϑR
+anr/parenrightbigg/parenleftbiggϑG
+a/prime
+1/parenrightbigg
+···/parenleftbiggϑG
+a/prime
+ng/parenrightbigg/parenleftbiggϑB
+a/prime/prime
+1/parenrightbigg
+···/parenleftbiggϑB
+a/prime/prime
+nb/parenrightbigg
+is accepted by A. The NP-hardness, hence the NP-completeness, of the data value membership problem then follows.
+6. Top view weak k-PA
+In this section we are going to deﬁne top view weak PA. Roughly speaking, top view weak PA are weak PA where the
+equality test is performed only between the data values seen by the last and the second to last placed pebbles. That is, if
+pebble iis the head pebble, then it can only compare the data value it reads with the data value read by pebble (i+1).I t
+is not allowed to compare its data value with those read by pebble (i+2),(i+3),..., k.
+Formally, a top view weak k-PA is a tuple A=/angbracketleftΣ,Q,q0,μ,F/angbracketrightwhere Q,q0,Fare as usual and μconsists of transitions
+of the form: (i,σ,V,q)→(q/prime,act), where Vis either ∅or{i+1}.
+The criterion for the application of the transitions of top view weak k-PA is deﬁned by setting
+V=/braceleftbigg∅, ifaθ(i+1)/negationslash=aθ(i)
+{i+1},ifaθ(i+1)=aθ(i)
+in the deﬁnition of transition relation in Section 2.1. Note that top view weak 2-PA and weak 2-PA are the same.
+Remark 12. We can also deﬁne an alternating version of top view weak k-PA. However, just like in the case of weak k-
+PA, alternating, non-deterministic and deterministic top view weak k-PA have the same recognition power. Furthermore,
+by using the same proof presented in Section 5, it is straightforward to show that the emptiness problem, the labelingproblem, and the data value membership problem have the same complexity lower bound for top view weak k-PA, for each
+k
+=2,3,....
+The following theorem is a stronger version of Theorem 9, as weak 2-PA are just special cases of top view weak PA.
+Theorem 13. For every top view weak k-PA A, there is a one-way alternating 1-RAA/primesuch that L (A/prime)=L(A). Moreover, the con-
+struction of A/primeis effective.
+Proof.The proof is a straightforward generalization of the proof of Theorem 9. Each placement of a pebble is simulated by
+“Guess–Split–Verify” procedure. Since each pebble ican only compare its data value with the one seen by pebble (i+1),
+A/primedoes not need to store the data values seen by pebbles (i+2),..., k. It only needs to store the data value seen by
+pebble (i+1), thus, one register is suﬃcient for the simulation. 2
+Following Theorem 13, we immediately obtain the decidability of the emptiness problem for top view weak k-PA.
+Corollary 14. The emptiness problem for top view weak k-PA is decidable.
+Since the emptiness problem for ordinary 2-PA (see [10, Theorem 4]) and for weak 3-PA is already undecidable, it seems
+that top view weak PA is a tight boundary of a subclass of PA languages for which the emptiness problem is decidable.
+Remark 15. In [16] it is shown that for every sentence ψ∈LTL↓
+1(Σ,X,U),t h e r ee x i s t saw e a k k-PAAψ, where k=fqr(ψ)+1,
+such that L(Aψ)=L(ψ). We remark that the proof actually shows that the automaton Aψis a top view weak k-PA. Thus,
+it shows that the class of top view weak k-PA languages contains the languages deﬁnable by LTL↓
+1(Σ,X,U).
+
+--- Page 13 ---
+790 T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791
+7. Top view weak PA with unbounded number of pebbles
+This section contains our quick observation on top view weak PA. We note that the ﬁniteness of the number of pebbles
+for top view weak PA is not necessary. In fact, we can just deﬁne top view weak PA with unbounded number of pebbles,which we call top view weak unbounded PA.
+We elaborate on it in the following paragraphs. Let
+A=/angbracketleftΣ,Q,q0,μ,F/angbracketrightbe top view weak unbounded PA. The pebbles
+are numbered with the numbers 1 ,2,3,.... The automaton Astarts the computation with only pebble 1 on the input word.
+The transitions are of the form: (σ,χ,q)→(p,act), where χ∈{0,1}andσ,q,p,actare as in the ordinary weak PA.
+Letw=/parenleftbigσ1
+a1/parenrightbig
+···/parenleftbigσn
+an/parenrightbig
+be an input word. A conﬁguration of Aon/triangleleftw⊿is a triple [i,q,θ], where i∈N,q∈Q, and θ:N→
+{0,1,..., n,n+1}.T h e initialconﬁguration is [1,q0,θ0], where θ0(1)=0. The accepting conﬁgurations are deﬁned similarly
+as in ordinary weak PA.
+A transition (σ,χ,p)→βapplies to a conﬁguration [i,q,θ],i f
+(1)p=q, andσθ(i)=σ,
+(2)χ=1i f aθ(i−1)=aθ(i), andχ=0i f aθ(i−1)/negationslash=aθ(i),
+Similarly, the transition relation /turnstileleftcan be deﬁned as follows: [i,q,θ]/turnstileleftA[i/prime,q/prime,θ/prime], if there is a transition α→
+(p,act)∈μthat applies to [i,q,θ]such that q/prime=p,f o ra l l j<i,θ/prime(j)=θ(j), and
+–i fact=right,t h e n i/prime=iandθ/prime(i)=θ(i)+1,
+–i fact=lift-pebble ,t h e n i/prime=i−1,
+–i fact=place-pebble ,t h e n i/prime=i+1,θ/prime(i+1)=θ/prime(i)=θ(i).
+The acceptance criteria can be deﬁned similarly.
+It is straightforward to show that 1-way deterministic 1-RA can be simulated by top view weak unbounded PA. Each
+time the register automaton changes the content of the register, the top view weak unbounded PA places a new pebble.
+Furthermore, top view weak unbounded PA can be simulated by 1-way alternating 1-RA. Each time a pebble is placed,
+the register automaton performs the procedure “Guess–Split–Verify” described in Section 4. Thus, the emptiness problem
+for top view unbounded weak PA is still decidable.
+8. Concluding remark
+In this paper we study pebble automata for data languages. In particular, we establish a fragment of PA languages for
+which the emptiness problem is decidable, the so-called top view weak PA. As shown in this paper, top view weak PAinherit some nice properties mentioned in Section 1.
+1. Expressiveness: Top view weak PA contain the languages expressible by LTL↓
+1(Σ,X,U).
+2. Decidability: The emptiness problem is decidable.
+3. Eﬃciency: The model checking problem, that is, testing whether a given string of length nis accepted by a speciﬁc
+deterministic top view weak k-PA can be solved in O(nk)computation time.
+4. Closure properties: Top view weak k-PA languages are closed under all boolean operations.
+5. Robustness: Alternation and non-deterministism do not add expressive power to top view weak k-PA languages.
+There is still a lot of work to be done. In order to be applicable in program veriﬁcation and XML settings, the model should
+work on inﬁnite strings and unranked trees, respectively. Thus, the question remains whether it is possible to extend top
+view weak PA to the settings of inﬁnite strings and unranked trees, while still preserving the ﬁve properties mentionedabove.
+Acknowledgments
+The author would like to thank Michael Kaminski for his invaluable directions and guidance related to this paper and for
+pointing out the notion of unbounded pebble automata.
+References
+[1] Parosh Aziz Abdulla, Bengt Jonsson, Marcus Nilsson, Mayank Saksena, A survey of regular model checking, in: Proceedings of the 15th Internationa l
+Conference on Concurrency Theory (CONCUR) 2004, in: Lecture Notes in Comput. Sci., vol. 3170, Springer, 2004, pp. 35–48.
+[2] Marcelo Arenas, Wenfei Fan, Leonid Libkin, Consistency of XML speciﬁcations, in: Inconsistency Tolerance [Dagstuhl Seminar], in: Lecture Note si n
+Comput. Sci., vol. 3300, Springer, 2005, pp. 15–41.
+[3] Henrik Björklund, Thomas Schwentick, On notions of regularity for data languages, in: Proceedings of the 16th International Symposium on Funda-
+mentals of Computation Theory (FCT) 2007, in: Lecture Notes in Comput. Sci., vol. 4639, Springer, 2007, pp. 88–99.
+
+--- Page 14 ---
+T. Tan / Journal of Computer and System Sciences 76 (2010) 778–791 791
+[4] Mikolaj Bojanczyk, Anca Muscholl, Thomas Schwentick, Luc Segouﬁn, Claire David, Two-variable logic on words with data, in: Proceedings of the 21 th
+IEEE Symposium on Logic in Computer Science (LICS) 2006, IEEE Computer Society, 2006, pp. 7–16.
+[5] Mikolaj Bojanczyk, Mathias Samuelides, Thomas Schwentick, Luc Segouﬁn, Expressive power of pebble automata, in: Proceedings of Automata, Lan-
+guages and Programming, 33rd International Colloquium (ICALP) 2006, in: Lecture Notes in Comput. Sci., vol. 4051, Springer, 2006, pp. 157–168.
+[6] Stéphane Demri, Ranko Lazic, LTL with the freeze quantiﬁer and register automata, in: Proceedings of the 21th IEEE Symposium on Logic in Computer
+Science (LICS) 2006, IEEE Computer Society, 2006, pp. 17–26.
+[7] Allen Emerson, Kedar Namjoshi, Reasoning about rings, in: Proceedings of the 22nd ACM SIGPLAN–SIGACT Symposium on Principles of Programming
+Languages (POPL) 1995, 1995, pp. 85–94.
+[8] John Hopcroft, Jeffrey Ullman, Introduction to Automata Theory, Languages and Computation, Addison–Wesley, 1979.[9] Michael Kaminski, Nissim Francez, Finite-memory automata, Theoret. Comput. Sci. 134 (2) (1994) 329–363.
+[10] Michael Kaminski, Tony Tan, A note on two-pebble automata over inﬁnite alphabets, Fund. Inform. 98 (4) (2010) 379–390.
+[11] Richard Mayr, Undecidable problems in unreliable computations, Theoret. Comput. Sci. 297 (1–3) (2003) 337–354.[12] Frank Neven, Automata, logic, and XML, in: Proceedings of the 11th Annual Conference of the EACSL Computer Science Logic (CSL) 2002, in: Lecture
+Notes in Comput. Sci., vol. 2471, Springer, 2002, pp. 2–26.
+[13] Frank Neven, Thomas Schwentick, Victor Vianu, Finite state machines for strings over inﬁnite alphabets, ACM Trans. Comput. Log. 5 (3) (2004) 403 –435.
+[14] Philippe Schnoebelen, Verifying lossy channel systems has nonprimitive recursive complexity, Inform. Process. Lett. 83 (5) (2002) 251–261.[15] Luc Segouﬁn, Automata and logics for words and trees over an inﬁnite alphabet, in: Proceedings of the 15th Annual Conference of the EACSL Computer
+Science Logic (CSL) 2006, in: Lecture Notes in Comput. Sci., vol. 4207, Springer, 2006, pp. 41–57.
+[16] Tony Tan, Graph reachability and pebble automata over inﬁnite alphabets, in: Proceedings of the 24th IEEE Symposium on Logic in Computer Science
+(LICS) 2009, IEEE Computer Society, 2009, pp. 157–166.
+[17] Tony Tan, On pebble automata for data languages with decidable emptiness problem, in: Proceedings of the 34th International Symposium on Mathe-
+matical Foundations of Computer Science (MFCS) 2009, in: Lecture Notes in Comput. Sci., vol. 5734, Springer, 2009, pp. 712–723.
