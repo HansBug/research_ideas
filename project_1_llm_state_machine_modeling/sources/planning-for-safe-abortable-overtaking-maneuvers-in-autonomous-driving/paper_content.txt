@@ -1,0 +1,633 @@
+--- Page 1 ---
+Planning for Safe Abortable Overtaking Maneuvers in
+Autonomous Driving
+Jiyo Palatti1, Andrei Aksjonov1, Gokhan Alcan1, and Ville Kyrki1,Senior Member, IEEE
+Abstract — Overtaking is one of the most challenging tasks
+in driving, and the current solutions to autonomous overtaking
+are limited to simple and static scenarios. In this paper, we
+present a method for behaviour and trajectory planning for safe
+autonomous overtaking. The proposed method optimizes the
+trajectory by simultaneously enforcing safety and minimizing
+intrusion onto the adjacent lane. Furthermore, the method
+allows the overtaking to be aborted, enabling the autonomous
+vehicle to merge back in the lane, if safety is compromised,
+because of e.g. trafﬁc in opposing direction appearing during
+the maneuver execution. A ﬁnite state machine is used to select
+an appropriate maneuver at each time, and a combination
+of safe and reachable sets is used to iteratively generate
+intermediate reference targets based on the current maneuver.
+A nonlinear model predictive controller then plans dynamically
+feasible and collision-free trajectories to these intermediate
+reference targets. Simulation experiments demonstrate that the
+combination of intermediate reference generation and model
+predictive control is able to handle multiple behaviors, including
+following a lead vehicle, overtaking and aborting the overtake,
+within a single framework.
+I. I NTRODUCTION
+An Autonomous Vehicle (A V) must be able to execute
+several complex driving maneuvers, such as lane keeping,
+lane changing, and overtaking, that are involved in typical
+driving situations. The ability to overtake is essential to
+increase road capacity and level of service, especially on
+single and two lane roads [1]. However, overtaking on such
+roads is one of the most challenging maneuvers, because
+it requires the vehicle to drive on the path of potential
+oncoming trafﬁc for signiﬁcant periods of time, often at high
+speeds.
+Existing methods consider usually simple scenarios, where
+a Leading Vehicle (LV) to be overtaken is static or moving at
+a constant velocity without oncoming vehicles [2]. In these
+settings, overtaking can be understood as two successive lane
+change maneuvers. However, when oncoming trafﬁc exists,
+this is not sufﬁcient.
+We address the issue of increasing the safety of overtaking
+under potential oncoming trafﬁc, by (a) minimizing intrusion
+on the adjacent lane while ensuring sufﬁcient clearance for
+safety, and (b) having the ability to abort the overtaking
+maneuver if safety is compromised, e.g., due to the oncoming
+trafﬁc, which is illustrated in Fig. 1.
+We propose an autonomous overtaking method that uses
+rules to choose an appropriate behaviour (maneuver) at each
+This work was supported by Academy of Finland grant 328399.
+1The authors are with the Intelligent Robotics group, Department of Elec-
+trical Engineering and Automation, Aalto University, 02150 Espoo, Finland
+fjiyo.palatti, andrei.aksjonov, gokhan.alcan,
+ville.kyrki g@aalto.fi
+Fig. 1. Proposed autonomous overtaking method minimizes intrusion on
+adjacent lane while ensuring safe clearance during overtake and allows
+aborting the overtake if needed.
+time using a ﬁnite state machine (FSM). For each behaviour,
+safe and reachable intermediate points are generated, in-
+spired by [2]. Feasible and collision-free trajectories are then
+planned using model predictive control (MPC) with non-
+linear obstacle constraints. The same system components are
+used for all maneuvers, including staying on a lane, following
+a leading vehicle, overtaking, and aborting the overtake.
+The method is experimentally evaluated in a high-ﬁdelity
+simulation.
+The primary contributions of this work are:
+1) A novel autonomous overtaking method that
+a) minimizes intrusions on to adjacent lane.
+b) has the ability to abort and merge back if re-
+quired.
+c) can handle various lane and obstacle conﬁgura-
+tions within the same approach.
+2) Experimental evaluation of the method using a high-
+ﬁdelity simulation environment to demonstrate that
+a) the generated trajectories are feasible and respect
+safety constraints.
+b) the same trajectory planning method is able to
+handle multiple driving behaviors.arXiv:2104.00077v3  [cs.RO]  2 Aug 2021
+
+--- Page 2 ---
+Fig. 2. Proposed behaviour and trajectory planning method block scheme.
+II. R ELATED WORKS
+Overtaking maneuvers consist of two decision problems:
+behavior choice (when to overtake, whether to abort) and
+trajectory planning (which trajectory to use for a particular
+behavior). These problems are typically addressed separately.
+Exceptions can be found in some recent works that propose
+end-to-end solutions using neural network based controllers
+trained using reinforcement learning [3], [4], [5]. However,
+the development of end-to-end reinforcement learning meth-
+ods is still in its infancy and the methods lack stability,
+robustness, or optimality.
+Established techniques for behavior choice include FSMs
+[6] and Markov decision processes [7]. In this work, we
+follow the established idea of FSMs for the behavior choice.
+Vehicle trajectories can be planned e.g. by sampling based
+planners such as Rapidly-exploring Random Trees [8], adap-
+tive control [9], fuzzy logic [10], or MPC [11]. Paden et al.
+[12] and Dixit et al. [13] provide extensive surveys on the
+topic.
+MPC, which we also apply in this work, is a popular
+choice for trajectory planning in autonomous overtaking for
+the reason that it can incorporate both vehicle dynamics con-
+straints as well as obstacle constraints. Many existing works
+impose some limitations in order to simplify the planning
+and decrease computational costs. For example, the solution
+space can be restricted as in Li et al. [14], which proposed
+a non-linear MPC (NMPC) to optimize lateral movement
+according to road conditions. Restricting the optimization to
+lateral motions prevents the approach to be used in cases with
+dynamic obstacles. For this reason, in this work we optimize
+both lateral and longitudinal components of the trajectory.
+The computational cost of MPC solutions can also be
+reduced by limiting the planning horizon. In our work, we
+follow the idea proposed by Dixit et al. [2] to generate
+intermediate planning targets using risk maps and reach-
+ability, which allows reducing the planning horizon and
+computation.
+A central issue in MPC formulations is the choice of a
+dynamics model. Some works, such as Murgovski et al. [15]
+and Molinari et al. [11], model the vehicle as a point mass,
+which does not take the non-holonomic kinematics of typical
+cars into account. However, the computational cost of solvingAlgorithm 1: Planning Algorithm.
+1while TRUE do
+2 begin Behaviour Planning Phase
+3S generateSafeSet ()
+4R generateReachableSet ()
+5SSR=S\R
+6 pref;vref; ref selectBehaviour ()
+7 xref getIntermediateRef ()
+8 begin Trajectory Planning Phase
+9 x getCurrentState ()
+10 gi getCollisionAvoidanceConstraints ()
+11 u solveNMPC (x;xref;gi)
+MPC with complete dynamics models may be prohibitive.
+For that reason, we follow the compromise of using a bicycle
+model for dynamics, which accounts for the non-holonomic
+kinematics of a car, similar to [2].
+Several possible formulations for obstacle constraints ex-
+ist. The simplest solution is to use a single linear constraint
+that varies during the overtake [2]. While this simpliﬁes
+the MPC, this formulation has the challenge that it cannot
+account for complex scenarios with potentially multiple vehi-
+cles since the single linear is not sufﬁcient to represent them.
+Rectangular constraints for obstacle regions can also be used
+[11] leading to mixed integer formulations. In this paper,
+we extend previous works by using nonlinear functions to
+represent obstacle boundaries.
+While environment perception is an essential component
+of A Vs, autonomous overtaking is typically considered pri-
+marily from a decision making point of view, such that the
+perception problems are considered to be solved, similar to
+this paper. Speciﬁc perception related problems, such as lack
+of information and unforeseen circumstances, were recently
+considered by [16], but the work did not take into account
+overtaking of moving vehicles. Beyond direct sensor-based
+perception, autonomous overtaking has also been studied
+in the context of networked vehicles, where the vehicle-
+to-vehicle communication is used to resolve the perception
+challenges [17].
+To summarize, the work presented in this paper goes
+beyond state-of-the-art by (i) including an abort maneuver in
+the overtaking; (ii) proposing non-linear obstacle constraints;
+and (iii) optimizing the trajectory, such that intrusion on
+adjacent lane is minimized.
+III. P ROPOSED METHOD
+A. Method Overview
+The architecture of the proposed planning method pre-
+sented in Fig. 2 is broadly split into two modules: behaviour
+and trajectory planning. The overall planning algorithm is
+described in Algorithm 1. The behaviour planning module
+(Lines 3 - 7) ﬁrst identiﬁes safe and reachable regions
+and makes the decision on required maneuver (i.e., lane
+keeping, overtaking or aborting) using an FSM based on
+heuristic rules. Next, a suitable reference target that conforms
+with the current maneuver is generated. To decrease the
+
+--- Page 3 ---
+Fig. 3. The safe and reachable sets illustration: shown in green. Gray area
+symbolizes drivable region.
+planning horizon, an intermediate reference state that is safe
+and reachable is then selected. The trajectory planning uses
+then non-linear MPC to plan an optimal trajectory to the
+intermediate reference target (Lines 9 - 11).
+Remark 1: the proposed solution assumes that (Figure 3):
+The state of the Ego Vehicle (EV) is fully observable
+(i.e., pose, velocity and acceleration with respect to
+World Frame (W-Frame) are available).
+The vehicle is able to detect and extract information
+about road features (i.e., lane edges and centers, road
+boundaries) and other trafﬁc participants (i.e., location,
+velocity, heading) in 20 m radius.
+B. Behaviour Planning
+The behaviour planning consists of three steps. Initially,
+the safe areas devoid of the other vehicles keeping in
+mind the relative/absolute velocities and conforming to lane
+boundaries around the EV is identiﬁed resulting in a set
+of safe points (i.e., safe set). An appropriate maneuver is
+then selected along with a corresponding ﬁnal reference pose
+and velocity associated with the maneuver. This information
+in conjunction with reachable areas is used to generate an
+intermediate reference target xreffor the trajectory planning.
+1) Determining Safe and Reachable Set: The safe regions
+of the road are represented by artiﬁcial potential ﬁelds as
+described in [18]. A local risk map of the surroundings is
+created by combining the information about lane/road and
+other vehicles, which can then be used to identify safe driving
+zones. The road/lane represented by a potential function
+is given by an exponential function so that the risk value
+approaches inﬁnity at road/lane edges. This ensures that the
+road edges and space beyond are marked as unsafe.
+A repulsive potential ﬁeld [19] is generated around each
+obstacle vehicle (annotated as polygons) to mark them as
+unsafe areas, thus, enabling the EV to keep a safe distance
+from them. These ﬁelds are exponential and approach inﬁnity
+near the boundaries of the obstacle vehicles. Since the rela-
+tive and absolute velocities of EV , LV are important factors,
+when overtaking or aborting, this information is encoded
+in the triangles, appended to the original obstacle polygon
+to serve as safety margins during the safe set generation.
+These velocity-depended triangles ensure that the EV leaves
+Fig. 4. The planner ﬁnite state machine
+distance in-front and behind the LV when following or
+overtaking.
+The safe set S(calculated in the EV frame or E-Frame)
+given by points in a set of all points in the sensing radius
+Gthat have total risk values below a certain safe threshold
+Uthreshold :
+S=fp2G:U(p)6Uthresholdg (1)
+wherepis any point in GandU(p)is a combined potential
+ﬁeld that is restricted by obstacle vehicles and road bound-
+aries.
+The reachable set ( R) deﬁnes all points the EV can
+reach in the entire time horizon Th(planning horizon). The
+reachable set RR2for timeThcan be represented using
+polytopes that bound the reachable space on the road. The
+bicycle kinematic model [20] is utilized to ﬁnd these bounds.
+Using extremes of actuation, namely, front steering angle f,
+and desired/reference velocity vref, the system plans for time
+Th. Boundary of reachable set RR2is given by:
+fmin<f<fmax ;v=vref;ax0; (2)
+wherevandaxare current longitudinal velocity and accel-
+eration of the EV , respectively.
+BothSandRare updated at each time step so that the
+risk map reﬂects the dynamic changes in the environment.
+The ﬁnal safe and reachable set SSRis obtained from the
+intersection of safe set and reachable set (Fig. 3) as follows:
+SSR=S\R: (3)
+2) Rule-Based Finite State Machines: The approach for
+the selection of the maneuver was kept simple by using an
+FSM since this study primarily focuses on the planning of
+overtaking and aborting maneuvers. The FSM is easy to
+implement, and the technique is efﬁcient in deterministic
+decision-making. The planner state machine M(Fig. 4) is
+written as:
+M= (H;;;s 0); (4)
+whereH=fL;F;O;Agis the set of states corresponding
+to maneuvers, is the set of inputs symbols corresponding
+to perceptual events triggering state transitions, is the state
+transition function H!H, ands02His the initial
+state.
+Each state corresponds to the maneuver that determine the
+reference pose prefand velocity vrefwhich is eventually
+
+--- Page 4 ---
+an input to the trajectory planning. All reference variables
+are generated with respect to E-frame. The pose prefare
+chosen relative to the velocity-depended triangle vertex so
+as to automatically adapt to the different relative/absolute
+velocities of the EV and LV . The states Hare deﬁned as
+follows:
+L- Lane Keeping: This is achieved by selecting a
+desired pose prefthat is distance dlanekeep away from
+the current position of the EV and in the center of the
+lane.vrefis the desired set velocity during cruising.
+F- Follow Lead Vehicle: This is achieved by selecting
+a desired pose prefcorresponding to the vertex of
+velocity triangle behind the LV and in the center of
+the lane.vrefis the set as the velocity of the LV .
+O- Overtaking: The desired pose prefis selected as
+thedSafeOvertakeZone distance from vertex of velocity
+triangle in front of the LV to facilitate overtaking. The
+desired velocity is set as vref> v LVto facilitate
+overtaking.
+A- Aborting: During aborting, the vertex of velocity
+triangle behind the LV is chosen as the desired pose
+prefand velocity is set as vref<vLVto facilitate fall
+back and merge back to the lane.
+State transitions are triggered by perceptual events cor-
+responding to input symbols  =f1;2;3;4;5g. The
+events are deﬁned using heuristic rules based on the current
+poses and velocities of EV and LV , thus, replicating a human
+decision making process. The transitions are triggered as
+follows:
+1- when the EV detects a vehicle less than a ﬁxed
+distance away in its sensing range.
+2- when situations are favourable for overtaking, or
+it is manually requested.
+3- when overtaking is successfully completed such
+that the EV has surpassed the velocity vertex in front
+of the LV .
+4- when potential collision before completion of
+the overtake is predicted, or abort of the overtake is
+manually triggered.
+5- the aborting of the overtake maneuver is complete
+such that the EV has merged back to the lane behind
+the LV .
+Even though simpliﬁed in this context, the problem of
+initiating these transitions (especially 2and4) is not trivial
+and depends on various factors like perception limitations,
+uncertainties in measurements and estimation, and, risk es-
+timations like time to colllision.
+3) Intermediate Reference Generation: An intermediate
+reference target is chosen from the reachable and safe areas
+(Fig. 3). This reduces an overall complexity and helps in
+planning feasible trajectories. Moreover, the safe regions are
+already available as a set of points S.
+A suitable intermediate reference state xrefis selected
+fromSSR, corresponding to maneuver and the reference pose
+and velocity selected by the behaviour. This is achieved by
+selecting an intermediate point pinterim on the road thatbelongs to SSRand minimizes the distance to the ﬁnal
+desired position pref:
+pinterim = argmin
+p2SSR(kpprefk2): (5)
+xref= [pinterim; ref;vref] (6)
+This process is repeated at every time step, after which
+pinterim moves closer to ﬁnal target prefuntil it ﬁnally
+coincides with it. The intermediate reference point selec-
+tion process remains the same regardless of the selected
+maneuver. This iterative process guides the NMPC to per-
+form the required maneuver, consequently reducing design
+complexity. It also results in minimal intrusion onto adjacent
+lanes while overtaking. Furthermore, it captures any sudden
+changes in the environment or in the state of the LV , thus,
+ensuring that xrefis always safe, i.e., pref2SSR.
+The process of intermediate target selection is illustrated
+in Fig. 1. Finally, the intermediate reference target xrefis
+provided as an input reference to the NMPC.
+C. Trajectory Planning
+The next phase of planning generates a trajectory over
+a ﬁnite horizon ( N) that follows the system dynamics and
+devoid of collisions, obeys state and control limits. Since this
+is a constrained ﬁnite-time optimal control problem, it was
+formulated as an NMPC as:
+min
+x1;:::;xN;u0;:::;uN1`f(xN) +N1X
+k=0`(xk;uk)
+subject to xk+1=f(xk;uk);
+g(xk)0;
+xminxkxmax;
+uminukumax;
+x0=x;(7)
+for allk= 0;:::;N1.xk= [xk;yk; k;vk]is the state
+vector including longitudinal and lateral positions of the
+center of mass in an inertial frame (W), inertial heading angle
+and linear speed of the vehicle, respectively. The control
+input vector uk= [ak;k]involves acceleration and steering
+angle.`Nand`are the ﬁnal and the running cost functions,
+which were selected as follows:
+`N(xN) =(xrefxN)>QN(xrefxN)
+`(xk;uk) =(xrefxk)>Qk(xrefxk) +u>
+kRkuk;(8)
+f(xk;uk)is the function of state transition dynamics where
+it follows the nonlinear bicycle model described in [20].
+Equations of motion for the model can be written as:
+_x=vcos( +) (9)
+_y=vsin( +) (10)
+_ =v
+lf+lrcos() tan() (11)
+_v=a (12)
+
+--- Page 5 ---
+= tan1lr
+lf+lrtan()
+(13)
+whereis the angle of the current velocity of the center of
+mass with respect to the longitudinal axis of the car. lrand
+lfare the distances from the center of the mass (CoM) of
+the vehicle to the front and rear axles, respectively.
+Even though the xrefprovided by Behaviour Planning
+Phase (Section III-B.3) is safe, it is necessary to ensure
+that the trajectory planned by the NMPC is also safe and
+free from collisions. To achieve this, the obstacle avoidance
+is expressed as state constraints in the form of constraint
+function g(xk)where the obstacles are represented using
+higher order ellipses. This ensures that the admissible set of
+possible solutions for NMPC is not limited due to over-ﬁtting
+required for inscribing rectangular obstacle boundaries inside
+simple ellipses. Thus the constraint function is formulated as:
+g(xk) = 
+(xkxe;i) cos(i)(ykye;i) sin(i)
+ai!n
++ 
+(xkxe;i) sin(i)(ykye;i) cos(i)
+bi!n
+1;
+(14)
+whereiindicates the index of the obstacle.
+The parameters ( xe;ye;a;b;;n ) of the ellipse encom-
+passing the rectangular obstacles, i.e., other vehicles, are
+calculated based on the pose and the dimensions of the
+obstacle vehicle. The ellipse is also padded with the length
+and breadth of the EV , and an inﬂation factor to ensure no
+collisions. The velocity dependent triangles used in safe set
+calculation is not considered in this context as it is artiﬁcial
+and would not result in collisions even if violated. Moreover,
+the way of intermediate reference point generation already
+takes these safety margins into account.
+In addition to the obstacle avoidance constraints, the states
+and the control inputs are also constrained by the physical
+capabilities of the vehicle. Lastly, the measured current
+state of the vehicle ( x) initializes the x0and initiates the
+optimization through prediction horizon in NMPC.
+IV. E XPERIMENTAL RESULTS
+A. Experimental environment
+The proposed planning framework was implemented in
+MathWorks’ MATLAB/Simulink environment. A closed-
+loop simulation was developed with a 14 degrees of freedom
+vehicle model for the EV and other trafﬁc participants using
+the Vehicle Dynamics and Automated Driving Toolboxes.
+The NMPC was implemented using the MPC Toolbox and a
+sequential quadratic programming solver [21] of MATLAB
+optimization toolbox. A modiﬁed tracking controller from
+MATLAB Vehicle Dynamics Toolbox was used for tracking
+the trajectories generated by the NMPC at each time instant.
+The parameters required by NMPC were selected as
+follows:
+Prediction and control horizon: N = 10
+Time horizon: Th= 1s
+x [m]y [m]-50 0 50 100 150 200 250-9-8-7-6-5-4-3-2Top View (W-Frame)
+t = 0 t = 5 t = 9.9t = 12.8
+t = 19.2
+t = 23.7t = 30.6
+Lane Keep Follow LV Overtake Abort Lead Vehicle (5 m/s)
+-50 -40 -30 -20 -10 0 10 20 30 40-3-2-10123Top View (L-Frame)Fig. 5. Actual trajectories of the EV and LV during the scenario simulation
+(shown in both W-Frame and L-Frame). Dashed lines indicate the lane
+boundaries.
+Weights in cost functions:
+Qi=diagf0;5;20;10gfori= 0;:::; 4
+Qi=diagf0;10;20;10gfori= 5;:::; 6
+Qi=diagf0;10;50;10gfori= 7;:::; 8
+Qi=diagf0;50;50;30gfori= 9
+Ri=diagf5;50gfori= 0;:::; 9
+The weights Qiwere chosen so as to prioritize lateral
+position (y), velocity (v) and heading (  ), and obtain trajec-
+tories that minimize unnecessary detours from the straight-
+line trajectory. Steering inputs were also penalized more
+than acceleration inputs in Rito achieve smooth trajectories
+devoid of unnecessary turns. Thwas as a trade-off between
+trajectory length and computation costs.
+B. Simulation Results
+The scenario was set up to assess the ability of the
+proposed framework to successfully overtake and abort in
+case of a potential collision. As illustrated in Fig. 5, initially
+EV accelerates and gains desired speed while following the
+lane center (L). When it encounters LV in its sensing range,
+the EV switches to follow lead vehicle mode (F). The LV
+is moving at a velocity of 5 m/s. At an opportune moment,
+overtaking is triggered and the EV proceeds to overtake (O)
+the LV , but then has to abort the maneuver (A) to avoid some
+potentially catastrophic collision. Therefore, the EV merges
+back to the lane and then reattempts to overtake successfully
+completing the maneuver. The planned and actual trajectories
+of the EV were analyzed along with the control inputs to
+evaluate the performance.
+Figure 5 shows the actual trajectory of the EV as it
+goes through the different phases of the test scenario. The
+trajectory is shown in both the W-frame and the inertial
+
+--- Page 6 ---
+Fig. 6. Optimal Acceleration and Steering commands generated by the
+NMPC. Dotted lines indicate the vehicle limits. The velocity curve during
+the whole scenario is also shown. The target velocities during each maneuver
+phase are indicated using dotted lines.
+L-frame to gain a better picture of the path of the EV .
+Each maneuver is indicated using different colors, namely,
+Lane Keep (Green), Follow Lead Vehicle (Blue), Overtaking
+(Yellow), Abort (Red). The pose of the LV at the start of each
+maneuver phase is as a rectangle of an appropriate color.
+At t = 0s, the EV is at rest and accelerates to attain the
+desired speed vdesof 10 m/s as seen in Fig. 6. When the
+EV detects the LV as it falls into its sensing range, the
+EV decelerates to match the velocity of LV (t = 5s) and
+follows while keeping a safe distance. At t = 9.9s overtaking
+is initiated. The trajectory planned during overtake only
+intrudes onto the adjacent lane so as to keep a safe distance
+from the obstacle vehicle.
+At t = 12.8s abort is initiated due to potential collision
+event suggesting unsafe overtake conditions. The EV rapidly
+decelerates to a velocity ( vdes<vLV) (Fig. 6). The trajectory
+planned guides the EV to safely merge back to lane again
+while keeping a safe distance from the LV . After a successful
+merge, the EV again switches to follow mode. At t = 23.7s,
+the overtake is again attempted. As no obstacles or potential
+collisions are detected, the EV successfully completes the
+overtaking maneuver. When the EV is at a safe distance
+in front of the LV it merges to the lane and resumes lane
+keeping mode (t = 30.6s).
+As seen in Fig. 5, the trajectories of the EV obey the
+obstacle avoidance constraints and hence are safe. The tra-
+jectories also do not command unreasonable acceleration
+(a) or steering commands ( ) and are well within limits
+imposed (Fig. 5). In Fig. 7 the planned trajectories versus
+the actual trajectory of the EV are demonstrated. The short
+prediction horizons enabled by the intermediate reference
+-40 -20 0 20 40 60 80 100 120
+x [m]-9-8-7-6-5-4-3-2y [m]Planned Trajectories Actual TrajectoryFig. 7. Comparison of actual trajectory vs predicted trajectories at each
+time step (in W-Frame). Dashed lines indicate the lane boundaries.
+target selection allow for dynamic re-planning of the tra-
+jectory to account for the model mismatch and changes in
+the environment.
+The scenario was repeated for different velocities of the
+EV and the LV (up to 20 m/s), with similar results. The EV
+was able to successfully overtake and abort the maneuver if
+desired in all cases without modiﬁcations of any parameters.
+This demonstrate the wide range of applicability of the
+proposed method under variable driving conditions.
+V. C ONCLUSIONS
+In this paper, we presented a method for autonomous
+overtaking, which allows the overtaking to be aborted if
+safety is compromised. The ability to abort makes the system
+more reactive, and thus increases the range of situations,
+where overtaking can be performed safely. Our work demon-
+strates that by splitting the overall problem into behaviour
+and trajectory planning the same framework is able to
+handle various driving behaviors, and that new behaviors
+can be constructed easily without changing the trajectory
+planner. The use of an MPC-based trajectory planner allows
+the method to handle simultaneously multiple objectives,
+enforcing collision-free trajectories and minimizing intrusion
+onto the adjacent lane, while retaining guarantees on stability
+and constraint satisfaction.
+A simple FSM was adopted in our work for behaviour
+planning, similar to most other works. However, in complex
+driving environments such a solution would most likely
+be insufﬁcient, because it would be infeasible to design
+manually an FSM that would account for all eventualities of
+the complex environment, while simpler FSMs and related
+rule sets would lead to either sacriﬁcing performance due to
+over-conservatism or sacriﬁcing safety due to over-optimism.
+At the moment, we are not aware of a solution to the be-
+havior planning in complex environments that would not be
+prone to these sacriﬁces and would still be computationally
+feasible. As more real-world data become available for the
+development of A Vs, we foresee that this open problem likely
+can be solved by integrating machine learning as part of
+the solution, in order to handle the associated large state
+spaces. Thus, behaviour planning appears to be an essential
+topic of study to realize human-level autonomous overtaking
+capabilities in autonomous cars.
+
+--- Page 7 ---
+ACKNOWLEDGMENT
+The authors would like to thank Dr. Shilp Dixit (AR-
+RIV AL LTD.) for his guidance during the initial phases of
+the work through correspondence and being an inspiration
+for this paper.
+REFERENCES
+[1] H. Farah, “When Do Drivers Abort an Overtaking Maneuver on Two-
+Lane Rural Roads?” Transportation Research Record , vol. 2602, no. 1,
+pp. 16–25, Jan. 2016.
+[2] S. Dixit, S. Fallah, U. Montanaro, M. Dianati, A. Stevens, F. Mc-
+cullough, and A. Mouzakitis, “Trajectory planning and tracking for
+autonomous overtaking: State-of-the-art and future prospects,” Annual
+Reviews in Control , vol. 45, pp. 76–86, Jan. 2018.
+[3] X. Li, X. Qiu, J. Wang, and Y . Shen, “A deep reinforcement learning
+based approach for autonomous overtaking,” in 2020 IEEE Interna-
+tional Conference on Communications Workshops (ICC Workshops) ,
+Jul. 2020.
+[4] Y . Yu, C. Lu, L. Yang, Z. Li, F. Hu, and J. Gong, “Hierarchical
+reinforcement learning combined with motion primitives for automated
+overtaking,” in 2020 IEEE Intelligent Vehicles Symposium (IV) , Nov.
+2020, pp. 1–6.
+[5] T. Liu, Z. Deng, X. Tang, H. Wang, and D. Cao, “Predictive Freeway
+Overtaking Strategy for Automated Vehicles Using Deep Reinforce-
+ment Learning,” in 2019 3rd Conference on Vehicle Control and
+Intelligence (CVCI) , Sep. 2019, pp. 1–6.
+[6] M. Buehler, K. Iagnemma, and S. Singh, Eds., The DARPA Urban
+Challenge: Autonomous Vehicles in City Trafﬁc , ser. Springer Tracts
+in Advanced Robotics. Berlin Heidelberg: Springer-Verlag, 2009.
+[7] S. Brechtel, T. Gindele, and R. Dillmann, “Probabilistic decision-
+making under uncertainty for autonomous driving using continuous
+POMDPs,” in 17th International IEEE Conference on Intelligent
+Transportation Systems (ITSC) , Oct. 2014, pp. 392–399.
+[8] W. Khaksar, K. S. M. Sahari, and T. S. Hong, “Application of
+Sampling-Based Motion Planning Algorithms in Autonomous Vehicle
+Navigation,” Autonomous Vehicle , Sep. 2016.
+[9] P. Petrov and F. Nashashibi, “Modeling and Nonlinear Adaptive
+Control for Autonomous Vehicle Overtaking,” IEEE Trans. on Intel.
+Transp. Sys. , vol. 15, no. 4, pp. 1643–1656, Aug. 2014.
+[10] E. Arma ˘gan and T. Kumbasar, “An intelligent overtaking assistant
+system for autonomous vehicles,” in International Conference on
+Intelligent and Fuzzy Systems , Jul. 2020, pp. 1068–1076.
+[11] F. Molinari, N. N. Anh, and L. Del Re, “Efﬁcient mixed integer
+programming for autonomous overtaking,” in 2017 American Control
+Conference (ACC) , May 2017, pp. 2303–2308.
+[12] B. Paden, M. Cap, S. Z. Yong, D. Yershov, and E. Frazzoli, “A Survey
+of Motion Planning and Control Techniques for Self-driving Urban
+Vehicles,” arXiv:1604.07446 [cs] , Apr. 2016.
+[13] S. Dixit, U. Montanaro, S. Fallah, M. Dianati, D. Oxtoby, T. Mizutani,
+and A. Mouzakitis, “Trajectory Planning for Autonomous High-Speed
+Overtaking using MPC with Terminal Set Constraints,” in 2018
+21st International Conference on Intelligent Transportation Systems
+(ITSC) , Nov. 2018, pp. 1061–1068.
+[14] S. Li, Z. Li, Z. Yu, B. Zhang, and N. Zhang, “Dynamic Trajectory
+Planning and Tracking for Autonomous Vehicle With Obstacle Avoid-
+ance Based on Model Predictive Control,” IEEE Access , vol. 7, pp.
+132 074–132 086, 2019.
+[15] N. Murgovski and J. Sj ¨oberg, “Predictive cruise control with au-
+tonomous overtaking,” in 2015 54th IEEE Conference on Decision
+and Control (CDC) , Dec. 2015, pp. 644–649.
+[16] H. Andersen, J. Alonso-Mora, Y . H. Eng, D. Rus, and M. H. Ang,
+“Trajectory Optimization and Situational Analysis Framework for
+Autonomous Overtaking With Visibility Maximization,” IEEE Trans-
+actions on Intelligent Vehicles , vol. 5, no. 1, pp. 7–20, Mar. 2020.
+[17] R. Lattarulo and J. P. Rastelli, “A hybrid planning approach based
+on MPC and parametric curves for overtaking maneuvers,” Sensors ,
+vol. 21, no. 595, Jan. 2021.
+[18] M. T. Wolf and J. W. Burdick, “Artiﬁcial potential functions for
+highway driving with collision avoidance,” in 2008 IEEE International
+Conference on Robotics and Automation , May 2008, pp. 3731–3736.
+[19] J. S. Rowlinson, “The Yukawa potential,” Physica A: Statistical
+Mechanics and its Applications , vol. 156, no. 1, pp. 15–34, Mar. 1989.[20] J. Kong, M. Pfeiffer, G. Schildbach, and F. Borrelli, “Kinematic and
+dynamic vehicle models for autonomous driving control design,” in
+2015 IEEE Intelligent Vehicles Symposium (IV) , Jun. 2015, pp. 1094–
+1099.
+[21] J. Błaszczyk, A. Karbowski, and K. Malinowski, “Object Library
+of Algorithms for Dynamic Optimization Problems: Benchmarking
+SQP and Nonlinear Interior Point Methods,” International Journal of
+Applied Mathematics and Computer Science , vol. 17, no. 4, pp. 515–
+537, Dec. 2007.
