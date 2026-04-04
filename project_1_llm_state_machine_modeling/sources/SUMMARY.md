@@ -25,15 +25,15 @@
 
 以下关键词簇用于指导后续增量检索，目标不是泛泛地搜“形式化方法”或“建模”，而是优先命中**具有具体控制系统客体**、并且更可能包含可提取状态机自然语言描述的论文。
 
-当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `39` 条条目看，`EFSM` 占 `24` 条、`T1` 占 `22` 条、`HSM` 占 `11` 条、`FSM` 占 `4` 条，主体是 `PLC / SCADA / embedded flight software / mission supervisor / robot software / GN&C sequencing` 风格的离散工程控制与模式管理样本。
+当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `44` 条条目看，`EFSM` 占 `25` 条、`T1` 占 `22` 条、`HSM` 占 `14` 条、`FSM` 占 `5` 条，主体已扩展为 `PLC / SCADA / mission supervisor / robot manipulator / greenhouse inspection / cotton harvesting rover / low-altitude helicopter / underground-mine UAV` 风格的离散工程控制与模式管理样本。
 
 ### 当前推荐关键词簇
 
-- 主线优先改成 `具体控制对象 + control/controller/system + design/implementation/development/specification/modeling`，对象优先补 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging line`、`water level/head tank`、`railway level crossing`、`landing gear`、`CubeSat flight software`、`UAV mission management`、`rotorcraft UAS`、`Mars sample return robot software`、`rover decision making`、`crusher circuit`、`mobile robot supervisor`、`hydraulic pulse system`、`hybrid energy system`、`LNG ship energy management`、`urban driving`、`autonomous rendezvous`、`Orion RPOD sequencing`。
+- 主线优先改成 `具体控制对象 + control/controller/system + design/implementation/development/specification/modeling`，对象优先补 `traffic light`、`elevator`、`bottle filling`、`washing machine`、`packaging line`、`water level/head tank`、`railway level crossing`、`landing gear`、`CubeSat flight software`、`UAV mission management`、`rotorcraft UAS`、`Mars sample return robot software`、`rover decision making`、`crusher circuit`、`mobile robot supervisor`、`greenhouse inspection robot`、`waste management mobile robot`、`cotton harvesting rover`、`hydraulic pulse system`、`hybrid energy system`、`LNG ship energy management`、`urban driving`、`autonomous rendezvous`、`low-altitude helicopter flight`、`underground mine UAV inspection`、`Orion RPOD sequencing`。
 - 状态机显式词优先保留 `state machine`、`FSM`、`HSM`、`mode`、`operation mode`、`sequence`、`cycle`、`procedure`、`priority override`、`control logic`，因为它们更容易导向 `FSM/HSM/EFSM + T0/T1` 的离散控制链。
 - 工程控制高命中组合继续强化：`PLC/SCADA + sensor/float/proximity/photoelectric/RFID/hall call + valve/pump/motor/door/light + delay/timer/sequence/cycle`。
-- 航空航天方向继续优先找模式管理而不是连续控制：`landing gear + handle + door + extend/retract + cockpit indication`，`CubeSat + LEOP/NOM/HSAFE + safe mode + finite state machine`，`UAV + FMM/FTM/HSB/CSB + fault flag`，`mission management + FSM/SMACH + task activation + interrupt/deactivate`，`RPOD + PSAM + burn config + docking + hold retreat`。
-- 离散制造、过程与机器人方向继续保留：`bottle filling + conveyor + valve + level sensor`，`washing machine + rinse + dehydration + water level sensor`，`packaging + count=6 + weighing + reject`，`crusher circuit + CSS + feeder + silo level`，`air-duct robot + Navigate/Recovery/Return`。
+- 航空航天方向继续优先找模式管理而不是连续控制：`landing gear + handle + door + extend/retract + cockpit indication`，`CubeSat + LEOP/NOM/HSAFE + safe mode + finite state machine`，`UAV + FMM/FTM/HSB/CSB + fault flag`，`mission management + FSM/SMACH + task activation + interrupt/deactivate`，`low-altitude helicopter + threat avoidance + visibility judgement + circuitous flight`，`underground mine UAV + mission state machine + pillar inspection`，`RPOD + PSAM + burn config + docking + hold retreat`。
+- 离散制造、过程与机器人方向继续保留：`bottle filling + conveyor + valve + level sensor`，`washing machine + rinse + dehydration + water level sensor`，`packaging + count=6 + weighing + reject`，`crusher circuit + CSS + feeder + silo level`，`air-duct robot + Navigate/Recovery/Return`，`greenhouse robot + target alignment + inspect + traverse backward`，`waste robot manipulator + state machine + force control + pick and drop`，`cotton harvesting rover + get image + move arm + pick boll`。
 - 若某个词簇同时带 `具体对象 + 输入感知 + 输出执行 + 局部 timer/顺序词`，默认优先级高于只写“verification / optimization / framework”的泛词簇。
 
 ### 已观察到的高命中标题/关键词特征
@@ -65,10 +65,10 @@
 
 ## 当前收录统计
 
-- 已收录论文：**169** 篇
+- 已收录论文：**174** 篇
 - 本轮新增论文：**5** 篇
 - 本轮下载失败记录：**63** 条
-- 已完成 STM 梳理：**169** 篇
+- 已完成 STM 梳理：**174** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 [STM_GUIDE.md](./STM_GUIDE.md) 补齐 `STM.md` 与用户要求的 `DESC.md`。
 
@@ -95,28 +95,29 @@
 
 ### 领域分布（按论文篇数统计）
 
-- 统计口径：按 `## 论文清单` 中已收录的 **169** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
+- 统计口径：按 `## 论文清单` 中已收录的 **174** 篇论文统计；所用 emoji 与上方“领域 Emoji 口径”完全一致。
 
 | 领域 | 篇数 | 占比 | 说明 |
 |---|---:|---:|---|
-| 🚗 汽车与道路车辆控制 | 24 | 14.2% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
-| 🚆 轨道交通与铁路控制 | 21 | 12.4% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
-| ✈️ 航空航天与飞行/空管控制 | 28 | 16.6% | 机场起飞流程、飞行引导模式、起落架、UAV 任务控制、CubeSat 模式管理、自主交会、航天机器人与 RPOD 序列控制 |
-| 🩺 医疗设备与生命支持控制 | 6 | 3.6% | 起搏器、输液泵、机械通气控制与医疗 CPS 相关文献 |
-| 🏭 工业自动化与离散制造 | 18 | 10.7% | IEC 61499/61131、PLC、输送、灌装、包装、液压脉冲与制造控制 |
-| 🏢 楼宇机电与电梯控制 | 15 | 8.9% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
-| 🌡️ 过程与环境控制 | 9 | 5.3% | 液位、水处理、灌溉、锅炉、破碎回路、混合能源系统与批处理等过程/环境控制 |
-| 🚦 道路交通信号控制 | 18 | 10.7% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
-| 🅿️ 智慧停车与车位管理 | 13 | 7.7% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
-| 🧩 建模方法与系统工程 | 4 | 2.4% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
-| 🔐 安全/安保分析 | 4 | 2.4% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
-| ⚙️ 通用控制与形式化工具 | 9 | 5.3% | 混成系统、实时系统、通用控制工具、自主作业机器人与基础形式化文献 |
-| **合计** | **169** | **100.0%** | - |
+| 🚗 汽车与道路车辆控制 | 24 | 13.8% | ACC/CACC、ABS/BBW、AEB、转向、车队与自动驾驶相关控制 |
+| 🚆 轨道交通与铁路控制 | 21 | 12.1% | 联锁表、进路控制、平交口、车门与道口门控等轨道交通控制 |
+| ✈️ 航空航天与飞行/空管控制 | 30 | 17.2% | 机场起飞流程、飞行引导模式、起落架、UAV 任务控制、CubeSat 模式管理、自主交会、航天机器人、低空直升机任务与地下矿井 UAV 测绘控制 |
+| 🩺 医疗设备与生命支持控制 | 6 | 3.4% | 起搏器、输液泵、机械通气控制与医疗 CPS 相关文献 |
+| 🏭 工业自动化与离散制造 | 18 | 10.3% | IEC 61499/61131、PLC、输送、灌装、包装、液压脉冲与制造控制 |
+| 🏢 楼宇机电与电梯控制 | 15 | 8.6% | 单梯/群梯控制、门控与楼宇机电交互逻辑 |
+| 🌡️ 过程与环境控制 | 9 | 5.2% | 液位、水处理、灌溉、锅炉、破碎回路、混合能源系统与批处理等过程/环境控制 |
+| 🚦 道路交通信号控制 | 18 | 10.3% | 交通灯相位控制、绿灯分配、拥堵覆盖与紧急车辆优先放行 |
+| 🅿️ 智慧停车与车位管理 | 13 | 7.5% | 自动停车、塔式停车、车位分配、车位监测与停车控制 |
+| 🧩 建模方法与系统工程 | 4 | 2.3% | SysML/MDE/MBT/架构虚拟集成等方法与过程类文献 |
+| 🔐 安全/安保分析 | 4 | 2.3% | CPS/ICS 安全分析、安全切片、secure-by-design 等 |
+| ⚙️ 通用控制与形式化工具 | 12 | 6.9% | 混成系统、实时系统、农业/服务机器人监督器、执行机构控制与通用控制工具文献 |
+| **合计** | **174** | **100.0%** | - |
 
 ### 更新日志
 
 | 时间 | 更新内容 | 检索策略 | 本轮侧重 |
 |---|---|---|---|
+| 2026-04-04 08:54:10 | 新增 **5** 篇，当前累计 **174** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 `1` 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `greenhouse robot + SMACH + inspection`、`waste management mobile robot + state machine + force control`、`cotton harvesting rover + finite state machine + SMACH`、`unmanned helicopter + low-altitude flight + finite state machine`、`underground mine UAV + mission state machine + pillar inspection` 检索，并通过 `mdpi-res.com` 直链稳定获取开放 PDF。 | 温室行间巡检 HSM、垃圾分拣机械臂混合控状态机、棉花采摘车视觉伺服 EFSM、山地低空直升机任务 FSM、地下矿井 UAV mission HSM。 |
 | 2026-04-04 08:11:27 | 新增 **5** 篇，当前累计 **169** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 1 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `small UAV + search and track + SMACH`、`multi-modal rover + drive fly + SMACH`、`stair climbing robot + state machine`、`wheeled mobile robot + asynchronous finite state controller`、`autonomous UAV + surveillance + finite state machine` 检索，并只保留可稳定获取 PDF 的候选。 | search-track 小型无人机、TURVTOL 多模态 drive-fly supervisor、楼梯机器人状态机、WMR 三车道避障换道、监视 UAV 并行跟踪 FSM。 |
 | 2026-04-04 07:21:55 | 新增 **5** 篇，当前累计 **164** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 1 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `rotorcraft UAS + autonomous operation + state machine`、`decision making + hierarchical finite state machine + rover`、`Mars sample return + robotic control software + finite state machine`、`traffic light + TIA Portal + finite state machine`、`Orion RPOD + PSAM + sequencing` 检索，并只保留可稳定获取 PDF 的候选。 | 长时自主旋翼无人机任务循环、NASA `DZR` 决策层 H-FSM、火星样本返回机器人控制软件、TIA Portal 七状态交通灯 FSM、Orion RPOD 层次序列控制。 |
 | 2026-04-04 06:30:35 | 新增 **5** 篇，当前累计 **159** 篇 | 本轮只收纳已拿到原始 PDF、已生成 `paper_content.txt` 与 `DESC.md`、且 `STM.md` 至少含 1 条 `FSM/EFSM/HSM + T0/T1` 正例并达到 `原文 = 描述 = 🟢 A` 的新论文；重点沿 `hydraulic pulse system + PLC + state machine`、`hybrid energy system + Stateflow + load shedding`、`LNG ship + energy management + state transitions`、`urban driving + hierarchical control system + FSM`、`autonomous rendezvous + finite state machine + WSE/SSE` 检索，并通过 `res.mdpi.com` 直链获取可稳定下载的开放 PDF。 | PLC 液压脉冲主控、负荷削减混合能源系统能量管理、LNG 船混合供能 EMS、城市道路自动驾驶高层 FSM、自主交会制导分层 FSM。 |
@@ -302,6 +303,11 @@
 | 167 | ⚙️ | A Robot with Decoupled Mechanical Structure and Adapted State Machine Control for Both Ground and Staircase Situations | 2019 | 楼梯攀爬机器人状态切换控制 | `stair-climbing robot, ground mode, state machine, posture adjustment, SC1-SC7` | [a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/) |
 | 168 | ⚙️ | Design and Implementation of an Asynchronous Finite State Controller for Wheeled Mobile Robots | 2022 | 轮式移动机器人避障换道控制 | `wheeled mobile robot, asynchronous FSM, lane change, obstacle avoidance, guard conditions` | [design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/) |
 | 169 | ✈️ | Dynamic Object Tracking on Autonomous UAV System for Surveillance Applications | 2021 | 无人机动态目标跟踪与跟随控制 | `autonomous UAV, object tracking, surveillance, parallel FSM, lost and await` | [dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/) |
+| 170 | ⚙️ | An Autonomous Navigation Framework for Holonomic Mobile Robots in Confined Agricultural Environments | 2023 | 温室全向机器人行间巡检控制 | `greenhouse robot, holonomic mobile robot, SMACH, target alignment, inspection` | [autonomous-navigation-framework-holonomic-mobile-robots-agriculture](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/) |
+| 171 | ⚙️ | State Machine-Based Hybrid Position/Force Control Architecture for a Waste Management Mobile Robot with 5DOF Manipulator | 2021 | 垃圾分拣机械臂抓取/投放监督控制 | `waste management robot, hybrid position force control, state machine, gripper, pick and drop` | [state-machine-based-hybrid-position-force-control-waste-mobile-robot](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/) |
+| 172 | ⚙️ | Center-Articulated Hydrostatic Cotton Harvesting Rover Using Visual-Servoing Control and a Finite State Machine | 2020 | 棉花采摘车视觉伺服采摘控制 | `cotton harvesting rover, visual servoing, finite state machine, SMACH, pick boll` | [center-articulated-hydrostatic-cotton-harvesting-rover](./center-articulated-hydrostatic-cotton-harvesting-rover/) |
+| 173 | ✈️ | An Autonomous Control Framework of Unmanned Helicopter Operations for Low-Altitude Flight in Mountainous Terrains | 2022 | 山地低空飞行任务切换控制 | `unmanned helicopter, low-altitude flight, finite state machine, threat avoidance, circuitous flight` | [autonomous-control-framework-unmanned-helicopter-low-altitude-flight](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/) |
+| 174 | ✈️ | Development of an Autonomous UAV for Multi-Modal Mapping of Underground Mines | 2026 | 地下矿井 UAV 探索与支柱扫描监督控制 | `underground mine UAV, mission state machine, reactive exploration, pillar inspection, ROS 2` | [autonomous-uav-multimodal-mapping-underground-mines](./autonomous-uav-multimodal-mapping-underground-mines/) |
 ## 本轮下载失败记录
 
 以下条目是在本轮检索中实际尝试下载但未成功的候选文献。记录失败时间与原因，便于后续避开近期重复尝试。
@@ -379,6 +385,7 @@
 
 | 时间 | 范围 | 收获 | 备注 |
 |---|---|---|---|
+| 2026-04-04 08:54:10 | 新增 `#170-174` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 `1` 条 STM 正例”的收纳门槛；当前已完成 `174/174` 篇文献的 STM 盘点。 |
 | 2026-04-04 08:11:27 | 新增 `#165-169` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 1 条 STM 正例”的收纳门槛；当前已完成 `169/169` 篇文献的 STM 盘点。 |
 | 2026-04-04 07:21:55 | 新增 `#160-164` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 1 条 STM 正例”的收纳门槛；当前已完成 `164/164` 篇文献的 STM 盘点。 |
 | 2026-04-04 06:30:35 | 新增 `#155-159` 并同步汇总统计 | 新增 `5` 个双 A 样本并完成总账回填 | 本轮新增 `5` 个 `STM.md`、`5` 个 `DESC.md`、补入 `5` 条正例控制逻辑，全部满足 `FSM / EFSM / HSM + T0 / T1`、`原文 = 描述 = 🟢 A` 与“至少含 1 条 STM 正例”的收纳门槛；当前已完成 `159/159` 篇文献的 STM 盘点。 |
@@ -408,7 +415,7 @@
 
 ### 4. 总体统计（已按新口径回刷）
 
-> 说明：本节涉及 `128` 条正例时统一以 `128` 为分母；涉及 `56` 个 `⚪ 未收获` 文件时统一以 `56` 为分母；涉及 `169` 个 `STM.md` 文件的整体覆盖统计时统一以 `169` 为分母。百分比统一保留 `1` 位小数。
+> 说明：本节涉及 `133` 条正例时统一以 `133` 为分母；涉及 `56` 个 `⚪ 未收获` 文件时统一以 `56` 为分母；涉及 `174` 个 `STM.md` 文件的整体覆盖统计时统一以 `174` 为分母。百分比统一保留 `1` 位小数。
 >
 > 角色说明：本节的 `💎 / 🧰 / 🪫 / ⛔` 采用本轮新边界**重新计算**。也就是说，`💎` 与 `🪫` 都要求“原文与描述都达到 `🟢 A / 🟡 B` 且未降级”，二者差别只在是否属于 `🔁` 强趋同簇。
 
@@ -416,76 +423,76 @@
 
 | 指标 | 数量 | 占比 | 说明 |
 |---|---:|---:|---|
-| `STM.md` 文件总数 | 169 | 100.0% | 覆盖 `sources/` 当前全部目录 |
-| 含正例条目的文件数 | 113 | 66.9% | 至少含 `1` 条正例条目 |
-| `⚪ 未收获` 文件数 | 56 | 33.1% | 当前不作正样本，但可转作 hard negative |
-| 正例条目总数 | 128 | 75.7% | 相对 `169` 个文件的规模参考值；折算为每个含正例文件平均 `1.13` 条 |
-| `原文 = 🟢 A / 🟡 B` 条目数 | 113 | 88.3% | 源材料本身达到主数据集候选下限 |
-| `描述 = 🟢 A / 🟡 B` 条目数 | 113 | 88.3% | 当前描述文本本身达到主数据集候选下限 |
-| `🔁` 强趋同条目数 | 28 | 21.9% | 强趋同问题是真实存在的治理压力 |
+| `STM.md` 文件总数 | 174 | 100.0% | 覆盖 `sources/` 当前全部目录 |
+| 含正例条目的文件数 | 118 | 67.8% | 至少含 `1` 条正例条目 |
+| `⚪ 未收获` 文件数 | 56 | 32.2% | 当前不作正样本，但可转作 hard negative |
+| 正例条目总数 | 133 | 76.4% | 相对 `174` 个文件的规模参考值；折算为每个含正例文件平均 `1.13` 条 |
+| `原文 = 🟢 A / 🟡 B` 条目数 | 118 | 88.7% | 源材料本身达到主数据集候选下限 |
+| `描述 = 🟢 A / 🟡 B` 条目数 | 118 | 88.7% | 当前描述文本本身达到主数据集候选下限 |
+| `🔁` 强趋同条目数 | 28 | 21.1% | 强趋同问题是真实存在的治理压力 |
 
 #### 4.2 原文细节充实度分布
 
 | 原文细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 49 | 38.3% |
-| `🟡 B` | 64 | 50.0% |
-| `🟠 C` | 13 | 10.2% |
-| `🔴 D` | 2 | 1.6% |
-| `🟢 A + 🟡 B` | 113 | 88.3% |
-| `🟠 C + 🔴 D` | 15 | 11.7% |
+| `🟢 A` | 54 | 40.6% |
+| `🟡 B` | 64 | 48.1% |
+| `🟠 C` | 13 | 9.8% |
+| `🔴 D` | 2 | 1.5% |
+| `🟢 A + 🟡 B` | 118 | 88.7% |
+| `🟠 C + 🔴 D` | 15 | 11.3% |
 
-这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在新增 `#165-169` 这批双 A 样本后，原文侧达到 `🟢 A / 🟡 B` 的条目升到 `113` 条，其中 `🟢 A` 已升至 `49` 条；但仍有 `15` 条（`11.7%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
+这里可以直接读出一个关键结论：**真正卡主数据集天花板的第一道门槛仍然是原文侧**。在新增 `#170-174` 这批双 A 样本后，原文侧达到 `🟢 A / 🟡 B` 的条目升到 `118` 条，其中 `🟢 A` 已升至 `54` 条；但仍有 `15` 条（`11.3%`）正例条目在源材料层面只有 `🟠 C / 🔴 D`，这部分不是简单重写描述就能补回来的。
 
 #### 4.3 描述细节充实度分布
 
 | 描述细节充实度 | 条目数 | 占比 |
 |---|---:|---:|
-| `🟢 A` | 49 | 38.3% |
-| `🟡 B` | 64 | 50.0% |
-| `🟠 C` | 14 | 10.9% |
+| `🟢 A` | 54 | 40.6% |
+| `🟡 B` | 64 | 48.1% |
+| `🟠 C` | 14 | 10.5% |
 | `🔴 D` | 1 | 0.8% |
-| `🟢 A + 🟡 B` | 113 | 88.3% |
-| `🟠 C + 🔴 D` | 15 | 11.7% |
+| `🟢 A + 🟡 B` | 118 | 88.7% |
+| `🟠 C + 🔴 D` | 15 | 11.3% |
 
-在新增 `#165-169` 这批双 A 样本后，描述侧的 `🟢 A + 🟡 B` 也同步升到 `113` 条，与原文侧**完全追平**，且 `🟢 A` 已同步升至 `49` 条；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
+在新增 `#170-174` 这批双 A 样本后，描述侧的 `🟢 A + 🟡 B` 也同步升到 `118` 条，与原文侧**完全追平**，且 `🟢 A` 已同步升至 `54` 条；当前描述稿层面的主要风险不再是系统性抽薄，而是剩余条目在原文侧本来就偏薄。
 
 #### 4.4 原文细节充实度 vs 描述细节充实度二维对照
 
 | 原文 \\ 描述 | `🟢 A` | `🟡 B` | `🟠 C` | `🔴 D` | 行合计 |
 |---|---:|---:|---:|---:|---:|
-| `🟢 A` | `49 / 38.3%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `49 / 38.3%` |
-| `🟡 B` | `0 / 0.0%` | `64 / 50.0%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 50.0%` |
-| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 10.2%` | `0 / 0.0%` | `13 / 10.2%` |
-| `🔴 D` | `0 / 0.0%` | `0 / 0.0%` | `1 / 0.8%` | `1 / 0.8%` | `2 / 1.6%` |
-| 列合计 | `49 / 38.3%` | `64 / 50.0%` | `14 / 10.9%` | `1 / 0.8%` | `128 / 100.0%` |
+| `🟢 A` | `54 / 40.6%` | `0 / 0.0%` | `0 / 0.0%` | `0 / 0.0%` | `54 / 40.6%` |
+| `🟡 B` | `0 / 0.0%` | `64 / 48.1%` | `0 / 0.0%` | `0 / 0.0%` | `64 / 48.1%` |
+| `🟠 C` | `0 / 0.0%` | `0 / 0.0%` | `13 / 9.8%` | `0 / 0.0%` | `13 / 9.8%` |
+| `🔴 D` | `0 / 0.0%` | `0 / 0.0%` | `1 / 0.8%` | `1 / 0.8%` | `2 / 1.5%` |
+| 列合计 | `54 / 40.6%` | `64 / 48.1%` | `14 / 10.5%` | `1 / 0.8%` | `133 / 100.0%` |
 
 从二维表看，有三个直接结论：
 
-1. 对角线共有 `127` 条，占 `99.2%`，说明当前绝大多数条目已经做到“原文什么级，描述就保持什么级”。
+1. 对角线共有 `132` 条，占 `99.2%`，说明当前绝大多数条目已经做到“原文什么级，描述就保持什么级”。
 2. 非对角线只剩 `1` 条，占 `0.8%`，说明描述层面的系统性失真已经基本清掉。
 3. 这 `1` 条剩余非对角线是 `🔴 D -> 🟠 C`，不再属于“原文够、描述抽薄”的风险格；当前已经没有 `🟢 A -> 🟡 B / 🔴 D` 与 `🟡 B -> 🟠 C` 这类优先补写对象。
 
 #### 4.5 `原文 = 🟢 A / 🟡 B` 条目的一致性检查
 
-| 检查项 | 数量 | 占全部 `128` 条比例 | 占 `原文 = 🟢 A / 🟡 B` 子集比例 |
+| 检查项 | 数量 | 占全部 `133` 条比例 | 占 `原文 = 🟢 A / 🟡 B` 子集比例 |
 |---|---:|---:|---:|
-| `原文 = 🟢 A / 🟡 B` 条目总数 | 113 | 88.3% | 100.0% |
-| 描述未降级 | 113 | 88.3% | 100.0% |
+| `原文 = 🟢 A / 🟡 B` 条目总数 | 118 | 88.7% | 100.0% |
+| 描述未降级 | 118 | 88.7% | 100.0% |
 | 描述降级或显著关键信息缺失 | 0 | 0.0% | 0.0% |
 
-继此前锁定的降级条目回刷之后，本轮新增 `#124-128` 也全部保持“原文够、描述不降级”；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
+继此前锁定的降级条目回刷之后，本轮新增 `#170-174` 也全部保持“原文够、描述不降级”；当前不再存在 `原文 = 🟢 A / 🟡 B` 但描述降级或显著关键信息缺失的残留条目。
 
 #### 4.6 状态机类型分布
 
 | 状态机类型 | 条目数 | 占比 |
 |---|---:|---:|
-| `EFSM` | 67 | 52.3% |
-| `Hybrid` | 16 | 12.5% |
-| `Resource-flow` | 13 | 10.2% |
-| `HSM` | 22 | 17.2% |
-| `Protocol` | 4 | 3.1% |
-| `FSM` | 6 | 4.7% |
+| `EFSM` | 68 | 51.1% |
+| `Hybrid` | 16 | 12.0% |
+| `Resource-flow` | 13 | 9.8% |
+| `HSM` | 25 | 18.8% |
+| `Protocol` | 4 | 3.0% |
+| `FSM` | 7 | 5.3% |
 
 当前 `sources` 正例主体仍然是 **`EFSM` 导向样本**。这对 `NL -> state machine` 的主任务是好事，但也意味着后续若不补 `Protocol / HSM / Resource-flow / Hybrid`，模型会被训练成偏好“变量 guard + 阈值 + 顺序流程”的单一习惯。
 
@@ -493,10 +500,10 @@
 
 | 时间级别 | 条目数 | 占比 |
 |---|---:|---:|
-| `T0` | 50 | 39.1% |
-| `T1` | 51 | 39.8% |
-| `T2` | 15 | 11.7% |
-| `T3` | 12 | 9.4% |
+| `T0` | 55 | 41.4% |
+| `T1` | 51 | 38.3% |
+| `T2` | 15 | 11.3% |
+| `T3` | 12 | 9.0% |
 
 时间语义上，当前库里 `T0 + T1` 合计 `101` 条，占 `78.9%`；真正带强实时窗口或混成时间语义的 `T2 + T3` 只有 `27` 条，占 `21.1%`。这说明如果后续实验要验证“带强时间约束的自动建模”，当前数据仍偏薄。
 
@@ -506,13 +513,13 @@
 
 | 结构标签 | 条目数 | 占比 |
 |---|---:|---:|
-| `显式时钟` | 43 | 33.6% |
-| `连续耦合` | 17 | 13.3% |
-| `资源互斥` | 14 | 10.9% |
-| `层次` | 23 | 18.0% |
-| `协议交互` | 9 | 7.0% |
-| `并行` | 9 | 7.0% |
-| `-`（无额外结构标签） | 38 | 29.7% |
+| `显式时钟` | 43 | 32.3% |
+| `连续耦合` | 17 | 12.8% |
+| `资源互斥` | 14 | 10.5% |
+| `层次` | 26 | 19.5% |
+| `协议交互` | 9 | 6.8% |
+| `并行` | 9 | 6.8% |
+| `-`（无额外结构标签） | 40 | 30.1% |
 
 从标签覆盖率看，`显式时钟` 是最常见的额外结构信号；但 `层次 / 并行 / 协议交互 / 资源互斥 / 连续耦合` 这些更“非普通流程图”的语义仍然偏少，后续若想训练更复杂的结构恢复能力，仍需要专项补样。
 
@@ -520,18 +527,18 @@
 
 | 口径 | 类别 | 数量 | 占比 | 判定边界摘要 |
 |---|---|---:|---:|---|
-| 条目级 | `💎 核心保留` | 88 | 68.8% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
-| 条目级 | `🧰 清洗后保留` | 15 | 11.7% | 原文偏薄，尚不足以直接进主集 |
-| 条目级 | `🪫 降采样保留` | 25 | 19.5% | `原文/描述均为 A/B`、未降级、但 `属于 🔁` |
-| 文件级 | `⛔ 不作正样本` | 56 | 33.1% | 对应 `56` 个 `⚪ 未收获` 文件 |
+| 条目级 | `💎 核心保留` | 93 | 69.9% | `原文/描述均为 A/B`、未降级、且 `非 🔁` |
+| 条目级 | `🧰 清洗后保留` | 15 | 11.3% | 原文偏薄，尚不足以直接进主集 |
+| 条目级 | `🪫 降采样保留` | 25 | 18.8% | `原文/描述均为 A/B`、未降级、但 `属于 🔁` |
+| 文件级 | `⛔ 不作正样本` | 56 | 32.2% | 对应 `56` 个 `⚪ 未收获` 文件 |
 
-如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `113` 条，占 `88.3%`；剩余 `15` 条（`11.7%`）应先停在 `🧰`，不能直接混入主训练集。
+如果把 `💎 + 🪫` 合并看作“**可直接进入正样本母体**”，当前共有 `118` 条，占 `88.7%`；剩余 `15` 条（`11.3%`）应先停在 `🧰`，不能直接混入主训练集。
 
 再把角色与双细节充实度边界对照起来看：
 
 | 角色 | 条目数 | 原文 `A/B` | 原文 `C/D` | 描述 `A/B` | 描述 `C/D` |
 |---|---:|---:|---:|---:|---:|
-| `💎 核心保留` | 88 | `88 / 100.0%` | `0 / 0.0%` | `88 / 100.0%` | `0 / 0.0%` |
+| `💎 核心保留` | 93 | `93 / 100.0%` | `0 / 0.0%` | `93 / 100.0%` | `0 / 0.0%` |
 | `🧰 清洗后保留` | 15 | `0 / 0.0%` | `15 / 100.0%` | `0 / 0.0%` | `15 / 100.0%` |
 | `🪫 降采样保留` | 25 | `25 / 100.0%` | `0 / 0.0%` | `25 / 100.0%` | `0 / 0.0%` |
 
@@ -543,22 +550,22 @@
 
 #### 4.10 领域分布（正例文件 vs 正例条目 vs `⚪ 未收获` 文件）
 
-| 领域 | 含正例文件数 | 占 `113` 个含正例文件比例 | 正例条目数 | 占 `128` 条正例比例 | 未收获文件数 | 占 `56` 个未收获文件比例 |
+| 领域 | 含正例文件数 | 占 `118` 个含正例文件比例 | 正例条目数 | 占 `133` 条正例比例 | 未收获文件数 | 占 `56` 个未收获文件比例 |
 |---|---:|---:|---:|---:|---:|---:|
-| `🚦` | 18 | 15.9% | 19 | 14.8% | 0 | 0.0% |
-| `🚆` | 14 | 12.4% | 16 | 12.5% | 7 | 12.5% |
-| `🏢` | 12 | 10.6% | 12 | 9.4% | 3 | 5.4% |
-| `✈️` | 18 | 15.9% | 18 | 14.1% | 10 | 17.9% |
-| `🅿️` | 10 | 8.8% | 13 | 10.2% | 3 | 5.4% |
-| `🏭` | 11 | 9.7% | 15 | 11.7% | 7 | 12.5% |
-| `🚗` | 10 | 8.8% | 11 | 8.6% | 14 | 25.0% |
-| `🌡️` | 8 | 7.1% | 9 | 7.0% | 1 | 1.8% |
-| `🩺` | 4 | 3.5% | 7 | 5.5% | 2 | 3.6% |
-| `🧩` | 1 | 0.9% | 1 | 0.8% | 3 | 5.4% |
-| `⚙️` | 7 | 6.2% | 7 | 5.5% | 2 | 3.6% |
+| `🚦` | 18 | 15.3% | 19 | 14.3% | 0 | 0.0% |
+| `🚆` | 14 | 11.9% | 16 | 12.0% | 7 | 12.5% |
+| `🏢` | 12 | 10.2% | 12 | 9.0% | 3 | 5.4% |
+| `✈️` | 20 | 16.9% | 20 | 15.0% | 10 | 17.9% |
+| `🅿️` | 10 | 8.5% | 13 | 9.8% | 3 | 5.4% |
+| `🏭` | 11 | 9.3% | 15 | 11.3% | 7 | 12.5% |
+| `🚗` | 10 | 8.5% | 11 | 8.3% | 14 | 25.0% |
+| `🌡️` | 8 | 6.8% | 9 | 6.8% | 1 | 1.8% |
+| `🩺` | 4 | 3.4% | 7 | 5.3% | 2 | 3.6% |
+| `🧩` | 1 | 0.8% | 1 | 0.8% | 3 | 5.4% |
+| `⚙️` | 10 | 8.5% | 10 | 7.5% | 2 | 3.6% |
 | `🔐` | 0 | 0.0% | 0 | 0.0% | 4 | 7.1% |
 
-领域分布上，`🚦 / ✈️ / 🚆 / 🏭 / 🏢` 仍然是主样本池；本轮新增的 `2` 篇 `✈️` 与 `3` 篇 `⚙️` 双 A 样本，进一步补强了空中 search-track 任务监督、多模态 drive-fly 平台、楼梯攀爬机器人和小型移动机器人避障换道方向。
+领域分布上，`🚦 / ✈️ / 🚆 / 🏭 / 🏢` 仍然是主样本池；本轮新增的 `2` 篇 `✈️` 与 `3` 篇 `⚙️` 双 A 样本，进一步补强了山地低空直升机任务切换、地下矿井 UAV 巡检、温室行间导航、垃圾分拣机械臂监督控制和棉花采摘车视觉伺服这几个此前仍偏稀的样本方向。
 
 #### 4.11 `⚪ 未收获` 的主要成因
 
@@ -603,19 +610,19 @@
 1. **真实控制对象多**：不是泛泛的 UML/工具论文，而是大量具体控制对象，如联锁、电梯、交通灯、液位、泊车、医疗装置、起落架、车队等。
 2. **绝大多数正例条目都写成了“可生成输出”的最终口吻**：这对做 `NL -> state machine` 的目标输出很友好。
 3. **正负样本边界已经开始显化**：`⚪ 未收获` 文件可以直接转化为 hard negative，而不必简单丢弃。
-4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **113** 条（**88.3%**），`描述 = 🟢 A / 🟡 B` 也有 **113** 条（**88.3%**），其中按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **113** 条（**88.3%**）。
+4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **118** 条（**88.7%**），`描述 = 🟢 A / 🟡 B` 也有 **118** 条（**88.7%**），其中按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **118** 条（**88.7%**）。
 
 #### 6.2 现在最需要警惕的问题
 
-1. **强趋同问题真实存在**：`🔁` 强趋同条目有 **28** 条，占正例条目的 **21.9%**。这不是“有点像”，而是足以污染训练分布。
+1. **强趋同问题真实存在**：`🔁` 强趋同条目有 **28** 条，占正例条目的 **21.1%**。这不是“有点像”，而是足以污染训练分布。
 2. **系统级、构件级、语义级样本混在一起**：例如 IEC 61499、EAST-ADL、ViTAL、部分 SysML/ECC/构件执行语义条目，并不是坏样本，但如果不打标签，会让训练目标粒度漂移。
-3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **15** 条（**11.7%**），`描述 = 🟠 C / 🔴 D` 也有 **15** 条（**11.7%**）；此前锁定的“原文够但描述降级”条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
+3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **15** 条（**11.3%**），`描述 = 🟠 C / 🔴 D` 也有 **15** 条（**11.3%**）；此前锁定的“原文够但描述降级”条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
 4. **异常/恢复链仍然偏少**：很多条目保住了 nominal path，但没有把 fault、degraded、manual takeover、recovery 条件完整保住。
 5. **领域分布并不均匀**：交通灯、联锁、电梯、工业 PLC 占比较高，医疗、过程控制、真正的时间约束样本仍然偏少。
 
 #### 6.3 如果今天就拿它做数据集，我建议这样分桶
 
-1. `主训练集`：以当前 **88** 条 `💎 核心保留` 为主，并从 **25** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
+1. `主训练集`：以当前 **93** 条 `💎 核心保留` 为主，并从 **25** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
 2. `待清洗正样本池`：全部 **15** 条 `🧰 清洗后保留` 条目。由于描述降级问题已清空，后续清洗重点应回到补原文可追溯细节，例如 guard、阈值、定时值、异常链、显式状态名。
 3. `降采样补充池`：`🪫` 条目只用于增强鲁棒性，不作为主训练集主力。
 4. `hard negative / background`：全部 `⛔ 不作正样本` 文件，尤其是连续控制、工具流程和综述型条目。
@@ -628,12 +635,12 @@
 4. 对 `⚪ 未收获` 文件增加 hard negative 标签，而不是只留下“未收获”四个字。
 5. 后续如果继续扩库，应优先补那些当前样本稀少但对控制系统自动建模更有区分度的对象：医疗模式管理、故障退化、时间约束、协议/协调控制、复杂恢复链。
 
-### 7. 文件级全量总表（169 个 `STM.md` 全覆盖，已按新口径回刷）
+### 7. 文件级全量总表（174 个 `STM.md` 全覆盖，已按新口径回刷）
 
 > 说明 1：文件级角色不是把整篇论文“平均打分”，而是按条目级结果做数据集入库路由聚合。
 > 说明 2：聚合顺序固定为：无正例条目则 `⛔`；只要存在 `💎` 条目就判 `💎 含核心样本`；若全部正例都只是 `🪫`，才判 `🪫 主要用于降采样池`；其余统一判 `🧰 需清洗样本`。
 > 说明 3：`代表状态机类型 / 代表时间级别 / 结构标签概况` 仅汇总该 `STM.md` 中已入账的正例条目，不对 `⚪ 未收获` 文件做臆测补齐。
-> 当前文件级分布：`💎 75`、`🧰 11`、`🪫 22`、`⛔ 56`。
+> 当前文件级分布：`💎 85`、`🧰 11`、`🪫 22`、`⛔ 56`。
 
 | # | 领域 | 文件级角色 | 代表状态机类型 | 代表时间级别 | 结构标签概况 | 原始评级 | 条目数 | 论文 | 跳转 | 文件级判断 |
 |---:|---|---|---|---|---|---|---:|---|---|---|
@@ -806,8 +813,13 @@
 | 167 | ⚙️ | `💎 含核心样本` | `FSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《A Robot with Decoupled Mechanical Structure and Adapted State Machine Control for Both Ground and Staircase Situations》](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/STM.md) | [STM](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/STM.md) / [TXT](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/paper_content.txt) / [Bib](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `ground mode`、`Case I-IV`、`SC1-SC7` 守卫、姿态调整与回到 `ground mode` 的完整收束链。 |
 | 168 | ⚙️ | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Design and Implementation of an Asynchronous Finite State Controller for Wheeled Mobile Robots》](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/STM.md) | [STM](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/STM.md) / [TXT](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/paper_content.txt) / [Bib](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `Follow right/middle/left lane`、`Check middle/left lane`、`STOP` 主链、`0.5 m` obstacle guard、orientation guard 与 PWM/servo 输出。 |
 | 169 | ✈️ | `💎 含核心样本` | `EFSM` | `T1` | `并行` | `🟢 直接可用` | 1 | [《Dynamic Object Tracking on Autonomous UAV System for Surveillance Applications》](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/STM.md) | [STM](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/STM.md) / [TXT](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/paper_content.txt) / [Bib](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住双并行 FSM、`Initialization / Sway and Search / Track and Hover / Track and Sway / Track and Climb or Descend / Track and Forward or Backward / Lost and Await / Land` 主链、`[Rsafe, Rsur]` 距离 guard 与失目标超时回家降落逻辑。 |
+| 170 | ⚙️ | `💎 含核心样本` | `HSM` | `T0` | `层次` | `🟢 直接可用` | 1 | [《An Autonomous Navigation Framework for Holonomic Mobile Robots in Confined Agricultural Environments》](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/STM.md) | [STM](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/STM.md) / [TXT](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/paper_content.txt) / [Bib](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `WAIT_FOR_GOAL -> PLAN_EXEC -> VISUAL_SERVOING` 层次主链、行首对齐与行内巡检回退链。 |
+| 171 | ⚙️ | `💎 含核心样本` | `HSM` | `T0` | `层次` | `🟢 直接可用` | 1 | [《State Machine-Based Hybrid Position/Force Control Architecture for a Waste Management Mobile Robot with 5DOF Manipulator》](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/STM.md) | [STM](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/STM.md) / [TXT](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/paper_content.txt) / [Bib](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `Si1/Si2/Si3/SC1-SC5/SES`、`S-matrix` 切换与抓取-投放闭环。 |
+| 172 | ⚙️ | `💎 含核心样本` | `EFSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《Center-Articulated Hydrostatic Cotton Harvesting Rover Using Visual-Servoing Control and a Finite State Machine》](./center-articulated-hydrostatic-cotton-harvesting-rover/STM.md) | [STM](./center-articulated-hydrostatic-cotton-harvesting-rover/STM.md) / [TXT](./center-articulated-hydrostatic-cotton-harvesting-rover/paper_content.txt) / [Bib](./center-articulated-hydrostatic-cotton-harvesting-rover/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `get image` 起点、`Yb/Ym/Zm/Zb/Xm-Xb` guard 与 `37 cm` 采摘阈值。 |
+| 173 | ✈️ | `💎 含核心样本` | `FSM` | `T0` | `-` | `🟢 直接可用` | 1 | [《An Autonomous Control Framework of Unmanned Helicopter Operations for Low-Altitude Flight in Mountainous Terrains》](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/STM.md) | [STM](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/STM.md) / [TXT](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/paper_content.txt) / [Bib](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `long-range penetration / fast approach / fast avoidance / circuitous flight` 与 `E > ET` 威胁分流逻辑。 |
+| 174 | ✈️ | `💎 含核心样本` | `HSM` | `T0` | `层次` | `🟢 直接可用` | 1 | [《Development of an Autonomous UAV for Multi-Modal Mapping of Underground Mines》](./autonomous-uav-multimodal-mapping-underground-mines/STM.md) | [STM](./autonomous-uav-multimodal-mapping-underground-mines/STM.md) / [TXT](./autonomous-uav-multimodal-mapping-underground-mines/paper_content.txt) / [Bib](./autonomous-uav-multimodal-mapping-underground-mines/bibtex.bib) | 文件内正例条目均为 `💎`，原文与描述均到 `🟢 A`，已保住 `manual / exploration / inspection` 三类 mission 与各自子阶段。 |
 
-### 8. 条目级全量总表（128 条正例全覆盖）
+### 8. 条目级全量总表（133 条正例全覆盖）
 
 说明：本表是这份讨论稿的核心。只要某个 `STM.md` 中实际写出了正例条目，这里都会逐条入账，不遗漏任何一条。
 
@@ -945,6 +957,11 @@
 | 126 | ⚙️ | `FSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《A Robot with Decoupled Mechanical Structure and Adapted State Machine Control for Both Ground and Staircase Situations》](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/STM.md) / Stair-climbing mode manager for the decoupled delivery robot | 解耦机械结构送货机器人的楼梯切换与攀爬控制器 | [STM](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/STM.md) / [TXT](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/paper_content.txt) / [Bib](./a-robot-with-decoupled-mechanical-structure-and-adapted-state-machine-control-for-both-ground-and-staircase-situations/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `ground mode`、`Case I-IV`、`SC1-SC7` 条件、姿态调整链以及楼梯结束后的返回逻辑。 |
 | 127 | ⚙️ | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Design and Implementation of an Asynchronous Finite State Controller for Wheeled Mobile Robots》](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/STM.md) / Three-lane obstacle-avoidance lane-change controller for a WMR | 轮式移动机器人在三车道环境中的避障换道控制器 | [STM](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/STM.md) / [TXT](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/paper_content.txt) / [Bib](./design-and-implementation-of-an-asynchronous-finite-state-controller-for-wheeled-mobile-robots/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `Follow right/middle/left lane`、检查态与 `STOP` 收束、`0.5 m` 障碍阈值、姿态 guard 以及输出接口。 |
 | 128 | ✈️ | `EFSM` | `T1` | `并行` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Dynamic Object Tracking on Autonomous UAV System for Surveillance Applications》](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/STM.md) / Parallel surveillance maneuver controller for autonomous target tracking UAV | 自主监视无人机的动态目标跟踪与跟随控制器 | [STM](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/STM.md) / [TXT](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/paper_content.txt) / [Bib](./dynamic-object-tracking-on-autonomous-uav-system-for-surveillance-applications/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住双并行状态机、`Initialization / Sway and Search / Track and Hover / Track and Sway / Track and Climb or Descend / Track and Forward or Backward / Lost and Await / Land` 主链，以及失目标超时降落逻辑。 |
+| 129 | ⚙️ | `HSM` | `T0` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《An Autonomous Navigation Framework for Holonomic Mobile Robots in Confined Agricultural Environments》](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/STM.md) / Greenhouse row-inspection navigation supervisor | 温室全向移动机器人的高层导航与巡检监督控制器 | [STM](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/STM.md) / [TXT](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/paper_content.txt) / [Bib](./autonomous-navigation-framework-holonomic-mobile-robots-agriculture/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `WAIT_FOR_GOAL / PLAN_EXEC / VISUAL_SERVOING` 层次主链、`TARGET_ALIGNMENT / TRAVERSE_FORWARD / INSPECT / TRAVERSE_BACKWARD` 子状态与失败回退。 |
+| 130 | ⚙️ | `HSM` | `T0` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《State Machine-Based Hybrid Position/Force Control Architecture for a Waste Management Mobile Robot with 5DOF Manipulator》](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/STM.md) / Pick-and-drop supervisor for the waste-selection manipulator | 垃圾分拣移动机器人 5DOF 机械臂的任务监督控制器 | [STM](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/STM.md) / [TXT](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/paper_content.txt) / [Bib](./state-machine-based-hybrid-position-force-control-waste-mobile-robot/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住主状态机、homing/position/force 三组子状态机、`Si1/Si2/Si3/SC1-SC5/SES` 与投放回新任务链。 |
+| 131 | ⚙️ | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Center-Articulated Hydrostatic Cotton Harvesting Rover Using Visual-Servoing Control and a Finite State Machine》](./center-articulated-hydrostatic-cotton-harvesting-rover/STM.md) / Cotton-boll detection and harvesting supervisor | 中心铰接式棉花采摘车的视觉伺服任务监督控制器 | [STM](./center-articulated-hydrostatic-cotton-harvesting-rover/STM.md) / [TXT](./center-articulated-hydrostatic-cotton-harvesting-rover/paper_content.txt) / [Bib](./center-articulated-hydrostatic-cotton-harvesting-rover/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `get image` 闭环起点、前后移动与上下调臂判定、`Yb/Ym/Zm/Zb` guard 以及 `Xm - Xb < 37 cm` 采摘阈值。 |
+| 132 | ✈️ | `FSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《An Autonomous Control Framework of Unmanned Helicopter Operations for Low-Altitude Flight in Mountainous Terrains》](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/STM.md) / Low-altitude mission-task FSM for target approach and threat avoidance | 无人直升机低空飞行任务的高层决策控制器 | [STM](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/STM.md) / [TXT](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/paper_content.txt) / [Bib](./autonomous-control-framework-unmanned-helicopter-low-altitude-flight/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `long-range penetration / fast approach / fast avoidance / circuitous flight` 四态、目标与威胁触发、`E > ET` 分支及恢复原始接近链。 |
+| 133 | ✈️ | `HSM` | `T0` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | ✨ 未见强趋同 | [《Development of an Autonomous UAV for Multi-Modal Mapping of Underground Mines》](./autonomous-uav-multimodal-mapping-underground-mines/STM.md) / Mission supervisor for mine exploration and pillar inspection | 地下矿井测绘无人机的任务监督控制器 | [STM](./autonomous-uav-multimodal-mapping-underground-mines/STM.md) / [TXT](./autonomous-uav-multimodal-mapping-underground-mines/paper_content.txt) / [Bib](./autonomous-uav-multimodal-mapping-underground-mines/bibtex.bib) | 原文与描述均已到 `🟢 A`，当前稿完整保住 `manual / reactive exploration / pillar inspection` 三类 mission、起飞定高、自由空间搜索、角点/天花板约束与往返扫描逻辑。 |
 ### 9. `⚪ 未收获` 文件专表（便于 hard negative 回收）
 
 | # | 领域 | 未收获原因类别 | 论文 | 跳转 | 当前简要判断 |
