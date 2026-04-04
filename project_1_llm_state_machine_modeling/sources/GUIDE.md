@@ -14,6 +14,8 @@
    - 是唯一总账，记录前部关键词簇与当前统计、论文总账、失败记录、案例总账，以及文末统一更新日志。
 4. [STM_GUIDE.md](./STM_GUIDE.md)
    - 负责单篇 `STM.md` 的抽取标准、证据组织与未收获口径。
+5. [DESC_GUIDE.md](./DESC_GUIDE.md)
+   - 负责单篇 `DESC.md` 的中等篇幅说明写法，强调“快速定向”而不是“长综述”。
 
 默认阅读顺序如下：
 
@@ -21,7 +23,8 @@
 2. 再读 [GUIDE.md](./GUIDE.md)，确认本轮操作规范。
 3. 再读 [SUMMARY.md](./SUMMARY.md)，确认当前总账、失败历史与下一步续做位置。
 4. 若任务涉及 `STM.md`，再读 [STM_GUIDE.md](./STM_GUIDE.md)。
-5. 最后进入具体论文目录，按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> STM.md` 的顺序工作。
+5. 若任务涉及 `DESC.md`，再读 [DESC_GUIDE.md](./DESC_GUIDE.md)。
+6. 最后进入具体论文目录，按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> 派生文件` 的顺序工作。
 
 ## 1. 目标与范围
 
@@ -55,7 +58,7 @@
 以下工作与 `project_1` 整体研究有关，但不属于 `sources/` 的日常维护主线：
 
 1. 泛 LLM 生成 UML/SysML baseline 的比较与综述，这类内容应主要留在 `baselines/` 或其他 baseline 文档中。
-2. 批量生产单篇深度综述型 `DESC.md`；本论文集默认核心派生文件是 `STM.md`。
+2. 把单篇 `DESC.md` 再写成长综述；本论文集里的 `DESC.md` 只承担中等篇幅的快速定向说明，不承担深度综述职责。
 3. 纯形式化工具、元模型、建模流程背景文献的扩张式收集，如果它们不能产出具体控制对象样本，不应挤占本论文集配额。
 
 ## 2. 目录与文件规范
@@ -71,8 +74,9 @@
 4. `STM.md`
    - 必须基于 `paper_content.txt` 生成。
    - 其抽取口径统一遵循 [STM_GUIDE.md](./STM_GUIDE.md)。
-
-除非任务另有要求，`sources/` 不默认批量维护 `DESC.md`。
+5. `DESC.md`
+   - 不是每篇必备文件，但若目录下已存在，或任务明确要求生成/重写，就必须遵循 [DESC_GUIDE.md](./DESC_GUIDE.md)。
+   - 其定位是“用中等篇幅说明论文在讲什么、系统是什么、控制系统在文中的角色是什么”，不是证据抽取文件。
 
 ## 3. 单篇论文处理流程
 
@@ -83,7 +87,8 @@
 3. 生成并检查 `paper_content.txt`。
 4. 阅读 `paper_content.txt`，必要时回 `paper.pdf` 核对。
 5. 依据 [STM_GUIDE.md](./STM_GUIDE.md) 编写 `STM.md`。
-6. 最后统一回填 [SUMMARY.md](./SUMMARY.md)。
+6. 若该论文需要 `DESC.md`，则依据 [DESC_GUIDE.md](./DESC_GUIDE.md) 编写或重写 `DESC.md`。
+7. 最后统一回填 [SUMMARY.md](./SUMMARY.md)。
 
 执行时还应遵守以下约束：
 
@@ -92,6 +97,21 @@
 3. 若论文最终没有收获，也必须留下 `⚪ 未收获` 的 `STM.md`，不能留空不记。
 4. 只要本轮新纳入或重写了 `STM.md`，就必须在**同一轮**同步回填 `SUMMARY.md` 的论文表、案例表和相关统计。
 5. 如果论文已经收录但暂时还没有 `STM.md`，必须在论文总账中显式记为 `⏳ 尚未提取`，并把 `案例数` 记为 `0`。
+
+### 3.1 `DESC.md` 的默认定位
+
+`DESC.md` 只用于帮助维护者快速建立感性认识，但默认不再压成极短备注。它主要回答三件事：
+
+1. 论文主要在讲什么，系统大概是什么。
+2. 我们关心的控制系统描述在文中扮演什么角色。
+3. 这篇论文对样本收集为什么有用。
+
+维护要求如下：
+
+1. 不再写成 `基本信息 / 代码 / 数据集 / 证据 / 分类总结` 的长综述。
+2. 默认使用三段式中等篇幅结构，具体口径以 [DESC_GUIDE.md](./DESC_GUIDE.md) 为准。
+3. 不把 `DESC.md` 写成压缩版 `STM.md`；逐状态、逐转移、逐 guard 证据仍应留在 `STM.md`。
+4. 如果同一轮同时改 `STM.md` 和 `DESC.md`，优先先改 `STM.md`，再写中等篇幅的 `DESC.md`。
 
 ## 4. [SUMMARY.md](./SUMMARY.md) 的固定结构
 
@@ -357,15 +377,21 @@
 1. 先读 [SUMMARY.md](./SUMMARY.md)，确认现有论文总账、案例总账、失败记录与关键词簇。
 2. 再扫 `sources/` 目录，确认哪些论文缺 `STM.md`、哪些条目需要补账。
 3. 对候选新论文做去重与“5 天失败跳过”检查。
-4. 完成新论文的 PDF、BibTeX、文本提取与 `STM.md`。
+4. 完成新论文的 PDF、BibTeX、文本提取与 `STM.md`；若该论文需要 `DESC.md`，则在同一轮按 [DESC_GUIDE.md](./DESC_GUIDE.md) 补写或重写。
 5. 统一回填论文总账、失败记录、案例总账、当前统计、统一更新日志与关键词簇。
 6. 最后执行一致性检查，确认表格、统计与目录状态一致。
 
-## 10. 与 [STM_GUIDE.md](./STM_GUIDE.md) 的关系
+## 10. 与专项 GUIDE 的关系
 
-本规范只负责 `sources/` 与 [SUMMARY.md](./SUMMARY.md) 的组织和汇总；`STM.md` 的具体抽取标准仍以 [STM_GUIDE.md](./STM_GUIDE.md) 为准。
+本规范只负责 `sources/` 与 [SUMMARY.md](./SUMMARY.md) 的组织和汇总。
 
-如果本文件与单篇 `STM.md` 的具体写法发生冲突，优先遵循 [STM_GUIDE.md](./STM_GUIDE.md) 中关于目标对象、证据可追溯性、条目结构和未收获判定的要求。
+1. `STM.md` 的具体抽取标准仍以 [STM_GUIDE.md](./STM_GUIDE.md) 为准。
+2. `DESC.md` 的具体写法、篇幅和定位仍以 [DESC_GUIDE.md](./DESC_GUIDE.md) 为准。
+
+如果本文件与单篇派生文件的具体写法发生冲突，优先级如下：
+
+1. `STM.md` 相关冲突：以 [STM_GUIDE.md](./STM_GUIDE.md) 为准。
+2. `DESC.md` 相关冲突：以 [DESC_GUIDE.md](./DESC_GUIDE.md) 为准。
 
 ## 11. 质量与可追溯性要求
 
@@ -377,3 +403,4 @@
 4. 论文总账、案例总账、失败记录和当前统计中的数字必须前后一致。
 5. 如果证据不足，应明确写成 `⚪ 未收获` 或 `⏳ 尚未提取`，而不是用主观推断把条目补圆。
 6. 新增或回刷案例后，必须同步更新其所属领域的案例统计表，不能只改案例清单不改统计。
+7. 若生成或重写 `DESC.md`，必须把篇幅控制在“中等篇幅的快速定向说明”范围内，不得再次膨胀成长综述。

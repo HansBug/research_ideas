@@ -66,6 +66,9 @@
 4. [STM_GUIDE.md](./STM_GUIDE.md)
    - `STM.md` 的专项规范。
    - 规定什么样的对象算有效控制系统样本、如何组织证据、如何写“未收获”。
+5. [DESC_GUIDE.md](./DESC_GUIDE.md)
+   - `DESC.md` 的专项规范。
+   - 规定如何用中等篇幅说明论文在讲什么、系统是什么，以及控制系统描述在文中的角色。
 
 AI 在开始具体工作前，推荐阅读顺序为：
 
@@ -73,9 +76,10 @@ AI 在开始具体工作前，推荐阅读顺序为：
 2. [GUIDE.md](./GUIDE.md)
 3. [SUMMARY.md](./SUMMARY.md)
 4. [STM_GUIDE.md](./STM_GUIDE.md)（仅当任务涉及 `STM.md`）
-5. 目标论文目录下的 `bibtex.bib`
-6. 目标论文目录下的 `paper_content.txt`
-7. 必要时核对 `paper.pdf`
+5. [DESC_GUIDE.md](./DESC_GUIDE.md)（仅当任务涉及 `DESC.md`）
+6. 目标论文目录下的 `bibtex.bib`
+7. 目标论文目录下的 `paper_content.txt`
+8. 必要时核对 `paper.pdf`
 
 ## 6. 单论文路径约束
 
@@ -90,7 +94,7 @@ AI 在开始具体工作前，推荐阅读顺序为：
 
 1. `paper_content.txt` 必须优先使用 `tools/pdf_extractor.py` 生成，默认先走 `text` 模式；若提取异常，立即切换 `ocr` 模式。
 2. `STM.md` 是本论文集的核心派生文件，必须遵循 [STM_GUIDE.md](./STM_GUIDE.md)。
-3. `DESC.md` 在本论文集中不是强制文件；除非任务另有要求，不默认批量生产 `DESC.md`。
+3. `DESC.md` 在本论文集中不是强制文件；但只要该目录下已经存在 `DESC.md`，或任务明确要求生成/重写 `DESC.md`，就必须遵循 [DESC_GUIDE.md](./DESC_GUIDE.md) 的中等篇幅说明口径。
 
 ## 7. AI 工作入口提示
 
@@ -100,8 +104,9 @@ AI 在开始具体工作前，推荐阅读顺序为：
 2. 再读 [GUIDE.md](./GUIDE.md)，确认本轮工作流程。
 3. 再看 [SUMMARY.md](./SUMMARY.md)，掌握当前总账、失败历史和领域分布。
 4. 若需要生成或重写 `STM.md`，必须再读 [STM_GUIDE.md](./STM_GUIDE.md)。
-5. 进入具体论文目录后，严格按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> STM.md` 的顺序处理。
-6. 完成单篇目录后，必须回写 [SUMMARY.md](./SUMMARY.md)，不能只在目录里留下未入账的半成品。
+5. 若需要生成或重写 `DESC.md`，必须再读 [DESC_GUIDE.md](./DESC_GUIDE.md)。
+6. 进入具体论文目录后，严格按 `bibtex.bib -> paper_content.txt -> paper.pdf（必要时） -> 派生文件` 的顺序处理。
+7. 完成单篇目录后，必须回写 [SUMMARY.md](./SUMMARY.md)，不能只在目录里留下未入账的半成品。
 
 ## 8. 后续 AI 应优先做什么、避免做什么
 
