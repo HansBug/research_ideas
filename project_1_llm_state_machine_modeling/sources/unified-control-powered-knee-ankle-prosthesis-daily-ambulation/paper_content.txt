@@ -1,0 +1,1243 @@
+--- Page 1 ---
+Unified Control of a Powered Knee-Ankle Prosthesis Enables 
+Walking, Stairs, Transitions, and Other Daily Ambulation 
+Activities
+Liam M. Sullivan ,
+Department of Mechanical Engineering and Robotics Center, The University of Utah, Salt Lake 
+City, UT 84112 USA
+Marissa Cowan ,
+Department of Mechanical Engineering and Robotics Center, The University of Utah, Salt Lake 
+City, UT 84112 USA
+Lukas Gabert [Member, IEEE] ,
+Department of Mechanical Engineering and Robotics Center, The University of Utah, Salt Lake 
+City, UT 84112 USA
+Tommaso Lenzi [Member, IEEE]
+Department of Mechanical Engineering, Robotics Center, the Rocky Mountain Center for 
+Occupational and Environmental Health, and the Department of Biomedical Engineering, The 
+University of Utah, Salt Lake City, UT 84112 USA.
+Abstract
+Conventional passive prostheses for lower limb amputees lack active assistance and cannot 
+replicate the natural energy dynamics of healthy limbs, resulting in compromised mobility 
+and diminished quality of life. Powered lower-limb prostheses can theoretically replicate the 
+biomechanical function of healthy limbs during ambulation. However, existing powered prostheses 
+fall short of fully restoring mobility for individuals with above-knee amputations. This limitation 
+is mainly due to existing controllers, which struggle to coordinate their assistance with the user’s 
+movements across a variety of activities in a natural manner. This paper proposes a novel unified 
+controller for powered knee and ankle prostheses that enables multiple activities and adapts to 
+users and the environment. The proposed controller enables natural ambulation without requiring 
+explicit measurements of the environmental characteristics or classification of the intended 
+ambulation task. In experiments with three amputee subjects, the proposed controller enabled 
+walking on level, inclined, and uneven ground, ascending/descending stairs, sitting and standing, 
+and seamless transitions between these activities. This work presents the first implementation of 
+This work is licensed under a Creative Commons Attribution 4.0 License. For more information, see https://creativecommons.org/
+licenses/by/4.0/
+Corresponding author: Liam M. Sullivan.  l.sullivan@utah.edu. 
+Conflict of Interest
+The authors declare a potential conflict of interest, as Tommaso Lenzi is an inventor on a patent pertaining to the Utah Bionic Leg, 
+which was used in the study presented in the paper and is currently licensed to Ottobock.
+This work involved human subjects or animals in its research. Approval of all ethical and experimental procedures and protocols was 
+granted by The Institutional Review Board at the University of Utah under Application No. 00103197.
+HHS Public Access
+Author manuscript
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 
+19.
+Published in final edited form as:
+IEEE Trans Neural Syst Rehabil Eng . 2025 ; 33: 3024–3039. doi:10.1109/TNSRE.2025.3595496.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 2 ---
+a unified, task-agnostic control strategy for continuous ambulation across everyday ambulation 
+activities for powered knee and ankle prostheses.
+Keywords
+Biomechanics; control; lower-limb prosthesis; powered prosthetics; prosthetics
+I. Introduction
+CONVENTIONAL passive prostheses for lower-limb amputees do not provide active 
+assistance during ambulation in the way that healthy limbs do [ 1]. As a result, ambulation 
+with conventional passive lower-limb prostheses is slow, inefficient, and unstable [ 2], [3], 
+resulting in limited mobility and diminished quality of life for amputees [ 4] Powered 
+prostheses have the potential to address the limitations of conventional passive prostheses 
+by closely matching the torque, speed, and power of biological legs during ambulation. 
+Although many powered prostheses have been developed [ 5], [6], [7], [8], [9], [10], [11], 
+[12], [13], [14], [15], available controllers still struggle to coordinate the movements of the 
+prosthetic joints with the user and restore biomimetic mobility across a variety of tasks and 
+conditions.
+Most powered prosthesis controllers assume that ambulation is periodic and define the 
+prosthesis’ movements based on the steady-state gait cycle of a specific ambulation task 
+(e.g., walking, stair ascent) [ 16]. These controllers can then split the gait cycle into a few 
+discrete, sequential phases [ 11], [17] or define a cycle as a continuous phase evolution 
+[18], [19]. Position, impedance, or torque are then commanded based on the discrete or 
+continuous gait phase.
+Controllers that define discrete phases often use fixed impedance values for each phase, 
+which is computationally inexpensive and can enable many ambulation activities [ 20], [21]. 
+However, it requires manual tuning of the control parameters used within each state and 
+the transition rules between states [ 22]. This manual tuning requires experts and can be 
+time-consuming [ 23]. Additionally, each user must receive tuning specific to their gait, 
+which limits the generalizability of this approach [ 23], [24].
+Controllers that define a continuous phase evolution often enforce position, torque, or 
+variable impedance trajectories derived from able-bodied datasets [ 18], [25], [26], [27]. 
+This approach provides close-to-healthy biomechanics with minimal to no tuning, which 
+may facilitate clinical translation. However, to enforce the appropriate biomechanics, the 
+controller requires explicit knowledge of the environmental characteristics, such as walking 
+speed [ 27] or ground incline [ 26]. This makes real-world implementation challenging. 
+Additionally, by enforcing the average biomechanics of healthy, young subjects, this 
+approach does not intrinsically account for user variability.
+Regardless of the mid-level control approach, virtually all existing control methods require 
+estimating the user’s intended ambulation task [ 28], [29], [30], [31]. The estimated task 
+as well as transitions between tasks are determined using specific trigger conditions based, Sullivan et al. Page 2
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 3 ---
+most commonly, on joint position or prosthesis loading [ 32], [33], [34]. Sensors in the 
+prosthesis are then often integrated with supervised machine learning to determine the 
+estimated task [ 35], [36], [37]. The accuracy of the classification depends on the amount 
+of data used for training as well as the dimension of the classification space [ 38]. It can 
+be improved using different kinds of sensors, including electromyography [ 39], [40], [41], 
+sonomyography [ 42], range sensors [ 43], or cameras [ 44]. For the best-trained models, the 
+rate of accurate classification is 98% [ 29], [45], [46], [47], [48]. However, users may take 
+thousands of steps per day, and a single misclassified step can still lead to falls, injury, 
+and users losing trust in the device [ 49]. Ambulation in the real world is unpredictable 
+and requires continuous adaptation to the environment. Ambulation is often aperiodic, 
+terrain conditions are continuously variable, and the desired task can change instantaneously. 
+Therefore, using a machine learning classifier for ambulation in the real world may require 
+nearly perfect online classification accuracy.
+Existing powered prostheses have successfully replicated certain biological behaviors and 
+enabled a variety of ambulation tasks under discrete, controlled conditions [ 16], [18], 
+[26], [27], [50], [51], [52], [53], [54]. To adapt to variable inclines, previous controllers 
+have successfully implemented shank-based ankle impedance as a bioinspired method of 
+achieving intrinsic adaptation to the terrain [ 55]. To adapt to variable speeds, previous 
+controllers have replicated minimum-jerk behavior from healthy biomechanics to adapt 
+swing behavior and enable a smooth gait at any speed [ 56]. To enable sit-to-stand and stand-
+to-sit transitions, previous controllers have commanded biologically accurate torque profiles 
+as well as virtual impedance to safely lift and lower users [ 50], [57]. To enable transitions 
+between walking and stair ascent, previous controllers have manually switched between 
+independent controllers specific to each activity [ 25]. While these previous approaches 
+were successful in achieving normative ambulation for each specific task, none of these 
+controllers incorporated all of these elements into a single controller.
+To address the limitations in existing control strategies, this paper presents a controller 
+for a powered knee and ankle prosthesis that builds upon the successful elements of 
+previous controllers and incorporates them into a single, unified structure. The proposed 
+controller enables walking at variable speeds and inclines and on rough terrains, ascending 
+and descending stairs, sitting, and standing without enforcing able-bodied biomechanics or 
+hand-tuning impedance parameters. Moreover, it enables all these activities and transitions 
+between them without any task estimation. The proposed controller is furthermore 
+intrinsically adaptable to the user and environment. We achieve this performance by 
+combining a series of adaptive torque and impedance controllers that reproduce bioinspired 
+behaviors rather than replicate normative biomechanics.
+In this paper, we present the design of a unified controller and show the kinetics and 
+kinematics of three amputee participants using the controller to perform various ambulation 
+tasks both in the lab and in real-world settings. This paper demonstrates the generalizability 
+of the proposed control strategy and validates its ability to enable biomimetic mobility. 
+Furthermore, we demonstrate that the controller allows for real-world ambulation with a 
+single amputee subject.Sullivan et al. Page 3
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 4 ---
+II. Methods
+A. Unified Controller Structure
+A summary of the proposed controller is shown in Fig. 1. The proposed unified controller 
+uses a simple finite-state machine with two states, Contact  and No Contact , to indicate if the 
+prosthetic foot is in contact with the ground. The finite-state machine switches from Contact 
+when the vertical ground reaction force (GRF) is above 120 N to No Contact  when the GRF 
+is below 80 N. The transition from Contact  to No Contact  is called toe-off (TO), and the 
+transition from No Contact  to Contact  is called heel-strike (HS), regardless of whether the 
+prosthesis touches down with the heel or toe first. Specific knee and ankle controllers are 
+used in each of the two states. The controller is robust to changes in the control state and 
+avoids discontinuities when switching between them. As shown in the results later in this 
+work, there were no discontinuities in control during transitions between Contact  and No 
+Contact  (Fig. 11, Fig. S6, and Fig. S8).
+1) Knee Control During Contact:  In Contact,  the total commanded torque, TKnee, is the 
+sum of three components: Step-Up torque (TKneeStep −Up), Biarticular torque ( TKneeBiart), and Damping 
+torque ( TKneeDamping) (1).
+TKnee=TKneeStep −Up+TKneeBiart+TKneeDamping
+(1)
+The Step-up Torque, TKneeStep−Up, is intended to provide extension torque during stair ascent, 
+sit-to-stand transitions, and similar movements (2). TKneeStep−Up follows a bioinspired bell-shaped 
+profile (Fig. 2a), which starts at 0 Nm at HS, when the measured knee prosthesis angle ( θKneeMeas) 
+is equal to the knee angle at heelstrike (θKneeHS). As the knee extends (i.e., θKneeMeas decreases), 
+TKneeStep −Up increases until θKneeMeas matches a specified peak-torque angle ( θStep−Up), at which 
+point the peak torque ( τStep −Up) is achieved. θStep −Up was tuned in this work for user 
+preference. As the knee extends past θStep −Up, the torque decreases, finally reaching zero 
+when θKneeMeas equals the ending-torque angle (θKneeEnd). TKneeStep−Up is adapted online following (3)-(4). 
+Specifically, the position at which the knee achieves the maximum torque ( θStep −Up) 
+increases proportionally to the difference between θKneeHS and θKneeEnd, where θKneeEnd is set in these 
+experiments to 5°. Moreover, τStep −Up increases proportionally to the position of the knee 
+at θKneeHS (4). As a result, as θKneeHS increases, higher extension torque is generated for the whole 
+knee extension movement (Fig. 2b). Similar TKneeStep −Up implementations were successfully used 
+for stair ascent and sit-to-stand transitions in our prior studies [ 52], [57].
+TKneeStep −Up=fθKneeHS,θStep −Up,τStep −Up
+(2)Sullivan et al. Page 4
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 5 ---
+θStep −Up= 0.8* θKneeHS−θKneeEnd+θKneeEnd
+(3)
+τStep −Up= 1.2 * θKneeHS
+(4)
+The Biarticular torque, TKneeBiart, is intended to replicate the function of the gastrocnemius 
+muscle, which flexes the knee and plantarflexes the ankle in late stance. To this end, 
+TKneeBiart provides knee flexion torque proportionally to the commanded ankle torque ( TAnkle), 
+as defined by the biarticular gain ( KBiart) following (5). Notably, KBiart is not fixed but 
+changes as a function of θKneeMeas as shown in Fig. 2c, to prevent excessive knee flexion. 
+Specifically, KBiart is at a maximum value of 0.3 when θKneeMeas< 20∘ and decreases linearly 
+between 20∘<θKneeMeas< 30∘ to 0. Moreover, the maximum TKneeBiart is capped at 5 Nm. This 
+modulation mimics able-bodied behavior, where the muscle activation of the gastrocnemius 
+decreases in late stance [ 58].
+TKneeBiart=minKBiart⋅TAnkle, 5
+(5)
+The virtual damping torque, TKneeDamping, is intended to prevent the knee from buckling under 
+the user’s weight, for example during standing and the early-stance phase of walking. 
+The virtual damping works to smoothen the movements of the prosthetic knee during all 
+ambulation activities. Damping coefficients are unique for extension and flexion. They are 
+additionally modulated as a function of θKneeMeas and θTℎigℎMeas (Fig. 2d-e). Additional detail on TKneeDamping
+is provided in supplementary material section S1a.
+2) Ankle Control During Contact:  During Contact , we define the total ankle torque, 
+TAnkle, as the sum of virtual stiffness ( TAnkleStiffess) and virtual damping ( TAnkleDamping) torques (6).
+TAnkle=TAnkleStiffess+TAnkleDamping
+(6)
+The first element, TAnkleStiffness, commands torque proportional to the deformation of a virtual 
+spring, which is calculated as the difference between the current ankle angle ( θAnkleMeas) and a 
+desired equilibrium angle ( θEq) (Fig. 3a). The deformation is then multiplied by a stiffness 
+gain ( KStiffness) (7), which varies when the ankle angle is less than θEq and greater than θEq
+(8). KStiffness was tuned in this work for user preference.Sullivan et al. Page 5
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 6 ---
+TAnkleStiffness=KStiffness*θAnkleMeas−θEq
+(7)
+KStiffness=KDF= 4, if θAnkleMeas<θEq
+KPF= 1, if θAnkleMeas≥θEq
+(8)
+θEq is the sum of two terms, θEq1 and θEq2 (9).
+θEq=θEq1+θEq2
+(9)
+θEq1= min θAnkleMeas+θSℎankMeas, ± 8
+(10)
+θEq2=KAK*θAK
+(11)
+θEq1 is intended to enable the ankle prosthesis to adapt to different slopes and uneven 
+terrain. θEq1 is defined as the sum of θAnkleMeas and the prosthesis’s shank angle with respect to 
+gravity ( θSℎankMeas) and is limited to a maximum of 8° in either plantarflexion or dorsiflexion 
+(10). θEq1 creates a virtual spring acting on the shank orientation with respect to the vertical 
+gravity vector. Creating a virtual spring around the shank orientation allows the prosthetic 
+ankle to produce biomechanically accurate torque/angle profiles during ambulation on 
+slopes and uneven terrain without explicitly estimating the slope [ 55]. Notably, θEq1 is 
+constrained to 0° when θSℎankMeas is less than −5°. This is intended to create consistent and stable 
+ankle behavior in early stance.
+θEq2 is intended to enable the ankle prosthesis to dorsiflex when the knee flexes during 
+activities like stand-to-sit transitions and stair climbing. To this end, θEq2 increases 
+proportionally to the ankle-knee synergy angle ( θAK) based on the ankle-knee synergy 
+gain ( KAK) (11) (Fig. 3b). We use the descriptor “synergy” to define variables that linearly 
+modify either the knee or ankle based on the behavior of another segment of the prosthesis 
+or body. KAK is not fixed but changes with the thigh angle (Fig. 3c). Specifically, KAK is 
+equal to 1 when θTℎigℎMeas< 5∘ and decreases to 0 linearly between 5∘<θTℎigℎMeas< 10∘. Because of 
+this dependency of KAK to the thigh angle, θEq2 is different from zero only when the thigh is Sullivan et al. Page 6
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 7 ---
+in front of the user, as is the case, for example, during sitting or squatting. On the other hand, 
+θEq2 is zero when the thigh is behind the user, which prevents the ankle from dorsiflexing 
+during late stance when ankle plantarflexion is needed for pushoff [ 59].
+TAnkleDamping is commanded dynamically to allow for biomimetic energy injection. Specifically, 
+the controller varies damping as a function of hip velocity, vHipMeas, to provide less damping at 
+higher hip velocity and thus allow more positive energy from the ankle stiffness (Fig. 3d, e). 
+Additional detail on TAnkleDamping can be found in supplementary material section S1b.
+3) Knee Control During No Contact:  During No Contact , we calculate a desired knee 
+position and utilize a PID controller with loose gains. θKneeDes is the sum of the minimum-jerk 
+angle ( θKneeMJ) and the thigh-to-knee synergy angle ( θKneeSyn). A synergy gain ( KSyn) amplifies θKneeSyn
+and attenuates θKneeMJ as it varies from 0 to 1 (12).
+θKneeDes=θKneeMJ*1 −KSyn+θKneeSyn⋅KSyn
+(12)
+θKneeMJ aims to move the knee joint from its angle at TO to a fully extended angle in 
+preparation for HS while mathematically maximizing smoothness. This approach is inspired 
+by the minimum-jerk behavior in healthy biomechanics and is derived from a previous 
+implementation in a powered prosthesis controller [ 56]. θKneeMJ changes as a function of the 
+knee angle at TO ( θKneeTO), the knee velocity at TO ( θ˙KneeTO) and the desired trajectory duration 
+(tswing) (13), as shown in Fig. a-b.
+θKneeMJ=fθKneeTO,θ˙KneeTO,tswing
+(13)
+tswing changes as a function of ankle angle at TO (θAnkleTO) as shown in Fig. 4c. Specifically, 
+tswing is at a maximum value of 0.55s when θAnkleTO< − 5∘ and decreases linearly to 0.45s when 
+θAnkleTO> 15∘. Thus, the greater the ankle plantarflexion angle at TO, the shorter the knee swing 
+movement. This behavior is inspired by nonamputee biomechanics, which shows that as 
+walking speed increases, swing duration decreases [ 60], [61]. tswing was tuned based on user 
+preference.
+The thigh-to-knee synergy angle, θKneeSyn, is intended to coordinate the movements of the 
+prosthetic knee with that of the residual limb (i.e., the user’s thigh on the amputation side) 
+as needed for activities like stair climbing. As the user flexes their residual thigh, θKneeSyn
+commands biomimetic knee flexion. This approach was previously presented in [ 52]. The 
+detailed calculation of θKneeSyn is described in supplementary material section S2a.Sullivan et al. Page 7
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 8 ---
+As shown in (12), θKneeMJ and θKneeSyn are combined to obtain θKneeDes based on the synergy gain KSyn, 
+which is the sum of constant value calculated at TO ( KTO), and a delta value ΔK, which is 
+updated continuously (14).
+KSyn=maxminKTO+ ΔK, 1, 0
+(14)
+KTO is calculated at TO as a function of θKneeTO as shown in Fig. 4d. Specifically, KTO is 
+at a maximum value of 1 when θKneeTO< 8∘ and decreases linearly to 0 between 8° and 15°. 
+Thus, when the knee angle at TO is less than 8°, KTO is 1 and θKneeDes at TO is equal to θKneeSyn. 
+In contrast, when the knee angle at TO is above 15°, KTO is 0 and θKneeDes at TO is equal to 
+θKneeMJ. The ΔK term can modify KSyn after the initial value is set at TO. If θTℎigℎMeas and θ˙TℎigℎMeas are 
+both low, ΔK is set to a negative value so that KSyn decreases to 0 over time. This decrease 
+in KSyn means θKneeDes follows θKneeMJ which is common for walking activities (15). If the user 
+flexes their thigh beyond a threshold angle and θ˙TℎigℎMeas is high, ΔK is set to a positive value, 
+which results in KSyn increasing to 1. This increase in KSyn means θKneeDes follows θKneeSyn, which 
+is common for activities like stair ascent. ΔK is updated every control-loop iteration (i.e., 
+every 2 ms). Also, KSyn cannot go above 1 or below 0.
+ΔK=0.016, if θTℎigℎMeas< − 35
+andθ˙TℎigℎMeas< − 20
+andθKneeMeas> 20
+−0.008, if −10 > θTℎigℎMeas
+andθTℎigℎMeas> − 35
+andθ˙TℎigℎMeas> − 50
+(15)
+4) Ankle Control During No Contact:  During No Contact , we calculate the desired 
+ankle position ( θAnkleDes) and enforce it using a loosely tuned PID controller. θAnkleDes is the product 
+of the synergy coefficient, KSyn (14) and a synergistic ankle angle (θAnkleSyn) (16).
+θAnkleDes=θAnkleSyn⋅KSyn
+(16)
+θAnkleSyn dorsiflexes the ankle as a function of knee flexion and residual thigh acceleration. The 
+detailed calculation of θAnkleSyn is described in supplementary material section S2b.Sullivan et al. Page 8
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 9 ---
+B. Hardware
+We tested the proposed controller with the Utah Bionic Leg, a powered knee and ankle 
+prosthesis previously developed in the HGN Lab for Bionic Engineering (Fig. 5) [ 62]. The 
+Utah Bionic leg is a self-contained, battery-powered, lightweight robotic prosthesis with 
+knee and ankle/foot modules (Fig. 5). The powered knee module uses a torque-sensitive 
+actuator that combines the benefits of variable transmissions and series elastic actuators [ 63]. 
+The powered ankle/foot module uses an underactuated series elastic actuator, which actuates 
+the ankle and toe joint and allows for energy regeneration [ 5]. Each joint can produce up 
+to 150 Nm of torque [ 62]. The knee and ankle have active ranges of motion of 120° and 
+40°, respectively [ 62]. A custom instrumented pyramid adapter is attached to the top of the 
+ankle module to estimate the vertical ground reaction force (GRF) and sagittal plane torques 
+[64], which are necessary for the proposed unified controller. The prosthesis houses three 
+IMUs placed in the foot and shank, as well as on the top of the knee to measure the thigh. 
+Joint encoders at the knee and ankle measure angular position. The onboard electronics 
+run the proposed control algorithm at 500 Hz and communicate via Wi-Fi to a remote 
+computer for data telemetry and parameter tuning; however, the device can run without 
+remote connection. The knee and ankle/foot modules are connected by a standard 30-mm 
+diameter pylon, which is cut to the appropriate length to accommodate different user heights 
+and residual limb lengths.
+C. Experimental Protocol
+For this study, we recruited three subjects with unilateral above-knee amputation and 
+mobility level K3 based on Medicare Functional Classification Level [ 65]. The number 
+of subjects in this study was selected to demonstrate the functionality of the proposed 
+controller. These subjects provide variability in body mass and height to achieve this goal 
+(Table I). The Institutional Review Board at the University of Utah approved the study 
+protocol (IRB #00103197). The subjects provided informed consent to participate in the 
+study and for the publication of photos and videos from the experiment. Subject information 
+can be found in Table I. A certified prosthetist fit and aligned the prosthesis before all 
+experiments. Each subject performed the activities in this paper during a 3-hour testing 
+period. Through participation in prior studies, each subject had more than 10 hours of 
+experience with different iterations of the prosthesis and control algorithm. During the 
+3-hour testing period, each subject practiced using the prosthesis for up to 30 minutes and 
+received verbal training from the experimenters. During the same period, the experimenters 
+spent 15 minutes tuning up to eight of the control parameters for user preference, if desired, 
+including: θStep−Up (2), KPF (8), KDF (8), tswing (13), BExt (S2), BFlex (S2), BPF (S4), and 
+BDF (S4).
+The subjects then performed a series of tests to validate the performance of the proposed 
+controller. These tests included (1) walking on a treadmill at 1.0 m/s and inclines of 0%, 
+5%, and 10% for 60 seconds each after reaching steady state speed, (2) walking on a level 
+treadmill at 0.72 m/s, 1 m/s, and 1.25 m/s for 60 seconds each after reaching steady state 
+speed, (3) 10 trials of taking two consecutive strides on Sensa semi-rigid terrain patches 
+(Ottobock, Item #: 752T1) and then two strides on level ground, (4) climbing a flight Sullivan et al. Page 9
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 10 ---
+of 10 stairs three times, (5) sitting and standing from a chair continuously during a 60 
+second period, and (6) five trials of transition sequences from walking on level ground to 
+climbing stairs and then transitioning back to walking, performing both stair ascent and 
+descent variations and leading with both their prosthesis and sound side first for each 
+transition, resulting in eight total transitions. Finally, a single subject performed a real-world 
+ambulation demonstration which included all previously tested activities and more in a 
+continuous outdoor sequence. Fig. 6 shows images of subjects performing the laboratory 
+experiments. A video of each experiment being performed by subjects can be found in 
+supplementary materials. There are additional results and figures presented in supplementary 
+materials which analyze the same experiments. Those figures show the contributions of 
+individual control elements to provide detailed understanding of the intent and performance 
+of the proposed controller.
+D. Data Processing
+Joint kinematics and GRF data were recorded at 500 Hz by sensors embedded in the 
+prosthesis. Data was processed offline in MATLAB. When analyzing individual strides, we 
+first segmented each stride from prosthesis heel strike to prosthesis heel strike, using the 
+GRF readings. Then we interpolated each stride to 1000 samples and computed average joint 
+trajectories for three trials of that stride. When analyzing a series of strides, we segmented 
+the strides from each trial individually. We then averaged the data from three of the same 
+stride type from different trials of the experiment and then sequenced the averaged strides in 
+order. This provides interpolated, averaged data from three trials of each experiment.
+III. Results
+Steady State Activities
+A. Walking at Variable Inclines and Speeds: All three amputee users successfully 
+walked on variable inclines as the prosthesis biomimetically adapted ankle behavior. Fig. 
+7a-f shows joint data from three amputee subjects walking on a treadmill at 1.0 m/s at 
+inclines of 0%, 5%, and 10% grade. HS and TO events are determined by the GRF sensor 
+described in IIA. HS and TO events from AB data are determined by motion capture. The 
+subjects’ knee trajectory did not vary substantially across the three inclines. The average 
+peak knee angle varied between 72.4 +/− 6.3° and 74.8 +/− 5.2° and TO occurred between 
+59% and 61% of the stride (Fig. 7a). Peak knee angles from able-bodied biomechanics 
+across similar speeds range from 64.6° to 70.8° between 75% and 76% of stride [ 66]. More 
+considerable adaptation occurred in the ankle, with a noticeable trend in dorsiflexion as 
+ramp incline increased. The average peak ankle dorsiflexion angle decreased from −8.9 
++/−2.4° to −12.0 +/− 3.1° to −15.0 +/− 2.4° at 0%, 5%, and 10%, respectively (Fig. 7c). 
+Peak ankle angles from able-bodied biomechanics across similar speeds range from −4.2° 
+to −8.6° [ 66]. We measured ankle angle at the point that the shank is vertical with respect 
+to gravity, which occurs during midstance, to assess the ankle’s adaptation to incline (Fig. 
+7e). With the foot flat on the treadmill at this point, ankle angle decreased proportionally 
+as ramp incline increased. Converting ankle angle to % grade for comparison, average 
+ankle grade was 0.9%, −2.5%, and −7.9% at 0%, 5%, and 10% grade inclines, respectively 
+(Fig. 7e). This result reasonably matches able-bodied data, in which average ankle grade is Sullivan et al. Page 10
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 11 ---
+0.9%, −3.2%, and −7.3% at the three tested inclines (Fig. 7e). As incline increased, ankle 
+adaptation during stance resulted in greater ankle torque during pushoff and therefore higher 
+positive energy injection (Fig. 7f). Average energy injected by the ankle, normalized by 
+individual weight, was 0.07 J/kg, 0.12 K/kg, and 0.18 J/kg at 0%, 5%, and 10% grade 
+inclines, respectively. This result follows the same trend in able-bodied data, in which 
+average energy injected is 0.06 J/kg, 0.07 J/kg, and 0.08 J/kg at the three tested inclines (Fig. 
+7f). The three amputee users successfully walked on three different inclines as the prosthesis 
+provided a natural increase in ankle dorsiflexion and higher positive energy injection as 
+incline increased.
+All three amputee users were able to walk at variable speeds as the prosthesis 
+biomimetically adapted knee and ankle behavior. Fig. 7g-l shows joint data from three 
+amputee subjects walking on a level treadmill at speeds of 0.72 m/s, 1.0 m/s, and 1.25 m/s. 
+Peak knee angle and TO point did not vary substantially across the three inclines, with peak 
+knee angles ranging from 73.2 +/− 3.7° to 74.1 +/− 4.1° and TO occurring between 58% 
+and 62% of the stride (Fig. 7g). Peak knee angles from able-bodied biomechanics across 
+similar speeds range from 64.6° to 67.0° between 75% and 76% of stride [ 66]. In the ankle, 
+however, walking at faster speeds resulted in a significant increase in both dorsiflexion 
+during midstance and plantarflexion at TO. The average peak ankle dorsiflexion angle 
+decreased from −6.8 +/− 2.9° to −8.1 +/− 2.8° to −9.8 +/− 4.0° at 0.72 m/s, 1.0 m/s, and 1.25 
+m/s, respectively (Fig. 7i). Peak ankle dorsiflexion angles from able-bodied biomechanics 
+across similar speeds range from −13.1° to −15.7° [ 67]. The average ankle plantarflexion 
+angle at TO increased from 3.4 +/− 1.8° to 5.5 +/− 2.6° to 7.1 +/− 2.8° at the three tested 
+speeds (Fig. 7i). Peak ankle plantarflexion angles from able-bodied biomechanics across 
+similar speeds range from 13.8° to 16.4° [ 66]. Increasing plantarflexion angle is a result of 
+the ankle providing higher pushoff torque when walking at faster speeds. Higher pushoff 
+torque increases the total energy injected by the ankle. At 0.72 m/s, 1.0 m/s, and 1.25 m/s 
+the average ankle energy injected across the three subjects was 0.03 J/kg, 0.06 J/kg, and 0.08 
+J/kg, respectively (Fig. 7k). This result follows the same trend in able-bodied data, in which 
+average energy injected is −0.05 J/kg, 0.05 J/kg, and 0.14 J/kg at the three tested speeds 
+[67]. The users experienced adaptation to walking speed during both stance and swing. As 
+speed increased across the three tests, the average total stride time decreased from 1.66 
+s to 1.40 s to 1.20 s (Fig. 7l). Stride time from able-bodied biomechanics across similar 
+speeds ranges from 1.2s to 1.0s [ 66]. During stance, ankle adaptation allowed the user to 
+rollover the foot faster, resulting in decreasing stance times of 1.04 s, 0.85 s, and 0.70 s (Fig. 
+7l). During swing, the duration of the swing trajectory decreased as ankle plantarflexion 
+increased, resulting in decreasing swing times of 0.61 s, 0.54 s, and 0.49 s (Fig. 7l). The 
+three users successfully walked at three variable speeds as the prosthesis allowed greater 
+range of motion in the ankle, injected higher positive energy, and decreased swing duration 
+as speed increase.
+B. Rough Terrain: All three amputee users were able to walk on variable, “rough” 
+terrain as the prosthesis adapted ankle behavior. Fig. 8 shows ankle, shank, and knee 
+positions as well as ankle and knee torque from three amputee subjects walking on level 
+ground and rough terrain. The rough terrain consisted of randomly dispersed hills and Sullivan et al. Page 11
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 12 ---
+valleys, varying in height from 20–80mm at inclines and declines of 10–40° (Ottobock, Item 
+#: 752T1). HS and TO events are determined by the GRF sensor described in IIA. Ankle 
+behavior varied substantially when walking on rough terrain (Fig. 8a). This variation is 
+particularly evident in the increased range of motion of the ankle on rough terrain compared 
+to level ground. The knee and shank, in contrast, have more consistent behavior between the 
+two conditions (Fig. 8c, e). To assess the prosthesis’ adaptability as the user steps on highly 
+inclined and declined terrain, we measure the standard deviation of the ankle, shank, and 
+knee positions during stance. On level ground, the average standard deviations of the ankle, 
+shank, and knee segments are 1.2°, 4.5°, and 4.5° (Fig. 8). On rough terrain, the average 
+standard deviations of ankle, shank, and knee were 4.1°, 9.6°, and 7.3°, respectively (Fig. 
+8c, e). This represents a 241% increase in variation in the ankle compared to 53% in the 
+shank and 38% in the knee. To further compare the variance in angle between the three 
+segments, we can represent the average standard deviation on rough terrain as a percentage 
+of the total range of motion during level ground walking. By this metric, the ankle varies 
+by 42% of its normal range of motion while the shank and knee vary by 11% and 12% 
+of their normal ranges of motion, respectively. Furthermore, it is visually apparent that 
+ankle adaptation occurs throughout the entirety of stance because the joint plantarflexes 
+and dorsiflexes to match the terrain as soon as the foot contacts the ground. In contrast, 
+the shank and knee trajectories on rough terrain are very similar to their respective level 
+ground walking trajectories until about 50% of stride. Most modulation in the shank and 
+knee positions occurs shortly before and after TO. The three amputee users were able to 
+walk smoothly on rough, uneven terrain as the prosthesis allowed a greater range of motion 
+in the ankle to adapt to the variability of the terrain.
+C. Stair Ascent: All three amputee users were able to perform biomimetic stair ascent. 
+Fig. 9 shows joint angle and torque data from three amputee subjects ascending a uniform 
+set of stairs. HS and TO events are determined by the GRF sensor described in IIA. HS 
+and TO events from AB data are determined by motion capture. At 0% of stride, the 
+controller commanded high knee flexion of 70.1+/− 9.2° (Fig. 9a). This starting position 
+matches the knee angle at 0% stride in able-bodied populations of 66.7 +/− 6.9° (Fig. 9a). 
+At the same time, the unified controller commanded ankle dorsiflexion of −15.8 +/− 2.9° to 
+enable stable, flat foot placement on the stair (Fig. 9b). The ankle then plantarflexed as the 
+knee extended and the prosthesis lifted the user up the stair between 0–30% of the stride. 
+The knee commanded 49.3+/− 25.8 Nm of extension torque to enable the movement (Fig. 
+9a). This process occurred noticeably faster than the able-bodied reference, however users 
+reported that the speed of knee extension was comfortable (Fig. 9a). At toe-off, the knee 
+and ankle joints were close to neutral positions, similar to able-bodied kinematics (Fig. 9). 
+During early swing, between 50–70% of the stride, the controller commanded knee flexion 
+proportional to the user’s residual thigh kinematics. This control enabled rapid flexion to 
+clear the previous stair (Fig. 9a). Similar to able-bodied kinematics, the ankle plantarflexed 
+during this period to avoid scuffing on the stair (Fig. 9b). In late swing, the knee remained 
+flexed and the controller commanded ankle dorsiflexion to prepare for stable foot placement 
+on the next stair. The three amputee users were able to ascend stairs as the prosthesis 
+commanded high extension torque and biomimetic joint kinematics.Sullivan et al. Page 12
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 13 ---
+Transition Activities
+D. Sit to Stand: All three amputee users were able to perform natural stand-to-sit and 
+sit-to-stand movements. Fig. 10 shows joint angle and torque data from three amputee 
+subjects performing a continuous stand-sit-stand transition. Sit and stand events from AB 
+data are determined by motion capture. During stand-to-sit, knee damping enabled the user 
+to slowly perform the sitting movement at a controllable rate. These kinematics reasonably 
+matched able-bodied reference data. In the sitting position, the peak knee angle from the 
+average of our three test subjects was 100.9 +/− 7.9° compared to the able-bodied average 
+of 91.9 +/− 4.8° (Fig. 10a). The ankle biomimetically dorsiflexed as the user sat down, 
+and at the point of peak knee angle the ankle angle was an average of −17.6 +/− 0.7° 
+compared to the able-bodied average of −19.4 +/− 4.7° (Fig. 10b). During sit-to-stand, the 
+knee commands torque to enable the subjects to stand up quickly and controllably. Knee 
+angle reasonably matched able-bodied reference data during this phase (Fig. 10a). The 
+prosthesis biomimetically plantarflexed the ankle back to near 0° as the knee reached full 
+extension (Fig. 10b). The three amputee users successfully performed stand-to-sit and sit-to-
+stand movements as the prosthesis provided positive and negative assistance and enforced 
+biomimetic joint relationships.
+E. Walk to Stairs Transition: All three amputee users were able to perform natural 
+transitions between walking and stair ascent, leading with the prosthesis. Fig. 11 shows 
+knee and ankle joint position and torque data from three amputee subjects performing 
+a continuous walk-stair ascent-walk transition. HS and TO events of the prosthesis are 
+determined by the GRF sensor described in IIA. HS and TO events from AB data are 
+determined by motion capture, and AB data were interpolated to align with the prosthesis 
+timing. The sequence consisted of one full level ground walking stride, one transition stride 
+from walk-to-stairs, one full stair ascent stride, and one transition stride from stairs-to-walk. 
+The average prosthesis knee angle is shown in Fig. 11a. The knee angle trajectory, peak 
+values, and HS and TO points aligned with able-bodied reference kinematics following an 
+identical sequence. The prosthesis first enabled a level ground walking stride identical to 
+those performed in previous experiments (Fig. 7). The peak prosthesis knee angle during 
+walking was 64.0 +/− 3.1° compared to an able-bodied reference of 61.7 +/− 3.0°. Notably, 
+the amputee users did not initiate knee flexion early in stance compared to able-bodied 
+flexion of up to 19.8 +/− 5.5°. During the second stride, the users transitioned from walking 
+to stairs. As the users prepared for foot placement on the first step, the prosthesis knee 
+flexed up to 67.1 +/− 13.0° while the able-bodied average reached 90.3 +/− 2.6°. Despite 
+the prosthesis knee angle being smaller than the AB reference in swing, all participants were 
+able to clear the steps without additional compensation, as shown in the attached video. 
+On the third stride, as the users performed a complete stair ascent stride, the knee angle 
+peaked at 80.0 +/− 5.3° and the able-bodied reference peaked at 88.8 +/− 3.7°. Finally, 
+when transitioning back to walking, the knee flexed during swing to 57.2 +/− 4.9° and the 
+able-bodied reference reached 78.4 +/− 6.3°. To further compare the difference between the 
+prosthesis and the able-bodied knee position during the sequence, we calculate the average 
+difference between the two knee angles. The average difference in knee angle between 
+the prosthesis and able-bodied data was just 12.8°. The three amputee users were able to Sullivan et al. Page 13
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 14 ---
+transition between walking and stair ascent as the knee prosthesis biomimetically adapted 
+behavior between the two activities, reasonably matching able-bodied kinematics.
+The average prosthesis ankle angle is shown in Fig. 11b as the joint’s dorsiflexion and 
+plantarflexion peaks align with the able-bodied reference kinematics. During the walking 
+stride, the ankle dorsiflexed up to −9.0 +/− 3.1°, peaking at the same time as the able-bodied 
+peak of −4.0 +/− 2.3°. The able-bodied ankle reference plantarflexed up to 11.7 +/− 3.3° 
+after TO. In the transition from walking to stairs, the ankle reached peak dorsiflexion of 
+−6.3 +/− 3.9° and peak plantarflexion after TO of 0.5 +/− 1.8. This closely matches the 
+able-bodied reference, which dorsiflexed to −7.2 +/− 1.03° and plantarflexed to 2.5 +/− 2.2°. 
+At HS-Stairs, the ankle dorsiflexed to −13.3 +/− 2.8° at HS and plantarflexed to 0.6 +/− 
+3.0° at TO. The able-bodied reference dorsiflexed to −17.7 +/− 1.3° and plantarflexed up 
+to −9.1 +/− 1.4° at TO. Following the final TO event transitioning from stairs to walking, 
+the ankle and able-bodied reference reached peak plantarflexion angles of 4.8 +/− 2.5° and 
+7.2 +/− 4.8°, respectively. The average difference in ankle angle between the prosthesis and 
+able-bodied data across the entire sequence is 5.8°. The ankle prosthesis further enabled 
+users to biomimetically transition between walking and stair ascent.
+F. Real-World Ambulation: One subject conducted a real-world ambulation test, 
+performing a variety of activities and transitions in a continuous sequence. Fig. 12 shows 
+a map of the experiment circuit performed by TF01 with pictures from different activities, 
+a timeline of the test with color-coded activities, and a table of the activities performed as 
+well as how many strides of each activity were performed. A video of the experiment is 
+provided in the supplementary material of this paper. Prior to beginning the experiment, 
+the subject practiced walking, ramp ascent, sit-to-stand, stair ascent, and stair descent 
+in a laboratory setting. Experimenters tuned the eight parameters for subject preference, 
+specifically adjusting the range of walking swing duration, maximum torque during stair 
+ascent, knee flexion damping coefficient, and ankle stiffness coefficients. The subject was 
+instructed to follow a pre-determined course through the University of Utah campus store, 
+where a variety of ambulation activities could be performed in a short sequence, and they 
+practiced the course three times before we recorded the experiment. During the course, the 
+subject exits a car, traverses a parking lot, walks on uneven ground, ramps, and through a 
+store, and performs stair ascent and descent. The prosthesis enabled the subject to perform 
+all these activities and transitions between them by continuously adapting behavior based on 
+the subject’s kinematics and interaction with the environment.
+The subject successfully performed a high volume and variety of ambulation activities and 
+transitions safely and independently. During the test, the subject took 105 level ground 
+walking strides. They walked at variable speeds, moving faster across open spaces such as 
+the parking lot and slower when constrained by obstacles and other shoppers within the 
+store. Of the walking strides, 12 were irregular “shuffle” steps as they subject browsed 
+items in the store or stepped backwards to open doors. The subject performed eight walking 
+strides on rough terrain as they crossed an uneven grassy slope and seven strides ascending 
+ramps. The ankle prosthesis enabled the subject to walk smoothly across the grass without 
+adjusting their course or gait to compensate. Ankle adaptation furthermore enabled the 
+subject to walk smoothly and balanced up the ramp. The subject performed eight stair Sullivan et al. Page 14
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 15 ---
+ascent strides, receiving adequate foot clearance over each step and sufficient power to 
+climb stairs with one handrail. The subject performed two stair descent strides, receiving 
+high damping to descend slowly and safely. The subject performed one sit-to-stand and one 
+stand-to-sit activity at the beginning and end of the test, respectively. The prosthesis enabled 
+these steady-state activities as well as nine transitions between the activities. The proposed 
+controller continuously adapted the prosthesis’s behavior in response to changes in the 
+subject’s kinematics as they encountered unique terrain and required unique assistance. The 
+duration of the test was three minutes and 11 seconds, during which the subject completed 
+the experiment without any instructions or feedback from the experimenters. No parameters, 
+modes, or other controls were altered during the test. The subject did not scuff their foot, 
+trip, or experience unexpected behavior from the prosthesis at any point during the test. 
+The prosthesis enabled the subject to ambulate in a real-world environment, utilizing the 
+proposed unified control strategy to adapt to the needs of the subject and environment 
+without classifying the desired activity.
+IV. Discussion
+A. Significance
+This paper presents a unified controller for powered knee and ankle prostheses. The unified 
+controller incorporates bioinspired behaviors to achieve natural adaptation and continuous 
+transitions between activities. In this work, we show that this is possible without assuming 
+periodicity or explicitly classifying activities. Instead, the controller modulates behavior as 
+a continuous function of the prosthesis and user kinematics. This approach enabled three 
+above-knee amputee participants in this study to walk on level, inclined, and uneven terrains, 
+ascend and descend stairs, stand up and sit down from a chair, and seamlessly transition 
+between all these activities while leading with their sound or prosthesis side. To the best of 
+our knowledge, this is the first successful implementation of a unified control strategy for 
+continuous ambulation across these activities for powered knee and ankle prostheses.
+The proposed control approach diverges from the widespread assumption of periodicity in 
+powered prosthesis control. Virtually all available powered prosthesis controllers define the 
+prosthesis movements based on a periodic gait cycle specific to a certain ambulation activity 
+or transition. As a consequence, they must first correctly classify the activity intended by 
+the user to function properly. Even with up to 98% classification accuracy by the most 
+sophisticated existing methods, an amputee user performing hundreds of transitions and 
+thousands of steps per day will frequently encounter classification errors [ 48]. Real-world 
+ambulation requires prosthesis users to quickly start, stop, change speed, change terrain, or 
+change activity instantly. These movements are not periodic and are difficult to classify as 
+they are highly variable and do not match activity-specific steady-state kinematics/kinetics 
+profiles. The proposed controller enables aperiodic movements that are not classified as a 
+specific activity by relying on biological gait behaviors that are invariant across ambulation 
+tasks (e.g., minimum-jerk movements, knee/ankle synergy) and can operate simultaneously 
+without interfering with each other.
+The proposed controller builds logically on our previous work [ 68], [69]. To achieve 
+adaptation to speeds and inclines, we use variable impedance control for the ankle joint. Sullivan et al. Page 15
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 16 ---
+Ankle stiffness is commanded as a function of shank angle, a control approach originally 
+developed and validated for transtibial users with a semi-active ankle prosthesis [ 54]. In 
+this study, we demonstrate the first successful implementation of shank-based stiffness 
+for above-knee amputees. More importantly, in this study, we extended this shank-based 
+approach to late stance, showing that it enables the ankle to adapt energy injection 
+to variable inclines. Moreover, in this study, we present a novel control approach that 
+commands ankle damping as a continuous function of the user’s hip velocity. This novel 
+variable-damping approach enables the prosthesis to provide higher positive power output 
+at the ankle as walking speeds increase. Thus, this work expands shank-based impedance 
+control to allow for variable energy injection for different speeds and inclines.
+Speed and incline adaptation for powered knee and ankle prostheses has been achieved 
+in previous studies using different control approaches. One approach for speed adaptation 
+uses independent sub-controllers for each selected speed and requires hand-tuned impedance 
+parameters for each speed [ 70]. This approach is highly functional within discrete cases; 
+however, it does not enable continuous adaptation. A second approach for speed adaptation 
+enforces quasi-stiffness profiles extracted from nominal biomechanics, determining the 
+appropriate profile using the prosthesis kinematics and an estimate of ambulation speed 
+[27]. This approach enables continuous adaptation but relies on lookup tables that have 
+saturation limits outside the table boundaries, which limits versatility and requires a walking 
+speed estimate. A third approach achieves data-driven variable impedance for adaptive speed 
+and incline walking by optimizing impedance parameters based on an estimate of gait phase, 
+speed, and incline [ 26]. This approach improves continuous adaptation but remains reliant 
+on accurate estimates of gait characteristics and enforces nominal biomechanics, which may 
+be challenging to adapt to the subjective preference of different amputee users and their 
+clinicians. Different from these previous approaches, the proposed controller continuously 
+adapts its speed as a function of the user’s hip velocity and adapts its incline solely as 
+a function of the shank angle. This approach provides adaptation based on measurable 
+variables that are not defined by gait phase and do not require periodic ambulation. 
+Furthermore, it allows for adaptation to rough terrains, a feature not demonstrated with 
+other powered knee and ankle controllers.
+As shank-based stiffness commands ankle torque in late stance, we implement a novel 
+control approach that reproduces the function of the biarticular gastrocnemius muscle. This 
+biarticular term commands flexion torque at the knee proportional to ankle plantarflexion 
+torque, which initiates swing in late stance, and injects energy at the knee joint in late stance. 
+Thus, by continuously modulating the knee flexion torque as a function of the ankle torque 
+and knee position, this biarticular term allows for swing initiation and energy injection at the 
+knee joint without estimating the gait phase or classification of the activity.
+To achieve speed adaptation during swing, we present a novel implementation of minimum-
+jerk trajectory control. This novel implementation enables instantaneous speed adaptation 
+without using gait phase or assuming periodicity. In previous studies, the duration of the 
+minimum jerk trajectory was calculated proportional to the duration of the previous stance 
+phase, essentially relying on the assumption that the movement is periodic. Moreover, the 
+swing was split into two phases (flexion/extension), and the maximum flexion position was Sullivan et al. Page 16
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 17 ---
+either pre-determined [ 56] or commanded based on thigh position [ 53]. These characteristics 
+made the swing controller activity specific. In this study, we expanded the minimum-jerk 
+control, commanding a single movement with no predetermined maximum flexion angle. 
+Furthermore, we calculate the swing duration based on the ankle angle at toe off. This 
+relationship between swing duration and ankle angle at toe off is inspired by able-bodied 
+biomechanics and enables the user to change speed instantly.
+During the walking experiments, the prosthesis biomimetically adapted behavior to enable 
+natural ambulation on variable inclines, at variable speeds, and on rough terrain. When 
+walking at variable inclines, the ankle prosthesis closely matched able-bodied trends 
+by increasing dorsiflexion and positive energy injection as the ramp incline increased. 
+Meanwhile, the knee prosthesis trajectory remained consistent and stable across inclines. 
+When walking at variable speeds, the ankle prosthesis closely matched able-bodied trends 
+by decreasing damping and therefore increasing positive energy injected as walking speed 
+increased. Triggered by the ankle’s adaptation to walking speed, the duration of the knee 
+swing trajectory decreased as walking speed increased, so that both swing and stance phases 
+of walking decreased biomimetically. Importantly, the prosthesis is not discretely tuned for 
+specific inclines or speeds. Instead, the controller automatically and continuously adapts 
+behavior in response to the user changing their gait behavior. When walking on rough, 
+uneven terrain, the ankle range of motion increased substantially to adapt to the highly 
+inclined and declined surfaces. The knee and shank, in contrast, moved more consistently 
+between rough and level terrain. These experiments show that the controller naturally adapts 
+to changes in speed, incline, and terrain type. This approach allows users to safely encounter 
+variable terrain types and walk at variable speeds necessary for ambulation outside the 
+laboratory setting.
+The proposed Step-up Torque was originally developed for a previous stair-ascent controller 
+and validated with one amputee subject [ 52]. This paper further validates this approach 
+with three amputee participants. When performing stair ascent, the Step-up Torque enabled 
+all three participants to climb stairs smoothly and stably. This work presents a novel 
+implementation of this control function by enabling Step-up Torque to support both stair 
+ascent and sit-to-stand transitions without interfering with other ambulation activities, 
+which is key to avoiding the need to classify the intended activity. When performing sit-
+to-stand transitions with the Unified Controller, the users’ kinematics mirrored stair ascent 
+conditions. As a result, the controller commanded Step-up Torque to support smooth and 
+powerful sit-to-stand.
+Similar to our previous work, we implement synergy-based desired position control [ 52] and 
+minimum-jerk control [ 53], [56], [71]. However, here we present a novel implementation 
+that integrates these two control strategies, extending their capability to multiple ambulation 
+activities. Specifically, the proposed controller determines the initial prosthesis swing 
+behavior based on the kinematics of the residual thigh at toe off and continuously adapts 
+them throughout swing. This continuous adaptation enables the powered prosthesis to 
+support both walking and stair climbing under a single controller. Furthermore, users can 
+transition between walking and stairs leading with either the prosthesis or the intact limb. 
+During the complex walk-stairs-walk transitions performed here, the prosthesis successfully Sullivan et al. Page 17
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 18 ---
+modulated its behavior over the course of a single stride to enable the user to seamlessly 
+transition between the two activities. Notably, transitions between walking and stair ascent 
+have been achieved by varying prosthesis behavior between two data-driven, steady-state 
+controllers in results from [ 25] as well as [ 72]. Those continuously varying approaches were 
+validated to be more beneficial than simple mode-switching approaches and were shown to 
+greatly improve biomimicry of activity transitions. However, the approaches still require the 
+controller to correctly classify the activity and intended transition.
+The ultimate experiment in this work was to perform all the previously tested activities and 
+transitions, as well as additional, untested environments and combinations of transitions, in 
+a real-world environment. The prosthesis enabled smooth and safe ambulation during all 
+activities performed during the test, including walking on new terrain types and changing 
+speeds based on moving obstacles. The user encountered unpredictable elements of real-
+world environments, and the prosthesis adapted accordingly. Furthermore, the prosthesis 
+enabled seamless transitions without classifying the desired starting and ending activities, 
+performing each transition as soon as the user required it. This capability substantially 
+improves the real-world viability of powered prostheses.
+B. Limitations
+We recognize several limitations in the approach and capabilities of the proposed control 
+strategy. First, the proposed controller does not use EMG sensors to provide the user 
+with volitional control over the prosthesis’ movement. V olitional control ensures that 
+prosthesis assistance is coordinated with user intent. This ability makes EMG-based control 
+a potential alternative approach to achieving ambulation without activity classification [ 16], 
+[73]. Several existing controllers have demonstrated EMG control for sit-to-stand, walking, 
+squatting, lunging, and postural control [ 41], [51], [74], [75]. Future work could address the 
+challenges of implementing EMG sensors into the prosthetic socket and develop a unified 
+controller using EMG input. We believe that this approach could be preferred by users and 
+improve adaptability in real-world scenarios.
+The unified controller does not reproduce able-bodied biomechanics in all scenarios. During 
+level ground walking, damping in the knee joint prevents the user from initiating the 
+common normative behavior of stance knee flexion. Users did not note this as a significant 
+limitation. This is likely because amputees are often trained to walk on passive knee 
+prostheses without stance knee flexion.
+The experiments presented here demonstrate the functionality of the controller and compare 
+basic biomechanics to able-bodied references. However, they do not assess whether the 
+proposed controller achieves optimal, biomimetic ambulation, as done in previous studies 
+[18], [26], [50], [62]. Although subject-specific tuning is not required for the controller to 
+function, we did tune up to eight control parameters to the liking of the three participants. 
+During the subject’s 30-minute practice period, tuning the parameters took about 15 
+minutes, which is similar to the time spent by a prosthetist to tune passive microprocessor-
+controlled prostheses. However, properly tuning the parameters requires specific expertise 
+and experience with the proposed controller, limiting clinical viability. Despite this, we 
+believe that the ability to tune the controller is an advantage because it enables us to account Sullivan et al. Page 18
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 19 ---
+for subjective user and clinician preferences. In our previous work [ 27], we scaled all 
+control parameters based on body weight using nonamputee biomechanics as a reference. 
+This approach led to a fundamentally tuning-free walking controller [ 27]. However, it 
+would not allow us to implement subjective preference. Future work should make this 
+process more intuitive and accessible, allowing a subject to tune the prosthesis without direct 
+supervision of clinicians or engineers [ 23]. This could be achieved by reducing the number 
+of parameters. Alternatively, future work could use optimization algorithms or automatic 
+tuning to select parameters, as previously done in [ 76], [77], and [ 78]. Additionally, the 
+controller’s generalizability may be limited by the amount of training time required for 
+different users, depending on their intuitive behaviors and the expertise of the trainer.
+Specific limitations also exist in the implementation of the proposed controller. Ankle 
+damping is commanded as a function of hip velocity and saturates at 0 Nm*s/deg at 1.2 
+m/s in plantarflexion and 2.0 m/s in dorsiflexion. Participants in this study did not reach 
+hip velocities greater than 1.2 m/s. However, future users who may be able to reach higher 
+hip velocities will not receive continuous adaptation above this speed. The minimum jerk 
+trajectory duration adaptation is additionally limited to a range of 0.45–0.55 s. Participants 
+in this study did not make note of this impacting their ability to walk at the fastest 
+and slowest tested speeds. However, this saturation may limit versatility for future users. 
+Knee damping in the flexion direction is commanded when the thigh is anterior to the 
+body, which occurs during both stair descent and stand-to-sit. Therefore, the prosthesis 
+commands equivalent damping in both activities. Participants in this study did not report 
+any difficulty when performing the stand-to-sit. However, future users may prefer to receive 
+higher damping during stair ascent when lowering on one leg and lower damping during 
+stand-to-sit when lowering on both legs. An alternative control approach to address this 
+limitation would be to command knee damping as a function of GRF magnitude. In stair 
+descent, the controller does not command a minimum jerk trajectory but instead is position 
+controlled to return to 2° with loose PID gains. Participants in this study were able to safely 
+descend stairs and did not note difficulty with this control.
+V. Conclusion
+In this work, we present a novel unified control strategy for a powered knee and ankle 
+prosthesis. The unified controller is intrinsically adaptive to the user and environment, 
+enables a variety of ambulation activities, and supports seamless transitions between 
+activities without classifying the desired activity or assuming a periodic gait. The controller 
+builds upon the successes of previous control strategies and incorporates biologically 
+inspired gait behaviors to enable safe and natural ambulation.
+Experiments with three above-knee amputees show that the proposed controller enables 
+walking on level, inclined, and uneven terrains, ascending and descending stairs, and 
+standing up and sitting down from a chair. The controller uses a bioinspired approach 
+to replicate able-bodied behavior during the tested activities. This represents the first 
+implementation of a powered knee and ankle prosthesis controller to achieve this level of 
+functionality and versatility. Furthermore, users were able to smoothly transition between 
+all these activities. The prosthesis kinematics closely matched able-bodied reference data Sullivan et al. Page 19
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 20 ---
+during sit-to-stand, stand-to-sit, walk-to-stair ascent, and stair ascent-to-walk. Finally, one 
+subject performed a real-world ambulation experiment in an uncontrolled, mixed outdoor 
+and indoor environment. The prosthesis enabled safe and continuous ambulation across a 
+variety of activities as the user encountered obstacles, navigated previously untested terrain, 
+and moved between tasks as they desired.
+The unified controller enables lower-limb amputees to use powered prostheses and ambulate 
+safely and naturally. We believe that this work represents a promising advancement in the 
+translation of powered prostheses from the laboratory to the real world.
+Supplementary Material
+Refer to Web version on PubMed Central for supplementary material.
+Acknowledgments
+This work was supported in part by the National Institutes of Health under Grant R01 HD098154/HD/NICHD, in 
+part by the National Institute for Occupational Safety and Health under Grant T42/CCT810426, and in part by U.S. 
+Department of Defense under Grant W81XWH2110037.
+References
+[1]. Torrealba RR and Fonseca-Rojas ED, “Toward the development of knee prostheses: Review 
+of current active devices,” Appl. Mech. Rev, vol. 71, no. 3, pp. 1–17, May 2019, doi: 
+10.1115/1.4043323.
+[2]. Lamoth CJC, Ainsworth E, Polomski W, and Houdijk H, “Variability and stability analysis of 
+walking of transfemoral amputees,” Med. Eng. Phys, vol. 32, no. 9, pp. 1009–1014, Nov. 2010, 
+doi: 10.1016/j.medengphy.2010.07.001. [PubMed: 20685147] 
+[3]. Boonstra AM, Fidler V , and Eisma WH, “Walking speed of normal subjects and amputees: 
+Aspects of validity of gait analysis,” Prosthetics Orthotics Int, vol. 17, no. 2, pp. 78–82, 1993, 
+doi: 10.3109/03093649309164360.
+[4]. Grzebien A, Chabowski M, Malinowski M, Uchmanowicz I, Milan M, and Janczak D, “Analysis 
+of selected factors determining quality of life in patients after lower limb amputation- a review 
+article,” Polish J. Surgery, vol. 89, no. 2, pp. 57–61, Apr. 2017, doi: 10.5604/01.3001.0009.8980.
+[5]. Gabert L, Tran M, and Lenzi T, “Design of an underactuated powered ankle and toe prosthesis,” in 
+Proc. 43rd Annu. Int. Conf. IEEE Eng. Med. Biol. Soc. (EMBC), Nov. 2021, pp. 4920–4923, doi: 
+10.1109/EMBC46164.2021.9629842.
+[6]. Urs K, Adu CE, Rouse EJ, and Moore TY , “Design and characterization of 3D printed, open-
+source actuators for legged locomotion,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. 
+(IROS), Oct. 2022, pp. 1957–1964, doi: 10.1109/IROS47612.2022.9981940.
+[7]. Azocar AF, Mooney LM, Duval J-F, Simon AM, Hargrove LJ, and Rouse EJ, “Design and clinical 
+implementation of an open-source bionic leg,” Nature Biomed. Eng, vol. 4, no. 10, pp. 941–953, 
+Oct. 2020, doi: 10.1038/s41551-020-00619-3. [PubMed: 33020601] 
+[8]. Culver SC, Vailati LG, and Goldfarb M, “A power-capable knee prosthesis with ballistic swing-
+phase,” IEEE Trans. Med. Robot. Bionics, vol. 4, no. 4, pp. 1034–1045, Nov. 2022, doi: 10.1109/
+TMRB.2022.3216475.
+[9]. Elery T, Rezazadeh S, Nesler C, and Gregg RD, “Design and validation of a powered knee–ankle 
+prosthesis with high-torque, low-impedance actuators,” IEEE Trans. Robot, vol. 36, no. 6, pp. 
+1649–1668, Dec. 2020, doi: 10.1109/TRO.2020.3005533. [PubMed: 33299386] 
+[10]. Bartlett HL, King ST, Goldfarb M, and Lawson BE, “Design and assist-as-needed control of a 
+lightly powered prosthetic knee,” IEEE Trans. Med. Robot. Bionics, vol. 4, no. 2, pp. 490–501, 
+May 2022, doi: 10.1109/TMRB.2022.3161068.Sullivan et al. Page 20
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 21 ---
+[11]. Lawson BE, Mitchell J, Truex D, Shultz A, Ledoux E, and Goldfarb M, “A robotic leg prosthesis: 
+Design, control, and implementation,” IEEE Robot. Autom. Mag, vol. 21, no. 4, pp. 70–81, Dec. 
+2014, doi: 10.1109/MRA.2014.2360303.
+[12]. Rouse EJ, Mooney LM, Martinez-Villalpando EC, and Herr HM, “Clutchable series-elastic 
+actuator: Design of a robotic knee prosthesis for minimum energy consumption,” in 
+Proc. IEEE 13th Int. Conf. Rehabil. Robot. (ICORR), Jun. 2013, pp. 1–6, doi: 10.1109/
+ICORR.2013.6650383.
+[13]. Shepherd MK and Rouse EJ, “The VSPA foot: A quasi-passive ankle-foot prosthesis with 
+continuously variable stiffness,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 25, no. 12, pp. 
+2375–2386, Dec. 2017, doi: 10.1109/TNSRE.2017.2750113. [PubMed: 28885156] 
+[14]. Mazzarini A et al. , “A low-power ankle-foot prosthesis for push-off enhancement,” Wearable 
+Technol, vol. 4, pp. 1–14, Jun. 2023, doi: 10.1017/wtc.2023.13.
+[15]. Cherelle P, Grosu V , Matthys A, Vanderborght B, and Lefeber D, “Design and validation of the 
+ankle mimicking prosthetic (AMP-) foot 2.0,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 22, 
+no. 1, pp. 138–148, Jan. 2014, doi: 10.1109/TNSRE.2013.2282416. [PubMed: 24122571] 
+[16]. Gehlhar R, Tucker M, Young AJ, and Ames AD, “A review of current state-of-the-art control 
+methods for lower-limb powered prostheses,” Annu. Rev. Control, vol. 55, pp. 142–164, Jan. 
+2023, doi: 10.1016/j.arcontrol.2023.03.003. [PubMed: 37635763] 
+[17]. Rezazadeh S, Quintero D, Divekar N, Reznick E, Gray L, and Gregg RD, “A phase variable 
+approach for improved rhythmic and non-rhythmic control of a powered knee-ankle prosthesis,” 
+IEEE Access, vol. 7, pp. 109840–109855, 2019, doi: 10.1109/ACCESS.2019.2933614. [PubMed: 
+31656719] 
+[18]. Cortino RJ, Best TK, and Gregg RD, “Data-driven phase-based control of a powered knee-ankle 
+prosthesis for variable-incline stair ascent and descent,” IEEE Trans. Med. Robot. Bionics, vol. 6, 
+no. 1, pp. 175–188, Feb. 2024, doi: 10.1109/TMRB.2023.3328656. [PubMed: 38304755] 
+[19]. Quintero D, Villarreal DJ, Lambert DJ, Kapp S, and Gregg RD, “Continuous-phase control of a 
+powered knee–ankle prosthesis: Amputee experiments across speeds and inclines,” IEEE Trans. 
+Robot, vol. 34, no. 3, pp. 686–701, Jun. 2018, doi: 10.1109/TRO.2018.2794536. [PubMed: 
+30008623] 
+[20]. Shultz AH, Lawson BE, and Goldfarb M, “Variable cadence walking and ground adaptive 
+standing with a powered ankle prosthesis,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 24, no. 4, 
+pp. 495–505, Apr. 2016, doi: 10.1109/TNSRE.2015.2428196. [PubMed: 25955789] 
+[21]. Lawson BE, Varol HA, Huff A, Erdemir E, and Goldfarb M, “Control of stair ascent and descent 
+with a powered transfemoral prosthesis,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 21, no. 3, 
+pp. 466–473, May 2013, doi: 10.1109/TNSRE.2012.2225640. [PubMed: 23096120] 
+[22]. Bhakta K, Camargo J, Kunapuli P, Childers L, and Young AJ, “Impedance control strategies 
+for enhancing sloped and level walking capabilities for individuals with transfemoral amputation 
+using a powered multi-joint prosthesis,” in Proc. Mil. Med, vol. 185, Jan. 2019, pp. 490–499, doi: 
+10.1093/milmed/usz229.
+[23]. Alili A et al. , “A novel framework to facilitate user preferred tuning for a robotic knee 
+prosthesis,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 31, pp. 895–903, 2023, doi: 10.1109/
+TNSRE.2023.3236217. [PubMed: 37018713] 
+[24]. Clites TR, Shepherd MK, Ingraham KA, and Rouse EJ, “Patient preference in the selection 
+of prosthetic joint stiffness,” in Proc. 8th IEEE RAS/EMBS Int. Conf. Biomed. Robot. 
+Biomechatronics (BioRob), New York, NY , USA, Nov. 2020, pp. 1073–1079, doi: 10.1109/
+BioRob49111.2020.9224405.
+[25]. Clites TR, Shepherd MK, Ingraham KA, and Rouse EJ, “Patient preference in the selection 
+of prosthetic joint stiffness,” in Proc. 8th IEEE RAS/EMBS Int. Conf. Biomedical Robotics 
+Biomechatronics (BioRob), New York, NY , USA, Nov. 2020, pp. 1073–1079. doi: 10.1109/
+BioRob49111.2020.9224405.
+[26]. Best TK, Welker CG, Rouse EJ, and Gregg RD, “Data-driven variable impedance control of a 
+powered knee–ankle prosthesis for adaptive speed and incline walking,” IEEE Trans. Robot, vol. 
+39, no. 3, pp. 2151–2169, Jun. 2023, doi: 10.1109/TRO.2022.3226887. [PubMed: 37304232] Sullivan et al. Page 21
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 22 ---
+[27]. Lenzi T, Hargrove L, and Sensinger J, “Speed-adaptation mechanism: Robotic prostheses can 
+actively regulate joint torque,” IEEE Robot. Autom. Mag, vol. 21, no. 4, pp. 94–107, Dec. 2014, 
+doi: 10.1109/MRA.2014.2360305.
+[28]. Zhang F, Liu M, and Huang H, “Investigation of timing to switch control mode in powered knee 
+prostheses during task transitions,” PLoS ONE, vol. 10, no. 7, Jul. 2015, Art. no. e0133965, doi: 
+10.1371/journal.pone.0133965.
+[29]. Young AJ and Hargrove LJ, “A classification method for user-independent intent recognition for 
+transfemoral amputees using powered lower limb prostheses,” IEEE Trans. Neural Syst. Rehabil. 
+Eng, vol. 24, no. 2, pp. 217–225, Feb. 2016, doi: 10.1109/TNSRE.2015.2412461. [PubMed: 
+25794392] 
+[30]. Cheng S, Laubscher CA, Best TK, and Gregg RD, “Ambilateral activity recognition and 
+continuous adaptation with a powered knee-ankle prosthesis,” IEEE Trans. Robot, vol. 41, pp. 
+2251–2267, 2025, doi: 10.1109/TRO.2025.3539206. [PubMed: 40687340] 
+[31]. Varol HA, Sup F, and Goldfarb M, “Multiclass real-time intent recognition of a powered lower 
+limb prosthesis,” IEEE Trans. Biomed. Eng, vol. 57, no. 3, pp. 542–551, Mar. 2010, doi: 
+10.1109/TBME.2009.2034734. [PubMed: 19846361] 
+[32]. Simon AM et al., “Ambulation control system design for a hybrid knee prosthesis,” in Proc. Int. 
+Conf. Rehabil. Robot. (ICORR), Jul. 2022, pp. 1–6, doi: 10.1109/ICORR55369.2022.9896607.
+[33]. Eken H et al. , “A locomotion mode recognition algorithm using adaptive dynamic movement 
+primitives,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 31, pp. 4318–4328, 2023, doi: 10.1109/
+TNSRE.2023.3327751. [PubMed: 37883286] 
+[34]. Mazumder A and Carloni R, “Mechatronic design & adaptive control of a lower limb prosthesis,” 
+in Proc. 8th IEEE RAS/EMBS Int. Conf. Biomed. Robot. Biomechatronics (BioRob), Nov. 2020, 
+pp. 446–451, doi: 10.1109/BIOROB49111.2020.9224340.
+[35]. Kim M, Simon AM, Shah K, and Hargrove LJ, “Machine learning-based gait mode prediction 
+for hybrid knee prosthesis control,” in Proc. 45th Annu. Int. Conf. IEEE Eng. Med. Biol. Soc. 
+(EMBC), Jul. 2023, pp. 1–6, doi: 10.1109/EMBC40787.2023.10340388.
+[36]. Kim M, Simon AM, and Hargrove LJ, “Seamless and intuitive control of a powered prosthetic leg 
+using deep neural network for transfemoral amputees,” Wearable Technol, vol. 3, pp. 1–15, Sep. 
+2022, doi: 10.1017/wtc.2022.19.
+[37]. Yu S et al. , “Artificial neural network-based activities classification, gait phase estimation, 
+and prediction,” Ann. Biomed. Eng, vol. 51, no. 7, pp. 1471–1484, Jul. 2023, doi: 10.1007/
+s10439-023-03151-y. [PubMed: 36681749] 
+[38]. Young AJ, Simon AM, Fey NP, and Hargrove LJ, “Intent recognition in a powered lower limb 
+prosthesis using time history information,” Ann. Biomed. Eng, vol. 42, no. 3, pp. 631–641, Mar. 
+2014, doi: 10.1007/s10439-013-0909-0. [PubMed: 24052324] 
+[39]. Huang H, Zhang F, Hargrove LJ, Dou Z, Rogers DR, and Englehart KB, “Continuous 
+locomotion-mode identification for prosthetic legs based on neuromuscular–mechanical fusion,” 
+IEEE Trans. Biomed. Eng, vol. 58, no. 10, pp. 2867–2875, Oct. 2011, doi: 10.1109/
+TBME.2011.2161671. [PubMed: 21768042] 
+[40]. Hargrove LJ et al. , “Intuitive control of a powered prosthetic leg during ambulation: A 
+randomized clinical trial,” JAMA, vol. 313, no. 22, pp. 2244–2252, Jun. 2015, doi: 10.1001/
+jama.2015.4527. [PubMed: 26057285] 
+[41]. Posh RR, Schmiedeler JP, and Wensing PM, “Finite-state impedance and direct myoelectric 
+control for robotic ankle prostheses: Comparing their performance and exploring their 
+combination,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 31, pp. 2778–2788, 2023, doi: 
+10.1109/TNSRE.2023.3287971. [PubMed: 37339042] 
+[42]. Murray R, Mendez J, Gabert L, Fey NP, Liu H, and Lenzi T, “Ambulation mode classification of 
+individuals with transfemoral amputation through A-mode sonomyography and convolutional 
+neural networks,” Sensors, vol. 22, no. 23, p. 9350, Dec. 2022, doi: 10.3390/s22239350. 
+[PubMed: 36502055] 
+[43]. Liu M, Wang D, and Huang H, “Development of an environment-aware locomotion mode 
+recognition system for powered lower limb prostheses,” IEEE Trans. Neural Syst. Rehabil. Sullivan et al. Page 22
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 23 ---
+Eng, vol. 24, no. 4, pp. 434–443, Apr. 2016, doi: 10.1109/TNSRE.2015.2420539. [PubMed: 
+25879962] 
+[44]. Krausz NE and Hargrove LJ, “Sensor fusion of vision, kinetics, and kinematics for forward 
+prediction during walking with a transfemoral prosthesis,” IEEE Trans. Med. Robot. Bionics, vol. 
+3, no. 3, pp. 813–824, Aug. 2021, doi: 10.1109/TMRB.2021.3082206.
+[45]. Spanias JA, Simon AM, Finucane SB, Perreault EJ, and Hargrove LJ, “Online adaptive neural 
+control of a robotic lower limb prosthesis,” J. Neural Eng, vol. 15, no. 1, Feb. 2018, Art. no. 
+016015, doi: 10.1088/1741-2552/aa92a8.
+[46]. Camargo J, Flanagan W, Csomay-Shanklin N, Kanwar B, and Young A, “A machine learning 
+strategy for locomotion classification and parameter estimation using fusion of wearable 
+sensors,” IEEE Trans. Biomed. Eng, vol. 68, no. 5, pp. 1569–1578, May 2021, doi: 10.1109/
+TBME.2021.3065809. [PubMed: 33710951] 
+[47]. Mohanty RK, Mohanty RC, and Sabut SK, “Application of control strategies and machine 
+learning techniques in prosthetic knee: A systematic review,” Adv. Comput. Intell, vol. 2, no. 1, 
+p. 17, Feb. 2022, doi: 10.1007/s43674-021-00031-7.
+[48]. Zheng E, Wan J, Gao S, and Wang Q, “Adaptive locomotion transition recognition with wearable 
+sensors for lower limb robotic prosthesis,” IEEE/ASME Trans. Mechatronics, vol. 29, no. 1, pp. 
+279–289, Feb. 2024, doi: 10.1109/TMECH.2023.3278315.
+[49]. Zhang F, Liu M, and Huang H, “Effects of locomotion mode recognition errors on volitional 
+control of powered above-knee prostheses,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 23, no. 
+1, pp. 64–72, Jan. 2015, doi: 10.1109/TNSRE.2014.2327230. [PubMed: 25486645] 
+[50]. Welker CG, Best TK, and Gregg RD, “Improving sit/stand loading symmetry and timing 
+through unified variable impedance control of a powered knee-ankle prosthesis,” IEEE Trans. 
+Neural Syst. Rehabil. Eng, vol. 31, pp. 4146–4155, 2023, doi: 10.1109/TNSRE.2023.3320692. 
+[PubMed: 37773917] 
+[51]. Hunt G, Hood S, and Lenzi T, “Stand-up, squat, lunge, and walk with a robotic knee and ankle 
+prosthesis under shared neural control,” IEEE Open J. Eng. Med. Biol, vol. 2, pp. 267–277, 2021, 
+doi: 10.1109/OJEMB.2021.3104261. [PubMed: 35402979] 
+[52]. Hood S, Gabert L, and Lenzi T, “Powered knee and ankle prosthesis with adaptive control 
+enables climbing stairs with different stair heights, cadences, and gait patterns,” IEEE Trans. 
+Robot, vol. 38, no. 3, pp. 1430–1441, Jun. 2022, doi: 10.1109/TRO.2022.3152134. [PubMed: 
+35686286] 
+[53]. Mendez J, Hood S, Gunnel A, and Lenzi T, “Powered knee and ankle prosthesis with indirect 
+volitional swing control enables level-ground walking and crossing over obstacles,” Sci. Robot, 
+vol. 5, no. 44, p. 6635, Jul. 2020, doi: 10.1126/scirobotics.aba6635.
+[54]. Bartlett HL, King ST, Goldfarb M, and Lawson BE, “A semi-powered ankle prosthesis and 
+unified controller for level and sloped walking,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 29, 
+pp. 320–329, 2021, doi: 10.1109/TNSRE.2021.3049194. [PubMed: 33400653] 
+[55]. Shultz AH and Goldfarb M, “A unified controller for walking on even and uneven terrain with a 
+powered ankle prosthesis,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 26, no. 4, pp. 788–797, 
+Apr. 2018, doi: 10.1109/TNSRE.2018.2810165. [PubMed: 29641383] 
+[56]. Lenzi T, Hargrove LJ, and Sensinger JW, “Minimum jerk swing control allows variable cadence 
+in powered transfemoral prostheses,” in Proc. 36th Annu. Int. Conf. IEEE Eng. Med. Biol. Soc., 
+Aug. 2014, pp. 2492–2495, doi: 10.1109/EMBC.2014.6944128.
+[57]. Hunt GR, Hood S, Gabert L, and Lenzi T, “Effect of increasing assistance from a powered 
+prosthesis on weight-bearing symmetry, effort, and speed during stand-up in individuals with 
+above-knee amputation,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 31, pp. 11–21, 2023, doi: 
+10.1109/TNSRE.2022.3214806. [PubMed: 36240032] 
+[58]. Kibushi B, “Muscle coordination patterns in regulation of medial gastrocnemius activation 
+during walking,” Hum. Movement Sci, vol. 90, Aug. 2023, Art. no. 103116, doi: 10.1016/
+j.humov.2023.103116.
+[59]. Zelik KE and Adamczyk PG, “A unified perspective on ankle push-off in human walking,” J. 
+Experim. Biol, vol. 219, no. 23, pp. 3676–3683, Dec. 2016, doi: 10.1242/jeb.140376.Sullivan et al. Page 23
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 24 ---
+[60]. Jordan K, Challis JH, and Newell KM, “Walking speed influences on gait cycle variability,” Gait 
+Posture, vol. 26, no. 1, pp. 128–134, Jun. 2007, doi: 10.1016/j.gaitpost.2006.08.010. [PubMed: 
+16982195] 
+[61]. Dubbeldam R et al. , “The effects of walking speed on forefoot, hindfoot and ankle 
+joint motion,” Clin. Biomechanics, vol. 25, no. 8, pp. 796–801, Oct. 2010, doi: 10.1016/
+j.clinbiomech.2010.06.007.
+[62]. Tran M, Gabert L, Hood S, and Lenzi T, “A lightweight robotic leg prosthesis replicating the 
+biomechanics of the knee, ankle, and toe joint,” Sci. Robot, vol. 7, no. 72, pp. 1–12, Nov. 2022, 
+doi: 10.1126/scirobotics.abo3996.
+[63]. Tran M, Gabert L, and Lenzi T, “Analysis and validation of sensitivity in torque-sensitive 
+actuators,” Actuators, vol. 12, no. 2, p. 80, Feb. 2023, doi: 10.3390/act12020080. [PubMed: 
+37008252] 
+[64]. Gabert L and Lenzi T, “Instrumented pyramid adapter for amputee gait analysis and powered 
+prosthesis control,” IEEE Sensors J, vol. 19, no. 18, pp. 8272–8282, Sep. 2019, doi: 10.1109/
+JSEN.2019.2920179.
+[65]. Hafner BJ and Smith DG, “Differences in function and safety between Medicare Functional 
+classification level-2 and -3 transfemoral amputees and influence of prosthetic knee joint 
+control,” J. Rehabil. Res. Develop, vol. 46, no. 3, pp. 417–433, 2009, doi: 10.1682/
+jrrd.2008.01.0007.
+[66]. Camargo J, Ramanathan A, Flanagan W, and Young A, “A comprehensive, open-source 
+dataset of lower limb biomechanics in multiple conditions of stairs, ramps, and level-ground 
+ambulation and transitions,” J. Biomechanics, vol. 119, Apr. 2021, Art. no. 110320, doi: 10.1016/
+j.jbiomech.2021.110320.
+[67]. Reznick E, Embry KR, Neuman R, Bolívar-Nieto E, Fey NP, and Gregg RD, “Lower-limb 
+kinematics and kinetics during continuously varying human locomotion,” Sci. Data, vol. 8, no. 1, 
+pp. 1–18, Oct. 2021, doi: 10.1038/s41597-021-01057-9. [PubMed: 33414438] 
+[68]. Sullivan LM, Creveling S, Cowan M, Gabert L, and Lenzi T, “Powered knee and ankle 
+prosthesis control for adaptive ambulation at variable speeds, inclines, and uneven terrains,” in 
+Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS), Oct. 2023, pp. 2128–2133, doi: 10.1109/
+IROS55552.2023.10342504.
+[69]. Cowan M, Creveling S, Sullivan LM, Gabert L, and Lenzi T, “A unified controller for 
+natural ambulation on stairs and level ground with a powered robotic knee prosthesis,” in 
+Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS), Oct. 2023, pp. 2146–2151, doi: 10.1109/
+IROS55552.2023.10341691.
+[70]. Sup F, Varol HA, and Goldfarb M, “Upslope walking with a powered knee and ankle prosthesis: 
+Initial results with an amputee subject,” IEEE Trans. Neural Syst. Rehabil. Eng, vol. 19, no. 1, 
+pp. 71–78, Feb. 2011, doi: 10.1109/TNSRE.2010.2087360. [PubMed: 20952344] 
+[71]. Thatte N, Srinivasan N, and Geyer H, “Real-time reactive trip avoidance for powered 
+transfemoral prostheses,” in Robotics: Science and Systems XV , Robotics: Science and Systems 
+Foundation, Freiburg im Breisgau, Germany: Jun. 2019, doi: 10.0/Linux-x86_64.
+[72]. Cheng S, Laubscher CA, and Gregg RD, “Controlling powered prosthesis kinematics over 
+continuous inter-leg transitions between walking and stair ascent/descent,” IEEE Trans. 
+Neural Syst. Rehabil. Eng, vol. 32, pp. 3891–3901, 2024, doi: 10.1109/TNSRE.2024.3485643. 
+[PubMed: 39446547] 
+[73]. Cimolato A, Driessen JJM, Mattos LS, De Momi E, Laffranchi M, and De Michieli L, “EMG-
+driven control in lower limb prostheses: A topic-based systematic review,” J. NeuroEng. Rehabil, 
+vol. 19, no. 1, pp. 1–14, May 2022, doi: 10.1186/s12984-022-01019-1. [PubMed: 34996473] 
+[74]. Fleming A, Liu W, and Huang H, “Neural prosthesis control restores near-normative 
+neuromechanics in standing postural control,” Sci. Robot, vol. 8, no. 83, pp. 1–14, Oct. 2023, 
+doi: 10.1126/scirobotics.adf5758.
+[75]. Shah C, Fleming A, Nalam V , Liu M, and Huang HH, “Design of EMG-driven musculoskeletal 
+model for volitional control of a robotic ankle prosthesis,” in Proc. IEEE/RSJ Int. Conf. Intell. 
+Robots Syst. (IROS), Oct. 2022, pp. 12261–12266, doi: 10.1109/IROS47612.2022.9981305.Sullivan et al. Page 24
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 25 ---
+[76]. Kumar S, Mohammadi A, Gans N, and Gregg RD, “Automatic tuning of virtual constraint-based 
+control algorithms for powered knee-ankle prostheses,” in Proc. IEEE Conf. Control Technol. 
+Appl. (CCTA), Aug. 2017, pp. 812–818, doi: 10.1109/CCTA.2017.8062560.
+[77]. Atri R et al. , “Smart data-driven optimization of powered prosthetic ankles using surface 
+electromyography,” Sensors, vol. 18, no. 8, p. 2705, Aug. 2018, doi: 10.3390/s18082705. 
+[PubMed: 30126112] 
+[78]. Liu W, Wu R, Si J, and Huang HH, “A new robotic knee impedance control parameter 
+optimization method facilitated by inverse reinforcement learning,” IEEE Robot. Autom. Lett, 
+vol. 7, no. 4, pp. 10882–10889, Oct. 2022, doi: 10.1109/LRA.2022.3194326.Sullivan et al. Page 25
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 26 ---
+Fig. 1. 
+Control summary for the powered knee and ankle prosthesis, including sensor data, high-
+level state classification, mid-level torque calculation, and low-level current command.Sullivan et al. Page 26
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 27 ---
+Fig. 2. 
+Step-Up torque knee control during Contact . (a) TKneeStep −Up curve with maximum torque and 
+angle of maximum torque defining the peak of the curve. (b) Sample step-up torque curves 
+as a function of varying knee angle at HS, θKneeHS. damping coefficients. (c) Biarticular torque 
+gain, TKneeBiart. (d) Extension, BExt, and (e) flexion, BFlex, virtual knee damping coefficients.Sullivan et al. Page 27
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 28 ---
+Fig. 3. 
+Ankle Contact  control figures. (a) Virtual stiffness torque as a function of desired 
+equilibrium angle and KStiffness. (b) Knee-ankle synergy angle, θAK. (c) Knee-ankle 
+synergy gain, KAK, as a function of thigh angle. (d) Plantarflexion, BPF, and (e) 
+dorsiflexion, BDF, damping coefficients as functions of horizontal hip velocity, vHipMeas.Sullivan et al. Page 28
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 29 ---
+Fig. 4. 
+Minimum Jerk Trajectory control for No Contact . (a) Minimum-jerk swing trajectories for 
+sample knee angles at TO and (b) swing trajectories for positive, zero, and negative knee 
+velocities at TO. (c) Knee swing trajectory time, tswing, as a function of ankle angle at TO. 
+(d) TO term, KTO, calculated as a component of KSyn.Sullivan et al. Page 29
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 30 ---
+Fig. 5. 
+The Utah Bionic leg used in all experiments. Independent (a) knee and (b) ankle modules.Sullivan et al. Page 30
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 31 ---
+Fig. 6. 
+Subjects performing the experiments described in the text: (a) level ground walking, (b) stair 
+ascent, (c), sit-to-stand, (d) walking on uneven terrain, (e) walk to stair ascent transition, and 
+(f) walk to stair descent transition.Sullivan et al. Page 31
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 32 ---
+Fig. 7. 
+Variable Incline and Variable Speed walking. (a) Knee angle, (b) knee torque, (c) ankle 
+angle, and (d) ankle torque from HS to HS at 0%, 5%, and 10% inclines. (e) Ankle angle 
+when the shank angle is 0° during midstance of walking. (f) Energy injected by the ankle 
+during the stance phase of walking at variable inclines. (g) Knee angle, (h) knee torque, 
+(i) ankle angle, and (j) ankle torque from HS to HS at 0.72 m/s, 1.0 m/s, and 1.25 m/s. 
+(k) Energy injected by the ankle during the stance phase of walking at variable speeds. (l) 
+Stance and swing times at variable speeds. All subject data in (a-d) and (g-j) represent 30 Sullivan et al. Page 32
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 33 ---
+strides total, 10 from each subject, with a solid line representing average values and the 
+shaded region representing ± one standard deviation. In (e, f) and (k, l), unique symbols 
+represent the average of 10 strides from each subject, with error bars representing ± one 
+standard deviation. All able-bodied reference data is from Carmago et al. and represents 
+averaged values from 30 strides across five subjects, shown as a solid or dashed line, and 
+shaded regions represent ± one standard deviation [ 66].Sullivan et al. Page 33
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 34 ---
+Fig. 8. 
+Variable Terrain walking. (a) Ankle angle, (b) ankle torque, (c) knee angle, (d) knee torque, 
+and (e) shank angle from HS to HS walking at a self-selected speed on level ground and 
+variable, uneven terrain. All data represents 30 strides total, 10 from each subject. All solid 
+lines represent mean values and shaded regions represent ± one standard deviation.Sullivan et al. Page 34
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 35 ---
+Fig. 9. 
+Stair ascent experiment. (a) Knee angle and torque and (b) ankle angle and torque of the 
+prosthesis and AB reference during a single stair ascent stride. Data represents 30 total 
+strides from three subjects Solid and dashed lines represent mean values ± one standard 
+deviation as the shaded region. Able-bodied (AB) reference data is from 50 total strides 
+across five subjects from Carmago et al. [ 66].Sullivan et al. Page 35
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 36 ---
+Fig. 10. 
+Sit to Stand experiment. (a) Knee angle and torque and (b) ankle angle and torque of the 
+prosthesis and AB reference during a stand-sit-stand transition sequence. Data represents 9 
+total trials across three subjects Solid and dashed lines represent mean values ± one standard 
+deviation as the shaded region. Able-bodied (AB) reference data is from 50 total strides 
+across five subjects from Reznick et al. [ 67].Sullivan et al. Page 36
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 37 ---
+Fig. 11. 
+Walk-Stair Ascent-Walk experiment showing data from 9 total strides across three subjects. 
+(a) Knee angle and torque, (b) ankle angle and torque during a walk-stair ascent-walk 
+transition sequence containing four strides: level ground walking, walking to stairs 
+transition, stair ascent, stairs to walking transition. In all subfigures, solid lines represent 
+mean values and the shaded region represents ± one standard deviation. Able-bodied (AB) 
+reference data is from 50 total strides, 10 strides each from five subjects, from Carmago et 
+al. [66].Sullivan et al. Page 37
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 38 ---
+Fig. 12. 
+Real-World Ambulation Test. A top-down view of the University of Utah campus store 
+shows a map of the test route. Numbered and color-coded tags correspond to the photos 
+displayed alongside the map, showing the subject performing each of the different activities. 
+A timeline below the map displays the type, timing, and duration of activities performed 
+during the 3 minute and 11 second test. The table displays the types of activities, their 
+corresponding color code, and the number of strides of each activity that were performed 
+during the test.Sullivan et al. Page 38
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
+Author Manuscript Author Manuscript Author Manuscript Author Manuscript
+
+--- Page 39 ---
+Author Manuscript Author Manuscript Author Manuscript Author ManuscriptSullivan et al. Page 39TABLE I
+Subject Information
+Subject Code SexAge [years] Mass [kg] Height [m] Amputation Side Time Since Amputation [years] Suspension Type
+TF01 M 30 65 1.78 R 10 Suction
+TF02 F 34 59 1.60 L 14 Lanyard
+TF03 M 55 78 1.72 L 3 Suction
+IEEE Trans Neural Syst Rehabil Eng . Author manuscript; available in PMC 2025 September 19.
