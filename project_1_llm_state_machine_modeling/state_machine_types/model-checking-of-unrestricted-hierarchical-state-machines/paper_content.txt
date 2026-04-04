@@ -1,0 +1,1193 @@
+--- Page 1 ---
+Model Checking of Unrestricted Hierarchical
+State Machines (Extended Abstract)
+
+Michael Benedikt
+Patrice Godefroid
+Thomas Reps
+Technical Report #1425
+
+March 2001
+
+
+--- Page 2 ---
+Model Checking of Unrestricted Hierarchical State Machines
+(Extended Abstract)
+
+Michael Benedikt            Patrice Godefroid             Thomas Reps
+Bell Laboratories             Bell Laboratories        University of Wisconsin
+benedikt@bell~labs .com         god@bell-labs.com            reps@cs.wisc.edu
+Abstract
+
+Hierarchical State Machines (HSMs) are a natural model for representing the reactive behavior of
+complex software systems. We investigate in this paper an extension of the HSM model where state
+machines are allowed to call each other recursively. Such “unrestricted” HSMs can model classes of
+infinite state systems such as arbitrary combinations of control-flow graphs of procedures in programming
+languages such as C. We precisely compare the expressiveness of unrestricted HSMs with known classes of
+infinite state systems, namely context-free and pushdown processes. We then discuss several verification
+problems on HSMs, and present original model-checking algorithms for unrestricted HSMs.
+
+1 Introduction
+
+Hierarchical State Machines (HSMs) are finite state machines whose states themselves can be other machines.
+HSMs are a popular model for specifying complex software systems, which is why they form the basis of
+commercial modeling languages such as StateCharts, ObjecTime, and UML. Various verification problems
+for HSMs without recursion were recently studied in [AY98, AKY99, AGOO}.
+
+In this paper, we investigate an extension of the HSM model where state machines are allowed to call
+each other recursively. Such “unrestricted” HSMs are strictly more expressive than the previously-studied
+HSM model since HSMs with recursion can model classes of infinite state systems. For instance, unrestricted
+HSMs can be used to model arbitrary combinations of control-flow graphs of procedures in programming
+languages such as C. Unrestricted HSMs are therefore a natural model for reasoning about the abstract
+behavior of reactive software programs.
+
+We study in this paper several verification problems defined on unrestricted HSMs. First, we define several
+classes of unrestricted HSMs (or HSMs for short), and establish correspondence theorems with previously-
+existing classes of infinite state systems. Specifically, we show that “single-exit” HSMs, i.e., HSMs composed
+exclusively of machines each with a single exit state, have the same expressiveness as context-free processes,
+while general “multiple-exit” HSMs have the same expressiveness as pushdown processes. From these corre-
+spondence theorems and known verification results for context-free and pushdown systems, we immediately
+obtain algorithms and complexity bounds for various verification problems on HSMs.
+
+We then show how some of the above results can be improved using new verification algorithms. We
+present a linear-time temporal-logic (LTL) model-checking algorithm for unrestricted HSMs. With this
+algorithm, we show that LTL model checking for single-entry multiple-exit HSMs (i-e., HSMs composed of
+machines each with a single entry state, but possibly multiple exit states) can be solved in time linear in
+the size of the HSM, instead of cubic time as previously known. This implies that the reachability and
+cycle-detection problems can also be solved in linear time for single-entry HSMs.
+
+We also present a new model-checking algorithm for the logic CTL* and single-exit HSMs. Our algorithm
+runs in time linear in the size of the HSM, instead of quadratic time, the best previously-known upper bound.
+
+Ce
+acca
+
+
+
+
+--- Page 3 ---
+Due to the correspondence results mentioned above, this algorithm also provides a new improved upper bound
+for CTL* model checking of context-free processes.
+
+2 Unrestricted Hierarchical State Machines
+
+Various definitions of state machines have been proposed for representing the behavior of reactive systems.
+A popular model used in the model-checking literature [CE81] is the Kripke structure. Given a set P of
+atomic propositions, a (flat) Kripke structure K is a tuple (S,R,L) where S is a (possibly infinite) set of
+states, RC S x S is a transition relation, and LD: SH 2? is a labeling function that associates with each
+state the set of atomic propositions that are true in that state.
+
+In this paper, we consider an alternative representation for reactive systems that supports a notion of
+hierarchy. In particular, we define an unrestricted hierarchical state machine (HSM) M over a set P of
+atomic propositions to be a set of component structures {A4,,..., Mn}, where each of the M; has
+
+e A nonempty finite set N; of nodes.
+
+e A finite set B; of boxes (or supernodes).
+
+e A nonempty subset I; of Nj, called the entry-nodes of Nj.
+
+e¢ A nonempty subset O; of Nj, called the exit-nodes of Nj.
+
+e A labeling function X;:.N;++ 2? that labels each node in N; with a subset of P.
+
+e An indexing function Y;: By ++ {1,...,n} that maps each box of M; to the index j of some structure
+M;.
+
+e A set C; of pairs of the form (b,e), where b is a box in B; and e is an entry-node of M; with j = Y;(b),
+called the call-nodes of B;.
+
+e A set R; of pairs of the form (b,z), where 6 is a box in B; and z is an exit-node of M; with j = Y;(b),
+called the return-nodes of B;.
+
+« An edge relation E;. Each edge in E; is a pair (u,v) such that (1) u is either a node in N; or a return
+node in R;, and (2) v is either a node in N; or a call-node in Cj.
+
+M, is called the top-level structure of M. The above definition is essentially that of Alur and Yannakakis [AY98];
+however, we permit component structures to call each other recursively. An example of an unrestricted HSM
+is shown in Figure 1.
+
+To simplify notation in what follows, we assume that the sets J; and O; are all pairwise disjoint, as are
+the sets C; and R;. Note that C; and R; are technically not part of N;. An HSM M is called single-entry
+if every structure M; in M has exactly one entry-node {ie., VI <i<n: (;| = 1). An HSM M is called
+single-exit if every structure M; in M has exactly one exit-node (i.e., VI <i <n: |O;) =1).
+
+Each structure M; can be associated with an ordinary Kripke structure, denoted K(M;), by recursively
+substituting each box b € B; by the structure M; with 7 = Y;(b). Since we allow state machines to call each
+other recursively, the expanded structure K(M;) can be infinite. A state of the expanded Kripke structure
+K(M) is defined by a node and a finite sequence of boxes that specify the context. Formally, the expansion
+K(M) of an HSM M is the Kripke structure (S$, R, L) defined as follows:
+
+© SOUR NM x (U1 Bi)”.
+e The transition relation R is the set of transitions ((v,w),(v',w’)) that satisfy any of the following
+conditions:
+
+— (v,v') € Ej, u,v! Ee Nj andw=w'.
+— (v,(b'7,e))€ Bj, ve Ni, v' =e, and w' = wb’.
+
+
+--- Page 4 ---
+
+
+MI
+
+
+
+
+
+
+bi calls M2
+
+
+
+={ abort
+
+
+
+
+
+
+
+
+
+
+
+
+
+| om
+ae} Ct)
+
+2 7
+Ga Cor)!
+
+
+
+
+
+b2 calls M2
+
+
+
+
+
+
+
+
+
+
+
+Ete,
+
+
+
+
+
+corn Ete,          Ete
+
+
+
+Figure 1: An example of an unrestricted HSM (left) and its expansion (right). The top-level structure My
+has one box, which calls structure M/,. M2 models an attempt to send a message; if no positive or negative
+acknowledgment is received, a timeout occurs and a recursive call to Mz is performed.
+
+~ ((b,2),v') € Ej, v =a, v' € Nj, and w = w'b.
+— ((b, 2), (0',e')) 6 Bi, v=a,v' se’, and w! = w"b! with w = w"d.
+
+e The labeling function L: S++ 2? is defined by L((v,w)) = X;(v) with v € N;.
+
+The (infinite) expansion K(M,) of the HSM of Figure 1 is shown on the right of the figure, where the
+finite sequence of boxes corresponding to each state is indicated on top of the state when it is nonempty
+(e.g., the state “(send,b1b2)” is depicted as the state “send” labeled with “b1b2”). In what follows, we will
+write (AL) to denote the expansion of the top-level structure Ad, of an HSM M.
+
+3  Expressiveness of Unrestricted HSMs
+
+As mentioned in the introduction, the unrestricted HSM model is closely related to several existing models for
+infinite-state systems, namely context-free grammars and pushdown automata. In this section, we compare
+the expressiveness and conciseness of these models. We also compare the expressiveness of the four classes of
+unrestricted HSMs defined in the previous section, namely single-entry single-exit, single-entry multiple-exit,
+multiple-entry single-exit, and multiple-entry multiple-exit HSMs.
+
+Since we are interested in the temporal behavior of systems, our comparison of expressiveness is based
+on the existence of bisimulation relations between the Kripke structures corresponding to the expansions of
+these different classes of models. We now recall the definition of a bisimulation relation on Kripke structures.
+
+Definition 1 Let My = (S1,Ri,L,) and Mz = (S:, Ro, Lz) be Kripke structures. A binary relation B C
+S, x S2 is a bisimulation relation if (s1,32) € B implies:
+
+e Li (81) = Lo(s2),
+© if (s1,8,) € Ry, then there is some s, € Sz such that (sz, 85) € Ry and (s{, 8) € B, and
+© if (so, s4) € Ro, then there is some s, € S$; such that (s1,s,) € R; and (s,s) € B.
+Two states s; and s9 are bisimilar, denoted s, ~ so, if they are related by some bisimulation relation.
+
+By extension, we say that two Kripke structures M, and Mz are bisimilar if Vs, € Sy : ds2 € S2: 41 ~ $2
+and Vs. € Sp: ds, € Sy: 31 ~ se.
+
+
+--- Page 5 ---
+Obviously, any multiple-entry machine with k entry-nodes can be replaced by & machines, each with
+a single entry-node. Therefore, the expressiveness of single-entry and multiple-entry HSMs is the same,
+although multiple-entry HSMs can be more concise than their equivalent single-entry HSM. In contrast, we
+show in the remainder of this section that single-exit and multiple-exit HSMs have different expressivenesses.
+Indeed, single-exit HSMs have the same expressiveness as context-free processes while multiple-exit HSMs
+have the same expressiveness as pushdown processes.
+
+An alphabetic labeled rewrite system [CM90] is a triple R = (V, Act, R) where V is an alphabet, Act is a
+set of labels, and RC V x Act x V* is a finite set of rewrite rules. The prefix rewriting relation of R is defined
+by h r= {(uw,a,vw)|(u,a,v) € Rw € V*}. The labeled transition graph Te = (V*, Act, p) is called the
+prefix transition graph of R. Since the leftmost derivation graph of any context-free grammar [HU79] is the
+prefix transition graph of an alphabetic rewrite system [CM90], such prefix transition graphs are sometimes
+called context-free processes. For purposes of comparison with HSMs, we define the expansion of R as the
+(possibly infinite) Kripke structure (R) defined as follows: a state of K(R) is a pair (a,w) € Act x V*
+such that (v,a,w) Erp for some v € V*; a transition of K(R) is a pair ((a, w), (a’, w')) such that (w, a’, w’)
+is in t+; the label of state (a,w) is a. We can now prove the following theorem:
+
+Theorem 2 For any alphabetic labeled rewrite system R, one can construct in linear time a single-eait HSM
+M such that K(R) and K(M) are bisimilar.
+
+Proof: All proofs are omitted in this extended abstract. lll
+The converse of the previous theorem also holds:
+
+Theorem 3 For any multiple-entry single-exit HSM M, one can construct in linear time an alphabetic
+labeled rewrite system R such that K(M) and K(R) are bisimilar.
+
+We now establish a similar correspondence between multiple-exit HSMs and pushdown processes. A push-
+down automaton (e.g., [HU79]) is a tuple A = (Q, Act,T,6,qo) where Q is a finite set of states, Act is an
+alphabet called the input alphabet, I’ is a set of stack symbols, gp € Q is the initial state, and 6 is a mapping
+from Q x Act xT’ to finite subsets of Q x '*. The initial configuration of the system is (go,¢€). The expansion
+of Ais the (possibly infinite) Kripke structure K(A) defined by the expansion of the prefix rewriting relation
+H5C (Q x I*) x Act x (Q x I") itself defined by + 5= {((¢, 27), 4, (a, BY))I(7', B) € 6(¢, 0, Z),7 E T*}. We
+call such a Kripke structure a pushdown process. We have the following:
+
+Theorem 4 For any pushdown automaton A, one can construct in linear time a multiple-exit HSM M such
+that K(A) and K(M) are bisimilar.
+
+Conversely, the following theorem also holds:
+
+Theorem 5 For any multiple-entry multiple-exit HSM M, one can construct in linear time a pushdown
+automaton A such that K(M) and K(A) are bisimilar.
+
+Since it is known [CM90] that there exist pushdown processes that are not bisimilar to any context-free
+processes, we obtain the following result:
+
+Theorem 6 There exist multiple-exit HSMs whose expansion is not bisimilar to the expansion of any single-
+exit HSM.
+
+4 Complexity of Verification Problems for Unrestricted HSMs
+
+In this section, we discuss the complexity of five verification problems for unrestricted HSMs: the reachability
+problem, the cycle-detection problem, and the model-checking problems for the logics LTL, CTL, and CTL*.
+Given an unrestricted HSM M and a set T C UP N; of distinguished nodes, the reachability problem is
+
+|
+
+
+
+
+
+
+--- Page 6 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Class of HSM           Reachability | Cycle Detection | LTL        CTL          CTL*
+Restricted Single-exit         Linear           Linear        Linear     Linear
+Restricted Multiple-exit        Linear            Linear        Linear | PSPACE
+Unrestricted Single-exit        Linear           Linear        Linear     Linear      Quadratic
+Unrestricted Multiple-exit        Cubic              Cubic          Cubic | EXPTIME | EXPTIME
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 2: Known complexity results. Those for restricted HSMs are from [AY98]; those for unrestricted
+HSMs follow from [BS92,Wal96,FWW97,BS97,BEM97, ,EHRS00] and the theorems of Section 3. (Complexity
+bounds are given in terms of the size of the HSM.)
+
+the problem of determining whether some state (v,w) of K(M), with v € T, is reachable from some initial
+state (vp,€), with vo € I). Given M and T, the cycle-detection problem is to determine whether there exists
+some state (v,w)of K(M), with v € T, such that (i) (v,w) is reachable from some initial state (vp, ¢), with
+vo € y, and (ii) (v,w) is reachable from itself. We refer the reader to [Eme90] for precise definitions of the
+model-checking problems for the logics LTL, CTL, and CTL*.
+
+Since restricted HSMs are special cases of unrestricted HSMs, it is worth reviewing some of the results
+presented in [AY98] for the restricted case. Lines 2 and 3 of Figure 2 summarize the results of [AY98}
+concerning the complexity of the verification problems considered here, except for CTL“ model checking,
+which was not discussed in [AY98]. Complexity bounds are given in terms of the size of the restricted HSM;
+in the case of LTL and CTL model checking, this means the size of the formula is fixed. (It is also shown
+in [AY98] that, for any fixed restricted HSM, CTL model checking is PSPACE-complete in the size of the
+formula.)
+
+Thanks to the correspondence theorems established in the previous section, we can obtain algorithms
+and complexity bounds for the verification of unrestricted HSMs from previously existing algorithms and
+bounds for the verification of context-free and pushdown processes.
+
+Consider the case of single-exit unrestricted HSMs. By Theorem 3, model checking for single-exit HSMs
+can be reduced to model checking for context-free processes. Since context-free processes can be viewed
+as pushdown processes defined by pushdown automata with only one state [BS92, Wal96], and since LTL
+model checking for one-state pushdown automata can be solved in time linear in the size of the pushdown
+automaton [EHRS00, FBW97], LTL model checking for single-exit HSMs can be solved in time linear in the
+size of the HSM. This also implies a linear-time algorithm for the reachability and cycle-detection problems.
+A linear-time algorithm for CTL model checking for single-exit HSMs can be derived from the CTL model-
+checking algorithm for context-free processes given in [BS92]. Finally, since the y-calculus model-checking
+algorithm of [BS97] for context-free processes runs in quadratic time for formulae in the second level of
+the p-calculus alternation hierarchy, which is known to contain CTL* [EL86], CTL* model checking for
+single-exit HSMs can be solved in time quadratic in the size of the HSM.
+
+Let us turn to the case of multiple-exit unrestricted HSMs. By Theorem 5, we know that model checking
+for multiple-exit HSMs can be reduced to model checking for pushdown processes. Since LTL model checking
+for pushdown automata can be solved in time cubic in the size of the pushdown automaton [FBW97,
+EHRSO00j, LTL model checking for multiple-exit HSMs can be solved in time cubic in the size of the HSM.
+Moreover, a cubic-time algorithm for the reachability and cycle-detection problems can easily be derived
+from this LTL model-checking algorithm. Since CTL model checking for pushdown processes is EXPTIME-
+hard [Wal96] and since CTL is contained in the alternation-free y-calculus for which the model-checking
+problem can be solved with the exponential-time algorithm presented in [BEM97], we can deduce from
+Theorems 4 and 5 that the CTL model-checking problem for multiple-exit HSMs is EXPTIME-complete in
+the size of the HSM. Similarly, the exponential-time model-checking algorithm given in [BS97] for pushdown
+
+
+--- Page 7 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Class of HSM                  Reachability | Cycle detection | LTL        OTL         CTL*
+
+Unrestricted Multiple-entry Single-exit        Linear           Linear        Linear      Linear        Linear
+Unrestricted Single-entry Multiple-exit        Linear           Linear        Linear | EXPTIME | EXPTIME
+Unrestricted Multiple-entry Multiple-exit       Cubic            Cubic         Cubic | EXPTIME | EXPTIME
+
+
+
+
+
+Figure 3: Improved complexity bounds for unrestricted HSMs. The improved bounds obtained in Sections 5
+and 6 are highlighted in italic.
+
+processes and the full y-calculus, which contains CTL", and the EXPTIME-hardness result of [Wal96] imply
+that the CTL* model-checking problem for multiple-exit HSMs is also EXPTIME-complete in the size of the
+HSM. The bottom two lines of Figure 2 summarize the results obtained from the foregoing discussion.
+
+In the remainder of this paper, we present two improvements to the results listed in Figure 2. First, in
+Section 5, we present an LTL model-checking algorithm for unrestricted HSMs, and analyze the complexity
+of this algorithm. We then show that LTL model checking for single-entry multiple-exit HSMs can be solved
+with this algorithm in time linear in the size of the HSM, instead of cubic time. This implies that the
+reachability and cycle-detection problems can also be solved in linear time for single-entry HSMs. Second, in
+Section 6, we present a new CTL* algorithm for single-exit HSMs that runs in time linear in the size of the
+HSM, instead of quadratic time. Improved complexity bounds that take into account these two new results
+are listed in Figure 3.
+
+5 LTL Model Checking
+
+Following the automata-theoretic approach to model checking [VW86], a model-checking procedure for a
+formula ¢ of linear-time temporal logic can be obtained by (1) building a finite-state Biichi automaton Ay
+that accepts exactly all the infinite words satisfying the formula 74, (2) creating a product automaton for
+A.¢ and the system to be verified, and (3) checking if the language accepted by the product automaton is
+empty. To apply this procedure in our context, we define the product of a Biichi automaton Ay with an
+HSM! M = {Mi,..., My} to be a Biichi-constrained HSM M' = {Mj,..., Mj}: M’ is an HSM as defined
+earlier, where the labeling function encodes a Biichi acceptance condition. In particular, the nodes in node
+set N! of component structure M} are pairs (v,s), where v € N; and s is a state of A.g. Hach box in B} is
+also a pair (b, s), where b € B; and s is a state of Ag, and such that Y/((b,s)) = Yi(b). Moreover, we have
+C! = {((b, 8), (e, 8))|(b, 8) € BY and (b,e) € Ci} and Ri = {((b,s), (2, s))|(b, 8) € Bj and (b,2) € Ri}. Edges
+in the edge sets E} are of the form (v,s) — (v',s’), such that there is an edge v - v' in H; and a transition
+(s,£,8') in Ag, where £ € 2? agrees with the set of propositions true at v if v € Nj, or else £ agrees with
+the set of propositions true at x if v is a return-node (b,x) € R;.
+
+We define the labeling function X’ on nodes (v,s) of M’ such that X'((v,s)) equals true if s is an
+accepting state of Ag, and equals false otherwise. Let T denote the set of nodes of M' where X’ equals
+true. The LTL model-checking problem for an HSM M and a formula ¢ is thus reduced to checking whether
+there exists an infinite sequence w of states in K(M’) such that w passes through a node in T infinitely
+often. (Note that we have K(M') = K(M) x A.g, where x denotes the traditional definition of the product
+of a Kripke structure with a Biichi automaton.)
+
+The latter problem can in turn be reduced to a graph-theoretic problem expressed in terms of the
+finite graph G(M’) whose nodes are the nodes of M' and whose edges are the edges of M’ ' plus the set
+CallEdges(M') U ReturnEdges(M'), where CallEdges(M') = {{((b,e),e) |e € I,b € Bi, Yj(b) = 2} and
+
+Pod
+
+ReturnEdges(M') = {(x,(b,x)) | 2 € Oj,b € By, Y}(b) = i}. This graph finitely and completely represents
+
+
+
+1 As usual in this context, we assume for technical convenience that every node in N; has an E; successor.
+
+
+
+
+--- Page 8 ---
+K(M'), while making explicit how behaviors of component structures Mj can be combined with calls and
+returns between component structures: every possible execution sequence in K(M') is represented by a
+path in G(M'). However, not all paths in G(M") represent execution paths of K(A/'): a path in GM’)
+corresponds to a path in K(M/") if, when a. call finishes, the path in G(M"') returns to a return-node of the
+invoking box. The following definitions characterize the paths of G(M"') that correspond to executions of
+K(M").
+
+Definition 7 Let each box in M’ be given a unique index in the range 1...|B|, where |B| is the total
+number of boxes in M4‘. For each box b in M’, label the associated call-edges ((b,e),e) and return-edges
+(a, (b,x)) with the symbols “(,” and “),”, respectively; label all other edges with “e”. A path in G(M') is
+called a Matched-path (resp. UnbalLeft-path) iff the word formed by concatenating, in order, the symbols on
+the path’s edges is in the language L( Matched) (resp. L( UnbalLeft)), defined as follows:
+
+
+
+
+
+
+
+Matched — Matched Matched                UnbalLeft + UnbalLeft (; Matched 1<j <|Bl
+| (; Matched );      1<j<|B               | Matched
+| e
+| €
+
+
+
+
+
+L( Matched) is a language of balanced-parenthesis strings (interspersed with strings of zero or more e’s). In
+general, a Matched-path from u to v, where u and v are in the same component structure, represents a
+sequence of transition steps from u to v during which the call stack may temporarily grow deeper—because
+of calls—but may never be shallower than its original depth, before eventually returning to its original depth.
+L(UnbalLeft) is a language of partially balanced parentheses (again, interspersed with strings of zero or more
+e’s): every right parenthesis “);” is balanced by a preceding left parenthesis “(;”, but the converse need not
+hold. An UnbalLeft-path from u to v represents a sequence of transition steps from u to v during which
+the call stack may never be shallower than its original depth, but may end with the call stack deeper than
+it was originally. The (additional) pending calls left on the stack by such a transition sequence correspond
+to the unmatched (;’s in the path’s word. Every infinite path in K(M') either corresponds to a Matched-
+path (a repeated computation pattern after which the stack is preserved) or a UnbalLeft-path (a repeated
+computation pattern after which the stack grows) of G(M’).
+
+LTL model checking is carried out directly on the Biichi-constrained product-HSM by means of the two-
+phase algorithm presented in Figures 4 and 5. The first phase consists of applying function ComputeSum-
+maryEdges of Figure 4 to an HSM? M with Bichi acceptance condition T' to create a set of summary-edges.
+Each summary-edge represents a Matched-path between a call-node and a return-node, where the two nodes
+are associated with the same box. More precisely, ComputeSummaryEdges creates the set SummaryEdges,
+which consists of pairs of the form ((b,e) — (b,),B). Summary-edge ((b,e) — (b,x), B) indicates that
+(i) there exists a Matched-path from e to a, and (ii) if Boolean value B is true, then there exists such a path
+that passes through at least one node in T.
+
+ComputeSummaryEdges is a dynamic-programming algorithm. In addition to tabulating summary-edges,
+ComputeSummaryEdges builds up the set PathEdges: a path-edge (e — v, B) in PathEdges indicates the
+existence of a Matched-path from an entry-node e € J; of component structure M; tov, where v € Nj UC,UR;.
+As with summary-edges, the Boolean value B records whether the Matched-path summarized by the edge
+traverses at least one node in T. ComputeSummaryEdges starts by asserting that there is a zero-length
+Matched-path from every entry-node to itself (lines [10|-[12]); the corresponding path-edges are inserted into
+PathEdges, and also placed into the set WorkList. (The condition “e € T” on line [11] sets the Boolean value
+of the path-edge according to whether ¢ itself is a T’ node.) Path-edges are always tabulated by invoking
+procedure Propagate, which maintains PathEdges and WorkList, and hence only edges whose source is an
+
+
+
+2 Henceforth, we will drop prime symbols (‘) on the components of Biichi-constrained HSMs.
+
+
+--- Page 9 ---
+
+
+function ComputeSummaryEdqges(M: HSM 了 ES UNi) returns set of pairs (edge)Boolean)
+
+
+
+
+
+
+
+
+
+
+
+declare
+
+|      PathEdges, SummaryEdges, WorkList: set of pairs (edge,Boolean)
+procedure Propagate(e — v: edge, B: Boolean)                                                                            I
+
+2       if there is no pair of the form (e — v, B’) in PathEdges then                                                                   4
+
+3        Insert (e — v, B) into PathEdges
+
+4]        Insert (e — v, B) into WorkList
+
+5]      else if (e — v, B') € PathEdges A B = true A B’ = false then /* B subsumes B’ */
+
+6]          PathEdges := (PathHdges — {(e — v, B')}) U{(e > v, B)}
+
+7          WorkList := (WorkList — {(e > v, B')}) U {(e > v, B)}
+
+8        fi                                                                                                                                          ，
+end                                                                                                                                           8
+begin
+
+9}      PathEdges := 0; SummaryEdges := 9; WorkList = 0
+
+10)      for each entry-node e¢ in some set Jj, for 1 <i <n do
+
+ll         Propagate(e — e,¢ € T)
+
+12       od
+
+13      while WorkList # 0 do
+
+14          Select and remove a pair (e + v, B) from WorkList
+
+15         switch v
+
+16             case v = (b,e') € Cj: /* vis a call-node */
+
+17              for each (b,x) such that ((b,e’) — (b, 2), B') € SummaryEdges do
+
+18                    Propagate(e — (6,2), BV B’)
+
+19                 od
+
+20)            end case                                                                                                              4
+
+21             case v = 2 € Q;: /* v is an exit-node */                                                                                  |
+
+22                for each box 6 in some component structure M; such that Yj(b) =i do
+
+23                  if there is no pair of the form ((b, e) — (b,x), B') in SummaryHdges then
+
+24                 Insert ((b,e) — (b,x), B) into SummaryEdges                                                                |
+
+25                 else if ((b,e) — (b,x), B') € SummaryEdges A B = true A B' = false then /* B subsumes B’ */                 |
+
+26                     SummaryEdges := (SummaryEdges — {((b,e) — (b, x), B’)}) U {((b, e) - (b,x), B)}                                 |
+
+27                   fi                                                                                                                               i
+
+28                for each e’ € I; such that (e' — (b, e), B”) € PathEdges do
+
+29                        Propagate(e’ — (b,x), BV B")
+
+30                   od
+
+31                 od
+
+32            end case
+
+33             default : /* v € (Nj — O:)U Ri, ie. v is other than a call-node or an exit-node */
+
+34)               for each v' such that v > v' € E; do                                                                                ，
+
+35                   Propagate(e > v', BV (v' €T))                                                                                          !
+
+36                 od                                                                                                                               i
+
+37           end case
+
+38         end switch
+
+39       od
+
+40       return(SummaryHdges)
+end
+
+Figure 4: An algorithm for computing summary-edges for a Biichi-constrained HSM M with Biichi acceptance
+condition T.
+
+entry node are included in PathEdges and in WorkList. Propagate also enforces the property that a path-edge
+associated with the Boolean value false is “overwritten” if the same pair of endpoints is later discovered to
+be associated with the Boolean value true (lines [1]-[8]). Function ComputeSummaryEdges then finds new
+path-edges by repeatedly choosing an edge e > v from WorkList and extending the path that it represents
+as appropriate, depending on the type of target node v (lines [13]-[15]).
+
+If the target node v is a call-node (b, e’) in component structure M;, previously computed summary-edges
+of the form (b, e') > (b,x) are used to create new path-edges in M; (lines [16]-[20]). When v is an exit-node
+of component structure M;, ComputeSummaryEdges tabulates a summary-edge ((b,e) — (b,2), B) (with an
+
+|
+
+
+
+
+
+|
+|
+|
+1
+|
+
+
+--- Page 10 ---
+function ContainsTCycle(M: HSM,T EC UNi) returns a pair (set of nodes, set of edges)
+begin
+SummaryEdges = CE T)
+G=(UL,MUCGUR,UL, BU CallEdges (M1) L SummaryEdges)
+SCCSet = FindSCCs(G,  Th) i I; is the set of roots of the depth-first search */
+for each non-trivial SCC (Nodes, Edges) € SCCSet do
+if (Nodes NT # 9) or (A((b,e) > (b, 2), B) € Edges : B = true) then
+return(Nodes)
+fi
+od
+return(@)
+end
+
+COR Lee
+
+Figure 5: An algorithm for detecting T-cycles.
+
+appropriate value of B) between the corresponding call-nodes and return-nodes at all boxes } that can invoke
+M; (lines [21]~[27])—possibly “overwriting” a previously tabulated summary-edge in cases where B is true;
+each new summary-edge in a component structure M; may in turn induce new path-edges in M;: if the new
+summary-edge is (b,c) —» (b, 2), then there is a path-edge e’ — (b,x) inserted for every entry-node e’ of M;
+such that there is already a path-edge e' — (b,e) € PathHdges (lines [28]-(30]). Otherwise, by default, every
+edge v — v' from node v in M; is used to attempt to generate new path-edges that extend e + v toe > v'
+(lines [33]~[37]).
+
+The second phase of the model-checking algorithm consists of lines [2|-[8] of function ContainsTCycle
+of Figure 5. The goal of ContainsTCycle is to determine whether any component structure M; contains
+a node n such that (i) n is reachable from some entry-node of J; along an UnbalLeft-path, and (ii) there
+is a non-empty cyclic UnbalLeft-path (which might merely be a cyclic Matched-path) that starts at n and
+contains a member of T.
+
+ContainsTCycle checks this condition by searching for (nontrivial) strongly connected components that
+are reachable from an entry-node of J; (line [3]) in a directed graph G that consists of the nodes and
+edges of all component structures of M, together with all M’s call-edges, plus the set of summary-edges
+computed by the function ComputeSummaryEdges (line [2]). The presence of call-edges and summary-edges
+is what allows information to be recovered from G about UnbalLeft-paths in M. The summary-edges permit,
+ContainsTCycle to avoid having to explore Matched-paths between call-nodes and return-nodes of the same
+box, and, in particular, whether such nodes are connected by a Matched-path that contains a T node.
+
+Graph G is searched for nontrivial strongly connected components that are reachable from the initial
+node of M (line [3]). A strongly connected component (SCC) of a graph G is a subgraph (Nodes, Edges) of
+G such that (1) for every pair of vertices v,w € Nodes, there is a path in G from v to w and a path in G from
+w to v, and (2) Edges consists of the edges of G that connect the vertices in Nodes; an SCC is nontrivial
+if Edges is nonempty. If there exists a nontrivial SCC (Nodes, Edges) in G such that Nodes contains a
+member of T or Edges contains a summary-edge with a Boolean value true, the algorithm returns the set of
+nodes of this SCC (lines [4]-[8]), which represents an infinite computation of the Biichi-constrained HSM M
+that passes through a T node infinitely often. Otherwise, the empty set 9 is returned (line [9]), which means
+that the language accepted by M is empty, and hence that the original HSM satisfies the LTL formula. The
+correctness of the algorithm is established by the following theorem.
+
+Theorem 8 Given an HSM M and an LTL formula ¢, K(M) satisfies $ iff the algorithm of Figure 5
+applied to the Biichi-constrained HSM M x Ag and its corresponding set T returns 0.
+
+We now turn to the question of the runtime complexity of Figures 4 and 5. Function ComputeSumma-
+ryEdges discovers the need for a new path-edge e —+ v' by extending some previously discovered path-edge
+e — v (taken from WorkList) with an edge v — v', which can be either an Ej edge (lines [34]-(36]) or a
+
+
+--- Page 11 ---
+summary-edge (lines [17]-(19] and [28]-[30]). Because node v' can have in-degree greater than one, a path-
+edge e = v' can be “discovered” by function ComputeSummaryEdges more than once (as much as once
+for each in-edge to v’), but it will only be inserted into PathEdges and WorkList at most twice, once when
+associated with the Boolean value false, followed by once when associated with the Boolean value true, due
+to the guards in lines [2] and [5] in procedure Propagate.
+
+Thus, for any given component structure M,, the worst-case time complexity of the function Compute-
+SummaryEdges is equal to the number [J;| of entry-nodes of M;, multiplied by the number of B; edges plus
+summary-edges in M;. In the worst case, each box b € B; can have a summary-edge from every call-node
+(b,e) to every return-node (b,x) in box b in M;. If C, denotes the number of call-nodes (b,e) in box b, and
+Ry denotes the number of return-nodes (b, z) in box 6, the number of summary-edges in component structure
+M; is bounded by O(Ssep;CyRy). Therefore, the worst-case time complexity of the function ComputeSum-
+maryEdges that can be attributed to M; is bounded by O(|K| (|i| + Leen; CsRs)). Summing this expression
+over all component structures, the overall worst-case time complexity of function ComputeSummaryEdges
+is bounded by O(U7L, [Ji} (|Zi| + Uees; CoRs)).
+
+It is possible to make two improvements to ComputeSummaryEdges, which we now sketch. First, notice
+that path-edges in each component structure could be “anchored” at exit-nodes rather than at entry-nodes,
+and path-edges could be “grown” backwards rather than forwards (a technique also used in [HRS95]). The
+cost of this first variant algorithm is thus bounded by O(Z%, |Oi| (|Z:| + Seex;CrRe)). Second, path-
+edges in component structures M; where |O;| < [J;| could be anchored at exit-nodes (and path-edges
+grown backwards), whereas in other component structures the path-edges could be anchored at entry-
+nodes (and path-edges grown forwards). The cost of this second variant algorithm is thus bounded by
+O(ZR, min(i|,|O:)) (Lil + Doe, CrRe)) (1)-
+
+Since the size of the graph G computed by function ContainsT'Cycle is O(U2_, (|Fi| + Leen, Colt +
+Dew; Co) (2) and since finding all strongly connected components in a directed graph can be carried out in
+time linear in the size of this graph (e.g., see [AHU74]), we can conclude that the overall worst-case time
+complexity of our algorithm is given by (1) + (2), ie.,
+
+O(EL, [min(|L|,1O:l) (Bil + Zen, Co Re) + [Ei] + Leen; CoRs + Lvep,Cs)) (3).
+
+In the case of single-entry, single-exit, and single-entry single-exit HSMs, these bounds simplify to
+
+
+
+Single-entry HSM | Single-exit HSM | Single-entry single-exit HSM
+OUE| + |)        O(E| + 1Cl)              O(E| + |B)
+
+
+
+
+
+
+
+
+
+We can thus conclude that, for any fixed LTL formula $, the LTL model-checking problem for an unre-
+stricted HSM M that is single-entry or single-exit can be solved in time linear in the size of M.
+
+Note that the Biichi-constrained HSM M' = M x A. obtained by combining a single-entry (or single-
+exit) HSM M with the Biichi automaton A. for an LTL formula ¢ will typically be multiple-entry (resp.
+multiple-exit), However, each component structure M! of MM’ will have at most |S.| entry-nodes (resp. exit-
+
+
+
+
+
+nodes), where |S_| is the number of states of the automaton A_g. Therefore, for a fixed LTL formula ¢, the
+term min(|Ii{,|O4|) for component structure Mj is bounded by the fixed constant |S.| in Expression (3).
+Hence our claim that the LTL model-checking problem can be solved in linear-time when the HSM M is
+single-entry (resp. single-exit) does hold.
+
+6 CTL* Model Checking for Single-Exit HSMs
+
+In this section, we present a CTL* model-checking algorithm for single-exit HSMs which runs in time linear in
+the size of the HSM. The logic CTL* uses the temporal operators U (until), X (nexttime) and the existential
+path quantifier E in addition to the traditional operators ~ (not) and V (or) of propositional logic. Two
+types of CT'L* formulas, path formulas and state formulas, are defined by mutual induction. Every atomic
+
+10
+
+
+
+
+--- Page 12 ---
+function DECOMP(¢: LTL formula ) returns Set of pairs (8 ELTL*, 6 €LTL)
+
+
+
+
+
+1     begin
+2        if ts = P) then return({(P, true) })
+3       if (@ = d: V ds) then return(DECOMP(¢:) U DECOMP(¢2) )
+{4]        if (@ = 7¢1) then return(\) .-DECOMP(@:)(Awsyea “B, \@6)eDECOMP(41)-4 ~6))
+[5]      if (¢ = Xp) then return( LJ 8,8)eDECOMP(p) (*F, 6) U {(exit, p)})
+[6]       if (@ = pUq) then return( Uy. acDECOMP(p)(@ VseaB 人aea 5A pUq)
+7
+
+2 UozacDECOMP UsneDECOMPm(Veaea BUB',5' A 人aea 6))}
+en
+
+Figure 6: The function DECOMP
+
+proposition is a state formula as well as a path formula. If p,g are both state formulas (resp., both path
+formulas) then pVq and —p are also state formulas (resp., path formulas). If p and q are path formulas, then
+pUq and Xp are also path formulas while Ep is a state formula. We use the abbreviation Fp for trueUp
+and Gp for >F-p. Any CTL” state formula can thus be viewed as a boolean combination of existential
+formulas, where an existential formula is either an atomic proposition or a CTL* state formula of the form
+E plp(v) — v1;---:P(%) — Ym) with p an LTL formula over propositions p(y), -.-,p(yn) that are each
+substituted by the corresponding CTL* state formula 7;. We refer the reader to [Eme90] for a detailed
+presentation of the semantics of CTL*.
+
+A key technical challenge is that the truth value of a temporal-logic formula in any state (v, w) of K(AL )
+may not only depend on the node v but also on the stack content w. Fortunately, it is sufficient to consider
+only finitely many equivalence classes of possible stack contents, each equivalence class being represented by
+a context, as already observed in [BS92, BS97, AY98]. A context is a set of (here CTL*) formulas whose
+truth value at the exit node of a machine M; determine the truth value of a formula ¢ at the root. The
+notion of context makes it possible to reason compositionally about HSMs.
+
+Our algorithm exploits this idea and reduces the evaluation of a path formula ¢ on a sequence w; w! of
+states, where w is finite while w’ is infinite, to the evaluation of some formulas § and 6 on the sequences w
+and w' respectively. We introduce a special atomic proposition eait that holds only at the final state of a
+finite sequence w, and denote by LTL* the set of LTL formulas that can be expressed using this extended
+set of atomic propositions. The function DECOMP given in Figure 6 specifies how the evaluation of an LTL
+formula @ can be decomposed as described above. (A conjunction over an empty set of formulas is defined
+to have the value érue.) For instance, w;w' H Xp can be decomposed either into w — Xp and w! true
+(for the case where |w| > 1), or into w exit and w! - p (for the case where |w| = 1).
+
+Given aset F of CTL* state formulas, let exists(J*) denote the set of existential formulas that are elements
+or subformulas of elements of F. A set F of existential CTL* formulas is closed if, for every y = Ep(p(y1) —
+¥15---;P(%n) — Yn) € exists(F), for every 6 such that (8,6) EDECOMP(p), E6(p(1) — 1,--- PC) — Yn)
+is also in F’. The closure cl(#) of a CTL* formula ¢ is the smallest closed set containing exists({}). One
+can show, using properties of DECOMP, that cl(¢) is always finite for any CTL* formula ¢. Let pd(¢) be
+the maximal nesting of path quantifiers (E) in a CTL* formula ¢. Given a set F' of CTL” formulas, let
+pd(F) =maxyen(pd(7)). For ¢ with pd(¢) > j, let clSi(#) be the elements of cl(d) with at most j nested
+path quantifiers. Clearly, clS/(¢) is a closed set and pd(cl*/(¢))=j.
+
+_For any closed set F, an F'-contezt is any assignment of truth values to all elements of F. We say that a
+Kripke structure K with a single initial state so satisfies an F-context C, written K — C, if, for all y € 五，
+(K, 80) | 7 iff C(y) = true. An F-context is consistent if it is satisfied by some structure. All the F-contexts
+generated by our model-checking algorithm will be consistent by construction. We often identify a F-context
+with the elements set to true by it. For an HSM M, anode v € M , an F-context C, and a formula y € F,
+we say (M,v) satisfies -y in context C, written (M,v) Kc 7, if, for ali K', K' — C = ((K(M); K’),v) — 7,
+where K(/); K’ is the Kripke structure obtained from K(M) by identifying the top-level exit node of K(J)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+
+
+
+
+--- Page 13 ---
+function CONTEXTUALIZE(F: closed set of CTL" existential formulas，M: HSM over {y € F :pd(y)< pd(F)},
+C: F-CONTEXT) returns HSM over F.
+/* We assume M = {,..., Mn} with Mi = (Ni, Bi, Li, Oi, Xi, Yi, Ci, Ri, Bi) */
+1     begin
+M,=TopLevelMachine(M)
+for each 7 € F with y = E p(p(y1) — 71,---, (Yn) — Yn) do /* Precompute all the LTL results needed */
+N(7)=LTLALG(E p, M)
+for each (8,6) EDECOMP(p)
+N(@)=LTLALG(E (8A F exit), M)
+for each M; € M do
+Nodes; (M;,y)= NiNN(y)
+for each (8,6) EDECOMP(p)
+10         Nodese(M;,8)= NmnN(O)
+a        od
+12      od
+13] OLDCON = @ /* Find the pairs (M;,c) reachable from (Mi, C) */
+14] CON= {(11,C)}
+15] while (CON # OLDCON) do
+16)       OLDCON =CON
+
+COVA AE ON
+
+17       for each (M;,c) EOLDCON do
+
+18          for each y € F with y=Ep(p(71) — 11,---, (in) — Yn)
+
+19          Sat(Mi, ¢, 7)=Nodess (Mis1) UU a,5)e DECOMP(,),c(Es 01) 1 vs (7m)-7n)) true Nodesa (Mi)
+20        for each b €Boxes(M;) do
+
+21           Prop(b, (Mi, c))= (Vi(b),c') such that Vy € F : c'(y) = true iff (b,x) €Sat(Mi,c, y)
+
+22            CON=OLDCON U{Prop(6, (Mi, c))}
+
+23            od
+
+24          od
+
+25       od
+
+26] /* Now build the output HSM M*
+27, M* ={M,,.|L <i<nandce€ CON }
+28) Forall 1 <i <n, for all e € CON,
+
+29      Mie = (Ni x {c}, Bi x {c}, L: x {e}, O: x {e}, Xe Viley Cie Ri {c}, Hi x {c}) where
+30         Che = {((b,c), (e,c'))|(b, 2) € Ci and (Mi, c') =Prop(b, (Mi, c))}
+
+31         For all b € Bi, Y/.((b,¢)) = (¥i(b), c') with (My, c') =Prop(b, (M:,c))
+
+32         For all ve Ni, Xji-((v,c)) = {vy € Flv €Sat(Mi, c,y)}
+
+33] TopLevelMachine(M*)=Mi,c
+34) return(M")
+end
+
+
+
+
+
+Figure 7: Construction of the context-dependent HSM
+
+with the initial state of K’.
+
+Given a closed set F of existential formulas, an HSM M whose nodes are labeled with formulas in
+{y € Flpd(y)< pd(F)}, and an F-context C, the function CONTEXTUALIZE presented in Figure 7
+constructs a new HSM M* from multiple copies of M, each of which is indexed by an F-context c. The nodes
+of M* in copy (Mj,c) are labeled by formulas 7 € F representing the truth value of y in the corresponding
+node of M in the context c. It can be shown that any node (v,c) in M* is labeled with y € F iff (M,v) Fe y-
+
+The function CONTEXTUALIZE uses a variant, denoted LTLALG, of the LTL model-checking algo-
+rithm presented in the previous section. Given a formula of the form Ep(p(71,)---,p(Yn)) where p is an
+LYL* formula over atomic propositions including p(71,)..-,p(%n), and an HSM M whose nodes are also
+labeled with propositions in p(y1,)-.-,P(%n), LTLALG(Ep, M) returns the set of nodes v of M such that
+(v,€) Ep. This is done exactly as described in the previous section, except for the three following modifi-
+cations. First, LTLALG evaluates formulas of the form Ep instead of Ap. Second, we still need to define how
+formulas of LTL* are evaluated on M: we say that a formula Ep where p is in LTL* is satisfied in a node v
+of a machine M; if there is a path w from (v, €) that satisfies p, such that either w is infinite or w terminates
+
+
+
+
+
+at (x,€), where z is the exit node of M;. Third, we also extend the evaluation of formulas to include return
+nodes: we say that the return node (b, z) of a box b satisfies a formula Ep iff the corresponding exit node «
+
+12
+
+ue
+fh
+\
+
+
+
+
+
+
+--- Page 14 ---
+function CHECK(¢: existential CTL* formula, M: single-exit HSM, C : cl(¢)-CONTEXT) returns set of nodes in My
+
+fi] begin                                                                                                                           |
+
+3       for{j = 0; 5 <pd(¢); j++}        .         .         .
+
+[4]             M+) =CONTEXTUALIZE(clS/*1 (4), M7, n cl$747(6)))
+
+{5}      return {v € TopLevelMachine( MP4? )Label(v) includes ¢}                                                              |
+end                                                                                                                             4
+
+Figure 8: CTL* model-checking algorithm
+
+2        M°=M                                                                                                                           |
+
+satisfies Ep when b is the only element of the stack; in other words, we define ((b, z),¢) E Ep iff (a,b) = Ep.
+It is easy to extend the LTL model-checking algorithm of the previous section to meet these three additional
+requirements.
+
+By repeatedly invoking CONTEXTUALIZE with cl</(¢) with increasing values of j, 1 < j <pd(¢), i-e.,
+larger and larger subsets of cl(¢), one can thus evaluate CTL* formulas in a bottom-up manner. This is what.
+is done in function CHECK presented in Figure 8. Since any CTL* formula ¢ is a boolean combination
+
+
+
+
+
+
+
+of existential formulas ¢;, finding the nodes of the top-level machine Md, of an HSM M satisfying ¢ can be
+reduced to finding the nodes of M4, satisfying each ¢;. This is done by computing CHECK(¢;, M, Cy) where
+C4 is the set of formulas ¥ in cl(¢;) that evaluate to true at a single node labeled as the exit node of Ad, and
+with a self-loop. Since Cg is consistent, all subcontexts derived from it during the execution of the algorithm
+are also consistent. The correctness of the algorithm is established by the following theorem.
+|
+让
+
+Theorem 9 Given a single-exit HSM Manodeun of and an existential CTL* formula ¢;, (v,€) satisfies
+o; iff v is included in the set of nodes returned by CHECK(¢:, M,C).
+
+An analysis of the overall complexity of CHECK reveals that the number of contexts over F =cl(#) and
+the number of pairs of formulas returned by DECOMP on these formulas depends only on ¢. This implies                 :
+that the size of each M/ is linear in M for any fixed ¢. Moreover, the number of formulas on which the
+LTL algorithm is invoked in CONTEXTUALIZE is bounded independently of the size of M. Hence, the
+run-time complexity of the function CONTEXTUALIZE and the size of the returned HSM M™ are linear
+in the input HSM M for any fixed formula ¢ and closed set F’. Therefore, the CTL* model-checking problem
+for a single-exit HSM M can be solved in time linear in the size of M.
+
+
+
+
+
+7 Concluding Remarks
+
+The LTL model-checking algorithm presented in Section 5 is closely related to algorithms for solving so-              :
+called “Context-Free-Language” reachability problems [Yan90, Rep98], as well as to CFL-reachability-based                 é
+algorithms for such program-analysis problems as interprocedural slicing [HRSR94] and interprocedural            i
+dataflow analysis [RHS95, HRS95]. In particular, the notions of path-edges and summary-edges, and the              |
+dynamic-programming technique used to compute such edges in function ComputeSummaryEdges already
+appeared in this earlier work, although the cycle-detection and LTL model-checking problems considered in
+Section 5 have not been previously explored in the literature on CF'L-reachability. The “transfer functions”
+used in [B$92] are also similar to the “summary-edges” used here.
+
+Thanks to Theorem 2, which provides a linear-time translation from context-free processes to single-exit
+HSMs, the linear-time CTL* model-checking algorithm of Section 6 can also be used for CT'L* model-
+checking of context-free processes, and hence provides a new improved upper bound for this problem: CT L*
+model checking of context-free processes can now be solved in linear-time, instead of quadratic-time.
+
+Our other results, however, cannot even be stated in the context of context-free or pushdown processes.
+For example, the distinction between single-entry and multiple-entry HSMs has no obvious counterpart in
+
+13
+
+
+
+
+--- Page 15 ---
+the literature on pushdown automata, and the linear bounds for single-entry multiple-exit HSMs presented
+
+AGOO]
+
+AHU74]
+
+AKY99]
+
+AY98]
+
+BEM97|
+
+BS92]
+
+BS97]
+
+
+
+CE81]
+
+[cM90|
+
+[EHRSOO]
+
+[EL86]
+
+[Eme90]
+
+[FBW97]
+
+here could not be derived from such previous work.
+
+References
+
+R. Alur and R. Grosu. Modular Refinement of Hierarchic State Machines. In Proceedings of the
+27th ACM Symposium on Principles of Programming Languages, pages 390-402, January 2000.
+
+A. Aho, J. Hopcroft, and J. Ullman. The Design and Analysis of Computer Algorithms. Addison-
+Wesley, 1974.
+
+R. Alur, 8. Kannan, and M. Yannakakis. Communicating Hierarchical State Machines. In Proceed-
+ings of the 26th International Colloquium on Automata, Languages, and Programming, volume
+1644 of Lecture Notes in Computer Science, pages 169-178. Springer-Verlag, 1999.
+
+R. Alur and M. Yannakakis. Model Checking of Hierarchical State Machines. In Proceedings of
+the Sixth ACM Symposium on the Foundations of Software Engineering (FSE’98), pages 175-188,
+1998.
+
+A. Bouajjani, J. Esparza, and O, Maler. Reachability Analysis of Pushdown Automata: Appli-
+cation to Model-Checking. In Proc. of CONCUR’97, volume 1243 of Lecture Notes in Computer
+Science, pages 135-150. Springer-Verlag, 1997.
+
+O. Burkart and B. Steffen. Model Checking for Context-Free Processes. In Proc. of CONCUR’92,
+1992.
+
+QO. Burkart and B. Steffen. Model Checking the Full Modal Mu-Calculus for Infinite Sequential
+Processes. In Proc. of ICALP’97, volume 1256 of Lecture Notes in Computer Science, pages
+419-429, Bologna, 1997. Springer-Verlag.
+
+E. M. Clarke and E. A. Emerson. Design and Synthesis of Synchronization Skeletons using
+Branching-Time Temporal Logic. In D. Kozen, editor, Proceedings of the Workshop on Logic of
+Programs, Yorktown Heights, volume 131 of Lecture Notes in Computer Science, pages 52-71.
+Springer-Verlag, 1981.
+
+B. Caucal and R. Monfort. On the Transition Graphs of Automata and Grammars. In Graph
+Theoretic Concepts in Computer Science, volume 484 of Lecture Notes in Computer Sctence,
+pages 311-337. Springer-Verlag, 1990.
+
+J. Esparza, D. Hansel, P. Rossmanith, and S. Schwoon. Efficient Algorithms for Model Checking
+Pushdown Systems. In Proceedings of the 12th Conference on Computer Aided Verification,
+volume 1855 of Lecture Notes in Computer Science, pages 232-247, Chicago, July 2000. Springer-
+Verlag.
+
+E. A. Emerson and C. Lei. Efficient Model Checking in Fragments of the Propositional Mu-
+Calculus. In Proceedings of the First Symposium on Logic in Computer Science, pages 267-278,
+Cambridge, June 1986.
+
+E. A. Emerson. Temporal and modal logic. In J. van Leeuwen, editor, Handbook of Theoretical
+Computer Science. Elsevier/MIT Press, Amsterdam/Cambridge, 1990.
+
+A. Finkel, B.Willems, and P. Wolper. A Direct Symbolic Approach to Model Checking Pushdown
+Systems. Electronic Notes in Theoretical Computer Science, 9, 1997.
+
+14
+
+
+--- Page 16 ---
+
+
+HRS95]
+
+HRSR94]
+
+HU79]
+
+Rep98]
+
+RHS95]
+
+VW86]
+
+Wal96]
+
+‘Yan90]
+
+S. Horwitz, T. Reps, and M. Sagiv. Demand interprocedural dataflow analysis. In Proceedings
+of the Third ACM SIGSOFT Symposium on the Foundations of Software Engineering, pages
+104-115, New York, NY, October 1995. ACM Press.
+
+S. Horwitz, T. Reps, M. Sagiv, and G. Rosay. Speeding up slicing. In Proceedings of the Third
+ACM SIGSOFT Symposium on the Foundations of Software Engineering, pages 11-20, New York,
+NY, December 1994. ACM Press.
+
+J. Hopcroft and J. Ullman. Introduction to Automata Theory, Languages and Computation.
+Addison-Wesley, 1979.
+
+T. Reps. Program analysis via graph reachability. Information and Software Technology, 40(11-
+12):701-726, November 1998. Special issue on program slicing.
+
+T. Reps, S. Horwitz, and M. Sagiv. Precise interprocedural dataflow analysis via graph reacha-
+bility. In Symp. on Princ. of Prog. Lang., pages 49-61, New York, NY, 1995. ACM Press.
+
+M.Y. Vardi and P. Wolper. An automata-theoretic approach to automatic program verification.
+In Proceedings of the First Symposium on Logic in Computer Science, pages 322-331, Cambridge,
+June 1986.
+
+I. Walukiewicz. Pushdown Processes: Games and Model-Checking. In Proc. 8th Conference on
+Computer Aided Verification, volume 1102 of Lecture Notes in Computer Science, pages 62-74,
+New Brunswick, August 1996. Springer-Verlag.
+
+M. Yannakakis. Graph-theoretic methods in database theory. In Proc. of the Symp. on Princ. of
+Database Syst., pages 230-242, 1990.
+
+15
