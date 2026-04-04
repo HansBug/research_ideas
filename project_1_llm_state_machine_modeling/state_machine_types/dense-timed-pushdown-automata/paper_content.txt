@@ -1,0 +1,2236 @@
+--- Page 1 ---
+Dense-Timed Pushdown Automata
+Parosh Aziz Abdulla
+Uppsala University
+SwedenMohamed Faouzi Atig
+Uppsala University
+SwedenJari Stenman
+Uppsala University
+Sweden
+Abstract —We propose a model that captures the behavior of
+real-time recursive systems. To that end, we introduce dense-timed
+pushdown automata that extend the classical models of pushdown
+automata and timed automata, in the sense that the automaton
+operates on a ﬁnite set of real-valued clocks, and each symbol
+in the stack is equipped with a real-valued clock representing its
+“age”. The model induces a transition system that is inﬁnite in
+two dimensions, namely it gives rise to a stack with an unbounded
+number of symbols each of which with a real-valued clock.
+The main contribution of the paper is an EXPTIME -complete
+algorithm for solving the reachability problem for dense-timed
+pushdown automata.
+I. I NTRODUCTION
+During the last two decades there has been a large amount of
+work devoted to the veriﬁcation of discrete program models
+that have inﬁnite state spaces such as Petri nets, pushdown
+systems, counter automata, and channel machines. In partic-
+ular, pushdown systems have been studied extensively as a
+model for the analysis of recursive programs (e.g., [8], [20],
+[16], [18]). In parallel, timed automata [3], [10], [9] are the
+most widely used model for the analysis of systems with timed
+behaviors. Recently, several works have augmented discrete
+inﬁnite-state models with timed behaviors. For instance, many
+different formalisms have been proposed for extending Petri
+nets with clocks and timed constraints, leading to various
+deﬁnitions of Timed Petri Nets (e.g., [6], [2]).
+In this paper, we consider (Dense-)Timed Push-Down Au-
+tomata (orTPDA for short). A TPDA combines the classical
+models of pushdown automata and timed automata in the
+sense that the automaton is equipped with a ﬁnite set of
+real-valued clocks, and each symbol in the stack is equipped
+with a real-valued clock representing its “age”. The types of
+transitions performed by a TPDA include the usual ones by a
+pushdown automaton, namely pushing and popping symbols
+to/from the stack. However, in a similar manner to timed
+automata, the transitions are now conditioned by the values
+of the clocks in the automaton. Furthermore, transitions are
+labeled by intervals that constrain the ages of the symbols
+that are pushed or popped from/to the stack. Thus, when a
+transitiontis ﬁred, we (i) check that the values of the clocks
+satisfy the conditions stated by t, (ii) update the clock values
+as speciﬁed by t, and (iii) perform a stack operation. The
+latter may either be a pop operation that removes the top-
+most symbol in the stack provided its has the correct label
+and age, or a push operation that adds a symbol whose age
+belongs to a given interval. Finally, a TPDA may perform a
+timed transition in which the clock values and the ages ofthe symbols are all increased at the same rate. The TPDA
+model thus subsumes both the model of pushdown automata
+and timed automata. More precisely, we obtain the former if
+we prevent the TPDA from using the timed information (all
+the timing constraints are trivially valid); and obtain the latter
+if we prevent the TPDA from using the stack (no symbols
+are pushed or popped from the stack). Notice that a TPDA
+induces a system that is inﬁnite in two dimensions, namely
+it gives rise to an stack containing an unbounded number of
+symbols each of which is equipped with a real-valued clock.
+In this paper, we show decidability of the reachability
+problem for TPDA. We show the decidability through a re-
+duction to the corresponding problem for (untimed) pushdown
+automata. Then, we prove that the reachability problem for
+TPDA is E XPTIME -complete.
+Due to lack of space, we do not include
+the detailed proofs of the lemmas. These are
+available in the full version of the paper at
+http://user.it.uu.se/%7Emohat117/lics12.pdf
+Related Work.: The works in [7], [14], [12], [13], [15]
+consider timed pushdown automata. However, the models in
+these works consider only global clocks which means that the
+stack symbols are not equipped with clocks.
+In [21], the authors introduce recursive timed automata , a
+model where clocks are considered as variables. A recursive
+timed automaton allows passing the values of clocks using
+either pass-by-value orpass-by-reference mechanism. This
+feature is not supported in our model since we do not allow
+pass-by-value communication between procedures. Moreover,
+in the recursive timed automaton model, the local clocks of the
+caller procedure are stopped until the called procedure returns.
+This makes the semantics of the models incomparable with
+ours, since all the clocks in our model evolve synchronously. In
+fact, the authors show decidability of the reachability problem
+only in the special cases where either all clocks are passed by
+reference or none is passed by reference.
+In [5], the authors deﬁne the class of extended pushdown
+timed automata . An extended pushdown timed automaton is
+a pushdown automaton enriched with a set of clocks, with
+an additional stack used to store/restore clock valuations. In
+our model, clocks are associated with stack symbols and
+store/restore operations are disallowed. The two models are
+quite different. This is illustrated, for instance, by the fact that
+the reachability problem is undecidable in their case.
+In a recent work [1] we have shown decidability of the
+reachability problem for discrete-timed pushdown automata,
+
+--- Page 2 ---
+1/uni27E8d;4:2/uni27E9/uni27E8a;3:1/uni27E9/uni27E8b;6:7/uni27E9/uni27E8a;1:9/uni27E9
+x1←0:5
+x2←3:9
+x3←2:3
+2/uni27E8d;4:2/uni27E9/uni27E8a;3:1/uni27E9/uni27E8b;6:7/uni27E9/uni27E8a;1:9/uni27E9/uni27E8d;2:6/uni27E9
+x1←0:5
+x2←3:9
+x3←2:3
+3/uni27E8d;6:8/uni27E9/uni27E8a;5:7/uni27E9/uni27E8b;9:3/uni27E9/uni27E8a;4:5/uni27E9/uni27E8d;5:2/uni27E9
+x1←3:1
+x2←6:5
+x3←4:9
+4/uni27E8d;6:8/uni27E9/uni27E8a;5:7/uni27E9/uni27E8b;9:3/uni27E9/uni27E8a;4:5/uni27E9/uni27E8d;5:2/uni27E9
+x1←3:1
+x2←3:8
+x3←4:9
+5/uni27E8d;6:8/uni27E9/uni27E8a;5:7/uni27E9/uni27E8b;9:3/uni27E9/uni27E8a;4:5/uni27E9
+x1←3:1
+x2←3:8
+x3←4:9
+push(d;[1∶3])
+Disc2:6
+Timex2←(2∶5]
+Discpop(d;[4∶6])
+Disc
+Fig. 1. Conﬁgurations and transition in a TPDA.
+where time is interpreted as being incremented in discrete steps
+and thus the ages of clocks and stack symbols are in the natural
+numbers. This makes the reachability problem much simpler
+to solve, and the method of [1] cannot be extended to the
+dense-time case.
+II. O VERVIEW
+In this section, we give an informal but detailed overview of
+the paper. We introduce Timed PushDown Automata (TPDA),
+together with its reachability problem. We describe a symbolic
+representation that allows us to translate a TPDA into an
+(untimed) PDA. We also describe how such a PDA can
+simulate the TPDA while preserving reachability properties.
+TPDA.: A TPDA is an automaton that operates on a
+ﬁnite set of real-valued clocks and where the symbols (taken
+from a ﬁnite alphabet) inside the stack are equipped with real
+numbers that indicate their ages. Fig. 1 gives examples of
+typical conﬁgurations in a TPDA Tthat has three clocks
+x1;x2;x3and that has a stack alphabet with three symbols
+{a;b;d}. A conﬁguration of a TPDA consists of three compo-
+nents. The ﬁrst component deﬁnes the local (control) state
+of the automaton (to simplify the illustration, this part is
+not shown in the ﬁgure). The second component deﬁnes the
+clock values, while the third component deﬁnes the content of
+the stack. For instance, in 1, the clock values are given by
+[x1←0:5;x2←3:9;x3←2:3], while the stack contains four
+symbols, namely (from top to bottom): a,b,a, andd, with
+ages 1:9,6:7,3:1and4:2respectively. Fig. 1 also illustrates
+different types of transitions that can be performed by a TPDA.
+From1,Tperforms a discrete transition in which the symbol
+dis pushed to the stack. The transition requires that the age
+of the newly pushed symbol lies in the interval [1∶3](indeed,
+the age of the new symbol is 2:6∈[1∶3]). From the new
+conﬁguration 2,Tperforms a timed transition to3in which
+the values of all clocks, and the ages of all symbols inside the
+stack are increased by the same real number 2:6. From3,T
+moves to4by assigning a new value to the clock x2. The
+new value assigned to x2should lie in the interval (2∶5](the
+chosen value is 3:8). From4,Tpops the top-most symbol
+from the stack. The transition may only be performed if the
+age of the popped symbol lies in the interval [4∶6](which is
+the case here).
+Reachability Problem.: An instance of the reachability
+problem for TPDA is deﬁned by an initial conﬁguration init
+and a ﬁnal (target) state sFof the automaton. The task is tocheck whether there exists a sequence of transitions leading
+frominit tosF. In this paper, we show decidability of
+the problem by reducing it to the corresponding problem
+for (untimed) pushdown automata (which is known to be
+decidable). The main ingredient of our proof is a symbolic
+representation for inﬁnite sets of conﬁgurations in TPDA.
+Given a TPDA T, we use the representation to extract a
+pushdown automaton P, called the symbolic automaton, such
+thatPcan simulate Twrt. reachability properties in an exact
+manner.
+Symbolic Encoding.: A symbolic representation is needed
+even in the (simpler) case of timed automata, since they
+operate on real-valued clocks and hence induce inﬁnite (in
+fact uncountable) state spaces. There, the classical regions
+encoding has been used to produce a ﬁnite-state abstraction
+that is exact wrt. many properties including reachability [3].
+However, the region-based abstraction relies heavily on the
+fact that a timed automaton operates on a ﬁnite set of clocks.
+In particular, this means that it is not applicable in the case
+of TPDA, since the latter operates on an unbounded number
+of clocks (the stack is unbounded, and each symbol has an
+age). A difﬁcult feature in the behavior of TPDA is that
+the ages of the symbols inside the stack, and their relations
+with the clock values, change continuously during the run of
+the automaton (due to timed transitions and clock resettings).
+In fact, sometimes it is crucial to record relations that arise
+between clocks and symbols that lie arbitrarily deep inside the
+stack. Simulating the behavior of a TPDA by an (untimed)
+pushdown automaton is not trivial, since in the latter, the
+symbols inside the stack do not change, and furthermore,
+the system can only access the top-most stack symbol. This
+makes it difﬁcult to capture the evolving relations between the
+clocks and the stack symbols. The symbolic automaton, that
+we derive from T, uses a stack alphabet in which each symbol
+corresponds to a region of a special form. The region relates,
+among other things, the top-most stack symbol with the clocks
+of the automaton. Furthermore, each region is enriched with
+information that is sufﬁcient to capture the above mentioned
+dependencies between clocks and symbols that lie arbitrarily
+deep inside the stack. A key idea of our proof is to show
+that it is enough to enrich the regions in a ﬁnite way in order
+to capture all such dependencies. Roughly speaking, we add
+a copy of each clock and a copy of an extra stack symbol
+to the region representation, where the additional items carry
+(partial information) about the history of the current run of the
+system. This makes it possible to maintain a ﬁnite number of
+regions, and hence the symbolic automaton only uses a ﬁnite
+stack alphabet.
+Below, we will describe some aspects of the problems and
+the solutions we provide, based on the example of Fig. 1. A
+typical example of a region (in the sense of timed automata)
+isR1in Fig. 2. Here, we represent a region as a word of sets,
+where each set contains a number of items . There are three
+types of items in a region: (i) the plain items x1;x2;x3;a
+represent the three clocks and the top-most stack symbol, (ii)
+the special item /uni22A2(introduced for technical reasons) is used as
+
+--- Page 3 ---
+R1/uni27E8.alt2x●
+1;2/uni27E9.alt2
+/uni27E8/uni22A2;0/uni27E9/uni27E8.altx3;2/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2/uni27E8.altx1;0/uni27E9.alt1
+/uni27E8.alt/uni22A2●;3/uni27E9.alt1/uni27E8.altb●;6/uni27E9.alt1
+/uni27E8.alt2x●
+2;5/uni27E9.alt2/uni27E8a;1/uni27E9
+/uni27E8.altx2;3/uni27E9.alt1
+R2/uni27E8.alt/uni22A2●;0/uni27E9.alt1
+/uni27E8/uni22A2;0/uni27E9/uni27E8.altx3;2/uni27E9.alt1
+/uni27E8.alt2x●
+3;2/uni27E9.alt2/uni27E8.altx1;0/uni27E9.alt1
+/uni27E8.alt2x●
+1;0/uni27E9.alt2/uni27E8d;2/uni27E9/uni27E8.alta●;1/uni27E9.alt1
+/uni27E8.altx2;3/uni27E9.alt1
+/uni27E8.alt2x●
+2;3/uni27E9.alt2
+R1/uni27E8.alt2x●
+1;2/uni27E9.alt2
+/uni27E8/uni22A2;0/uni27E9/uni27E8.altx3;2/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2/uni27E8.altx1;0/uni27E9.alt1
+/uni27E8.alt/uni22A2●;3/uni27E9.alt1/uni27E8.altb●;6/uni27E9.alt1
+/uni27E8.alt2x●
+2;5/uni27E9.alt2/uni27E8a;1/uni27E9
+/uni27E8.altx2;3/uni27E9.alt1
+R3/uni27E8/uni22A2;0/uni27E9/uni27E8.altx1;3/uni27E9.alt1
+/uni27E8.alt2x●
+1;3/uni27E9.alt2/uni27E8d;5/uni27E9/uni27E8.alta●;4/uni27E9.alt1
+/uni27E8.altx2;6/uni27E9.alt1
+/uni27E8.alt2x●
+2;6/uni27E9.alt2/uni27E8.alt/uni22A2●;2/uni27E9.alt1/uni27E8.altx3;4/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2
+R1/uni27E8.alt2x●
+1;2/uni27E9.alt2
+/uni27E8/uni22A2;0/uni27E9/uni27E8.altx3;2/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2/uni27E8.altx1;0/uni27E9.alt1
+/uni27E8.alt/uni22A2●;3/uni27E9.alt1/uni27E8.altb●;6/uni27E9.alt1
+/uni27E8.alt2x●
+2;5/uni27E9.alt2/uni27E8a;1/uni27E9
+/uni27E8.altx2;3/uni27E9.alt1
+R4/uni27E8/uni22A2;0/uni27E9/uni27E8.altx1;3/uni27E9.alt1
+/uni27E8.alt2x●
+1;3/uni27E9.alt2/uni27E8d;5/uni27E9/uni27E8.alta●;4/uni27E9.alt1
+/uni27E8.alt2x●
+2;6/uni27E9.alt2/uni27E8.alt/uni22A2●;2/uni27E9.alt1/uni27E8.altx2;3/uni27E9.alt1/uni27E8.altx3;4/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2
+R1/uni27E8.alt2x●
+1;2/uni27E9.alt2
+/uni27E8/uni22A2;0/uni27E9/uni27E8.altx3;2/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2/uni27E8.altx1;0/uni27E9.alt1
+/uni27E8.alt/uni22A2●;3/uni27E9.alt1/uni27E8.altb●;6/uni27E9.alt1
+/uni27E8.alt2x●
+2;5/uni27E9.alt2/uni27E8a;1/uni27E9
+/uni27E8.altx2;3/uni27E9.alt1
+R4/uni27E8/uni22A2;0/uni27E9/uni27E8.altx1;3/uni27E9.alt1
+/uni27E8.alt2x●
+1;3/uni27E9.alt2/uni27E8d;5/uni27E9/uni27E8.alta●;4/uni27E9.alt1
+/uni27E8.alt2x●
+2;6/uni27E9.alt2/uni27E8.alt/uni22A2●;2/uni27E9.alt1/uni27E8.altx2;3/uni27E9.alt1/uni27E8.altx3;4/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2
+R5/uni27E8.altx1;3/uni27E9.alt1
+/uni27E8.alt/uni22A2●;6/uni27E9.alt1/uni27E8.altb●;∞/uni27E9.alt1
+/uni27E8.alt2x●
+2;8/uni27E9.alt2/uni27E8a;4/uni27E9
+/uni27E8.altx2;6/uni27E9.alt1/uni27E8.alt2x●
+1;4/uni27E9.alt2
+/uni27E8/uni22A2;2/uni27E9/uni27E8.altx3;4/uni27E9.alt1
+/uni27E8.alt2x●
+3;6/uni27E9.alt2
+R6/uni27E8/uni22A2;0/uni27E9/uni27E8.altx1;3/uni27E9.alt1
+/uni27E8.alt/uni22A2●;6/uni27E9.alt1/uni27E8.altb●;∞/uni27E9.alt1
+/uni27E8.alt2x●
+2;8/uni27E9.alt2/uni27E8a;4/uni27E9/uni27E8.alt2x●
+1;4/uni27E9.alt2/uni27E8.altx2;3/uni27E9.alt1/uni27E8.altx3;4/uni27E9.alt1
+/uni27E8.alt2x●
+3;6/uni27E9.alt2
+Fig. 2. A run in the symbolic automaton.
+a reference clock whose value is 0unless we are performing
+apop operation (see below), and (iii) the shadow items
+x●
+1;x●
+2;x●
+3;b●;/uni22A2●are used for enriching the region and will
+be explained later. The items impose a number of conditions
+on any conﬁguration satisfying R1. An example of such a
+conﬁguration is 1in Fig. 1. Each item in R1is paired with
+a natural number that speciﬁes the integral part of its value.
+Thus,R1requires for instance that the integral part of the value
+ofx1should be 0; and that the top-most stack symbol should
+beaand the integral part of its value should be 1. Notice that
+these conditions are satisﬁed by 1, since the integral partthe value of x1is0, and that of ais1. Items belonging to
+the same set should have identical fractional parts, and items
+belonging to successive sets should have strictly increasing
+fractional parts, so the fractional parts of aandx2should be
+identical and larger than that of x1. All these conditions on
+the fractional parts are satisﬁed by 1. Finally, the left-most
+set plays a special role, in the sense that the fractional of the
+items in the left-most set ( x●
+1and/uni22A2here) should equal to 0.
+Our aim is to derive a PDA Pthat is able to simulate T. The
+stack alphabet of Pis a set of regions of a special form. Next,
+we will use the run of T, depicted in Fig. 1, to explain why we
+need and how we enrich the region representation to capture
+dependencies between clocks and stack symbols. We observe
+that in1the fractional parts of the clock x2and the (top-
+most) stack symbol aare equal (both of them are equal to 0:9).
+The fractional parts remain identical in 2, butais no longer
+the top-most symbol and therefore its value is “not available”
+any more to the system. The equality remains in 3although
+ahas now obtained a new value inside stack. However, the
+new value assigned to x2means that fractional parts of x2
+andaare no longer identical in 4. This information may
+become relevant in 5whereahas again become the top-most
+stack symbol. For instance, there may exist transitions whose
+enabledness may depend on whether the fractional parts of
+x2andaare different or identical (it is easy to encode such
+dependencies even in the case of timed automata). In fact,
+we can create examples showing that dependencies may exist
+among clocks and symbols that lie arbitrarily deep inside the
+stack. For instance, the clock x2may be assigned a new value
+after an arbitrary number of push operations rather than only
+one (as was the case above).
+Simulation.: We consider the computation of Tfrom
+Fig. 1. In Fig. 2 we simulate it in the symbolic automaton
+P(whose stack alphabet consists of the set of regions as de-
+scribed above). Let us assume that we have already simulated
+the initial part of a computation leading to 1and that the
+top-most stack symbol in PisR1(in the example we neglect
+the part of the stack below R1). Intuitively the shadow x●
+1of
+a clockx1in the region R1represents the value of x1at the
+point of time when R1was pushed to the stack in P. The
+shadow symbol /uni22A2●represents the time that has elapsed since
+R1was pushed to the stack in P. The shadow stack symbol b●
+represents the current value of the next-top-most stack symbol.
+The push transition leading to 2is simulated in Pby
+pushing a new region R2that we derive from R1as follows.
+We identify each shadow clock with its plain counter-part
+(assign it the same integer value) and place it in the same set
+(e.g.,x2andx●
+2have identical integral parts and are placed in
+the same set). This maintains the property that shadow clocks
+record the values of the plain clocks when the current region
+was pushed to the stack. For instance, x●
+2records the value
+ofx2whenR2is pushed to the stack in P. From now on,
+the values of these shadow items are only updated through
+passage of time, and their values are not affected by discrete
+transitions that assign new values to the clocks. We also make
+a shadow copy a●of the previous top-most stack symbol a.
+
+--- Page 4 ---
+In other words, a●records the value of awhich is now the
+next top-most stack symbol. Finally, we add the new top-most
+stack symbol dinto the region.
+The timed transition from 2to3is simulated in Pas
+follows. A timed transition affects all the clocks and stack
+symbols. However, since we are dealing with a stack we can
+access only the top-most symbol. Therefore, we simulate the
+effect only on the top-most region (i.e., R2) while we “freeze”
+the other regions inside the stack (those below R2). This means
+that the items in R1no longer reﬂect the actual values (as we
+will see below, these values will later be recovered through the
+use of the shadow symbols). The effect of a timed transition
+onR2is simulated in Pby popping R2and pushing a new
+regionR3. We deriveR3fromR2by (i) increasing the integral
+parts of the items and (ii) “rotating” the region left to right
+in order to obtain the correct ordering on the fractional parts.
+The item/uni22A2is not affected in order to maintain the invariant
+that its value is zero. Since, we allow arbitrarily long time
+delays, the amount of rotation performed when simulating a
+timed transition is arbitrary. The rotation operation will be
+explained more in the simulation of the poptransition below.
+The discrete transition from 3to4is again simulated by
+updating the top-most region R3while freezing the regions
+below (including R1). More precisely, we pop R3and push
+R4in whichx2has been assigned a new integer and moved to
+a new position in the region in order to reﬂect its new value.
+Simulating poptransitions is the most interesting step. First,
+we describe the rotation operation on regions (depicted in
+Fig. 3) that describes the manner in which a region changes
+due to the passage of time. The operation represents the next
+“interesting” event that occurs in R1when time elapses. There
+are two possible cases. The ﬁrst case (which applies to R1) is
+when there are some items with zero fractional parts (i.e., the
+left-most set in the region is not empty). The next event then
+is that the fractional values of these items become positive.
+We can obviously always choose the amount of time to be
+sufﬁciently small so that the value of none of the other items
+passes the next integer. For instance, in R1, the itemsx●
+2and
+/uni22A2leave the left-most set, meaning that there are no more items
+in the region with zero fractional parts. The result corresponds
+toR′
+1. The second case (which applies to R′
+1) is when there
+are no items with integer values, and hence the operation
+corresponds to letting time pass by an amount that is exactly
+enough to make the values of the items with the highest
+fractional parts increase so that they reach the next integer
+(the integral parts of these items have now been incremented
+by one). In the case of R′
+1, this lead to R′′
+1where the items
+aandx2have jumped to the left-most set, and their integral
+parts have been incremented by one.
+The simulation of the pop transition leading from 4to
+5is now performed in two steps. First, the next-top-most
+regionR1is “refreshed”, by repeatedly rotating it until its
+items are updated in a manner that reﬂects their current values
+(recall that these items were frozen while R1was not the
+top-most region). Concretely, we rotate R1sufﬁciently many
+times so that its information is consistent with that in R4. TheR′
+1/uni27E8.alt2x●
+1;2/uni27E9.alt2
+/uni27E8/uni22A2;0/uni27E9/uni27E8.altx3;2/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2/uni27E8.altx1;0/uni27E9.alt1
+/uni27E8.alt/uni22A2●;3/uni27E9.alt1/uni27E8.altb●;6/uni27E9.alt1
+/uni27E8.alt2x●
+2;5/uni27E9.alt2/uni27E8a;1/uni27E9
+/uni27E8.altx2;3/uni27E9.alt1
+R′′
+1/uni27E8a;2/uni27E9
+/uni27E8.altx2;4/uni27E9.alt1/uni27E8.alt2x●
+1;2/uni27E9.alt2
+/uni27E8/uni22A2;0/uni27E9/uni27E8.altx3;2/uni27E9.alt1
+/uni27E8.alt2x●
+3;4/uni27E9.alt2/uni27E8.altx1;0/uni27E9.alt1
+/uni27E8.alt/uni22A2●;3/uni27E9.alt1/uni27E8.altb●;6/uni27E9.alt1
+/uni27E8.alt2x●
+2;5/uni27E9.alt2
+Fig. 3. Two successive rotations of R1.
+result isR5. The plain items in R5should match their shadow
+counter-parts in R4(shown by the dotted lines between the
+sets containing such items in R4andR5). This means that
+the integral part of each item in R5is identical to its shadow
+counter-part in R4(for instance, this value is equal to 6in
+the case ofx2inR5andx●
+2inR4). Also, the ordering of the
+plain items in R5should match the ordering of their shadow
+counter-parts in R4(for instance, x●
+1occurs before x●
+2inR4
+and hencex1should occur before x2inR5). Notice that a
+dotted line connects the two left-most sets in order to take into
+considerations their special roles (collecting all items with zero
+fractional parts). In the second step, we pop both R4andR5
+and push a new region R6that we obtain by merging R4and
+R5as follows. The plain clock symbols in R4represent the
+current values of the clocks, and hence they are copied from
+R4toR6(these values are not affected by the popoperation).
+The age of the plain stack symbol ainR5represents the age of
+the next-top-most symbol (after popping, awill be at the top
+of the stack), and hence its value is copied from R5toR6. All
+the shadow items are copied from R5toR6(again, the ages
+of these items are not affected by the pop operation). Since
+the ordering of fractional parts among the plain items in R5is
+identical to that of the shadow items in R4, the ordering can be
+used to relate the fractional parts of the items copied from R4
+andR5toR6. For instance, x2occurs before x●
+3inR5andx1
+occurs before x●
+2inR4, and hence x1should occur before x●
+3
+inR6(items are not allowed to cross the dotted lines between
+the setsR4andR5). Notice, for instance, that R6indicates
+correctly that x2andahave now different fractional parts.
+This relation was temporarily lost in the simulation, but has
+now been retrieved using the shadow items.
+A detail taken from the standard representation of regions is
+that we can deﬁne an integer that is larger than all the constants
+that occur syntactically in the automaton. Item values larger
+than this constant behave equivalently and hence their integral
+parts can all be represented by a single symbolic value ∞
+(e.g.,b●inR5). In our particular example, we have assumed
+that this constant is equal to 9.
+III. P RELIMINARIES
+We use NandR≥0to denote the sets of natural numbers
+and non-negative reals respectively. We deﬁne N!∶=N∪{!},
+where!is the ﬁrst limit ordinal. We use a set Iof intervals.
+An open interval is written as (a∶b)wherea∈Nandb∈N!.
+Intervals can also be closed in one or both directions, e.g.
+[a∶b]is closed in both directions and [a∶b)is closed to the
+left and open to the right. For a number v∈R≥0and interval
+
+--- Page 5 ---
+I∈I, we usev∈Ito indicate that vbelongs toI. For a
+numberv∈R≥0, we write /uni230Av/uni230Bandfract(v)to denote the
+integral resp. fractional part of v. Fork∈N, we usek(0)and
+k(1)for the sets {0;1;:::;k}and{1;2;:::;k}respectively.
+The relation ≤lexis the standard lexicographic ordering on
+N2, i.e.,/uni27E8k1;`1/uni27E9≤lex/uni27E8k2;`2/uni27E9if eitherk1<k2or bothk1=k2
+and`1≤`2We write /uni27E8k1;`1/uni27E9<lex/uni27E8k2;`2/uni27E9to indicate that
+/uni27E8k1;`1/uni27E9≤lex/uni27E8k2;`2/uni27E9and/uni27E8k1;`1/uni27E9≠/uni27E8k2;`2/uni27E9.
+For setsAandB, we usef∶A→Bto denote that fis a
+(possibly partial) function that maps AtoB. We let dom(f)
+andrange(f)denote the domain resp. range of f. Fora∈A,
+we writef(a)=/botto indicate that fis not deﬁned for a. By
+f[a←b]we mean the function f′such thatf′(x)=f(x)if
+x≠aandf′(a)=b. For a function f, with a ﬁnite domain,
+we sometimes write f=[x1←a1;:::;xn←an]to denote
+thatf(xi)=aifori∶1≤i≤n, and thatf(y)=/botify/slash.left∈
+{x1;:::;xn}. For a setA, we write /divides.alt0A/divides.alt0for the size of A, and
+writeA∗for the set of ﬁnite words over A. For a word w∈A∗,
+we let/divides.alt0w/divides.alt0denote the length of w, and letw[i]denote theith
+element ofwwherei∶1≤i≤/divides.alt0w/divides.alt0. The empty word is written
+as. For words w1;w2∈A∗, we writew1⋅w2to denote the
+concatenation of w1andw2. For setsW1;W2of words, we
+deﬁneW1⋅W2∶={w1⋅w2/divides.alt0 (w1∈W1)∧(w2∈W2)}.
+In this paper, we will often use a number of opera-
+tions on words. First, we consider words over sets over
+an alphabet A, i.e., members of the set /parenleft.alt12A/parenright.alt1∗and deﬁne
+a shufﬂe operator ⊗inductively as follows. For a word
+w∈/parenleft.alt12A/parenright.alt1∗, we deﬁne w⊗∶=⊗w∶=w. Furthermore,
+for setsr1;r2∈2Aand wordsw1;w2∈/parenleft.alt12A/parenright.alt1∗we deﬁne
+(r1⋅w1)⊗(r2⋅w2)∶=(r1⋅(w1⊗(r2⋅w2)))∪(r2⋅(r1⋅
+w1⊗w2))∪((r1∪r2)⋅(w1⊗w2)).Example: Given the
+wordsw1={a;b}{c}{d;e}{f}andw2={u;v}{v}{y;z}
+that{a;b;u;v }{c}{d;e;v}{y;z}{f}∈w1⊗w2.
+Consider words w=a1/uni22EFamandu=b1/uni22EFbninA∗. An
+injection fromwtouis a partial function h∶m(1)→n(1)
+that is strictly monotonic, i.e., if i<jandh(i);h(j)≠
+/botthenh(i)<h(j). The fragmentation w/slash.lefthofwwrt.
+his the sequence /uni27E8w0/uni27E9ai1/uni27E8w1/uni27E9ai2/uni22EF/uni27E8wk−1/uni27E9aik/uni27E8wk/uni27E9where
+dom(h)={i1;i1;:::;ik}andw=w0⋅ai1⋅w1⋅ai2⋅
+/uni22EF⋅wk−1⋅aik⋅wk. Similarly, the fragmentation u/slash.lefthis the
+sequence /uni27E8u0/uni27E9bj1/uni27E8u1/uni27E9bj2/uni22EF/uni27E8u`−1/uni27E9bj`/uni27E8u`/uni27E9where range(h)=
+{j0;j1;:::;j`}andu=u0⋅bj1⋅u1⋅bj2⋅/uni22EF⋅u`−1⋅bj`⋅u`.Example:
+Ifw=abcdefgh ,u=rstuvxyz ,h(3)=2,h(6)=5and
+h(i)=/botfori∈{1;2;4;5;7;8}thenw/slash.lefth=/uni27E8ab/uni27E9c/uni27E8de/uni27E9f/uni27E8gh/uni27E9
+andu/slash.lefth=/uni27E8r/uni27E9s/uni27E8tu/uni27E9v/uni27E8xyz/uni27E9.
+IV. M ODEL
+We recall the standard model of pushdown automata, and
+then describe its timed extension. We give the operational
+semantics by deﬁning the induced transition system, i.e., the
+set of conﬁgurations, and the transition relation on the set of
+conﬁgurations. Then, we describe the reachability problem in
+which we ask whether a given local state of the automaton is
+reachable from the initial conﬁguration of the system.
+PDA: We recall the classical model of PushDown Au-
+tomata (PDA for short) . A PDAPis a tuple /uni27E8S;sinit;;/uni27E9,whereSis a ﬁnite set of states ,sinit∈Sis the initial state ,
+is a (ﬁnite) set of stack symbols , and is a ﬁnite of
+transitions . A transition t∈is a triple /uni27E8s;op;s′/uni27E9where
+s;s′∈Sare the source and target states of the transition,
+andopis a stack operation of one of three forms: (i) nop
+is an empty operation that does not change the content of
+the stack, (ii) pop(a), wherea∈, is a pop operation that
+removes the top-most stack symbol if this symbol is equal
+toa, and (iii) push(a), wherea∈, is a push operation
+that addsato the top of the stack. A conﬁguration is a
+pair/uni27E8s;w/uni27E9wheres∈Sis the local (control) state of the
+automaton and w∈∗is the content of the stack. We deﬁne the
+transition relation /leftrightline→on the set of conﬁgurations as follows.
+For conﬁgurations =/uni27E8s;w/uni27E9and′=/uni27E8s′;w′/uni27E9and a transition
+t=/uni27E8s;op;s′/uni27E9∈, we writet/leftrightline→′to denote that one of the
+following properties is satisﬁed: (i) op=nop andw′=w,
+(ii)op=push(a)andw′=w⋅a, or (iii) op=pop(a)and
+w=w′⋅a. We deﬁne/leftrightline→∶=∪t∈t/leftrightline→and deﬁne∗/leftrightline→to be the
+reﬂexive transitive closure of /leftrightline→. The initial conﬁguration
+is deﬁned by init∶=/uni27E8sinit;/uni27E9, i.e., the system starts from
+the initial state and with an empty stack. A conﬁguration 
+is said to be reachable ifinit∗/leftrightline→. A local state s∈S
+is said to be reachable if there is a stack content wsuch
+that the conﬁguration /uni27E8s;w/uni27E9is reachable. An instance of the
+reachability problem is deﬁned by a (target) local state sF.
+The task is to check whether sFis reachable, i.e., to check
+whether we can reach a conﬁguration where the local state of
+the automaton is equal to sF(regardless of the stack content).
+TPDA: Assume a ﬁnite set Xofclocks . A Timed
+PushDown Automaton (TPDA for short) is a tuple T=
+/uni27E8S;sinit;;/uni27E9, whereSis a ﬁnite set of states ,sinit∈Sis
+theinitial state ,is a (ﬁnite) set of stack symbols , and is a
+ﬁnite set of transitions . A transition t∈is a tuple /uni27E8s;op;s′/uni27E9
+wheres;s′∈S, and opis a stack operation of one of ﬁve
+forms: (i) nop is an empty operation that does not change the
+contents of the stack, (ii) x∈I?, wherex∈Xis a clock and
+I∈Iis an interval, is a testoperation where the transition may
+be ﬁred only if the value of xbelongs toI, (iii)x←I, where
+x∈Xis a clock and I∈Iis an interval, is an assignment
+operation where the clock xis non-deterministically assigned
+an arbitrary value in I, (iv) pop(a;I), wherea∈is a stack
+symbol andI∈Iis an interval, is a popoperation that removes
+the top-most stack symbol provided that this symbol is aand
+its age belongs to the interval I, and (v) push(a;I), where
+a∈is a stack symbol and I∈Iis an interval, is a push
+operation that adds ato the top of the stack, such that the age
+of the newly added symbol is in the interval I.
+Conﬁgurations: Aclock valuation is a function X∶X→
+R≥0that assigns a real number to each clock. A stack content is
+a wordw∈/parenleft.alt1×R≥0/parenright.alt1∗of pairs each deﬁning a symbol and its
+age inside the stack. A conﬁguration is of the form /uni27E8s;X;w/uni27E9
+wheres∈S,Xis a clock valuation, and wis astack content .
+Intuitively,sgives the local (control) state of the automaton,
+the clock valuation Xdeﬁnes the values of the clocks, while
+the stack content wdeﬁnes the content of the stack.
+
+--- Page 6 ---
+Transition Relation: We ﬁrst deﬁne timed transitions.
+Consider a real number v∈R≥0. For a clock valuation
+X, we deﬁne X+vto be the clock valuation X′such that
+X′(x)=X(x)+vfor all clocks x∈X. For a stack content
+w=/uni27E8a1;k1/uni27E9/uni27E8a2;k2/uni27E9/uni22EF/uni27E8an;kn/uni27E9, we deﬁne w+vto be the
+stack content w′=/uni27E8a1;k1+v/uni27E9/uni27E8a2;k2+v/uni27E9/uni22EF/uni27E8an;kn+v/uni27E9. For
+conﬁgurations =/uni27E8s;X;w/uni27E9and′=/uni27E8s′;X′;w′/uni27E9, we have
+v
+Time′ifs′=s,X=X+v, andw′=w+v. The system
+makes a timed transition (of length v) to′. The local state
+of the automaton and the symbols inside the stack are not
+changed. The values of the clocks and the ages of the stack
+symbols are all increased by v. We write  Time′to
+denote thatv
+Time′for somev∈R≥0.
+Now, we deﬁne discrete transitions . Lett=/uni27E8s;op;s′/uni27E9∈
+be a transition. For conﬁgurations =/uni27E8s;X;w/uni27E9and′=
+/uni27E8s′;X′;w′/uni27E9, we write t
+Disc′if one of the following
+conditions is satisﬁed:
+●op=nop,w′=w,X′=X. The empty operation does not
+modify the clock values or the stack content.
+●op=x∈I?,w′=w,X′=X, and X(x)∈Iholds. The
+transition can be performed only if the value of clock
+xlies in the interval I. The clock values and the stack
+content are not changed.
+●op=x←I,w′=w, and X′=X[x←v]wherev∈I. The
+clockxis assigned an arbitrary value in I. The values of
+the rest of clocks and the stack content are not changed.
+●op=pop(a;I),X′=X, andw=w′⋅/uni27E8a;v/uni27E9for somev∈I.
+The operation checks whether the top-most symbol in the
+stack isaand whether its age value is in I. In such a case
+it removes the top-most stack symbol. The clock values
+are not changed.
+●op=push(a;I),X′=X, andw′=w⋅/uni27E8a;v/uni27E9for some
+v∈I. The operation places aat the top of the stack and
+deﬁnes its age to be some (arbitrary) value vinI. The
+clock values are not changed.
+Notice that the local states of and′agree with the source
+and target local states in t. We deﬁne Disc∶=∪t∈t
+Disc.
+We deﬁne the transition relation ∶= Time∪ Disc and
+deﬁne∗to be the reﬂexive transitive closure of .
+Reachability: We ﬁx a clock valuation Xinitdeﬁned by
+Xinit(x)∶=0for allx∈X. We deﬁne the initial conﬁguration
+init∶=/uni27E8sinit;Xinit;/uni27E9. In other words, the system starts
+running from a conﬁguration where the automaton is in its
+initial local state, where all clocks have values 0, and where
+the stack is empty. A conﬁguration is said to be reachable
+ifinit∗. A (target) local state sFis said to be reachable
+if there is a clock valuation Xand a stack content wsuch
+that the conﬁguration /uni27E8sF;X;w/uni27E9is reachable. An instance of
+theReachability Problem is deﬁned by a ﬁnal (target) state
+sF∈S. The task is to check whether sFis reachable.
+V. S YMBOLIC ENCODING
+Given a TPDA T=/uni27E8.altST;sT
+init;T;T/uni27E9.alt1, we will show
+how we can simulate Tby an (untimed) PDA P=
+/uni27E8.altSP;sP
+init;P;P/uni27E9.alt1. Sometimes, we refer to the latter as the
+symbolic automaton . The simulation relies on a symbolicencoding that Puses for representing, in a ﬁnite way, the
+(inﬁnite set of) conﬁgurations in T.
+A. Regions
+Each symbol in the stack of Pis aregion . We deﬁne a set
+ofitems that we use to build regions, then deﬁne their syntax
+and semantics.
+Items: A region contains two sets of items, namely plain
+items andshadow items . The plain items include (i) one copy
+of each clock in T, used to describe the value of the clock,
+(ii) exactly one symbol from the stack alphabet of T, used
+to describe the name and the age of the top-most symbol in
+the stack of T, and (iii) a fresh symbol /uni22A2that is used as a
+reference clock whose value is 0unless we are simulating a
+popoperation. Similarly, the shadow symbols include a copy
+of each clock together with a copy of exactly one stack symbol,
+and one copy/uni22A2●of/uni22A2. The shadow clocks record the values of
+the clocks at the point where a push operation is performed.
+Their values are then updated only through timed transitions.
+The same applies for /uni22A2●The shadow stack symbol reﬂects
+the value of the next-top-most symbol in the stack. As in the
+classical deﬁnition of regions, items are abstracted by storing
+their integral parts, and the relative ordering of the fractional
+parts. This is done up to a certain constant (deﬁned below).
+Let∶=T∪{bottom}where bottom /slash.left∈Tis a special
+symbol indicating the bottom of the stack. Deﬁne the set Y∶=
+X∪∪{/uni22A2}ofplain items , and deﬁne the sets of shadow clocks
+X●∶={x●/divides.alt0x∈X},shadow stack symbols ●∶={a●/divides.alt0a∈},
+and shadow items Y●∶=X●∪●∪{/uni22A2●}. Deﬁne the set of
+itemsZ∶=Y∪Y●.
+Syntax: Letcmax be the largest natural number that oc-
+curs syntactically in the deﬁnition of T, i.e.,cmaxis the largest
+natural number that appears in an interval that is used in the
+deﬁnition of of a testing ,assignment ,pop, orpush transition
+inT. Deﬁne the set Max={0;1;:::;c max;∞}, i.e., Max
+contains all natural numbers up to cmaxtogether with a special
+constant∞. A regionRis a wordr1r2/uni22EFrn∈(2Z×Max)+
+such that the following conditions are satisﬁed (below, let
+r∶=∪1≤i≤nri):
+●/divides.alt0(×Max)∩r/divides.alt0=1and/divides.alt0(●×Max)∩r/divides.alt0=1, i.e., there
+is exactly one occurrence of a stack symbol and one
+occurrence of a shadow stack symbol in the region.
+●/divides.alt0({/uni22A2}×Max)∩r/divides.alt0=1and/divides.alt0({/uni22A2●}×Max)∩r/divides.alt0=1, i.e.,
+there is exactly one occurrence of /uni22A2and one occurrence
+of the shadow symbol /uni22A2●in the region.
+●/divides.alt0({x}×Max)∩r/divides.alt0=1and/divides.alt0({x●}×Max)∩r/divides.alt0=1, for
+all clocksx∈X, i.e., each clock and each shadow clock
+occurs exactly once in the region.
+●ri≠/uni2205for alli∶2≤i≤n, i.e., the sets (except possibly
+r1) are not empty.
+Forx∈X∪X●∪{/uni22A2;/uni22A2●}, consider the unique k∈Max
+andi∶1≤i≤nsuch that /uni27E8x;k/uni27E9∈ri. We deﬁne
+Val(R)(x)∶=kand deﬁne Index(R)(x)∶=i. Fora∈∪●,
+we deﬁne Val(R)(a)andIndex(R)(a)in a similar manner
+except that it may be the case that Val(R)(a)=/botand
+Index(R)(a)=/bot(in caseais missing from R). We deﬁne
+
+--- Page 7 ---
+R/uni22BA∶={z∈Z/divides.alt0Index(R)(z)≠/bot}. In other words, it gives the
+set of items that occur in R. Notice that X∪X●∪{/uni22A2;/uni22A2●}⊆R/uni22BA,
+/divides.alt0R/uni22BA∩/divides.alt0=1and/divides.alt0R/uni22BA∩●/divides.alt0=1. Sometimes, abusing notation,
+we writez∈rito indicate that there is a k∈Max such that
+/uni27E8z;k/uni27E9∈ri; and, for a set Aof items we write ri∩Afor the
+set{/uni27E8z;k/uni27E9/divides.alt0 /uni27E8z;k/uni27E9∈ri∧z∈A}.
+Semantics: Avaluation of a regionRis a total function
+∶R/uni22BA→R≥0. Consider a region R=r1r2/uni22EFrnand a valuation
+ofR. We write/uni22A7Rto denote that the following conditions
+are satisﬁed for all z;z1;z2∈R/uni22BA:
+●(z)≥cmax+1iffVal(R)(z)=∞. Values larger than
+or equal tocmax+1are all abstracted to ∞in the region.
+●If(z)<cmax+1then/uni230A(z)/uni230B=Val(R)(z). The region
+stores only the integral parts of the item values.
+●fract((z1))≤fract((z2))iffIndex(R)(z1)≤
+Index(R)(z1). The ordering of the sets in the region
+reﬂects the ordering of the fractional parts of the items
+in these sets.
+●fract((z))=0iffIndex(R)(z)=1. The items in the
+ﬁrst set are those with integer values.
+We deﬁne JRK∶={/divides.alt0/uni22A7R}.
+Example. ConsiderR1in Figure 2. We have /divides.alt0R1/divides.alt0=5,x3∈
+r2,Index(R1)(x3)=2,Val(R1)(x●
+2)=5,R/uni22BA
+1∩={a},
+R/uni22BA
+1∩●={b●}. Furthermore, we have /uni22A7R1where=
+[x1←0:5;x2←3:9;x3←2:3;x●
+1←2:0;x●
+2←5:7;x●
+3←
+4:3;a←1:9;b●←6:7;/uni22A2←0:0;/uni22A2●←3:5].
+B. Operations on Regions
+We deﬁne a number of operations on regions that we use
+to describe how we perform the simulation.
+Satisﬁability: For an item z∈Z, an interval I∈I, and a
+regionRwithz∈R/uni22BA, the operation checks that the value of z
+inRlies inI. More precisely, we write R/uni22A7(z∈I)iff one of
+the following three conditions is satisﬁed: (i) Index(R)(z)=
+1,Val(R)(z)≠∞, and Val(R)(z)∈I. (ii)Index(R)(z)>
+1,Val(R)(z)≠∞, and(Val(R)(z)+v)∈Ifor some (all)
+v∈R≥0∶0<v<1. (iii) Val(R)(z)=∞andIis of the
+form(k∶ ∞)or of the form [k∶ ∞). If the fractional part
+ofzis zero then the test is equivalent to whether the integral
+part ofzlies inI. Otherwise, the test is equivalent to whether
+the integral part of z, increased by some arbitrary real number
+v∶0<v<1, lies in the interval.
+Example. In the example of Figure 2, we have that R1/uni22A7x3∈
+(2;5),R1/slash.left/uni22A7x3∈(4;5),R1/uni22A7b●∈[2;∞),R1/slash.left/uni22A7b●∈[2;5].
+Assignment: The following operation describes the effect
+of assigning a new value to an item zin a region. The operation
+is used in simulating the assignment of a new value to a clock.
+We deﬁne the operation in two steps, namely by ﬁrst deleting
+the item from the region, and then re-introducing it with its
+new value. First, we deﬁne an operation that deletes an item
+from a region. Consider a region R=r1/uni22EFrnand an item
+z∈R/uni22BAwhere Index(R)(z)=i. We deﬁne R⊖zto be the
+(unique) word R′∈(2Z×Max)+satisfying one of the following
+conditions:
+●i>1,/divides.alt0ri/divides.alt0=1, andR′=r1/uni22EFri−1ri+1/uni22EFrn. If the set
+riis not the left-most set, and it becomes empty afterremoving the item then we delete ri. This is done in order
+to maintain the invariant that all sets except (possibly) the
+left-most one are non-empty.
+●R′=r1/uni22EFri−1(ri−{/uni27E8z;k/uni27E9})ri+1/uni22EFrn, otherwise. Here
+k=Val(R)(z)
+Next, we deﬁne an operation that adds an item. For a word
+R=r1/uni22EFrn∈(2Z×Max)+, itemz∈Z, andk∈Max , we
+deﬁneR⊕/uni27E8z;k/uni27E9to be the set of words R′either of the form
+r1/uni22EFri−1{/uni27E8z;k/uni27E9}ri/uni22EFrnwherei∶2≤i≤n+1, or of the
+formr1/uni22EF(ri∪{/uni27E8z;k/uni27E9})/uni22EFrnwherei∶1≤i≤n. In other
+words, we insert the pair /uni27E8z;k/uni27E9somewhere in the word, either
+by inserting it between two sets, or by adding it to one set.
+For a region R1, and an item z∈Zwithz∈R/uni22BA
+1, we deﬁne
+R1[z←I]to be the set of regions R2such that:
+●There is an R3and ak∈Max such thatR3=R1⊖z,
+andR2∈R3⊕/uni27E8z;k/uni27E9, i.e., we get R3by ﬁrst deleting z
+and then re-introducing it with a new value (possibly in
+a different position inside the region).
+●R2/uni22A7(z∈I). The new value of zshould belong to I.
+The above conditions imply that R/uni22BA
+2=R/uni22BA
+1. The operation, as
+deﬁned, amounts to keeping the values of all the items, except
+zwhich is assigned a new value in I.
+Example. Consider the region R3in Figure 2. Then R4∈
+R3[x2←(2∶5]]
+Passage of Time: To simulate timed transitions, we deﬁne
+an operation that describes the effect of the passage of time on
+regions. For this, we need a number of deﬁnitions. For a pair
+/uni27E8z;k/uni27E9∈(Z×Max), we deﬁne /uni27E8z;k/uni27E9+∶=/uni27E8z;k′/uni27E9wherek′=k+1
+ifk<cmax andk′=∞otherwise. For a set r∈2Z×Max, we
+deﬁner+∶=/braceleft.alt1/uni27E8z;k/uni27E9+/divides.alt0 /uni27E8z;k/uni27E9∈r/braceright.alt1. The operation increases the
+integral parts of the clock values by one up to cmax. Consider
+a regionR=r1r2/uni22EFrn. We deﬁne R+∶=R′whereR′satisﬁes
+one of the following two conditions:
+●r1≠/uni2205andR′=/uni2205r1r2/uni22EFrn.
+●r1=/uni2205andR′=r+
+nr1/uni22EFrn−1.
+We writeR′∈R++, to denote that there are regions R0;:::;Rn
+such thatR0=R,Rn=R′, andRi+1∈R+
+ifor alli∶0≤i<n.
+We also deﬁne R+
+/uni22A2to be the region R′such that there are R1
+andR2satisfying the following properties:
+●R1=R⊖/uni22A2, i.e., we get R1fromRby deleting the
+symbol/uni22A2.
+●R2=R+
+1, i.e., we obtain R2by letting time elapses.
+●R′∈R2⊕/uni27E8/uni22A2;0/uni27E9andR′/uni22A7(/uni22A2∈[0;0]), i.e., we re-introduce
+the symbol/uni22A2s.t. its value in R′is0and such that it is
+placed in the left-most set of R′. Notice that R′is unique.
+We extendR+
+/uni22A2toR++
+/uni22A2in a similar manner to above.
+Example. In Fig. 2 and Fig. 3, we have that R′
+1=R+
+1,R5∈
+R++
+1, andR3∈(R2)++
+/uni22A2.
+Product: The product operation, denoted ⊙, “merges”
+the information in two regions. The operation is used in the
+simulation of pop transitions in which the top-most stack
+symbol is removed and its information merged with the next
+symbol in the stack. The operation can be performed only
+under the assumption that the two regions are consistent in
+the sense that each plain item in Pshould “match” its shadow
+
+--- Page 8 ---
+counter-part in Q. More precisely, for regions P=p1p2/uni22EFpnP
+andQ=q1q2/uni22EFqnQ, and an injection hfromPtoQ(recall the
+deﬁnition of an injection from Section III), we write P/uni2AAFhQ
+if the following conditions are satisﬁed:
+●Val(Q)(y●)=Val(P)(y)for ally∈P/uni22BA∩Y.
+●For everyi>1,h(i)≠/botiff there is a y∈Ysuch that
+Index(P)(y)=i.
+●h(1)=1.
+●IfIndex(P)(y)=iandIndex(Q)(y●)=jthenh(i)=
+j.
+We say that PsupportsQ, denotedP/uni2AAFQ, ifP/uni2AAFhQfor
+someh. Notice that, for any P;Q , there is at most one h
+for whichP/uni2AAFhQ. LetP/slash.lefth=pi1/uni27E8P1/uni27E9pi2/uni22EFpim/uni27E8Pm/uni27E9, and let
+Q/slash.lefth=qj1/uni27E8Q1/uni27E9qj2/uni22EFqjm/uni27E8Qm/uni27E9. Deﬁnep′
+k∶=pik∩(Y●∪), and
+q′
+k∶=qjk∩(X∪{/uni22A2}). Deﬁner1∶=p′
+1∪q′
+1, and fork∶2≤k≤m,
+deﬁnerk∶=p′
+k∪q′
+kifp′
+k∪q′
+k≠/uni2205, andrk∶=ifp′
+k∪q′
+k=/uni2205,
+Then,R∈P⊙QifR=r1⋅R1⋅ri2/uni22EFrim⋅RmandRk∈Pk⊗Qk
+fork∶1≤k≤m.
+For regions P;Q , we deﬁne P∗Q∶=
+{P′⊙Q/divides.alt0P′∈P++∧P′/uni2AAFQ}. In other words, we let
+time pass on Puntil it supports Qafter which we compute
+their product.
+Example. In Fig. 2, we have that R5/uni2AAFR4,R6∈R5⊙R4, and
+R6∈R1∗R4.
+Resetting: The operation is used when describing the
+simulation of push operations. In Pwe add a new region to
+the top of the stack. The operation resets the shadow clocks
+and/uni22A2●in the sense that it forgets their previous values and
+instead makes their values identical to the corresponding plain
+clocks. In other words, the value of each x●will now be made
+equal to the value of x. The new shadow clocks (which record
+the values of the clocks when the push operation was made)
+should therefore be equal to those of their plain counter-parts.
+Furthermore, we add a new plain symbol to the stack whose
+age should be in the interval speciﬁed by the push operation.
+We ﬁrst extend the operation ⊖that deletes items (see the
+text on variable assignment) to sets of items as follows. For
+a regionRand a setA={z1;:::;zn}⊆R/uni22BAwe deﬁne
+R⊖A∶=(/uni22EF((R⊖z1)⊖z2)/uni22EF)⊖zn, i.e., it is the region
+we get by deleting from Rall the items in A. For a region
+R1, a stack symbol a∈, and an interval I∈I, we deﬁne
+Reset(R1)[a←I]to be the set of regions R2such that
+there areR3=r1:::rn,R4, andR5satisfying the following
+properties:
+●R3=R1⊖(R/uni22BA
+1∩Y●), i.e., we get R3by deleting all the
+shadow symbols from R1.
+●R4=r′
+1/uni22EFr′
+nwherer′
+i=ri∪{/uni27E8y●;k/uni27E9/divides.alt0 /uni27E8y;k/uni27E9∈ri}for
+i∶1≤i≤n. In other words, for each plain item we
+add the shadow counter-part with an identical value and
+index.
+●R5=R4⊖bwhereb∈R/uni22BA
+1∩. We remove the (only)
+plain stack symbol in R1(its shadow has already been
+copied in the previous step).
+●R2∈R5⊕/uni27E8a;k/uni27E9andR2/uni22A7(a∈I), i.e., we add the new
+plain stack symbol such that its value and index reﬂectthat its age belongs to I.
+Example.R2∈Reset(R1)[d←[1∶∶3]]in Figure 2,
+VI. S IMULATION
+Fix a TPDA T=/uni27E8.altST;sT
+init;T;T/uni27E9.alt1with a set Xof
+clocks. We will show how we can simulate Tby an (untimed)
+PDAP=/uni27E8.altSP;sP
+init;P;P/uni27E9.alt1. We describe the construction
+ofPin different steps. First, we deﬁne the set of states SP.
+Then, we describe transitions that carry out an initialization
+phase in P. Finally, we give sets of transitions in Pthat are
+used to simulate both timed transitions and different types of
+discrete transitions (depending on the involved operation).
+States: For each state s∈STthere is a copy of sinSP.
+These states are called genuine states. Furthermore, the set
+SPcontains a number of temporary states that are used in the
+simulation. Each transition of Tis simulated in Pin a number
+of steps. To simplify the notation, we write a temporary state in
+the form tmp(⋅;⋅)where the arguments indicate the transition
+inTwe are currently simulating and the number of steps we
+have performed in this simulation. A conﬁguration =/uni27E8s;w/uni27E9
+inPis said to be genuine resp. temporary ifsisgenuine resp.
+temporary . The simulation starts form the distinguished initial
+statesP
+init(which is considered to be a temporary state).
+Initialization: We deﬁne the initial re-
+gionRinit∶={/uni27E8x;0/uni27E9/divides.alt0x∈X∪X●∪{/uni22A2;/uni22A2●}}∪
+{/uni27E8bottom;0/uni27E9;/uni27E8bottom●;0/uni27E9}. In other words, all plain/shadow
+clocks and the symbols {/uni22A2;/uni22A2●}have initial values equal to
+0. Furthermore, the region contains bottom indicating the
+bottom of the stack. In fact, the value of bottom is never
+used in the simulation, so taking its initial value to be 0is
+an arbitrary decision. The same applies to the values of the
+shadow clocks and /uni22A2●. Also, the shadow bottom●of the
+bottom symbol is not used in the simulation (we include
+only to preserve the invariant that a region contains a shadow
+stack symbol). Notice that Rinitis a word of length one (it
+contains a single set). Now, the set Pcontains a transition
+/uni27E8.altsP
+init;push(Rinit);sT
+init/uni27E9.alt1. This transition pushes the region
+indicating the bottom of the stack, and moves from the initial
+statesP
+initofPto the state sT
+initfrom which the simulation
+ofTis started.
+Timed Transitions: For each region R, and state s∈
+ST, the setSPcontains a state tmp(timed;s;R)andP
+contains the transitions /uni27E8s;pop(R);tmp(timed;s;R)/uni27E9and
+/uni27E8tmp(timed;s;R);push(R+
+/uni22A2);s/uni27E9. In other words, we let time
+pass on the top-most region Rin the stack by popping it and
+replacing by the region R+. We also keep /uni22A2in the left-most
+position of the top-most region. We can simulate the passage
+of an arbitrary amount of time by repeatedly ﬁring the above
+two transitions. Notice that we simulate the effect of timed
+transition only on the top-most region in the stack.
+nop:For each transition /uni27E8s;nop;s′/uni27E9∈T, the set P
+contains the transition /uni27E8s;nop;s′/uni27E9. Since the empty operation
+only changes the local state of Tit is simulated in a straight-
+forward manner in P.
+
+--- Page 9 ---
+x∈I?:For each transition /uni27E8s;x∈I?;s′/uni27E9∈Tand
+regionRsuch thatR/uni22A7(x∈I), the setSPcon-
+tains the state tmp(t;R), and Pcontains the transitions
+/uni27E8s;pop(R);tmp(t;R)/uni27E9and/uni27E8tmp(t;R);push(R);s′/uni27E9. The en-
+abledness of the transition is checked by ﬁrst popping the
+region (to check that the condition is satisﬁed), and then
+pushing it back to the stack. Since neither the clock values
+nor the stack content is affected in T, the stack content in P
+is not affected.
+x←I:For each transition /uni27E8s;x←I;s′/uni27E9∈Tand
+regionR, the setSPcontains the state tmp(t;R), and P
+contains the transition /uni27E8s;pop(R);tmp(t;R)/uni27E9. Furthermore,
+for eachR′∈R[x←I],Pcontains the transition
+/uni27E8tmp(t;R);push(R′);s′/uni27E9. In other words, Pﬁrst moves to
+tmp(t;R)to indicate that it is about to assign a new value to
+x. From tmp(t;R)there are several outgoing transitions each
+corresponding to the assignment of one particular value that
+belongs inI. Each of these transitions leads to the state s′.
+pop(a;I):We remove the top-most region Qin the
+stack in case its symbol is aand its age lies in the interval
+I. The main difﬁculty is to update the information in the next
+regionPin the stack. Recall that when performing timed
+transitions, the items of Pare not changed to reﬂect the
+passage of time. The update operation is performed in two
+steps. First we let time pass on Puntil it is transformed
+to a region that supportsQafter which we compute the
+productRand use it to replace both QandP. Formally,
+for each transition t=/uni27E8s;pop(a;I);s′/uni27E9∈T, we add the
+following states and transitions. For regions P;Q withQ/uni22A7
+(a∈I),SPcontains the states tmp(t;Q)andtmp(t;Q;P),
+and Pcontains the transitions /uni27E8s;pop(Q);tmp(t;Q)/uni27E9
+and/uni27E8tmp(t;Q);pop(P);tmp(t;P;Q)/uni27E9. Furthermore, for
+each region R∈P∗Q,Pcontains the transition
+/uni27E8tmp(t;P;Q);push(R);s′/uni27E9. Observe that the plain symbol /uni22A2
+is in the left-most position of the newly pushed region R.
+push(a;I):We create a new top-most region in the
+stack. In the new region, the values of the plain clocks are
+copied, and the shadow items are all reset making them equal
+to the values of their plain counter-parts. Finally, the new stack
+symbolais assigned an age in the interval I. Formally, for
+each transition t=/uni27E8s;push(a;I);s′/uni27E9∈Tand region R,
+the setSPcontains the states tmp1(t;R)andtmp2(t;R).
+The set Pcontains the transitions /uni27E8s;pop(R);tmp1(t;R)/uni27E9
+and/uni27E8tmp1(t;R);push(R);tmp2(t;R)/uni27E9. Furthermore, for
+eachR′∈Reset(R)[a←I],Pcontains the transition
+/uni27E8tmp2(t;R);push(R′);s′/uni27E9. Observe that the plain symbol /uni22A2
+is in the left-most position of the newly pushed region R′.
+VII. C ORRECTNESS
+In this section we show correctness of the construction de-
+scribed in Section VI. Given a TPDA T=/uni27E8.altST;sT
+init;T;T/uni27E9.alt1
+consider the PDA P=/uni27E8.altSP;sP
+init;P;P/uni27E9.alt1derived from Tas
+described in Section VI. Consider a state sF∈ST. Then:
+Theorem 1. sFis reachable in TiffsFis reachable in P.LetAbe a non-empty set of symbols. An extended region
+RAoverAis a wordr1r2/uni22EFrn∈(2A×Max)+such that the
+following conditions are satisﬁed (below, let r∶=∪1≤i≤nri):
+/divides.alt0(A×Max)∩r/divides.alt0≤1andri≠/uni2205for alli∶2≤i≤n. Observe
+that a region is an extended region over the set Z. We extend
+all notations and operations on regions (when meaningful) to
+extended regions in the natural manner.
+Below, we give the proof of Theorem 1 in both direction.
+FromTtoP:Astack region , or simply an s-region ,
+is a word R=R0R1/uni22EFRnover the set of regions. Notice
+that the stack content of Pis always an s-region. For regions
+P;Q , we say that Pweakly supports Q, denotedP/uni2AB7Q, if
+there is a region P′∈P++such thatP′/uni2AAFQ. An s-region
+R=R0R1/uni22EFRnis said to be weakly coherent ifRi/uni2AB7Ri+1
+for alli∶0≤i<n; and is said to be coherent ifRi/uni2AAFRi+1
+for alli∶0≤i<n. A conﬁguration /uni27E8s;R/uni27E9inPis said to
+be (weakly) coherent if Ris (weakly) coherent. We show the
+following property for reachable conﬁgurations in P.
+Lemma 2. All reachable genuine conﬁgurations are weakly
+coherent.
+Consider a weakly coherent s-region R=R0R1/uni22EFRn, we
+say that Q=Q0Q1/uni22EFQnis astrengthening ofRifQn=Rn,
+andQi∈R++
+iandQi/uni2AAFQi+1for alli∶0≤i<n. Notice that
+this operation is well-deﬁned by the following lemma.
+Lemma 3. IfR1/uni2AB7R2andR3∈R++
+2thenR1/uni2AB7R3
+Consider a coherent s-region R=R0R1/uni22EFRn. DeﬁneZR
+to be the set of symbols Z×n(0). AcollapsingCofRis an
+extended region over ZRsuch that the following conditions
+are satisﬁed:
+●C/uni22BA=/uni22C3n
+i=0(R/uni22BA
+i×{i}).
+●Val(Ri)(z)=Val(C)(z;i)for alli∶0≤i≤nand
+z∈R/uni22BA
+i.
+●Index(Ri)(z)=1iffIndex(C)(z;i)=1for alli∶0≤
+i≤nandz∈R/uni22BA
+i.
+●Index(Ri)(z1)≤Index(Ri)(z2)if and only if
+Index(C)(z1;i)≤Index(C)(z2;i)for alli∶0≤i≤n
+andz1;z2∈R/uni22BA
+i.
+●Val(C)(y●;i)= Val(C)(y;i−1) and
+Index(C)(y●;i)=Index(C)(y;i−1)for all
+y∈/parenleft.alt1R/uni22BA
+i−1∩Y/parenright.alt1andi∶1≤i≤n.
+Consider a coherent conﬁguration =/uni27E8s;R/uni27E9inP, a
+collapsingCofR, and a conﬁguration =/uni27E8s′;X;w/uni27E9inT.
+Letw=/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9and let R=R0R1/uni22EFRn. We write
+/uni22A7Cif there is a valuation ofCsuch that/uni22A7Cand the
+following conditions are satisﬁed:
+●s′=s.
+●X(x)=(x;n)for allx∈X.
+●ai∈R/uni22BA
+ifor alli∶1≤i≤n.
+●vi=(ai;i)for alli∶1≤i≤n.
+Lemma 4. For any genuine reachable conﬁguration inP,
+strengthening ′=/uni27E8s;R/uni27E9of, and collapsing CofR, there
+is a conﬁguration inTsuch that/uni22A7Candinit∗.
+
+--- Page 10 ---
+Now, if the ﬁnal state sFis reachable in Pthen we know
+that there a genuine reachable conﬁguration whose state is
+preciselysF. Notice that Lemma 2 implies that is weakly
+coherent (and hence we can speak about the existence of at
+least one strengthening ′=/uni27E8s;R/uni27E9). Moreover, it is easy to
+show that for the coherent s-region R, there exists at least
+one collapsing CofR. Thus, we can apply Lemma 4 to the
+genuine reachable conﬁguration inP, the strengthening ′,
+and the collapsing C, to show the existence of a reachable
+conﬁguration inTwhose state is sF(since/uni22A7C).
+FromPtoT:For the opposite direction, we need to
+prove the following lemma:
+Lemma 5. For any reachable conﬁguration inT, there is
+a conﬁguration inP, a strengthening ′=/uni27E8s;R/uni27E9of, and
+collapsingCofR, such that/uni22A7Candinit∗/leftrightline→.
+As an immediate consequence of Lemma 5, we get that if
+a statesFis reachable in T, thensFis reachable in P.
+VIII. C OMPLEXITY OF THE REACHABILITY PROBLEM
+In this section, we show:
+Theorem 6. The reachability problem for TPDA is EXPTIME -
+complete.
+The rest of this section is devoted to the proof of this
+theorem. Let us ﬁrst prove the E XPTIME lower bound of
+Theorem 6.
+Lemma 7. The reachability problem for TPDA is EXPTIME -
+hard.
+Proof: It is known that the following problem is
+EXPTIME -complete [19]: Given a labeled pushdown automa-
+tonPrecognizing a language L, andnﬁnite state automata
+Airecognizing languages Li, check the non-emptiness of
+L∩/uni22C2n
+i=1Li. We can show that this problem can be reduced,
+in polynomial time, to the reachability problem for a TPDA
+T. The pushdown part of Tsimulates the labeled pushdown
+automaton P, while each clock xiis used to simulate the
+automaton Ai. The valuation of the clock xigives the current
+state of Ai. (We assume here that the automaton Aidoes
+not contain epsilon-transitions.) Moreover, we use an auxil-
+iary clock to ensure that no time elapses during the whole
+simulation.
+The simulation proceeds as follows: An -transition of Pis
+simulated by a transition of the pushdown part of Twhile the
+clocks remain unchanged. A labeled transition of Pwith an
+input symbol a, is simulated by a transition of the pushdown
+part of T, followed by a sequence of transitions in which
+the clocks are checked and then updated, one after the other,
+to ensure each automaton Aiis able to perform a transition
+labeled bya.
+The following lemma shows the E XPTIME upper bound of
+Theorem 6.
+Lemma 8. The reachability problem for TPDA is in EXPTIME .Proof: It is well-known that the reachability problem for
+(untimed) pushdown automata can be solved in polynomial
+time (see for instance [8]). On the other hand, in Sections VI
+and VII, we showed that it is possible to construct a PDA P,
+whose size is exponential in the given TPDA T, such that the
+reachability problem for Tis reducible to its corresponding
+one for P. This implies that the reachability problem for TPDA
+is in E XPTIME .
+IX. C ONCLUSIONS AND FUTURE WORK
+We have considered TPDA, an extension of two classical
+models, namely those of pushdown automata and timed au-
+tomata. We have shown the decidability of the reachability
+problem for TPDA through a reduction to the corresponding
+problem for pushdown automata. The reduction relies on a
+non-trivial extension of the classical region encoding in a
+manner that allows to reason about unbounded sets of clocks.
+Interesting directions for future research include considering
+more general veriﬁcation problems such as the model checking
+problem wrt. temporal logics such as LTL, decision problems
+over the game-based semantics, and the veriﬁcation of priced
+TPDA models.
+REFERENCES
+[1] P. A. Abdulla, M. F. Atig, and J. Stenamn. Minimal cost reachability
+problem in priced timed pushdown systems. In LATA , 2012.
+[2] P. A. Abdulla and A. Nyl ´en. Timed Petri nets and BQOs. In ICATPN ,
+2001.
+[3] R. Alur and D. L. Dill. A theory of timed automata. Theor. Comput.
+Sci., 126(2):183–235, 1994.
+[4] G. Behrmann, A. David, K. G. Larsen, P. Pettersson, and W. Yi.
+Developing uppaal over 15 years. Softw., Pract. Exper. , 41(2):133–142,
+2011.
+[5] M. Benerecetti, S. Minopoli, and A. Peron. Analysis of timed recursive
+state machines. In TIME , pages 61–68. IEEE Computer Society, 2010.
+[6] B. B ´erard, F. Cassez, S. Haddad, O. Roux, and D. Lime. Comparison
+of different semantics for time Petri nets. In ATVA 2005 , 2005.
+[7] A. Bouajjani, R. Echahed, and R. Robbana. On the automatic veriﬁcation
+of systems with continuous variables and unbounded discrete data
+structures. In Hybrid Systems , LNCS 999, pages 64–85. Springer, 1994.
+[8] A. Bouajjani, J. Esparza, and O. Maler. Reachability analysis of
+pushdown automata: Application to model-checking. In CONCUR ,
+LNCS 1243, pages 135–150. Springer, 1997.
+[9] P. Bouyer, F. Cassez, E. Fleury, and K. G. Larsen. Optimal strategies in
+priced timed game automata. In FSTTCS , LNCS 3328, pages 148–160.
+Springer, 2004.
+[10] Patricia Bouyer and Franc ¸ois Laroussinie. Model checking timed
+automata. In Stephan Merz and Nicolas Navet, editors, Modeling and
+Veriﬁcation of Real-Time Systems , pages 111–140. ISTE Ltd. – John
+Wiley & Sons, Ltd., January 2008.
+[11] M. Bozga, C. Daws, O. Maler, A. Olivero, S. Tripakis, and S. Yovine.
+Kronos: A model-checking tool for real-time systems. In CAV, LNCS
+1427, pages 546–550. Springer, 1998.
+[12] Z. Dang. Pushdown timed automata: a binary reachability character-
+ization and safety veriﬁcation. Theor. Comput. Sci. , 302(1-3):93–121,
+2003.
+[13] Z. Dang, T. Bultan, O. H. Ibarra, and R. A. Kemmerer. Past pushdown
+timed automata and safety veriﬁcation. Theor. Comput. Sci. , 313(1):57–
+71, 2004.
+[14] Z. Dang, O. H. Ibarra, T. Bultan, R. A. Kemmerer, and J. Su. Binary
+reachability analysis of discrete pushdown timed automata. In CAV,
+LNCS 1855, pages 69–84. Springer, 2000.
+[15] M. Emmi and R. Majumdar. Decision problems for the veriﬁcation of
+real-time software. In HSCC , LNCS 3927, pages 200–211. Springer,
+2006.
+
+--- Page 11 ---
+[16] J. Esparza, D. Hansel, P. Rossmanith, and S. Schwoon. Efﬁcient
+algorithms for model checking pushdown systems. In CAV, volume
+1855 of LNCS . Springer, 2000.
+[17] J. Esparza and J. Knoop. An automata-theoretic approach to interpro-
+cedural data-ﬂow analysis. In FoSSaCS , LNCS 1578, pages 14–30.
+Springer, 1999.
+[18] J. Esparza and S. Schwoon. A bdd-based model checker for recursive
+programs. In CAV, volume 2102 of LNCS , pages 324–336. Springer,
+2001.
+[19] Alexander Heußner, J ´erˆome Leroux, Anca Muscholl, and Gr ´egoire
+Sutre. Reachability analysis of communicating pushdown systems. In
+Proceedings of the 13th International Conference on Foundations of
+Software Science and Computation Structures (FoSSaCS’10) , LNCS.
+Springer, March 2010. To appear.
+[20] S. Schwoon. Model-Checking Pushdown Systems . PhD thesis, Technis-
+che Universit ¨at M ¨unchen, 2002.
+[21] A. Trivedi and D. Wojtczak. Recursive timed automata. In Proceed-
+ings of the 8th international conference on Automated technology for
+veriﬁcation and analysis , ATV A, pages 306–324, 2010.
+APPENDIX
+PROOFS OF SOME LEMMAS
+Before going into the details of the proofs, we introduce
+some notions and operations.
+For conﬁguration =/uni27E8s;w/uni27E9ofPwe deﬁne[state←
+s′]∶=/uni27E8s′;w/uni27E9, i.e., it is the conﬁguration we get from by
+changing the state of tos′while keeping the stack content.
+We deﬁne[stack←w′]∶=/uni27E8s;w′/uni27E9. For a conﬁguration =
+/uni27E8s;X;w/uni27E9ofTwe deﬁne[state←s′]and and[stack←
+w′]similarly. For a clock x∈Xandv∈R≥0, we deﬁne
+[x←v]∶=/uni27E8s;X′;w/uni27E9, where X′=X[x←v], i.e., it is the
+conﬁguration we get from by changing the value of xtov.
+For a conﬁguration =/uni27E8s;w/uni27E9inP, we deﬁne
+StateOf ()∶=sandStackOf ()∶=w. For a conﬁguration
+=/uni27E8s;X;w/uni27E9inT, we deﬁne StateOf ()∶=s,CValOf ()∶=
+X, and StackOf ()∶=w.
+LetAandBbe two sets. Let R=r1r2/uni22EFrnbe an extended
+region overAandf∶A→Ba total function that maps AtoB.
+We usef(R)to denote the extended region R′=r′
+1r′
+2/uni22EFr′
+nover
+Bsuch thatr′
+i∶={/uni27E8f(a);k/uni27E9/divides.alt0 /uni27E8a;k/uni27E9∈ri}for alli∶1≤i≤n.
+LetR=R0R1/uni22EFRnbe a coherent s-region, and Cbe a
+collapsing of R. Letbe a valuation of C. For every i∶
+0≤1≤n, we deﬁne the valuation (i)ofRifromas
+(i)(z)∶=(z;i)for allz∈R/uni22BA
+i.
+Consider a coherent conﬁguration =/uni27E8s;R/uni27E9inP, a
+collapsingCofR, a valuation ofC, and a conﬁguration
+=/uni27E8s′;X;w/uni27E9inT. Letw=/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9and let
+R=R0R1/uni22EFRn. Then, we use /uni22B3to denote that the
+following conditions are satisﬁed:
+●X(x)=(x;n)for allx∈X.
+●ai∈R/uni22BA
+ifor alli∶1≤i≤n.
+●vi=(ai;i)for alli∶1≤i≤n.
+Notice that/uni22A7Ciffs′=s,/uni22A7Cand/uni22B3.
+For a mapping ∶A→R≥0, we useRegto denote the
+unique extended region RoverAsuch that/uni22A7R.
+PROOF OF LEMMA 4
+Suppose that init∗/leftrightline→for some genuine conﬁguration 
+inP. We use induction on the number of transition steps from
+inittoto show that that for any strengthening ′ofandcollapsingCof′, there is a conﬁguration inTsuch that
+/uni22A7Candinit∗.
+Initialization
+Consider the transition initt/leftrightline→ wheret=
+/uni27E8.altsP
+init;push(Rinit);sT
+init/uni27E9.alt1. We know that StateOf ()=sinit,
+StackOf ()=Rinit. The only strengthening of Rinit
+isRinit itself. Notice that R/uni22BA
+init∩={bottom}and
+R/uni22BA
+init∩●={bottom●}. The only collapsing CofRinit
+isRinit. Letbe a valuation of Cdeﬁned as follows:
+(x;0)=0,(x●;0)=0for all clocks x∈X, and
+(bottom;0)=(bottom●;0)=0. It is easy to see that
+/uni22A7C. We show that init/uni22B3:
+●Take any clock X. We have that (x;0)=0=
+CValOf (init)(x).
+●The condition ai∈R/uni22BA
+iand(ai;i)=vifor alli∶1≤i≤
+n, hold trivially since n=0.
+Since/uni22A7C,init/uni22B3, and StateOf (init)=sT
+init=
+StateOf ()it follows that /uni22A7C.
+nop
+If there is a transition t=/uni27E8s;nop;s′/uni27E9∈and
+init∗/leftrightline→1t1/leftrightline→wheret1=/uni27E8s;nop;s′/uni27E9,StateOf (1)=s,
+andStateOf ()=s′. Let StackOf (1)=R=R0/uni22EFRn. We
+know that StackOf ()=R. LetR′be a strengthening of R
+and letCbe a collapsing of R′. By the induction hypothesis,
+there is a conﬁguration 1such that1/uni22A7C1andinit∗1.
+Deﬁne∶=1[state←s′]. Since StateOf ()=s′=
+StateOf (),1/uni22A71, and StackOf ()=StackOf (1),
+it follows that /uni22A7C. Also1tsince StateOf (1)=s,
+StateOf ()=s′, and StackOf ()=StackOf (1).
+x∈I?
+If there is a transition /uni27E8s;x∈I?;s′/uni27E9∈and
+init∗/leftrightline→1t1/leftrightline→2t2/leftrightline→wheret1=/uni27E8s;pop(R);tmp(t;R)/uni27E9,
+t2=/uni27E8tmp(t;R);push(R);s′/uni27E9,R/uni22A7(x∈I),StateOf (1)=s,
+andStateOf ()=s′. Let StackOf (1)=R=R0/uni22EFRn
+whereRn=R. We know that StackOf ()=R. Let
+R′be a strengthening of Rand letCbe a collapsing
+ofR′. By the induction hypothesis, there is a conﬁgura-
+tion1such that1/uni22A7C1andinit∗1. Deﬁne∶=
+1[state←s′]. Since StateOf ()=s′=StateOf (),
+StackOf ()=StackOf (1),CValOf ()=CValOf (1),
+andStackOf ()=StackOf (1)it follows that /uni22A7C.
+Now, we show that 1. SinceCis a collapsing of R′
+and/uni22A7C, there is a valuation ofCsuch that1/uni22B3and
+/uni22A7C. From1/uni22B3we know that CValOf (1)(x)=(x;n).
+From/uni22A7Cwe know that (n)/uni22A7Rn. Since(n)/uni22A7Rn
+andR/uni22A7(x∈I)we have that C(n)(x)∈I. Since
+(n)(x)=(x;n)by deﬁnition, it follows that (x;n)∈I
+and hence CValOf (1)(x)∈I.
+x←I
+If there is a transition /uni27E8s;x←I;s′/uni27E9∈and
+init∗/leftrightline→1t1/leftrightline→2t2/leftrightline→wheret1=/uni27E8s;pop(P);tmp(t;P)/uni27E9,
+t2=/uni27E8tmp(t;P);push(Q);s′/uni27E9,Q∈P[x←I],
+
+--- Page 12 ---
+StateOf (1)=s, and StateOf ()=s′. Let
+StackOf (1)=R1=R0/uni22EFRn−1P. We know that
+StackOf ()=R=R0/uni22EFRn−1Q. Let R′=R′
+0/uni22EFR′
+n−1Q
+be a strengthening of Rand letC=c1c2/uni22EFcmbe a collapsing
+ofR′. It follows that R′
+1=R′
+0/uni22EFR′
+n−1Pis a strengthening of
+R1. Deﬁne an extended region C1overC/uni22BAas follows:
+●Index(C)(z)=0iffIndex(C1)(z)=0for allz∈
+C/uni22BA/uni2216{(x;n)}.
+●Val(C)(z)=Val(C1)(z)for allz∈C/uni22BA/uni2216{(x;n)}.
+●Index(C)(z1)≤Index(C)(z2)iffIndex(C1)(z1)≤
+Index(C1)(z2)for allz1;z2∈C/uni22BA/uni2216{(x;n)}.
+●Val(C1)(x;n)=Val(P)(x).
+●Index(C1)(x;n)=0iffIndex(P)(x)=0.
+●Index(C1)(x;n)≤ Index(C1)(z;n) iff
+Index(P)(x)≤Index(P)(z)for allz∈P/uni22BA.
+Observe that an extended region C1respecting the above
+conditions can be effectively constructed from CandP. We
+skip here its explicit construction since we need only the
+above constraints. Furthermore, we can see that that C1is
+a collapsing of R′
+1. By the induction hypothesis there is a
+conﬁguration 1such that1/uni22A7C11andinit∗1. Since
+1/uni22A7C11, we know that StateOf (1)=StateOf (1), and
+that there is a valuation 1ofC1such that1/uni22A7C1and1/uni22B31.
+Since1/uni22B31, we know that StackOf (1)is of the form
+/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9and the following conditions are satisﬁed:
+●CValOf (1)(x′)=1(x′;n)for allx′∈X.
+●(ai;i)∈C/uni22BA
+1for alli∶1≤i≤n.
+●vi=1(ai;i)for alli∶1≤i≤n.
+From the valuation 1, we can effectively deﬁne a valuation
+ofCsuch that/uni22A7Cand(z)=1(z)for allz∈C/uni22BA/uni2216
+{(x;n)}. On the other hand, we know that C(n)/uni22A7Qand
+thatC(n)(x)=(x;n). SinceC(n)/uni22A7QandQ/uni22A7(x∈I)
+it follows that (x;n)∈I.
+Deﬁne such that StateOf ()∶=s′,
+CValOf ()∶= CValOf ()[x←(x;n)], and
+StackOf ()∶=StackOf (1)=/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9. We
+show that/uni22B3:
+●CValOf ()(x′)=(x′;n)for allx′∈X/uni2216{x}
+since CValOf (1)(x′)=1(x′;n),CValOf (1)(x′)=
+CValOf ()(x′), and1(x′;n)=(x′;n).
+●CValOf ()(x)=(x;n)(by deﬁnition).
+●(ai;i)∈C/uni22BAfor alli∶1≤i≤n.
+●vi=(ai;i)for alli∶1≤i≤nsince1(ai;i)=(ai;i)
+andvi=1(ai;i).
+Since/uni22A7C,/uni22B3, and StateOf ()=StateOf ()it
+follows that /uni22A7.
+Finally, we show that 1. Since CValOf ()(x)=
+(x;n)and(x;n)∈I, we know that CValOf ()(x)∈I.
+Then it follows from the fact that StateOf (1)=s,
+StateOf ()=s′,StackOf ()=StackOf (1),
+CValOf ()= CValOf (1)[x←(x;n)], and
+CValOf ()(x)∈I.
+Timed Transitions
+Ifinit∗/leftrightline→1t1/leftrightline→2t2/leftrightline→ wheret1=
+/uni27E8s;pop(P);tmp(timed;s;P)/uni27E9,t2 =/uni27E8tmp(timed;s;P);push(P+
+/uni22A2);s/uni27E9,StateOf (1)=s,
+StateOf (2)=tmp(timed;s;P)and StateOf ()=s.
+Let StackOf (1)=R1=R0/uni22EFRn−1P. We know that
+StackOf ()=R=R0/uni22EFRn−1QwithQ=P+
+/uni22A2. Before
+giving the proof for timed transitions, we need to prove the
+following lemmata:
+Lemma 9. LetRbe a region such that Index(R)(/uni22A2)=1and
+Val(R)(/uni22A2)=0. LetR′be a region such that R′∈R++and
+Index(R)(/uni22A2)>1orVal(R)(/uni22A2)>0. Then, the following
+conditions are satisﬁed:
+●IfVal(R′)(/uni22A2)<∞orIndex(R′)(/uni22A2)>1then there is
+a unique region R′′such thatR′=(R′′)+andR′′∈R++.
+●IfVal(R′)(/uni22A2)=∞andIndex(R′)(/uni22A2)=1then there
+for everyk∈{cmax;∞}, there is a unique R′′such that
+R′=(R′′)+,R′′∈R++, and Val(R′′)(/uni22A2)=k.
+Proof: This is an immediate consequence of the time
+passing operations.
+For every number k∈(N∪{∞}), we deﬁne [k]cmax as
+follows:
+●k>cmax iff[k]cmax=∞.
+●k≤cmax iff[k]cmax=k.
+Lemma 10. LetRandR′be two regions such that R′∈
+R++. Letz1;z2∈R/uni22BAbe two symbols such that Val(R)(z1)≤
+Val(R)(z2). Then, we have:
+●For every ∼∈{≤;>}, ifIndex(R)(z1)∼Index(R)(z2)
+and Index(R′)(z1)∼ Index(R′)(z2), then
+ifVal(R′)(z1)=∞then Val(R′)(z2)=∞
+otherwise Val(R′)(z2)=[k]cmax withk=
+Val(R)(z2)+Val(R′)(z1)−Val(R)(z1).
+●If Index(R)(z1)< Index(R)(z2) and
+Index(R′)(z1)> Index(R′)(z2), then if
+Val(R′)(z1)=∞ then Val(R′)(z2)=∞,
+otherwise Val(R′)(z2)=[k+1]cmax with
+k=Val(R)(z2)+Val(R′)(z1)−Val(R)(z1).
+●IfIndex(R)(z1)>Index(R)(z2),Index(R′)(z1)<
+Index(R′)(z2), and Val(R)(z1)<Val(R)(z2), then
+ifVal(R′)(z1)=∞then Val(R′)(z2)=∞, otherwise
+Val(R′)(z2)=[k−1]cmax withk=Val(R)(z2)+
+Val(R′)(z1)−Val(R)(z1).
+Proof: The proof can be done by induction on the number
+of time passing operations performed from Rto reach the
+regionR′.
+Lemma 11. LetPandQbe two regions such that
+Index(P)(/uni22A2)=1,Val(P)(/uni22A2)=0, andP/uni2AB7Q. LetP′∈
+P++andQ′∈Q++be two regions such that Val(P′)(/uni22A2)=
+Val(Q′)(/uni22A2●). Then, for every ∼∈{<;=;>}, and every plain
+symboly∈Ysuch that Index(P′)(y)∼Index(P′)(/uni22A2)and
+Index(Q′)(y●)∼Index(Q′)(/uni22A2●), we have Val(P′)(y)=
+Val(Q′)(y●).
+Proof: SinceP/uni2AB7Q, this implies that there is a region
+P′′such thatP′′∈P++andP′′/uni2AAFQ.
+Lemma 12. LetR′=R′
+0/uni22EFR′
+n−1Qbe a strengthening of R.
+Then for every i∶0≤i<n, we have:
+
+--- Page 13 ---
+●IfVal(R′
+i)(/uni22A2)<∞orIndex(R′
+i)(/uni22A2)>1then there is
+a unique region R′′
+isuch thatR′
+i=(R′′
+i)+andR′′
+i∈Ri++.
+●IfVal(R′)(/uni22A2)=∞andIndex(R′
+i)(/uni22A2)=1then there
+for everyk∈{cmax;∞}, there is a unique R′′
+isuch that
+R′
+i=(R′′
+i)+,R′′
+i∈Ri++, and Val(R′′
+i)(/uni22A2)=k.
+Proof: SinceQ=P/uni22A2+(i.e., some time has been elapsed),
+we have that one of the following two cases occurs: (1)
+Index(Q)(/uni22A2●)>1or(2)Val(Q)(/uni22A2●)>0. Furthermore,
+we have that R′
+n−1/uni2AAFQ. This implies that one of the
+following two cases occurs: (1)Index(R′
+n−1)(/uni22A2)>1or(2)
+Val(R′
+n−1)(/uni22A2)>0. Step by step, we can show that for every
+i∶0≤i<n, we have that one of the following two cases
+occurs: (1)Index(R′
+i)(/uni22A2)>1or(2)Val(R′
+i)(/uni22A2)>0.
+Since, for every i∶0≤i<n,Index(Ri)(/uni22A2)=1and
+Val(Ri)(/uni22A2)=0, we know that R′
+i∈(Ri+)++. Then, we can
+apply Lemma 9 to R′
+iandRito show that the following two
+conditions are satisﬁed :
+●IfVal(R′
+i)(/uni22A2)<∞orIndex(R′
+i)(/uni22A2)>1then there is
+a unique region R′′
+isuch thatR′
+i=(R′′
+i)+andR′′
+i∈Ri++.
+●IfVal(R′
+i)(/uni22A2)=∞andIndex(R′
+i)(/uni22A2)=1then there
+for everyk∈{cmax;∞}, there is a unique R′′
+isuch that
+R′
+i=(R′′
+i)+,R′′
+i∈Ri++, and Val(R′′
+i)(/uni22A2)=k.
+Letjmin=min{j/divides.alt0z∈(Z/uni2216{/uni22A2})andj=Index(Q)(z)}
+andzminbe an item of (Z/uni2216{/uni22A2})such that Index(Q)(zmic)=
+jmin. Observe that jmin≤2from the deﬁnition of a region.
+Lemma 13. LetR′=R′
+0/uni22EFR′
+n−1Qbe a strengthening of R
+andCbe a collapsing of R′. IfIndex(C)(zmin;n)>2then
+there is a strengthening U=U0/uni22EFUn−1QofRand a collapsing
+C′ofUsuch that:
+●R′
+i∈Ui++for alli∶0≤i<n.
+●Index(C′)(zmin;n)=Index(C)(zmin;n)−1.
+●C⊖{/uni27E8/uni22A2;0/uni27E9}∈(C′⊖{/uni27E8/uni22A2;0/uni27E9})++.
+Proof: Let us assume that C=c1c2/uni22EFcm. Then there are
+two cases:
+●/divides.alt0c1/divides.alt0> 1. Let us assume that c1=
+{/uni27E8(/uni22A2;n);0/uni27E9;/uni27E8(z1;i1);k1/uni27E9;/uni27E8(z2;i1);k1/uni27E9;/uni22EF;/uni27E8(z`;i`);k`/uni27E9}.
+Observe that (from the deﬁnition of jmin and the fact
+thatIndex(C)(zmin;n)>2) we have 0≤ij<nfor
+all1≤j≤`. Then, consider the following s-region
+U=U0/uni22EFUn−1Unsuch thatUn=Qand for every
+i∶0≤i<n,Uiis deﬁned inductively as follows:
+–If there is j∶1≤j≤`such thati=ijthen
+Uiis deﬁned such that R′
+i=U+
+i,Ui∈Ri++, and
+Val(Ui)(/uni22A2)=Val(Ui+1)(/uni22A2●). Observe that the
+existence of such a region Ui(which is unique) is
+guaranteed by the following facts:
+∗if Index(R′
+i+1)(/uni22A2●)> 1 then
+Index(R′
+i)(/uni22A2)>1. This implies that
+Val(R′
+i+1)(/uni22A2●)=Val(Ui+1)(/uni22A2●). By Lemma
+12 there is a unique region Uisuch thatR′
+i=U+
+i
+andUi∈Ri++. Now, it is easy to see that
+Val(R′
+i)(/uni22A2)=Val(Ui)(/uni22A2). This implies that
+Val(Ui+1)(/uni22A2●)=Val(Ui)(/uni22A2).∗ifVal(R′
+i+1)(/uni22A2●)<∞andIndex(R′
+i+1)(/uni22A2●)=
+1then Val(R′
+i)(/uni22A2)=Val(R′
+i+1)(/uni22A2●)and
+Index(R′
+i)(/uni22A2)=1. Since Index(R′
+i)(/uni22A2)=
+Index(R′
+i+1)(/uni22A2●)=1, this implies that (/uni22A2●
+;i+1)∈c1and(/uni22A2;i)∈c1. Thus we have
+thatVal(Ui+1)(/uni22A2●)=Val(R′
+i+1)(/uni22A2●)−1and
+Index(Ui+1)(/uni22A2●)>1. By Lemma 12 there
+is a unique region Uisuch thatR′
+i=U+
+iand
+Ui∈Ri++. This means that Val(Ui)(/uni22A2)=
+Val(R′
+i)(/uni22A2)−1. Hence, Val(Ui+1)(/uni22A2●)=
+Val(Ui)(/uni22A2).
+∗ifVal(R′
+i+1)(/uni22A2●)=∞andIndex(R′
+i+1)(/uni22A2●)=
+1then Val(R′
+i)(/uni22A2)=∞andIndex(R′
+i)(/uni22A2●)=
+1. Also, we have that Val(Ui+1)(/uni22A2●)∈
+{cmax;∞}. We can apply Lemma 12 to show that
+there is a unique region Uisuch thatR′
+i=U+
+i,
+Ui∈Ri++, and Val(Ui)(/uni22A2)=Val(Ui+1)(/uni22A2●).
+–if there is no j∶1≤j≤`such thati=ijthen
+Ui=R′
+i.
+Let us prove that Uis a coherent s-region.
+Lemma 14. For everyi∶0≤i<n, we haveUi/uni2AAFUi+1.
+Proof: The proof is done by induction on i.
+– [Basisi=n−1]IfUn−1=R′
+n−1then we have Un−1/uni2AAF
+UnsinceR′
+n−1/uni2AAFUn(the s-region R′is coherent).
+Now, let us assume that R′
+n−1=U+
+n−1,Un−1∈
+Rn−1++, and Val(Un−1)(/uni22A2)=Val(Un)(/uni22A2●).
+From the deﬁnition of Un−1, we know that there
+isj∶1≤j≤`such thatn−1=ij.
+Since Index(C)/parenleft.alt1zij;n−1/parenright.alt1=1, this implies that
+Index(R′
+n−1)/parenleft.alt1zij/parenright.alt1=1. Let us assume that R′
+n−1=
+r1r2/uni22EFrm′. Then,Un−1is of the form /uni2205r2/uni22EFrm′rm′+1
+such thatr1=rm′+1+.
+Sincec1does not contain any symbol of the form
+(z;n)withz∈(Z/uni2216{/uni22A2}), this implies that there is
+noa∈Ysuch that (a;n−1)∈c1. From the deﬁnition
+of the collapsing C, we have that the sets r1and
+rm′+1contain only shadow symbols. Hence, there is
+no plain symbol a∈Ysuch thata∈r1ora∈rm′+1.
+SinceR′
+n−1/uni2AAFQthis implies that there is an injection
+hfromR′
+n−1toQsuch that:
+∗Val(Q)(y●)=Val(R′
+n−1)(y)for ally∈
+R′
+n−1/uni22BA∩Y.
+∗for everyo>1,h(o)≠/botiff there is a y∈Ysuch
+thatIndex(R′
+n−1)(y)=o.
+∗h(1)=1.
+∗IfIndex(R′
+n−1)(y)=oandIndex(Q)(y●)=d
+thenh(o)=d.
+Now, we can show that Un−1/uni2AAFhQsince
+we have: Val(Un−1)(y)=Val(R′
+n−1)(y)and
+Index(Un−1)(y)=Index(R′
+n−1)(y)for ally∈
+R′
+n−1/uni22BA∩Y.
+– [Induction i<n−1]There are four cases:
+Case 1: IfUi=R′
+iandUi+1=R′
+i+1, then it is easy
+to see thatUi/uni2AAFUi+1.
+
+--- Page 14 ---
+Case 2: Let us assume that Ui+1=R′
+i+1andR′
+i=
+U+
+i,Ui∈Ri++, and Val(Ui)(/uni22A2)=Val(Ui+1)(/uni22A2●).
+From the deﬁnition of Ui, we know that there is j∶
+1≤j≤`such thati=ij. Since Index(C)/parenleft.alt1zij;i/parenright.alt1=
+1, this implies that Index(R′
+i)/parenleft.alt1zij/parenright.alt1=1. Let us
+assume that R′
+i=r1r2/uni22EFrm′. Then,Uiis of the form
+/uni2205r2/uni22EFrm′rm′+1such thatr1=rm′+1+.
+Sincec1does not contain any symbol of the form
+(z;i+1)withz∈Z, this implies that there is no
+a∈Ysuch that (a;i)∈c1. From the deﬁnition
+of the collapsing C, we have that the sets r1and
+rm′+1contain only shadow symbols. Hence, there is
+no plain symbol a∈Ysuch thata∈r1ora∈rm′+1.
+SinceR′
+i/uni2AAFR′
+i+1=Ui+1this implies that there is an
+injectionhfromR′
+itoR′
+i+1such that:
+∗Val(R′
+i+1)(y●)=Val(R′
+i)(y)for ally∈R′
+i/uni22BA∩
+Y.
+∗for everyo>1,h(o)≠/botiff there is a y∈Ysuch
+thatIndex(R′
+i)(y)=o.
+∗h(1)=1.
+∗IfIndex(R′
+i)(y)=oandIndex(R′
+i+1)(y●)=d
+thenh(o)=d.
+Now, we can show that Ui/uni2AAFhR′
+i+1since we have:
+Val(Ui)(y)=Val(R′
+i)(y)andIndex(Ui)(y)=
+Index(R′
+i)(y)for ally∈R′
+i/uni22BA∩Y.
+Case 3: Let us assume that Ui=R′
+iand
+R′
+i+1=U+
+i+1,Ui+1∈Ri+1++, and Val(Ui+1)(/uni22A2)=
+Val(Ui+2)(/uni22A2●).
+From the deﬁnition of Ui+1, we know that there
+isj∶1≤j≤`such thati+1=ij.
+Since Index(C)/parenleft.alt1zij;i+1/parenright.alt1=1, this implies that
+Index(R′
+i+1)/parenleft.alt1zij/parenright.alt1=1. Let us assume that R′
+i+1=
+r1r2/uni22EFrm′. Then,Ui+1is of the form /uni2205r2/uni22EFrm′rm′+1
+such thatr1=rm′+1+.
+Sincec1does not contain any symbol of the form
+(z;i)withz∈Z, this implies that there is no
+a∈Ysuch that (a;i)∈c1. From the deﬁnition
+of the collapsing C, we have that the sets r1and
+rm′+1contain only plain symbols. Hence, there is
+no shadow symbol a●∈Y●such thata●∈r1or
+a●∈rm′+1.
+SinceR′
+i/uni2AAFR′
+i+1this implies that there is an injection
+hfromR′
+itoR′
+i+1such that:
+∗Val(R′
+i+1)(y●)=Val(R′
+i)(y)for ally∈R′
+i/uni22BA∩
+Y.
+∗for everyo>1,h(o)≠/botiff there is a y∈Ysuch
+thatIndex(R′
+i)(y)=o.
+∗h(1)=1.
+∗IfIndex(R′
+i)(y)=oandIndex(R′
+i+1)(y●)=d
+thenh(o)=d.
+Now, we can show that R′
+i/uni2AAFhUi+1since
+we have: Val(Ui+1)(y●)=Val(R′
+i+1)(y●)and
+Index(Ui+1)(y●)=Index(R′
+i+1)(y●)for ally∈
+R′
+i/uni22BA∩Y. (This is an immediate consequence of the
+fact that there is no shadow symbol a●∈Y●suchthata●∈r1ora●∈rm′+1.)
+Case 4: Let us assume that Ri=U+
+i=R′
+i,Ui∈Ri++,
+andVal(Ui)(/uni22A2)=Val(Ui+1)(/uni22A2●). Moreover, let
+R′
+i+1=U+
+i+1,Ui+1∈Ri+1++, and Val(Ui+1)(/uni22A2)=
+Val(Ui+2)(/uni22A2●).
+∗Ifc1does not contain any plain (resp.
+shadow) symbol of the form (a;i)(resp.
+(a●;i+1)) witha∈Y, this implies there is
+noa∈Ysuch that Index(R′
+i)(a)=1(resp.
+Index(R′
+i+1)(a●)=1). From the deﬁnition
+of collapsing this implies that there is no
+symbola∈Ysuch that Index(R′
+i+1)(a●)=1
+(resp. Index(R′
+i)(a)=1). This implies
+that we have: Val(Ui)(y)=Val(R′
+i)(y),
+Index(Ui)(y)= Index(R′
+i)(y),
+Val(Ui+1)(y●)= Val(R′
+i+1)(y●)and
+Index(Ui+1)(y●)=Index(R′
+i+1)(y●)for
+ally∈R′
+i/uni22BA∩Y.
+SinceR′
+i/uni2AAFR′
+i+1this implies that there is an
+injectionhfromR′
+itoR′
+i+1. Now, we can show
+thatR′
+i/uni2AAFhUi+1.
+∗Ifc1contains a plain (resp. shadow) symbol of the
+form(a;i)(resp.(a●;i+1)) witha∈Y, this im-
+plies there is a∈Ysuch that Index(R′
+i)(a)=1
+(resp. Index(R′
+i+1)(a●)=1). From the deﬁ-
+nition of collapsing this implies that there is a
+symbola∈Ysuch that Index(R′
+i+1)(a●)=1
+(resp. Index(R′
+i)(a)=1).
+Let us assume that R′
+i=ri
+1ri
+2/uni22EFri
+miandR′
+i+1=
+ri+1
+1ri+1
+2/uni22EFri+1
+mi+1. This implies that UiandUi+1are
+of the following form: Ui=/uni2205ri
+2/uni22EFri
+miri
+mi+1and
+Ui+1=/uni2205ri+1
+2/uni22EFri+1
+mi+1ri+1
+mi+1+1withri
+1=(ri
+mi+1)+
+andri+1
+1=(ri+1
+mi+1+1)+.
+SinceR′
+i/uni2AAFR′
+i+1this implies that there is an
+injectionhfromR′
+itoR′
+i+1such that:
+⋅Val(R′
+i+1)(y●)=Val(R′
+i)(y)for ally∈R′
+i/uni22BA∩
+Y.
+⋅for everyo>1,h(o)≠/botiff there is a y∈Y
+such that Index(R′
+i)(y)=o.
+⋅h(1)=1.
+⋅IfIndex(R′
+i)(y)=oandIndex(R′
+i+1)(y●)=
+dthenh(o)=d.
+Consider the injection h′fromUitoUi+1con-
+structed from has follows:
+⋅for everyo∶1≤o≤mi, we haveh′(o)=h(o).
+⋅h(mi+1)=mi+1+1.
+Let us show that Ui/uni2AAFh′Ui+1.
+∗for everyo>1, we have that h′(0)≠/botiff there
+is ay∈Ysuch that Index(Ui)(y)=o. This is
+an immediate consequence of the fact that: (1)
+for every 1<o≤mi, we haveh′(o)=h(o),
+(2)forysuch that Index(R′
+i)(y)>1, we have
+Index(Ui)(y)=Index(R′
+i)(y)(observe that
+Index(R′
+i)(y)≤mi), and(3)h(mi+1)≠/botand
+
+--- Page 15 ---
+there is a plain symbol a∈ysuch thata∈r1
+mi+1.
+∗h′(1)=1sinceh′(1)=h(1)=1.
+∗IfIndex(Ui)(y)=oandIndex(Ui+1)(y●)=
+dthenh′(o)=d. This is an immedi-
+ate consequence of the fact that for ysuch
+that 1<Index(Ui)(y)≤mi, we have
+(1)Index(Ui)(y)=Index(R′
+i)(y)and
+Index(Ui+1)(y●)=Index(R′
+i+1)(y●),(2)If
+Index(R′
+i)(y)=oandIndex(R′
+i+1)(y●)=d
+thenh(o)=d, and(3)h′(o)=h(o)since
+1≤o≤mi. Moreover, if Index(Ui)(y)=
+mi+1, then Index(R′
+i)(y)=1. This implies
+thatIndex(R′
+i+1)(y●)=1and it follows that
+Index(Ui+1)(y●)=mi+1+1. Thus, our condi-
+tion is satisﬁed since h′(mi)=mi+1+1.
+∗Val(Ui+1)(y●)=Val(Ui)(y)for ally∈R′
+i/uni22BA∩Y
+such that Index(Ui)(y)≤mi. It remains to show
+that for allysuch that Index(U)(y)=mi+1,
+we have Val(Ui+1)(y●)=Val(Ui)(y).
+●/divides.alt0c1/divides.alt0=1. This implies that c1={/uni27E8/uni22A2;0/uni27E9}and that for
+everyi∶1≤i<i, there is no symbol z∈R/uni22BA
+isuch
+thatIndex(R′
+i)(z)=1.Then, let R′=R′
+0/uni22EFR′
+n−1Qbe a strengthening of Rand let
+Cbe a collapsing of R′.
+Lemma 15. There is a strengthening R′′=R′′
+0/uni22EFR′′
+n−1Pof
+R1and a collapsing C1ofR1such that:
+●R′
+i=(R′′
+i)++for alli∶0≤i<n.
+●C⊖{/uni27E8/uni22A2;0/uni27E9}=(C1⊖{/uni27E8/uni22A2;0/uni27E9})++.
+Proof: Let us assume that C=c1c2/uni22EFcmandP=
+p1p2/uni22EFpn. In the following, we assume that /divides.alt0p1/divides.alt0>1(the other
+case can be treated in a similar way). Then, we have that
+Q={/uni27E8/uni22A2;0/uni27E9}(p1−{/uni27E8/uni22A2;0/uni27E9})p2/uni22EFpn.
+Lemma 16. Letz∈p1withz≠/uni22A2andj=Index(C)(z;n)
+withj>0. Ifj>2then there is a strengthening R′′=
+R′′
+0/uni22EFR′′
+n−1QofRand a collapsing C′ofR′′such that:
+●R′
+i=(R′′
+i)++for alli∶0≤i<n,s
+●C⊖{/uni27E8/uni22A2;0/uni27E9}=C′++⊖{/uni27E8/uni22A2;0/uni27E9}, and
+●Index(C′)(z;n)=j−1.
+Proof: Ifj=1then takeC′=CandR′′=R′. Then
+there are two cases:
+●/divides.alt0c1/divides.alt0=1. This implies that c1={/uni27E8/uni22A2;0/uni27E9}and that for
+everyi∶1≤i<i, there is no symbol z∈R/uni22BA
+isuch
+thatIndex(R′
+i)(z)=1.
+pop(a;I)
+If there is a transition t=/uni27E8s;pop(a;I);s′/uni27E9∈
+ andinitk/leftrightline→1t1/leftrightline→2t2/leftrightline→3t3/leftrightline→ where
+t1= /uni27E8s;pop(Q);tmp(t;Q)/uni27E9,t2=
+/uni27E8tmp(t;Q);pop(P);tmp(t;P;Q)/uni27E9,t3 =
+/uni27E8tmp(t;P;Q);push(R);s′/uni27E9,R∈P∗Q,StateOf (1)=s,
+a∈Q/uni22BA,Q/uni22A7a∈IandStateOf ()=s′. Let StackOf (1)
+be of the form R1=R0/uni22EFRnPQ. Then, StackOf ()will
+be of the form R=R0/uni22EFRnR. LetR′=R′
+0/uni22EFR′
+nRbe a
+strengthening of Rand letCbe a collapsing of R′. Since
+R∈P∗Q, we know that there is a region P′∈P++such
+thatP′/uni2AAFQandR∈P′⊙Q. Since R′
+2is a strengthening of
+R2, we know that R′
+n/uni2AAFR. It follows that R′
+n/uni2AAFP′. This
+means that R′
+1=R′
+0/uni22EFR′
+nP′Qis a strengthening of R1. Let
+P/uni22BA∩={b}. SinceR∈P′⊙Q, we know that there are D1
+andD2such that the following conditions are satisﬁed:
+●D1is a collapsing of the (coherent) s-region P′Q.
+●D2=D1⊖({/uni27E8y●;2/uni27E9/divides.alt0y●∈Q/uni22BA}∪{/uni27E8a;2/uni27E9}∪{/uni27E8x;1/uni27E9/divides.alt0x∈X}).
+●R=f1(D2)wheref1(x;2)=xfor allx∈X,f1(y●;1)=
+y●for ally●∈P/uni22BA∩Y●, andf1(b;1)=b.
+DeﬁneD3∶=f2(D1)wheref2(z;2)=/uni27E8z;n+2/uni27E9and
+f2(z;1)=/uni27E8z;n+1/uni27E9for allz∈Z. Lethbe the (unique)
+injection from D3toCsuch that the following properties are
+satisﬁed:
+●h(1)=1.
+●IfIndex(D3)(x;n+2)=iandIndex(C)(x;n+1)=
+jfor somex∈Xthenh(i)=j.
+
+--- Page 16 ---
+●If Index(D3)(y●;n+1)= i and
+Index(C)(y●;n+1)=jfor somey●∈P/uni22BA∩Y●
+thenh(i)=j.
+●IfIndex(D3)(b;n+1)=iandIndex(C)(b;n+1)=
+jthenh(i)=j.
+LetD3/slash.lefth=di1/uni27E8D1/uni27E9di2/uni22EFdim/uni27E8Dm/uni27E9, and let C/slash.lefth=
+cj1/uni27E8C1/uni27E9cj2/uni22EFcjm/uni27E8Cm/uni27E9. DeﬁneC1∶=c1
+1C1
+1c1
+2/uni22EFc1
+mC1
+msuch
+that the following conditions are satisﬁed:
+●c1
+k=/parenleft.alt1cjk∩/parenleft.alt1/parenleft.alt1Z×n(0)/parenright.alt1;Max/parenright.alt1/parenright.alt1∪dikfor allk∶1≤k≤
+m.
+●C1
+k∈Ck⊗Dkfor allk∶1≤k≤m.
+From the deﬁnitions it follows that C1is a collapsing of R1
+By the induction hypothesis, there is a conﬁguration 1such
+thatinit∗1, and there is a valuation 1ofC1such that
+1/uni22A7C1and1/uni22B31. Deﬁne the valuation ofCas follows:
+●(z;i)∶=1(z;i)for allz∈Zandi∶1≤i≤n.
+●(x;n+1)∶=1(x;n+2)for allx∈X.
+●(y●;n+1)∶=1(y●;n+1)for ally●∈Y●∩P/uni22BA.
+●(b;n+1)∶=1(b;n+1).
+We know that StackOf (1)is of the form
+/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an+1;vn+1/uni27E9/uni27E8an+2;vn+2/uni27E9where /uni27E8an+2;vn+2/uni27E9=
+/uni27E8a;v/uni27E9. Deﬁne ∶=1[state←s′][stack←
+/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an+1;vn+1/uni27E9]. It follows that /uni22A7C,/uni22B3.
+Next, we show that 1t. From1/uni22B31we know that
+1(a;n+2)=v. From1/uni22A7C1we know that 1(n+2)/uni22A7Q.
+Since1(n+2)/uni22A7QandQ/uni22A7(a∈I)we have that
+1(n+2)(a)∈I. Since1(n+2)(a)=1(a;n+2)by
+deﬁnition, it follows that 1(a;n+2)∈Iand hencev∈I.
+The result follows immediately.
+push(a;I)
+If there is a transition t=/uni27E8s;pop(a;I);s′/uni27E9∈
+ andinitk/leftrightline→1t1/leftrightline→2t2/leftrightline→3t3/leftrightline→ where
+t1= /uni27E8s;pop(P);tmp1(t;P)/uni27E9,t2=
+/uni27E8tmp1(t;P);push(R);tmp2(t;P)/uni27E9,t3 =
+/uni27E8tmp2(t;P);push(Q);s′/uni27E9,StateOf (1)=s, and
+Q∈Reset(P)[a←I]. Let StackOf (1)be of the
+formR1=R0/uni22EFRnPwhere−1≤n(i.e.,Pcan be the
+bottom region in R1). Then, StackOf ()will be of
+the form R=R0/uni22EFRnPQ. Let R′=R′
+0/uni22EFR′
+nP′Qbe a
+strengthening of Rand letCbe a collapsing of R′. First
+we will show that P′=P. Suppose that this is not the
+case. Since P′∈P++andP′≠Pit follows that either
+Val(P′)(/uni22A2)>0orIndex(P′)(/uni22A2)>1. By deﬁnition, we
+know that Val(Q)(/uni22A2)=0andIndex(Q)(/uni22A2)=1. This
+impliesP′/slash.left/uni2AAFQwhich is a contradiction since R′is coherent.
+The fact that P′=Pmeans that R′
+1=R′
+0/uni22EFR′
+nPis coherent.
+Deﬁne the collapsing C1∶=C⊖{/uni27E8z;n+2/uni27E9/divides.alt0z∈Z}ofR′
+1By
+the induction hypothesis, there is a conﬁguration 1and a
+valuation1ofC1such that1/uni22B31,1/uni22A7C1, andinit∗1.
+Deﬁne the valuation ofCas follows:
+●(z;i)∶=1(z;i)for alli∶0≤i≤nandz∈R/uni22BA
+i.
+●(z;n+1)∶=1(z;n+1)for allz∈P/uni22BA.
+●(x;n+2)∶=1(x;n+1)for allx∈X.
+●(y●;n+2)∶=1(y;n+1)for ally∈P/uni22BA∩Y.●/uni230A(a;n+2)/uni230B∶=Val(Q)(a). IfIndex(C)(a;n+2)=1
+then fract((a;n+2))∶= 0. Otherwise
+fract((a;n+2))∶=vwherevis any number
+such thatv∈(0∶1)and for all /uni27E8z;i/uni27E9∈C/uni22BA−{/uni27E8a;n+2/uni27E9},
+we have that fract((z;i))≤viffIndex(C)(z;i)≤
+Index(C)(a;n+2)andv≤fract((z;i))iff
+Index(C)(a;n+2)≤Index(C)(z;i).
+Deﬁne the conﬁguration ∶=[stack←StackOf (1)⋅
+/uni27E8a;(a;n+2)/uni27E9]. By the deﬁnitions it follows that /uni22B3,
+/uni22A7C, and1t.
+PROOF OF LEMMA 5
+Suppose that init∗. We use induction on the number of
+transition steps from inittoto show that that there is a a
+conﬁguration inP, strengthening ′of, and a collapsing
+Cof′, such that/uni22A7Candinit∗/leftrightline→.
+Initialization
+In the base, the number of steps is equal to 0. InP, we have
+the transition initt/leftrightline→wheret=/uni27E8.altsP
+init;push(Rinit);sT
+init/uni27E9.alt1.
+We know that StateOf ()=sinit,StackOf ()=Rinit. We
+take the strengthening of Rinitto beRinit, and the collapsing
+CofRinitto beRinit. Notice that R/uni22BA
+init∩={bottom}and
+R/uni22BA
+init∩●={bottom●}. We deﬁne the valuation ofCas
+follows:(x;0)=0,(x●;0)=0for all clocks x∈X, and
+(bottom;0)=(bottom●;0)=0. It is easy to see that /uni22A7C.
+As shown in the initialization case for the other direction of
+the proof, we also have that init/uni22B3.
+nop
+If there is a transition /uni27E8s;nop;s′/uni27E9∈andinit∗1t
+where StateOf (1)=s, and StateOf ()=s′. By the
+induction hypothesis, there is a conﬁguration 1=/uni27E8s;R/uni27E9, a
+strengthening R′ofR, a collapsing CofR′, and a valuation
+ofCsuch that/uni22A7C,1/uni22B3, andinit∗/leftrightline→1. Since
+CValOf ()=CValOf (1)andStackOf ()=StackOf (1)
+it follows that /uni22B3. Deﬁne∶=1[state←s′]. It
+follows that 1∗/leftrightline→. Since/uni22A7C,/uni22B3, and StateOf ()=
+StateOf ()it follows that /uni22A7C.
+x∈I?
+If there is a transition /uni27E8s;x∈I?;s′/uni27E9∈andinit∗1t
+where1=/uni27E8s;X;w/uni27E9,=/uni27E8s′;X;w/uni27E9, and X(x)∈I. Let
+w=/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9. By the induction hypothesis, there
+is a conﬁguration 1=/uni27E8s;R/uni27E9, a strengthening R′ofR, a
+collapsingCofR′, and a valuation ofCsuch that/uni22A7C,
+1/uni22B3, andinit∗/leftrightline→1. Since CValOf ()=CValOf (1)and
+StackOf ()=StackOf (1)it follows that /uni22B3. Deﬁne
+∶=1[state←s′]. Since1/uni22B3we know that (x;n)=
+(n)(x)=X(x)and hence(n)(x)∈I. Since/uni22A7Cit follows
+that(n)/uni22A7Rnwhich implies Rn/uni22A7(x∈I). It follows that
+1∗/leftrightline→. Since/uni22A7C,/uni22B3, and StateOf ()=StateOf ()
+it follows that /uni22A7C.
+
+--- Page 17 ---
+x←I
+If there is a transition /uni27E8s;x←I;s′/uni27E9∈andinit∗1t
+where1=/uni27E8s;X1;w/uni27E9,=/uni27E8s′;X;w/uni27E9, and X(x)=X1[x←v]
+withv∈I. Letw=/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9. By the induction
+hypothesis, there is a conﬁguration 1=/uni27E8s;R1/uni27E9, a strength-
+ening R′
+1ofR1, a collapsing C1ofR′
+1, and a valuation
+1ofC1such that1/uni22A7C1,1/uni22B31, andinit∗/leftrightline→1.
+LetR1=R1/uni22EFRn−1Rnand let R′
+1=R′
+1/uni22EFR′
+n−1Rn. Deﬁne
+∶=1[/uni27E8x;n/uni27E9←v],C∶=Reg. By deﬁnition it follows that
+/uni22A7C. Notice that /uni22B3. LetR′be the unique coherent
+s-region whose collapsing is C. Notice that R′is of the
+formR′
+1/uni22EFR′
+n−1R. Deﬁne R∶=R1/uni22EFRn−1R. Notice that R′
+is a strengthening of R. From the deﬁnitions it follows that
+R∈Rn[x←I], and hence 1∗/leftrightline→. Since/uni22A7C,/uni22B3, and
+StateOf ()=StateOf ()it follows that /uni22A7C.
+Timed Transitions
+Ifinit∗1v
+Timefor somev>0,1=/uni27E8s;X1;w1/uni27E9,=
+/uni27E8s;X;w/uni27E9,X=X+v
+1, andw=w+v
+1. Letw1=/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9.
+By the induction hypothesis, there is a conﬁguration 1=
+/uni27E8s;R1/uni27E9, a strengthening R′
+1ofR1, a collapsing C1ofR′
+1,
+and a valuation 1ofC1such that1/uni22A7C1,1/uni22B31,
+andinit∗/leftrightline→1. LetR1=R1/uni22EFRn−1Rn. Deﬁnesuch that
+(z;i)≠/botiff1(z;i)≠/bot, and for every /uni27E8z;i/uni27E9∈R/uni22BA
+1we have
+that(z;i)∶=1(z;i)+v. DeﬁneC∶=Reg. By deﬁnition it
+follows that /uni22A7C. Notice that /uni22B3. LetR′be the unique
+coherent s-region whose collapsing is C. Notice that R′is
+of the form R′
+1/uni22EFR′
+n−1R′
+nwhereR′
+i∈R++
+ifori∶0≤i≤n.
+Deﬁne R∶=R1/uni22EFRn−1R′
+n, and deﬁne ∶=/uni27E8s′;R/uni27E9. Notice that
+R′is a strengthening of R. SinceR′
+n∈R++
+nit follows that
+1∗/leftrightline→. Since/uni22A7C,/uni22B3, and StateOf ()=StateOf ()
+it follows that /uni22A7C.
+pop(a;I)
+If there is a transition t=/uni27E8s;pop(a;I);s′/uni27E9∈and
+init∗1twhere1=/uni27E8s;X;w1/uni27E9,=/uni27E8s′;X;w/uni27E9,w1=
+/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an−1;vn−1/uni27E9/uni27E8an;vn/uni27E9,an=a,vn∈I, andw=
+/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an−1;vn−1/uni27E9. By the induction hypothesis, there is
+a conﬁguration 1=/uni27E8s;R1/uni27E9, a strengthening R′
+1ofR1, a
+collapsingC1ofR′
+1, and a valuation 1ofC1such that
+1/uni22A7C1,1/uni22B31, andinit∗/leftrightline→1. LetR1=R1/uni22EFRn−1Rnand
+letR′
+1=R′
+1/uni22EFR′
+n−1Rn. Deﬁne∶Z×(n−1)(0)as follows:
+●(z;i)∶=1(z;i)for alli∶0≤i≤n−2andz∈R/uni22BA
+i.
+●(y●;n+1)∶=1(y●;n+1)for ally●∈Y●∩R/uni22BA
+n−1.
+●(/uni22A2●;n+1)∶=1(/uni22A2●;n+1).
+●(b;n+1)∶=1(b;n+1)whereY∩R/uni22BA
+n−1={b}.
+●(x;n+1)∶=1(x;n+2)for allx∈X.
+●(/uni22A2;n+1)∶=0.
+DeﬁneC∶=Reg. By deﬁnition it follows that /uni22A7C. Notice
+that/uni22B3. LetR′be the unique coherent s-region whose
+collapsing is C. Observe that R′is of the form R′
+1/uni22EFR′
+n−1R
+whereQ∈R′
+n−1⊙Rn. By deﬁnition of ⊙and the fact that
+R′
+n−2/uni2AAFR′
+n−1we know that R′
+n−2/uni2AAFQand hence R′is
+coherent. Deﬁne R∶=R1/uni22EFRn−2Q, and deﬁne ∶=/uni27E8s′;R/uni27E9.
+SinceR′
+i∈R++
+ifor alli∶0≤i≤n−2,R′
+i/uni2AAFR′
+i+1for alli∶0≤i≤n−3, andR′
+n−2/uni2AAFQit follows that R′is stregthening
+ofR. SinceR′
+n−1∈R++
+n−1andQ∈R′
+n−1⊙R′
+nit follows by
+deﬁnition that Q∈Rn−1∗Rn. Sincevn∈Iand1/uni22B31it
+follows that 1(n)=1(a;n)∈I. Since1/uni22A7C1it follows
+that1(n)/uni22A7Rnand henceRn/uni22A7(a∈I). It follows that
+1∗/leftrightline→. Since/uni22A7C,/uni22B3, and StateOf ()=StateOf ()
+it follows that /uni22A7C.
+push(a;I)
+If there is a transition t=/uni27E8s;push(a;I);s′/uni27E9∈and
+init∗1twhere1=/uni27E8s;X;w1/uni27E9,=/uni27E8s′;X;w/uni27E9,w1=
+/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9,w=/uni27E8a1;v1/uni27E9/uni22EF/uni27E8an;vn/uni27E9/uni27E8a;v/uni27E9, andan=a.
+By the induction hypothesis, there is a conﬁguration 1=
+/uni27E8s;R1/uni27E9, a strengthening R′
+1ofR1, a collapsing C1ofR′
+1,
+and a valuation 1ofC1such that1/uni22A7C1,1/uni22B31,
+andinit∗/leftrightline→1. Let R1=R1/uni22EFRn−1Rnand let R′
+1=
+R′
+1/uni22EFR′
+n−1Rn. Deﬁneas follows:
+●(z;i)∶=1(z;i)for alli∶0≤i≤nandz∈R/uni22BA
+i.
+●(n+1)(x)∶=(n)(x)and(n+1)(x●)∶=(n)(x)for
+allx∈X.
+●(b●;n+1)∶=1(b;n)whereY∩R/uni22BA
+n={b}.
+●(a;n+1)∶=v.
+●(n+1)(/uni22A2)∶=0and(n+1)(/uni22A2●)∶=0.
+DeﬁneC∶=Reg. By deﬁnition it follows that /uni22A7C. Notice
+that/uni22B3. LetR′be the unique coherent s-region whose
+collapsing is C. Notice that R′is of the form R′
+1/uni22EFRnRwhere
+R∈Reset(Rn)[a←I]. Deﬁne R=R1/uni22EFRnR, and deﬁne
+∶=/uni27E8s′;R/uni27E9. SinceRn/uni2AAFRit follows that R′is coherent. Since
+R′
+i∈R++
+ifor alli∶0≤i<nit follows that R′is strengthening
+ofR. SinceR∈Reset(Rn)[a←I]we know that 1∗/leftrightline→.
+Since/uni22A7C,/uni22B3, and StateOf ()=StateOf ()it
+follows that /uni22A7C.
