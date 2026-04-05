@@ -1,0 +1,874 @@
+--- Page 1 ---
+PAPER B
+VERIFICA TION OFHIERAR CHICAL
+STATE/EVENT SYSTEMS USING
+REUSABILITY AND COMPOSITIONALITY
+G.Behrmann, K.G.Larsen
+BRICS, AalborgUniversity, Denmark
+H.R.Andersen, H.Hulgaard, J.Lind-Nielsen
+TheITUniversity ofCopenhagen, Denmark
+Abstract
+Weinvestigate techniques forverifying hierarc hicalsystems, i.e.,nite state systems with
+anesting capabilit y.Thestraigh tforwardwayofanalysing ahierarc hicalsystem istorst
+atten itintoanequivalentnon-hierarc hicalsystem andthenapply existing nite state
+system verication techniques. Though conceptually simple, attening isseverelypunished
+bythehierarc hicaldepth ofasystem. Toalleviate thisproblem, wedevelopatechnique
+thatexploits thehierarc hicalstructure toreuseearlier reachabilit ychecksofsuperstates to
+conclude reachabilit yofsubstates. Wecombinethereusabilit ytechnique withthesuccessful
+compositional technique of[LNAB+98]andinvestigate thecombination experimen tallyon
+industrial systems andhierarc hicalsystems generated according toourexpectations toreal
+systems. Theexperimen talresults areveryencouraging: whereas aattening approac h
+degrades inperformance withanincrease inthehierarc hicaldepth (evenwhen applying the
+technique of[LNAB+98]),thenewapproac hprovesnotonlyinsensitiv etothehierarc hical
+depth, butevenleadstoimpro vedperformance asthedepth increases.
+Keywords: Verication, hierarc hy,statecharts, compositionalit y
+
+--- Page 3 ---
+Introduction 65
+1Introduction
+Finite statemachines provideaconvenientmodelfordescribing thecontrol-part (in
+contrasttothedata-part) ofembedded reactiv esystems including small systems
+suchascellular phones, HiFiequipmen t,cruise controlsforcars,andlargesystems
+astrainsimulators, ightcontrolsystems, telephone andcomm unication protocols.
+Weconsider aversion ofnite statemachines called state/ev entmachines (SEMs).
+TheSEM modeloers thedesigner anumberofadvantages including automatic
+generation ofecien tandcompact codeandaplatform forformal analysis suchas
+model-checking. Inthispaperwefocusandcontribute tothelatter.
+Inpractice, todescrib ecomplex systems using SEMs, anumberofextensions are
+oftenuseful. Inparticular, rather thanmodeling acomplex controlasasingle SEM,
+itisoften more convenienttouseaconcurr entcomposition ofseveralcomponent
+SEMs eachtypically dealing withaspecicaspectofthecontrol.Herewefocuson
+anadditional hierarchicalextension ofSEMs, inwhichstates ofcomponentSEMs
+areeither primitive orsuperstates whicharethemselv es(comp ositions of)SEMs.
+Figure 1(a)illustrates ahierarc hicaldescription ofasystem withtwocomponents,
+aTrainandaCrossing .Inside theTrainthestateMove isasuperstate withthetwo
+(primitiv e)states LeftandRight.Transitions within onecomponentmaybeguarded
+withconditions onthesubstates ofother components.E.g.,the`Go'-transition may
+onlyberedwhen thesuperstate Crossing isinthesubstate Closed .TheMove state
+isagged asahistory stateindicated bythecapital H.Ondeactiv ationhistory states
+remem berthelastactivesubstate andmayreenteritwhen reactiv ated.
+HRoot
+RightOpen
+ClosedStopCrossing
+[Closed]
+Move
+LeftGoRigh t
+GoLeftDownUpGoTrain
+Up
+(a)Hierarc hicalsystem.Move
+Right
+ClosedStop
+Left
+OpenGoLeft [Move]GoRigh t[Move]Go[Closed]
+mCrossingmMovemTrain
+Down
+UpUp
+(b)Flattened system.
+Fig.1:(a)Ahierarc hicalmodelofatoytrain. Thesystem iscomposedofanumber
+ofserial, parallel andprimitiv estates. (b)Themodelafterithasbeenattened. In
+caseMove hadnotbeenahistory statethere wouldhavebeenanextra transition
+intheattened modelfromRight toLeftoneventGoRigh tandguard Stop^Closed
+forcing mMove intoLeftwhenev erMove isactivated.
+TheStatechar tnotation isthepioneer inhierarc hical descriptions. Intro-
+duced in1987byDavidHarel [Har87 ]ithasquicklybeenaccepted asacompact
+
+--- Page 4 ---
+66 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+andpractical notation forreactiv esystems, aswitnessed byanumberofhierar-
+chicalspecication formalisms suchasModechar ts[JM87]andRsml [LHHR94 ].
+Also, hierarc hicaldescriptions playacentralroleinrecentobject-orien tedsoftware
+metho dologies (e.g.,Omt [RBP+91]andRoom [SGW94 ])most clearly demon-
+strated bytheemerging Uml-standard [BJR97 ].Finally ,hierarc hicalnotations are
+supported byanumberofCASE tools,suchasStatemate[sta],ObjecTime [obj],
+RationalR ose[rat],andvisualST ATEversion 4.0[vis].
+Ourworkhasbeenperformed inacontextfocusing onthecommercial prod-
+uctvisualST ATEanditshierarc hicalextension. Thistoolassists indeveloping
+embedded reactiv esoftwarebyallowingthedesigner toconstruct andmanipulate
+SEM models. Thetoolisusedtosimulate themodel,checkingtheconsistency of
+themodel,andfromthemodelautomatically generate codeforthehardw areofthe
+embedded system. Theconsistency checkerofvisualST ATEisinfactaverica-
+tiontoolperforming anumberofgeneric checks,whichwhen violated indicate likely
+design errors. Thechecksinclude checkingforabsence ofdeadlo cks,checkingthat
+alltransitions mayreinsomeexecution, andsimilarly checkingthatallstates can
+beentered.
+Inthepresence ofconcurrency ,SEMmodelsmaydescrib eextremely largestates-
+paces1and,unlikeintraditional modelchecking, thenumberofcheckstobeper-
+formed byvisualST ATEisatleastlinear inthesizeofthemodel.Inthissetting,
+ourprevious work[LNAB+98]oers impressiv eresults: anumberoflarge SEM
+modelsfromindustrial applications havebeenveried. Evenamodelwith1421
+concurren tSEMs (and10476states) hasbeenveried withmodestresources (less
+than20minutesonastandard PC).Thetechnique underlying these results utilises
+theROBDD datastructure [Bry86 ]inacompositional analysis whichinitially con-
+siders onlyafewcomponent-machines indetermining satisfaction oftheverication
+taskand,ifnecessary ,gradually includes more component-machines.
+Nowfacing hierarc hicalSEMs, onecanobtain anequivalentconcurren tcompo-
+sition ofordinary SEMs byattening it,thatis,byrecursiv elyintroducing foreach
+superstate itsassociated SEM asaconcurren tcomponent.Figure 1(b)showsthe
+attening ofthehierarc hicalSEMinFig.1(a)where thesuperstate Move hasgiven
+risetoanewcomponentmMove .Thus,verication ofhierarc hicalsystems maybe
+carried outusing aattening prepro cessing. E.g.,demonstrating thattheprimitiv e
+stateLeftisreachable inthehierarc hicalversion (Figure 1(a)),amoun tstoshowing
+thattheattened version (Figure 1(b))maybebrough tintoasystem-state, where
+themMove -comp onentandthemTrain-comp onentaresimultaneously inthestates
+LeftandMove.
+Though conceptually simple, verication ofhierarc hicalsystems viaattening is,
+aswewillargue below(Section 2)andlaterexperimen tallydemonstrate, severely
+punished bythehierarc hicaldepth ofasystem; evenwhen combined withoursuc-
+cessful compositional technique of[LNAB+98]forordinary SEMs.
+Toalleviate thisproblem, weintroduceinthispaperanewverication tech-
+1Theso-called state-explosion problem .
+
+--- Page 5 ---
+Flattening andReusabilit y 67
+nique thatusesthehierarc hical structure toreuseearlier reachabilit ychecksof
+superstates toconclude reachabilit yofsubstates. Wedevelopthereusabilit ytech-
+nique forahierarc hicalSEM modelinspired byStatechar tandcombineitwith
+thecompositionalit ytechnique of[LNAB+98].Weinvestigate thecombination ex-
+perimen tallyonhierarc hicalsystems generated according toourexpectations from
+realsystems.2Theexperimen talresults areveryencouraging: whereas theatten-
+ingapproac hdegrades inperformance withanincrease inthehierarc hicaldepth, it
+isclearly demonstrated thatournewapproac hisnotonlyinsensitiv etothehier-
+archicaldepth, butevenleads toimpro vedperformance asthedepth increases. In
+addition, fornon-hierarc hical(at) systems thenewmetho disaninstan tiation of,
+andperforms aswellas,thecompositional technique of[LNAB+98].
+Related Work
+R.AlurandM.Yannak akis'workonhierarchicalKripke structur esoers impor-
+tantworstcasecomplexit yresults forbothLTLandCTLmodelchecking[AY98].
+However,their results arerestricted tosequential hierarc hical machines anduse
+thefactthatabstract superstates mayappearinseveralinstan tiations. Incontrast
+weprovideverication results forgeneral hierarc hicalsystems withbothsequen tial
+andparallel superstates without depending onmultiple instan tiations ofabstract
+superstates.
+Park,Skakkebk andDill[PSD98 ]havefound analgorithm forautomatic gen-
+eration ofinvariantsforstates inRsml specications. Using these invariantsitis
+possible toperform someofthesamechecksthatweprovideforhierarc hicalSEMs.
+Their algorithm worksonanapproximation ofthespecication, andusesthefact
+thatRsml doesallowinternal eventssentfromonestatetoanother.
+2Flattening andReusabilit y
+Toseewhythesimple attening approac hisvulnerable tothehierarc hicaldepth,
+consider the(schematic) hierarc hicalsystem ofFig.2(a).Theattened version of
+thissystem willcontain(atleast) aconcurren tcomponentmSiforeachofthe
+superstatesSifor0i100.Assume, thatwewanttocheckthatthestateuis
+reachable. Asreachabilit yofastateinahierarc hicalsystem automatically implies
+reachabilit yofallitssuperstates, wemustdemonstrate thattheattened system
+canreachastatesatisfying thefollowingcondition:3
+mS100@u^mS99@S100^mS98@S99^:::^mS0@S1:
+Consequen tly,wearefaced withareachabilit yquestion immediately involving a
+large numberofcomponentSEMs, whichinturnmeans thatpoorperformance
+2Inshort, weexpectthattransitions anddependencies betweenparts ofawell-designed hierar-
+chicalsystem aremore likelytooccurbetweenparts closetoeachother rather thanfarfromeach
+other inthehierarc hy.
+3HeremS@Tdenotes thatthecomponentmSisinstate T.
+
+--- Page 6 ---
+68 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+z
+u v uzx
+vS100 S100
+(a) (b)ggxy yS0 S0
+Fig.2:Simple andcomplex substates.
+ofourcompositional technique [LNAB+98]istobeexpected. Evenworse,realiz-
+ingallthechecksofvisualST ATEmeans thatwemustinsimilarly costly man-
+nersdemonstrate reachabilit yofthestatesx,y,zandv.Allthese checkscontain
+mS99@S100^mS98@S99^:::^mS0@S1ascommon part. Hence, weareinfactre-
+peatedly establishing reachabilit yofS100aspartofcheckingreachabilit yofx;y;z;u
+andv.Asthissituation mayoccuratall(100) levels,theconsequence maybean
+exponentialexplosion ofourverication eort.
+Letusinstead trytoinvolvethehierarc hicalstructure moreactivelyandassume
+thatwehavealreadyinsome previous checkdemonstrated thatS100isreachable
+(maybefromananalysis ofamoreabstract version ofthemodelinwhichS100was
+infactaprimitiv estate).
+Howcanwereusethisfacttosimplify reachabilit y-checkingof,say,u?Assume
+rstasimple setting (Figure 2(a)),whereS100isonlyactivatedbytransitions toS100
+itself(andnottosubstates withinS100)andtransitions inS100areonlydependen t
+(indicated bytheguardg)onsubstates withinS100itself. Inthiscasewemaysettle
+thereachabilit yquestion bysimply analysingS100asasystem ofitsown.Inmore
+complex situations (Figure 2(b)),S100maypossibly beactivatedinseveralways,
+including viatransitions intosome ofitssubstates. Also, thetransitions within
+S100mayrefertostates outsideS100(indicated bytheguardg).Insuchcases|in
+analogy withourprevious compositional technique [LNAB+98]|wecompute theset
+ofstates whichregardlessofbehaviour outsideS100mayreachu.Ifthissetcontains
+allpotentialinitial states ofS100(inFig.2(b)thestatesx;y;u)wemayinferfrom
+theknownreachabilit yofS100thatalsouisreachable. Otherwise, wewillsimply
+extend thecollection ofsuperstates considered depending ontheguards withinS100
+andthetransitions toS100.
+Intheobvious way,transitions andtheirguards determine thepattern ofdepen-
+dencies betweenstates inahierarc hicalsystem. Webelievethatingoodhierarc hical
+designs, dependencies aremore likelytoexistbetweenstates closetoeachother in
+thehierarc hyrather thanstates hierarc hically farfromeachother. Thus,thesimple
+
+--- Page 7 ---
+TheHierarc hicalState/Ev entModel 69
+scenario depicted inFig.2(a)should inmanycases beencoun tered withonlysmall
+extensions oftheconsidered superstates. Itisnotew orthy,thatexception handling
+doesnotfollowthispattern. Anexception mayresult inatransition fromastate
+sdeepwithin thehierarc hytoanexception statefaraway.However,thisdoesnot
+aect reachabilit yofs,onlythatoftheexception state.
+3TheHierarc hicalState/Ev entModel
+Ahierarc hicalstate/ev entmachine(HSEM) isahierarc hicalautomaton consisting
+ofanumberofnested primitiv e,serial, andparallel states. Transitions canbe
+performed betweenanytwostates regardless oftheirtypeandlevel,andarelabeled
+withamandatory event,aguard, andapossible emptymultiset ofoutputs.
+Denition 1.AnHSEM isa7-tuple
+M=hS;E;O;T;Sub;type;defi
+ofstatesS,eventsE,outputsO,transitionsT,afunctionSub:S!P(S)asso-
+ciating states withtheirsubstates, afunctiontype:S!fpr;se;sh;pagmapping
+states totheirtype(indicatingwhether astateisprimitive, serial,serialhistory,
+orparallel),andapartial function def:S,!Smapping serial andhistory states
+totheirdefault substate. Thesetofserial andhistory states inSisreferredtoas
+R.Thesetoftransitions is
+TSEGM(O)S;
+whereM(O)isthesetofallmultisets ofoutputs, andGisthesetofguardsderived
+fromthegrammar
+g::=g1^g2j:g1jttjs:
+Theatomic predicatesisastatesynchr onisation onthestates,having theintu-
+itiveinterpr etation thatsistruewheneversisactive (wewillreturn totheformal
+semantics inamoment).
+Weuset=(st;et;gt;ot;s0
+t)torange oversyntactic transitions (with source,
+event,guard, outputs andtarget respectively).
+Example 1.InFig.1awehave
+E=fGo;GoRigh t;GoLeft;Down;Upg;
+S=fRoot;Train;Stop;Move;Left;Right;Crossing;Open;Closedg;
+O=;;
+type(Root)=pa;
+type(Train)=type(Crossing )=se;
+type(Move)=sh;and
+type(Stop)=type(Left)=type(Right)=type(Open)=type(Closed )=pr
+
+--- Page 8 ---
+70 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+(Stop;Go;Closed;;;Move)isoneofthesixelements inT.TheSubrelation denes
+thenesting structur eofthestates, e.g.wehaveSub(Root)=fTrain;Crossingg.The
+function defisonlydenedforserial andhistory states, e.g.def(Move)=Left,
+whereasdef(Root)isundene d.
+Fornotational convenience wewrites&s0whenev ers02Sub(s).Furthermore
+wedene&+tobethetransitiv eclosure, and&tobethetransitiv eandreexiv e
+closure of&.Ifs&+s0wesaythatsisaboves0,ands0isbelows.Thegraph
+(S;&)isrequired tobeatree,where theleavesandonlytheleavesareprimitiv e
+states, i.e.,8s:type(s)=pr,Sub(s)=;.
+ForasetofstatesI,lca(I)denotes theleastcommon ancestor ofIwithrespect
+to&.Forastates,lsa(s)denotes theleastserial ancestor ofs.Thescopeofa
+transitiontisdenoted(t)andrepresen tstheleastcommon serial ancestor ofthe
+statesstands0
+t.Forthose transitions inwhichsuchastatedoesnotexist, wesay
+that(t)=$,where $isadumm ystateaboveallother states, i.e.,8s2S:$&+s.
+Example 2.Lett1bethetransition fromOpentoClosed andt2thetransition
+fromLefttoRight.Wethenhave(t1)=Crossing and(t2)=Move.Ifwehad
+atransition fromMove toOpen(rememb ertransitions betweenanytwostates are
+allowed),thescopewould havebeen$.
+Acongur ation ofanHSEM isanjRj-tuple ofstates indexed byserial andhistory
+states. Thecongur ationspaceofanHSEM istheproductofthesetofsubstates
+ofeachserial state,
+=Y
+s2RSub(s):
+Example 3.Returning tothetrainexample, wehavethat=fStop;Moveg
+fLeft;RightgfOpen;Closedg,i.e.theproductofthesubstates ofserial andhistory
+states.
+Theprojections:!Sub(s)ofaconguration ontoaserial orhistory state
+syields thevalueofsin.Theprojection ofaconguration ontoaparallel or
+primitiv estateisundened. Astatesisactiveinifeithersistherootstate, the
+parentofsisanactiveparallel state, ortheparentisanactiveserial orhistory state
+andsistheprojection ofontotheparent.Inorder toformalise thiswedene the
+inxoperator inas
+sin,8s0&+s:s02R)s0()&s:
+Wedenote bys=fjsingthesetofcongurations inwhichsisactive.
+Example 4.Let=(Stop;Left;Open),i.e.theinitial congur ation. Wehavethat
+sinistruefors2fRoot;Train;Stop;Crossing ,Openg.WedonothaveLeftin
+sincethiswould requireMovein.
+
+--- Page 9 ---
+TheHierarc hicalState/Ev entModel 71
+Denition 2.Letj=gwheneversatisesg.Theoperatorisdenedonthe
+structur eofgas:
+j=tt
+j=s isin
+j=g1^g2ij=g1andj=g2
+j=:g i6j=g
+Apair(e;)issaidtoenable atransitiont,written (e;)j=t,ie=et,stin,
+andj=gt.
+Before introducing theformal seman tics,wesummarise theintuitiveideabehind
+acomputation stepinHSEM. AnHSEM iseventdriven,i.e.,itonlyreacts when an
+eventisreceivedfromtheenvironmen t.When thishappens,amaximal setofnon-
+conicting andenabled transitions isexecuted, where non-conicting means thatno
+transitions inthesethavenested scope.Thisconforms totheideathatthescope
+denes theareaaected bythetransition. Infact,atransition isundersto odtoleave
+thescopeandimmediately reactiv ateit.When atransition isexecuted, itforces a
+statechange tothetarget. Allimplicitly activatedserial states entertheirdefault
+stateandallhistory states theremem beredlastactivesubstate. Notice thatcontrary
+toStatechar ts,HSEMs donotinclude anynotion ofscopeoverriding. Scope
+overriding variesgreatly betweenhierarc hicalspecication languages (forinstance
+betweenStatechar tsandUml).Forthisreason wedecided nottoinclude this
+mechanism inHSEM. Infact,itiseasytotranslate anHSEM withStatechar tlike
+scopeoverriding toanHSEM without (foranygiventransition addtheconjunction
+ofnegated guards ofpotentially enabled transitions withhigher scopetotheguard),
+although thisaddsadditional dependencies betweenstates.
+Formally ,asetTisenabledon(e;)if8t2:(e;)j=t,iscompatible
+if8t;t02:(t6=t0)(t)6&(t0)),andismaximal if80T:0)
+0isincompatible ordisabled on(e;).
+Example 5.Let=(Stop;Left;Open)betheinitial congur ation,e=Down,and
+=ft1g,wheret1isagain thetransition fromOpentoClosed .Thesetis
+compatible, enabledon(e;),andmaximal.
+Theseman ticsofanHSEM isdened interms ofatransition relation.
+Denition 3.Let!EM(O)besuchthate=o!0ifandonlyifthere
+exists asetT,suchthat4:
+1)iscompatible, enabledon(e;),andmaximal,
+2)o=]t2ot,
+3)8t2:s0
+tin0,
+4Thesymbol]denotes multiset union
+
+--- Page 10 ---
+72 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+4)8t2;s2S:sin0^type(s)=se^((t)&+s6&+s0
+t))s(0)=def(s),
+5)8t2;s2S:type(s)=sh^((t)&+s6&+s0
+t))s(0)=s(),and
+6)8s2R:(8t2:(t)6&s))s()=s(0).
+Thesecond constrain tdenes theoutput ofthetransition, thethird thatall
+targets andconsequences areactiveafterthetransition, thefourth thatallimplicitly
+activatedserial states (those notonthepathbetweenthescopeandthetarget of
+anytransition) arerecursiv elysettotheirdefault state, thefththatallhistory
+states notexplicitly forced toanewstateby3)remain unchanged, andthelastthat
+allstates notunder thescopeofanytransition remain unchanged. Notice thatin
+5)itdoesnotmatter ifthehistory stateisactiveornot.Thisisimportant,sinceit
+ensures thatthelastactivatedsubstate isremem bered.
+Example 6.Letbethesetfromtheprevious example. Itfollowsthat
+(Stop;Left;Open)Down=;!(Stop;Left;Closed )
+isavalidtransition. Clearlythersttwoconstraintsaresatise d.Sincet1istheonly
+transition inand(t1)=Crossing ,wendthatthethirdandfourth constraintdo
+notmatter itthisexample (bothOpenandClosed areprimitive). Thelastconstraint
+requiresTrainandMovetoremain unchange d,which isthecase.Infacttheabove
+transition istheonlytransition satisfying theconstraintsinthegivencongur ation
+andevent. Continuing fromthisnewcongur ationweobtain
+(Stop;Left;Closed )Go=;!(Move;Left;Closed )GoRigh t=;!
+(Move;Right;Closed )Up=;!(Stop;Right;Open)
+asalegaltransition sequence.
+4Consistency Checks
+Theconsistency checkerofvisualST ATEperforms sevenpredened typesofchecks
+suchascheckingabsence ofdead codeinthesense thatalltransitions mustbe
+possibly enabled andallstates mustbepossibly entered, andcheckingabsence of
+deadlo cks.Eachcheckcanbereduced toverifying oneoftwotypesofproperties.
+Therstpropertytypeisreachability .Forinstance, checkingwhether atransition
+twilleverbecome enabled isequivalenttocheckingwhether aconguration can
+bereachedsuchthat9e:(e;)j=t.Similarly ,checkingwhether astatesmaybe
+entered amoun tstocheckingwhether thesystem canreachaconguration within
+s.
+Theremaining typesofconsistency checksreduce toacheckforabsence oflocal
+deadlocks.Alocaldeadlo ckoccurs ifthesystem canreachaconguration inwhich
+oneofthesuperstates willneverchange valuenorbedeactiv atednomatter what
+sequence ofeventsisoered.
+
+--- Page 11 ---
+Reusable Reachabilit yChecking 73
+Inthefollowingtwosections wepresen tournoveltechnique exploiting reusabilit y
+andcompositionalit ythrough itsapplication toreachabilit yanalysis. In[ABPV98 ]
+theapplicabilit yofthetechnique tolocaldeadlo ckdetection isdemonstrated.
+5Reusable Reachabilit yChecking
+Fromausers perspectivevisualST ATEdetects deadcodeintheformofunused
+states andtransitions, butthemodelcheckerwilltranslate eachsuchchecktoaset
+ofgoalcongurations X.Thequestion posedisreally whetherXisreachable
+inthesense thatthere exists asequence ofeventssuchthatthesystem starting at
+theinitial conguration 0entersaconguration inX.
+Example 7.Checkingwhether thetransition fromStoptoMoveisnotdeadcode
+reducestocheckingwhether somecongur ationinX1=fjj=Stop^Closedg=
+f(Stop;Left;Closed );(Stop;Right;Closed )gisreachable. Similarly, checkingwhether
+Right isnotdeadcodereducestochecking whether some congur ation inX2=
+Right=f(Move;Right;Open);(Move;Right;Closed )gisreachable.
+Oneclassic approac htoreachabilit ycheckingisbackwardsexploration ofthe
+transition system starting atthegoalcongurations. Wecandothisinabreadth
+rstfashion using asimple backwardsstepfunction:5
+B(X)=fj902X:;0g;
+i.e.givenasetXwecompute thecongurations thatinonestepcanreacha
+conguration inX.Byrepeating thestepuntilwereachthexedpointB(X)=
+Y:X[B(Y),wecompute thesetofcongurations thatinanumberofsteps can
+reachX.Although thisapproac hisverysimple itisinfeasible forlargesystems.
+Toexplain theideaofreusability ,letibeastatesuchthatXi,i.e.,reacha-
+bilityofanyconguration withinXimplies reachabilit yofthestatei(seeFig.3(a)).
+Notice thatsuchastateexists forallnon-trivial reachabilit yquestions, e.g.,theroot
+willsatisfy thiscondition foranyX6=.Thequestion weaskishowexisting infor-
+mation aboutreachabilit yofimaybereused tosimplify reachabilit y-checkingofX.
+Thesimple caseisclearly wheniisunreac hable. Inthiscasethere isnowaythatX
+canbereachable either, sinceXonlycontainscongurations whereiisactive.Since
+weexpect(orhope)mostofthereachabilit yquestions issued byvisualST ATEto
+betruethisonlymodestly reduces thenumberofcomputations. However,although
+itismore challenging, wecanalsomakeuseoftheinformation thatiisreachable,
+asexplained below.
+Knowingiisreachable, stillleavesopenwhichofthecongurations iniare
+infactreachable (andinparticular ifanyconguration inXis).However,any
+reachable conguration inimustnecessarily bereachable through asequence of
+5Here;0abbreviates 9e;o:e=o!0.
+
+--- Page 12 ---
+74 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+i
+XInit(i) 0
+(a)Theinitial congurations
+ofi.Reachable (X)=
+i:=lowest(X)
+ifnotReachable (i)then
+return false
+Y:=X
+repeat
+Y0:=B
+i(Y)
+//Prop.iandiii
+if02Y0orInit(i)Y0then
+return true
+//Prop.iv
+ifInit(i)\Y0=;thenreturn false
+//Prop.ii
+i:=lsa(i)
+Y:=Y0
+forever
+(b)Algorithm 1.
+Fig.3:Reusable reachabilit ycheck.
+thefollowingform:
+0;1;n1;n|{z}
+62i;n+1;n+k;| {z }
+2i: (1)
+LetthefunctionInit:R!bedened as
+Init(s)=f2sj=0or9062s:0;g
+i.e.,Init(s)isthesetofcongurations forwhichsisactiveandwhicharereachable
+inonestepfromaconguration inwhichsisinactiv e(clearlyn+1in(1)isin
+Init(i),seealsoFig.3(a)). WecallInit(i)theinitial congurations ofi.Notice
+thatforaconguration tobeaninitial conguration, allwerequire isthatthere is
+apredecessor whichisnotini.Inthepresence ofhistory states, thesetofinitial
+congurations ofiislarger thanthesetofcongurations initerminating paths
+whichareotherwise notini.Apathleading toainitial conguration mighthave
+entered andleftiseveraltimes.
+Example 8.Intheexample fromtheintroduction wehavethat
+Init(Move)=f(Stop;Left;Closed );(Stop;Right;Closed )g:
+Noticethatthesecondstatecanonlybereachedviapathscontaining therststate.
+Consider thenthefollowingbackwardsstepcomputation:
+Bi(Y)=f2ij902Y:;0g (2)
+
+--- Page 13 ---
+Reusable Reachabilit yChecking 75
+thatis,Bi(Y)isthesetofcongurations withiactive,whichinonestepmayreach
+Y.Thexedpointdened by
+B
+i(X)=Y:Bi(Y)[X
+caneasily befound byapplyingBiiterativ ely.Notice thatB=Biforibeingthe
+rootstate. Thefollowinglemma states thecrucial properties ofthisxedpoint.
+Lemma 1.Let0betheinitial state. Forstatesj&iandasetXi,the
+following holds:
+i)B
+i(X)B
+j(X),
+ii)B
+j(X)=B
+j(B
+i(X)),
+iii)(02B(i)^Init(i)B
+i(X)))02B(X)
+iv)B
+i(X)\Init(i)=;)062B(X).
+Infact,anyover-appro ximation ofInit(i)contained iniwillsuce forthe
+lemma tohold. Thisisveryuseful sinceanapproximation ofInitmaybeobtained
+fromasyntactic analysis ofthesystem. Wewillcommen tfurther onthisinSection 7.
+Crucial totheeciency oftheapproac hismaking agoodchoice ofi.Although
+therootwillsatisfy therequiremen tofXiforallnon-trivial X,itisanon-
+optimal choicesinceinthiscaseBiisequal toB.Astateasdeepinthehierarc hyas
+possible istypically agoodchoice sinceitreduces thesizeofthexedpointB
+i(X),
+buttheremightbeseveralsuchstates. Onesuchstateisoered bylowest(X).Also,
+ifX=sanyserial ancestor ofswillsuce. Agoodchoiceofiwillbecome obvious
+when wecombinereusabilit ywithcompositionalit yinSection 6.
+Example 9.Given thetworeachability questions fromExample 7wehavelowest(X1)2
+fStop;Closedgandlowest(X2)=Right.
+Tosettle reachabilit yofX,weiterativ elyapplyB
+iaccording toAlgorithm 1
+inFig.3(b)untileither propertyi),iii),oriv)canbeapplied. Reachabilit yofX
+maybeconrmed ifeither theinitial conguration isencoun tered (propertyi)or
+thebackwardsiteration reachesastage withallinitial congurations foriincluded
+(propertyiii).Dually ,reachabilit yofXcanberejected ifnoinitial conguration
+forstateihasbeenencoun tered (propertyiv).Ifsome butnotalloftheinitial
+congurations forstateihavebeenencoun tered, theanalysis doesnotallowusto
+conclude onthereachabilit yofXbased onreachabilit yofstatei.Instead, the
+backwardsiteration iscontinuedwithstateisubstituted withitsdirectly enclosing,
+serial superstate. According topropertyii)thepreviously obtained xedpointcan
+bereused asthestarting pointofthenewiteration.
+Ascanbeseenfromtherecursiv ecallinthealgorithm, reachabilit yofXdepends
+onaprevious reachabilit ycheckoftheloweststatestrictly containingX.Since this
+isitselfareachabilit ychecktheaboveapproac hcanbeapplied without therecursiv e
+
+--- Page 14 ---
+76 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+callifweperform apreorder traversalofthestatetreedetermining reachabilit yof
+eachstateasweencoun terthem, reusing theprevious checks.Ifastateturns out
+tobeunreac hable wecanimmediately conclude thatallsubstates areunreac hable.
+Thefollowinglemmas willbeuseful intheproofofiii)andiv)ofLemma 1.
+Lemma 2.Let0betheinitial congur ation. Foranysuperstates:
+02B(s),02B(Init(s))
+Proof:(followsfrommonotonicit yofB.For)assume02B(s).Observ e
+thatthere mustbeapath0;;n,suchthatn2sandeithern=0or
+n162s.Ineither casen2Init(s)and02B(fng).Now)followsfrom
+monotonicit yofB. 
+Lemma 3.Foranytwosuperstatesiandjs.t.j&iandforanysetofcongu-
+rationsXithefollowing holds.
+B
+i(X)\Init(i)=;)B
+i(X)=B
+j(X)
+Proof:Theproofisbycontradiction. AssumeB
+i(X)\Init(i)=;holds, but
+B
+j(X)6=B
+i(X).FromLemma 1weknowthatB
+i(X)B
+j(X),hence there isa
+2B
+j(X)suchthat62B
+i(X).There mustbeapath=n;m;
+02X,wherek2Bk
+j(X)(thekthiteration ofBj),suchthatforallkmwe
+havek2iandm+162i.Obviouslym2Bm
+i(X)B
+i(X)andm2Init(i),
+butthiscontradictsB
+i(X)\Init(i)=;. 
+Lemma 1(continued)
+Proof:Werstobserv efromthedenition thatBi(X)ismonotonic inbothi(w.r.t.
+&)andX(w.r.t.).Propertyi)ofthelemma isadirect consequence.
+Forii),observ eXB
+i(X).Itfollowsthat
+B
+j(X)B
+j(B
+i(X))B
+j(B
+j(X))=B
+j(X):
+Wehaveprovenii)ofthelemma.
+Toproveiii),assume02B(i)^Init(i)B
+i(X)holds. SinceBismono-
+tonic, itfollowsthatB(Init(i))B(B
+i(X))=B(X)(theequalit yfollowsfrom
+ii)ofthelemma). Using Lemma 2weconclude02B(X).
+Finally ,foriv)assume thelefthandsideoftheimplication holds. Observ ethat
+02B
+i(X)implies02Init(i),butsince weassume theintersection isempty
+weconclude062B
+i(X).ItfollowsfromLemma 3thatB
+i(X)=B(X),hence
+062B(X). 
+
+--- Page 15 ---
+Comp ositional Reachabilit yChecking 77
+6Comp ositional Reachabilit yChecking
+Thereusable reachabilit yanalysis oered bythealgorithm ofFig.3(b)isbased on
+thebackwardstepfunctionBi.Anobvious drawbackisthatcomputation ofBi
+requires access totheglobal transition relation!.Inthissection weshowhowto
+incorp orate thecompositional technique of[LNAB+98]byreplacing theuseofBi
+withabackwardsstepfunction,CBI,whichonlyrequires partial knowledge about
+thetransition relation corresp onding toaselected andminimal setofsuperstates.
+Theselection isdetermined byasortIidentifying thesetofsuperstates curren tly
+considered. Initially ,thesortIonlyincludes superstates directly relevantforthe
+reachabilit yquestion. Later, alsosuperstates onwhichtheinitial sortbehaviourally
+dependswillbeincluded.
+Anonempt ysubsetIofRdenes asortifitisconvexinthesense thatu2I
+whenev erlca(I)&u&yforsomey2I.6Foranynonempt ysetARtheset
+Convex(A)denotes theminimal convexsupersetofA.Fornotational convenience
+wewrite I=lca(I)andInit(I)=Init(lca(I)).
+Twocongurations and0aresaidtobeI-equiv alent,written=I0,when-
+evertheyagree onallstates inI.More formally
+=I0()8s2I:s()=s(0):
+Asetofcongurations PIisI-sortedincase
+8;02I:=I0)
+2P,02P
+:
+Notice thatwerequirePIforPtobeI-sorted. Thisfollowstheideathat
+thereusable reachabilit ycheckrestricts theanalysis toI.Hence, inthefollowing
+theleastcommon ancestor ofIwillplaytheroleofstateiusedinthereusable
+reachabilit yalgorithm. PbeingI-sorted intuitivelymeans thatitonlydependson
+states withinI.Using ROBDDs allowsforverycompact represen tations ofI-sorted
+setsastheparts oftheconguration setoutside thesortwillbeignored.
+GivenasortI,wedene thebehaviour ofIinterms ofatransition relation
+;I;.Intuitively,;I0ifthetransition doesnotdependonsuperstates not
+inI.Thisisthecaseexactly when allcongurations I-equiv alenttocanperform
+asimilar transition toaconguration I-equiv alentto0.Formally ,;III
+suchthat
+;I0()800=I:9000=I0:00;000
+Itisnoweasytodene acompositional backwardsstepfunction similar to(2)
+based on;I:
+CBI(X)=fj902X:;I0g:
+LetCB
+I(X)betheminim umxed-p ointdened byY:X[CBI(Y).Observ ethat
+CBIismonotonic inbothXandI.InanROBDD based implemen tation, theglobal
+transition relation maybepartitioned intoconjunctiv epartswithcontributions from
+6Onlyiflca(I)isaserial statedoesthisimply thatlca(I)2I.
+
+--- Page 16 ---
+78 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+eachsuperstate. Crucial forourapproac histhefactthatCBImaybecomputed
+without involving theglobal transition relation directly ,butonlytheparts ofthe
+partitioning relevantfortheconsidered sortI.Wereferto[LNAB+98]forasimilar
+observ ation foratSEMs.
+Ifcomputing CB
+I(X)doesnotresolv ethereachabilit yquestion, weextend the
+sortIwithstates thebehaviour ofthesortIlogically dependson.IfIonlydepends
+onstates inI,wesayIisdependency closed.Formally ,Iisdependency closed if
+8;02I;I0I:;I0,;I00:
+ForARletDep(A)Rbethesmallest dependency closed supersetofAsatis-
+fyingtheproperties ofasort.
+Thefollowinglemma issimilar toLemma 1.
+Lemma 4.LetXbeanI-sortedsubset of.ForallsortsI;JwithIJthe
+following holds:
+i)CB
+I(X)CB
+J(X),
+ii)CB
+J(X)=CB
+J(CB
+I(X)),
+iii)02CB(i)^Init(I)CB
+I(X))02CB(X),
+iv)I=Dep(I)^Init(I)\CB
+I(X)=;)062B(X).
+Proof:Theproofsofi),ii),andiii)areidenticaltotheproofsofLemma 1(sub-
+stituteCB,I,andJforB,i,andj).Foriv)theproofisbycontradiction. Assume
+thelefthand sideoftheimplication holds, but02B(X).There mustbeapath
+from0=n;m;02X,wherek2Bk(X),m+162Iorm=n,
+andforallkm:k2I.Thenm2Init(I).SinceIisdependency closed we
+havethatk2CBk
+I(X)forkmwhichcontradictsInit(I)\CB
+I(X)=;.
+Asbefore, anyoverapproximation ofInitandDepwillsuce forthelemma to
+hold. Wewillreturn tothismatter inSection 7.Lemma 4isageneralisation ofthe
+Comp ositional Reachabilit yLemma in[LNAB+98]tothehierarc hicalcase.
+Algorithm 2inFig.4istheresult ofusing thecompositional backwardstepCBI
+instead ofBi,withMinsort(X)oering aminimal sortforthesetofcongurations
+X.When thealgorithm returns false,noneofthecongurations inXarereachable.
+Iftrueisreturned, itmeans thatatleastonegoalconguration isreachable under
+theassumption thatlca(I)isknowntobereachable. Thesame optimisation asin
+Section 5using apreorder traversalofthestatetreecanbeapplied.
+7Appro ximation bySyntactic Analysis
+Theprevious sections usedthetwofunctionsInitandDep.Both aredened in
+terms oftheglobal transition relation, andhence tooexpensivetocompute directly .
+Asstated, anyoverapproximation ofthefunctions willsuce. Fortunately ,itis
+
+--- Page 17 ---
+Appro ximation bySyntactic Analysis 79
+Reachable (X)=
+Y:=X
+I:=Minsort(X)
+repeat
+Y0=CB
+I(Y)
+//Prop.iandiii
+if02Y0orInit(I)Y0thenreturn true
+ifDep(I)6=Ithen
+I:=Convex(I[J),whereJDep(I)
+elseifInit(I)\Y06=;then
+I:=I[flsa(lca(I))g
+//Prop.iv
+elsereturn false
+//Prop.ii
+Y:=Y0
+forever
+Fig.4:Algorithm 2,reusable andcompositional reachabilit y.
+possible toapproximate thefunctions using ananalysis ofthesyntactic transitions
+ofthesystem inquestion.
+ForInit(s),wecalculate thesetofcongurations where eithersisrecursiv elyin
+itsdefault stateorthatcanbereachedbyanactivating syntactic transition.
+Denition 4.Letsbeasuperstate. ThesetInit0(s)isthesmallestset,suchthat
+2Init0(s)wheneversinandeither
+i)8s0:type(s0)=se^s0in^s&s0)s0()=def(s0),or
+ii)9t2T:(t)&+s&+s0
+t^s0
+tin^8s0:type(s0)=se^s0in^s&s06&+
+s0
+t)s0()=def(s0).
+Forhistory states anysubstate canpotentially beactivatedbyatransition tothe
+edgeofthehistory state, andthushistory states arenotrestricted bythedenition
+ofInit0.Ahistory states reduces thechance oftermination using propertyiii)and
+iv)ofLemma 4,butifusedmoderately ,history states donotdramatically increase
+thesizeofthesetofinitial congurations. Wenowhavethefollowinglemma.
+Lemma 5.ForallsuperstatesswehaveInit(s)Init0(s).
+Proof:Let2Init(s).Weprovethat2Init0(s).If=0,thensin0,and
+duetoi),02Init0(s).Ifontheother hand6=0,thenthere isanactivating
+transition0;suchthat062s,hence there mustexistamaximal, enabled,
+andcompatible setoftransitions suchthattheconditions ofDef.3aresatised.
+Since theconditions ofwhen when2Init0(s)onlyrestrict se-typestates, allwe
+needtoproofisthattheconditions ofDef.3imply thattheserial states haveavalue
+satisfying theconditions ofDef.4.Fromcondition 6)andcompatibilit yofwecan
+
+--- Page 18 ---
+80 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+conclude thatthere mustexistexactly onetransition withscopeaboves.Callthis
+transitiont.Wenowhavetwocases: Ifthetarget oftisbelows,thencondition
+3)and4)imply ii).Ifthetarget isnotbelows,swillbeimplicitly activatedby
+condition 4)and5)implying thati)holds. 
+Fordependency analysis weneedtolookattransitions withscopeinorabove
+I.Allother transitions willbydenition ofscopenotinuence thebehaviour of
+I.Fortransitions withscopeinI,werequire thattheparentofthesource andall
+parentstostates intheguard areinIforItobedependency closed. Fortransitions
+withscopeaboveIwebasically require thesame, butonlyifIcanpotentially be
+activebothbefore(dened bythepre-states) andafter(dened bythepost-states)
+thetransition isexecuted.
+Denition 5.Letstates :G!Rbeafunction fromguardstostates denedby
+states (tt)=;
+states (s)=flsa(s)g
+states (g1^g2)=states (g1)[states (g2)
+states (:g)=states (g)
+Denition 6.Letpre:T!givethepre-congurations ofatransitiontdened
+by
+pre(t)=fjj=gt^j=stg:
+Denition 7.Letpost:T!givethepost-congurations ofatransitiontdened
+by
+post(t)=fjs0
+t2g:
+Lemma 6.AsortIisdependency closedifforallt2Twehave
+i)(t)2I)lsa(st)2I^states (gt)I,and
+ii)(t)&+lca(I)^pre(t)\I6=;\post(t)^I6=;)lsa(st)2I^states (gt)I:
+Figure 5showsanexample ofextracting dependencies fromsyntactic transitions.
+8Experimen talResults
+Toevaluate ourapproac h,theruntimeandmemory usage ofanexperimen talimple-
+mentation using ourmetho discompared toanimplemen tation foratsystems. We
+willrefertotherstasthehierarchicalcheckerandthesecond astheatchecker.
+Both checkersutilise thecompositional backwardsanalysis anduseROBDDs to
+represen tsetsofstates andtransition relations, butonlythehierarc hicalchecker
+usesthereusable reachabilit ycheck.Only dead codedetection fortransitions is
+performed, i.e.,whether thesystem foreachtransition isunable toreachacong-
+uration suchthatthetransition isenabled. Thehierarc hicalcheckeradditionally
+
+--- Page 19 ---
+Experimen talResults 81
+v yb
+e d [y][v]x u
+ca
+Fig.5:State cdependsonu,duetothetransition frometouandsinceuisthe
+parentofvuponwhichthetransition isguarded. Likewise doesthetransition from
+etobcreate dependencies fromstatea(thescopeofthetransition) tostatec(the
+parentofthesource) andx(theparentofthestate uponwhichthetransition is
+guarded).
+checkswhether non-primitiv estates arereachable sincethisisnecessary inorder to
+apply thereusable reachabilit ycheck.
+Thetwoimplemen tations where rstcompared onanumberofatindustrial
+SEMsystems ranging from4to1421parallel componentsusedin[LNAB+98](HiFi
+andvideo controlsoftware,andtwotrainsimulators toname afew). Without going
+intodetails, adding thereusable reachabilit ycheckdidnotdegrade performance.
+Thelackofadequate examples hasforced ustodevelopametho dtogenerate
+scalable hierarc hicalsystems. Thebasicstructure ofthegenerated systems isthecell
+structure seeninFigure 6.Acellisaparallel statewithanumberofserial substates,
+eachcontaining anumberofeither primitiv estates orcells. Thesize(p;q)ofacell
+isdetermined bythenumberofserial statespcontained intheparallel state and
+thenumberofstatesqwithin eachserial state. Forinstance, thecellinFigure 6has
+size(3,4).Byvarying thecellsizeandthemaxim umnesting depth, systems ofany
+sizecanbegenerated. Notice, thatthecellsdonotgenerate acomplete tree,i.e.,
+dieren tbrancheswillnotnecessarily havethesamelength. Forinstance, asystem
+withnesting depth 12doeshavesomebranchesoflength 12,butmostbranchesare
+shorter. Ifthegenerated system isnotdeepenough toaccommo datethenumberof
+wantedstates, thewidth oftherootcellisexpanded. E.g.,asystem with100serial
+states andnesting depth 1willhaveaparallel rootwith100substates.
+Asstated intheintroduction, webelievethatingooddesigns, dependencies are
+morelikelytobelocal.Thegenerated testcasesreect thisbyonlyincluding transi-
+tionsbetweennearbystates. Theguards arecreated atrandom, buttheprobabilit y
+thataguard synchronises withagivenstateisinverseexponentialtothedistance
+betweenthescopeofthetransition andthestate. Thenumberoftransitions ispro-
+portional tothenumberofserial states. Transitions arearranged sothatanystate
+ispotentially reachable, i.e.,ifthetransitions wereunguarded allstates (butnot
+necessarily allcogurations) wouldbereachable. Eventsaredistributed suchthat
+givenasequence ofeventsthesystem isguaran teedtobedeterministic (HSEMs do
+allownon-determinism, buttheattening algorithm generates quitecomplex guards
+thatcannot behandled bytheSEMmodelcheckerof[LNAB+98]{inother words,
+thisisarestriction oftheimplemen tation, notofourapproac h).
+
+--- Page 20 ---
+82 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+Fig.6:Acellofsize(p;q)isaparallel statewithpserial substates, eachcontaining
+qprimitiv estates orcells. Cellsarethebasicbuilding blocksusedinthegenerated
+hierarc hicalsystems.
+Seconds
+Automata
+DepthFlat
+12345650100150200250300350400
+0100200300400500600700800900Hierarchical
+050100150200250300350400450
+1 2 3 4 5 6Seconds
+DepthFlat
+Hierarchical
+Fig.7:Comparison oftheruntimeoftheatandhierarc hicalchecker.Left: The
+runtimeofbothcheckersisplotted asafunction ofthenesting depth ofthesystem
+andnumberofautomata/serial states. Right:Asliceofthemesh where thenumber
+ofautomata is300.Ascanbeseen,theruntimeoftheatcheckerexplodesasthe
+depth increases, whereas theruntimeofthehierarc hicalcheckerdecreases slightly.
+Figure 7showstheruntimeofboththehierarc hical andtheatcheckerfor
+acellsizeof(4;3),butwithvarying nesting depth andnumberofserial states
+(whichcorresp ondstothenumberofautomata intheequivalentatsystem). It
+isinteresting tonotice thattheruntimeofthehierarc hicalcheckerismuchmore
+consisten tthanthatoftheatchecker,i.e.,theruntimeoftheatcheckerdoes
+varygreatly fordieren tsystems generated withthesameparameters, asthedepth
+isincreased. Although eachgridpointofthegures showsthemean timeof20
+measuremen ts,7itisstillhardtoachieveasmoothmesh fortheatchecker.
+While theatcheckersuers under theintroduction ofahierarc hy,thehierarc hi-
+calcheckeractually benets fromit.Howcanitbethattheaddition ofahierarc hy
+decreases theruntimeofthehierarc hicalchecker?Asstated earlier, webelievethat
+7Ittookabouttwodaystorunthe1920casesproviding thebasisofthe96depicted gridpoints.
+Thetestwasperformed onaSunUltraSparc 2withtwo300MHzprocessors and1GBofRAM
+(although theenforced limitof106nodesassured amaximal memory consumption below20MB).
+
+--- Page 21 ---
+Experimen talResults 83
+Tab.1:Distribution ofreachabilit yquestions. Thevertical axisshowstheinitial
+distance betweentherootandthesubsystem analysed, andthehorizon talaxisshows
+thenaldistance. Fromthediagonal itcanbeseenthatmostquestions areanswered
+without including additional states towardtheroot.
+Final distance
+1 2 3 4 5 6 7 8 910 11 12 SumInitial distance1114 114
+2 30 65 95
+3 20 5 83 108
+4 25 5 10 70 110
+5 12 0 2 859 81
+6 0 0 6 810 77 101
+7 0 0 6 712 16 70 111
+8 8 0 0 7 1 112 66 95
+9 0 0 0 0 0 11 10 3 89 113
+10 0 0 0 10 0 1 5 7 575 103
+11 0 0 0 0 0 0 2 1 8 9 91 111
+12 0 0 0 6 0 0 0 2 2 9 14 90 123
+Sum 209 75 107 116 82 106 99 79 104 93 105 90 1265
+agoodhierarc hicaldesign ismodular initsnature. Ifaparticular system cannot be
+easily describ edusing ahierarc hy,thisisprobably duetotoomanyinterdep enden-
+ciesinthesystem. Ourtestcasesincorp orate thisidea:Inasystem withdepth one,
+thedistance betweenanytwostates intwodieren tsuperstates willbeconstan t.
+Hence theprobabilit ywithwhichaguard refers toastateinanother superstate is
+constan t,i.e.,itislikelythatmanysuperstates dependoneachother.
+Itisworthnoticing, thatourmetho dallowsustodropreachabilit yquestions
+whichresult inanunreac hable initial lcastate(inthiscasetheanswerwillbeno).
+Thenumberofquestions dropp edbecause ofthisisproportional tothenumber
+ofunreac hable states inthetestcase. Thisnumbervaries, butismostofthetime
+below5-10% ofthetotalnumberofcheckedstates (primitiv estates arenotchecked),
+although 50%unreac hable states havebeenobserv ed.Testing whether thenon-
+primitiv estates arereachable isveryfastcompared tothetimeittakestocheck
+thetransitions. Itisnotew orthythatsometestcases, evenwithout anyunreac hable
+states, showedadierence inruntimewithafactor ofover180infavorofthe
+hierarc hicalcheckercompared totheatone.
+Table1provides further information ontheperformance ofthehierarc hical
+checkeronasingle casewithdepth 12,399serial states andacellsizeof(3;4).8This
+results inatotalof1596transitions, although optimisations didallowthechecker
+toverify331transitions without performing areachabilit yanalysis, leaving1265
+checks(notcountingreachabilit ycheckingofnon-primitiv estates). Thetableshows
+8Thiscorresp ondstoastatespace of10240congurations
+
+--- Page 22 ---
+84 PaperB:Verication ofHierarc hicalState/Ev entSystems using:::
+thenumberofquestions distributed overtheinitial andnaldepth ofthelcastate
+ofthequestions. Forinstance wecanseethat59ofthequestions starting atdepth 5
+areveried without including additional states towardtheroot,butthat2questions
+needed toexpand thesortsuchthatthenalanswerwasfound atdepth 3.Itis
+apparen tthatalargenumberofquestions isveried interms ofasmall subsystem.
+Thisillustrates whyourmetho ddoesscaleaswellasitdoes.Thisparticular system
+isveried within 26seconds using thehierarc hicalchecker,whereas theatchecker
+uses497seconds.
+9Conclusion
+Inthispaperwehavepresen tedaverication technique forhierarc hicalsystems. The
+technique combinesanewideaofreusabilit yofreachabilit ycheckswithapreviously
+demonstrated successful compositional verication technique. Theexperimen talre-
+sultsareencouraging: incontrasttoastraigh tforwardattening approac hthenew
+technique provesnotonlyinsensitiv etothehierarc hicaldepth, butevenleads to
+impro vedperformance asthedepth increases (givenaxednumberofserial states).
+Atopic forfurther researc hishowtoextend thetechniques tomodel-checkingof
+moregeneral temporalproperties andhowtocombineitwithutilisation ofmultiple
+instan tiations ofabstract superstates.
