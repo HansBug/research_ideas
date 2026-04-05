@@ -191,7 +191,7 @@ or considered for execution in each cycle. In summary, there is no support for t
 4
 
 --- Page 5 ---
-while 
+while
 true
 registerRead
        exec
@@ -474,7 +474,7 @@ outputs.
 --- Page 12 ---
 SKIP Terminating process
 STOP Deadlock process
-a !P Preﬁxed operator: initially o ers to engage in the event a, and then behaves as a process P
+a!P Preﬁxed operator: initially o ers to engage in the event a, and then behaves as a process P
 gNP Guarded process: behaves as Pif the predicate gis true. Otherwise, it behaves like STOP
 ifgthen PelseQ Conditional: behaves like PorQdepending on whether gis true or false
 P@Q External choice of PorQmade by the environment
@@ -517,10 +517,10 @@ recursive call. EntryMoving is below; it engages in the event moveCall:lv:0, whi
 12
 
 --- Page 13 ---
-move(lv,0) in the entry action of the state Moving . In sequence (preﬁxing operator  !),EntryMoving engages in the
+move(lv,0) in the entry action of the state Moving . In sequence (preﬁxing operator !),EntryMoving engages in the
 moveRet event that marks the return of that operation, and then behaves like the process wait(1).
-EntryMoving =moveCall:lv:0 !moveRet !wait(1)
-wait(n)=ifn==0then SKIP elsetock !wait(n 1)
+EntryMoving =moveCall:lv:0!moveRet!wait(1)
+wait(n)=ifn==0then SKIP elsetock!wait(n1)
 We observe that the states of a machine that controls a robot are not visible in its behaviour. What is visible is
 the robot’s interactions with the environment via its sensors and actuators, represented by variables, operations, and
 events in RoboChart, and by register reads and writes in RoboSim. This means that the structure of states and
@@ -533,11 +533,11 @@ passage of ntime units, and after that terminates: SKIP . So, wait(1) correspond
 RoboChart. In FDR, support for the use of tock-CSP includes an in-built deﬁnition for this process.
 The process Obstacle deﬁned below allows time to pass until an event obstacle occurs, when it then terminates.
 So, the events obstacle andtock are oered in an external choice ( @).
-Obstacle =obstacle !SKIP@tock !Obstacle
-In FDR, with the support provided to use tock-CSP, it is possible to deﬁne Obstacle just as obstacle !SKIP , with
+Obstacle =obstacle!SKIP@tock!Obstacle
+In FDR, with the support provided to use tock-CSP, it is possible to deﬁne Obstacle just as obstacle!SKIP , with
 the possibility of the passage of time marked by occurrences of the event tock left implicit.
 Finally, the process EntryTurning models the entry action of Turning .
-EntryTurning =moveCall:0:av !moveRet !SKIP
+EntryTurning =moveCall:0:av!moveRet!SKIP
 Additional operators and examples of CSP processes are presented as needed.
 An extra operator of CSP that is implemented in its model checker FDR and that we use both in the semantics of
 RoboSim and in our veriﬁcation technique is prioritise . The general form of this operator is prioritise (P;R), where R
@@ -647,11 +647,11 @@ controllers (or machines) that deal with those values using a di erent channel 
 general, registerRead andregisterReadC have di erent types, with registerRead accepting readings from any of the
 sensors of the module, and registerReadC accepting the readings of interest to a particular controller.
 In our simple example, with a single controller with a single input, SimCFootBot TakeInputsComp is very simple.
-SimCFootBot TakeInputsComp =registerRead ?in !registerReadC :in !SKIP
+SimCFootBot TakeInputsComp =registerRead ?in!registerReadC :in!SKIP
 ProvideOutputsComp processes take the outputs from the controllers (or machines) and write to the actuator registers.
 For our example, with a single output, we have the following. In the case of registerWriteC events, we do not have to
 identify a controller, since a registerWriteC gives rise to a single registerWrite event.
-SimCFootBot ProvideOutputsComp =registerWriteC ?out !registerWrite :out !SKIP
+SimCFootBot ProvideOutputsComp =registerWriteC ?out!registerWrite :out!SKIP
 In general, for multiple inputs, TakeInputsComp reads and produces them in interleaving. For multiple outputs, their
 order is deﬁned by the machine that produces them, and is potentially relevant because there can be data dependency
 between outputs. This is particularly critical when they are calls to operations that access and modify required (and so,
@@ -702,9 +702,9 @@ Cycle (p) diers in that it records the sensor readings in the memory, and recei
 from the Buerto be written to the actuators. Moreover, after TakeInputs ,Cycle (p) signals to Behaviours that it can
 start the execution phase of the cycle using an event startexec . For our example, we have the following deﬁnition.
 SimSMovement Cycle (p)=SimSMovement TakeInputs ;
-startexec !endexec ?tid !
+startexec!endexec ?tid!
 SimSMovement ProvideOutputs ;
-(wait(p)@end !SKIP );
+(wait(p)@end!SKIP );
 SimSMovement Cycle (p)
 The RoboSim event exec is realised in the semantics using events startexec andendexec . The event startexec signals
 16
@@ -734,7 +734,7 @@ the memory process, which uses the registerRead channel to update the values of 
 When the inputs communicate no values, like the event obstacle in our example, for instance, the deﬁnition of the
 TakeInputs process is as sketched below. Here, we consider that the inputs are identiﬁed in a set Inputs . They are read
 in interleaving ( 9); for each input, a boolean bindicates whether the event has occurred or not.
-TakeInputs =9in:InputsregisterRead :in?b !SKIP
+TakeInputs =9in:InputsregisterRead :in?b!SKIP
 Because the inputs are stored directly in the memory, there is no need to relay them. On the other hand, Cycle (p)
 needs to know when all inputs have been read, so that it can determine when execution of the machine can start. For
 this reason, TakeInputs still needs to be involved in the registerRead events.
@@ -746,10 +746,10 @@ below. When the output has occurred, it communicates true viaregisterWrite ; oth
 --- Page 18 ---
 that output. For every output out,ProvideOutputs uses registerWrite :out:bto communicate the boolean bforout.
 ProvideOutputs =CollectOutputs (Outputs )
-CollectOutputs (sout)=cyclein ?out ! if(out==noOut )
+CollectOutputs (sout)=cyclein ?out! if(out==noOut )
 then NoOther (sout)
-else(registerWrite :out:true !CollectOutputs (soutnfoutg))
-NoOther (sout)=9out:soutregisterWrite :out:false !SKIP
+else(registerWrite :out:true!CollectOutputs (soutnfoutg))
+NoOther (sout)=9out:soutregisterWrite :out:false!SKIP
 InProvideOutputs , the CollectOutputs process is instantiated with the set of all Outputs . When CollectOutputs re-
 ceives from the bu er the indication of an output ( cyclein ?out), it checks whether it is a real output, that is, whether it
 is dierent from noOut , communicates registerWrite :out:true, and recurses, removing outfrom its argument sout. So,
@@ -773,12 +773,12 @@ The process for our example is as follows. SimSMovement Buerrepresents an empty
 process BuerF(sout) represents a bu er holding outputs in the sequence sout.
 SimSMovement Buer=let
 BuerF(sout)=
-length (sout)<numOutputs CFootBot Nstmout ?out !BuerF(soutahouti)
+length (sout)<numOutputs CFootBot Nstmout ?out!BuerF(soutahouti)
 @
 Flush (sout)
 Flush (hi)=SimSMovement Buer
-Flush (houtiasout)=cyclein !out !Flush (sout)
-within stmout ?out !BuerF(houti)@cyclein !noOut !SimSMovement Buer
+Flush (houtiasout)=cyclein !out!Flush (sout)
+within stmout ?out!BuerF(houti)@cyclein !noOut!SimSMovement Buer
 We use soutahoutito describe the concatenation (a) ofsout with the singleton sequence houti. If the bu er has
 at least one element, when there is a request via cyclein to output, all outputs in the bu er are ﬂushed by the Flush
 process, until the bu er is again empty (that is, holds the empty sequence hi), and we have a recursion.
@@ -794,11 +794,11 @@ fore, convenient for guards to be evaluated by the memory process; the result of
 the transitions can be enabled, pending only on the trigger, if any. We sketch the deﬁnition of SMovement Memory in
 our example below. It is deﬁned in terms of a local parametrised process called Memory .
 SMovement Memory =let
-Memory (obstacle;:::)=getobstacle !obstacle !Memory SMovement (obstacle;:::)
+Memory (obstacle;:::)=getobstacle !obstacle!Memory SMovement (obstacle;:::)
 @
-registerRead :obstacleU ?x !Memory SMovement (x;:::)
+registerRead :obstacleU ?x!Memory SMovement (x;:::)
 @
-endexec:tid2 !Memory SMovement (obstacle;:::)
+endexec:tid2!Memory SMovement (obstacle;:::)
 @
 :::
 within Memory (false;:::)
@@ -811,10 +811,10 @@ by the memory and clock processes. In our example, tid2 is the identiﬁer of th
 with trigger exec . Since that transition has no guards, the memory allows the occurrence of that event at any point.
 Behaviours. The deﬁnition of the Behaviours process is similar to that for a state machine in RoboChart that has a
 single event exec . We sketch it below for our example, and focus on what is di erent from the RoboChart semantics.
-SMovement Behaviours =startexec !0BBBBBBBB@Init
+SMovement Behaviours =startexec!0BBBBBBBB@Init
 Jfjenter:STM:SM;entered:STM:SM;:::jgK
 (SMoving RJ:::K(DMoving RJ:::K(STurning RJ:::KDTurning R)))1CCCCCCCCA
-Init=enter:STM:SM !entered:STM:SM !SKIP
+Init=enter:STM:SM!entered:STM:SM!SKIP
 Just like in the RoboChart semantics, we use special ﬂow events enter ,entered ,exit, and exited to allow a machine
 or state to request that a state is entered or exited. These events take two parameters: the identiﬁer of the component
 that made the request and that of the component to which the request is being made. In the example above, we use
@@ -826,22 +826,22 @@ machine for, in our example, the state SMoving to be entered, and then waits for
 actions and the initialisation of any substate is completed. In our example, there are none.
 The state processes are like those of RoboChart; they establish a control ﬂow using the ﬂow events. There are,
 however, some key di erences. The semantics of actions changes for the case of an operation call. For example,
-the semantics of $move(lv,0) in the entry action of SMoving is the process stmout:moveU:lv:0 !SKIP , which
+the semantics of $move(lv,0) in the entry action of SMoving is the process stmout:moveU:lv:0!SKIP , which
 communicates to the bu er the fact that the operation move has been called, and gives its parameters.
 The semantics of a trigger also changes in RoboSim. As expected, in the RoboChart semantics a trigger gives
 rise to a process that waits for the occurrence of the event. In RoboSim, the only trigger is exec , and it gives rise
 to a process that raises the semantic events endexec andstartexec . For instance, for the transition in Figure 3 from
 DMoving with trigger exec , if its identiﬁer is tid2, the trigger is captured by the following process.
-endexec:tid2 !startexec !SKIP
+endexec:tid2!startexec!SKIP
 Theendexec event takes the transition identiﬁer as a parameter, because its occurrence in di erent transitions may be
 19
 
 --- Page 20 ---
-CycleComp  
-ControllersPlatform  
-MemoryregisterW rite 
+CycleComp
+ControllersPlatform
+MemoryregisterW rite
 registerReadC registerReadC
-registerW riteC  registerW riteC  registerRead  
+registerW riteC  registerW riteC  registerRead
 registerW riteC.vars
 set_Figure 8: Semantics of a RoboSim module
 Rule 1. Semantics of modules [ [m:Module ] ]M:CSPProcess =
@@ -884,8 +884,8 @@ The inputs are the events associated with the connections from the robotic platf
 Rule 2. Cycle for modules and controllers
 cycleComp (p:Period;inputs :Set(InputsType );outputs :Set(OutputsType )) :CSPProcess =
 letCycleComp (period )=
-(9in:inputsregisterRead :take(in) !registerReadC :give(in) !SKIP );
-((9out:outputsregisterWriteC :take(out) !registerWrite :give(out) !SKIP )
+(9in:inputsregisterRead :take(in)!registerReadC :give(in)!SKIP );
+((9out:outputsregisterWriteC :take(out)!registerWrite :give(out)!SKIP )
 wait(period );
 CycleComp (period )
 within CycleComp (p)
@@ -985,15 +985,15 @@ as formalised below. The outputs are stored in the bu er for later use by the c
 --- Page 23 ---
 Rule 4. Cycle for machines
 cycle (p:Period;inputs :Set(InputsType );outputs :Set(OutputsType )) :CSPProcess =
-letCycle (period )=(9in:inputsregisterRead :take(in) !SKIP );
-startexec !endexec ?tid !SKIP ;
+letCycle (period )=(9in:inputsregisterRead :take(in)!SKIP );
+startexec!endexec ?tid!SKIP ;
 CollectOutputs (outputs );
-(wait(period )@end !SKIP );
+(wait(period )@end!SKIP );
 Cycle (period )
-CollectOutputs (sout)=cyclein ?out ! if(out==noOut )
+CollectOutputs (sout)=cyclein ?out! if(out==noOut )
 then NoOther (sout)
-else(registerWrite :giveT (out) !CollectOutputs (soutnfoutg))
-NoOther (sout)=9out:soutregisterWrite :giveF (out) !SKIP
+else(registerWrite :giveT (out)!CollectOutputs (soutnfoutg))
+NoOther (sout)=9out:soutregisterWrite :giveF (out)!SKIP
 within Cycle (p)
 Rule 4 deﬁnes the cycle process for a machine. Its interest on the input registers is just in establishing when all
 inputs have been read, so that it can signal via startexec the start of the execution of a cycle. The writes to the registers
@@ -1034,17 +1034,17 @@ In the next section, we explain how we use the semantics of RoboSim to verify co
 --- Page 24 ---
 Rule 5. State-machine memory stmMemory (stm:StateMachineDef ;wcs :Transition7!(Expression ;WC)) :CSPProcess =
 letMemory (nvars )=
-(@v:ivarsgetvid(v)!name (v) !Memory (nvars )@registerRead ?x !Memory (nvars [name (v) :=x]))
+(@v:ivarsgetvid(v)!name (v)!Memory (nvars )@registerRead ?x!Memory (nvars [name (v) :=x]))
 @
-(@v:lvarsgetvid(v)!name (v) !Memory (nvars )@setvid(v)?x !Memory (nvars [name (v) :=x]))
+(@v:lvarsgetvid(v)!name (v)!Memory (nvars )@setvid(v)?x!Memory (nvars [name (v) :=x]))
 @
-(@v:cvarssetWC vid(v)?x !Memory (nvars [name (v) :=x]))
+(@v:cvarssetWC vid(v)?x!Memory (nvars [name (v) :=x]))
 @
-@v:allConstants (stm)getvid(v)!name (v) !Memory (nvars )
+@v:allConstants (stm)getvid(v)!name (v)!Memory (nvars )
 @
 (@t:allTransitions (stm)memoryTransition (t;wcs);Memory (nvars ))
 @
-endexec:terminate !Memory (nvars )
+endexec:terminate!Memory (nvars )
 within Memory (varvalues )
 where
 ivars =inputVariables (stm)
@@ -1055,9 +1055,9 @@ nvars =hv:ivars[lvars[cvarsname (v)iahv:constsname (v)i
 varvalues =hv:ivars[lvars[cvarsinitial (v)iahv:constsname (v)i
 Rule 6. Trigger [ [exec :ExecTrigger ] ]tid
 Trigger:CSPProcess =
-endexec:tid !startexec !SKIP
+endexec:tid!startexec!SKIP
 Rule 7. Operation call [ [op(e)] ]Statement :CSPProcess =
-stmout !opU:true:eval(e) !SKIP
+stmout !opU:true:eval(e)!SKIP
 6. Automated veriﬁcation
 Although a RoboSim model can be developed from scratch, veriﬁcations can be performed if there is a reference
 design model. As previously explained, the comparison between the models is not straightforward for a few reasons.
@@ -1100,18 +1100,18 @@ to a register read for input in. Ifindoes not communicate any values, like obsta
 is input; otherwise, it is a tuple with a boolean and the communicated values x. Ifbis true, the robotic platform has
 raised the (RoboChart) event: it may happen, as modelled by useinv (in), or may be ignored by the software, and so
 does not happen, as captured in the RoboChart design model. If bis false, the event cannot happen.
-A1Event (in)=registerRead :in?b?x !
+A1Event (in)=registerRead :in?b?x!
 ifb
 then (useinv (in);A1Event (in)@A1Event (in))
 elseA1Event (in)
 The process useinv (in) maps an event into a process that raises the event itself (as declared in CSP) and then termi-
 nates. In our example, we relate registerRead :obstacleU:true toobstacle . So, we deﬁne the input event obstacleU
 as a data representation of the RoboChart event obstacle that is communicated in registerRead , and the process
-useinv (obstacleU )=obstacle !SKIP . The assumption captured by A1 not only maps the platform events to register
+useinv (obstacleU )=obstacle!SKIP . The assumption captured by A1 not only maps the platform events to register
 reads, but also ensures that, for each register reading, the input can occur at most once.
 We constrain the semantics of the RoboChart model by composing it in parallel with the assumptions. Therefore,
 a process that models an assumption (like A1) must terminate when the speciﬁcation does. The event endis used to
-interrupt ( )A1 and enforce its termination: TA1=A1(end !SKIP ).
+interrupt ( )A1 and enforce its termination: TA1=A1(end!SKIP ).
 Our second assumption relates the RoboChart and RoboSim outputs, taking into account that the order of the
 outputs to be performed in a cycle may be relevant. In the deﬁnition of the process A2 below, the process Order has
 two arguments: the sequence of outputs that have occurred in the cycle, and the set of those that have not. The initial
@@ -1126,11 +1126,11 @@ from the set outNOcc . This is guarded by a condition that requires the number o
 be smaller than the total number numOuts of such events. Here we take advantage of the assumption that the same
 output cannot occur more than once in a cycle just to ensure that Order is ﬁnite; it is enforced by A3 deﬁned blow.
 Order (outOcc;outNOcc )=
-length (outOcc )<numOuts N(@out:OutputEventsout !Order (outOccahouti;outNOccnfoutg))
+length (outOcc )<numOuts N(@out:OutputEventsout!Order (outOccahouti;outNOccnfoutg))
 @
-outOcc ,hiNregisterWrite :use(head (outOcc )):true !Order (tail(outOcc );outNOcc )
+outOcc ,hiNregisterWrite :use(head (outOcc )):true!Order (tail(outOcc );outNOcc )
 @
-outOcc ==hiN(9out:outNOccregisterWrite :use(out):false !SKIP )
+outOcc ==hiN(9out:outNOccregisterWrite :use(out):false!SKIP )
 Once the cycle ﬁnishes, the outputs are written out via the channel registerWrite . The outputs that have actually
 occurred in the cycle (those in outOcc ) are written in the same order as they are recorded. The remaining ones (those
 inoutNOcc ) have not occurred in the current cycle, and so their absence is communicated as an interleaving, since the
@@ -1147,10 +1147,10 @@ iterations of sensor readings (via the channel registerRead ); performing the co
 cycle; writing to the actuators (via the channel registerWrite ); and then waiting for ptime units (the cycle period).
 Unlike the other two assumptions, termination is handled as part of the assumption speciﬁcation, rather than separately
 using interruption. The reason is that, for this third assumption, termination is allowed only at the end of the cycle.
-The process RUN (X) continuously o ering the events in the set X. Formally, RUN (X)=@x:Xx !RUN (X).
-TA3=(9in:InputsregisterRead :in?b?x !SKIP );
-(RUN (ExternalEvents )(9out:OutputEventsOpregisterWrite :out?b?x !SKIP ));
-(end !SKIP@wait(p);TA3)
+The process RUN (X) continuously o ering the events in the set X. Formally, RUN (X)=@x:Xx!RUN (X).
+TA3=(9in:InputsregisterRead :in?b?x!SKIP );
+(RUN (ExternalEvents )(9out:OutputEventsOpregisterWrite :out?b?x!SKIP ));
+(end!SKIP@wait(p);TA3)
 InTA3, after the registerRead events take place in interleaving for all inputs, the external events are allowed indeﬁ-
 nitely in any order. This proceeds until a registerWrite event takes place. The outputs are allowed also in interleaving.
 When all outputs take place then either the simulation terminates, as signalled by the endevent, or a period of ptime
@@ -1167,13 +1167,13 @@ put and external events of the process [ [ RCM ] ]Mthat deﬁnes the semantics f
 In our example, these sets of events are fobstaclegandfobstacle;moveCall;moveRet;stopCall;stopRetg, respectively.
 The alphabets of each process in the deﬁnition of TA1A2A3 is simply the set of events used by that process.
 TA1A2A3 is composed in parallel with [ [ RCM ] ]Mto deﬁne a speciﬁcation Constrained for a simulation.
-Constrained =([ [RCM ] ]M;end !SKIPJExternalEvents[ftock;endgKTA1A2A3)nfendg
-The sequential composition of [ [ RCM ] ]Mwith the process end !SKIP is a technicality. The purpose of the event
+Constrained =([ [RCM ] ]M;end!SKIPJExternalEvents[ftock;endgKTA1A2A3)nfendg
+The sequential composition of [ [ RCM ] ]Mwith the process end!SKIP is a technicality. The purpose of the event
 26
 
 --- Page 27 ---
 end, as already explained, is to ensure distributed termination. It is used but hidden in [ [ RCM ] ]M; so if [ [ RCM ] ]M
-terminates, the process end !SKIP signals termination to TA1A2A3. The event endis hidden in the outermost
+terminates, the process end!SKIP signals termination to TA1A2A3. The event endis hidden in the outermost
 scope. The parallel processes in Constrained synchronise on their common events: tock,endand the external events.
 Although the purpose of TA3 is to capture the pattern of a simulation cycle, it does not enforce that registerWrite
 events can happen only after all the external events of the current cycle, since RUN (ExternalEvents ) can be interrupted
@@ -1460,13 +1460,13 @@ using FDR is a topic for future work, as is automation of theorem proving via ta
 --- Page 38 ---
 Rule 8. Module or controller memory
 memoryComp (vars :Set(OutputType );evars :Seq(EventTypeEventType );node :ConnectionNode ) :CSPProcess =
-letMemory (nvars )=0BBBBBBBB@@v:vars0BBBBBBBB@registerReadC !name (v) !Memory (nvars )
+letMemory (nvars )=0BBBBBBBB@@v:vars0BBBBBBBB@registerReadC !name (v)!Memory (nvars )
 @
-registerWriteC ?take(v) !Memory (nvars [name (v) :=give(v)])1CCCCCCCCA1CCCCCCCCA
+registerWriteC ?take(v)!Memory (nvars [name (v) :=give(v)])1CCCCCCCCA1CCCCCCCCA
 @
-(@v: ran evarsregisterReadC !name (v) !Memory (nvars ))
+(@v: ran evarsregisterReadC !name (v)!Memory (nvars ))
 @
-(@v: dom evarsregisterWriteC ?take(v) !Memory (nvars [name (evars v ) :=give(v)]))
+(@v: dom evarsregisterWriteC ?take(v)!Memory (nvars [name (evars v ) :=give(v)]))
 within constInit (node );Memory (initial (nvars ))
 where
 nvars =hv:vars[ranevarsname (v)i
@@ -1522,18 +1522,18 @@ Rule 11. Composition of machines composeMachines (machines :Seq(StateMachineDef 
 Jftock;endgKstm: 1::#machinesrenamingMachine ([ [machines (stm)] ]STM )
 Rule 12. Bu er for machines
 buffer (outputs :Set(OutputsType )) :CSPProcess =
-letBuer=stmout ?out !BuerOF (houti)@cyclein !noOut !Buer
-BuerF(sout)=length (sout)<#outputs Nstmout ?out !BuerF(soutahouti)
+letBuer=stmout ?out!BuerOF (houti)@cyclein !noOut!Buer
+BuerF(sout)=length (sout)<#outputs Nstmout ?out!BuerF(soutahouti)
 @
 Flush (sout)
 Flush (hi)=Buer
-Flush (houtiasout)=cyclein !out !Flush (sout)
+Flush (houtiasout)=cyclein !out!Flush (sout)
 within Buer
 Rule 13. Behaviour of state machine behaviours (stm:StateMachineDef ):CSPProcess =
 let
-Ending =endexec:terminate !(startexec !Ending @end !SKIP )
+Ending =endexec:terminate!(startexec!Ending @end!SKIP )
 within
-startexec !
+startexec!
 ((((initialisation (stm)Jﬂowevts KcomposeStates (hs:stm:nodesjs2Statei;stm))nfjenter;exit;exitedjg)fendgSKIP )nfendg);
 Ending
 where

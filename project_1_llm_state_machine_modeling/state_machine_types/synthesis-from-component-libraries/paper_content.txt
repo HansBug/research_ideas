@@ -1,0 +1,742 @@
+--- Page 1 ---
+Synthesis from Component Libraries?
+Yoad Lustig??and Moshe Y . Vardi
+Rice University, Department of Computer Science, Houston, TX 77251-1892, U.S.A.
+Email: fyoad,vardi g@cs.rice.edu,
+URL: http://www.cs.rice.edu/yoad http://www.cs.rice.edu/vardi
+Abstract. Synthesis is the automated construction of a system from its speciﬁ-
+cation. In the classical temporal synthesis algorithms, it is always assumed the
+system is “constructed from scratch” rather than “composed” from reusable com-
+ponents. This, of course, rarely happens in real life. In real life, almost every
+non-trivial commercial system, either in hardware or in software system, relies
+heavily on using libraries of reusable components. Furthermore, other contexts,
+such as web-service orchestration, can be modeled as synthesis of a system from
+a library of components.
+In this work we deﬁne and study the problem of LTL synthesis from libraries
+of reusable components. We deﬁne two notions of composition: data-ﬂow com-
+position, for which we prove the problem is undecidable, and control-ﬂow com-
+position, for which we prove the problem is 2EXPTIME-complete. As a side
+beneﬁt we derive an explicit characterization of the information needed by the
+synthesizer on the underlying components. This characterization can be used as
+a speciﬁcation formalism between component providers and integrators.
+1 Introduction
+The design of almost every non-trivial commercial system, either hardware or software
+system, involves many sub-systems each dealing with different engineering aspects and
+each requiring different expertise. For example, a software application for an email
+client contains sub-systems for managing graphic user interface and sub-systems for
+managing network connections (as well as many other sub-systems). In practice, the
+developer of a commercial product rarely develops all the required sub-systems himself.
+Instead, many sub-systems can be acquired as collections of reusable components that
+can be integrated into the system. We refer to a collection of reusable components as a
+library .1
+?Work supported in part by NSF grants CCR-0124077, CCR-0311326, CCF-0613889, ANI-
+0216467, and CCF-0728882, by BSF grant 9800096, and by gift from Intel.
+??Part of this research was done while this author was at the Hebrew University in Jerusalem.
+1In the software industry, every collection of reusable components is referred to as a “library”. In
+the hardware industry, the term “library” is sometimes reserved for collections of components
+of basic functionality (e.g., logical and-gates with fan-in 4), while reusable components with
+higher functionality (e.g., an ARM CPU) are sometimes referred to by other names (such as IP
+cores). In this paper we refer to any collection of reusable components as a library, regardless
+of the level of functionality.
+
+--- Page 2 ---
+The exact nature of the reusable components in a library may differ. The litera-
+ture suggest many different types of components. For example: IP cores (in hardware),
+function libraries (for procedural programming languages), object libraries (for object
+oriented programming languages), and aspect libraries (for aspect oriented program-
+ming languages). Web-services can also be viewed as reusable components used by an
+orchestrator.
+Synthesis is the automated construction of a system from its speciﬁcation. The ba-
+sic idea is simple and appealing: instead of developing a system and verifying that it
+adheres to its speciﬁcation, we would like to have an automated procedure that, given a
+speciﬁcation, constructs a system that is correct by construction. The ﬁrst formulation
+of synthesis goes back to Church [1]; the modern approach to that problem was initiated
+by Pnueli and Rosner who introduced LTL (linear temporal logic) synthesis [2]. In LTL
+synthesis the speciﬁcation is given in LTL and the system constructed is a ﬁnite-state
+transducer modeling a reactive system.
+In the work of Pnueli and Rosner, and in the many works that followed, it is always
+assumed that the system is “constructed from scratch” rather than “composed” from
+reusable components. This, of course, rarely happens in real life. In real life, almost ev-
+ery non-trivial system is constructed using libraries of reusable components. In fact, in
+many cases the use of reusable components is essential. This is the case when a system
+is granted access to a reusable component, while the component itself is not part of the
+system. For example, a software system can be given access to a hard-disk device driver
+(provided by the operating system), and a web-based system might orchestrate web ser-
+vices to which it has access, but has no control of. Even when it is theoretically possible
+to design a sub-system from scratch, many times it is desirable to use reusable com-
+ponents. The use of reusable components allows to abstract away most of the detailed
+behavior of the sub-system, and write a speciﬁcation that mentions only the aspects of
+the sub-system relevant for the synthesis of the system at large.
+We believe therefore, that one of the prerequisites of wide use of synthesis algo-
+rithms is support of synthesis from libraries. In this work, we deﬁne and study the
+problem of LTL synthesis from libraries of reusable components.
+As a perquisite to the study of synthesis from libraries of reusable components, we
+have to deﬁne suitable models for the notions of reusable components and their com-
+position. Indeed, there is no one correct model encompassing all possible facets of the
+problem. The problem of synthesis from reusable components is a general problem to
+which there are as many facets as there are models for components and types of compo-
+sition. Components can be composed in many ways: synchronously or asynchronously,
+using different types of communications, etc. . As an example for the multitude of
+composition notions see [3], where Sifakis suggests an algebra of various composition
+forms.
+In this work we approach the general problem by choosing two speciﬁc concrete no-
+tions of models and compositions, each corresponding to a natural facet of the problem.
+For components, we abstract away the precise details of the components and model a
+component as a transducer , i.e., a ﬁnite-state machine with outputs. Transducers consti-
+tute a canonical model for a reactive component, abstracting away internal architecture
+and focusing on modeling input/output behavior.
+2
+
+--- Page 3 ---
+As for compositions, we deﬁne two notions of component composition. One relates
+to data-ﬂow and is motivated by hardware, while the other relates to control-ﬂow and is
+motivated by software. We study synthesis from reusable components for these notions,
+and show that whether or not synthesis is computable depends crucially on the notion
+of composition.
+The ﬁrst composition notion, in Section 3, is data-ﬂow composition, in which the
+outputs of a component are fed into the inputs of other components. In data-ﬂow com-
+position the synthesizer controls the ﬂow of data from one component to the other. We
+prove that the problem of LTL synthesis from libraries is undecidable in the case of
+data-ﬂow composition. In fact, we prove a stronger result. We prove that in the case of
+data-ﬂow composition, the LTL synthesis from libraries is undecidable even if we re-
+strict ourselves to pipeline architectures, where the output of one component is fed into
+the input of the next component. Furthermore, it is possible to ﬁx either the formula to
+be synthesized, or the library of components, and the problem remains undecidable.
+The second notion of composition we consider is control-ﬂow composition, which
+is motivated by software and web services. In the software context, when a function is
+called, the function is given control over the machine. The computation proceeds under
+the control of the function until the function calls another function or returns. There-
+fore, it seems natural to consider components that gain and relinquish control over the
+computation. A control-ﬂow component is a transducer in which some of the states are
+designated as ﬁnal states. Intuitively, a control-ﬂow component receives control when
+entering an initial state and relinquish control when entering a ﬁnal state. Composing
+control-ﬂow components amounts to deciding which component will resume control
+when the control is relinquished by the component that currently is in control.
+Web-services orchestration is another context naturally modeled by control-ﬂow
+composition. A system designer composes web services offered by other parties to form
+a new system (or service). When referring a user to another web service, the other ser-
+vice may need to interact with the user. Thus, the orchestrator effectively relinquishes
+control of the interaction with that user until the control is received back from the re-
+ferred service. Web-services orchestration has been studied extensively in recent years
+[4–6]. In Subsection 1.1, we compare our framework to previously studied models.
+We show that the problem of LTL synthesis from libraries in the case of control-
+ﬂow composition is 2EXPTIME-complete. One of the side beneﬁts of this result is an
+explicit characterization of the information needed by the synthesis algorithm about the
+underlying control-ﬂow components. The synthesis algorithm does not have to know
+the entire structure of the component but rather needs some information regarding the
+reachable states of an automaton for the speciﬁcation when it monitors a component’s
+run (the technical details can be found in Section 4). This characterization can be used
+to deﬁne the interface between providers and integrators of components. On the one
+hand, a component provider such as a web service, can publish the relevant information
+to facilitate the component use. On the other hand, a system developer, can publish
+a speciﬁcation for a needed component as part of a commercial tender or even as an
+interface with another development group within the same organization.
+3
+
+--- Page 4 ---
+1.1 Related work
+The synthesis problem was ﬁrst formulated by Church [1] and solved by B ¨uchi and
+Landweber [7] and by Rabin [8]. We follow the LTL synthesis problem framework pre-
+sented by Pnueli and Rosner in [2, 9]. We also incorporate ideas from Kupferman and
+Vardi [10], who suggested a way to work directly with a universal automata for the spec-
+iﬁcation. In [11], Krishnamurthi and Fisler suggest an approach to aspect veriﬁcation
+that inspired our approach to control-ﬂow synthesis.
+While the synthesis literature does not address the problem of incorporating reusable
+components, extensive work studies the construction of systems from components. Ex-
+amples for important work on the subject can be found in Sifakis’ work on component
+based-construction [3], and de Alfaro and Henzinger’s work on “interface-based de-
+sign” [12].
+In addition to the work done on the subject by the formal veriﬁcation commu-
+nity, much work has been done in ﬁeld of web-services orchestration [4–6]. The web-
+services literature suggests several models for web services; the most relevant to this
+work is known as the “Roman model”, presented in [5]. In the Roman model web ser-
+vices are modeled, as here, by ﬁnite-state machines. The abstraction level of the mod-
+eling, however, is signiﬁcantly different. In the Roman model, every interaction with a
+web-service is abstracted away to a single action and no distinction is made between
+the inputs of the web service and the outputs of the web service.
+In our framework, as in the synthesis literature, there is a distinction between output
+signals, which the component controls, and input signals, which the component does
+not control. A system should be able to cope with any value of an input signal, while
+the output signals can be set to desired values [2]. Therefore, the distinction is critical as
+the quantiﬁcation structure on input and output signals is different (see [2] for details).
+In the Roman model, since no distinction between inputs and outputs is made, the ab-
+straction level of the modeling must leave each interaction abstracted as a single atomic
+action. The Roman model is suitable in cases in which all that is needed to ensure is the
+availability of web-services actions when these are needed. Many times, however, such
+high level of abstraction cannot sufﬁce for complete speciﬁcation of a system.
+2 Preliminaries
+For a natural number n, we denote the set f1;:::;ngby[n]. For an alphabet , we
+denote bythe set of ﬁnite words over , by!the set of inﬁnite words over ,
+and by1the union[!.
+Given a setDof directions, a D-tree is a setTDsuch that ifxc2T, where
+x2Dandc2D, then alsox2T. For everyx2T, the wordsxc, forc2D, are
+thesuccessors ofx. Apathof a treeTis a setTsuch that"2and for every
+x2, eitherxis a leaf or there exists a unique c2Dsuch thatxc2. The full
+D-tree isD. Given an alphabet , a-labeledD-tree is a pairhT;iwhereTis a
+tree and:T!maps each node of Tto a letter in .
+Atransducer , (also known as a Moore machine [13]) is an deterministic ﬁnite au-
+tomaton with outputs. Formally, a transducer is tuple T=hI;O;Q;q 0;;F;Li
+4
+
+--- Page 5 ---
+where:Iis a ﬁnite input alphabet, Ois a ﬁnite output alphabet, Qis a ﬁnite set of
+states,q02Qis an initial state, :QI!Qis a transition function, Fis a set of
+ﬁnal states, and L:Q!Ois an output function labelling states with output letters.
+For a transducerTand an input word w=w1w2:::wn2n
+I, arun, or a computa-
+tionofTonwis a sequence of states r=r0;r1;:::rn2Qnsuch thatr0=q0and
+for everyi2[n]we haveri=(ri1;wi). The tracetr(r)of the runris the word
+u=u1u2:::un2n
+Owhere for each i2[n]we haveui=L(ri1). The notions of
+run and trace are extended to inﬁnite words in the natural way.
+For a transducerT, we deﬁne:
+I!Qin the following way: (") =q0, and
+forw2
+Iand2I, we have(w) =((w);). AO-labeledI-tree
+h
+I;iisregular if there exists a transducer T=hI;;Q;q 0;;Lisuch that for
+everyw2
+I, we have(w) =L((w)).
+A transducerToutputs a letter for every input letter it reads. Therefore, for every
+input wordwI2!
+I, the transducerTinduces a word w2(IO)!that combines
+the input and output of T. A transducerTsatisﬁes an LTL formula 'if for every input
+wordwi2!
+Ithe induced word w2(IO)!satisﬁes'.
+For a setX, letB+(X)be the set of positive Boolean formulas over X(i.e., Boolean
+formulas built from elements in Xusing^and_), where we also allow the formulas
+True (an empty conjunction) and False (an empty disjunction). For a set YXand
+a formula2B+(X), we say that Ysatisﬁesiff assigning True to elements in Y
+and assigning False to elements in XnYmakestrue. An alternating tree automaton
+isA=h;D;Q;q in;;i, whereis the input alphabet, Dis a set of directions, Q
+is a ﬁnite set of states, :Q!B+(DQ)is a transition function, qin2Qis an
+initial state, and speciﬁes the acceptance condition (a condition that deﬁnes a subset
+ofQ!; we deﬁne several types of acceptance conditions below). For a state q2Q, we
+denote byAqthe automatonh;D;Q;q;;iin whichqis the initial state.
+The alternating automaton Aruns on-labeled full D-trees. A runofAover a-
+labeledD-treehT;iis a(TQ)-labeled N-treehTr;ri. Each node of Trcorresponds
+to a node of T. A node inTr, labeled by (x;q), describes a copy of the automaton that
+reads the node xofTand visits the state q. Note that many nodes of Trcan correspond
+to the same node of T. The labels of a node and its successors have to satisfy the
+transition function. Formally, hTr;risatisﬁes the following:
+1."2Trandr(") =h";qini.
+2. Lety2Trwithr(y) =hx;qiand(q;(x)) =. Then there is a (possibly empty)
+setS=f(c0;q0);(c1;q1);:::; (cn1;qn1)gDQ, such thatSsatisﬁes,
+and for all 0in1, we haveyi2Trandr(yi) =hxci;qii.
+A runhTr;riis accepting if all its inﬁnite paths satisfy the acceptance condition. Given
+a runhTr;riand an inﬁnite path Tr, let inf()Qbe such that q2inf()
+if and only if there are inﬁnitely many y2for whichr(y)2Tfqg. We consider
+B¨uchi acceptance in which a path is accepting iff inf()\6=;, and co-B ¨uchi
+acceptance in which a path is accepting iff inf()\=;. An automaton accepts
+a tree iff there exists a run that accepts it. We denote by L(A)the set of all -labeled
+trees thatAaccepts.
+The alternating automaton Aisnondeterministic if for all the formulas that appear
+in, if(c1;q1)and(c2;q2)are conjunctively related, then c16=c2. (i.e., if the transition
+5
+
+--- Page 6 ---
+is rewritten in disjunctive normal form, there is at most one element of fcgQ, for
+eachc2D, in each disjunct). The automaton Aisuniversal if all the formulas that
+appear inare conjunctions of atoms in DQ, andAisdeterministic if it is both
+nondeterministic and universal. The automaton Ais aword automaton ifjDj= 1.
+We denote each of the different types of automata by three-letter acronyms in fD;N;Ug
+fB;CgfW;Tg, where the ﬁrst letter describes the branching mode of the automa-
+ton (deterministic, nondeterministic, or universal), the second letter describes the ac-
+ceptance condition (B ¨uchi or co-B ¨uchi), and the third letter describes the object over
+which the automaton runs (words or trees). For example, NBT are nondeterministic tree
+automata and UCW are universal co-B ¨uchi word automata.
+LetIbe a set of input signals and Obe a set of output signals. For a 2O-labeled
+full-2ItreeT=h(2I);iwe denote by T0the2I[O-labeled full 2I-tree in which "is
+labeled by(")and for every x2(2I)andi22Ithe nodexiis labeled by i[(xi).
+The LTL realizability problem is: given an LTL speciﬁcation '(with atomic propo-
+sitions from I[O), decide whether there is a tree Tsuch that the labelling of every
+path inT0satisﬁes'. It was shown in [7] that if such a tree exists, then a regular such
+tree exists. The synthesis problem is to ﬁnd the transducer inducing the tree if such a
+transducer exists [2].
+3 Data-ﬂow composition
+Data-ﬂow composition is the form of composition in which the outputs of a component
+are fed into other components as inputs. In the general case, each component might have
+several input and output channels, and these may be connected to various other compo-
+nents. For an exposition of general data-ﬂow composition of transducers we refer the
+reader to [14]. In this paper, however, the main result is a negative result of undecidabil-
+ity. Therefore, we restrict ourselves to a very simple form of data-ﬂow decomposition:
+the pipeline architecture. To that end, we model each component as a transducer with
+a single input channel and single output channel. The composition of such components
+form the structure of a pipeline. We prove that even for such limited form of data-ﬂow
+composition the problem remains undecidable.
+Adata-ﬂow component , is a transducer in which the set of ﬁnal states plays no role.
+We denote such a component by C=hI;O;Q;q 0;;Li. For two data-ﬂow compo-
+nents:Ci=hi
+I;i
+O;Qi;qi
+0;i;Lii,i= 1;2, where1
+O2
+I, the composition of
+C1andC2is the data-ﬂow component C1C2=h1
+I;2
+O;Q1Q2;hq1
+0;q2
+0i;;Li
+where(hq1;q2i;) =h1(q1;);2(q2;L1(q1))i, andL(hq1;q2i) =L2(q2). It is not
+hard to see that the trace of the composition on a word wis the same as the trace of the
+run ofC2on the trace of the run of C1onw.
+A libraryLof data-ﬂow component is simply a set of data-ﬂow components. Let
+L=fCigbe a collection of data-ﬂow components. A data-ﬂow component Cis a
+pipeline composition ofL-components if there exists k1andC1;:::;Ck2L, not
+necessarily distinct, such that C=C1C2:::Ck. When the libraryLis clear from
+the context, we abuse notation and say that Cis a pipeline.
+6
+
+--- Page 7 ---
+Thedata-ﬂow library LTL realizability problem is: Given a data-ﬂow components
+libraryLand an LTL formula ', is there a pipeline composition of L-components that
+satisﬁes'.
+Theorem 1. Data-ﬂow library LTL realizability is undecidable.2Furthermore, the fol-
+lowing hold:
+1. There exists a library Lsuch that the data-ﬂow library LTL realizability problem
+with respect toLis undecidable.
+2. There exists an LTL formula 'such that the data-ﬂow library '-realizability is
+undecidable.
+The standard way to prove undecidability of some machine model is to show that
+the model can simulate Turing machines. Had we allowed a more general way of com-
+posing transducers, for example, as in [14], such an approach, indeed, could have been
+used. Indeed, the undecidability proof technique in [16] can be cast as an undecidability
+result for data-ﬂow library realizability, where the component transducers are allowed
+to communicate in a two-sided manner, each simulating a tape cell of a Turing machine.
+Here, however, we are considering a pipeline architecture, in which information can be
+passed only in one direction. Such an architecture seems unable to simulate a Turing
+machine. In fact, in the context of distributed LTL realizability, which is undecidable in
+general [9], the case of a pipeline architecrure is the decidable case [9].
+Nevertheless, data-ﬂow library LTL realizability is undecidable even for pipeline
+archirecture. We prove undecidability by leveraging an idea used in the undecidability
+proof in [9] for non-pipeline architectures. The idea is to show that our machine model,
+though not powerful enough to simulate Turing machines, is powerful enough to check
+computations of Turing machines. In this approach, the environment produces an input
+stream that is a candidate computation of a Turing machine, and the synthesized system
+checks this computation.
+We now proceed with details. Let Mbe a Turing machine with an RE-hard lan-
+guage. We reduce the language of Mto a data-ﬂow library realizability problem. Given
+a wordw, we construct a library of components Lwand a formula ', such that'is
+realizable by a pipeline of Lw-components iff w2L(M).
+The gist of the proof, is that given w, we construct a pipeline that checks whether
+its input is an encoding of an accepting computation of Monw. Each component in
+the pipeline is checking a single cell in M’s tape. The detailed proof can be found in
+the full version below we present an overview of the proof.
+Intuitively, the pipeline Cchecks whether its input is an encoding of an accepting
+computation of Monw. (To encode terminating computations by inﬁnite words, simply
+iterate the last conﬁguration indeﬁnitely). The pipeline Cproduces the signal okeither
+if it succeeds to verify that the input is an accepting computation of Monw, or if the
+input is not a computation of Monw. That way, if w2L(M)then on every word ok
+is produced, while if w62L(M)then on the computation of Monw, the signalokis
+never produced.
+2It is not hard to see that the problem is computationally enumerable, since it is computationally
+possible to check whether a speciﬁc pipeline composition satisﬁes '[15].
+7
+
+--- Page 8 ---
+The input to the transducer is an inﬁnite word uover some alphabet tapedeﬁned
+below. Intuitively, uis broken into chunks where each chunk is assumed to encode a
+single conﬁguration of M. The general strategy is that every component in the pipeline
+tracks a single tape cell, and has to verify that letters that are supposed to correspond to
+the content of the cell “behave properly” throughout the computation.
+The input alphabet tapeis used to encode conﬁgurations in a way that allows the
+veriﬁcation of the computation. The content of one cell is either a letter from M’s tape
+alphabet, or both a letter and the state of Mencoding the fact that the head of Mis
+on the cell. Each letter in tapeencodes the content of a cell and the content of its two
+adjacent cells. The reason for this encoding is that during a computation the content of a
+cell can be predicted by the content of the cell and its neighbors in the previous cycle. In
+addition to letters from , we allow a special separator symbol #to separate between
+conﬁgurations. For simplicity, assume that all the conﬁgurations of the computation are
+encoded by words of the same length. (In the full version we deal with the general case.)
+The libraryLwcontains only two types of components CfandCs. In the interesting
+pipelines a single Cfcomponent is followed by one or more Cscomponents. Intuitively,
+eachCscomponent tracks one cell tape (e.g., the third cell) and checks whether the
+input encodes correctly the content of the tracked cell throughout the computation. The
+Cfcomponent drives the Cscomponents.
+The alphabet tapeis the input alphabet of the Cfcomponent. The output alphabet
+ofCfas well as the input and output alphabet of Csis more complicated. We describe
+this alphabet as Cartesian product of several smaller alphabets. The ﬁrst of these is
+tapeitself, and both CfandCsproduce each cycle the tapeletter they read (thus the
+content is propagated through the pipeline).
+In order to make sure each component tracks one speciﬁc cell (e.g., the third cell),
+we introduce another alphabet clock =fpulse;:pulseg. The components produces
+a pulse signal as follows: A Cfcomponent produces pulse one cycle after it sees a
+letter encoding a separator symbol #, and a Cscomponent produces a pulse signal two
+cycles it reads a pulse . On other cycles:pulse is produced. Note that one cycle delay is
+implied by the deﬁnition of transducers. Thus, a Cscomponent delays the pulse signal
+for one additional cycle. In the full version we show that this timing mechanism allows
+eachCstransducer to identify the letters that encode the content of “his” cell.
+As for the tracking itself, the content of a tape cell (and the two adjacent cells)
+in one conﬁguration contains the information needed to predict the content of the cell
+in the following conﬁguration. Thus, whenever a clock pulse signal is read, each Cs
+component compares the content of the cell being read to the expected content from the
+previous cycle in which pulse was read. If the content is different from the expected
+content a special signal is sent. The special signal junk , sent is part of another alphabet
+junk =fjunk;:junkg. Whenjunk is produced it is propagated throughout the
+pipeline. The Cfcomponent is used to check the consistency of adjacent tapeletters,
+as well as that the ﬁrst conﬁguration is an encoding of the initial conﬁguration. If an
+inconsistency is found junk is produced.
+To discover accepting computations we introduce another signal, acc, that is pro-
+duced by aCsifMenters the accepting state and is propagated throughout the pipeline.
+Finally, we introduce the signal ok. ACscomponent produces okif it never saw M’s
+8
+
+--- Page 9 ---
+head and either it reads junk (i.e., the word does not encode a computation), or it
+readsacc(i.e., the encoded computation is accepting). Note that the signal okis never
+produced if the pipeline is too short to verify the computation.
+In the full version we prove the following: if w2L(M)then there exists a (long
+enough) pipeline in which okis produced on every word, while if w62L(M)thenok
+is never produced (by any pipeline) on the word that encodes M’s computation on w.
+The above shows Theorem 1 for the ﬁxed formula Fok. The proof for a ﬁxed library is
+similar.
+4 Control-ﬂow composition
+In the case of software systems, another model of composition seems natural. In the
+software context, when a function is called, the function is given control over the ma-
+chine. The computation proceeds under the control of the function until the function
+calls another function or returns. Therefore, in the software context, it seems natural to
+consider components that gain and relinquish control over the computation.
+In our model, during a phase of the computation in which a component Cis in
+control, the input-output behavior of the entire system is governed by the component.
+An intuitive example is calling a function from a GUI library. Once called, the function
+governs the interaction with user until it returns. Just as a function might call another
+function, a component might relinquish control at some point. In fact, there might be
+several ways in which a component might relinquish control (such as taking one out of
+several exit points).
+The composition of such components amounts to deciding the ﬂow of control. This
+means that the components have to be composed in a way that speciﬁes which compo-
+nent receives control in what circumstances. Thus, the system synthesizer provides an
+interface for each component C, where the next component to receive control is speci-
+ﬁed for every exit point in C(e.g., ifCexits in one way then control goes to C2, ifC
+exists in another way control goes to C3, etc.). An intuitive example of such interface
+in real life would be a case statement on the various return values of a function f. In
+casefreturns 1: call function g, in casefreturns 2: call function h, and so on.3
+Below we discuss a model in which the control is passed explicitly from one com-
+ponent to another, as in goto. A richer model would consider also control ﬂow by calls
+and returns; we leave this to future work. In our model each component is modeled by a
+transducer and relinquishing control is modeled by entering a ﬁnal state. The interface
+is modeled by a function mapping the various ﬁnal states to other components in the
+system.
+LetIbe an input alphabet, Obe an output alphabet and, =I[O. A
+control-ﬂow component is a transducer M=hI;O;Q;q 0;;F;Li. Unlike the data-
+ﬂow component case, in control-ﬂow components the set Fof ﬁnal states is important.
+3At ﬁrst sight, it seems that the synthesizer is not given realistic leeway. In real life, systems are
+composed not only from reusable components but also from some code written by the system
+creator. This problem is only superﬁcial, however, since one can add to the component library
+a set of components with the same functionality as the basic commands at the disposal of the
+system creator.
+9
+
+--- Page 10 ---
+Intuitively, control-ﬂow components receives control when entering the initial state and
+relinquishes control when entering a ﬁnal state. When a control-ﬂow component is in
+control, the input-output interaction with the environment is done by the component.
+For that reason, control-ﬂow components in a system (that interact with the same en-
+vironment) must share input and output alphabets. A control-ﬂow components library
+is a set of control-ﬂow components that share the same input and output alphabets. We
+assume w.l.o.g. all the ﬁnal sets in the library are of the same size nF. We denote the
+ﬁnal set of the i-th component in the library by Fi=fsi
+1;:::si
+nFg.
+Next, we discuss a notion of composition suitable for control-ﬂow components.
+When a component is in control the entire system behaves as the component and the
+system composition plays no role. The composition comes into play, however, when
+a component relinquishes control. Choosing the “next” component to be given control
+is the essence of the control-ﬂow composition. A control-ﬂow component relinquishes
+control by entering one of several ﬁnal states. A suitable notion of composition should
+specify, for each of the ﬁnal states, the next component the control will be given to.
+Thus, a control-ﬂow composition is a sequence of components, each paired with an
+interface function that maps the various ﬁnal states to other components in system. We
+refer to these pairs of a component coupled with an interface function as interfaced
+component . Note that a system synthesizer might choose to reuse a single component
+from the library several times, each with a different interface. Therefore, the number
+of interfaced components might differ from the number of components is the library.
+Formally, a composition of components from a control-ﬂow components library Lis a
+ﬁnite sequence of pairs hC1;f1i;hC2;f2i;:::;hCn;fniwhere the ﬁrst element in each
+pair is a control-ﬂow component Ci=hI;O;Qi;qi
+0;i;Fi;Lii2L and the second
+element in each pair is an interface function fi:Fi!f1;:::;ng. Each of the pairs
+hCi;fiiis an interfaced component .
+Intuitively, for an interfaced component hCi;fii, whenCiis in control and enters
+a ﬁnal state q2Fi, the control is passed to the interfaced component hCfi(q);ffi(q)i.
+Technically, this amounts to moving out of the state as if the state is not the ﬁnal state q
+ofCibut rather the initial state qfi(q)
+0 ofCfi(q). For technical reasons, we restrict every
+interface function fi:Fi!f1;:::;ngin the composition to map every ﬁnal state to
+a component whose initial state agrees with the ﬁnal state on the labelling.4Thus,fiis
+an an interface function if for every jjFijwe haveLi(si
+j) =Lfi(si
+j)(qfi(si
+j)
+0).
+The fact that a control-ﬂow component Cmight appear in more than one interfaced
+component means that each component in the composition can be referred to in more
+than one way: ﬁrst, as the i-th component in the library, and second, as the component
+within thej-th interfaced component in the composition. To avoid confusion, whenever
+we refer to a component from the library (as in the i-th component from the library)
+we denote it by Mi2L, while whenever we refer to a component within an inter-
+faced component in the composition (as in the component within the j-th interfaced
+component) we denote it by Cj. We denote by type(j)the index, in the library, of the
+componentCjwhich is the component within the j-th interfaced component. Thus, Ci
+is the same reusable component as Mtype(i).
+4This restriction is only a technicality chosen to simplify notation in proofs.
+10
+
+--- Page 11 ---
+Theresult of the composition is the transducer M=hI;O;Q;q 0;;Liwhere:
+1. The state space QisSn
+i=1(Qifig).
+2. The initial state q0ishq1
+0;1i.
+3. The transition function is deﬁned as follows:
+(a) For a statehq;iiin whichq2QinFi, we set(hq;ii;) =hi(q;);ii.
+(b) Forhq;ii, whereq2Fiwe set(hq;ii;) =fi(q)(hqfi(q)
+0;fi(q)i;).
+4. The labelling function Lis deﬁnedL(hq;ii) =Li(q).
+The control-ﬂow library LTL realizability problem is: Given a control-ﬂow compo-
+nents libraryLand an LTL formula ', decide whether there exists a composition of
+components fromLthat satisﬁes '. The control-ﬂow library LTL synthesis problem is
+similar, given aLand', ﬁnd the composition realizing 'if one exists.
+Theorem 2. The control-ﬂow library LTL synthesis problem can is 2EXPTIME-complete.
+Proof: For the lower bound, we reduce classical synthesis to control-ﬂow library syn-
+thesis. Thus, a 2EXPTIME complexity lower bound follows from the classical synthesis
+lower bound [17]. We proceed to describe this reduction in detail.
+As described earlier, the problem of classical synthesis is to construct a transducer
+such that for every sequence of input signals, the sequence of input and output signals
+induced by the transducer computation satisﬁes '. The reduction from classical syn-
+thesis is simply to provide a library of control-ﬂow components of basic functionality,
+such that every transducer can be composed out of this library.
+Anatomic transducer, is a transducer that has only an initial state and ﬁnal states.
+Furthermore, every transition from the initial state enters a ﬁnal state. Thus, in an atomic
+transducer we have state set Q=fq0;q1;:::;qmg, wherem=jIj, ﬁnal state set F=
+fq1;:::;qmg, and transition function (q0;ai) =qi. The different atomic transducers
+differ only in their output function L.
+Consider now the library of all possible atomic transducers. It is not hard to see that
+every transducer can be composed out of this library (where every state in the transducer
+has its own interfaced component in the composition). Therefore synthesis is possible
+from this library of atomic control-ﬂow components iff synthesis is possible at all. This
+concludes the reduction.
+We proceed to prove the upper bound. Before going into further details, we would
+like to give an overview of the proof and the ideas underlying it. The classical synthesis
+algorithm [2] considers execution trees. An execution tree is an inﬁnite labelled tree
+where the structure of the tree represents the possible ﬁnite input sequences (i.e., for
+input signal set Ithe structure is (2I)) and the labelling represents mapping of inputs
+to outputs. Every transducer induces an execution tree, and every regular execution
+tree can be implemented by a transducer. Thus, questions regarding transducers can be
+reduced to questions regarding execution trees. Questions regarding execution trees can
+be solved using tree automata. Speciﬁcally, it is possible to construct a tree automaton
+whose language is the set of execution trees in which the LTL formula is satisﬁed, and
+the realizability problem reduces to checking emptiness of this automaton.
+Inspired by the approach described above, we should ask what is the equivalent of
+an execution tree in the case of control-ﬂow components synthesis? Fixing a library L
+11
+
+--- Page 12 ---
+of components, we would like to have a type of labelled trees, representing composi-
+tions, such that every composition would induce a tree, and every regular tree would
+induce a composition. To that end, we deﬁne control-ﬂow trees. Control-ﬂow trees rep-
+resent the possible ﬂows of control during computations of a composition. Thus, the
+structure of control ﬂow trees is simply [nF], each node representing a ﬁnite sequence
+of control-ﬂow choices. (Where each choice picks one ﬁnal state from which the control
+is relinquished.) A control-ﬂow tree is labelled by components from L. Thus, a path in
+a control-ﬂow tree represents the ﬂow of control between components in the system.
+Note that a control-ﬂow tree also implicitly encodes interface functions. For every node
+v2[nF]in the tree, both vandv’s sons are labelled by components from L. We
+denote the labelling function by : [nf]!L . For a direction d2[nF], the labelling
+(vd)2L of the son of vin direction d, implicitly the ﬂow of control. (Formally,
+(vd)deﬁnes the component from L, within the interfaced component, to which the
+control is passed.) Thus, a regular control-ﬂow tree can be used to deﬁne a composition
+of control-ﬂow components from L.
+Each path in a control-ﬂow tree stands for many possible executions, all of which
+share the same control-ﬂow. It is possible , however, to analyse the components in L
+and reason about the possible executions represented by a path in the control-ﬂow tree.
+This allows us to construct a tree automaton that runs on control-ﬂow trees and accept
+the control-ﬂow trees in which all executions satisfy the speciﬁcation. Once we have
+such tree automaton we can take the classical approach to synthesis.
+Aninﬁnite tree composition h[nF];iis an[jLj]-labeled [nF]-tree in which (") =
+1. Intuitively, an inﬁnite tree composition represents possible ﬂow of control in a com-
+position. The root is labeled 1 since the run begins when C1is in control. The j-th
+successor of a node is labeled by i2jLj if on arrival to the j-th ﬁnal state, the con-
+trol passed to Mi. Every ﬁnite composition hC1;f1i;hC2;f2i;:::;hCn;fnican be un-
+folded to an inﬁnite composition tree in the following way: (") = 1 , and forx2[nF],
+andi2[nF]we set(xi) =f(x)(s(x)
+i). In the proof we construct a tree automaton
+Athat accepts the inﬁnite tree compositions that satisfy '. As we show below, if the
+language ofAis empty then 'cannot be satisﬁed by any control-ﬂow composition. If,
+on the other hand, the language of Ais not empty, then there exists a regular tree in the
+language ofA, from which we can extract a ﬁnite composition.
+The key to understanding the construction, is the observation that the effect of pass-
+ing the control to a component is best analyzed in terms of the effect on an automaton
+for the speciﬁcation. The speciﬁcation 'has a UCW automaton A'=h;Q';q0;;i
+that accepts exactly the words satisfying '. To constructA'we construct an NBW A:'
+as in [18] and dualize it [10]. The effect of giving the control to a component Mi, with
+regard to satisfying ', can be analyzed in terms of questions of the following type: as-
+sumingA'is in stateqwhen the control is given to Mi, what possible states A'might
+be in whenMirelinquishes control by entering ﬁnal state s, and whetherA'visits an
+accepting state on the path from qtos.
+Our ﬁrst goal is to develop notation for the formalization of questions of the type
+presented above. For a ﬁnite word w2, we denote 
+'(q;w) =fq02Q'jthere
+exists a run ofAq
+'onwthat ends in q0g. Forq2Q'andq02
+'(q;w)we denote by
+12
+
+--- Page 13 ---
+(q;w;q0)the value of 1if there exists a path in the run of Aq
+'onwthat ends inq0and
+traverses through a state in . Otherwise, (q;w;q0)is 0.
+For a wordw2
+Iand a component C=hI;O;QC;qC
+0;C;FC;LCi, we de-
+note by
+C(w)the stateCreaches after running on w. We denote by (w;C)the word
+frominduced bywand the run of Conw. Forw2
+I, we denote by 
+'(q;C;w )
+the set
+'(q;(w;C))and by(q;w;q0)the bit(q;(w;C);q0). Finally, we de-
+ﬁneeC:Q'FC!2Q'f0;1gwhereeC(q;s) =fhq0;bij9w2Is.t.s=
+
+C(w)andq02
+'(q;C;w )andb=(q;w;q0)g. Thus,hq0;biis ineC(q;s)if there
+exists a word w2
+Isuch that when Cis run onwit relinquishes control by entering
+s, and if at the start of C’s run onwthe state ofA'isqthen at the end of C’s run the
+state ofA'isq0. Furthermore, bis1iff there is a run of Aq
+'on(C;w)that ends inq0
+and traverses through an accepting state.
+Note, that it also possible that for some component Cand inﬁnite input word w2
+!
+Ithe component Cnever relinquish control when running on w. For anA'-state
+q2Q', the component Cis adead end if there exists a word w2!
+Ion whichC
+never enters a ﬁnal state, and on which Aq
+'rejects(C;w).
+Next, we deﬁne a UCT Awhose language is the set of inﬁnite tree compositions
+realizing'.
+LetA=hL;Q;;hq0;1i;iwhere:
+1. The state space Qis(Q'f0;1g)[fqrejg. Whereqrejis a new state (a rejecting
+sink).
+2. The transition relation :QL!B+([nF]Q)is deﬁned as follows:
+(a) For every C2L andi2[nF]we have(qrej;C) =V
+i2[nF](i;qrej).
+(b) Forhq;bi2Q'f0;1gandC2L:
+–IfCis a dead end for q, then(hq;ji;C) =V
+i2[nF](i;qrej).
+–Otherwise, for every j2[nF]the automatonAsends in direction jthe
+states ineC(q;si
+j). Formally,(hq;bi;C) =V
+i2[nF]V
+hqi;bii2eC(q;si
+j)(i;hqi;bii).
+3. The initial state is hq0;1iforq0the initial state ofA'.
+4. The acceptance condition is =fqrejg[fQ'f1gg.
+Claim 3L(A)is empty iff'is not realizable from L
+The proof can be found in the full version.
+Note that while Claim 3 is phrased in terms realizability, the proof actually yields
+a stronger result. If the language of Ais not empty, then one can extract a composition
+realizing'from a regular tree in the language of A. To solve the emptiness of Awe
+transform it into an “emptiness equivalent” NBT A0by the method of [10]. By [10], the
+language ofA0is empty iff the language of Ais empty. Furthermore, if the language
+ofA0is not empty, then the emptiness test yields a witness that is in the language of A
+(as well as the language of A0). From the witness, which is a transducer labelling [nf]
+trees with components from L, it is possible to extract a composition.
+This concludes the proof of correctness for Theorem 2 and all that is left is the
+complexity analysis. The input to the problem is a library L=fM1;:::;MjLjgand
+a speciﬁcation '. The number of states of the UCW A'is2O(j'j). The automatonA'
+can be computed in space logarithmic in 2O(j'j)(i.e., space polynomial in j'j). The
+13
+
+--- Page 14 ---
+main hurdle in computing the UCT Ais computing the transitions by computing the eC
+functions for the various components. For a component Mi2L, anA'-stateq2Q',
+and a ﬁnal state si
+j2Fithe value of eC(q;si
+j)can be computed by deciding emptiness
+of small variants of the product of A'andMi. Thus, computing eC(q;si
+j)is nondeter-
+ministic logspace in 2O(j'j)jMij. The complexity of computing Ais nondeterministic
+logspace in 2O(j'j)nF(PjLj
+i=1jMij). The number of states of Ais twice the number
+of states ofA', i.e.2O(j'j), and does not depend on the library.
+To solve the emptiness of Awe use [10] to transform it into an “emptiness equiv-
+alent” NBTA0. The size ofA0is doubly exponential in j'j(speciﬁcally, 22j'j2log(j'j))
+and the complexity of its computation is polynomial time in the number of its states.
+Finally, the emptiness problem of an NBT can be solved in quadratic time (see [19]).
+Thus, the overall complexity of the problem is doubly exponential in j'jand polyno-
+mially dependent on the size of the library.
+An interesting side beneﬁt the work presented so far, is the characterization of the
+information needed by the synthesis algorithm on the underlying components. The only
+dependence on a component Cis by its corresponding eCfunctions. Thus, given the
+eCfunctions it is possible to perform synthesis without further knowledge of the com-
+ponent implementation. This suggest that the eCfunctions can serve as a speciﬁcation
+formalism between component providers and possible users.
+5 Discussion
+We deﬁned two notions of component composition. Data-ﬂow composition, for which
+we proved undecidability, and control-ﬂow composition for which we provided a syn-
+thesis algorithm.
+Control-ﬂow composition required the synthesized system to be constructed only
+from the components in the library. In real life, system integrators usually add some
+code, or hardware circuitry, of their own in addition to the components used. The added
+code is not intended to replace the main functionality of the components, but rather
+allows greater ﬂexibility in the integration of the components into a system. At ﬁrst
+sight it might seem that our framework does not support adding such “integration code”.
+This is not the case, as we now explain.
+Recall, from the proof of Theorem 2, that LTL synthesis can be reduced to our
+framework by providing a library of atomic components. Every system can be con-
+structed from atomic components. Thus, by including atomic components in our library,
+we enable the construction of integration code.
+Note, however, that if allthe atomic components are added to the input library, then
+the control-ﬂow library LTL synthesis becomes classical LTL synthesis, as explained in
+the proof of Theorem 2. Fortunately, integration code typically supports functionality
+that can be directly manipulated by the system, as opposed to functionality that can
+only accessed through the components in the library. Therefore, it is possible to add to
+the input library only atomic components that manipulate signals in direct control of
+14
+
+--- Page 15 ---
+the system. This allows the control-ﬂow library LTL synthesis of systems that contain
+integration code.
+References
+1. Church, A.: Logic, arithmetics, and automata. In: Proc. Int. Congress of Mathematicians,
+1962, Institut Mittag-Lefﬂer (1963) 23–35
+2. Pnueli, A., Rosner, R.: On the synthesis of a reactive module. In: Proc. 16th ACM Symp. on
+Principles of Programming Languages. (1989) 179–190
+3. Sifakis, J.: A framework for component-based construction extended abstract. In: Proc.
+3rd Int. Conf. on Software Engineering and Formal Methods (SEFM 2005), IEEE Computer
+Society (2005) 293–300
+4. Alonso, G., Casati, F., Kuno, H.A., Machiraju, V .: Web Services - Concepts, Architectures
+and Applications. Springer (2004)
+5. Berardi, D., Calvanese, D., Giacomo, G.D., Lenzerini, M., Mecella, M.: Automatic compo-
+sition of e-services that export their behavior. In: ICSOC. (2003) 43–58
+6. Sardi ˜na, S., Patrizi, F., Giacomo, G.D.: Automatic synthesis of a global behavior from mul-
+tiple distributed behaviors. In: AAAI. (2007) 1063–1069
+7. B ¨uchi, J., Landweber, L.: Solving sequential conditions by ﬁnite-state strategies. Trans.
+AMS 138(1969) 295–311
+8. Rabin, M.: Automata on inﬁnite objects and Church’s problem. Amer. Mathematical Society
+(1972)
+9. Pnueli, A., Rosner, R.: Distributed reactive systems are hard to synthesize. In: Proc. 31st
+IEEE Symp. on Foundations of Computer Science. (1990) 746–757
+10. Kupferman, O., Vardi, M.: Safraless decision procedures. In: Proc. 46th IEEE Symp. on
+Foundations of Computer Science. (2005) 531–540
+11. Krishnamurthi, S., Fisler, K.: Foundations of incremental aspect model-checking. ACM
+Transactions on Software Engineering Methods 16(2) (2007)
+12. de Alfaro, L., Henzinger, T.: Interface-based design. In Broy, M., Gr ¨unbauer, J., Harel, D.,
+Hoare, C., eds.: Engineering Theories of Software-intensive Systems. NATO Science Series:
+Mathematics, Physics, and Chemistry 195, Springer (2005) 83–104
+13. Hopcroft, J., Ullman, J.: Introduction to Automata Theory, Languages, and Computation.
+Addison-Wesley (1979)
+14. Nain, S., Vardi, M.Y .: Branching vs. linear time: Semantical perspective. In: 5th Int. Symp.
+on Automated Technology for Veriﬁcation and Analysis. V olume 4762 of Lecture Notes in
+Computer Science., Springer (2007) 19–34
+15. Clarke, E., Grumberg, O., Peled, D.: Model Checking. MIT Press (1999)
+16. Apt, K., Kozen, D.: Limits for automatic veriﬁcation of ﬁnite-state concurrent systems.
+Infornation Processing Letters 22(6) (1986) 307–309
+17. Rosner, R.: Modular Synthesis of Reactive Systems. PhD thesis, Weizmann Institute of
+Science (1992)
+18. Vardi, M., Wolper, P.: Reasoning about inﬁnite computations. Information and Computation
+115(1) (1994) 1–37
+19. Gr ¨adel, E., Thomas, W., Wilke, T.: Automata, Logics, and Inﬁnite Games: A Guide to Cur-
+rent Research. V olume 2500 of Lecture Notes in Computer Science. Springer (2002)
+15
