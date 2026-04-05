@@ -57,14 +57,16 @@
 10. `se_primary_path`
 11. `se_secondary_paths`
 12. `se_decision_basis`
-13. `abstract`
-14. `keywords`（若来源页可得）
-15. `doi`
-16. `landing_url`
-17. `dblp_url` 或其他学术索引页
-18. `bibtex`
-19. `initial_screening`
-20. `pdf_followup`
+13. `classification_source`
+14. `manual_review_status`
+15. `abstract`
+16. `keywords`（若来源页可得）
+17. `doi`
+18. `landing_url`
+19. `dblp_url` 或其他学术索引页
+20. `bibtex`
+21. `initial_screening`
+22. `pdf_followup`
 
 其中 `landing_url` 指学术站落地页，而不是直接 `PDF` 下载链接。默认优先记录出版社页、`DBLP`、`OpenReview`、`arXiv abstract` 页、`ACM DL`、`IEEE Xplore`、`Springer`、`Elsevier` 等正式学术入口。
 
@@ -146,11 +148,12 @@
    - `软工主路径（x.x.x）`
    - `软工次路径/标签`
    - `软工判定依据（X1/D1-D4）`
-6. 再做初步判定
+6. 若需要把某篇论文的类型判断提升为终判，不要直接散改年度 `metadata`；应把逐篇人工结论写入 `ccf_history/<year>/manual_review/overrides.json`，再重跑分类器。
+7. 再做初步判定
    - 基于会议/期刊、年份、标题、摘要、关键词做轻量筛选。
-7. 再选择容易关注、且与博士研究更相关的一部分
+8. 再选择容易关注、且与博士研究更相关的一部分
    - 再去获取 `PDF`。
-8. 最后才进入正式文库建设
+9. 最后才进入正式文库建设
    - 做全文提取、单篇分析和更深入归档。
 
 对于 `CCF` 年度索引，默认优先使用 Python 工具而不是手工拼整年总表：
@@ -163,6 +166,12 @@ python -m tools.ccf_se_index_builder --year 2025
 
 ```bash
 python -m tools.ccf_se_classifier --year 2025
+```
+
+若要把人工逐篇复核结果覆盖进去，再编辑：
+
+```bash
+frontier_index/ccf_history/2025/manual_review/overrides.json
 ```
 
 如需进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py)。
@@ -180,4 +189,5 @@ python -m tools.ccf_se_classifier --year 2025
 7. 若批量扫论文时发现现有 `x.x.x` 没有自然覆盖某一稳定题型，应先更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 及相关说明，再回填分类，不要把论文硬塞到“最接近”的旧路径。
 8. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
 9. 若任务是构建某一年的 `CCF` 全量索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再用 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 回填软工判定与 `x.x.x` 路径，最后按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 做复核。
-10. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
+10. 若任务要求“逐篇人工终判”，默认以 `manual_review/overrides.json` 为唯一覆盖入口；未进入覆盖文件的条目只能视为启发式初判，不能宣称已人工复核完成。
+11. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。

@@ -30,6 +30,9 @@
 4. 复核结果：`82/82` 个 venue 全部 `ok`
 5. `metadata` 文件数：`82`
 6. `bib` 文件数：`82`
+7. 人工复核覆盖文件：
+   - [ccf_history/2025/manual_review/README.md](./ccf_history/2025/manual_review/README.md)
+   - [ccf_history/2025/manual_review/overrides.json](./ccf_history/2025/manual_review/overrides.json)
 
 字段概况：
 
@@ -49,11 +52,17 @@
    - `跨域/待判定`：`1200`
    - `系统软件`：`424`
 6. 软工纳入判定分布：
-   - `属于软件工程`：`3292`
-   - `跨域但软工主导`：`152`
+   - `属于软件工程`：`3290`
+   - `跨域但软工主导`：`154`
    - `不属于软件工程`：`2857`
 7. 软工主路径覆盖：
    - `3444/3444` 条被纳入软工语料的论文都已回填 `se_primary_path`
+8. 分类终判状态：
+   - 当前年度页已改为区分 `classification_source` 与 `manual_review_status`
+   - 当前已有 `5` 条人工复核记录，覆盖 `8` 个年度行项
+   - `人工复核`：`8`
+   - `启发式初判`：`6293`
+   - 未进入 `manual_review/overrides.json` 的条目仍只应视为启发式初判，不能宣称已逐篇人工复核完成
 
 ## 3. 当前已准备好的入口
 
@@ -112,9 +121,10 @@
 6. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才进入 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
 7. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 判定依据（X1/D1-D4）`。
 8. 若后续扫论文时发现现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，不要把论文硬塞进最接近的旧节点。
-9. `ccf_se_index_builder.py` 当前负责生成基础元数据层；`ccf_se_classifier.py` 负责软工终判、`x.x.x` 路径回填与年度页重渲染。
-10. 先做初筛，再决定哪些论文值得获取 `PDF`。
-11. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
+9. `ccf_se_index_builder.py` 当前负责生成基础元数据层；`ccf_se_classifier.py` 负责启发式初判、人工复核覆盖整合与年度页重渲染。
+10. 若任务要求“逐篇真正所属类型”的终判，默认以 `manual_review/overrides.json` 为唯一覆盖入口，不直接手改散落的年度元数据文件。
+11. 先做初筛，再决定哪些论文值得获取 `PDF`。
+12. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
 
 ## 5. 下一步建议
 
@@ -129,8 +139,15 @@ python -m tools.ccf_se_index_builder --year 2024
 ```
 
 6. 若进入全文阶段，再转用 `tools/pdf_extractor.py` 和正式论文集规范。
+7. 若要把 `2025` 年条目从“初判”逐步提升为“人工终判”，从 [ccf_history/2025/manual_review/README.md](./ccf_history/2025/manual_review/README.md) 规定的流程按批次推进，并在每轮后重跑分类器。
 
 ## 6. 更新日志
+
+- `2026-04-06 01:32:51`
+  - 把 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 改成“启发式初判 + `manual_review/overrides.json` 人工覆盖”的模式，新增 `classification_source / manual_review_status` 字段，并让年度页显示判定来源与人工复核状态。
+  - 新建 [ccf_history/2025/manual_review/README.md](./ccf_history/2025/manual_review/README.md) 与 [ccf_history/2025/manual_review/overrides.json](./ccf_history/2025/manual_review/overrides.json)，把逐篇人工复核的写入口固定下来。
+  - 先补入 `5` 条代表性人工复核样例，覆盖 `8` 个年度行项，并把典型 `AI for SE` 交叉样例收紧到 `跨域但软工主导 / 7.1.1`。
+  - 同步更新 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[ccf_history/README.md](./ccf_history/README.md)、[../tools/README.md](../tools/README.md) 与 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)，明确“脚本只做初判，终判以人工复核为准”。
 
 - `2026-04-06 00:49:29`
   - 重新跑通 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)，把 `macro_area` 与最终 `se_inclusion_decision` 的口径收紧到一致，不再保留“一级总判定是软件工程、但最终又判为非软工”的冲突条目。

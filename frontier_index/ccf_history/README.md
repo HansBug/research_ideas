@@ -46,8 +46,9 @@ ccf_history/
 3. 该期刊/会议在该年的论文名录。
 4. 每篇论文的元数据、摘要/方向、`DOI`、官方页面与 `BibTeX`。
 5. 对每篇论文的初步判定结果。
-6. 对“哪些论文虽然在 `CCF` 大类里，但并不属于软件工程”的边界说明。
-7. 对纳入软工语料的论文给出 `x.x.x` 级软工主路径。
+6. 对每篇论文的人工复核状态与判定来源说明。
+7. 对“哪些论文虽然在 `CCF` 大类里，但并不属于软件工程”的边界说明。
+8. 对纳入软工语料的论文给出 `x.x.x` 级软工主路径。
 
 ## 4. 单个年份 `README.md` 的建议结构
 
@@ -75,6 +76,8 @@ ccf_history/
    - 论文做什么的一句话
    - 一级总判定
    - 软工纳入判定
+   - 判定来源
+   - 人工复核状态
    - 软工主路径（`x.x.x`）
    - 软工次路径/标签
    - 判定依据（`X1/D1-D4`）
@@ -141,9 +144,10 @@ ccf_history/
 5. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 回填 `x.x.x` 级主路径。
 6. 若扫论文时发现某类软工论文在现有 `x.x.x` 中没有自然落点，应先回到 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 扩树并同步说明，不要把论文硬塞进“最接近”的旧叶子。
 7. 不要因为论文来自 `PL / systems / FM` venue 就自动将其视为软件工程论文。
-8. 先做轻量筛选，再决定是否值得获取全文。
-9. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
-10. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
+8. 若任务要求逐篇终判，人工结论应统一写入 `manual_review/overrides.json`；未进入覆盖文件的条目只能视为启发式初判。
+9. 先做轻量筛选，再决定是否值得获取全文。
+10. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
+11. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
 
 ## 8. 标准工作流
 
@@ -164,9 +168,10 @@ python -m tools.ccf_se_index_builder --year 2025
 python -m tools.ccf_se_classifier --year 2025
 ```
 
-6. 若发现会议边界、重名文件、官方页缺失等问题，优先修构建脚本并重跑。
-7. 若回填时发现一批论文没有自然 `x.x.x` 落点，先扩 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 再更新分类脚本并重跑，不要为了赶进度把它们硬塞到旧路径。
-8. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
+6. 若任务要求逐篇人工终判，把人工结论写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json`，再重跑分类器。
+7. 若发现会议边界、重名文件、官方页缺失等问题，优先修构建脚本并重跑。
+8. 若回填时发现一批论文没有自然 `x.x.x` 落点，先扩 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 再更新分类脚本并重跑，不要为了赶进度把它们硬塞到旧路径。
+9. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
 
 补充约束：
 

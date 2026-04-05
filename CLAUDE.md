@@ -78,6 +78,8 @@
 9. 后续给论文分类时，默认回填“`软工纳入判定 + 软工主路径（x.x.x） + 1-3 个软工次路径/标签 + 判定依据（X1/D1-D4）`”。
 10. `形式化方法`、`程序分析`、`LLM/AI`、`安全/隐私`、`CPS/嵌入式`、`开源生态`、`运行时` 等更适合作为方法、质量属性或场景维度的横切标签，不应替代主路径。
 11. `frontier_index/SOFTWARE_ENGINEERING_FIELD_TREE.md` 不是冻结 taxonomy；后续扫论文时若发现某类软工论文没有自然落点，应先扩充方向树并同步相关说明，不要为了复用旧标签把论文硬塞进现有 `x.x.x`。
+12. `frontier_index/ccf_history/<year>/metadata/*.json` 中的分类字段默认视为可重建产物；若任务要求逐篇人工终判，应把最终裁决写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json`，再重跑分类器。
+13. 未进入 `manual_review/overrides.json` 的论文，只能视为启发式初判，不能宣称已逐篇人工复核完成。
 
 ## 工具使用说明
 

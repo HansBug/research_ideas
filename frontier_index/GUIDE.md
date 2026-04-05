@@ -135,16 +135,18 @@
 11. `se_primary_path`
 12. `se_secondary_paths`
 13. `se_decision_basis`
-14. `abstract`
-15. `keywords`
-16. `doi`
-17. `landing_url`
-18. `dblp_url`
-19. `bibtex`
-20. `initial_screening`
-21. `screening_reason`
-22. `pdf_followup`
-23. `notes`
+14. `classification_source`
+15. `manual_review_status`
+16. `abstract`
+17. `keywords`
+18. `doi`
+19. `landing_url`
+20. `dblp_url`
+21. `bibtex`
+22. `initial_screening`
+23. `screening_reason`
+24. `pdf_followup`
+25. `notes`
 
 其中 `macro_area` 默认推荐使用以下口径：
 
@@ -182,6 +184,16 @@
 
 这里的目的不是做复杂评分展示，而是让后续 AI 和人工复核都能看见“为什么这篇论文被判成软工 / 非软工”。
 
+其中 `classification_source` 默认推荐使用以下口径：
+
+1. `启发式初判`
+2. `人工复核`
+
+其中 `manual_review_status` 默认推荐使用以下口径：
+
+1. `未人工复核`
+2. `已人工复核`
+
 若后续需要对 `软件工程` 条目继续细分，推荐再补两个可选字段：
 
 1. `se_topic_labels`
@@ -218,6 +230,28 @@
 4. 对纳入软工语料的论文，主路径尽量回填到 `x.x.x`，不要只停在笼统的“主标签”。
 5. 不要把 venue 名称直接当方向标签。
 6. 若论文更像“纯理论/纯系统/纯语言”工作，且没有明显软件工程问题，应降低优先级，必要时直接排除出软工范围。
+
+### 5.3 人工复核覆盖规则
+
+当任务要求“逐篇确认真正所属类型”时，默认必须遵守以下规则：
+
+1. 不要直接散改 `metadata/*.json` 中的分类字段。
+2. 人工终判统一写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json`。
+3. 每条人工复核记录至少应包含：
+   - `paper_key`
+   - `macro_area`
+   - `se_inclusion_decision`
+   - `cross_domain_flag`
+   - `se_primary_path`（若属于软工或跨域但软工主导）
+   - `se_secondary_paths`
+   - `se_decision_basis`
+   - `manual_review_note`
+   - `manual_review_reviewer`
+   - `manual_review_updated_at`
+4. 如果人工复核认为论文不属于软件工程，应清空 `se_primary_path / se_primary_label / se_secondary_paths`。
+5. 如果人工复核发现现有 `x.x.x` 没有自然落点，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，再写人工结论。
+6. 分类器重跑后，应把带覆盖的条目标成 `classification_source=人工复核`、`manual_review_status=已人工复核`。
+7. 未进入覆盖文件的条目只能保留 `classification_source=启发式初判`、`manual_review_status=未人工复核`，不能当作终判。
 
 ### 5.1 优先跟进的典型信号
 
@@ -315,14 +349,16 @@ python -m tools.ccf_se_classifier --year 2025
 3. `frontier_index/ccf_history/<year>/metadata/*.json`
 4. `frontier_index/ccf_history/<year>/bib/*.bib`
 5. `frontier_index/ccf_history/<year>/_cache/`
+6. `frontier_index/ccf_history/<year>/manual_review/overrides.json`
 
 执行要求如下：
 
 1. `_cache/` 默认保留，不应在常规复跑中删除。
 2. 若发现 venue 边界判断、重名覆盖、官方页回退等规则问题，应先修 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 再重跑。
 3. 不应把生成后的 `metadata/*.json`、`bib/*.bib` 当作优先手工维护对象。
-4. 全量生成完成后，必须复核 `verification.json`，再运行分类器回填软工判定与 `x.x.x` 路径。
-5. 构建器当前负责**基础元数据层**；分类器负责 `macro_area / se_inclusion_decision / se_primary_path / se_decision_basis` 等分类补录字段，并重写年度 `README.md`。
+4. 全量生成完成后，必须复核 `verification.json`，再运行分类器生成全量启发式初判。
+5. 若任务要求逐篇终判，应把人工复核结果写入 `manual_review/overrides.json`，再重跑分类器。
+6. 构建器当前负责**基础元数据层**；分类器负责启发式分类补录、人工复核覆盖整合，并重写年度 `README.md`。
 
 若后续某批论文进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py) 生成 `paper_content.txt`。
 

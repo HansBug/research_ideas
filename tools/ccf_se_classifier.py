@@ -20,12 +20,14 @@ import time
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from tools.ccf_se_index_builder import CCF_MD, ROOT, Venue
 
 
 TREE_MD = ROOT / "frontier_index" / "SOFTWARE_ENGINEERING_FIELD_TREE.md"
+MANUAL_REVIEW_DIRNAME = "manual_review"
+MANUAL_OVERRIDE_FILENAME = "overrides.json"
 
 
 SE_LEVEL_PRIOR = {
@@ -1249,6 +1251,14 @@ class LeafDef:
     keywords: Tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class ManualOverrideIndex:
+    by_key: Dict[str, Dict[str, Any]]
+    by_doi: Dict[str, Dict[str, Any]]
+    by_title: Dict[str, Dict[str, Any]]
+    entry_count: int
+
+
 def normalize_text(text: str) -> str:
     text = text.lower()
     text = text.replace("’", "'").replace("–", "-").replace("—", "-")
@@ -1342,6 +1352,78 @@ def parse_typical_paths(cell: str) -> Tuple[str, ...]:
         if item not in deduped:
             deduped.append(item)
     return tuple(deduped)
+
+
+def manual_override_path(target_dir: Path) -> Path:
+    return target_dir / MANUAL_REVIEW_DIRNAME / MANUAL_OVERRIDE_FILENAME
+
+
+def load_manual_override_index(target_dir: Path) -> ManualOverrideIndex:
+    path = manual_override_path(target_dir)
+    if not path.exists():
+        return ManualOverrideIndex(by_key={}, by_doi={}, by_title={}, entry_count=0)
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    entries = payload.get("entries", [])
+    by_key: Dict[str, Dict[str, Any]] = {}
+    by_doi: Dict[str, Dict[str, Any]] = {}
+    by_title: Dict[str, Dict[str, Any]] = {}
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        paper_key = str(entry.get("paper_key") or "").strip()
+        doi = normalize_text(str(entry.get("doi") or ""))
+        title = normalize_text(str(entry.get("title") or ""))
+        if paper_key:
+            by_key[paper_key] = entry
+        if doi:
+            by_doi[doi] = entry
+        if title:
+            by_title[title] = entry
+
+    return ManualOverrideIndex(
+        by_key=by_key,
+        by_doi=by_doi,
+        by_title=by_title,
+        entry_count=len(entries),
+    )
+
+
+def find_manual_override(
+    paper: Dict[str, Any], override_index: ManualOverrideIndex
+) -> Optional[Dict[str, Any]]:
+    paper_key = str(paper.get("key") or "").strip()
+    if paper_key and paper_key in override_index.by_key:
+        return override_index.by_key[paper_key]
+
+    doi = normalize_text(str(paper.get("doi") or ""))
+    if doi and doi in override_index.by_doi:
+        return override_index.by_doi[doi]
+
+    title = normalize_text(str(paper.get("title") or ""))
+    if title and title in override_index.by_title:
+        return override_index.by_title[title]
+
+    return None
+
+
+def normalize_secondary_paths(value: Any) -> List[str]:
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, str):
+        raw_items = re.split(r"[;；]", value)
+    elif value is None:
+        raw_items = []
+    else:
+        raw_items = [value]
+
+    normalized: List[str] = []
+    for item in raw_items:
+        text = str(item).strip()
+        if text and text not in normalized:
+            normalized.append(text)
+    return normalized
 
 
 def parse_venue_priors() -> Dict[Tuple[str, str, str], VenuePrior]:
@@ -1468,6 +1550,10 @@ def choose_primary_path(
             if not alt_code.startswith("8.") and alt_score >= ranked[0][1] - 1:
                 primary = alt_code
                 break
+    if dominant_theme == "ai_for_se":
+        ai_ranked = [(code, score) for code, score in ranked if code.startswith("7.1.")]
+        if ai_ranked and ai_ranked[0][1] >= primary_score - 1:
+            primary = ai_ranked[0][0]
     if primary.startswith("6.3.") and not any(path_matches_prefix(primary, prefix) for prefix in prior.typical_paths):
         for alt_code, alt_score in ranked[1:]:
             if not alt_code.startswith("6.") and alt_score >= 2:
@@ -1485,6 +1571,51 @@ def choose_primary_path(
             break
 
     return primary, secondary
+
+
+def apply_manual_override(
+    paper: Dict[str, Any],
+    override: Dict[str, Any],
+    leaf_defs: Dict[str, LeafDef],
+) -> Dict[str, Any]:
+    updated = dict(paper)
+    override_fields = [
+        "macro_area",
+        "se_inclusion_decision",
+        "cross_domain_flag",
+        "se_primary_path",
+        "se_primary_label",
+        "se_decision_basis",
+    ]
+    for field in override_fields:
+        if field in override:
+            updated[field] = override[field]
+
+    if "se_secondary_paths" in override:
+        updated["se_secondary_paths"] = normalize_secondary_paths(override.get("se_secondary_paths"))
+    else:
+        updated["se_secondary_paths"] = normalize_secondary_paths(updated.get("se_secondary_paths"))
+
+    primary_path = str(updated.get("se_primary_path") or "").strip()
+    decision = str(updated.get("se_inclusion_decision") or "").strip()
+    if decision == "不属于软件工程":
+        updated["se_primary_path"] = ""
+        updated["se_primary_label"] = ""
+        updated["se_secondary_paths"] = []
+    elif primary_path:
+        if primary_path not in leaf_defs:
+            raise ValueError(f"Unknown manual review primary path: {primary_path}")
+        override_label = str(override.get("se_primary_label") or "").strip()
+        updated["se_primary_label"] = override_label or leaf_defs[primary_path].label
+    else:
+        updated["se_primary_label"] = ""
+
+    updated["manual_review_status"] = "已人工复核"
+    updated["classification_source"] = "人工复核"
+    updated["manual_review_note"] = str(override.get("manual_review_note") or "")
+    updated["manual_review_reviewer"] = str(override.get("manual_review_reviewer") or "")
+    updated["manual_review_updated_at"] = str(override.get("manual_review_updated_at") or "")
+    return updated
 
 
 def classify_paper(
@@ -1626,6 +1757,11 @@ def classify_paper(
     updated["se_primary_label"] = primary_label
     updated["se_secondary_paths"] = secondary_paths
     updated["se_decision_basis"] = "; ".join(basis_parts)
+    updated["manual_review_status"] = "未人工复核"
+    updated["classification_source"] = "启发式初判"
+    updated["manual_review_note"] = ""
+    updated["manual_review_reviewer"] = ""
+    updated["manual_review_updated_at"] = ""
     return updated
 
 
@@ -1645,6 +1781,12 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
     se_counts = Counter(
         paper.get("se_inclusion_decision", "待补") for payload in payloads for paper in payload["papers"]
     )
+    review_counts = Counter(
+        paper.get("manual_review_status", "未人工复核") for payload in payloads for paper in payload["papers"]
+    )
+    source_counts = Counter(
+        paper.get("classification_source", "启发式初判") for payload in payloads for paper in payload["papers"]
+    )
     path_counts = Counter(
         f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
         for payload in payloads
@@ -1662,7 +1804,11 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
     lines.append(f"- 当前覆盖的 venue 数量：`{venue_count}`")
     lines.append(f"- 当前已入表论文数量：`{total_papers}`")
     lines.append(f"- 更新时间：`{ts}`")
-    lines.append("- 说明：本页由 `tools/ccf_se_index_builder.py` 生成基础元数据，并由 `tools/ccf_se_classifier.py` 回填软工判定与 `x.x.x` 分类。")
+    lines.append(
+        f"- 人工复核覆盖文件：[manual_review/README.md]({MANUAL_REVIEW_DIRNAME}/README.md) / "
+        f"[manual_review/{MANUAL_OVERRIDE_FILENAME}]({MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME})"
+    )
+    lines.append("- 说明：本页先由 `tools/ccf_se_index_builder.py` 生成基础元数据，再由 `tools/ccf_se_classifier.py` 做启发式初判；若 `manual_review/overrides.json` 中存在逐篇人工复核结果，则人工复核优先覆盖脚本结果。")
     lines.append("")
     lines.append("## 2. 年度汇总统计")
     lines.append("")
@@ -1673,6 +1819,8 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
     lines.append(f"- 实际总条目数：`{verification['total_actual']}`")
     lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts.most_common()))
     lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
+    lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts.most_common()))
+    lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts.most_common()))
     if path_counts:
         lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(12)))
     lines.append("")
@@ -1744,8 +1892,8 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
         lines.append("")
         lines.append("- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。")
         lines.append("")
-        lines.append("| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |")
-        lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+        lines.append("| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
         for idx, paper in enumerate(payload["papers"], start=1):
             authors = ", ".join(paper["authors"])
             doi_cell = f"[{paper['doi']}](https://doi.org/{paper['doi']})" if paper.get("doi") else ""
@@ -1754,15 +1902,22 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
             if paper.get("se_primary_path"):
                 primary = f"{paper['se_primary_path']} {paper.get('se_primary_label', '')}".strip()
             secondary = "；".join(paper.get("se_secondary_paths") or [])
-            note = "跨域" if paper.get("cross_domain_flag") == "是" and paper.get("se_inclusion_decision") != "不属于软件工程" else ""
+            notes: List[str] = []
+            if paper.get("cross_domain_flag") == "是" and paper.get("se_inclusion_decision") != "不属于软件工程":
+                notes.append("跨域")
+            if paper.get("manual_review_note"):
+                notes.append(str(paper.get("manual_review_note")))
+            note = "；".join(notes)
             lines.append(
-                "| {idx} | {title} | {authors} | {summary} | {macro} | {decision} | {primary} | {secondary} | {basis} | {doi} | {official} | {screening} | {pdf} | `{bib}` | {note} |".format(
+                "| {idx} | {title} | {authors} | {summary} | {macro} | {decision} | {source} | {review} | {primary} | {secondary} | {basis} | {doi} | {official} | {screening} | {pdf} | `{bib}` | {note} |".format(
                     idx=idx,
                     title=md_escape(str(paper.get("title") or "")),
                     authors=md_escape(authors),
                     summary=md_escape(str(paper.get("summary") or "")),
                     macro=md_escape(str(paper.get("macro_area") or "")),
                     decision=md_escape(str(paper.get("se_inclusion_decision") or "")),
+                    source=md_escape(str(paper.get("classification_source") or "")),
+                    review=md_escape(str(paper.get("manual_review_status") or "")),
                     primary=md_escape(primary),
                     secondary=md_escape(secondary),
                     basis=md_escape(str(paper.get("se_decision_basis") or "")),
@@ -1780,6 +1935,8 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
         if payload["papers"]:
             decision_counts = Counter(paper.get("se_inclusion_decision", "待补") for paper in payload["papers"])
             macro_counts_local = Counter(paper.get("macro_area", "待补") for paper in payload["papers"])
+            review_counts_local = Counter(paper.get("manual_review_status", "未人工复核") for paper in payload["papers"])
+            source_counts_local = Counter(paper.get("classification_source", "启发式初判") for paper in payload["papers"])
             top_paths_local = Counter(
                 f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
                 for paper in payload["papers"]
@@ -1788,6 +1945,8 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
             top_tags = Counter(tag for paper in payload["papers"] for tag in paper.get("tags", [])).most_common(5)
             lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts_local.most_common()))
             lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in decision_counts.most_common()))
+            lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts_local.most_common()))
+            lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts_local.most_common()))
             if top_paths_local:
                 lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in top_paths_local.most_common(8)))
             if top_tags:
@@ -1802,9 +1961,12 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
     lines.append("")
     lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts.most_common()))
     lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
+    lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts.most_common()))
+    lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts.most_common()))
     if path_counts:
         lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(15)))
-    lines.append("- 复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
+    lines.append("- 计数复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
+    lines.append(f"- 分类终判状态：以 [{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}](./{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}) 为准；未进入覆盖文件的条目仍只是启发式初判。")
     lines.append("- 后续若继续扩年份或重跑年度页，建议先运行 `tools/ccf_se_index_builder.py`，再运行 `tools/ccf_se_classifier.py`。")
     lines.append("")
     return "\n".join(lines)
@@ -1846,9 +2008,11 @@ def load_payloads(target_dir: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any
 def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
     priors = parse_venue_priors()
     leaf_defs = parse_leaf_defs()
+    override_index = load_manual_override_index(target_dir)
     payloads, verification = load_payloads(target_dir)
 
     counters: Counter[str] = Counter()
+    counters["manual_override_entries"] = override_index.entry_count
     for payload in payloads:
         venue = payload["venue"]
         prior = priors[(venue.abbr, venue.rank, venue.kind)]
@@ -1857,6 +2021,14 @@ def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
         updated_papers: List[Dict[str, Any]] = []
         for paper in original["papers"]:
             updated = classify_paper(paper, prior, leaf_defs)
+            override = find_manual_override(paper, override_index)
+            if override is not None:
+                updated = apply_manual_override(updated, override, leaf_defs)
+                counters["review:已人工复核"] += 1
+                counters["source:人工复核"] += 1
+            else:
+                counters["review:未人工复核"] += 1
+                counters["source:启发式初判"] += 1
             updated_papers.append(updated)
             counters["papers"] += 1
             counters[f"macro:{updated['macro_area']}"] += 1
