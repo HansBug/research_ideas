@@ -25,7 +25,7 @@
 
 以下关键词簇用于指导后续增量检索，目标不是泛泛地搜“形式化方法”或“建模”，而是优先命中**具有具体控制系统客体**、并且更可能包含可提取状态机自然语言描述的论文。
 
-当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `129` 条条目看，`EFSM` 占 `74` 条、`T1` 占 `72` 条、`HSM` 占 `42` 条、`FSM` 占 `13` 条，主体已扩展为 `PLC / SCADA / mission supervisor / robot manipulator / greenhouse inspection / cotton harvesting rover / smart shunt / pediatric knee exoskeleton / myoelectric prosthesis / multigrasp prosthetic hand / semi-autonomous bimanual prosthesis / multi-functional myoelectric prosthesis / powered knee prosthesis / insole-sensor transfemoral prosthesis / self-contained anthropomorphic transfemoral prosthesis / powered transfemoral prosthesis / semi-powered swing-assist prosthesis / open-source bionic leg / TWIN lower limb exoskeleton / adaptive knee-ankle prosthesis / motorized HKAF prosthesis / CYBERLEGs beta-prosthesis / EMG-controlled semi-active knee prosthesis / transhumeral multigrasp controller / active knee-ankle prosthesis for level-incline walking / stair-climbing powered knee-ankle prosthesis / bilateral robotic knee exoskeleton / post-stroke knee orthosis plus walker / sit-to-stand exoskeleton / gait-training exoskeleton / variable-impedance hybrid neuroprosthesis / muscle-driven paraplegia exoskeleton / modular neuroprosthesis / smart prosthetic hand / prosthetic hand body-area controller / powered knee-ankle prosthesis / powered hip exoskeleton / soft lower-limb exoskeleton / hybrid gait restoration system / CyberLimb prosthesis / sEMG + vision hybrid prosthetic hand / powered foot-ankle prosthesis / FES walking assistance system / reflexive FES gait-assist system / portable lower-limb exoskeleton / ASV trailer docking / cotton laser weeding robot / low-altitude helicopter / underground-mine UAV / MINDWALKER exoskeleton / peritoneal dialysis machine / car-sharing relocation planner / safety-critical lane-change controller / JoinTail platoon manoeuvre / railway crossing interlocking / three-floor Mealy elevator / abortable overtaking planner / urban regulatory-signal planner / timed sliding-door controller / FPGA parking gate allocator / DFA railway gate controller / multi-mode traffic light controller / sprinkler irrigation supervisor / RFID garage controller / FPGA lift controller` 风格的离散工程控制与模式管理样本。
+当前下一轮主补样目标，优先对准 `原文 = 描述 = 🟢 A` 候选里最稳定的一类：`FSM / HSM / EFSM + T0 / T1`。从当前已达双 A 的同类 `134` 条条目看，`EFSM` 占 `76` 条、`T1` 占 `75` 条、`HSM` 占 `44` 条、`FSM` 占 `14` 条，主体已扩展为 `PLC / SCADA / mission supervisor / robot manipulator / greenhouse inspection / cotton harvesting rover / smart shunt / pediatric knee exoskeleton / myoelectric prosthesis / multigrasp prosthetic hand / semi-autonomous bimanual prosthesis / multi-functional myoelectric prosthesis / powered knee prosthesis / insole-sensor transfemoral prosthesis / self-contained anthropomorphic transfemoral prosthesis / powered transfemoral prosthesis / semi-powered swing-assist prosthesis / open-source bionic leg / TWIN lower limb exoskeleton / adaptive knee-ankle prosthesis / motorized HKAF prosthesis / CYBERLEGs beta-prosthesis / EMG-controlled semi-active knee prosthesis / transhumeral multigrasp controller / active knee-ankle prosthesis for level-incline walking / stair-climbing powered knee-ankle prosthesis / bilateral robotic knee exoskeleton / post-stroke knee orthosis plus walker / sit-to-stand exoskeleton / gait-training exoskeleton / variable-impedance hybrid neuroprosthesis / muscle-driven paraplegia exoskeleton / modular neuroprosthesis / smart prosthetic hand / prosthetic hand body-area controller / powered knee-ankle prosthesis / powered hip exoskeleton / soft lower-limb exoskeleton / hybrid gait restoration system / CyberLimb prosthesis / sEMG + vision hybrid prosthetic hand / powered foot-ankle prosthesis / FES walking assistance system / reflexive FES gait-assist system / portable lower-limb exoskeleton / ASV trailer docking / cotton laser weeding robot / low-altitude helicopter / underground-mine UAV / MINDWALKER exoskeleton / peritoneal dialysis machine / car-sharing relocation planner / safety-critical lane-change controller / JoinTail platoon manoeuvre / railway crossing interlocking / three-floor Mealy elevator / abortable overtaking planner / urban regulatory-signal planner / timed sliding-door controller / FPGA parking gate allocator / DFA railway gate controller / multi-mode traffic light controller / sprinkler irrigation supervisor / RFID garage controller / FPGA lift controller` 风格的离散工程控制与模式管理样本。
 
 后续检索还有两个硬约束，必须同时满足：
 
@@ -74,10 +74,10 @@
 
 ## 当前收录统计
 
-- 已收录论文：**259** 篇
+- 已收录论文：**264** 篇
 - 本轮新增论文：**5** 篇
 - 本轮下载失败记录：**63** 条
-- 已完成 STM 梳理：**259** 篇
+- 已完成 STM 梳理：**264** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 [STM_GUIDE.md](./STM_GUIDE.md) 补齐 `STM.md`。
 
@@ -109,19 +109,19 @@
 
 | 领域 | `🟢 直接可用` | `🟡 可整理` | `⚪ 未收获` | `⏳ 尚未提取` | 总计 |
 | --- | --- | --- | --- | --- | ---: |
-| 🚗 汽车与道路车辆控制 | 13 | 2 | 14 | 0 | 29 |
-| 🚆 轨道交通与铁路控制 | 14 | 3 | 7 | 0 | 24 |
-| ✈️ 航空航天与飞行/空管控制 | 22 | 0 | 10 | 0 | 32 |
+| 🚗 汽车与道路车辆控制 | 14 | 2 | 14 | 0 | 30 |
+| 🚆 轨道交通与铁路控制 | 15 | 3 | 7 | 0 | 25 |
+| ✈️ 航空航天与飞行/空管控制 | 23 | 0 | 10 | 0 | 33 |
 | 🩺 医疗设备与生命支持控制 | 63 | 1 | 2 | 0 | 66 |
 | 🏭 工业自动化与离散制造 | 10 | 1 | 7 | 0 | 18 |
-| 🏢 楼宇机电与电梯控制 | 15 | 1 | 3 | 0 | 19 |
+| 🏢 楼宇机电与电梯控制 | 16 | 1 | 3 | 0 | 20 |
 | 🌡️ 过程与环境控制 | 8 | 1 | 1 | 0 | 10 |
-| 🚦 道路交通信号控制 | 16 | 4 | 0 | 0 | 20 |
+| 🚦 道路交通信号控制 | 17 | 4 | 0 | 0 | 21 |
 | 🅿️ 智慧停车与车位管理 | 12 | 3 | 3 | 0 | 18 |
 | 🧩 建模方法与系统工程 | 1 | 0 | 3 | 0 | 4 |
 | 🔐 安全/安保分析 | 0 | 0 | 4 | 0 | 4 |
 | ⚙️ 通用控制与形式化工具 | 13 | 0 | 2 | 0 | 15 |
-| **合计** | 187 | 16 | 56 | 0 | 259 |
+| **合计** | 192 | 16 | 56 | 0 | 264 |
 
 ### 论文清单
 
@@ -390,6 +390,11 @@
 | 257 | 🅿️ | `🟢 直接可用` | 1 | Control system of automatic garage using programmable logic controller | 2020 | RFID 车库门禁与车位分配控制 | `automatic garage, PLC, RFID, IR sensor, SCADA, stepper motor` | [STM](./control-system-of-automatic-garage-using-programmable-logic-controller/STM.md) / [DESC](./control-system-of-automatic-garage-using-programmable-logic-controller/DESC.md) |
 | 258 | 🅿️ | `🟢 直接可用` | 1 | Automatic Car Parking and Controlling System Using Programmable Logic Controller (PLC) | 2015 | 计数式停车场门禁与满位控制 | `car parking, PLC, ladder logic, IR sensor, gate control, timer` | [STM](./automatic-car-parking-and-controlling-system-using-programmable-logic-controller/STM.md) / [DESC](./automatic-car-parking-and-controlling-system-using-programmable-logic-controller/DESC.md) |
 | 259 | 🏢 | `🟢 直接可用` | 1 | FPGA IMPLEMENTATION FOR EFFICIENT LIFT CONTROL SYSTEM | 2023 | 八层电梯请求与告警停机控制 | `lift control system, FPGA, elevator control, Verilog, request floor, door alert` | [STM](./fpga-implementation-for-efficient-lift-control-system/STM.md) / [DESC](./fpga-implementation-for-efficient-lift-control-system/DESC.md) |
+| 260 | 🚆 | `🟢 直接可用` | 1 | Plc Based Traffic Light Control With Automatic Railway Gate Crossing | 2021 | 道口门控与道路信号联动 | `railway gate, traffic light, PLC, proximity sensor, bidirectional sequence` | [STM](./plc-based-traffic-light-control-with-automatic-railway-gate-crossing/STM.md) / [DESC](./plc-based-traffic-light-control-with-automatic-railway-gate-crossing/DESC.md) |
+| 261 | 🚦 | `🟢 直接可用` | 1 | Digital System Design for Traffic Light Controller System: A Systematic Approach | 2021 | 双向路口定时交通灯 FSM | `traffic light controller, finite state machine, Verilog, timed sequence, crossroads` | [STM](./digital-system-design-for-traffic-light-controller-system/STM.md) / [DESC](./digital-system-design-for-traffic-light-controller-system/DESC.md) |
+| 262 | 🏢 | `🟢 直接可用` | 1 | Control System Design of Automatic Door Based on PLC | 2016 | 自动门开闭与防夹控制 | `automatic door, PLC, anti-pinch, travel switch, pulse output` | [STM](./control-system-design-of-automatic-door-based-on-plc/STM.md) / [DESC](./control-system-design-of-automatic-door-based-on-plc/DESC.md) |
+| 263 | 🚗 | `🟢 直接可用` | 1 | Team AnnieWAY's autonomous system for the 2007 DARPA Urban Challenge | 2008 | 城市自动驾驶行为决策 CHSM | `autonomous driving, urban challenge, maneuver planner, concurrent hierarchical state machine, intersection` | [STM](./team-annieways-autonomous-system-for-the-2007-darpa-urban-challenge/STM.md) / [DESC](./team-annieways-autonomous-system-for-the-2007-darpa-urban-challenge/DESC.md) |
+| 264 | ✈️ | `🟢 直接可用` | 1 | A Finite State Machine Based Adaptive Mission Control of Mini Aerial Vehicle | 2018 | 巡检任务自适应任务控制 | `mini aerial vehicle, mission control, hierarchical state machine, inspection, emergency` | [STM](./finite-state-machine-based-adaptive-mission-control-of-mini-aerial-vehicle/STM.md) / [DESC](./finite-state-machine-based-adaptive-mission-control-of-mini-aerial-vehicle/DESC.md) |
 
 ### `⚪ 未收获` 论文成因分布
 
@@ -543,117 +548,117 @@
 
 | 指标 | 数量 | 占比 | 说明 |
 | --- | ---: | --- | --- |
-| 含正例案例的论文数 | 203 | 78.4% | 以 259 篇论文为分母，至少含 1 条正例案例 |
-| 正例案例总数 | 218 | 100.0% | 案例级主账的当前规模 |
-| `💎 核心保留` | 176 | 80.7% | 可直接进入主训练集母体 |
-| `🧰 清洗后保留` | 15 | 6.9% | 案例可留，但需先补原文细节或重写描述 |
-| `🪫 降采样保留` | 27 | 12.4% | 细节过线，但属于强趋同簇 |
-| `原文 = 🟢 A / 🟡 B` | 203 | 93.1% | 原文侧达到主数据集候选下限 |
-| `描述 = 🟢 A / 🟡 B` | 203 | 93.1% | 当前 STM 描述稿本身达到主数据集候选下限 |
+| 含正例案例的论文数 | 208 | 78.8% | 以 264 篇论文为分母，至少含 1 条正例案例 |
+| 正例案例总数 | 223 | 100.0% | 案例级主账的当前规模 |
+| `💎 核心保留` | 181 | 81.2% | 可直接进入主训练集母体 |
+| `🧰 清洗后保留` | 15 | 6.7% | 案例可留，但需先补原文细节或重写描述 |
+| `🪫 降采样保留` | 27 | 12.1% | 细节过线，但属于强趋同簇 |
+| `原文 = 🟢 A / 🟡 B` | 208 | 93.3% | 原文侧达到主数据集候选下限 |
+| `描述 = 🟢 A / 🟡 B` | 208 | 93.3% | 当前 STM 描述稿本身达到主数据集候选下限 |
 
 ### 各领域案例角色分布
 
 | 领域 | `💎 核心保留` | `🧰 清洗后保留` | `🪫 降采样保留` | 总计 |
 | --- | --- | --- | --- | ---: |
-| 🚗 汽车与道路车辆控制 | 10 | 2 | 4 | 16 |
-| 🚆 轨道交通与铁路控制 | 11 | 2 | 6 | 19 |
-| ✈️ 航空航天与飞行/空管控制 | 19 | 0 | 3 | 22 |
+| 🚗 汽车与道路车辆控制 | 11 | 2 | 4 | 17 |
+| 🚆 轨道交通与铁路控制 | 12 | 2 | 6 | 20 |
+| ✈️ 航空航天与飞行/空管控制 | 20 | 0 | 3 | 23 |
 | 🩺 医疗设备与生命支持控制 | 66 | 1 | 0 | 67 |
 | 🏭 工业自动化与离散制造 | 10 | 3 | 2 | 15 |
-| 🏢 楼宇机电与电梯控制 | 12 | 0 | 4 | 16 |
+| 🏢 楼宇机电与电梯控制 | 13 | 0 | 4 | 17 |
 | 🌡️ 过程与环境控制 | 6 | 1 | 3 | 10 |
-| 🚦 道路交通信号控制 | 12 | 5 | 4 | 21 |
+| 🚦 道路交通信号控制 | 13 | 5 | 4 | 22 |
 | 🅿️ 智慧停车与车位管理 | 16 | 1 | 1 | 18 |
 | 🧩 建模方法与系统工程 | 1 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 13 | 0 | 0 | 13 |
-| **合计** | 176 | 15 | 27 | 218 |
+| **合计** | 181 | 15 | 27 | 223 |
 
 ### 各领域原文细节充实度分布
 
 | 领域 | `🟢 A` | `🟡 B` | `🟠 C` | `🔴 D` | 总计 |
 | --- | --- | --- | --- | --- | ---: |
-| 🚗 汽车与道路车辆控制 | 6 | 8 | 0 | 2 | 16 |
-| 🚆 轨道交通与铁路控制 | 6 | 11 | 2 | 0 | 19 |
-| ✈️ 航空航天与飞行/空管控制 | 16 | 6 | 0 | 0 | 22 |
+| 🚗 汽车与道路车辆控制 | 7 | 8 | 0 | 2 | 17 |
+| 🚆 轨道交通与铁路控制 | 7 | 11 | 2 | 0 | 20 |
+| ✈️ 航空航天与飞行/空管控制 | 17 | 6 | 0 | 0 | 23 |
 | 🩺 医疗设备与生命支持控制 | 64 | 2 | 1 | 0 | 67 |
 | 🏭 工业自动化与离散制造 | 8 | 4 | 3 | 0 | 15 |
-| 🏢 楼宇机电与电梯控制 | 6 | 10 | 0 | 0 | 16 |
+| 🏢 楼宇机电与电梯控制 | 7 | 10 | 0 | 0 | 17 |
 | 🌡️ 过程与环境控制 | 6 | 3 | 1 | 0 | 10 |
-| 🚦 道路交通信号控制 | 6 | 10 | 5 | 0 | 21 |
+| 🚦 道路交通信号控制 | 7 | 10 | 5 | 0 | 22 |
 | 🅿️ 智慧停车与车位管理 | 8 | 9 | 1 | 0 | 18 |
 | 🧩 建模方法与系统工程 | 0 | 1 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 13 | 0 | 0 | 0 | 13 |
-| **合计** | 139 | 64 | 13 | 2 | 218 |
+| **合计** | 144 | 64 | 13 | 2 | 223 |
 
 ### 各领域描述细节充实度分布
 
 | 领域 | `🟢 A` | `🟡 B` | `🟠 C` | `🔴 D` | 总计 |
 | --- | --- | --- | --- | --- | ---: |
-| 🚗 汽车与道路车辆控制 | 6 | 8 | 1 | 1 | 16 |
-| 🚆 轨道交通与铁路控制 | 6 | 11 | 2 | 0 | 19 |
-| ✈️ 航空航天与飞行/空管控制 | 16 | 6 | 0 | 0 | 22 |
+| 🚗 汽车与道路车辆控制 | 7 | 8 | 1 | 1 | 17 |
+| 🚆 轨道交通与铁路控制 | 7 | 11 | 2 | 0 | 20 |
+| ✈️ 航空航天与飞行/空管控制 | 17 | 6 | 0 | 0 | 23 |
 | 🩺 医疗设备与生命支持控制 | 64 | 2 | 1 | 0 | 67 |
 | 🏭 工业自动化与离散制造 | 8 | 4 | 3 | 0 | 15 |
-| 🏢 楼宇机电与电梯控制 | 6 | 10 | 0 | 0 | 16 |
+| 🏢 楼宇机电与电梯控制 | 7 | 10 | 0 | 0 | 17 |
 | 🌡️ 过程与环境控制 | 6 | 3 | 1 | 0 | 10 |
-| 🚦 道路交通信号控制 | 6 | 10 | 5 | 0 | 21 |
+| 🚦 道路交通信号控制 | 7 | 10 | 5 | 0 | 22 |
 | 🅿️ 智慧停车与车位管理 | 8 | 9 | 1 | 0 | 18 |
 | 🧩 建模方法与系统工程 | 0 | 1 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 13 | 0 | 0 | 0 | 13 |
-| **合计** | 139 | 64 | 14 | 1 | 218 |
+| **合计** | 144 | 64 | 14 | 1 | 223 |
 
 ### 各领域时间级别分布
 
 | 领域 | `T0` | `T1` | `T2` | `T3` | `N/A` | 总计 |
 | --- | --- | --- | --- | --- | --- | ---: |
-| 🚗 汽车与道路车辆控制 | 7 | 2 | 5 | 2 | 0 | 16 |
-| 🚆 轨道交通与铁路控制 | 13 | 5 | 1 | 0 | 0 | 19 |
-| ✈️ 航空航天与飞行/空管控制 | 13 | 7 | 2 | 0 | 0 | 22 |
+| 🚗 汽车与道路车辆控制 | 8 | 2 | 5 | 2 | 0 | 17 |
+| 🚆 轨道交通与铁路控制 | 14 | 5 | 1 | 0 | 0 | 20 |
+| ✈️ 航空航天与飞行/空管控制 | 13 | 8 | 2 | 0 | 0 | 23 |
 | 🩺 医疗设备与生命支持控制 | 26 | 36 | 5 | 0 | 0 | 67 |
 | 🏭 工业自动化与离散制造 | 6 | 7 | 2 | 0 | 0 | 15 |
-| 🏢 楼宇机电与电梯控制 | 3 | 13 | 0 | 0 | 0 | 16 |
+| 🏢 楼宇机电与电梯控制 | 3 | 14 | 0 | 0 | 0 | 17 |
 | 🌡️ 过程与环境控制 | 6 | 4 | 0 | 0 | 0 | 10 |
-| 🚦 道路交通信号控制 | 0 | 21 | 0 | 0 | 0 | 21 |
+| 🚦 道路交通信号控制 | 0 | 22 | 0 | 0 | 0 | 22 |
 | 🅿️ 智慧停车与车位管理 | 6 | 3 | 0 | 9 | 0 | 18 |
 | 🧩 建模方法与系统工程 | 1 | 0 | 0 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 9 | 3 | 0 | 1 | 0 | 13 |
-| **合计** | 90 | 101 | 15 | 12 | 0 | 218 |
+| **合计** | 92 | 104 | 15 | 12 | 0 | 223 |
 
 ### 各领域状态机类型分布
 
 | 领域 | `FSM` | `EFSM` | `HSM` | `Protocol` | `Resource-flow` | `Hybrid` | `N/A` | 总计 |
 | --- | --- | --- | --- | --- | --- | --- | --- | ---: |
-| 🚗 汽车与道路车辆控制 | 3 | 0 | 3 | 3 | 0 | 7 | 0 | 16 |
-| 🚆 轨道交通与铁路控制 | 4 | 5 | 0 | 0 | 10 | 0 | 0 | 19 |
-| ✈️ 航空航天与飞行/空管控制 | 1 | 9 | 10 | 1 | 1 | 0 | 0 | 22 |
+| 🚗 汽车与道路车辆控制 | 3 | 0 | 4 | 3 | 0 | 7 | 0 | 17 |
+| 🚆 轨道交通与铁路控制 | 4 | 6 | 0 | 0 | 10 | 0 | 0 | 20 |
+| ✈️ 航空航天与飞行/空管控制 | 1 | 9 | 11 | 1 | 1 | 0 | 0 | 23 |
 | 🩺 医疗设备与生命支持控制 | 1 | 41 | 25 | 0 | 0 | 0 | 0 | 67 |
 | 🏭 工业自动化与离散制造 | 1 | 10 | 4 | 0 | 0 | 0 | 0 | 15 |
-| 🏢 楼宇机电与电梯控制 | 1 | 14 | 1 | 0 | 0 | 0 | 0 | 16 |
+| 🏢 楼宇机电与电梯控制 | 1 | 15 | 1 | 0 | 0 | 0 | 0 | 17 |
 | 🌡️ 过程与环境控制 | 0 | 9 | 1 | 0 | 0 | 0 | 0 | 10 |
-| 🚦 道路交通信号控制 | 1 | 20 | 0 | 0 | 0 | 0 | 0 | 21 |
+| 🚦 道路交通信号控制 | 2 | 20 | 0 | 0 | 0 | 0 | 0 | 22 |
 | 🅿️ 智慧停车与车位管理 | 1 | 4 | 3 | 0 | 2 | 8 | 0 | 18 |
 | 🧩 建模方法与系统工程 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 2 | 4 | 6 | 0 | 0 | 1 | 0 | 13 |
-| **合计** | 15 | 117 | 53 | 4 | 13 | 16 | 0 | 218 |
+| **合计** | 16 | 119 | 55 | 4 | 13 | 16 | 0 | 223 |
 
 ### 结构标签覆盖率（多标签口径）
 
-> 说明：本表按多标签计数，占比以 `218` 条正例案例为分母，因此不会加总到 `100.0%`。
+> 说明：本表按多标签计数，占比以 `223` 条正例案例为分母，因此不会加总到 `100.0%`。
 
 | 结构标签 | 条目数 | 占比 |
 | --- | ---: | --- |
-| `显式时钟` | 53 | 24.3% |
-| `层次` | 54 | 24.8% |
-| `连续耦合` | 19 | 8.7% |
-| `资源互斥` | 14 | 6.4% |
-| `并行` | 13 | 6.0% |
-| `协议交互` | 11 | 5.0% |
-| `-`（无额外结构标签） | 83 | 38.1% |
+| `显式时钟` | 54 | 24.2% |
+| `层次` | 56 | 25.1% |
+| `连续耦合` | 19 | 8.5% |
+| `资源互斥` | 14 | 6.3% |
+| `并行` | 14 | 6.3% |
+| `协议交互` | 11 | 4.9% |
+| `-`（无额外结构标签） | 85 | 38.1% |
 
 ### 强趋同簇汇总（已按类型 / 时间 / 结构复核代表样本）
 
@@ -935,6 +940,11 @@
 | 216 | 257 | 🅿️ | RFID-Guided Garage Entry/Exit and Slot-Allocation Controller | 智慧停车领域的 PLC 车库门禁与车位分配控制系统 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./control-system-of-automatic-garage-using-programmable-logic-controller/STM.md) / [DESC](./control-system-of-automatic-garage-using-programmable-logic-controller/DESC.md) |
 | 217 | 258 | 🅿️ | Entry-Exit Gate Cycle with Occupancy Counter | 智慧停车领域的 PLC 停车场入口/出口门禁控制器 | `EFSM` | `T1` | `显式时钟` | `🪫 降采样保留` | `🟢 A` | `🟢 A` | [STM](./automatic-car-parking-and-controlling-system-using-programmable-logic-controller/STM.md) / [DESC](./automatic-car-parking-and-controlling-system-using-programmable-logic-controller/DESC.md) |
 | 218 | 259 | 🏢 | Eight-Floor Lift Request and Alert Controller | 楼宇机电领域的 FPGA 八层电梯控制器 | `EFSM` | `T1` | `显式时钟` | `🪫 降采样保留` | `🟢 A` | `🟢 A` | [STM](./fpga-implementation-for-efficient-lift-control-system/STM.md) / [DESC](./fpga-implementation-for-efficient-lift-control-system/DESC.md) |
+| 219 | 260 | 🚆 | Bidirectional Railway-Gate and Road-Signal Cycle | 轨道交通与铁路控制领域的 PLC 道口栏杆与道路信号联动控制器 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./plc-based-traffic-light-control-with-automatic-railway-gate-crossing/STM.md) / [DESC](./plc-based-traffic-light-control-with-automatic-railway-gate-crossing/DESC.md) |
+| 220 | 261 | 🚦 | Six-State Timed Two-Street Traffic-Light FSM | 道路交通信号领域的双向路口交通灯控制器 | `FSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./digital-system-design-for-traffic-light-controller-system/STM.md) / [DESC](./digital-system-design-for-traffic-light-controller-system/DESC.md) |
+| 221 | 262 | 🏢 | Sensor-Triggered Automatic Door Open-Hold-Close Controller | 楼宇机电领域的 PLC 自动门控制器 | `EFSM` | `T1` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./control-system-design-of-automatic-door-based-on-plc/STM.md) / [DESC](./control-system-design-of-automatic-door-based-on-plc/DESC.md) |
+| 222 | 263 | 🚗 | Concurrent Urban-Driving Behavior State Machine | 汽车与道路车辆领域的城市自动驾驶行为决策控制器 | `HSM` | `T0` | `层次, 并行` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./team-annieways-autonomous-system-for-the-2007-darpa-urban-challenge/STM.md) / [DESC](./team-annieways-autonomous-system-for-the-2007-darpa-urban-challenge/DESC.md) |
+| 223 | 264 | ✈️ | Adaptive Inspection Mission HSM for Mini Aerial Vehicle | 航空航天与飞行控制领域的微型飞行器巡检任务控制器 | `HSM` | `T1` | `层次` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./finite-state-machine-based-adaptive-mission-control-of-mini-aerial-vehicle/STM.md) / [DESC](./finite-state-machine-based-adaptive-mission-control-of-mini-aerial-vehicle/DESC.md) |
 
 ## 统一更新日志
 
@@ -942,6 +952,7 @@
 
 | 时间 | 论文总账更新 | 案例总账更新 | 说明 |
 | --- | --- | --- | --- |
+| 2026-04-05 08:28:47 | 新增 **5** 篇，当前累计 **264** 篇 | 新增 `#260-264` 与 `#219-223` 并同步汇总统计；新增 `5` 个双 A 样本并完成总账回填 | 双向道口门控与道路信号联动、六状态定时交通灯 FSM、自动门开闭与防夹控制、城市自动驾驶并发层次行为机、微型飞行器巡检任务 HSM。 |
 | 2026-04-05 07:19:10 | 新增 **5** 篇，当前累计 **259** 篇 | 新增 `#255-259` 与 `#214-218` 并同步汇总统计；新增 `5` 个双 A 样本并完成总账回填 | 四路口多模式交通灯控制、土壤湿度监督喷灌控制、RFID 车库门禁与车位分配控制、计数式停车场门禁与满位控制、八层电梯请求与告警停机控制。 |
 | 2026-04-05 06:13:56 | 新增 **5** 篇，当前累计 **254** 篇 | 新增 `#250-254` 与 `#209-213` 并同步汇总统计；新增 `5` 个双 A 样本并完成总账回填 | 可中止超车四态行为规划器、城市监管信号四态 FSM、自动滑门双定时门控、FPGA 停车场门禁与车位分配控制器、DFA 铁路道口栏杆控制器。 |
 | 2026-04-05 05:17:55 | 新增 **5** 篇，当前累计 **249** 篇 | 新增 `#245-249` 与 `#204-208` 并同步汇总统计；新增 `5` 个双 A 样本并完成总账回填 | 车共享重定位 follower 五态行为规划器、安全关键自动换道 FSM、`JoinTail` 分层机动 HSM、铁路道口联锁五态状态机、三层电梯 Mealy 状态机控制器。 |
