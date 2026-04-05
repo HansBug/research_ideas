@@ -1,0 +1,1895 @@
+#!/usr/bin/env python3
+"""Classify yearly CCF papers into SE / non-SE and SE field paths.
+
+This tool is intentionally offline: it reads the generated yearly
+metadata under ``frontier_index/ccf_history/<year>/metadata/*.json``,
+combines venue-level priors from ``frontier_index/CCF_SE_A_B_C.md`` and
+the current SE field tree, then writes back:
+
+1. per-paper macro area and SE inclusion fields
+2. x.x.x primary path and label for SE papers
+3. a re-rendered yearly README with the new classification columns
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import time
+from collections import Counter
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Tuple
+
+from tools.ccf_se_index_builder import CCF_MD, ROOT, Venue
+
+
+TREE_MD = ROOT / "frontier_index" / "SOFTWARE_ENGINEERING_FIELD_TREE.md"
+
+
+SE_LEVEL_PRIOR = {
+    "完全属于软工": 3,
+    "大部分属于软工": 2,
+    "部分属于软工": 0,
+    "大部分不属于软工": -2,
+    "完全不属于软工": -3,
+}
+
+
+MANUAL_LEAF_KEYWORDS: Dict[str, List[str]] = {
+    "1.1.1": [
+        "requirements elicitation",
+        "requirement elicitation",
+        "requirements extraction",
+        "requirement extraction",
+        "stakeholder",
+        "user story",
+        "user feedback",
+        "feedback mining",
+        "interview study",
+        "use case",
+        "use case description",
+        "requirements specification",
+    ],
+    "1.1.2": [
+        "requirements prioritization",
+        "requirement prioritization",
+        "goal model",
+        "goal-oriented",
+        "stakeholder negotiation",
+        "priority ranking",
+    ],
+    "1.1.3": [
+        "requirements quality",
+        "requirement quality",
+        "requirements ambiguity",
+        "ambiguity detection",
+        "requirement inconsistency",
+        "requirements consistency",
+        "requirements inconsistency",
+        "inconsistency in requirements",
+        "inconsistencies in requirements",
+        "ambiguous requirement",
+    ],
+    "1.1.4": [
+        "traceability",
+        "trace link",
+        "requirements traceability",
+        "impact analysis",
+        "change impact",
+        "rationale recovery",
+    ],
+    "1.1.5": [
+        "requirements reuse",
+        "requirement reuse",
+        "requirements debt",
+        "requirement debt",
+        "requirements pattern",
+        "pattern library",
+    ],
+    "1.2.1": [
+        "formal specification",
+        "formal specifications",
+        "contract-based",
+        "software contract",
+        "invariant inference",
+    ],
+    "1.2.2": [
+        "natural language to",
+        "specification mining",
+        "property mining",
+        "property extraction",
+        "nl2ltl",
+    ],
+    "1.2.3": [
+        "specification consistency",
+        "specification completeness",
+        "satisfiability",
+        "consistency checking",
+        "specification inconsistency",
+        "specification inconsistencies",
+    ],
+    "1.2.4": [
+        "assurance case",
+        "safety case",
+        "compliance rule",
+        "regulatory requirement",
+    ],
+    "1.3.1": [
+        "modeling language",
+        "modeling framework",
+        "state machine",
+        "statechart",
+        "behavior model",
+        "domain-specific language",
+    ],
+    "1.3.2": [
+        "model transformation",
+        "model synchronization",
+        "model co-evolution",
+        "round-trip engineering",
+    ],
+    "1.3.3": [
+        "model analysis",
+        "model simulation",
+        "model verification",
+        "model checking",
+    ],
+    "1.3.4": [
+        "model-based testing",
+        "model based testing",
+        "digital twin",
+        "code generation from models",
+    ],
+    "1.3.5": [
+        "model repository",
+        "model management",
+        "model quality",
+        "repository mining for models",
+    ],
+    "1.4.1": [
+        "feature model",
+        "product configuration",
+        "software product line",
+        "variability model",
+    ],
+    "1.4.2": [
+        "software product line",
+        "core asset",
+        "family architecture",
+        "reuse asset",
+    ],
+    "1.4.3": [
+        "config-aware",
+        "family-based testing",
+        "variability-aware",
+    ],
+    "1.4.4": [
+        "variability evolution",
+        "option interaction",
+        "configurable system",
+    ],
+    "2.1.1": [
+        "software architecture",
+        "architecture reconstruction",
+        "architecture recovery",
+        "architecture documentation",
+    ],
+    "2.1.2": [
+        "architecture evaluation",
+        "trade-off analysis",
+        "quality attribute reasoning",
+        "architecture debt",
+    ],
+    "2.1.3": [
+        "microservice migration",
+        "service decomposition",
+        "architecture refactoring",
+        "monolith to microservice",
+    ],
+    "2.1.4": [
+        "microservice architecture",
+        "service-oriented architecture",
+        "serverless",
+        "platform engineering",
+    ],
+    "2.1.5": [
+        "architecture decision",
+        "architecture rationale",
+        "adr",
+        "architectural decision record",
+    ],
+    "2.2.1": [
+        "design pattern",
+        "anti-pattern",
+        "design heuristic",
+    ],
+    "2.2.2": [
+        "modularity",
+        "coupling",
+        "cohesion",
+        "dependency structure",
+        "decoupling",
+    ],
+    "2.2.3": [
+        "api design",
+        "api usability",
+        "api versioning",
+        "protocol evolution",
+        "interface design",
+    ],
+    "2.2.4": [
+        "design smell",
+        "design debt",
+        "maintainability",
+    ],
+    "2.3.1": [
+        "code generator",
+        "low-code",
+        "low code",
+        "language workbench",
+        "scaffolding",
+    ],
+    "2.3.2": [
+        "build system",
+        "toolchain",
+        "ide",
+        "workspace automation",
+    ],
+    "2.3.3": [
+        "component assembly",
+        "package engineering",
+        "integration pipeline",
+    ],
+    "2.3.4": [
+        "pair programming",
+        "review assistant",
+        "ide assistant",
+        "coding assistant",
+    ],
+    "3.1.1": [
+        "test generation",
+        "test amplification",
+        "oracle generation",
+        "automated testing",
+    ],
+    "3.1.2": [
+        "regression testing",
+        "test prioritization",
+        "test selection",
+        "test impact analysis",
+    ],
+    "3.1.3": [
+        "fuzzing",
+        "search-based testing",
+        "mutation testing",
+        "metamorphic testing",
+        "property-based testing",
+    ],
+    "3.1.4": [
+        "gui testing",
+        "web testing",
+        "mobile testing",
+        "cps testing",
+        "ai system testing",
+    ],
+    "3.1.5": [
+        "flaky test",
+        "test debt",
+        "test smell",
+        "test suite maintenance",
+    ],
+    "3.2.1": [
+        "static analysis",
+        "abstract interpretation",
+        "dataflow analysis",
+        "taint analysis",
+    ],
+    "3.2.2": [
+        "dynamic analysis",
+        "trace analysis",
+        "instrumentation",
+        "hybrid analysis",
+    ],
+    "3.2.3": [
+        "vulnerability analysis",
+        "reliability analysis",
+        "compliance analysis",
+        "security analysis",
+    ],
+    "3.2.4": [
+        "analysis-guided refactoring",
+        "analysis-guided repair",
+        "analysis-guided synthesis",
+    ],
+    "3.3.1": [
+        "software verification",
+        "formal verification",
+        "model checking",
+        "theorem proving",
+        "smt-based verification",
+    ],
+    "3.3.2": [
+        "runtime verification",
+        "runtime monitoring",
+        "online checking",
+        "monitor synthesis",
+    ],
+    "3.3.3": [
+        "compliance verification",
+        "certification evidence",
+        "safety assurance",
+        "assurance evidence",
+    ],
+    "3.3.4": [
+        "tool competition",
+        "verification benchmark",
+        "reproducibility",
+        "benchmark suite",
+    ],
+    "3.4.1": [
+        "bug triage",
+        "root cause analysis",
+        "debugging",
+        "fault diagnosis",
+    ],
+    "3.4.2": [
+        "fault localization",
+        "program repair",
+        "automatic program repair",
+        "patch generation",
+        "bug fixing",
+    ],
+    "3.4.3": [
+        "patch validation",
+        "repair assessment",
+        "regression prevention",
+        "patch correctness",
+    ],
+    "3.4.4": [
+        "rollback",
+        "self-healing",
+        "error recovery",
+        "recovery strategy",
+    ],
+    "4.1.1": [
+        "maintenance",
+        "bug fixing",
+        "hotfix",
+        "backport",
+    ],
+    "4.1.2": [
+        "refactoring",
+        "remodularization",
+        "code cleanup",
+        "code restructuring",
+    ],
+    "4.1.3": [
+        "api evolution",
+        "dependency upgrade",
+        "library migration",
+        "version compatibility",
+    ],
+    "4.1.4": [
+        "legacy modernization",
+        "cloud migration",
+        "language migration",
+        "legacy system",
+    ],
+    "4.1.5": [
+        "technical debt",
+        "code clone",
+        "clone management",
+        "maintainability governance",
+    ],
+    "4.2.1": [
+        "code search",
+        "code navigation",
+        "code summarization",
+        "program summarization",
+    ],
+    "4.2.2": [
+        "trace recovery",
+        "documentation mining",
+        "knowledge graph",
+        "documentation recovery",
+    ],
+    "4.2.3": [
+        "system reconstruction",
+        "dependency recovery",
+        "architecture recovery",
+        "repository reconstruction",
+    ],
+    "4.2.4": [
+        "clone detection",
+        "similarity search",
+        "program comprehension",
+        "comprehension aid",
+    ],
+    "4.2.5": [
+        "documentation engineering",
+        "comment evolution",
+        "design rationale",
+        "rationale recovery",
+        "explanation generation",
+    ],
+    "4.3.1": [
+        "configuration management",
+        "version management",
+        "build reproducibility",
+        "build engineering",
+    ],
+    "4.3.2": [
+        "ci/cd",
+        "continuous integration",
+        "continuous delivery",
+        "release engineering",
+        "rollback pipeline",
+    ],
+    "4.3.3": [
+        "infrastructure as code",
+        "iac",
+        "pipeline engineering",
+        "devops automation",
+    ],
+    "4.3.4": [
+        "package management",
+        "dependency governance",
+        "software supply chain",
+        "package ecosystem",
+        "sbom",
+    ],
+    "4.4.1": [
+        "observability",
+        "log analytics",
+        "telemetry",
+        "anomaly detection",
+    ],
+    "4.4.2": [
+        "incident response",
+        "incident diagnosis",
+        "sre diagnosis",
+        "root cause analysis",
+        "service recovery",
+    ],
+    "4.4.3": [
+        "autoscaling",
+        "runtime reconfiguration",
+        "adaptive operation",
+    ],
+    "4.4.4": [
+        "runtime governance",
+        "policy enforcement",
+        "continuous assurance",
+    ],
+    "5.1.1": [
+        "fault prediction",
+        "failure analysis",
+        "incident mining",
+    ],
+    "5.1.2": [
+        "fault tolerance",
+        "resilience engineering",
+        "graceful degradation",
+    ],
+    "5.1.3": [
+        "release reliability",
+        "availability analysis",
+        "slo engineering",
+        "service availability",
+    ],
+    "5.1.4": [
+        "recoverability",
+        "business continuity",
+        "disaster response",
+    ],
+    "5.1.5": [
+        "functional safety",
+        "hazard analysis",
+        "safety case",
+        "safety assurance",
+    ],
+    "5.2.1": [
+        "secure sdlc",
+        "vulnerability management",
+        "security patch",
+        "secure development",
+        "vulnerability",
+    ],
+    "5.2.2": [
+        "privacy engineering",
+        "privacy compliance",
+        "privacy requirement",
+        "data governance",
+    ],
+    "5.2.3": [
+        "sbom",
+        "provenance",
+        "dependency trust",
+        "supply chain security",
+    ],
+    "5.2.4": [
+        "fairness",
+        "accountability",
+        "regulatory compliance",
+        "ai audit",
+    ],
+    "5.3.1": [
+        "performance diagnosis",
+        "performance engineering",
+        "benchmarking",
+        "profiling",
+    ],
+    "5.3.2": [
+        "capacity planning",
+        "cost optimization",
+        "resource scheduling",
+    ],
+    "5.3.3": [
+        "energy-aware",
+        "carbon-aware",
+        "green software",
+    ],
+    "5.3.4": [
+        "scalability",
+        "latency",
+        "throughput",
+        "performance regression",
+    ],
+    "5.4.1": [
+        "developer experience",
+        "developer ux",
+        "api usability",
+        "tool usability",
+    ],
+    "5.4.2": [
+        "accessibility",
+        "inclusive ui",
+        "ux quality",
+    ],
+    "5.4.3": [
+        "usability study",
+        "human-centered evaluation",
+        "user study",
+    ],
+    "5.4.4": [
+        "inclusive practice",
+        "developer accommodation",
+        "neurodiversity",
+        "diversity support",
+    ],
+    "6.1.1": [
+        "agile",
+        "lean development",
+        "devops",
+        "continuous improvement",
+    ],
+    "6.1.2": [
+        "process mining",
+        "conformance checking",
+        "process improvement",
+    ],
+    "6.1.3": [
+        "process traceability",
+        "auditability",
+        "process governance",
+    ],
+    "6.1.4": [
+        "coordination mechanism",
+        "workflow design",
+        "handoff",
+        "socio-technical coordination",
+    ],
+    "6.2.1": [
+        "effort estimation",
+        "project planning",
+        "scheduling",
+        "cost estimation",
+    ],
+    "6.2.2": [
+        "risk management",
+        "prioritization",
+        "value-driven",
+    ],
+    "6.2.3": [
+        "roi",
+        "productivity analysis",
+        "cost modeling",
+    ],
+    "6.2.4": [
+        "portfolio management",
+        "decision support",
+        "governance analytics",
+    ],
+    "6.3.1": [
+        "case study",
+        "controlled experiment",
+        "survey",
+        "empirical study",
+    ],
+    "6.3.2": [
+        "mixed methods",
+        "qualitative coding",
+        "human study",
+        "interview study",
+    ],
+    "6.3.3": [
+        "systematic literature review",
+        "systematic mapping study",
+        "meta-analysis",
+        "slr",
+        "sms",
+    ],
+    "6.3.4": [
+        "replication package",
+        "benchmarking",
+        "open science",
+        "artifact package",
+        "reproducibility package",
+    ],
+    "6.4.1": [
+        "repository mining",
+        "commit mining",
+        "issue mining",
+        "pull request",
+        "github",
+    ],
+    "6.4.2": [
+        "code review analytics",
+        "ci mining",
+        "team analytics",
+        "review comment",
+    ],
+    "6.4.3": [
+        "defect prediction",
+        "risk modeling",
+        "software metrics",
+    ],
+    "6.4.4": [
+        "oss evolution",
+        "ecosystem analysis",
+        "dependency analytics",
+        "registry",
+    ],
+    "6.5.1": [
+        "developer productivity",
+        "developer wellbeing",
+        "developer cognition",
+        "stress",
+        "fatigue",
+    ],
+    "6.5.2": [
+        "knowledge sharing",
+        "collaboration",
+        "code review",
+        "team communication",
+    ],
+    "6.5.3": [
+        "community health",
+        "oss governance",
+        "open source governance",
+        "diversity",
+    ],
+    "6.5.4": [
+        "software engineering education",
+        "training",
+        "curriculum",
+        "onboarding",
+        "novice",
+    ],
+    "7.1.1": [
+        "code generation",
+        "code completion",
+        "code transformation",
+        "copilot",
+        "llm for code",
+    ],
+    "7.1.2": [
+        "ai-based testing",
+        "bug detection",
+        "apr",
+        "ai-based repair",
+    ],
+    "7.1.3": [
+        "requirements summarization",
+        "model completion",
+        "doc generation",
+        "trace generation",
+    ],
+    "7.1.4": [
+        "architecture assistance",
+        "design assistance",
+        "engineering decision support",
+        "planning support",
+    ],
+    "7.1.5": [
+        "ai coding assistant",
+        "human-ai workflow",
+        "trust calibration",
+        "pairing with llm",
+        "user perception on ai coding assistants",
+    ],
+    "7.2.1": [
+        "data pipeline",
+        "feature pipeline",
+        "model lifecycle",
+        "model pipeline",
+    ],
+    "7.2.2": [
+        "requirements for ai systems",
+        "model card",
+        "system modeling for ai",
+    ],
+    "7.2.3": [
+        "ai testing",
+        "robustness assurance",
+        "drift monitoring",
+        "ml verification",
+    ],
+    "7.2.4": [
+        "mlops",
+        "model deployment",
+        "deployment pipeline",
+        "model rollback",
+    ],
+    "7.2.5": [
+        "ai governance",
+        "ai safety case",
+        "regulatory assurance",
+        "responsible ai",
+    ],
+    "7.3.1": [
+        "mape-k",
+        "feedback loop",
+        "adaptive planning",
+        "self-adaptive system",
+    ],
+    "7.3.2": [
+        "agent orchestration",
+        "multi-agent workflow",
+        "agent debugging",
+    ],
+    "7.3.3": [
+        "self-healing",
+        "self-optimization",
+        "autonomic operation",
+    ],
+    "7.3.4": [
+        "adaptive assurance",
+        "runtime assurance",
+        "policy safety",
+    ],
+    "8.1.1": [
+        "industrial control",
+        "automotive software",
+        "avionics",
+        "medical device software",
+    ],
+    "8.1.2": [
+        "robot software",
+        "autonomous robotics",
+        "ros",
+    ],
+    "8.1.3": [
+        "iot software",
+        "edge platform",
+        "digital twin engineering",
+    ],
+    "8.1.4": [
+        "iso 26262",
+        "do-178c",
+        "certification-oriented assurance",
+    ],
+    "8.2.1": [
+        "web application",
+        "mobile app",
+        "gui engineering",
+        "web engineering",
+    ],
+    "8.2.2": [
+        "cloud-native",
+        "serverless",
+        "platform engineering",
+    ],
+    "8.2.3": [
+        "service composition",
+        "api ecosystem",
+        "service governance",
+        "web service",
+    ],
+    "8.2.4": [
+        "sre at scale",
+        "distributed application operations",
+        "large-scale distributed application",
+    ],
+    "8.3.1": [
+        "mission critical",
+        "safety critical",
+        "formal assurance",
+    ],
+    "8.3.2": [
+        "enterprise system",
+        "business-critical",
+    ],
+    "8.3.3": [
+        "system-of-systems",
+        "interoperability",
+        "integration assurance",
+    ],
+    "8.3.4": [
+        "regulated domain",
+        "compliance engineering",
+        "auditability",
+    ],
+    "8.4.1": [
+        "open source ecosystem",
+        "community evolution",
+        "dependency commons",
+    ],
+    "8.4.2": [
+        "package registry",
+        "platform governance",
+        "supply chain ecosystem",
+    ],
+    "8.4.3": [
+        "citizen development",
+        "crowd engineering",
+        "low-code engineering",
+    ],
+    "8.4.4": [
+        "software policy",
+        "ecosystem governance",
+        "ethical engineering",
+    ],
+    "8.5.1": [
+        "ai-enabled system",
+        "ai-native software",
+        "copilot-enabled product",
+    ],
+    "8.5.2": [
+        "quantum program",
+        "quantum software",
+        "quantum testing",
+    ],
+    "8.5.3": [
+        "llm-native",
+        "agentic workflow",
+        "tool-using system",
+    ],
+    "8.5.4": [
+        "heterogeneous platform",
+        "gpu",
+        "edge platform",
+        "classical-quantum",
+    ],
+    "8.5.5": [
+        "scientific software",
+        "hpc",
+        "high-performance computing",
+        "data-intensive software",
+    ],
+}
+
+
+TAG_PREFIX_BOOSTS: Dict[str, List[str]] = {
+    "需求工程": ["1.1.", "1.2.", "1.4."],
+    "建模/模型驱动": ["1.3.", "1.4.", "2.1.", "8.1."],
+    "测试与验证": ["3.1.", "3.3.", "5.1."],
+    "形式化方法": ["1.2.", "3.3.", "3.2.", "8.3."],
+    "程序分析": ["3.2.", "4.2."],
+    "程序修复": ["3.4.", "4.1."],
+    "维护与演化": ["4.1.", "4.2.", "4.3.", "6.4."],
+    "可靠性/安全": ["5.1.", "5.2.", "3.2.3", "3.3.3"],
+    "经验软件工程": ["6.3.", "6.4.", "6.5."],
+    "LLM/AI for SE": ["7.1.", "7.2.", "7.3.", "8.5.3"],
+    "运行时监测": ["3.3.2", "4.4.", "5.1."],
+}
+
+
+TAG_FALLBACK_PRIMARY: Dict[str, str] = {
+    "需求工程": "1.1.2",
+    "建模/模型驱动": "1.3.1",
+    "测试与验证": "3.1.1",
+    "形式化方法": "3.3.1",
+    "程序分析": "3.2.1",
+    "程序修复": "3.4.2",
+    "维护与演化": "4.1.1",
+    "可靠性/安全": "5.1.1",
+    "经验软件工程": "6.3.1",
+    "LLM/AI for SE": "7.1.1",
+    "运行时监测": "3.3.2",
+}
+
+
+THEME_PREFIXES: Dict[str, List[str]] = {
+    "requirements": ["1.1.", "1.2.", "1.4."],
+    "modeling": ["1.3.", "1.4.", "8.1."],
+    "architecture": ["2.1.", "2.2.", "8.2.3"],
+    "testing": ["3.1.", "3.4."],
+    "analysis": ["3.2.", "4.2."],
+    "verification": ["3.3.", "1.2.", "8.3."],
+    "maintenance": ["4.1.", "4.2.", "4.3."],
+    "operations": ["4.4.", "5.1.", "5.3.", "8.2.4"],
+    "quality": ["5.1.", "5.2.", "5.3.", "5.4."],
+    "process": ["6.1.", "6.2."],
+    "empirical": ["6.3.", "6.4.", "6.5."],
+    "ai_for_se": ["7.1.", "7.3."],
+    "se_for_ai": ["7.2.", "8.5.1", "8.5.3"],
+}
+
+
+THEME_PATTERNS: Dict[str, List[str]] = {
+    "requirements": [
+        "requirements",
+        "requirement",
+        "user story",
+        "stakeholder",
+        "traceability",
+        "goal model",
+        "goal-oriented",
+        "ambiguity",
+        "requirement debt",
+        "requirement reuse",
+    ],
+    "modeling": [
+        "state machine",
+        "statechart",
+        "uml",
+        "sysml",
+        "model-driven",
+        "metamodel",
+        "model transformation",
+        "digital twin",
+        "feature model",
+    ],
+    "architecture": [
+        "software architecture",
+        "microservice",
+        "service architecture",
+        "architecture decision",
+        "api design",
+        "modularity",
+        "design pattern",
+        "component-based",
+    ],
+    "testing": [
+        "test generation",
+        "testing",
+        "test suite",
+        "regression test",
+        "fuzzing",
+        "mutation testing",
+        "oracle generation",
+        "gui testing",
+        "web testing",
+    ],
+    "analysis": [
+        "static analysis",
+        "dynamic analysis",
+        "program analysis",
+        "taint analysis",
+        "dataflow analysis",
+        "abstract interpretation",
+        "trace analysis",
+        "program comprehension",
+        "code search",
+    ],
+    "verification": [
+        "formal verification",
+        "software verification",
+        "model checking",
+        "runtime verification",
+        "runtime monitoring",
+        "safety case",
+        "assurance case",
+        "compliance verification",
+    ],
+    "maintenance": [
+        "maintenance",
+        "software evolution",
+        "refactoring",
+        "technical debt",
+        "library migration",
+        "legacy system",
+        "documentation",
+        "code clone",
+        "program repair",
+        "patch generation",
+    ],
+    "operations": [
+        "release engineering",
+        "continuous integration",
+        "continuous delivery",
+        "ci/cd",
+        "devops",
+        "deployment pipeline",
+        "dependency management",
+        "observability",
+        "incident response",
+        "autoscaling",
+        "runtime governance",
+    ],
+    "quality": [
+        "reliability engineering",
+        "fault tolerance",
+        "resilience",
+        "vulnerability management",
+        "privacy engineering",
+        "performance engineering",
+        "usability study",
+        "developer experience",
+        "functional safety",
+        "hazard analysis",
+    ],
+    "process": [
+        "agile",
+        "lean development",
+        "process mining",
+        "workflow",
+        "effort estimation",
+        "risk management",
+        "project planning",
+        "coordination",
+    ],
+    "empirical": [
+        "empirical software engineering",
+        "repository mining",
+        "mining software repositories",
+        "pull request",
+        "code review",
+        "case study",
+        "survey",
+        "controlled experiment",
+        "developer productivity",
+        "onboarding",
+        "software engineering education",
+        "benchmarking",
+        "open science",
+    ],
+    "ai_for_se": [
+        "large language model",
+        "llm",
+        "ai coding assistant",
+        "copilot",
+        "code generation",
+        "code completion",
+        "ai-based testing",
+        "human-ai workflow",
+    ],
+    "se_for_ai": [
+        "ai system",
+        "machine learning system",
+        "model lifecycle",
+        "model card",
+        "mlops",
+        "drift monitoring",
+        "robustness assurance",
+        "ai governance",
+        "model deployment",
+    ],
+}
+
+
+ARTIFACT_GROUPS: Dict[str, List[str]] = {
+    "requirements": [
+        "requirements",
+        "requirement",
+        "user story",
+        "stakeholder",
+        "traceability",
+    ],
+    "models": [
+        "state machine",
+        "statechart",
+        "model",
+        "uml",
+        "sysml",
+        "metamodel",
+    ],
+    "architecture_design": [
+        "architecture",
+        "component",
+        "api",
+        "interface",
+        "microservice",
+        "design pattern",
+    ],
+    "code_tests": [
+        "codebase",
+        "repository",
+        "test suite",
+        "test case",
+        "bug",
+        "patch",
+        "commit",
+        "pull request",
+        "issue",
+    ],
+    "runtime_process": [
+        "ci/cd",
+        "pipeline",
+        "deployment",
+        "configuration",
+        "log",
+        "incident",
+        "developer",
+        "team",
+        "workflow",
+    ],
+    "ai_system": [
+        "model card",
+        "dataset pipeline",
+        "model deployment",
+        "mlops",
+        "drift",
+    ],
+}
+
+
+METHOD_GROUPS: Dict[str, List[str]] = {
+    "requirements": ["elicitation", "prioritization", "goal modeling", "traceability"],
+    "modeling": ["model-driven", "model transformation", "simulation"],
+    "testing": ["testing", "fuzzing", "mutation testing", "oracle generation"],
+    "analysis": ["static analysis", "dynamic analysis", "trace analysis"],
+    "verification": ["model checking", "formal verification", "runtime verification", "theorem proving"],
+    "repair": ["debugging", "fault localization", "repair", "patch generation", "refactoring"],
+    "empirical": ["case study", "survey", "experiment", "repository mining", "code review analytics"],
+    "ops": ["devops", "deployment", "observability", "autoscaling", "incident response"],
+    "ai": ["llm", "large language model", "mlops", "agent orchestration"],
+}
+
+
+EVALUATION_PATTERNS = [
+    "experiment",
+    "empirical",
+    "case study",
+    "survey",
+    "benchmark",
+    "dataset",
+    "repository",
+    "open-source",
+    "open source",
+    "evaluate",
+    "evaluation",
+    "participants",
+    "industrial",
+    "real-world",
+    "real world",
+]
+
+
+NON_SE_PL_PATTERNS = [
+    "compiler",
+    "compilation",
+    "type system",
+    "type inference",
+    "programming language",
+    "operational semantics",
+    "denotational semantics",
+    "lambda calculus",
+    "session type",
+    "effect system",
+    "proof assistant",
+    "certified compiler",
+    "register allocation",
+    "parser",
+    "partial evaluation",
+    "e-graph",
+    "kleene algebra",
+    "constraint programming",
+    "probabilistic programming",
+    "ownership",
+    "borrow",
+]
+
+
+NON_SE_SYSTEM_PATTERNS = [
+    "operating system",
+    "kernel",
+    "filesystem",
+    "storage system",
+    "cache",
+    "throughput",
+    "latency",
+    "packet-switched",
+    "network switch",
+    "distributed system",
+    "virtualization",
+    "memory reclamation",
+    "lock-free",
+    "gpu",
+    "qpu",
+    "accelerator",
+    "processor",
+    "middleware",
+    "garbage collection",
+    "quantum circuit",
+    "cryptographic",
+    "homomorphic encryption",
+    "data structure",
+]
+
+
+NON_SE_OTHER_PATTERNS = [
+    "hardware",
+    "circuit",
+    "electrical",
+    "control theory",
+    "numerical program",
+    "floating-point",
+    "cryptography",
+]
+
+
+SPECIAL_NON_SE_OVERRIDES = [
+    "compiler optimization",
+    "type inference",
+    "type system",
+    "programming language semantics",
+    "operating systems principle",
+    "constraint programming",
+]
+
+
+@dataclass(frozen=True)
+class VenuePrior:
+    abbr: str
+    rank: str
+    kind: str
+    subject: str
+    se_level: str
+    typical_paths: Tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class LeafDef:
+    code: str
+    label: str
+    keywords: Tuple[str, ...]
+
+
+def normalize_text(text: str) -> str:
+    text = text.lower()
+    text = text.replace("’", "'").replace("–", "-").replace("—", "-")
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def md_escape(text: str) -> str:
+    return text.replace("|", "\\|").replace("\n", " ")
+
+
+def keyword_regex(keyword: str) -> re.Pattern[str]:
+    escaped = re.escape(normalize_text(keyword))
+    return re.compile(rf"(?<![a-z0-9]){escaped}(?![a-z0-9])")
+
+
+_KEYWORD_RE_CACHE: Dict[str, re.Pattern[str]] = {}
+
+
+def has_keyword(text: str, keyword: str) -> bool:
+    keyword = normalize_text(keyword)
+    if not keyword:
+        return False
+    pattern = _KEYWORD_RE_CACHE.get(keyword)
+    if pattern is None:
+        pattern = keyword_regex(keyword)
+        _KEYWORD_RE_CACHE[keyword] = pattern
+    return bool(pattern.search(text))
+
+
+def count_hits(text: str, keywords: Iterable[str]) -> Tuple[int, List[str]]:
+    hits: List[str] = []
+    for keyword in keywords:
+        if has_keyword(text, keyword):
+            hits.append(keyword)
+    return len(hits), hits
+
+
+def score_keywords(title_text: str, body_text: str, keywords: Iterable[str]) -> Tuple[int, List[str]]:
+    score = 0
+    hits: List[str] = []
+    for keyword in keywords:
+        keyword = normalize_text(keyword)
+        if not keyword:
+            continue
+        in_title = has_keyword(title_text, keyword)
+        in_body = in_title or has_keyword(body_text, keyword)
+        if in_title:
+            score += 3
+            hits.append(keyword)
+        elif in_body:
+            score += 1
+            hits.append(keyword)
+    deduped: List[str] = []
+    for hit in hits:
+        if hit not in deduped:
+            deduped.append(hit)
+    return score, deduped
+
+
+def parse_leaf_defs() -> Dict[str, LeafDef]:
+    text = TREE_MD.read_text(encoding="utf-8")
+    block = text.split("```text", 1)[1].split("```", 1)[0]
+    leaf_defs: Dict[str, LeafDef] = {}
+    for line in block.splitlines():
+        match = re.search(r"(\d+\.\d+\.\d+)\s+([^（(]+)[（(]([^）)]*)[）)]", line)
+        if not match:
+            continue
+        code, label, example_text = match.groups()
+        if code in leaf_defs:
+            continue
+        keywords: List[str] = []
+        for part in re.split(r"[、，,;/]", example_text):
+            part = normalize_text(part)
+            if re.search(r"[a-z]", part) and len(part) >= 3:
+                keywords.append(part)
+        keywords.extend(MANUAL_LEAF_KEYWORDS.get(code, []))
+        deduped: List[str] = []
+        for keyword in keywords:
+            keyword = normalize_text(keyword)
+            if keyword and keyword not in deduped:
+                deduped.append(keyword)
+        leaf_defs[code] = LeafDef(code=code, label=label.strip(), keywords=tuple(deduped))
+    return leaf_defs
+
+
+def parse_typical_paths(cell: str) -> Tuple[str, ...]:
+    matches = re.findall(r"\d+\.(?:x|\d+)\.(?:x|\d+)", cell)
+    deduped: List[str] = []
+    for item in matches:
+        if item not in deduped:
+            deduped.append(item)
+    return tuple(deduped)
+
+
+def parse_venue_priors() -> Dict[Tuple[str, str, str], VenuePrior]:
+    text = CCF_MD.read_text(encoding="utf-8")
+    priors: Dict[Tuple[str, str, str], VenuePrior] = {}
+    rank = ""
+    kind = ""
+    for line in text.splitlines():
+        match = re.match(r"##\s+\d+\.\s+([ABC])\s+类(会议|期刊)", line)
+        if match:
+            rank, kind = match.groups()
+            continue
+        if not line.startswith("| `") or rank == "" or kind == "":
+            continue
+        parts = [part.strip() for part in line.strip().strip("|").split("|")]
+        if len(parts) < 7:
+            continue
+        abbr = parts[0].strip("`")
+        subject = parts[2]
+        se_level = parts[3].strip("`")
+        typical_paths = parse_typical_paths(parts[5])
+        priors[(abbr, rank, kind)] = VenuePrior(
+            abbr=abbr,
+            rank=rank,
+            kind=kind,
+            subject=subject,
+            se_level=se_level,
+            typical_paths=typical_paths,
+        )
+    return priors
+
+
+def path_matches_prefix(code: str, prefix: str) -> bool:
+    code_parts = code.split(".")
+    prefix_parts = prefix.split(".")
+    if len(prefix_parts) != 3:
+        return False
+    for code_part, prefix_part in zip(code_parts, prefix_parts):
+        if prefix_part == "x":
+            continue
+        if code_part != prefix_part:
+            return False
+    return True
+
+
+def subject_to_macro(subject: str) -> str:
+    if subject == "软件工程":
+        return "软件工程"
+    if subject == "系统软件":
+        return "系统软件"
+    if subject == "程序设计语言与形式化基础":
+        return "程序设计语言与形式化基础"
+    return "跨域/待判定"
+
+
+def top_theme(theme_scores: Dict[str, int]) -> str:
+    if not theme_scores:
+        return ""
+    return sorted(theme_scores.items(), key=lambda item: (-item[1], item[0]))[0][0]
+
+
+def first_matching_default(tags: List[str], leaf_defs: Dict[str, LeafDef]) -> str:
+    for tag in tags:
+        path = TAG_FALLBACK_PRIMARY.get(tag)
+        if path and path in leaf_defs:
+            return path
+    return ""
+
+
+def choose_primary_path(
+    paper: Dict[str, Any],
+    prior: VenuePrior,
+    leaf_defs: Dict[str, LeafDef],
+    title_text: str,
+    body_text: str,
+    theme_scores: Dict[str, int],
+) -> Tuple[str, List[str]]:
+    tags = [str(tag) for tag in paper.get("tags", [])]
+    leaf_scores: Dict[str, int] = {}
+    for code, leaf in leaf_defs.items():
+        score, _ = score_keywords(title_text, body_text, leaf.keywords)
+        if score:
+            leaf_scores[code] = score
+
+    for tag in tags:
+        for prefix in TAG_PREFIX_BOOSTS.get(tag, []):
+            for code in leaf_defs:
+                if path_matches_prefix(code, prefix):
+                    leaf_scores[code] = leaf_scores.get(code, 0) + 1
+
+    for prefix in prior.typical_paths:
+        for code in leaf_defs:
+            if path_matches_prefix(code, prefix):
+                leaf_scores[code] = leaf_scores.get(code, 0) + (2 if "x" not in prefix else 1)
+
+    dominant_theme = top_theme(theme_scores)
+    for prefix in THEME_PREFIXES.get(dominant_theme, []):
+        for code in leaf_defs:
+            if path_matches_prefix(code, prefix):
+                leaf_scores[code] = leaf_scores.get(code, 0) + 1
+
+    if not leaf_scores:
+        fallback = first_matching_default(tags, leaf_defs)
+        if not fallback and prior.typical_paths:
+            for path in prior.typical_paths:
+                if "x" not in path and path in leaf_defs:
+                    fallback = path
+                    break
+            if not fallback:
+                for path in prior.typical_paths:
+                    for code in sorted(leaf_defs):
+                        if path_matches_prefix(code, path):
+                            fallback = code
+                            break
+                    if fallback:
+                        break
+        return fallback, []
+
+    ranked = sorted(leaf_scores.items(), key=lambda item: (-item[1], item[0]))
+    primary = ranked[0][0]
+    primary_score = ranked[0][1]
+    if primary.startswith("8."):
+        for alt_code, alt_score in ranked[1:]:
+            if not alt_code.startswith("8.") and alt_score >= ranked[0][1] - 1:
+                primary = alt_code
+                break
+    if primary.startswith("6.3.") and not any(path_matches_prefix(primary, prefix) for prefix in prior.typical_paths):
+        for alt_code, alt_score in ranked[1:]:
+            if not alt_code.startswith("6.") and alt_score >= 2:
+                primary = alt_code
+                break
+
+    secondary: List[str] = []
+    for code, score in ranked:
+        if code == primary or score <= 0:
+            continue
+        display = f"{code} {leaf_defs[code].label}"
+        if display not in secondary:
+            secondary.append(display)
+        if len(secondary) >= 3:
+            break
+
+    return primary, secondary
+
+
+def classify_paper(
+    paper: Dict[str, Any],
+    prior: VenuePrior,
+    leaf_defs: Dict[str, LeafDef],
+) -> Dict[str, Any]:
+    title = str(paper.get("title") or "")
+    abstract = str(paper.get("abstract") or "")
+    summary = str(paper.get("summary") or "")
+    tags = [str(tag) for tag in paper.get("tags", [])]
+
+    title_text = normalize_text(title)
+    body_text = normalize_text(" ".join([title, abstract, summary, " ".join(tags)]))
+
+    theme_scores: Dict[str, int] = {}
+    for theme, keywords in THEME_PATTERNS.items():
+        score, _ = score_keywords(title_text, body_text, keywords)
+        theme_scores[theme] = score
+
+    artifact_groups = 0
+    for keywords in ARTIFACT_GROUPS.values():
+        hits, _ = count_hits(body_text, keywords)
+        if hits > 0:
+            artifact_groups += 1
+
+    method_groups = 0
+    for keywords in METHOD_GROUPS.values():
+        hits, _ = count_hits(body_text, keywords)
+        if hits > 0:
+            method_groups += 1
+
+    eval_hits, _ = count_hits(body_text, EVALUATION_PATTERNS)
+    pl_hits, pl_keywords = count_hits(body_text, NON_SE_PL_PATTERNS)
+    sys_hits, sys_keywords = count_hits(body_text, NON_SE_SYSTEM_PATTERNS)
+    other_hits, other_keywords = count_hits(body_text, NON_SE_OTHER_PATTERNS)
+    prior_bias = SE_LEVEL_PRIOR.get(prior.se_level, 0)
+
+    dominant_theme = top_theme(theme_scores)
+    dominant_theme_score = theme_scores.get(dominant_theme, 0)
+
+    d1 = 0
+    if dominant_theme_score >= 6:
+        d1 = 3
+    elif dominant_theme_score >= 3:
+        d1 = 2
+    elif dominant_theme_score >= 1 or prior_bias >= 2:
+        d1 = 1
+
+    d2 = 0
+    if artifact_groups >= 2:
+        d2 = 2
+    elif artifact_groups == 1 or (d1 >= 2 and prior_bias >= 2):
+        d2 = 1
+
+    d3 = 0
+    if method_groups >= 2:
+        d3 = 2
+    elif method_groups == 1 or any(tag in TAG_PREFIX_BOOSTS for tag in tags):
+        d3 = 1
+
+    d4 = 1 if eval_hits > 0 else 0
+
+    non_se_score = max(pl_hits, sys_hits, other_hits)
+    x1 = (
+        non_se_score >= 2
+        and d2 == 0
+        and d1 <= 1
+        and dominant_theme not in {"requirements", "maintenance", "process", "empirical", "ai_for_se", "se_for_ai"}
+    )
+    if any(has_keyword(body_text, override) for override in SPECIAL_NON_SE_OVERRIDES) and d2 == 0:
+        x1 = True
+
+    weighted_total = d1 * 3 + d2 * 2 + d3 * 2 + d4 + max(prior_bias, 0)
+
+    decision = "不属于软件工程"
+    if d1 >= 2 and d2 >= 1 and weighted_total >= 7 and not x1:
+        decision = "属于软件工程"
+    elif d1 >= 2 and weighted_total >= 6:
+        decision = "跨域但软工主导"
+    elif prior_bias >= 2 and d1 >= 1 and d2 >= 1 and weighted_total >= 6 and not x1:
+        decision = "属于软件工程"
+    elif prior_bias >= 3 and d1 >= 1 and d3 >= 1 and not x1:
+        decision = "属于软件工程"
+    elif prior_bias <= -2 and non_se_score >= 1:
+        decision = "不属于软件工程"
+
+    cross_domain = (
+        "交叉" in prior.subject
+        or (decision != "不属于软件工程" and non_se_score >= 1)
+        or (decision == "跨域但软工主导")
+        or (prior.se_level == "部分属于软工" and decision != "不属于软件工程")
+    )
+
+    if decision != "不属于软件工程":
+        macro_area = "软件工程"
+    else:
+        if sys_hits > max(pl_hits, other_hits):
+            macro_area = "系统软件"
+        elif pl_hits > 0 or "程序设计语言" in prior.subject or "形式化" in prior.subject:
+            macro_area = "程序设计语言与形式化基础"
+        else:
+            subject_macro = subject_to_macro(prior.subject)
+            macro_area = "跨域/待判定" if subject_macro == "软件工程" else subject_macro
+
+    primary_path = ""
+    primary_label = ""
+    secondary_paths: List[str] = []
+    if decision != "不属于软件工程":
+        primary_path, secondary_paths = choose_primary_path(paper, prior, leaf_defs, title_text, body_text, theme_scores)
+        if primary_path:
+            primary_label = leaf_defs[primary_path].label
+        else:
+            decision = "待判定"
+            macro_area = "跨域/待判定"
+
+    basis_parts = [
+        f"X1={'是' if x1 else '否'}",
+        f"D1={d1}",
+        f"D2={d2}",
+        f"D3={d3}",
+        f"D4={d4}",
+        f"venue={prior.se_level}",
+    ]
+    if cross_domain:
+        basis_parts.append("cross=是")
+    if pl_keywords and macro_area != "软件工程":
+        basis_parts.append("PL=" + ",".join(pl_keywords[:2]))
+    if sys_keywords and macro_area != "软件工程":
+        basis_parts.append("SYS=" + ",".join(sys_keywords[:2]))
+    if other_keywords and macro_area != "软件工程":
+        basis_parts.append("OTHER=" + ",".join(other_keywords[:2]))
+
+    updated = dict(paper)
+    updated["macro_area"] = macro_area
+    updated["se_inclusion_decision"] = decision
+    updated["cross_domain_flag"] = "是" if cross_domain else "否"
+    updated["se_primary_path"] = primary_path
+    updated["se_primary_label"] = primary_label
+    updated["se_secondary_paths"] = secondary_paths
+    updated["se_decision_basis"] = "; ".join(basis_parts)
+    return updated
+
+
+def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: Dict[str, Any]) -> str:
+    ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    venue_count = len(payloads)
+    total_papers = verification["total_actual"]
+    abbr_counts = Counter(payload["venue"].abbr for payload in payloads)
+
+    rank_kind_counts: Counter[Tuple[str, str]] = Counter()
+    for payload in payloads:
+        rank_kind_counts[(payload["venue"].rank, payload["venue"].kind)] += payload["actual_total"]
+
+    macro_counts = Counter(
+        paper.get("macro_area", "待补") for payload in payloads for paper in payload["papers"]
+    )
+    se_counts = Counter(
+        paper.get("se_inclusion_decision", "待补") for payload in payloads for paper in payload["papers"]
+    )
+    path_counts = Counter(
+        f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
+        for payload in payloads
+        for paper in payload["papers"]
+        if paper.get("se_primary_path")
+    )
+
+    lines: List[str] = []
+    lines.append(f"# `{year}` 年度汇总")
+    lines.append("")
+    lines.append("## 1. 年份说明")
+    lines.append("")
+    lines.append(f"- 年份：`{year}`")
+    lines.append("- 覆盖范围：`CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议")
+    lines.append(f"- 当前覆盖的 venue 数量：`{venue_count}`")
+    lines.append(f"- 当前已入表论文数量：`{total_papers}`")
+    lines.append(f"- 更新时间：`{ts}`")
+    lines.append("- 说明：本页由 `tools/ccf_se_index_builder.py` 生成基础元数据，并由 `tools/ccf_se_classifier.py` 回填软工判定与 `x.x.x` 分类。")
+    lines.append("")
+    lines.append("## 2. 年度汇总统计")
+    lines.append("")
+    for rank in ["A", "B", "C"]:
+        for kind in ["会议", "期刊"]:
+            lines.append(f"- {rank} 类{kind}：`{rank_kind_counts.get((rank, kind), 0)}`")
+    lines.append(f"- 期望总条目数：`{verification['total_expected']}`")
+    lines.append(f"- 实际总条目数：`{verification['total_actual']}`")
+    lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts.most_common()))
+    lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
+    if path_counts:
+        lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(12)))
+    lines.append("")
+    lines.append("## 3. 覆盖 venue 列表")
+    lines.append("")
+    lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | 数据文件 | 备注 |")
+    lines.append("|---|---|---|---|---:|---|---|")
+    for payload in payloads:
+        venue = payload["venue"]
+        files = payload["files"]
+        note = "计数一致" if payload["expected_total"] == payload["actual_total"] else "计数需复核"
+        display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
+        lines.append(
+            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | [metadata]({meta}) / [bib]({bib}) | {note} |".format(
+                abbr=md_escape(display_abbr),
+                full=md_escape(venue.full_name),
+                rank=venue.rank,
+                kind=venue.kind,
+                count=payload["actual_total"],
+                meta=md_escape(files["metadata"]),
+                bib=md_escape(files["bib"]),
+                note=note,
+            )
+        )
+    lines.append("")
+    lines.append("## 4. Venue Sections")
+    lines.append("")
+
+    for payload in payloads:
+        venue = payload["venue"]
+        key_pages = payload["key_pages"]
+        files = payload["files"]
+        display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
+        lines.append("---")
+        lines.append("")
+        lines.append(f"## `{display_abbr}`")
+        lines.append("")
+        lines.append("### 4.1 基本信息")
+        lines.append("")
+        lines.append(f"- 全称：{venue.full_name}")
+        lines.append(f"- `CCF` 等级：`{venue.rank}`")
+        lines.append(f"- 类型：`{venue.kind}`")
+        lines.append(f"- 年份：`{year}`")
+        lines.append(f"- 条目数：`{payload['actual_total']}`")
+        lines.append(f"- 数据文件：[metadata]({files['metadata']}) / [bib]({files['bib']})")
+        lines.append("")
+        lines.append("### 4.2 关键信息页面")
+        lines.append("")
+        if venue.kind == "期刊":
+            homepage = key_pages.get("journal_homepage") or "待补"
+            lines.append(f"- 期刊主页：{homepage}")
+            lines.append(f"- 学术索引页：{venue.index_url}")
+            lines.append("- 2025 年官方 article page：见下表 `官方落地页` 列")
+        else:
+            homepage = key_pages.get("homepage") or "待补"
+            lines.append(f"- 年主页：{homepage}")
+            lines.append(f"- 学术索引页：{venue.index_url}")
+            carrier = key_pages.get("carrier_homepage")
+            if carrier:
+                lines.append(f"- 正式发布载体页：{carrier}")
+            procs = key_pages.get("proceedings_pages") or []
+            if procs:
+                lines.append(f"- 官方论文集页：{' / '.join(procs[:3])}")
+            if key_pages.get("note"):
+                lines.append(f"- 说明：{key_pages['note']}")
+            lines.append("- `CFP`：待补")
+        lines.append("")
+        lines.append("### 4.3 论文名录")
+        lines.append("")
+        lines.append("- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。")
+        lines.append("")
+        lines.append("| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+        for idx, paper in enumerate(payload["papers"], start=1):
+            authors = ", ".join(paper["authors"])
+            doi_cell = f"[{paper['doi']}](https://doi.org/{paper['doi']})" if paper.get("doi") else ""
+            official_cell = f"[link]({paper['official_url']})" if paper.get("official_url") else ""
+            primary = ""
+            if paper.get("se_primary_path"):
+                primary = f"{paper['se_primary_path']} {paper.get('se_primary_label', '')}".strip()
+            secondary = "；".join(paper.get("se_secondary_paths") or [])
+            note = "跨域" if paper.get("cross_domain_flag") == "是" and paper.get("se_inclusion_decision") != "不属于软件工程" else ""
+            lines.append(
+                "| {idx} | {title} | {authors} | {summary} | {macro} | {decision} | {primary} | {secondary} | {basis} | {doi} | {official} | {screening} | {pdf} | `{bib}` | {note} |".format(
+                    idx=idx,
+                    title=md_escape(str(paper.get("title") or "")),
+                    authors=md_escape(authors),
+                    summary=md_escape(str(paper.get("summary") or "")),
+                    macro=md_escape(str(paper.get("macro_area") or "")),
+                    decision=md_escape(str(paper.get("se_inclusion_decision") or "")),
+                    primary=md_escape(primary),
+                    secondary=md_escape(secondary),
+                    basis=md_escape(str(paper.get("se_decision_basis") or "")),
+                    doi=doi_cell,
+                    official=official_cell,
+                    screening=md_escape(str(paper.get("initial_screening") or "")),
+                    pdf=md_escape(str(paper.get("pdf_followup") or "")),
+                    bib=md_escape(str(paper.get("bibtex_key") or paper.get("key") or "")),
+                    note=md_escape(note),
+                )
+            )
+        lines.append("")
+        lines.append("### 4.4 本 venue 年度观察")
+        lines.append("")
+        if payload["papers"]:
+            decision_counts = Counter(paper.get("se_inclusion_decision", "待补") for paper in payload["papers"])
+            macro_counts_local = Counter(paper.get("macro_area", "待补") for paper in payload["papers"])
+            top_paths_local = Counter(
+                f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
+                for paper in payload["papers"]
+                if paper.get("se_primary_path")
+            )
+            top_tags = Counter(tag for paper in payload["papers"] for tag in paper.get("tags", [])).most_common(5)
+            lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts_local.most_common()))
+            lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in decision_counts.most_common()))
+            if top_paths_local:
+                lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in top_paths_local.most_common(8)))
+            if top_tags:
+                lines.append("- 主题标签补充：" + " / ".join(f"{name} ({count})" for name, count in top_tags))
+        else:
+            lines.append("- 本年度未检出直接归属该 venue 的主论文条目。")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## 5. 本年度总体观察")
+    lines.append("")
+    lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts.most_common()))
+    lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
+    if path_counts:
+        lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(15)))
+    lines.append("- 复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
+    lines.append("- 后续若继续扩年份或重跑年度页，建议先运行 `tools/ccf_se_index_builder.py`，再运行 `tools/ccf_se_classifier.py`。")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def display_abbr_for_venue(venue: Venue, duplicated: bool) -> str:
+    if not duplicated:
+        return venue.abbr
+    return f"{venue.abbr} / {venue.kind} / {venue.rank}"
+
+
+def load_payloads(target_dir: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    verification_path = target_dir / "verification.json"
+    verification = json.loads(verification_path.read_text(encoding="utf-8"))
+    payloads: List[Dict[str, Any]] = []
+    for item in verification["venues"]:
+        metadata_path = target_dir / item["files"]["metadata"]
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+        payloads.append(
+            {
+                "venue": Venue(
+                    abbr=payload["venue"]["abbr"],
+                    full_name=payload["venue"]["full_name"],
+                    rank=payload["venue"]["rank"],
+                    kind=payload["venue"]["kind"],
+                    index_url=payload["venue"]["index_url"],
+                ),
+                "mode": payload["source"]["mode"],
+                "expected_total": payload["source"]["expected_total"],
+                "actual_total": len(payload["papers"]),
+                "key_pages": payload["source"]["key_pages"],
+                "papers": payload["papers"],
+                "files": item["files"],
+            }
+        )
+    return payloads, verification
+
+
+def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
+    priors = parse_venue_priors()
+    leaf_defs = parse_leaf_defs()
+    payloads, verification = load_payloads(target_dir)
+
+    counters: Counter[str] = Counter()
+    for payload in payloads:
+        venue = payload["venue"]
+        prior = priors[(venue.abbr, venue.rank, venue.kind)]
+        metadata_path = target_dir / payload["files"]["metadata"]
+        original = json.loads(metadata_path.read_text(encoding="utf-8"))
+        updated_papers: List[Dict[str, Any]] = []
+        for paper in original["papers"]:
+            updated = classify_paper(paper, prior, leaf_defs)
+            updated_papers.append(updated)
+            counters["papers"] += 1
+            counters[f"macro:{updated['macro_area']}"] += 1
+            counters[f"decision:{updated['se_inclusion_decision']}"] += 1
+            if updated["se_primary_path"]:
+                counters["with_primary_path"] += 1
+        original["papers"] = updated_papers
+        metadata_path.write_text(json.dumps(original, ensure_ascii=False, indent=2), encoding="utf-8")
+        payload["papers"] = updated_papers
+        payload["actual_total"] = len(updated_papers)
+
+    readme_text = render_year_readme(year, payloads, verification)
+    (target_dir / "README.md").write_text(readme_text, encoding="utf-8")
+    return dict(counters)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Classify yearly CCF papers into SE / non-SE paths.")
+    parser.add_argument("--year", type=int, required=True, help="Target year, e.g. 2025")
+    parser.add_argument(
+        "--target-dir",
+        type=Path,
+        default=None,
+        help="Output directory. Defaults to frontier_index/ccf_history/<year>/",
+    )
+    args = parser.parse_args()
+
+    target_dir = args.target_dir or (ROOT / "frontier_index" / "ccf_history" / str(args.year))
+    counters = classify_year(target_dir=target_dir, year=args.year)
+
+    print(json.dumps(counters, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -2,6 +2,11 @@
 
 本文档说明如何使用 `tools/ccf_se_index_builder.py` 维护 `frontier_index/ccf_history/` 下的年度索引。
 
+当前推荐流程已经拆成两步：
+
+1. `ccf_se_index_builder.py` 负责基础元数据层。
+2. `ccf_se_classifier.py` 负责软工判定、`x.x.x` 分类和年度页重渲染。
+
 ## 1. 目标
 
 该工具用于生成：
@@ -21,6 +26,12 @@
 
 ```bash
 python -m tools.ccf_se_index_builder --year 2025
+```
+
+完成基础构建后，再执行：
+
+```bash
+python -m tools.ccf_se_classifier --year 2025
 ```
 
 如果需要输出到其他位置：
@@ -54,16 +65,27 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 6. 后续分类补录字段
    - 例如 `macro_area`、`se_inclusion_decision`、`se_primary_path`、`se_secondary_paths`、`se_decision_basis`。
 
+分类器运行完成后，`metadata/*.json` 里的每篇论文都应补齐：
+
+1. `macro_area`
+2. `se_inclusion_decision`
+3. `cross_domain_flag`
+4. `se_primary_path`
+5. `se_primary_label`
+6. `se_secondary_paths`
+7. `se_decision_basis`
+
 ## 4. 标准工作流程
 
 建议按以下顺序操作：
 
 1. 先运行构建器生成当年的全量结果。
 2. 检查 `verification.json` 是否全部为 `ok`。
-3. 进入分类补录阶段：结合 `frontier_index/CCF_SE_A_B_C.md` 与 `frontier_index/SOFTWARE_ENGINEERING_FIELD_TREE.md` 回填 `macro_area / se_inclusion_decision / se_primary_path / se_decision_basis`。
-4. 若某些 venue 仍有异常，再回到脚本中的特殊配置补规则。
-5. 重新运行构建器。
-6. 最后再人工抽查关键 venue 的 `README.md`、`metadata`、`bib` 与分类字段是否一致。
+3. 运行分类器，把 `macro_area / se_inclusion_decision / se_primary_path / se_decision_basis` 等字段回填到每篇论文。
+4. 若某类论文没有自然 `x.x.x` 落点，应先扩 `frontier_index/SOFTWARE_ENGINEERING_FIELD_TREE.md`，再更新分类器规则并重跑，不要把论文硬塞进旧路径。
+5. 若某些 venue 仍有边界或来源异常，再回到构建器中的特殊配置补规则。
+6. 重新运行构建器与分类器。
+7. 最后再人工抽查关键 venue 的 `README.md`、`metadata`、`bib` 与分类字段是否一致。
 
 ## 5. 当前脚本的来源策略
 
@@ -81,7 +103,7 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 当前默认分工如下：
 
 1. 构建器负责生成**基础元数据层**。
-2. `soft/non-soft` 判定、`x.x.x` 主路径与 `X1/D1-D4` 依据属于后续分类补录层。
+2. 分类器负责 `soft/non-soft` 判定、`x.x.x` 主路径与 `X1/D1-D4` 依据。
 
 ## 6. 维护约束
 

@@ -43,6 +43,17 @@
    - `🟡 保留观察`：`3145`
    - `⚪ 暂不跟进`：`298`
    - `⏳ 待补信息`：`1122`
+5. 一级总判定分布：
+   - `软件工程`：`3444`
+   - `程序设计语言与形式化基础`：`1233`
+   - `跨域/待判定`：`1200`
+   - `系统软件`：`424`
+6. 软工纳入判定分布：
+   - `属于软件工程`：`3292`
+   - `跨域但软工主导`：`152`
+   - `不属于软件工程`：`2857`
+7. 软工主路径覆盖：
+   - `3444/3444` 条被纳入软工语料的论文都已回填 `se_primary_path`
 
 ## 3. 当前已准备好的入口
 
@@ -68,6 +79,8 @@
    - [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
 3. 年度索引生成脚本：
    - [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py)
+4. 年度软工分类脚本：
+   - [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)
 
 ### 3.4 软件工程方向分类基线
 
@@ -99,15 +112,15 @@
 6. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才进入 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
 7. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 判定依据（X1/D1-D4）`。
 8. 若后续扫论文时发现现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，不要把论文硬塞进最接近的旧节点。
-9. `ccf_se_index_builder.py` 当前负责生成基础元数据层；软工终判与路径回填属于后续分类补录层。
+9. `ccf_se_index_builder.py` 当前负责生成基础元数据层；`ccf_se_classifier.py` 负责软工终判、`x.x.x` 路径回填与年度页重渲染。
 10. 先做初筛，再决定哪些论文值得获取 `PDF`。
 11. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
 
 ## 5. 下一步建议
 
 1. 基于 `2025` 年度索引，优先从 `🟢 优先跟进` 条目里挑选与形式化建模、验证、需求、修复更贴近的论文获取 `PDF`。
-2. 先对重点 venue 的条目补录 `macro_area / se_inclusion_decision / se_primary_path / se_decision_basis`，把软工边界判定真正落到字段里。
-3. 在分类补录阶段，若发现新稳定题型没有自然 `x.x.x` 落点，优先扩树并统一回填，不要先把论文硬塞进旧标签。
+2. 优先从已判为 `属于软件工程` 或 `跨域但软工主导` 的条目里，再按 `x.x.x` 主路径筛出与你博士研究最贴近的论文批次。
+3. 若后续在扫新增论文时发现新稳定题型没有自然 `x.x.x` 落点，优先扩树并统一回填，不要先把论文硬塞进旧标签。
 4. 对 `⏳ 待补信息` 且与你博士研究高度相关的条目，优先补摘要或 publisher 侧信息。
 5. 若继续扩年份，直接复用：
 
@@ -118,6 +131,15 @@ python -m tools.ccf_se_index_builder --year 2024
 6. 若进入全文阶段，再转用 `tools/pdf_extractor.py` 和正式论文集规范。
 
 ## 6. 更新日志
+
+- `2026-04-06 00:49:29`
+  - 重新跑通 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)，把 `macro_area` 与最终 `se_inclusion_decision` 的口径收紧到一致，不再保留“一级总判定是软件工程、但最终又判为非软工”的冲突条目。
+  - 最终确认 `2025` 年度 `6301` 条论文中，`3444` 条纳入软工语料且全部拥有 `se_primary_path`，其余条目落在 `程序设计语言与形式化基础 / 系统软件 / 跨域待判定`。
+
+- `2026-04-06 00:38:29`
+  - 新增 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)，把 `2025` 年度 `6301` 条论文全部回填到 `macro_area / se_inclusion_decision / cross_domain_flag / se_primary_path / se_primary_label / se_secondary_paths / se_decision_basis`。
+  - 重写 [ccf_history/2025/README.md](./ccf_history/2025/README.md)，把逐篇表格升级为“一级总判定 + 软工纳入判定 + `x.x.x` 主路径 + 判定依据”的版本。
+  - 同步更新 [../tools/README.md](../tools/README.md) 与 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)，把标准流程固定为 `builder -> classifier`。
 
 - `2026-04-05 23:42:35`
   - 进一步把“分类树持续扩充”制度化：明确后续扫论文时，若现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩树再分类，禁止把论文硬塞到旧路径。

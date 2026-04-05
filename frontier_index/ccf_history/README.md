@@ -158,9 +158,14 @@ python -m tools.ccf_se_index_builder --year 2025
 ```
 
 4. 检查 `frontier_index/ccf_history/2025/verification.json` 是否全部 `ok`。
-5. 若发现会议边界、重名文件、官方页缺失等问题，优先修脚本并重跑。
-6. 需要回填分类字段时，优先按“一级总判定 + 软工纳入判定 + 软工主路径（`x.x.x`） + 软工次路径/标签 + 判定依据（`X1/D1-D4`）”的口径统一回填。
-7. 若回填时发现一批论文没有自然 `x.x.x` 落点，先扩 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 再批量回填，不要为了赶进度把它们硬塞到旧路径。
+5. 在仓库根目录继续运行：
+
+```bash
+python -m tools.ccf_se_classifier --year 2025
+```
+
+6. 若发现会议边界、重名文件、官方页缺失等问题，优先修构建脚本并重跑。
+7. 若回填时发现一批论文没有自然 `x.x.x` 落点，先扩 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 再更新分类脚本并重跑，不要为了赶进度把它们硬塞到旧路径。
 8. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
 
 补充约束：

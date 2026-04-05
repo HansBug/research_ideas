@@ -114,7 +114,7 @@
 9. [../tools/README.md](../tools/README.md)
    - 汇总本仓库内与索引构建、全文提取相关的 Python 工具入口。
 10. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
-   - 规定 `CCF` 年度索引的标准批量构建与复核流程。
+   - 规定 `CCF` 年度索引的标准批量构建、软工分类回填与复核流程。
 
 推荐阅读顺序如下：
 
@@ -159,6 +159,12 @@
 python -m tools.ccf_se_index_builder --year 2025
 ```
 
+基础元数据生成完成后，再运行：
+
+```bash
+python -m tools.ccf_se_classifier --year 2025
+```
+
 如需进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py)。
 
 ## 8. AI 工作入口提示
@@ -173,5 +179,5 @@ python -m tools.ccf_se_index_builder --year 2025
 6. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 软工判定依据（X1/D1-D4）`。
 7. 若批量扫论文时发现现有 `x.x.x` 没有自然覆盖某一稳定题型，应先更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 及相关说明，再回填分类，不要把论文硬塞到“最接近”的旧路径。
 8. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
-9. 若任务是构建某一年的 `CCF` 全量索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 进入分类补录阶段。
+9. 若任务是构建某一年的 `CCF` 全量索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再用 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 回填软工判定与 `x.x.x` 路径，最后按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 做复核。
 10. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。

@@ -14,7 +14,10 @@
 2. [ccf_se_index_builder.py](./ccf_se_index_builder.py)
    - 批量生成 `CCF` 软件工程/系统软件/程序设计语言方向年度索引。
    - 输出年度 `README.md`、`verification.json`、`metadata/*.json`、`bib/*.bib`。
-3. [ccf_se_index_workflow.md](./ccf_se_index_workflow.md)
+3. [ccf_se_classifier.py](./ccf_se_classifier.py)
+   - 在已有年度元数据之上，批量回填 `macro_area / se_inclusion_decision / se_primary_path / se_primary_label / se_secondary_paths / se_decision_basis`。
+   - 同时重写年度 `README.md`，把逐篇表格升级为“一级总判定 + 是否为软工 + `x.x.x` 路径”的版本。
+4. [ccf_se_index_workflow.md](./ccf_se_index_workflow.md)
    - 说明 `ccf_se_index_builder.py` 的标准工作流、复核方式、分类补录阶段与缓存约束。
 
 ## 3. 标准工作流
@@ -42,8 +45,13 @@ frontier_index/ccf_history/2025/
 
 1. 先运行构建器生成全量结果。
 2. 再检查 `verification.json` 是否全部 `ok`。
-3. 再按 `frontier_index/SOFTWARE_ENGINEERING_FIELD_TREE.md` 与 `frontier_index/CCF_SE_A_B_C.md` 补录 `macro_area / se_inclusion_decision / se_primary_path / se_decision_basis` 等分类字段。
-4. 若发现 venue 边界、重名覆盖、字段缺失等问题，优先改脚本并重跑，不手工补半成品。
+3. 再运行分类器回填软工判定与 `x.x.x` 路径：
+
+```bash
+python -m tools.ccf_se_classifier --year 2025
+```
+
+4. 若发现 venue 边界、重名覆盖、字段缺失或分类规则问题，优先改脚本并重跑，不手工补半成品。
 5. 最后再回写 `frontier_index/` 入口文档中的统计和说明。
 
 ### 3.2 提取单篇论文全文
@@ -64,5 +72,5 @@ python -m tools.pdf_extractor -i path/to/paper.pdf -o path/to/paper_content.txt 
 
 1. `ccf_se_index_builder.py` 的 `_cache/` 不应随意删除，否则重跑会显著变慢。
 2. 年度索引默认应视为“可重建产物”，发现规则问题时优先修脚本，不优先手工改生成文件。
-3. 当前构建器的职责是生成**基础元数据层**；软工/非软工终判与 `x.x.x` 路径回填属于后续分类补录阶段。
+3. 当前 `ccf_se_index_builder.py` 的职责是生成**基础元数据层**；软工/非软工终判与 `x.x.x` 路径回填默认由 `ccf_se_classifier.py` 负责。
 4. `pdf_extractor.py` 主要服务正式论文集路径，不应把 `frontier_index/` 直接当全文文库来批量提取。

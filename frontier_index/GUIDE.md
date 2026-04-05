@@ -302,6 +302,12 @@
 python -m tools.ccf_se_index_builder --year 2025
 ```
 
+基础元数据层生成后，再运行：
+
+```bash
+python -m tools.ccf_se_classifier --year 2025
+```
+
 默认产物包括：
 
 1. `frontier_index/ccf_history/<year>/README.md`
@@ -315,8 +321,8 @@ python -m tools.ccf_se_index_builder --year 2025
 1. `_cache/` 默认保留，不应在常规复跑中删除。
 2. 若发现 venue 边界判断、重名覆盖、官方页回退等规则问题，应先修 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 再重跑。
 3. 不应把生成后的 `metadata/*.json`、`bib/*.bib` 当作优先手工维护对象。
-4. 全量生成完成后，必须复核 `verification.json`，再回写 [SUMMARY.md](./SUMMARY.md)。
-5. 构建器当前负责**基础元数据层**；`macro_area / se_inclusion_decision / se_primary_path / se_decision_basis` 属于后续分类补录层。
+4. 全量生成完成后，必须复核 `verification.json`，再运行分类器回填软工判定与 `x.x.x` 路径。
+5. 构建器当前负责**基础元数据层**；分类器负责 `macro_area / se_inclusion_decision / se_primary_path / se_decision_basis` 等分类补录字段，并重写年度 `README.md`。
 
 若后续某批论文进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py) 生成 `paper_content.txt`。
 
