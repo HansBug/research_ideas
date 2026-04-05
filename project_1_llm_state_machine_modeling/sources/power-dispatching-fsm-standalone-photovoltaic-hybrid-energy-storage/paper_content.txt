@@ -1,0 +1,543 @@
+--- Page 1 ---
+http://www.aimspress.com /journal /energyAIMS Energy, 8(2): 214–230.
+DOI: 10.3934 /energy.2020.2.214
+Received: 06 November 2019
+Accepted: 21 February 2019
+Published: 13 March 2020
+Research article
+Power dispatching techniques as a ﬁnite state machine for a standalone
+photovoltaic system with a hybrid energy storage
+K.M.S.Y. Konara *, M.L. Kolhe and Arvind Sharma
+Faculty of Engineering & Science, University of Agder, Centre for Integrated Emergency
+Management, PO Box 422, NO 4604, Kristiansand, Norway
+*Correspondence: Email: konara@uia.no.
+Abstract: Standalone photovoltaic system (SPVS) is usually embedded with an energy storage unit
+to overcome the intermittency of photovoltaic (PV) generation as well as to address load variations
+in o-grid operation. In SPVS energy systems, batteries can serve as the long term energy storage
+and contributing to the large portion of the energy demand but to overcome the load intermittency,
+it necessitates a fast response energy storage embedded with the battery as a hybrid energy storage
+(HES) for dynamic loads (e.g., Electric Vehicle loads, emergency power management). In this work,
+Lead-Acid (LA) battery and supper capacitor (SC) array are used as the HES. HES helps not only
+in increasing more utilization of PV generated power but also in improving system dynamics and
+stability for power intensive loads operation. This paper presents innovative power management and
+control strategies for a HES connected in DC coupled architecture. The presented architecture can also
+be used for DC micro grids. Power management strategies are developed in a hierarchical architecture
+as an event driven ﬁnite state machine. Primary control is implemented using current mode control and
+voltage mode control adapted at the bi-directional DC-DC converters and the voltage source inverter
+connected to the HES, respectively. The performance of the developed power management strategies
+for the HES is analyzed for typical load dynamics.
+Keywords: DC micro grid; standalone photovoltaic system; hybrid energy storage; power
+management; ﬁnite state machine
+1. Introduction
+Nearly one third of the world population is not electriﬁed due to lack of generation, geographical,
+environmental and logistic concerns. Extending power lines from centralized sources to rural areas
+where electriﬁcation is embryonic is often not yet economical, and so, decentralized and o -grid power
+sources, such as standalone PV systems, are a promising alternative [1].
+
+--- Page 2 ---
+215
+The intermittent and stochastic nature of PV production could be addressed by having an appropriate
+energy storage. When grid connected, if there is an imbalance of demand and the PV generation, the
+utility grid ensures an uninterruptible power supply to the load [2–4]. But unlike in grid-connected
+case, in standalone PV systems, any mismatch between the demand and PV generation should be
+compensated by the energy storage (ES) [5, 6]. Even with the grid connected case, there might be
+situations where grid is unavailable for supplying loads, (e.g., grid outage, islanding condition etc.)
+leading the PV system to be changed its working mode from grid connected to standalone [7]. Among
+many types of ES elements, chemical batteries are employed as mainstream long term ES solution for
+dierent kind of energy systems, particularly Lead Acid (LA) batteries with well proven technology
+due to its better electrical performance and relatively lower cost. Despite economical and electrical
+merits associated with LA batteries, the battery itself is not be an appropriate ES element in PV systems
+as the life cycle of LA battery is relatively short which only last for hundreds of charge-discharge
+cycles [8]. Due to the stochastic nature of PV generation, the deterioration of the LA battery could
+be worse as it fails to ensure charging and discharging security due to deep discharged, overcharging,
+high charging rate and ﬂuctuating power exchange [8–10]. In order to address fast dynamics and
+sudden ﬂuctuations in power intensive load (e.g., EV load, emergency power management), a super-
+capacitor(SC) should be embedded in the energy storage as it can absorb and deliver power ﬂuctuations
+at much higher rates compared to batteries and also it can be considered that charging and discharging
+cycles of a SC is almost unlimited [5,8,11]. Therefore, it is recommended to use a battery with a SC as
+a hybrid ES (HES) in renewable energy applications to address its intermittency while ensuring long
+life cycle of the battery array.
+A typical DC coupled active topology of a HES found in recent literature is depicted in Figure 1
+where the battery array and SC are connected to a common DC bus [12–16]. A passive HES topology
+described in [17] can also share the load current between the battery and the SC while keeping the
+terminal voltage constant due to the parallel connection. In this topology, for fast dynamics in the load
+demand, the SC responses rapidly to satisfy the sudden changes in the demand which in consequence
+leads the battery current to gradually increase or decrease. However, in this topology, the individual
+power share can not be controlled independently unlike in the active topology illustrated in Figure 1, as
+the current distribution between the battery and SC solely depend on the internal electrical properties
+such as resistance, capacitance etc [13].
+Battery
+SC
+ControllerControl□InputsDCDCDCDCDCDC
+DC□BusPV
+Figure 1. HES Topologies.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 3 ---
+216
+The power share among ES elements should be determined using appropriate techniques
+considering the characteristics of ESs. Independent control of the power ﬂow of each energy storage
+element in a HES is useful, but to counter balance the system reliability and availability, secondary
+control layer would be necessary on top of the calculated power references. Reference [18] has
+employed fuzzy control to further modify and smooth the calculated power references for a HES but it
+has not given a signiﬁcant attention to control strategies related to the voltage source inverter (VSI) in
+the SPVS application. Although considerable research e orts have been devoted to primary control of
+the power conditioning devices connected to the HES in a SPVS, less attention has been paid on the
+secondary control with energy management ensuring an uninterruptible power supply to the power
+intensive load with transients. Therefore, in this work, a hierarchical control approach as a ﬁnite state
+machine (FSM) is proposed and analyzed for the DC coupled HES in active topology. The initial
+power references for each ES element is calculated using power transient ﬁltering. The control
+strategies are analyzed for both the DC-DC and DC-AC stages to ensure an uninterruptible power
+supply to the AC load while maintaining system reliability, availability and dispatching security.
+In this article, Section 2 presents the conﬁguration of the HES topology and the components.
+Section 3 describes the control strategies proposed as a FSM while the Section 4 is presenting the
+PWM switching control with classical PID control. The simulation results are presented and
+discussed in Section 5. The performance of the proposed control strategies are concluded in Section 6.
+2. Topology of the HES components
+In the presented work, ES elements are interfaced in DC coupled active topology to supply the
+power intensive load as depicted in Figure 2. Power shares of ES elements are determined using power
+transient ﬁltering techniques. The energy sources are connected with the power intensive load through
+power conditioning devices with the control system as illustrated in Figure 2. The control system is
+developed in hierarchical fashion with dedicated control tasks at di erent stages to supply the required
+demand while ensuring charging and discharging security of the HES.
+Battery
+SC
+ControllerControl□InputsLoad
+DCDCDCDCDCDC
+PV
+DC
+DC□BusAC
+Figure 2. DC Coupled Architecture of the HES.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 4 ---
+217
+2.1. Lead-Acid battery model
+The charging and discharging characteristics of the selected LA battery model are expressed in (2.1)
+and (2.2) respectively [19]. The sizing of the battery array is done based on the work presented in [9,20]
+with the power rating of 8 kW. The DC bus to which the battery is connected through a bi-directional
+DC-DC converter is kept at 60 V. The manufacture speciﬁed battery parameters are given in Table 1.
+According to the selected battery, the battery array consists of 7 batteries connected in parallel to meet
+the load demand.
+ECharge =E0 K Q
+Q it!
+i K Q
+Q it!
+it+L 1 Exp(s)
+sel(s)!
+(2.1)
+EDischarge =E0 K Q
+0:1Q+it!
+i K Q
+Q it!
+it+L 1 Exp(s)
+sel(s)1
+s!
+(2.2)
+where,
+E0: Constant voltage ( V)
+Exp(s): Exponential zone dynamics ( V)
+sel(s): Battery mode: sel(s)=1 during charging and sel(s)=0 during discharging
+K: Polarization constant ( Ah 1) or Polarization resistance ( 
+)
+i: Low frequency current dynamics ( A)
+i: Battery current ( A)
+it: Expected capacity ( Ah)
+Q: Maximum battery capacity ( Ah)
+Table 1. Battery parameters.
+Parameters Data
+Nominal V oltage 48 V
+Rated Capacity 69.4 Ah
+Initial State of Charge 80%
+Fully Charged V oltage 52.3 V
+Nominal Discharge Current 35 A
+Internal Resistance 0.02 
+Capacity at Nominal V oltage 21.5 Ah
+2.2. Super-Capacitor model
+SC is used to address the sudden power transients in the system rather taking a large portion of the
+load demand. However, the power rating of the SC should be large enough to address load transients
+and also SC should be capable of taking a signiﬁcant share of the demand when the battery array is to
+be exceeded its power ratings.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 5 ---
+218
+The output voltage of the SC model used in this work is expressed using a Stern equation given in
+(2.3) [19]. The power ratings of the selected SC is 2 :5kWand the DC bus to which the SC is connected
+through a bi-directional DC-DC converter is kept at 60 V. The nominal voltage of the SC is selected
+as 24 V. The SC model parameters given in Table 2 [21].
+Vsc=NsQTd
+NpNe""0+2NeNsRT
+Fsinh0BBBB@QT
+NpN2
+eAip8RT""01CCCCA Rscisc (2.3)
+where,
+QT=R
+iscdt: Electric charge ( C)
+Ai: Inter-facial area between electrode and electrolyte ( m2)
+F: Faraday constant ( V)
+isc: Super capacitor current( A)
+Vsc: Super capacitor voltage ( V)
+Ne: Number of layers of electrodes
+Np;Ns: Number of parallel and series SCs
+R: Ideal gas constant
+T: Operating temperature ( K)
+"; " 0: Permitivity of material and the free space
+Table 2. Super-capacitor parameters.
+Parameters Data
+Rated Capacitance 96 F
+Equivalent DC series resistance 2 :110 3
+Initial State of Charge 65%
+Rated V oltage 36 V
+Initial V oltage 24 V
+Nuber of series capacitors 2
+Number of parallel capacitors 4
+2.3. Power conditioning devices
+The system consists of two bi-directional DC-DC buck-boost converters and one 3 VSI as power
+conditioning devices. In the HES system, both the bi-directional DC-DC buck-boost converters
+connected with the LA battery and SC arrays facilitate both charging and discharging modes as they
+are capable of handling bi-directional regulated power ﬂow. The critical parameters of the DC-DC
+converters are calculated based on the methodology presented in [10]. As the DC coupled architecture
+is used in the HES, one VSI is employed with voltage mode control.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 6 ---
+219
+2.4. Control system overview
+The power dispatching strategies are designed in hierarchical fashion as an event driven system with
+PID and state-ﬂow control. Hierarchical control approach includes several hierarchical stages and each
+stage is responsible for doing a control task based on its hierarchical position. Therefore, the control
+system includes four stages each having their own control task depend on the hierarchical position as
+illustrated in Figure 3.
+WMC□-□HES□SystemWorking□Mode□Control
+(WMC)
+Switching□Control
+(SWC)Power Flow□Control
+(PFC)PFC-SC PFC-DC□Link
+SWC
+SCSWC
+DC□LinkSWC
+Battery
+DC-DC□Conv.
+Battery
+SystemDC-DC□Conv.
+SC
+SystemVSIPFC-Battery
+Figure 3. Hierarchical control structure.
+3. Power management and switching control
+The whole control task is subdivided into three hierarchical stages as illustrated in Figure 3. The
+top most working mode control (WMC) layer selects the suitable ES elements based on their
+availability and accessibility so that it prevents the ES elements from over charging and discharging
+by taking the prescribed maximum and minimum state of charge (SOC) limits of the battery into
+account. This layer determines the required power, frequency and voltage set points to meet the load
+demand. Power shares are determined at the power ﬂow control (PFC) layer based on power transient
+ﬁltering technique but the determined power references are further modiﬁed according to the power
+ratings and the discharging rates of the ES elements using event driven state-ﬂow control. Based on
+the reference power signals calculated at the PFC, switching control (SWC) level generates the
+required PWM signals to converters.
+3.1. Working mode control (WMC) of the system
+At this stage, the availability and the accessibility of each ES element for power dispatching are
+determined based on their SOC. The control layer is designed as an event driven system with state-
+ﬂow control. The state transition diagram of the WMC layer for the HES system is shown in Figure 4
+and the corresponding state transition logic is tabulated in Table 3.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 7 ---
+220
+bT11
+T12T14T13
+hd
+Figure 4. State transition diagram of the WMC layer.
+h: Hybrid mode.
+b: Battery only mode
+d: Disconnected mode
+Table 3. State transition logic of WMs.
+Transition Logic
+T11 S OC bat(t)>S OC bat;min&& S OC sc(t)<S OC sc;min
+T12 S OC bat(t)>S OC bat;min&& S OC sc(t)>S OC sc;min
+T13 S OC bat(t)<S OC bat;min&& S OC sc(t)<S OC sc;min
+T14 S OC bat(t)<S OC bat;min
+S OC x;min: minimum SOC of the ES element x
+S OC x(t): current SOC of ES element x
+x: battery- bat, SC- sc
+3.2. Power Flow Control (PFC) of the HES
+Power will be delivered to the load only in the ‘Hybrid’ and ‘Battery only’ modes. Power shares of
+each ES element will be determined by using linear ﬁltering technique considering the load increment
+rate and the power transient frequency.
+dT21
+T22T23 T25
+T24
+fl
+Figure 5. State transition diagram of the Hybrid mode in PFC.
+The ‘Hybrid’( h) mode in Figure 4 consists of three states ( s) : ‘Fully dispatchable’( f), ‘Limited’
+(l) and ‘Disconnected’( d) as illustrated in the state diagram of PFC (Figure 5).
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 8 ---
+221
+There are only two states ( s) : ‘Connected’( c) and ‘Disconnected’( d) in the ‘Battery Only’ mode.
+The state transition logic of PFC-Hybrid mode is tabulated in Table 4. Therefore, the ﬁnal power
+references of the battery and SC for fandlstates are calculated using (3.1) and (3.2), respectively.
+When the calculated battery power share using power transient ﬁltering is higher than the maximum
+allowable capacity of the battery, the system transits to the lstate where the initial power reference
+will be updated to a predetermined percentage (e.g., 0.8) of the calculated reference as described
+in (3.1).
+Table 4. State transition logic of PFC-Hybrid.
+Transition Logic
+T21 Pmax;sc+Pmax;bat<PL(t)
+T22 Pmax;sc+Pmax;bat>PL(t)
+T23 Pbat(t)>Pmax;bat&& Psc(t)<Pmax;sc
+T24 Pbat(t)<Pmax;bat&& Psc(t)<Pmax;sc
+T25 Psc(t)>Pmax;sc
+Px;max: power rating of the ES element x
+Px(t): calculated share of ES element x
+PL(t): current load demand
+Pre f;bat;hyb(t)=8>>>>><>>>>>:Pbat(t) ; if s=f
+0:8Pbat(t) ; if s=l
+0 ; otherwise(3.1)
+Pre f;sc;hyb(t)=8>>>>><>>>>>:Psc(t) ; if s=f
+PL(t) Pre f;bat;dis(t) ; if s=l
+0 ; otherwise(3.2)
+There are two states( s) in the PFC of the ‘Battery only’ mode :‘Connected’ ( c) and ‘Disconnected’
+(d) where only the battery array takes care of the load demand hence, sudden power ﬂuctuations will
+not be addressed. The load is supplied as long as Pmax;bat>PL(t) only, otherwise the system transits to
+d. Therefore, the ﬁnal battery and SC power references for ‘Battery only’ states are calculated using
+(3.3) and (3.4), respectively.
+Pre f;bat;bo(t)=8>><>>:PL(t) ; if s=c
+0 ; otherwise(3.3)
+Pre f;sc;bo(t)=0 (3.4)
+However, the calculated ﬁnal reference values of the battery and SC are further checked for the
+power ratings of each ES element before sending them to the SC layer where PWM switching signals
+are generated. Therefore, the ﬁnal reference values for the battery and SC are obtained using (3.5) and
+(3.6), respectively.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 9 ---
+222
+Pre f;bat(t)=8>><>>:Pre f;bat;j(t) ; if Pre f;bat;j(t)Pbat;max
+0 ; otherwise(3.5)
+Pre f;sc(t)=8>><>>:Pre f;sc;j(t) ; if Pre f;sc;j(t)Psc;max
+0 ; otherwise(3.6)
+Pre f;x;j: Power reference of xelement in jmode x: battery ( bat), SC ( sc),
+Px;max: Power rating of xelement j: hybrid ( hyb), battery only ( bo)
+4. PWM switching control (SWC)
+As illustrated in Figure 6, the attention is given to PWM switching controls of the power
+conditioning devices in the system. Basically what SWC layer does is generating the appropriate
+PWM switching signal to DC-DC bidirectional converters and the 3 VSI for delivering the required
+power demand.
+v (t)abcvdq(t)
+vd,ref
+vq,refvact abc
+dq0
+ωvpuvabc_ref
+PWMabcdq0
+PIDBattery
+SCDCDCDCDC
+DCAC
+i (t)ref,□sc
+i (t)ref,□bati (t)sc
+i (t)bat V (t)dcV (t)dc,□refPID
+PID PID
+Figure 6. PWM switching control (SWC) system.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 10 ---
+223
+Individual power shares of each ES element is controlled using two PID control loops based on
+the reference values of the current components ( ire f;bat;ire f;sc;) calculated from the corresponding power
+references ( Pre f;bat;Pre f;sc;) received from the PFC layer. This classical PID control is described in [10].
+To keep the DC link voltage constant, a cascaded voltage control loop is used with the battery array as
+the SC is dedicated for handling sudden power transients while supplying a share of the load demand.
+The 3VSI is controlled in grid forming mode using voltage mode control as the load management
+system is designed for a standalone application as illustrated in Figure 6. All the reference values
+(vd;re f;vq;re fand fre f) are obtained from the PFC layer to generate the required AC signal. The block
+diagram view and the control block diagram of the SWC topology used in the VSI connected with the
+DC link is shown in Figure 7.
+DC□Link
+3
+Phase□angleφV
+dq0
+dq0abc
+abc V oltage
+Control□Loopv vd q&
+vq,refvd,reffrefPWMAC□LoadDC
+3φ AC
+Figure 7. The block diagram of the SWC in the VSI.
+There are two main subsystems: (1) Park component derivation subsystem (2) V oltage control
+subsystem, in the block diagram shown in Figure 7. The Park component derivation subsystem
+converts the measured line voltage wave-forms ( vabc) at the point of common cupping (PCC) with the
+AC bus into Park components ( vd;vq) inpuvalues with the help of the phase angle ( !t). In this SWC
+topology, voltage controller is used to control the output voltage. Then in the SWC, the direct axis
+Park component of the reference voltage is set to 1 pu(vd;re f=1pu) and it generates the required
+vd;vqfor the PWM generation subsystem.
+5. Results and discussions
+The proposed control strategies of the HES are analyzed and the obtained results are presented for
+three scenarios where fast dynamic, slow dynamic and constant load proﬁles are considered,
+respectively. The load demand is properly shared between the battery and SC in the HES. The LA
+battery array is the main power source which takes the signiﬁcant portion of the load demand while
+the SC is taking care of rapid dynamics of the power intensive load.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 11 ---
+224
+5.1. Load demand sharing : Scenario-I-Load proﬁle with rapid dynamics
+Demand management capability of the proposed HES architecture for a load proﬁle with rapid
+dynamics is evaluated for the load proﬁle illustrated in Figure 8. It can be seen that the large portion of
+the load demand is taken by the battery. System dispatches the power in ‘Hybrid’ mode and the power
+ﬂow is taken place in both ‘fully dispatchable’ and ‘limited’ states.
+Figure 8. Variation of Power Shares of each ES Elements for Scenario I.
+When we consider the load variation (Figure 8), rapid dynamics of the load demand can be seen
+during 4thsecond to 13thsecond. During the considered simulation time period, the peak demand of
+8:5kWhas been occurred at the 9thsecond. Out of this 8 :5kWdemand, 23% is taken by the SC
+array while LA is taking 77%. From 8thsecond to 9thsecond, we can see a sudden increment of the
+load demand with a rate of 3 :5kW=s. During this period SC array has discharged power at a rate of
+1:95kW=safter being in rest, as the battery has failed to accomplish this sudden load change with
+alone. During this period the battery response is 1 :55kW=swhich is not su cient to meet this sudden
+demand change.
+Similarly, during next two seconds (9ths 11ths), a sudden demand decrement has been occurred
+which is even failed to addressed by the LA battery alone. During this time, load demand is decreased
+at a rate of 3 :0kW=s. SC array has suddenly disappeared at a rate of  3:9kW=swhile the LA battery
+keep discharging power at a rate of 1 :55kW=s. At the 10thsecond, the share of battery discharge
+is 165% with respect to the load demand but, the excess energy is stored in the SC array at a rate
+of 2:2kW=sduring this rapid load change. The same discharging pattern continues till 11thsecond
+resulting battery share of 4 :9kWand SC share of 1:9kWat the 11ths.
+The variation of the SOC, current and the terminal voltage of battery and SC for Scenario I are
+shown in Figure 9 and Figure 10, respectively.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 12 ---
+225
+Figure 9. Variation of the Current, V oltage and SOC of the Battery for Scenario I.
+Figure 10. Variation of the Current, V oltage and SOC of the SC for Scenario I.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 13 ---
+226
+5.2. Load demand sharing : Scenario-II-Load proﬁle with slow dynamics
+System response for a load variation with slow dynamics is analyzed with the load proﬁle illustrated
+in Figure 11. Similarly like in Senario I, the system dispatches the power in ‘Hybrid’ mode and the
+power ﬂow is taken place in both ‘fully dispatchable’ and ‘limited’ states. As compared to the load
+variation in Senario I, very slow dynamics appear in the Senario II. Due to the rate limiter in the battery
+power management system, during the ﬁrst and last few seconds, SC discharges to compensate the load
+demand and it can be seen that the load demand is almost fulﬁlled by the LA battery array in its ‘fully
+dispatchable’ state.
+Figure 11. Variation of Power Shares of each ES Elements for Scenario II.
+The variation of the SOC, current and the terminal voltage of battery and SC for Scenario II are
+shown in Figure 12 and Figure 13, respectively.
+Figure 12. Variation of the Current, V oltage and SOC of the Battery for Scenario II.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 14 ---
+227
+Figure 13. Variation of the Current, V oltage and SOC of the SC for Scenario II.
+5.3. Load demand sharing: Scenario-III-Constant load proﬁle
+To analyze the performance of proposed power management strategies for ‘Battery only’ mode, a
+constant load proﬁle is considered as shown in Figure 14. When the SC array is not available for power
+dispatching, power transients can not be handled. Therefore, either constant load or a load with very
+slow dynamics can only be handled in ‘Battery only’ mode.
+Figure 14. Variation of Power Shares of each ES Elements for Scenario III.
+In Scenario-I, it can be seen that the transients of the load proﬁle are ﬁltered and compensated by
+the SC. The system is working in the hmode and both fandlstates. Very slow dynamics are appearing
+in the load proﬁle analyzed in Scenario-II, and so, the load demand is taken by the LA battery array.
+At the start and the end, SC has taken a power share of the load, as the system has switched to lstate of
+thehmode during those periods. To analyze the performance of control strategies proposed in bmode,
+the constant load proﬁle is considered in the Scenario-III, and it can be seen that, as long as the battery
+array is available, the constant load proﬁle can be supplied by the system.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 15 ---
+228
+6. Conclusions
+In standalone energy systems as well as in islanding mode of the grid connected PV systems, LA
+batteries serve as the long term energy storage by taking large portion of the load while sudden changes
+are being handled by a SC array embedded with the LA battery as a hybrid energy storage. It can be
+seen that the given HES architecture with the proposed control strategies developed in hierarchical
+manner e ectively address the fast dynamics of the load demand without stressing the LA battery.
+Power dispatching strategies are developed by using current mode control and voltage mode control
+adapted at the bi-directional DC-DC converters and the voltage source inverter of the proposed HES
+with the help of state ﬂow based event driven and PID control systems. Rather using only primary
+control for the power conditioning devices, it is very e ective to implement logical control on top of
+the primary switching control in hierarchical manner to maintain smooth power supply to the load
+ensuring healthy operation.
+In this work, the power shares determined by using the power transient ﬁltering technique are
+further modiﬁed by considering the availability and accessibility of each power source to ensure an
+uninterruptible power supply to the load. It could be concluded that the proposed architecture and the
+control strategies for a HES connected in DC coupled nature helps not only in increasing more
+utilization of battery power to meet the rapid varying load demand but also in improving system
+dynamics and stability in addition to enhance the life expectancy of LA battery.
+This proposed HES system with control strategies can be directly used for fast charging of EV
+without stressing the electrical grid and also which is best suited for industrial drives as well. The
+presented power dispatching topology is going to be very useful for emergency power management
+using HES during disaster relief e orts. In future works, this work will be extended to a PV based DC
+micro-grid with both dispatching and changing control.
+Acknowledgments
+This work is partially supported by the Norwegian Ministry of Foreign A airs through the Royal
+Norwegian Embassy, New Delhi under the framework agreement with TERI (India) and University of
+Agder (Norway) for the project theme ‘Sustainability and Clean Energy’.
+Conﬂict of interest
+The authors declare no conﬂict of interest in this paper.
+References
+1. Kolhe M (2009) Techno-Economic optimum sizing of a Stand-Alone solar photovoltaic system.
+IEEE Trans Energy Convers 24 : 511–519.
+2. Wu Y , Lin J, Lin H (2017) Standards and guidelines for Grid-Connected photovoltaic generation
+systems: A review and comparison. IEEE Trans Ind Appl 53: 3205–3216.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 16 ---
+229
+3. Collins L, Ward JK (2015) Real and reactive power control of distributed PV inverters for
+overvoltage prevention and increased renewable generation hosting capacity. Renewable Energy
+81: 464–471.
+4. Blaabjerg F, Teodorescu R, Liserre M, et al. (2006) Overview of control and grid synchronization
+for distributed power generation systems. IEEE Trans Ind Electron 53: 1398–1409.
+5. Thang TV , Ahmed A, Kim C, et al. (2015) Flexible system architecture of Stand-Alone PV power
+generation with energy storage device. IEEE Trans Energy Convers 30: 1386–1396.
+6. Zhou W, Lou C, Li Z, et al. (2010) Current status of research on optimum sizing of stand-alone
+hybrid solar-wind power generation systems. Appl Energy 87: 380–389.
+7. Lu D, Fakham H, Zhou T, et al. (2010) Application of Petri nets for the energy management of a
+photovoltaic based power station including storage units. Renewable Energy 35: 1117–1124.
+8. Jing WL, Lai CH, Wong WSH, et al. (2016) Cost analysis of battery-supercapacitor hybrid energy
+storage system for standalone PV systems. 4th IET Clean Energy and Technology Conference
+(CEAT 2016) , Institution of Engineering and Technology.
+9. Yassin MAM, Kolhe ML, Azmi AN (2017) Battery capacity estimation for building-integrated
+photovoltaic system: Design study of a Southern Norway ZEB house. 2017 IEEE PES Innovative
+Smart Grid Technologies Conference Europe (ISGT-Europe), 1–6.
+10. Konara KMSY , Kolhe ML (2016) Charging management of grid integrated battery for overcoming
+the intermittency of RE sources. 2016 IEEE International Conference on Information and
+Automation for Sustainability (ICIAfS) , IEEE.
+11. Fakham H, Lu D, Francois B (2011) Power control design of a battery charger in a hybrid active
+PV generator for Load-Following applications. IEEE Trans Ind Electron 58: 85–94.
+12. Choi M, Kim S, Seo S (2012) Energy management optimization in a battery /supercapacitor hybrid
+energy storage system. IEEE Trans Smart Grid 3: 463–472.
+13. Etxeberria A, Vechiu I, Camblong H, et al. (2012) Comparison of three topologies and controls of
+a hybrid energy storage system for microgrids. Energy Convers Manage 54: 113–121.
+14. Wongdet P, Marungsri B (2018) Hybrid energy storage system in standalone DC microgrid with
+ramp rate limitation for extending the lifespan of battery. 2018 International Electrical Engineering
+Congress (iEECON) , 1–4.
+15. Sinha S, Sinha AK, Bajpai P (2017) Solar PV fed standalone DC microgrid with hybrid energy
+storage system. 2017 6th International Conference on Computer Applications In Electrical
+Engineering-Recent Advances (CERA) , 31–36.
+16. Deshpande G, Kamalasadan S (2014) An approach for micro grid management with hybrid energy
+storage system using batteries and ultra capacitors. 2014 IEEE PES General Meeting-Conference
+Exposition , 1–5.
+17. Dougal RA, Liu S, White RE (2002) Power and life extension of battery-ultracapacitor hybrids.
+IEEE Trans Compon Packag Technol 25: 120–131.
+18. Liu B, Zhuo F, Bao X (2012) Fuzzy control for hybrid energy storage system based on battery and
+Ultra-capacitor in Micro-grid. Proceedings of The 7th International Power Electronics and Motion
+Control Conference 2: 778–782.
+AIMS Energy V olume 8, Issue 2, 214–230.
+
+--- Page 17 ---
+230
+19. The Mathworks, Inc., Natick, Massachusetts, MATLAB version 9.5 (R2018b) , 2018.
+20. Yassin MAM, Kolhe M, Sharma A, et al. (2017) Battery capacity estimation for building integrated
+photovoltaic system: Design study for di erent geographical location(s). Energy Procedia 142:
+3433–3439.
+21. Azmi AN, Kolhe ML (2015) Photovoltaic based active generator: Energy control system using
+stateﬂow analysis. 2015 IEEE 11th International Conference on Power Electronics and Drive
+Systems , 18–22.
+©2020 the Author(s), licensee AIMS Press. This
+is an open access article distributed under the
+terms of the Creative Commons Attribution License
+(http: //creativecommons.org /licenses /by/4.0)
+AIMS Energy V olume 8, Issue 2, 214–230.
