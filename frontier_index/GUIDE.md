@@ -13,9 +13,9 @@
 3. [SUMMARY.md](./SUMMARY.md)
    - 负责记录当前基础建设状态、已准备好的入口、下一步计划和更新日志。
 4. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
-   - 负责固定 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 期刊会议名录及索引入口。
+   - 负责固定 `CCF` 相关 venue 的名录、主体归属、软工归属级别与索引入口。
 5. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
-   - 负责给出当前默认的软件工程领域方向树、一级总判定口径，以及主标签/次标签分类规则。
+   - 负责给出当前默认的软件工程三级方向树、单篇论文可执行判定标准，以及 `x.x.x` 主路径分类规则。
 6. [../tools/README.md](../tools/README.md)
    - 负责汇总当前可直接复用的 Python 工具入口。
 7. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
@@ -26,8 +26,8 @@
 1. [README.md](./README.md)
 2. [GUIDE.md](./GUIDE.md)
 3. [SUMMARY.md](./SUMMARY.md)
-4. 若任务涉及软工/非软工边界判断或方向归类，再读 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
-5. 需要做 `CCF` venue 索引时，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
+4. 若任务涉及软工/非软工边界判断、跨域处理或 `x.x.x` 路径归类，再读 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
+5. 需要做 `CCF` venue 索引时，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)，先获得 venue 级先验
 6. 需要批量生成年度页时，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
 
 ## 2. 目标与任务边界
@@ -49,18 +49,23 @@
 
 ### 2.1 领域分类基线
 
-后续只要任务涉及 `frontier_index/` 下的软工论文方向标签、软工/非软工边界判断、`CCF` 邻近 venue 论文筛查，默认都应以 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 为准。
+后续只要任务涉及 `frontier_index/` 下的软工论文方向标签、软工/非软工边界判断、`CCF` 邻近 venue 论文筛查，默认都应同时参考：
+
+1. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 的 venue 级先验。
+2. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 的单篇论文判定标准与 `x.x.x` 路径树。
 
 执行口径如下：
 
 1. 先判断论文一级总类别是 `软件工程`、`系统软件`、`程序设计语言与形式化基础` 还是 `跨域/待判定`。
-2. 若论文跨域，不要直接挂起；应单独判断它是否“软工主导”。
-3. 只有一级总类别是 `软件工程`，或跨域但被判定为“软工主导”时，才进入软工方向树。
-4. 进入软工方向树后，再分配一个主标签和 `1-3` 个次标签。
-5. 若核心研究问题、主要方法链条或主要评估证据明显是软件工程导向，则即使论文跨域，也应按软件工程纳入，并在次标签或备注中保留 `跨域` 标记。
-6. `形式化方法 / 程序分析 / 机器学习 / LLM` 优先作为方法或横切标签理解，而不是自动作为主标签。
-7. `PL / systems / FM` venue 中只有一部分论文属于软件工程；必须看其核心问题是否落在需求、建模、架构、测试、验证、维护、运维、过程、经验研究或 `AI` 系统工程等软工问题上。
-8. `CPS / 云 / Web / 移动 / 开源生态 / 量子` 等通常先作为场景次标签，除非论文的核心研究问题本来就是“这类系统的软件工程”。
+2. 再按 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 的 `X1 + D1-D4` 标准判断它是否属于软件工程。
+3. 若论文跨域，不要直接挂起；应单独判断它是否“软工主导”。
+4. 默认应把 `X1/D1/D2/D3/D4` 的结论压缩记录到 `se_decision_basis`。
+5. 只有一级总类别是 `软件工程`，或跨域但被判定为“软工主导”时，才进入软工方向树。
+6. 进入软工方向树后，再分配一个 `x.x.x` 主路径和 `1-3` 个次路径/辅助标签。
+7. 若核心研究问题、主要方法链条或主要评估证据明显是软件工程导向，则即使论文跨域，也应按软件工程纳入，并在次标签或备注中保留 `跨域` 标记。
+8. `形式化方法 / 程序分析 / 机器学习 / LLM` 优先作为方法或横切标签理解，而不是自动作为主标签。
+9. `PL / systems / FM` venue 中只有一部分论文属于软件工程；必须看其核心问题是否落在需求、建模、架构、测试、验证、维护、运维、过程、经验研究或 `AI` 系统工程等软工问题上。
+10. `CPS / 云 / Web / 移动 / 开源生态 / 量子` 等通常先作为场景次标签，除非论文的核心研究问题本来就是“这类系统的软件工程”。
 
 ## 3. 来源优先级
 
@@ -106,16 +111,21 @@
 6. `type`
 7. `rank`
 8. `macro_area`
-9. `abstract`
-10. `keywords`
-11. `doi`
-12. `landing_url`
-13. `dblp_url`
-14. `bibtex`
-15. `initial_screening`
-16. `screening_reason`
-17. `pdf_followup`
-18. `notes`
+9. `se_inclusion_decision`
+10. `cross_domain_flag`
+11. `se_primary_path`
+12. `se_secondary_paths`
+13. `se_decision_basis`
+14. `abstract`
+15. `keywords`
+16. `doi`
+17. `landing_url`
+18. `dblp_url`
+19. `bibtex`
+20. `initial_screening`
+21. `screening_reason`
+22. `pdf_followup`
+23. `notes`
 
 其中 `macro_area` 默认推荐使用以下口径：
 
@@ -124,12 +134,39 @@
 3. `程序设计语言与形式化基础`
 4. `跨域/待判定`
 
-若论文最初看起来是 `跨域/待判定`，但经复核属于“跨域且软工主导”，则最终仍建议把 `macro_area` 记为 `软件工程`，并在 `se_secondary_tags` 或 `notes` 中保留 `跨域` 标记。
+若论文最初看起来是 `跨域/待判定`，但经复核属于“跨域且软工主导”，则最终仍建议把 `macro_area` 记为 `软件工程`，并在 `se_secondary_paths` 或 `notes` 中保留 `跨域` 标记。
+
+其中 `se_inclusion_decision` 默认推荐使用以下口径：
+
+1. `属于软件工程`
+2. `跨域但软工主导`
+3. `不属于软件工程`
+4. `待判定`
+
+其中 `cross_domain_flag` 默认使用：
+
+1. `是`
+2. `否`
+
+其中 `se_primary_path` 默认填写 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 中的 `x.x.x` 路径，例如：
+
+1. `1.1.3`
+2. `3.3.2`
+3. `4.3.4`
+
+其中 `se_secondary_paths` 默认可填写 `1-3` 个辅助路径或标签，用分号分隔。
+
+其中 `se_decision_basis` 默认用于记录单篇软工判定的最小可追溯依据，推荐格式如下：
+
+1. `X1=否; D1=3; D2=2; D3=2; D4=1`
+2. `X1=是; D1=3; D2=2; D3=1; D4=1; 跨域但软工主导`
+
+这里的目的不是做复杂评分展示，而是让后续 AI 和人工复核都能看见“为什么这篇论文被判成软工 / 非软工”。
 
 若后续需要对 `软件工程` 条目继续细分，推荐再补两个可选字段：
 
-1. `se_primary_area`
-2. `se_secondary_tags`
+1. `se_topic_labels`
+2. `venue_se_relevance`
 
 其中状态字段默认使用以下口径：
 
@@ -156,11 +193,12 @@
 
 做初筛时，若需要给出 `方向标签`，默认同步参考 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)：
 
-1. 先完成一级总判定，再决定是否进入软工方向树。
-2. 对跨域条目，单独判断是否“软工主导”；若是，则按软件工程纳入并保留 `跨域` 标记。
-3. 主标签优先落在“需求/建模”“架构/设计”“测试/分析/验证”“维护/运维”“质量属性”“过程/经验/仓库挖掘”“AI for SE / SE for AI”等主枝。
-4. 不要把 venue 名称直接当方向标签。
-5. 若论文更像“纯理论/纯系统/纯语言”工作，且没有明显软件工程问题，应降低优先级，必要时直接排除出软工范围。
+1. 先结合 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 做 venue 级先验判断，再完成一级总判定。
+2. 再按 `X1 + D1-D4` 形成 `se_decision_basis`。
+3. 对跨域条目，单独判断是否“软工主导”；若是，则按软件工程纳入并保留 `跨域` 标记。
+4. 对纳入软工语料的论文，主路径尽量回填到 `x.x.x`，不要只停在笼统的“主标签”。
+5. 不要把 venue 名称直接当方向标签。
+6. 若论文更像“纯理论/纯系统/纯语言”工作，且没有明显软件工程问题，应降低优先级，必要时直接排除出软工范围。
 
 ### 5.1 优先跟进的典型信号
 
@@ -219,8 +257,9 @@
 1. `venue_abbr` 与 `venue_full` 是否对应。
 2. `rank` 是否与 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 一致。
 3. `landing_url` 是否为学术落地页而非裸 PDF。
-4. `initial_screening` 与 `screening_reason` 是否匹配。
-5. `pdf_followup` 是否与初筛结果一致。
+4. `se_decision_basis` 是否与 `macro_area / se_inclusion_decision / se_primary_path` 匹配。
+5. `initial_screening` 与 `screening_reason` 是否匹配。
+6. `pdf_followup` 是否与初筛结果一致。
 
 ## 7. 后续索引文件的建议组织方式
 
@@ -258,6 +297,7 @@ python -m tools.ccf_se_index_builder --year 2025
 2. 若发现 venue 边界判断、重名覆盖、官方页回退等规则问题，应先修 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 再重跑。
 3. 不应把生成后的 `metadata/*.json`、`bib/*.bib` 当作优先手工维护对象。
 4. 全量生成完成后，必须复核 `verification.json`，再回写 [SUMMARY.md](./SUMMARY.md)。
+5. 构建器当前负责**基础元数据层**；`macro_area / se_inclusion_decision / se_primary_path / se_decision_basis` 属于后续分类补录层。
 
 若后续某批论文进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py) 生成 `paper_content.txt`。
 
@@ -302,10 +342,14 @@ python -m tools.ccf_se_index_builder --year 2025
      - 标题
      - 作者
      - 论文主要内容一句话
+     - 一级总判定
+     - 软工纳入判定
+     - 软工主路径（`x.x.x`）
+     - 软工次路径/标签
+     - 判定依据（`X1/D1-D4`）
      - `DOI`
      - 官方落地页
      - 摘要或摘要简述
-     - 方向标签
      - `BibTeX`
      - 初筛结果
      - `PDF` 跟进建议

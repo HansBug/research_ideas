@@ -438,11 +438,11 @@ class Builder:
             if not line.startswith("| `"):
                 continue
             parts = [p.strip() for p in line.strip("|").split("|")]
-            if len(parts) != 4:
+            if len(parts) < 3:
                 continue
             abbr = parts[0].strip("`")
             full_name = parts[1]
-            match = re.search(r"\((https?://[^)]+)\)", parts[3])
+            match = re.search(r"\((https?://[^)]+)\)", line)
             if not match:
                 continue
             index_url = match.group(1)

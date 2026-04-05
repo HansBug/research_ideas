@@ -30,6 +30,7 @@ ccf_history/
 若任务涉及“这篇论文到底算不算软件工程”“方向标签应该怎么打”，还应先读：
 
 1. [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md)
+2. [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md)
 
 对于正式年度构建，默认优先使用：
 
@@ -46,6 +47,7 @@ ccf_history/
 4. 每篇论文的元数据、摘要/方向、`DOI`、官方页面与 `BibTeX`。
 5. 对每篇论文的初步判定结果。
 6. 对“哪些论文虽然在 `CCF` 大类里，但并不属于软件工程”的边界说明。
+7. 对纳入软工语料的论文给出 `x.x.x` 级软工主路径。
 
 ## 4. 单个年份 `README.md` 的建议结构
 
@@ -71,10 +73,14 @@ ccf_history/
    - 标题
    - 作者
    - 论文做什么的一句话
+   - 一级总判定
+   - 软工纳入判定
+   - 软工主路径（`x.x.x`）
+   - 软工次路径/标签
+   - 判定依据（`X1/D1-D4`）
    - `DOI`
    - 官方落地页
    - 摘要或摘要简述
-   - 方向标签
    - `BibTeX`
    - 初筛
    - `PDF` 跟进
@@ -130,18 +136,20 @@ ccf_history/
 
 1. 先补齐标题、作者、摘要、`DOI`、`BibTeX`、学术落地页。
 2. 年份目录下默认按 venue 分 section 统一维护，不要把同一年拆成很多零散碎文件。
-3. 若需要给论文打 `方向标签`，默认先做一级总判定；若论文跨域，则单独判断是否“软工主导”，只有最终落到 `软件工程` 时，才按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 继续细分。
-4. 不要因为论文来自 `PL / systems / FM` venue 就自动将其视为软件工程论文。
-5. 先做轻量筛选，再决定是否值得获取全文。
-6. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
-7. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
+3. 若需要给论文打 `方向标签`，默认先结合 [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md) 建立 venue 级先验，再做一级总判定。
+4. 再按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的 `X1 + D1-D4` 标准形成最小可追溯的判定依据。
+5. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 回填 `x.x.x` 级主路径。
+6. 不要因为论文来自 `PL / systems / FM` venue 就自动将其视为软件工程论文。
+7. 先做轻量筛选，再决定是否值得获取全文。
+8. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
+9. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
 
 ## 8. 标准工作流
 
 若任务是“完成某一年的 `CCF` 全量期刊会议论文名录”，默认按以下顺序执行：
 
 1. 先确认 venue 范围以 [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md) 为准。
-2. 若任务同时涉及方向归类或软工边界判断，先读 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md)。
+2. 若任务同时涉及方向归类或软工边界判断，先读 [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md) 与 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md)。
 3. 在仓库根目录运行：
 
 ```bash
@@ -150,7 +158,7 @@ python -m tools.ccf_se_index_builder --year 2025
 
 4. 检查 `frontier_index/ccf_history/2025/verification.json` 是否全部 `ok`。
 5. 若发现会议边界、重名文件、官方页缺失等问题，优先修脚本并重跑。
-6. 需要回填 `方向标签` 时，优先按“一级总判定 + 一个主标签 + 若干次标签”的口径统一回填。
+6. 需要回填分类字段时，优先按“一级总判定 + 软工纳入判定 + 软工主路径（`x.x.x`） + 软工次路径/标签 + 判定依据（`X1/D1-D4`）”的口径统一回填。
 7. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
 
 补充约束：

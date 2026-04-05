@@ -51,14 +51,20 @@
 4. `year`
 5. `type`（期刊 / 会议 / arXiv）
 6. `rank`（如适用，记录 `CCF A/B/C`）
-7. `abstract`
-8. `keywords`（若来源页可得）
-9. `doi`
-10. `landing_url`
-11. `dblp_url` 或其他学术索引页
-12. `bibtex`
-13. `initial_screening`
-14. `pdf_followup`
+7. `macro_area`
+8. `se_inclusion_decision`
+9. `cross_domain_flag`
+10. `se_primary_path`
+11. `se_secondary_paths`
+12. `se_decision_basis`
+13. `abstract`
+14. `keywords`（若来源页可得）
+15. `doi`
+16. `landing_url`
+17. `dblp_url` 或其他学术索引页
+18. `bibtex`
+19. `initial_screening`
+20. `pdf_followup`
 
 其中 `landing_url` 指学术站落地页，而不是直接 `PDF` 下载链接。默认优先记录出版社页、`DBLP`、`OpenReview`、`arXiv abstract` 页、`ACM DL`、`IEEE Xplore`、`Springer`、`Elsevier` 等正式学术入口。
 
@@ -94,9 +100,9 @@
 3. [SUMMARY.md](./SUMMARY.md)
    - 记录当前已经准备好的基础信息、后续待做事项和更新日志。
 4. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
-   - 汇总 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议名录、方向说明和索引入口。
+   - 汇总 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议名录、venue 主体归属、软工归属级别、主要方向与边界说明和索引入口。
 5. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
-   - 给出当前 `frontier_index/` 使用的软件工程领域方向树、软工/非软工边界说明，以及主标签/次标签分类规则。
+   - 给出当前 `frontier_index/` 使用的软件工程三级方向树、`X1 + D1-D4` 单篇软工判定标准、跨域处理规则，以及 `x.x.x` 主路径分类规则与典型例子总览。
 6. [ccf_history/README.md](./ccf_history/README.md)
    - 规定后续 `CCF` 往年论文索引如何按“年份主目录”组织，并在每年内按 venue 分 section 汇总。
 7. [arxiv_recent/README.md](./arxiv_recent/README.md)
@@ -113,8 +119,8 @@
 1. 先读 [README.md](./README.md)
 2. 再读 [GUIDE.md](./GUIDE.md)
 3. 再读 [SUMMARY.md](./SUMMARY.md)
-4. 若任务涉及“哪些论文算软件工程、哪些只是系统软件或程序设计语言邻近项、如何给软工论文打方向标签”，先读 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
-5. 若要从 `CCF` 方向入手建索引，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
+4. 若任务涉及“哪些论文算软件工程、哪些只是系统软件或程序设计语言邻近项、单篇论文的可执行判定标准是什么”，先读 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
+5. 若要从 `CCF` 方向入手建索引，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)，先建立 venue 级先验
 6. 若要实际新建索引批次，再读 [ccf_history/README.md](./ccf_history/README.md) 或 [arxiv_recent/README.md](./arxiv_recent/README.md)
 7. 若要批量构建 `CCF` 年度页，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
 
@@ -132,12 +138,17 @@
    - `跨域/待判定`。
 3. 只整理元数据和基础证据
    - 标题、作者、摘要、`BibTeX`、`DOI`、学术链接。
-4. 若一级总判定是 `软件工程`，或虽然跨域但被判定为“软工主导”，再按 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 给出主标签和次标签。
-5. 再做初步判定
+4. 结合 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 的 venue 级先验，再按 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 的 `X1 + D1-D4` 标准做单篇最终判定。
+5. 若论文最终被判为 `属于软件工程` 或 `跨域但软工主导`，再回填：
+   - `软工纳入判定`
+   - `软工主路径（x.x.x）`
+   - `软工次路径/标签`
+   - `软工判定依据（X1/D1-D4）`
+6. 再做初步判定
    - 基于会议/期刊、年份、标题、摘要、关键词做轻量筛选。
-6. 再选择容易关注、且与博士研究更相关的一部分
+7. 再选择容易关注、且与博士研究更相关的一部分
    - 再去获取 `PDF`。
-7. 最后才进入正式文库建设
+8. 最后才进入正式文库建设
    - 做全文提取、单篇分析和更深入归档。
 
 对于 `CCF` 年度索引，默认优先使用 Python 工具而不是手工拼整年总表：
@@ -155,8 +166,9 @@ python -m tools.ccf_se_index_builder --year 2025
 1. 先把本路径当成“索引层”，不要一上来就按正式论文库处理。
 2. 优先补元数据和初筛结果，再考虑下载全文。
 3. 若任务涉及 `CCF` 方向 venue 范围判断，优先参考 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)。
-4. 若任务涉及“什么算软件工程”“非软工论文如何判出”“软工论文怎么进一步细分”，优先参考 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
-5. 方向归类时，先做一级总判定；若论文跨域，则单独判断是否“软工主导”，只有最终落到 `软件工程` 时才进入软工方向树。
-6. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
-7. 若任务是构建某一年的 `CCF` 全量索引，优先使用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 并遵循 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)。
-8. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
+4. 若任务涉及“什么算软件工程”“非软工论文如何判出”“跨域论文怎么处理”“软工论文如何落到 `x.x.x` 路径”，优先参考 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
+5. 方向归类时，先看 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 的 venue 级先验，再做一级总判定和单篇终判。
+6. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 软工判定依据（X1/D1-D4）`。
+7. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
+8. 若任务是构建某一年的 `CCF` 全量索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 进入分类补录阶段。
+9. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
