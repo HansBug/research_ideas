@@ -1,0 +1,851 @@
+--- Page 1 ---
+Junior: TheStanford EntryintheUrban Challenge
+MichaelMontemerlo1,Jan Becker4,SuhridBhat2,HendrikDahlkamp1,DmitriDolgov1,
+ScottEttinger3,Dirk Haehnel1,Tim Hilden2,Gabe Hoffmann1,BurkhardHuhnke2,
+DougJohnston1, StefanKlumpp2,Dirk Langer2,AnthonyLevandowski1, JesseLevinson1,
+Julien Marcil2,David Orenstein1,JohannesPaefgen1,Isaac Penny1,AnnaPetrovskaya1,
+MikePﬂueger2,GanymedStanek2,David Stavens1,AntoneVogt1,and SebastianThrun1
+1Stanford ArtiﬁcialIntelligence Lab,Stanford University , Stanford CS 94305
+2Electronics ResearchLab,Volkswagenof America,4009 Miran da Av.,PaloAlto, CA94304
+3Intel Research,2200 MissionCollege Blvd., SantaClara, CA95052
+4Robert BoschLLC,ResearchandTechnologyCenter, 4009 Miranda Av e,PaloAlto, CA94304
+Abstract
+This article presents the architecture of Junior, a robotic vehicle capable of navi-
+gating urban environments autonomously. In doing so, the ve hicle is able to select
+its own routes, perceive and interact with other trafﬁc, and execute various urban
+driving skills including lane changes, U-turns, parking, a nd merging into moving
+trafﬁc. The vehicle successfully ﬁnished and won second pla ce in the DARPA Ur-
+banChallenge, a robot competition organized bythe U.S.Gove rnment.
+1 Introduction
+The vision of self-driving cars promises to bring fundament al change to one of the most essential
+aspects of our daily lives. In the U.S. alone, trafﬁc acciden ts cause the loss of over 40,000 people
+annually,andasubstantialfractionoftheworld’senergyi susedforpersonalcar-basedtransporta-
+tion (U.S. Department of Transportation, 2005). A safe, sel f-driving car would fundamentally im-
+prove the safety and comfort of the driving population, whil e reducing the environmental impact
+of the automobile.
+In2003,the DefenseAdvancedResearchProjectsAgency(DARPA )initiateda seriesofcompeti-
+tions aimed at the rapid technological advancement of auton omous vehicle control. The ﬁrst such
+event, the “DARPA Grand Challenge,” led to the development of v ehicles that could conﬁdently
+follow a desert trail at average velocities nearing 20mph (Bu ehler et al., 2006). In October 2005,
+Stanford’srobot“Stanley”wonthischallengeandbecameth eﬁrstrobottoﬁnishthe131-milelong
+course(Montemerloetal.,2006). The“DARPAUrbanChallenge, ”whichtookplaceonNovember
+3,2007, brought aboutvehicles thatcould navigate in trafﬁ c ina mock urbanenvironment.
+TherulesoftheDARPAUrbanChallengewerecomplex(DARPA,2007 ). Vehicleswereprovided
+with a digital street map of the environment, in the form of a Road Network Description File , or
+
+--- Page 2 ---
+6
+IBEOlaser6
+DMI6
+ 
+BOSCHRadar6
+SICKLDLRSlaser?Velodyne laser
+?Riegl laser
+?SICKLMSlaser
+?ApplanixINS
+Figure 1: Junior, our entry in the DARPA Urban Challenge. Junio r is equipped with ﬁve different
+laser measurement systems, a multi-radar assembly, and a mu lti-signal inertial navigation system,
+as showninthis ﬁgure.
+RNDF. The RNDF contained geometric information on lanes, lane markings, stop signs, parking
+lots, and special checkpoints. Teams were also provided wit h a high-resolution aerial image of
+the area, enabling them to manually enhance the RNDF before th e event. During the Urban Chal-
+lengeevent,vehiclesweregivenmultiplemissions,deﬁned assequencesofcheckpoints. Multiple
+robotic vehicles carried out missions in the same environme nt at the same time, possibly with
+different speed limits. When encountering another vehicle, each robot had to obey trafﬁc rules.
+Maneuvers that were speciﬁcally required for the Urban Chall enge included: passing parked or
+slow-movingvehicles,precedencehandlingatintersectio nswithmultiplestopsigns,merginginto
+fast-moving trafﬁc, left turns across oncoming trafﬁc, par king in a parking lot, and the execution
+ofU-turnsinsituationswherearoadiscompletelyblocked. Vehiclespeedsweregenerallylimited
+to 30mph, with lower speed limits in many places. DARPA admitt ed eleven vehicles to the ﬁnal
+event,of whichthe presentvehicle was one.
+“Junior,” the robot shown in Figure 1, is a modiﬁed 2006 Volks wagen Passat Wagon, equipped
+with ﬁve laser rangeﬁnders (manufactured by IBEO, Riegl, Sick , and Velodyne), an Applanix
+GPS-aided inertial navigation system, ﬁve BOSCH radars, two I ntel quad core computer systems,
+and a custom drive-by-wire interface developed by Volkswag en’s Electronic Research Lab. The
+vehicle has an obstacle detection range of up to 120 meters, a nd reaches a maximum velocity of
+30mph,themaximumspeedlimitaccordingtotheUrbanChallen gerules. Juniormadeitsdriving
+decisions through a distributed software pipeline that int egrates perception, planning, and control.
+This software is the focus ofthe presentarticle.
+
+--- Page 3 ---
+Figure2: Allcomputingandpowerequipmentisplacedinthet runkofthevehicle. TwoIntelquad
+core computers (bottom right) run the bulk of all vehicle sof tware. Other modules in the trunk
+rack include a power server for selectively powering indivi dual vehicle components, and various
+modulesconcernedwithdrive-by-wireandGPSnavigation. A 6DOFinertialmeasurementunitis
+alsomounted in the trunk of the vehicle, nearthe rear axle.
+Junior was developed by a team of researchers from Stanford U niversity, Volkswagen, and its
+afﬁliated corporate sponsors: Applanix, Google, Intel, Mo hr Davidow Ventures, NXP, and Red
+Bull. ThisteamwasmostlycomprisedoftheoriginalStanford RacingTeam,whichdevelopedthe
+winning entry “Stanley” in the 2005 DARPA Grand Challenge (Mon temerlo et al., 2006). In the
+Urban Challenge, Junior placed second, behind a vehicle from Carnegie Mellon University, and
+aheadofthe third-place winner from Virginia Tech.
+2 Vehicle
+Junior is a modiﬁed 2006 Passat wagon, equipped with a 4-cyli nder turbo diesel injection engine.
+The 140 hp vehicle is equipped with a limited-torque steerin g motor, an electronic brake booster,
+electronicthrottle,gearshifter,parkingbrake,andturn signals. Acustominterfaceboardprovides
+computer control over each of these vehicle elements. The en gine provides electric power to
+Junior’s computing system through a high-current prototyp e alternator, supported by a battery-
+backed electronically controlled power system. For develo pment purposes, the cabin is equipped
+withswitchesthatenableahumandrivertoengagevariousel ectronicinterfacecomponentsatwill.
+For example, a human developer may choose the computer to con trol the steering wheel and turn
+signals, while retaining manual control over the throttle a nd the vehicle brakes. These controls
+wereprimarilyfortestingpurposes;duringtheactualcomp etition,nohumanswereallowedinside
+the vehicles.
+Forinertialnavigation,anApplanixPOSLV420systemprovi desreal-timeintegrationofmultiple
+dual-frequency GPS receivers which includes a GPS Azimuth H eading measurement subsystem,
+a high-performance inertial measurement unit, wheel odome try via a distance measurement unit
+(DMI), and the Omnistar satellite-based Virtual Base Statio n service. The real-time position and
+orientation errors ofthis systemwere typically below100 c mand 0.1degrees,respectively.
+Twoside-facingSICKLMS291-S14sensorsandaforward-point edRIEGLLMS-Q120lasersen-
+
+--- Page 4 ---
+sorprovidemeasurementsoftheadjacent3-Droadstructure andinfraredreﬂectivitymeasurements
+of the roadsurface for lane marking detectionand precision vehicle localization.
+For obstacle and moving vehicle detection, a Velodyne HDL-6 4E is mounted on the roof of the
+vehicle. The Velodyne, which incorporates 64 laser diodes a nd spins at up to 15 Hz, generates
+dense range data covering a 360 horizontal ﬁeld-of-view and a 30 degree vertical ﬁeld-of-view.
+The Velodyne is supplemented by two SICK LDLRS sensors mounted at the rear of the vehicle,
+andtwoIBEOALASCAXTlidarsmountedinthefrontbumper. FiveBO SCHLongRangeRadars
+(LRR2) mounted around the front grill provide additional info rmation about moving vehicles.
+Junior’s computer system consists of two Intel quad core ser vers. Both computers run Linux, and
+they communicate overa gigabit ethernet link.
+3 SoftwareArchitecture
+Junior’s software architecture is designed as a data driven pipeline in which individual modules
+process information asynchronously. This same software ar chitecture was employed successfully
+by Junior’s predecessor Stanley in the 2005 challenge (Mont emerlo et al., 2006). Each module
+communicateswithothermodulesviaananonymouspublish/s ubscribemessagepassingprotocol,
+basedonthe Inter Process Communication Toolkit (IPC)(Simmo ns and Apfelbaum, 1998).
+Modules subscribe to message streams from other modules, wh ich are then sent asynchronously.
+The result of the computation of a module may then be publishe d to other modules. In this way,
+each module is processing data at all times, acting as a pipel ine. The time delay between entry of
+sensor data into the pipeline to the effect on the vehicle’s a ctuators is approximately 300ms. The
+software is roughly organized into ﬁve groups of modules.
+•sensor interfaces – The sensor interfaces manage communication with the vehic le and
+individual sensors, and make resulting sensor data availab le to the rest of the software
+modules.
+•perceptionmodules –Theperceptionmodulessegmenttheenvironmentdataintom oving
+vehiclesandstaticobstacles. Theyalsoprovideprecision localizationofthevehiclerelative
+to the digital map ofthe environment.
+•navigationmodules –Thenavigationmodulesdeterminethebehaviorofthevehic le. The
+navigation group consists of a number of motion planners, pl us a hierarchical ﬁnite state
+machine forinvoking different robot behaviors andprevent ing deadlocks.
+•drive-by-wire interface – Controls are passed back to the vehicle through the drive-by -
+wire interface. This module enables software control of the throttle, brake, steering, gear
+shifting, turn signals,andemergency brake.
+•globalservices –Anumberofsystemlevelmodulesprovidelogging,timestam ping,mes-
+sage passingsupport, andwatchdog functions tokeepthe sof tware running reliably.
+Table 1 lists the actual processes running on the robot’s com puters during the race event, and
+Figure 3 showsa overview of the data ﬂowbetweenmodules.
+
+--- Page 5 ---
+Processname Computer Description
+PROCESS-CONTROL 1 starts andrestartsprocesses,adds process control viaIPC
+APPLANIX 1 Applanix interface (viaIPC).
+LDLRS1&LDLRS2 1 Sick LDLRSlaser interface (viaIPC).
+IBEO 1 IBEOlaser interface (viaIPC).
+SICK1&SICK2 1 Sick LMSlaser interfaces (viaIPC).
+RIEGL 1 Riegllaser interface (via IPC).
+VELODYNE 1 Velodyne laser interface (via IPC and shared memory). This module als o
+projects the3dpoints usingApplanix pose information.
+CAN 1 CAN bus interface
+RADAR1- RADAR5 1 Radar interfaces (viaIPC).
+PERCEPTION 1 IPC/Shared Memory interface of Velodyne data, obstacle detection, dyn amic
+tracking and scandifferencing
+RNDFLOCALIZE 1 1D localization usingRNDF
+HEALTHMON 1 logs computer health information (temperature, processes, CPU and me mory
+usage)
+PROCESS-CONTROL 2 start/restartsprocesses andadds processcontrol over IPC
+CENTRAL 2 IPC-server
+PARAM SERVER 2 central server for allparameters
+ESTOP 2 IPC/serialinterface to DARPAE-stop
+HEALTHMON 2 monitors the health ofall modules
+POWER 2 IPC/serialinterface to power-server (relaycard)
+PASSAT 2 IPC/serialinterface to vehicle interface board
+CONTROLLER 2 vehicle motioncontroller
+PLANNER 2 path planner and hybridA*planner
+Table 1: Tableof processesrunning during the UrbanChalleng e.
+4 Environment Perception
+Junior’s perceptual routines address a wide variety of obst acle detection and tracking problems.
+Figure 4a shows a scan from the primary obstacle detection se nsor, the Velodyne. Scans from the
+IBEO lasers, shown in Figure 4b, and LDLRS lasers are used to sup plement the Velodyne data in
+blind spots. A radar system complements the laser system as a n early warning system for moving
+objects in intersections.
+4.1 LaserObstacle Detection
+In urban environments, the vehicle encounters a wide variet y of static and moving obstacles. Ob-
+stacles as small as a curb may trip a fast-moving vehicle, so d etecting small objects is of great
+importance. Overhangs and trees may look like large obstacl es at a distance, but traveling under-
+neath is often possible. Thus, obstacle detection must cons ider the 3-D geometry of the world.
+Figure 5 depicts a typical output of the obstacle detection r outine in an urban environment. Each
+red object corresponds to an obstacle. Towards the bottom ri ght, a camera image is shown for
+reference.
+The robot’s primary sensor for obstacle detection is the Vel odyne laser. A simple algorithm for
+detecting obstacles in Velodyne scans would be to ﬁnd points with similar x-y coordinates whose
+verticaldisplacementexceedsagiventhreshold. Indeed,t hisalgorithmcanbeusedtodetectlarge
+obstacles such as pedestrians, signposts, and cars. Howeve r, range and calibration error are high
+enough with this sensor that the displacement threshold can not be set low enough in practice to
+detectcurb-sized objects without substantial numbers of f alsepositives.
+
+--- Page 6 ---
+Figure 3: Flowdiagram ofthe Junior Software.
+An alternative to comparing vertical displacements is to co mpare the range returned by two adja-
+cent beams, where “adjacency” is measured in terms of the poi nting angle of the beams. Each of
+the64lasershasaﬁxedpitchanglerelativetothevehiclefr ame,andthuswouldsweepoutacircle
+of a ﬁxed radius on a ﬂat ground plane as the sensor rotates. Sl oped terrain locally compresses
+these rings, causing the distance between adjacent rings to be smaller than the inter-ring distance
+onﬂatterrain. Intheextremecase,averticalobstaclecaus esadjacentbeamstoreturnnearlyequal
+ranges. Because the individual beams strike the ground at suc h shallow angles, the distance be-
+tween rings is a much more sensitive measurement of terrain s lope than vertical displacement. By
+ﬁndingpointsthatgenerateinter-ringdistancesthatdiff erfromtheexpecteddistancebymorethan
+a given threshold, even obstacles that are not apparent to th e vertical thresholding algorithm can
+be reliably detected.
+Inadditiontoterrainslope,rollingandpitchingoftheveh iclewillcausetheringstracedoutbythe
+individual lasers to compress and expand. If this is not take n into account, rolling to the left can
+cause otherwise ﬂat terrain to the left of the vehicle to be de tected incorrectly as an obstacle. This
+problem can be remedied by making the expected distance to th e next ring a function of range,
+ratherthantheindexoftheparticularlaser. Thusastheveh iclerollstotheleft,theexpectedrange
+difference for a speciﬁc beam decreases as the ring moves clo ser to the vehicle. Implemented in
+this way,small obstaclescanbe reliably detected evenas th e sensorrolls andpitches.
+
+--- Page 7 ---
+(a)
+ (b)
+Figure 4: (a) The Velodyne contains 64 laser sensors and rota tes at 10 Hz. It is able to see objects
+andterrainoutto60metersineverydirection. (b)TheIBEOse nsorpossessesfourscanlineswhich
+areprimarilyparalleltotheground. TheIBEOiscapableofde tectinglargeverticalobstacles,such
+as carsand signposts.
+(a)
+ (b)
+Figure 5: Obstacles detected by the vehicle are overlayed ov er aerial imagery (left) and Velodyne
+data (right). Inthe example on the right, the curbs along bot h sidesof the road are detected.
+Two more issues must be addressed when performing obstacle d etection in urban terrain. First,
+trees and other objects frequently overhang safe driving su rfaces and should not be detected as
+obstacles. Overhanging objects are ﬁltered out by comparin g their height with a simple ground
+model. Points that fall in a particular x-y grid cell that exc eed the height of the lowest detected
+pointinthesamecellbymorethanagiventhreshold(theheig htofthevehicleplusasafetybuffer),
+are ignored as overhanging obstacles.
+Second, the Velodyne sensor possesses a “blind spot” behind the vehicle. This is the result of
+the sensor’s geometry and mounting location. Further, it al so cannot detect small obstacles such
+as curbs in the immediate vicinity of the robot due to self-oc clusion. Here the IBEO and SICK
+LDLRS sensors are used to supplement the Velodyne data. Becaus e both of these sensors are es-
+sentially2-D,groundreadingscannotbedistinguishedfro mverticalobstacles,andhenceobstacles
+canonlybefoundatveryshortrange(wheregroundmeasureme ntsareunlikely). Whenevereither
+of these sensors detects an object within a close range (15 me ters for the LDLRS and 5 meters
+for the IBEO), the measurement is ﬂagged as an obstacle. This c ombination between short-range
+sensing in 2-D and longer range sensing using the 3-D sensor p rovides high reliability. We note
+that a 5 meter cut-off for the IBEO sensor may seem overly pessi mistic, as this laser is designed
+for long range detection (100 meters and more). However, the sensor presents a large number of
+
+--- Page 8 ---
+Figure 6: A map of a parking lot. Obstacles colored in yellow a re tall obstacles, brown obstacles
+arecurbs,andgreenobstaclesareoverhangingobjects(e.g . treebranches)thatareofnorelevance
+to ground navigation.
+false positive detections onnon-ﬂat terrain, suchas dirt r oads.
+Ourobstacledetectionmethodworkedexceptionallywell. I ntheUrbanChallenge,weknowofno
+instance in which our robot Junior collided with an obstacle . In particular, Junior never ran over a
+curb. We also found that the number of false positives was rem arkably small, and false positives
+didnotmeasurablyimpactthevehicleperformance. Inthiss ense,staticobstacledetectionworked
+ﬂawlessly.
+4.2 Static Mapping
+Inmanysituations,multiplemeasurementshavetobeintegr atedovertimeevenforstaticenviron-
+mentmapping. Suchisthecase,forexample,inparkinglots, whereocclusionorrangelimitations
+maymakeitimpossibletoseeallrelevantobstaclesatallti mes. Integratingmultiplemeasurements
+is also necessary to cope with certain blind spots in the near range of the vehicle. In particular,
+curbsareonlydetectablebeyondacertainminimumrangewit haVelodynelaser. Toalleviatethese
+problems, Junior caches sensor measurement into local maps . Figure 6 shows such a local map,
+constructedfrommanysensormeasurementsovertime. Diffe rentcolorsindicatedifferentobstacle
+types on a parking lot. The exact map update rule relies on the standard Bayesian framework for
+evidenceaccumulation(Moravec,1988). Thissafeguardsth erobotagainstspuriousobstaclesthat
+only showupin a smallnumber of measurements.
+
+--- Page 9 ---
+(a)
+ (b)
+Figure 7: Examples of free space analysis for Velodyne scans . The green lines represent the area
+surrounding the robot that is observed to be empty. This evid ence is incorporated into the static
+map, showninblack andblue.
+Akeydownsideofaccumulatingstaticdataovertimeintoama parisesfromobjectsthatmove. For
+example,apassagemaybeblockedforawhile,andthenbecome drivableagain. Toaccommodate
+such situations, the software performs a local visibility c alculation. In each polar direction away
+from the robot, the grid cells between the robot and the neare st detected object are observed to be
+free. Beyond the ﬁrst detected obstacle, of course, it is impo ssible to say whether the absence of
+further obstacles is due to occlusion. Hence, no map updatin g takes place beyond this range. This
+mechanismmaystillleadtoanoverlyconservativemap,bute mpiricallyworkswellfornavigating
+clutteredspacessuchasparkinglots. Figure7illustrates theregioninwhichfreespaceisdetected
+in aVelodyne sensorscan.
+4.3 DynamicObject Detection andTracking
+A key challenge in successful urban driving pertains to othe r moving trafﬁc. The present software
+provides a reliable method for moving object detection andp rediction basedonparticle ﬁlters.
+Moving object detection is performed on a synthetic 2-D scan of the environment. This scan is
+synthesized from the various laser sensors by extracting th e range to the nearest detected obstacle
+along an evenly spaced array of synthetic range sensors. The use of such a synthetic scan comes
+with several advantages over the raw sensor data. First, its compactness allows for efﬁcient com-
+putation. Second, the method is applicable to any of the thre e obstacle-detecting range sensors
+(Velodyne, IBEO, and SICK LDLRS), and any combination thereof. The latter property stems
+fromthefactthatanyofthoselasermeasurementscanbemapp edeasilyintoasynthetic2-Drange
+scan, rendering the scan representation relatively sensor -independent. This synergy thus provides
+our robot with a uniﬁed method for ﬁnding, tracking, and pred icting moving objects. Figure 8a
+
+--- Page 10 ---
+(a)
+(b)
+(c)
+(d)
+Figure8: (a)Synthetic2-DscanderivedfromVelodynedata. (b)Scandifferencingprovidesareas
+in which change has occurred, colored here in green and red. ( c) Tracks of other vehicles. (d) The
+corresponding camera image.
+
+--- Page 11 ---
+Figure 9: The side lasers provide intensity information tha t is matched probabilistically with the
+RNDF for precisionlocalization.
+shows sucha synthetic scan.
+The moving object tracker then proceeds in two stages. First , it identiﬁes areas of change. For
+that, it compares two synthetic scans acquired over a brief t ime interval. If an obstacle in one of
+the scans falls into the free space of the respective other sc an, this obstacle is a witness of motion.
+Figure 8b shows such a situation. The red color of a scan corre sponds to an obstacle that is new,
+andthe greencolor marks the absenceofa previously seenobs tacle.
+Whensuchwitnessesarefound,thetrackerinitializesaseto fparticlesaspossibleobjecthypothe-
+ses. Theseparticlesimplementrectangularobjectsofdiff erentdimensions,andatslightlydifferent
+velocities and locations. A particle ﬁlter algorithm is the n used to track such moving objects over
+time. Typically, within three sightings of a moving object, the ﬁlter latches on and reliably tracks
+the moving object.
+Figure 8c depicts the resulting tracks; a camera image of the same scene is shown in Figure 8d.
+The trackerestimates the location, the yaw,the velocity, a ndthe size of the object.
+5 Precision Localization
+OneofthekeyperceptualroutinesinJunior’ssoftwarepert ainstolocalization. Asnoted,therobot
+is given a digital map of the road network in form of an RNDF. Whil e the RNDF is speciﬁed in
+GPS coordinates, the GPS-based inertial position computed by the Applanix system is generally
+not able to recover the coordinates of the vehicle with sufﬁc ient accuracy to perform reliable lane
+keeping without sensor feedback. Further, the RNDF is itself inaccurate, adding further errors if
+the vehicle were to blindly follow the road using the RNDF and A pplanix pose estimates. Junior
+thereforeestimatesalocalalignmentbetweentheRNDFandit spresentpositionusinglocalsensor
+measurements. In other words,Junior continuously localiz es itselfrelative tothe RNDF.
+This ﬁne-grained localization uses two types of informatio n: road reﬂectivity and curb-like obsta-
+
+--- Page 12 ---
+Figure 10: Typical localization result: The red bar illustr ates the Applanix localization, whereas
+the yellow curve measures the posterior over the lateral pos ition of the vehicle. The green line
+depicts the response from the lane line detector. In this cas e,the error is approximately 80cm.
+cles. The reﬂectivity is sensed using the RIEGL LMS-Q120 and t he SICK LMS sensors, both of
+which are pointed towards the ground. Fig. 9 shows the reﬂect ivity information obtained through
+thesidewaysmountedSICKsensors,andintegratedovertime. Thisdiagramillustratesthevarying
+infrared reﬂectivity ofthe lane markings.
+The ﬁlter for localization is a 1-D histogram ﬁlter which est imates the vehicle’s lateral offset rela-
+tive to the RNDF. This ﬁlter estimates the posterior distribu tion of any lateral offset based on the
+reﬂectivity and the sighted curbs along the road. It “reward s,” in a probabilistic fashion, offsets
+for which lane-marker-like reﬂectivity patterns align wit h the lane markers or the road side in the
+RNDF. The ﬁlter “penalizes” offsets for which an observed cur b would reach into the driving cor-
+ridor of the RNDF. As a result, at any point in time the vehicle e stimates a ﬁne-grained offset to
+the measured location bythe GPS-basedINS system.
+Figure 10 illustrates localization relative to the RNDF in a t est run. Here the green curves depicts
+the likely locations of lane markers in both lasers, and the y ellow curve depicts the posterior dis-
+tribution in the lateral direction. This speciﬁc posterior deviates from the Applanix estimate by
+about 80 cm, which, if not accounted for, would make Junior’s wheels drive on the center line. In
+the Urban Challenge Event, localization offsets of 1 meter or more were common. Without this
+localization step, Junior would have frequently crossed th e center line unintentionally, or possibly
+hit a curb.
+Finally, Figure 11 shows a distribution of lateral offset co rrections that were applied during the
+Urban Challenge.
+
+--- Page 13 ---
+Figure 11: Histogram of average localization corrections d uring the race. At times the lateral
+correction exceeds one meter.
+5.1 SmoothCoordinates
+When integrating multiple sensor measurements over time, it may be tempting to use the INS
+pose estimates (the output of the Applanix) to calculate the relative offset between different mea-
+surements. However, in any precision INS system, the estima ted position frequently “jumps” in
+response to GPS measurements. This is because INS systems pr ovide the most likely position
+at the present time. As new GPS information arrives, it is pos sible that the most likely position
+changes by an amount inconsistent with the vehicle motion. T he problem, then, is that when such
+a revision occurs, past INS measurements have to be correcte d as well, to yield a consistent map.
+Suchaproblemisknownintheestimationliteratureas(back wards)smoothing(Jazwinsky,1970).
+To alleviate this problem, Junior maintains an internal smoothcoordinate system that is robust
+to such jumps. In the smooth coordinate system, the robot pos ition is deﬁned as the sum of all
+incremental velocity updates:
+¯x=x0+/summationdisplay
+t∆t·˙xt
+where x0is the ﬁrst INS coordinate, and ˙xtare the velocity estimates of the INS. In this internal
+coordinate system, sudden INS position jumps have no effect , and the sensor data are always
+locally consistent. Vehicle velocity estimates from the po se estimation system tend to be much
+more stable than the position estimates, even when GPS is int ermittent or unavailable. X and Y
+velocitiesareparticularlyresistanttojumpsbecausethe yarepartiallyobservedbywheelodometry.
+This“trick”ofsmoothcoordinatesmakesitpossibletomain tainlocallyconsistentmapsevenwhen
+GPSshiftsoccur. Wenote,however,thatthesmoothcoordina tesystemmaycauseinconsistencies
+inmappingdataoverlongtimeperiods,hencecanonlybeappl iedtolocalmappingproblems. This
+isnotaproblemforthepresentapplication,astherobotonl ymaintainslocalmapsfornavigation.
+Inthesoftwareimplementation,themappingbetweenraw(gl obal)andsmooth(local)coordinates
+only requires that one maintain the sum of all estimation shi fts, which is initialized by zero. This
+correctiontermisthenrecursivelyupdatedbyaddingmisma tchesbetweenactualINScoordinates
+andthe velocity-based value.
+
+--- Page 14 ---
+Figure 12: Global planning: Dynamic programming propagate s values through a crude discrete
+version of the environment map. The color of the RNDF is repres entative of the cost to move to
+the goal from eachposition in the graph. Lowcosts are greena ndhigh costs are red.
+6 Navigation
+6.1 Global PathPlanning
+The ﬁrst step of navigation pertains to global path planning . The global path planner is activated
+for each new checkpoint; it also is activated when a permanen t road blockage leads to a change
+of the topology of the road network. However, instead of plan ning one speciﬁc path to the next
+checkpoint, the global path planner plans paths from every l ocation in the map to the next check-
+point. As a result, the vehicle may depart from the optimal pa th and select a different one without
+losing direction as towhere tomove.
+Junior’s global path planner is an instance of dynamic programming , or DP (Howard, 1960). The
+DPalgorithmrecursivelycomputesforeachcellinadiscret eversionoftheRNDFthe cumulative
+costsof moving from each such location to the goal point. The recur sive update equation for the
+cost is standard in the DP literature. Let V(x)be the cost of a discrete location in the RNDF,
+withV(goal) = 0 . Then the following recursive equation deﬁnes the backup an d, implicitly, the
+cumulative costfunction V:
+V(x)←− minuc(x,u) +/summationdisplay
+yp(y|x,u)V(y)
+Hereuis an action, e.g., drive along a speciﬁc road segment. In mos t cases, there is only one
+admissible action. At intersections, however, there are ch oices (go straight, turn left, ...). Multi-
+lane roads offer the choice of lane changes. For these cases t he maximization over the control
+
+--- Page 15 ---
+choice uin the expression above will provide multiple terms, the min imization of which leads to
+the fastestexpectedpath.
+In practice, not all action choices are always successful. F or example, a shift from a left to a
+right lane only “succeeds” if there is no vehicle in the right lane; otherwise the vehicle cannot
+shift lanes. This is accommodated in the use of the transitio n probability p(y|x,u). Junior, for
+example,mightassessthesuccessprobabilityofalaneshif tatanygivendiscretelocationaslowas
+10%. The beneﬁt of this probabilistic view of decision makin g is that it penalizes plans that delay
+lane changes to the very last moment. In fact, Junior tends to execute lane shifts at the earliest
+possibility,andittradesoffspeedgainswiththeprobabil ity(andthecost)offailurewhenpassing
+a slow moving vehicle at locations where a subsequent right t urn is required (which may only be
+admissible wheninthe right lane).
+A key ingredient in the recursive equation above is the cost c(x,u). In most cases, the cost is
+simplythetimeittakestomovebetweenadjacentcellsinthe discreteversionoftheRNDF.Inthis
+way,thespeedlimitsarefactoredintotheoptimalpathcalc ulation,andthevehicleselectsthepath
+that in expectation minimizes arrival time. Certain maneuve rs, such as left turns across trafﬁc, are
+“penalized”byanadditionaltimepenaltytoaccountforthe riskthattherobottakeswhenmaking
+such a choice. In this way, the cost function cimplements a careful balance between navigation
+time and risk. So in some cases, Junior engages on a slight det our so as to avoid a risky left turn,
+orariskymerge. Theadditionalcostsofmaneuverscaneithe rbesetbyhand(astheywereforthe
+Urban Challenge)or learnedfrom simulation data inrepresen tative environments.
+Figure 12 shows a propagated cumulative cost function. Here the cumulative cost is indicated by
+the color of the path. This global function is brought to bear to assess the “goodness” of each
+location beyond the immediate sensorreachof the vehicle.
+6.2 RNDF Road Navigation
+Theactualvehiclenavigationishandleddifferentlyforco mmonroadnavigationandthefree-style
+navigation necessaryfor parking lots.
+Figure 13 visualizes a typical situation. For each principa l path, the planner rolls out a trajectory
+that is parallel to the smoothed center of the lane. This smoo thed lane center is directly computed
+fromtheRNDF.However,theplanneralsorollsouttrajectori esthatundergolateralshifts. Eachof
+those trajectories is the result of an internal vehicle simu lation with different steering parameters.
+The score of a trajectory considers the time it will take to fo llow this path (which may be inﬁnite
+ifapathisblockedbyanobstacle),plus the cumulative cost computed bytheglobal pathplanner,
+fortheﬁnalpointalongthetrajectory. Theplannerthensel ectsthetrajectorywhichminimizesthis
+total cost value. In doing so, the robot combines optimal rou te selection with dynamic nudging
+around localobstacles.
+Figure 14 illustrates this decision process in a situation w here a slow-moving vehicle blocks the
+rightlane. Eventhoughlanechangescomewithasmallpenalt ycost,thetimesavingsduetofaster
+travel on the left lane result in a lane change. The planner th en steers the robot back into the right
+lane whenthe passingmaneuver is complete.
+
+--- Page 16 ---
+(a)
+(b)
+Figure 13: Planner roll-outs in an urban setting with multip le discrete choices. (a) For each prin-
+ciple path, the planner rolls out trajectories that undergo lateral shifts. (b) A driving situation with
+twodiscreteplanchoices,turnrightordrivestraightthro ughtheintersetion. Thepathsarecolored
+according tothe DPvalue function, with redbeing high costa ndgreenbeing lowcost.
+We ﬁnd that this path planner works well in well-deﬁned trafﬁ c situations. It results in smooth
+motionalongunobstructedroads,andinsmoothandwell-deﬁ nedpassingmaneuvers. Theplanner
+also enables Junior to avoid small obstacles that might exte nd into a lane, such as parked cars on
+the side. However, it is unable to handle blocked roads or int ersections, and it also is unable to
+navigate parking lots.
+6.3 Free-FormNavigation
+Forfree-formnavigationinparkinglots,therobotutilize sasecondplanner,whichcangeneratear-
+bitrarytrajectoriesirrespectiveofaspeciﬁcroadstruct ure. Thisplannerrequiresagoalcoordinate
+anda map. It identiﬁes a near-cost optimal path tothe goalsh ould sucha pathexist.
+
+--- Page 17 ---
+Figure 14: A passing maneuver. The additional cost of being i n a slightly sub-optimal lane is
+overwhelmedbythecostofdrivingbehindaslowdriver,caus ingJuniortochangelanesandpass.
+Figure 15: Graphical comparison of search algorithms. Left : A* associates costs with centers of
+cells and only visits states that correspond to grid-cell ce nters. Center: Field D* (Ferguson and
+Stentz, 2005) associates costs with cell corners and allows arbitrary linear paths from cell to cell.
+Right: Hybrid A* associates a continuous state with each cell and the score of the cell is the cost
+of its associatedcontinuous state.
+This free-form planner is a modiﬁed version of A*, which we ca llhybrid A* . In the present
+application,hybridA*representsthevehiclestateina4-D discretegrid. Twoofthosedimensions
+represent the x-y-location of the vehicle center in smooth map coordinates; a third the vehicle
+heading direction θ, and a forth dimension pertains the direction of motion, eit her forward or
+reverse.
+One problem with regular (non-hybrid) A* is that the resulti ng discrete plan cannot be executed
+by a vehicle, simply because the world is continuous, wherea s A* states are discrete. To remedy
+this problem, hybrid A* assigns to each discrete cell in A* a c ontinuous vehicle coordinate. This
+continuous coordinate is suchthat itcanbe realized bythe a ctualrobot.
+To see how this works, let /angbracketleftx,y,θ/angbracketrightbe the present coordinates of the robot, and suppose those
+
+--- Page 18 ---
+(a) (b) (c) (d)
+Figure 16: Hybrid-state A* heuristics. (a) Euclidean dista nce in 2-D expands 21,515nodes. (b)
+The non-holonomic-without-obstacles heuristic is a signi ﬁcant improvement, as it expands 1,465
+nodes, but as shown in (c), it can lead to wasteful exploratio n of dead-ends in more complex
+settings( 68,730nodes). (d)Thisisrectiﬁedbyusingthelatterinconjuncti onwiththeholonomic-
+with-obstacles heuristic ( 10,588nodes).
+coordinateslieincell ciinthediscreteA*staterepresentation. Then,bydeﬁnition ,thecontinuous
+coordinates associated with cell ciarexi=x,yi=y, andθi=θ. Now predict the (continuous)
+vehicle state after applying a control ufor a given amount of time. Suppose the prediction is
+/angbracketleftx′,y′,θ′/angbracketright, and assume this prediction falls into a different cell, den otedcj. Then, if this is the
+ﬁrst time cjhas been expanded, this cell will be assigned the associated continuous coordinates
+xj=x′,yj=y′, andθj=θ′. The result of this assignment is that there exists an actual control u
+in which the continuous coordinates associated with cell cjcan actually be attained—a guarantee
+which is not available for conventional A*. The hybrid A* alg orithm then applies the same logic
+forfuturecellexpansions,using /angbracketleftxj,yj,θj/angbracketrightwhenevermakingapredictionthatstartsincell cj. We
+note that hybrid A* is guaranteed to yield realizable paths, but it is not complete. That is, it may
+failto ﬁnda path. The coarserthe discretization, the more o ften hybrid A*will fail toﬁnda path.
+Figure 15 compares hybrid A* to regular A* and Field D* (Fergu son and Stentz, 2005), an alter-
+native algorithm that also considers the continuous nature of the underlying state space. A path
+foundbyplainA*cannoteasilybeexecuted;andeventhemuch smootherFieldD*pathpossesses
+kinksthatavehiclecannotexecute. Byvirtueofassociating continuouscoordinateswitheachgrid
+cellin Hybrid A*,our approach results in apath thatis execu table.
+The cost function in A* follows the idea of execution time. Ou r implementation assigns a slightly
+higher cost to reverse driving to encourage the vehicle to dr ive “normally.” Further, a change of
+direction induces an additional cost to account for the time it takes to execute such a maneuver.
+Finally,weaddapseudo-costthatrelatestothedistanceto nearbyobstaclessoastoencouragethe
+vehicle to stayclearof obstacles.
+Our search algorithm is guided by two heuristics, called the non-holonomic-without-obstacles
+heuristic and theholonomic-with-obstacles heuristic . As the name suggests, the ﬁrst heuristic
+ignoresobstaclesbuttakesintoaccountthenon-holonomic natureofthecar. Thisheuristic,which
+can be completely pre-computed for the entire 4D space (vehi cle location, and orientation, and
+directionofmotion),helpsintheend-gamebyapproachingt hegoalwiththedesiredheading. The
+secondheuristicisadualoftheﬁrstinthatitignorestheno n-holonomicnatureofthecar,butcom-
+putestheshortestdistancetothegoal. Itiscalculatedonl inebyperformingdynamicprogramming
+
+--- Page 19 ---
+Figure 17: Path smoothing with Conjugate Gradient. This smoo ther uses a vehicle model to guar-
+antee that the resulting paths are attainable. TheHybrid A* path is shownin black. The smoothed
+path is shown in blue (front axle) and cyan (rear axle). The op timized path is much smoother than
+the Hybrid A*path, andcanthus be driven faster.
+in 2-D (ignoring vehicle orientation and motion direction) . Both heuristics are admissible, so the
+maximum ofthe twocanbe used.
+Figure 16a illustrates A* planning using the commonly used E uclidean distance heuristic. As
+showninFigure16b,thenon-holonomic-without-obstacles heuristicissigniﬁcantlymoreefﬁcient
+thanEuclideandistance,sinceittakesintoaccountvehicl eorientation. However,asshowninFig-
+ure16c,thisheuristicalonefailsinsituationswithU-sha peddeadends. Byaddingtheholonomic-
+with-obstacles heuristic, the resulting planner is highly efﬁcient,as illustrated in Figure 16d.
+WhilehybridA*pathsarerealizablebythevehicle,thesmall numberofdiscreteactionsavailable
+to the planner often lead to trajectories with rapid changes in steering angles, which may still lead
+to trajectories that require excessive steering. In a ﬁnal p ost-processing stage, the path is further
+smoothed by a Conjugate Gradient smoother that optimizes sim ilar criteria as hybrid A*. This
+smoothermodiﬁescontrolsandmoveswaypointslocally. Int heoptimization,wealsooptimizefor
+minimalsteeringwheelmotionandminimumcurvature. Figur e17showstheresultofsmoothing.
+The hybrid A* planner is used for parking lots and also for cer tain trafﬁc maneuvers, such as
+U-turns. Figure18showsexamplesfromtheUrbanChallengean dtheassociatedNationalQualiﬁ-
+cation Event. Shown there are two successful U-turns and one parking maneuver. The example in
+Figure18disbasedonasimulationofamorecomplexparkingl ot. Theapparentsuboptimalityof
+the path is the result of the fact that the robot “discovers” t he map as it explores the environment,
+forcing it into multiple backups as a previously believed fr ee path is found to be occupied. All
+of those runs involve repetitive executions of the hybrid A* algorithm, which take place while the
+
+--- Page 20 ---
+(a)
+ (b)
+(c)
+ (d)
+Figure 18: Examples of trajectories generated by Junior’s h ybrid A* planner. Trajectories in (a)–
+(c) were driven by Junior in the DARPA Urban challenge: (a),(b ) show U-turns on blocked roads,
+(c)showsaparkingtask. Thepathin(d)wasgeneratedinsimu lationforamorecomplexmaze-like
+environment. Note that in all cases the robot had to replan in response to obstacles being detected
+byits sensors. In particular, this explains the sub-optima lity of the trajectory in (d).
+vehicleisinmotion. WhenexecutedonasinglecoreofJunior’ scomputers,planningfromscratch
+requiresupto100milliseconds;intheUrbanChallenge,plan ningwassubstantiallyfasterbecause
+of the lackof obstaclesin parking lots.
+6.4 Intersectionsand Merges
+Intersections are places that require discrete choices not covered by the basic navigation modules.
+For example, at multi-way intersections with stop signs, ve hicles may only proceed through the
+intersection in the order oftheir arrival.
+Junior keeps track of speciﬁc “critical zones” at intersect ions. For multi-way intersections with
+stopsigns,suchcriticalzonescorrespondtoregionsneare achstopsign. Ifsuchazoneisoccupied
+by a vehicle at the time the robot arrives, Junior waits until this zone has cleared (or a timeout
+has occurred). Intersection critical zones are shown in Fig ure 19. In merging, the critical zones
+correspond to segments of roads where Junior may have to give precedence to moving trafﬁc. If
+an object is found in such a zone, Junior uses its radars and it s vehicle tracker to determine the
+
+--- Page 21 ---
+(a) (b)
+Figure 19: Critical zones: (a) At this four-way stop sign, bus y critical zones are colored in red,
+whereas critical zones without vehicles are shown in green. In this image, a vehicle can be seen
+driving through the intersection from the right. (b) Critica l zones for merging into anintersection.
+velocity of moving objects. Based on the velocity and proximi ty, a threshold test then marks the
+zone in question as busy, which then results in Junior waitin g at a merge point. The calculation
+of critical zones is somewhat involved. However, all comput ations are performed automatically
+basedonthe RNDF,andaheadof the actualvehicle operation.
+Figure20visualizesamergingprocessduringthequaliﬁcat ioneventtotheUrbanChallenge. This
+testinvolvesmergingintoabusylanewith4human-drivenve hicles,andacrossanotherlanewith7
+human-drivencars. Therobotwaitsuntilnoneofthecritica lzonesarebusy,andthenpullsintothe
+moving trafﬁc. In this example, the vehicle was able to pull s afely into 8 second gaps in two-way
+trafﬁc.
+6.5 Behavior Hierarchy
+An essential aspect of the control software is logic that pre vents the robot from getting stuck.
+Junior’sstuckness detector is triggered in two ways: through timeouts when the vehicle i s waiting
+for an impasse to clear, and through the repeated traversal o f a location in the map—which may
+indicate thatthe vehicle is looping indeﬁnitely.
+Figure 21 shows the ﬁnite state machine (FSM) that is used to s witch between different driving
+states,andthatinvokesexceptionstoovercomestuckness. ThisFSMpossesses13states(ofwhich
+11 are shown; 2 are omitted for clarity). The individual stat es in this FSM correspond to the
+following conditions:
+•LOCATE VEHICLE: This is the initial state of the vehicle. Before it can start driving,
+the robot estimates its initial position on the RNDF, and star ts road driving or parking lot
+navigation, whichever is appropriate.
+•FORWARD DRIVE: This state corresponds to forward driving, lane keepi ng and obstacle
+avoidance. Whennot ina parking lot, this is the preferred nav igation state.
+
+--- Page 22 ---
+(a)
+(b)
+(c)
+Figure 20: Merging into dense trafﬁc during the qualiﬁcatio n events at the Urban Challenge. (a)
+Photoof merging test;(b)-(c) Themerging process.
+•STOPSIGNWAIT: This state is invoked when the robot waits at at a stop si gn to handle
+intersection precedence.
+•CROSSINTERSECTION: Here the robot waits if it is safe to cross an inte rsection (e.g.,
+during merging), or until the intersection is clear (if it is an all-way stop intersection). The
+state alsohandles driving until Junior has exitedthe inter section.
+•STOPFORCHEATERS: This state enables Junior to wait for another car mov ing out of
+turn ata four wayintersection.
+•UTURN DRIVE: Thisstate is invoked for a U-turn.
+•UTURN STOP: Same as UTURN DRIVE, but here the robot is stopping in preparation
+for a U-turn.
+•CROSSDIVIDER: This state enables Junior to cross the yellow line (a fter stopping and
+waiting for oncoming trafﬁc) inorder toavoid a partial road blockage.
+•PARKING NAVIGATE:Normal parking lotdriving.
+•TRAFFIC JAM: In this sate, the robot uses the general-purpose hybrid A* planner to get
+
+--- Page 23 ---
+LOCATE_VEHICLE
+FORWARD_DRIVE
+PARKING_NAVIGATESTOP_SIGN_WAIT
+CROSS_INTERSECTION UTURN_DRIVEUTURN_STOP CROSS_DIVIDER
+MISSION_COMPLETESTOP_FOR_CHEATERSBAD_RNDF
+Figure 21: Finite StateMachine that governs the robot’s beh avior.
+(a)Blocked intersection (b)Hybrid A* (c)Successfultraversal
+Figure 22: Navigating a simulated trafﬁc jam: After a timeou t period, the robot resorts to hybrid
+A*to ﬁnda feasible pathacross the intersection.
+aroundaroadblockage. Theplanneraimstoachieveanyroadp oint20metersawayonthe
+current robot trajectory. Use of the general-purpose plann er allows the robot to engage in
+unrestricted motion anddisregard certain trafﬁc rules.
+•ESCAPE: This state is the same as TRAFFIC JAM, only more extreme. Here the robot
+aimsforanywaypointonanybasetrajectorymorethan20mete rsaway. Thisstateenables
+the robot to choose a suboptimal route at an intersection in o rder to extract itself out of a
+jam.
+•BADRNDF:Inthisstate,therobotusesthehybridA*plannertonav igatearoadthatdoes
+not matchthe RNDF.It triggers onone lane,one wayroads if CROS SDIVIDER fails.
+•MISSION COMPLETE:This state is setwhenrace is over.
+
+--- Page 24 ---
+Forsimplicity,Figure21omitsESCAPEandTRAFFIC JAM.Nearlyallstateshavetransitionsto
+ESCAPEandTRAFFIC JAM.
+At the top level, the FSM transitions between the normal driv ing states, such as lane keeping
+and parking lot navigation. Transitions to lower driving le vels (exceptions) are initiated by the
+stuckness detectors. Most of those transition invoke a “wai t period” before the corresponding
+exceptionbehaviorisinvoked. TheFSMreturnstonormalbeh aviorafterthesuccessfulexecution
+of arobotic behavior.
+The FSMmakesthe robot robust to a number of contingencies. F orexample:
+•For a blocked lane, the vehicle considers crossing into the o pposite lane. If the opposite
+lane is also blocked, a U-turn is initiated, the internal RNDF is modiﬁed accordingly, and
+dynamic programming is runto regenerate the RNDFvalue funct ion.
+•Failure to traverse a blocked intersection is resolved by in voking the hybrid A* algorithm,
+toﬁndapathtothenearestreachableexitoftheintersectio n;seeFigure22foranexample.
+•Failure to navigate a blocked one-way road results in using h ybrid A* to the next GPS
+waypoint. This feature enables vehicles to navigate RNDFswi th sparse GPSwaypoints.
+•Repeated looping while attempting to reach a checkpoint resu lts in the checkpoint being
+skipped, so as to not jeopardize the overall mission. This be havior avoids inﬁnite looping
+if a checkpointis unreachable.
+•Failure to ﬁnd a path in a parking lot with hybrid A* makes the r obot temporarily erase its
+map. Such failures may be the result of treating as static obj ects that since moved away –
+which cannotbe excluded.
+•In nearly all situations, failure to make progress for exten ded periods of time ultimately
+leads to the use of hybrid A* to ﬁnd a path to a nearby GPS waypoi nt. When this rare
+behavior is invoked, the robot does not obeytrafﬁc rules any longer.
+In the Urban Challenge event, the robot almost never entered a ny of the exception states. This is
+largely because the race organizers repeatedly paused the r obot when it was facing trafﬁc jams.
+However, extensive experiments prior to the Urban Challenge showed that it was quite difﬁcult to
+make the robot failto achieveits mission,provided that the mission remained achievable.
+6.6 ManualRNDFAdjustment
+AheadoftheUrbanChallengeevent,DARPAprovidedteamsnotju stwithanRNDF,butalsowith
+ahigh-resolutionaerialimageofthesite. WhiletheRNDFwasp roducedbycarefulground-based
+GPS measurements along the course, the aerial image was purc hased from a commercial vendor
+andacquired byaircraft.
+To maximize the accuracy of the RNDF, the team manually adjust ed and augmented the DARPA-
+provided RNDF. Figure 23 shows a screen shot of the editor. Thi s tool enables an editor to move,
+add,anddeletewaypoints. TheRNDFeditorprogramisfasteno ughtoincorporatenewwaypoints
+in realtime (10Hz).
+
+--- Page 25 ---
+Figure 23: RNDF editor tool.
+(a)Beforeediting
+ (b)Somenew constraints
+ (c)Moreconstraints
+Figure 24: Example: Effect of adding and moving waypoints in the RNDF. Here the corridor is
+slightly altered to better match the aerial image. The RNDF ed itor permits for such alterations in
+aninteractive manner, anddisplays the results onthe baset rajectory without anydelay.
+The editing required three hours of a person’s time. In an ini tial phase, waypoints were shifted
+manually, and roughly 400 new way points were added manually to the 629 lane waypoints in
+the RNDF. Those additions increased the spatial coherence of the RNDF and the aerial image.
+Figure 24 shows a situation in which the addition of such addi tional waypoint constraints leads to
+substantial improvements ofthe RNDF.
+Toavoidsharpturnsatthetransitionoflinearroadsegment s,thetoolprovidesanautomatedRNDF
+smoothing algorithm. This algorithm upsamples the RNDF at on e meter intervals, and sets those
+as to maximize the smoothness of the resulting path. The opti mization of these additional points
+combines a least squares distance measure with a smoothness measure. The resulting “smooth
+
+--- Page 26 ---
+Figure 25: The SRNDF creator produces a smooth base trajector y automatically by minimizing a
+set of nonlinear quadratic constraints. The original RNDF is shown in blue. The smooth SRNDF
+is shownin green.
+RNDF,” or SRNDF, is then used instead of the original RNDF for loc alization and navigation.
+Figure 25 compares the RNDF andthe SRNDFfor a smallfraction of the course.
+7 The UrbanChallenge
+7.1 Results
+The Urban Challenge took place Nov. 3, 2007, in Victorville, CA . Figure 26 shows images of the
+startandtheﬁnishoftheUrbanChallenge. OurrobotJuniorne verhitanobstacle,andaccordingto
+DARPA,itbrokenotrafﬁcrule. Acarefulanalysisoftheracel ogsandofﬁcialDARPAdocumen-
+tation revealed two situations (described below) in which J unior behaved suboptimally. However,
+allofthoseeventsweredeemedruleconformingbytheraceor ganizers. Overall,Junior’slocaliza-
+tion and road following behaviors were essentially ﬂawless . The robot never came close to hitting
+a curbor crossinginto opposing trafﬁc.
+The event was organized in three missions, which differed in length and complexity. Our robot
+accomplishedallthreemissionsin4hours5minutes,and6se condsofruntime. Duringthistime,
+
+--- Page 27 ---
+Figure 26: The startandthe ﬁnishofthe UrbanChallenge. Juni or arrives atthe ﬁnishline.
+Virginia Tech IVST MIT CMU
+Figure 27: Scansofother robots encountered inthe race.
+the robot traveled a total of 55.96 miles, or 90.068 km. Its av erage speed while in run mode was
+thus 13.7 mph. This is slower than the average speed in the 200 5 Grand Challenge (Montemerlo
+et al., 2006; Urmson et al., 2004), but most of the slowdown wa s caused by speed limits, trafﬁc
+regulations (e.g., stop signs), and other trafﬁc. The total time from the start to the ﬁnal arrival was
+5 hours, 23 minutes, and 2 seconds, which includes all pause t imes. Thus, Junior was paused for
+a total of 1 hour, 17 minutes and 56 seconds. None of those paus es were caused by Junior, or
+requested by our team. An estimated 26 minutes and 27 seconds were “local” pauses, in which
+Junior was paused by the organizers because other vehicles w ere stuck. Our robot was paused six
+times because other robots encountered problems on the off- road section, or were involved in an
+accident. Thelongestlocalpause(10min,15sec)occurredw henJuniorhadtowaitbehindatwo-
+robotaccident. BecauseofDARPA’sdecisiontopauserobots,J uniorcouldnotexerciseitshybrid
+A* planner in these situations. DARPA determined Junior’s ad justed total time to be 4 hours, 29
+minutes, and28 seconds. Junior wasjudged to be the secondfa stestﬁnishingrobot in this event.
+7.2 Notable Race Events
+Figure 27 shows scans of other robots encountered in the race . Overall, DARPA ofﬁcials estimate
+that Junior faced approximately 200 other vehicles during t he race. The large number of robot-
+robot encounters wasa unique feature of the Urban Challenge.
+Therewereseveralnotableencountersduringtheraceinwhi chJuniorexhibitedparticularlyintel-
+
+--- Page 28 ---
+Figure 28: Junior mission times during the Urban Challenge. T imes marked green correspond to
+localpauses,andtimes inred toall-pauses,in whichall veh icles were paused.
+ligent driving behavior, as well as two incidents where Juni or made clearly suboptimal decisions
+(neither of whichviolated any trafﬁc rules).
+Hybrid A*on the DirtRoad
+While the majority of the course was paved, urban terrain, the robots were required to traverse a
+shortoff-roadsectionconnectingtheurbanroadnetworkto a30mphhighwaysection. Theoff-road
+terrain was graded dirt path with a non-trivial elevation ch ange, reminiscent of the 2005 DARPA
+GrandChallengecourse. Thissectioncausedproblemsforsev eraloftherobotsinthecompetition.
+Junior traveled down the dirt road during the ﬁrst mission, i mmediately behind another robot and
+its chase car. While Junior had no difﬁculty following the dir t road, the robot in front of Junior
+stopped three times for extended periods of time. In respons e to the ﬁrst stop, Junior also stopped
+and waited behind the robot and its chase car. After seeing no movement for a period of time,
+Junior activated several of its recovery behaviors. First, Junior considered CROSS DIVIDER, a
+preset passing maneuver to the left of the two stopped cars. T here was not sufﬁcient space to ﬁt
+between the cars and the berm on the side of the road, so Junior then switched to the BAD RNDF
+behavior, in which the Hybrid A* planner is used to plan an arb itrary path to the next DARPA
+waypoint. Unfortunately, there was not enough space to get a round the cars even with the general
+path planner. Junior repeatedly repositioned himself on th e road in an attempt to ﬁnd a free path
+to the next waypoint, until the cars started moving again. Ju nior repeated this behavior when the
+preceding robot stopped a second time, but was paused by DARPA until the ﬁrst robot recovered.
+Figure29ashowsdataandaCROSS DIVIDERpatharoundtheprecedingvehicleonthedirtroad.
+
+--- Page 29 ---
+(a)Navigating ablocked dirt road
+ (b) Passingadisabledrobot at parking lot entrance
+(c)Nudge toavoidan oncomingrobot
+ (d) Slowingdown afterbeingcut off byother robot
+(e)An overly aggressive merge intomovingtrafﬁc
+ (f) Pullingalongsidea car ata stopsign
+Figure 29: Keymoments in the Urban Challenge race.
+PassingDisabled Robot
+Thecourseincludedseveralfree-formnavigationzoneswhe retherobotswererequiredtonavigate
+around arbitrary obstacles and park in parking spots. As Jun ior approached one of these zones
+duringtheﬁrstmission,itencounteredanotherrobotwhich hadbecomedisabledattheentranceto
+thezone. Juniorqueuedupbehindtherobot,waitingforitto enterthezone. Aftertherobotdidnot
+move for a given amount of time, Junior passed it slowly on the left using the CROSS DIVIDER
+behavior. Once Junior had cleared the disabled vehicle, the Hybrid A* planner was enabled to
+navigate successfullythrough the zone. Figure 29b shows th is passingmaneuver.
+
+--- Page 30 ---
+AvoidingOpposingTrafﬁc
+Duringtheﬁrstmission,Juniorwastravelingdownatwo-way roadandencounteredanotherrobot
+in the opposing lane of trafﬁc. The other robot was driving su ch that its left wheels were approxi-
+matelyonefootovertheyellowline,protrudingintooncomi ngtrafﬁc. Juniorsensedtheoncoming
+vehicle and quickly nudged the right side of its lane, where i t then passed at full speed without
+incident. This situation is depictedin Figure 29c.
+Reactingto an AggressiveMerge
+During the third mission, Junior was traveling around a larg e trafﬁc circle which featured promi-
+nently in the competition. Another robot was stopped at a sto p sign waiting to enter the trafﬁc
+circle. TheotherrobotpulledoutaggressivelyinfrontofJ unior,whowastravelingapproximately
+15mph at the time. Junior braked hard to slow down for the othe r robot, and continued with its
+mission. Figure 29d depicts the situation during this merge .
+Junior MergesAggressively
+Junior merged into moving trafﬁc successfully on numerous o ccasions during the race. On one
+occasion during the ﬁrst mission, however, Junior turned le ft from a stop sign in front of a robot
+that was moving at 20mph with an uncomfortably small gap. Dat a from this merge is shown in
+Figure 29e. The merge was aggressive enough that the chase ca r drivers paused the other vehicle.
+Later analysis revealed that Junior saw the oncoming vehicl e, yet believed there was a sufﬁcient
+distancetomergesafely. Ourteamhadpreviouslyloweredme rgingdistancethresholdstocompen-
+sateforoverlyconservativebehaviorduringthequaliﬁcat ionevent. Inretrospect,thesethresholds
+were set too low for higher speed merging situations. While th is merge was deﬁnitely suboptimal
+behavior, it waslater judged notbe a violation of the rules b y DARPA.
+PullingAlongsidea Waiting Car
+During the second mission, Junior pulled up behind a robot wa iting at a stop sign. The lane was
+quite wide, and the other robot was offset towards the right s ide of the lane. Junior, on the other
+hand, was traveling down the left side of the lane. When pullin g forward, Junior did not register
+the other car as being inside the lane of travel, and thus bega n to pull alongside of the car waiting
+at the stop sign. As Junior tried to pass, the other car pulled forward from the stop sign and left
+the area. This incident highlights how difﬁcult it can be for a robot to distinguish between a car
+stopped ata stopsignand acarparked onthe side of the road. S eeFigure 29f.
+8 Discussion
+Thispaperdescribedarobotdesignedforurbandriving. Sta nford’srobotJuniorintegratesanum-
+ber of recent innovations in mobile robotics, such as probab ilistic localization, mapping, tracking,
+global and local planning, and an FSM for making the robot rob ust to unexpected situations. The
+results of the Urban Challenge, along with prior experiments carried out by the research team,
+suggest that the robot is capable of navigating in other robo tic and human trafﬁc. The robot suc-
+cessfully demonstrated merging, intersection handling, p arking lot navigation, lane changes, and
+
+--- Page 31 ---
+autonomous U-turns.
+The approach presented here features a number of innovation s, which are well-grounded in past
+research on autonomous driving and mobile robotics. These i nnovations include the obstacle/curb
+detection method, the vehicle tracker, the various motion p lanners, and the behavioral hierarchy
+that addresses a broad range of trafﬁc situations. Together , these methods provide for a robust
+systemfor urban in-trafﬁc autonomous navigation.
+Still, a number of advances are required for truly autonomou s urban driving. The present robot
+is unable to handle trafﬁc lights. No experiments have been p erformed with a more diverse set
+of trafﬁc participants, such as bicycles and pedestrians. F inally, DARPA frequently paused robots
+in the Urban Challenge to clear up trafﬁc jams. In real urban tr afﬁc, such interventions are not
+realistic. Itisunclearifthepresentrobot(orotherrobot sinthisevent!) wouldhaveactedsensibly
+in lastingtrafﬁc congestion.
+References
+Buehler, M., Iagnemma, K., and Singh, S., editors (2006). The 2005 DARPA Grand Challenge:
+The GreatRobot Race . Springer,Berlin.
+DARPA (2007). Urban challenge rules, revision oct. 27, 2007. See
+www.darpa.mil/grandchallenge/rules.asp.
+Ferguson, D. and Stentz, A. (2005). Field D*: An interpolati on-based path planner and replanner.
+InProceedings of the 12th International Symposium of Robotic s Research (ISRR’05) , San
+Francisco,CA.Springer.
+Howard,R.A. (1960). Dynamic Programmingand MarkovProcesses . MIT PressandWiley.
+Jazwinsky,A.(1970). Stochastic Processesand FilteringTheory . Academic,NewYork.
+Montemerlo, M., Thrun, S., Dahlkamp, H., Stavens, D., and St rohband, S. (2006). Winning the
+DARPA Grand Challenge with an AI robot. In Proceedings of the AAAI National Conference
+onArtiﬁcial Intelligence , Boston, MA.AAAI.
+Moravec, H. P. (1988). Sensor fusion in certainty grids for m obile robots. AI Magazine , 9(2):61–
+74.
+Simmons, R. and Apfelbaum, D. (1998). A task description lang uage for robot control. In Pro-
+ceedings ofthe Conferenceon Intelligent Robots andSystems (IROS), Victoria, CA.
+Urmson, C., Anhalt, J., Clark, M., Galatali, T., Gonzalez, J., Gowdy, J., Gutierrez, A., Harbaugh,
+S., Johnson-Roberson, M., Kato, H., Koon, P., Peterson, K., S mith, B., Spiker, S., Tryze-
+laar, E., and Whittaker, W. (2004). High speed navigation of u nrehearsed terrain: Red Team
+technology for the Grand Challenge 2004. Technical Report CMU- RI-TR-04-37, Robotics
+Institute, Carnegie MellonUniversity, Pittsburgh, PA.
+U.S.Department of Transportation, B.o.T.S.(2005). Transp ortation statistics annualreport.
