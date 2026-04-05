@@ -14,9 +14,11 @@
    - 负责记录当前基础建设状态、已准备好的入口、下一步计划和更新日志。
 4. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
    - 负责固定 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 期刊会议名录及索引入口。
-5. [../tools/README.md](../tools/README.md)
+5. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
+   - 负责给出当前默认的软件工程领域方向树、一级总判定口径，以及主标签/次标签分类规则。
+6. [../tools/README.md](../tools/README.md)
    - 负责汇总当前可直接复用的 Python 工具入口。
-6. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
+7. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
    - 负责固定 `CCF` 年度索引的自动生成与复核流程。
 
 推荐阅读顺序如下：
@@ -24,8 +26,9 @@
 1. [README.md](./README.md)
 2. [GUIDE.md](./GUIDE.md)
 3. [SUMMARY.md](./SUMMARY.md)
-4. 需要做 `CCF` venue 索引时，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
-5. 需要批量生成年度页时，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
+4. 若任务涉及软工/非软工边界判断或方向归类，再读 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
+5. 需要做 `CCF` venue 索引时，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
+6. 需要批量生成年度页时，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
 
 ## 2. 目标与任务边界
 
@@ -43,6 +46,21 @@
 1. 不应把所有候选论文都变成 `paper.pdf` 目录。
 2. 不应把深度单篇分析大量写在本路径。
 3. 不应在这里替代正式论文集的 `paper_content.txt / desc.md` 工作。
+
+### 2.1 领域分类基线
+
+后续只要任务涉及 `frontier_index/` 下的软工论文方向标签、软工/非软工边界判断、`CCF` 邻近 venue 论文筛查，默认都应以 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 为准。
+
+执行口径如下：
+
+1. 先判断论文一级总类别是 `软件工程`、`系统软件`、`程序设计语言与形式化基础` 还是 `跨域/待判定`。
+2. 若论文跨域，不要直接挂起；应单独判断它是否“软工主导”。
+3. 只有一级总类别是 `软件工程`，或跨域但被判定为“软工主导”时，才进入软工方向树。
+4. 进入软工方向树后，再分配一个主标签和 `1-3` 个次标签。
+5. 若核心研究问题、主要方法链条或主要评估证据明显是软件工程导向，则即使论文跨域，也应按软件工程纳入，并在次标签或备注中保留 `跨域` 标记。
+6. `形式化方法 / 程序分析 / 机器学习 / LLM` 优先作为方法或横切标签理解，而不是自动作为主标签。
+7. `PL / systems / FM` venue 中只有一部分论文属于软件工程；必须看其核心问题是否落在需求、建模、架构、测试、验证、维护、运维、过程、经验研究或 `AI` 系统工程等软工问题上。
+8. `CPS / 云 / Web / 移动 / 开源生态 / 量子` 等通常先作为场景次标签，除非论文的核心研究问题本来就是“这类系统的软件工程”。
 
 ## 3. 来源优先级
 
@@ -87,16 +105,31 @@
 5. `year`
 6. `type`
 7. `rank`
-8. `abstract`
-9. `keywords`
-10. `doi`
-11. `landing_url`
-12. `dblp_url`
-13. `bibtex`
-14. `initial_screening`
-15. `screening_reason`
-16. `pdf_followup`
-17. `notes`
+8. `macro_area`
+9. `abstract`
+10. `keywords`
+11. `doi`
+12. `landing_url`
+13. `dblp_url`
+14. `bibtex`
+15. `initial_screening`
+16. `screening_reason`
+17. `pdf_followup`
+18. `notes`
+
+其中 `macro_area` 默认推荐使用以下口径：
+
+1. `软件工程`
+2. `系统软件`
+3. `程序设计语言与形式化基础`
+4. `跨域/待判定`
+
+若论文最初看起来是 `跨域/待判定`，但经复核属于“跨域且软工主导”，则最终仍建议把 `macro_area` 记为 `软件工程`，并在 `se_secondary_tags` 或 `notes` 中保留 `跨域` 标记。
+
+若后续需要对 `软件工程` 条目继续细分，推荐再补两个可选字段：
+
+1. `se_primary_area`
+2. `se_secondary_tags`
 
 其中状态字段默认使用以下口径：
 
@@ -120,6 +153,14 @@
 3. 标题中的任务词。
 4. 摘要中的对象、方法和问题设定。
 5. 关键词中的形式化方法、软件工程、控制系统、模型、验证等线索。
+
+做初筛时，若需要给出 `方向标签`，默认同步参考 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)：
+
+1. 先完成一级总判定，再决定是否进入软工方向树。
+2. 对跨域条目，单独判断是否“软工主导”；若是，则按软件工程纳入并保留 `跨域` 标记。
+3. 主标签优先落在“需求/建模”“架构/设计”“测试/分析/验证”“维护/运维”“质量属性”“过程/经验/仓库挖掘”“AI for SE / SE for AI”等主枝。
+4. 不要把 venue 名称直接当方向标签。
+5. 若论文更像“纯理论/纯系统/纯语言”工作，且没有明显软件工程问题，应降低优先级，必要时直接排除出软工范围。
 
 ### 5.1 优先跟进的典型信号
 

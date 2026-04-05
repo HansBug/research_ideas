@@ -95,15 +95,17 @@
    - 记录当前已经准备好的基础信息、后续待做事项和更新日志。
 4. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
    - 汇总 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议名录、方向说明和索引入口。
-5. [ccf_history/README.md](./ccf_history/README.md)
+5. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
+   - 给出当前 `frontier_index/` 使用的软件工程领域方向树、软工/非软工边界说明，以及主标签/次标签分类规则。
+6. [ccf_history/README.md](./ccf_history/README.md)
    - 规定后续 `CCF` 往年论文索引如何按“年份主目录”组织，并在每年内按 venue 分 section 汇总。
-6. [arxiv_recent/README.md](./arxiv_recent/README.md)
+7. [arxiv_recent/README.md](./arxiv_recent/README.md)
    - 规定后续近期 `arXiv` 论文索引如何按时间窗口组织。
-7. [templates/metadata_index_template.md](./templates/metadata_index_template.md)
+8. [templates/metadata_index_template.md](./templates/metadata_index_template.md)
    - 提供后续单批次索引可直接复用的元数据表头模板。
-8. [../tools/README.md](../tools/README.md)
+9. [../tools/README.md](../tools/README.md)
    - 汇总本仓库内与索引构建、全文提取相关的 Python 工具入口。
-9. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
+10. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
    - 规定 `CCF` 年度索引的标准批量构建与复核流程。
 
 推荐阅读顺序如下：
@@ -111,9 +113,10 @@
 1. 先读 [README.md](./README.md)
 2. 再读 [GUIDE.md](./GUIDE.md)
 3. 再读 [SUMMARY.md](./SUMMARY.md)
-4. 若要从 `CCF` 方向入手建索引，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
-5. 若要实际新建索引批次，再读 [ccf_history/README.md](./ccf_history/README.md) 或 [arxiv_recent/README.md](./arxiv_recent/README.md)
-6. 若要批量构建 `CCF` 年度页，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
+4. 若任务涉及“哪些论文算软件工程、哪些只是系统软件或程序设计语言邻近项、如何给软工论文打方向标签”，先读 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
+5. 若要从 `CCF` 方向入手建索引，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
+6. 若要实际新建索引批次，再读 [ccf_history/README.md](./ccf_history/README.md) 或 [arxiv_recent/README.md](./arxiv_recent/README.md)
+7. 若要批量构建 `CCF` 年度页，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
 
 ## 7. 后续准备好的工作模式
 
@@ -122,13 +125,19 @@
 1. 先确定来源批次
    - `CCF` 某一年整体范围；
    - 或 `arXiv` 某个近期时间窗口。
-2. 只整理元数据和基础证据
+2. 先做一级总判定
+   - `软件工程`；
+   - `系统软件`；
+   - `程序设计语言与形式化基础`；
+   - `跨域/待判定`。
+3. 只整理元数据和基础证据
    - 标题、作者、摘要、`BibTeX`、`DOI`、学术链接。
-3. 先做初步判定
+4. 若一级总判定是 `软件工程`，或虽然跨域但被判定为“软工主导”，再按 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 给出主标签和次标签。
+5. 再做初步判定
    - 基于会议/期刊、年份、标题、摘要、关键词做轻量筛选。
-4. 再选择容易关注、且与博士研究更相关的一部分
+6. 再选择容易关注、且与博士研究更相关的一部分
    - 再去获取 `PDF`。
-5. 最后才进入正式文库建设
+7. 最后才进入正式文库建设
    - 做全文提取、单篇分析和更深入归档。
 
 对于 `CCF` 年度索引，默认优先使用 Python 工具而不是手工拼整年总表：
@@ -146,6 +155,8 @@ python -m tools.ccf_se_index_builder --year 2025
 1. 先把本路径当成“索引层”，不要一上来就按正式论文库处理。
 2. 优先补元数据和初筛结果，再考虑下载全文。
 3. 若任务涉及 `CCF` 方向 venue 范围判断，优先参考 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)。
-4. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
-5. 若任务是构建某一年的 `CCF` 全量索引，优先使用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 并遵循 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)。
-6. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
+4. 若任务涉及“什么算软件工程”“非软工论文如何判出”“软工论文怎么进一步细分”，优先参考 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
+5. 方向归类时，先做一级总判定；若论文跨域，则单独判断是否“软工主导”，只有最终落到 `软件工程` 时才进入软工方向树。
+6. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
+7. 若任务是构建某一年的 `CCF` 全量索引，优先使用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 并遵循 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)。
+8. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
