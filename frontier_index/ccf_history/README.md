@@ -27,6 +27,11 @@ ccf_history/
 1. [2025/README.md](./2025/README.md)
 2. [year_template/README.md](./year_template/README.md)
 
+对于正式年度构建，默认优先使用：
+
+1. [../../tools/ccf_se_index_builder.py](../../tools/ccf_se_index_builder.py)
+2. [../../tools/ccf_se_index_workflow.md](../../tools/ccf_se_index_workflow.md)
+
 ## 3. 年份目录的职责
 
 每个年份目录默认负责维护该年所有目标 venue 的信息汇总，重点包括：
@@ -123,3 +128,24 @@ ccf_history/
 3. 先做轻量筛选，再决定是否值得获取全文。
 4. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
 5. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
+
+## 8. 标准工作流
+
+若任务是“完成某一年的 `CCF` 全量期刊会议论文名录”，默认按以下顺序执行：
+
+1. 先确认 venue 范围以 [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md) 为准。
+2. 在仓库根目录运行：
+
+```bash
+python -m tools.ccf_se_index_builder --year 2025
+```
+
+3. 检查 `frontier_index/ccf_history/2025/verification.json` 是否全部 `ok`。
+4. 若发现会议边界、重名文件、官方页缺失等问题，优先修脚本并重跑。
+5. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
+
+补充约束：
+
+1. `metadata/*.json` 与 `bib/*.bib` 默认视为脚本生成产物。
+2. `_cache/` 是重跑加速缓存，应保留。
+3. 后续若某些论文被选中进入全文阶段，再转入正式论文集路径处理 `paper.pdf / paper_content.txt / bibtex.bib`。

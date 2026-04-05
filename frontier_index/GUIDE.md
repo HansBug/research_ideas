@@ -14,6 +14,10 @@
    - 负责记录当前基础建设状态、已准备好的入口、下一步计划和更新日志。
 4. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
    - 负责固定 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 期刊会议名录及索引入口。
+5. [../tools/README.md](../tools/README.md)
+   - 负责汇总当前可直接复用的 Python 工具入口。
+6. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
+   - 负责固定 `CCF` 年度索引的自动生成与复核流程。
 
 推荐阅读顺序如下：
 
@@ -21,6 +25,7 @@
 2. [GUIDE.md](./GUIDE.md)
 3. [SUMMARY.md](./SUMMARY.md)
 4. 需要做 `CCF` venue 索引时，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
+5. 需要批量生成年度页时，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
 
 ## 2. 目标与任务边界
 
@@ -189,6 +194,31 @@
    - 例如：`2026-04.md`
 
 单个索引文件中，默认优先采用 Markdown 表格维护；如果后续量级显著上升，再考虑在不破坏可读性的前提下补充结构化导出文件。
+
+## 7.1 标准 Python 工具
+
+对于 `CCF` 年度索引，默认优先使用现有 Python 工具而不是手工逐 venue 拼表：
+
+```bash
+python -m tools.ccf_se_index_builder --year 2025
+```
+
+默认产物包括：
+
+1. `frontier_index/ccf_history/<year>/README.md`
+2. `frontier_index/ccf_history/<year>/verification.json`
+3. `frontier_index/ccf_history/<year>/metadata/*.json`
+4. `frontier_index/ccf_history/<year>/bib/*.bib`
+5. `frontier_index/ccf_history/<year>/_cache/`
+
+执行要求如下：
+
+1. `_cache/` 默认保留，不应在常规复跑中删除。
+2. 若发现 venue 边界判断、重名覆盖、官方页回退等规则问题，应先修 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 再重跑。
+3. 不应把生成后的 `metadata/*.json`、`bib/*.bib` 当作优先手工维护对象。
+4. 全量生成完成后，必须复核 `verification.json`，再回写 [SUMMARY.md](./SUMMARY.md)。
+
+若后续某批论文进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py) 生成 `paper_content.txt`。
 
 ## 8. 一轮推荐工作流程
 

@@ -101,6 +101,10 @@
    - 规定后续近期 `arXiv` 论文索引如何按时间窗口组织。
 7. [templates/metadata_index_template.md](./templates/metadata_index_template.md)
    - 提供后续单批次索引可直接复用的元数据表头模板。
+8. [../tools/README.md](../tools/README.md)
+   - 汇总本仓库内与索引构建、全文提取相关的 Python 工具入口。
+9. [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
+   - 规定 `CCF` 年度索引的标准批量构建与复核流程。
 
 推荐阅读顺序如下：
 
@@ -109,6 +113,7 @@
 3. 再读 [SUMMARY.md](./SUMMARY.md)
 4. 若要从 `CCF` 方向入手建索引，再读 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
 5. 若要实际新建索引批次，再读 [ccf_history/README.md](./ccf_history/README.md) 或 [arxiv_recent/README.md](./arxiv_recent/README.md)
+6. 若要批量构建 `CCF` 年度页，再读 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)
 
 ## 7. 后续准备好的工作模式
 
@@ -126,6 +131,14 @@
 5. 最后才进入正式文库建设
    - 做全文提取、单篇分析和更深入归档。
 
+对于 `CCF` 年度索引，默认优先使用 Python 工具而不是手工拼整年总表：
+
+```bash
+python -m tools.ccf_se_index_builder --year 2025
+```
+
+如需进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py)。
+
 ## 8. AI 工作入口提示
 
 后续 AI 在本路径下工作时，默认应遵守以下原则：
@@ -134,4 +147,5 @@
 2. 优先补元数据和初筛结果，再考虑下载全文。
 3. 若任务涉及 `CCF` 方向 venue 范围判断，优先参考 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)。
 4. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
-5. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
+5. 若任务是构建某一年的 `CCF` 全量索引，优先使用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 并遵循 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)。
+6. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
