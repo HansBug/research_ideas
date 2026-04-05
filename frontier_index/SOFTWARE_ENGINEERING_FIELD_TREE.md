@@ -210,7 +210,8 @@ Software Engineering
 |   |   |-- 1.1.1 需求获取与发现（访谈、用户反馈挖掘、需求抽取、用户故事）
 |   |   |-- 1.1.2 需求分析、协商与优先级（goal modeling、冲突协调、优先级排序）
 |   |   |-- 1.1.3 需求质量与歧义控制（歧义检测、完备性、需求一致性）
-|   |   `-- 1.1.4 需求追踪、变更与演化（traceability、impact analysis、rationale）
+|   |   |-- 1.1.4 需求追踪、变更与演化（traceability、impact analysis、rationale）
+|   |   `-- 1.1.5 需求知识复用与需求债务治理（requirements reuse、pattern libraries、requirements debt）
 |   |-- 1.2 规格说明与形式化
 |   |   |-- 1.2.1 形式化规约与契约（LTL/CTL、contracts、invariants、Alloy）
 |   |   |-- 1.2.2 自然语言到规约/属性（NL2LTL、spec mining、property extraction）
@@ -220,7 +221,8 @@ Software Engineering
 |   |   |-- 1.3.1 建模语言与元模型（UML/SysML/DSL/metamodel）
 |   |   |-- 1.3.2 模型转换、同步与协同（transformation、co-evolution、round-trip）
 |   |   |-- 1.3.3 模型分析、仿真与验证（simulation、reachability、model checking）
-|   |   `-- 1.3.4 基于模型的生成、测试与运行时支持（MBT、code generation、digital twins）
+|   |   |-- 1.3.4 基于模型的生成、测试与运行时支持（MBT、code generation、digital twins）
+|   |   `-- 1.3.5 模型质量、仓库与治理（model quality、repository mining、model management）
 |   `-- 1.4 变体管理与产品线
 |       |-- 1.4.1 特征建模与配置（feature model、option dependency、product config）
 |       |-- 1.4.2 产品线架构与资产复用（SPL、core asset、family architecture）
@@ -231,7 +233,8 @@ Software Engineering
 |   |   |-- 2.1.1 架构描述与恢复（ADL、architecture reconstruction、architecture documentation）
 |   |   |-- 2.1.2 架构评估与推理（trade-off analysis、architecture debt、quality reasoning）
 |   |   |-- 2.1.3 架构演化与重构（microservice extraction、decomposition、migration）
-|   |   `-- 2.1.4 云/服务/平台架构（SOA、microservices、serverless topology、platform architecture）
+|   |   |-- 2.1.4 云/服务/平台架构（SOA、microservices、serverless topology、platform architecture）
+|   |   `-- 2.1.5 架构知识、决策与不确定性管理（architecture decisions、ADRs、hypotheses engineering）
 |   |-- 2.2 软件设计
 |   |   |-- 2.2.1 设计原则、模式与反模式（patterns、anti-patterns、design heuristics）
 |   |   |-- 2.2.2 模块化、依赖与解耦（coupling/cohesion、dependency structure、encapsulation）
@@ -246,8 +249,9 @@ Software Engineering
 |   |-- 3.1 软件测试
 |   |   |-- 3.1.1 测试生成与增强（test generation、test amplification、oracle generation）
 |   |   |-- 3.1.2 回归测试与测试选择（regression testing、test prioritization、test selection）
-|   |   |-- 3.1.3 模糊、搜索式与性质驱动测试（fuzzing、SBST、property-based testing）
-|   |   `-- 3.1.4 场景化测试（GUI/Web/mobile/CPS/AI system testing）
+|   |   |-- 3.1.3 模糊、搜索式、变异与性质驱动测试（fuzzing、SBST、mutation/metamorphic/property-based testing）
+|   |   |-- 3.1.4 场景化测试（GUI/Web/mobile/CPS/AI system testing）
+|   |   `-- 3.1.5 测试质量、脆弱性与测试资产维护（flaky tests、test debt、test suite maintenance）
 |   |-- 3.2 程序分析
 |   |   |-- 3.2.1 静态分析与抽象解释（dataflow、taint、abstract interpretation、type-based analysis）
 |   |   |-- 3.2.2 动态与混合分析（instrumentation、trace analysis、hybrid analysis）
@@ -268,12 +272,14 @@ Software Engineering
 |   |   |-- 4.1.1 缺陷修复与维护性修正（bug fixing、hotfix、backport）
 |   |   |-- 4.1.2 重构、重模块化与代码清理（refactoring、remodularization、cleanup）
 |   |   |-- 4.1.3 API、依赖与库演化（API evolution、dependency upgrade、library migration）
-|   |   `-- 4.1.4 迁移、现代化与遗留系统更新（legacy modernization、cloud migration、language migration）
+|   |   |-- 4.1.4 迁移、现代化与遗留系统更新（legacy modernization、cloud migration、language migration）
+|   |   `-- 4.1.5 技术债、克隆与可维护性治理（technical debt、clone management、maintainability governance）
 |   |-- 4.2 程序理解与逆向工程
 |   |   |-- 4.2.1 代码搜索、导航与摘要（code search、navigation、summarization）
 |   |   |-- 4.2.2 痕迹、文档与知识恢复（trace recovery、documentation mining、knowledge graph）
 |   |   |-- 4.2.3 架构与代码库重建（system reconstruction、dependency recovery、architecture recovery）
-|   |   `-- 4.2.4 克隆、相似性与理解支持（clone detection、similarity search、comprehension aid）
+|   |   |-- 4.2.4 克隆、相似性与理解支持（clone detection、similarity search、comprehension aid）
+|   |   `-- 4.2.5 文档工程、解释与设计 rationale 恢复（documentation engineering、comment/doc evolution、rationale recovery）
 |   |-- 4.3 发布、配置与持续工程
 |   |   |-- 4.3.1 版本、配置与构建工程（version/config management、build reproducibility）
 |   |   |-- 4.3.2 CI/CD 与发布工程（release engineering、continuous delivery、rollback pipeline）
@@ -289,7 +295,8 @@ Software Engineering
 |   |   |-- 5.1.1 故障预测与失效分析（fault prediction、failure analysis、incident mining）
 |   |   |-- 5.1.2 容错、韧性与恢复能力（fault tolerance、resilience engineering、graceful degradation）
 |   |   |-- 5.1.3 发布可靠性与服务可用性（release reliability、availability analysis、SLO engineering）
-|   |   `-- 5.1.4 可恢复性与连续运营（recoverability、business continuity、disaster response）
+|   |   |-- 5.1.4 可恢复性与连续运营（recoverability、business continuity、disaster response）
+|   |   `-- 5.1.5 功能安全、危害分析与 safety assurance（functional safety、hazard analysis、safety case）
 |   |-- 5.2 安全、隐私、公平与合规
 |   |   |-- 5.2.1 安全开发与漏洞治理（secure SDLC、vulnerability management、patch management）
 |   |   |-- 5.2.2 隐私工程与数据治理（privacy requirements、privacy compliance、data governance）
@@ -336,12 +343,14 @@ Software Engineering
 |   |   |-- 7.1.1 代码生成、补全与变换（code generation、completion、transformation）
 |   |   |-- 7.1.2 AI 支持的测试、分析与修复（AI-based testing、bug detection、APR）
 |   |   |-- 7.1.3 AI 支持的需求、建模与文档（requirements summarization、model completion、doc generation）
-|   |   `-- 7.1.4 人机协同开发与评估（pairing with LLM、human-AI workflow、trust/calibration）
+|   |   |-- 7.1.4 AI 支持的架构、设计与工程决策（architecture/design assistance、decision support、planning）
+|   |   `-- 7.1.5 人机协同开发与评估（pairing with LLM、human-AI workflow、trust/calibration）
 |   |-- 7.2 SE for AI
 |   |   |-- 7.2.1 数据、模型与管线工程（data pipeline、feature pipeline、model lifecycle）
-|   |   |-- 7.2.2 AI 测试、验证与监测（AI testing、robustness assurance、drift monitoring）
-|   |   |-- 7.2.3 MLOps、部署与演化（MLOps、deployment pipeline、model rollback）
-|   |   `-- 7.2.4 AI 系统治理、安全与合规（AI governance、safety case、regulatory assurance）
+|   |   |-- 7.2.2 AI 系统需求、建模与文档工程（requirements for AI systems、ML model cards、system modeling）
+|   |   |-- 7.2.3 AI 测试、验证与监测（AI testing、robustness assurance、drift monitoring）
+|   |   |-- 7.2.4 MLOps、部署与演化（MLOps、deployment pipeline、model rollback）
+|   |   `-- 7.2.5 AI 系统治理、安全与合规（AI governance、safety case、regulatory assurance）
 |   `-- 7.3 智能自治与自适应系统
 |       |-- 7.3.1 自适应与反馈回路工程（MAPE-K、feedback loop、adaptive planning）
 |       |-- 7.3.2 agent 软件工程（multi-agent workflows、agent orchestration、agent debugging）
@@ -372,23 +381,24 @@ Software Engineering
         |-- 8.5.1 AI-enabled systems（AI-native software、copilot-enabled products、AI-heavy applications）
         |-- 8.5.2 quantum software engineering（quantum program engineering、testing、resource reasoning）
         |-- 8.5.3 大模型原生与 agentic 软件系统（LLM-native apps、agentic workflows、tool-using systems）
-        `-- 8.5.4 异构与新型计算平台的软件工程（GPU/edge/classical-quantum orchestration）
+        |-- 8.5.4 异构与新型计算平台的软件工程（GPU/edge/classical-quantum orchestration）
+        `-- 8.5.5 科学计算、数据密集与高性能软件工程（scientific software、HPC、data-intensive software）
 ```
 
 ### 4.1 `1.x` 需求、规格与建模的 `x.x.x` 例子总览
 
 | 二级方向 | `x.x.x` 叶节点与典型例子 |
 |---|---|
-| `1.1 需求工程` | `1.1.1` 从用户反馈、工单、访谈、论坛贴中抽取需求与用户故事；`1.1.2` 做需求优先级排序、目标冲突协调、利益相关者协商；`1.1.3` 检测需求歧义、缺失、矛盾和不可验证表述；`1.1.4` 建立需求到模型/测试/代码的追踪并做变更影响分析 |
+| `1.1 需求工程` | `1.1.1` 从用户反馈、工单、访谈、论坛贴中抽取需求与用户故事；`1.1.2` 做需求优先级排序、目标冲突协调、利益相关者协商；`1.1.3` 检测需求歧义、缺失、矛盾和不可验证表述；`1.1.4` 建立需求到模型/测试/代码的追踪并做变更影响分析；`1.1.5` 研究需求复用、需求知识库、需求模式和需求技术债 |
 | `1.2 规格说明与形式化` | `1.2.1` 编写或推导契约、时序属性、不变式、Alloy/LTL/CTL 规约；`1.2.2` 从自然语言需求或日志自动抽取形式化属性；`1.2.3` 检查规约一致性、可满足性和完备性；`1.2.4` 构建 safety case、compliance rule 和 assurance 规约 |
-| `1.3 建模与模型驱动工程` | `1.3.1` 设计 `UML/SysML/DSL`、元模型与建模语言扩展；`1.3.2` 做模型转换、协同编辑、共演化与 round-trip engineering；`1.3.3` 用模型做仿真、可达性分析、模型检查与一致性分析；`1.3.4` 进行基于模型的代码生成、模型驱动测试、数字孪生与运行时支持 |
+| `1.3 建模与模型驱动工程` | `1.3.1` 设计 `UML/SysML/DSL`、元模型与建模语言扩展；`1.3.2` 做模型转换、协同编辑、共演化与 round-trip engineering；`1.3.3` 用模型做仿真、可达性分析、模型检查与一致性分析；`1.3.4` 进行基于模型的代码生成、模型驱动测试、数字孪生与运行时支持；`1.3.5` 研究模型质量、模型仓库、模型资产治理和模型管理 |
 | `1.4 变体管理与产品线` | `1.4.1` 建立 feature model、配置约束和产品派生规则；`1.4.2` 设计产品线架构和核心复用资产；`1.4.3` 做 config-aware analysis/testing 和 family-based verification；`1.4.4` 研究变体演化、选项交互、配置债务与可配置系统依赖治理 |
 
 ### 4.2 `2.x` 架构、设计与构造的 `x.x.x` 例子总览
 
 | 二级方向 | `x.x.x` 叶节点与典型例子 |
 |---|---|
-| `2.1 软件架构` | `2.1.1` 做架构描述、文档生成、架构恢复和依赖重建；`2.1.2` 分析性能/可靠性/演化性 trade-off 与 architecture debt；`2.1.3` 研究单体拆分、微服务迁移、架构重构与演化治理；`2.1.4` 面向云、服务、平台、serverless 的拓扑与治理架构 |
+| `2.1 软件架构` | `2.1.1` 做架构描述、文档生成、架构恢复和依赖重建；`2.1.2` 分析性能/可靠性/演化性 trade-off 与 architecture debt；`2.1.3` 研究单体拆分、微服务迁移、架构重构与演化治理；`2.1.4` 面向云、服务、平台、serverless 的拓扑与治理架构；`2.1.5` 研究架构决策、架构知识、架构 rationale 和架构不确定性管理 |
 | `2.2 软件设计` | `2.2.1` 研究设计模式、反模式、设计启发式与设计质量；`2.2.2` 做模块化、依赖解耦、职责划分和耦合/内聚分析；`2.2.3` 关注 `API`、接口、协议、版本兼容与可用性设计；`2.2.4` 研究技术债、设计坏味道、可维护性与设计层面的债务偿还 |
 | `2.3 软件构造` | `2.3.1` 做代码生成、低代码、脚手架与 `DSL` 工程；`2.3.2` 关注 build system、`IDE`、workspace、toolchain 与开发环境；`2.3.3` 研究组件装配、包管理、集成流水线与工程装配；`2.3.4` 关注协作编码、review assistant、pair programming support 与开发助手 |
 
@@ -396,7 +406,7 @@ Software Engineering
 
 | 二级方向 | `x.x.x` 叶节点与典型例子 |
 |---|---|
-| `3.1 软件测试` | `3.1.1` 自动生成测试用例、增强测试、生成 oracle；`3.1.2` 做回归测试选择、优先级排序和测试影响分析；`3.1.3` 研究 fuzzing、搜索式测试、性质驱动测试与组合测试；`3.1.4` 面向 `GUI/Web/mobile/CPS/AI systems` 的场景化测试 |
+| `3.1 软件测试` | `3.1.1` 自动生成测试用例、增强测试、生成 oracle；`3.1.2` 做回归测试选择、优先级排序和测试影响分析；`3.1.3` 研究 fuzzing、搜索式测试、性质驱动测试、变异测试与 metamorphic testing；`3.1.4` 面向 `GUI/Web/mobile/CPS/AI systems` 的场景化测试；`3.1.5` 研究 flaky tests、test debt、test smell 与测试资产维护 |
 | `3.2 程序分析` | `3.2.1` 做静态分析、抽象解释、污点分析、数据流分析；`3.2.2` 做动态分析、插桩、trace 分析与静动态混合分析；`3.2.3` 面向安全、隐私、可靠性、合规等质量属性做专项分析；`3.2.4` 让分析结果驱动程序理解、重构、修复或代码综合 |
 | `3.3 验证与确认` | `3.3.1` 用模型检查、定理证明、`SMT` 等验证软件规约与行为；`3.3.2` 做运行时验证、监测器合成、在线规则检查；`3.3.3` 构建安全认证、标准合规、assurance evidence 和 certification argument；`3.3.4` 构建验证 benchmark、工具竞赛、可复现验证流程 |
 | `3.4 调试、定位与修复` | `3.4.1` 关注 bug triage、调试流程、根因定位和故障分诊；`3.4.2` 研究 fault localization、自动程序修复、补丁生成与建议；`3.4.3` 检查补丁正确性、回归风险与 repair quality；`3.4.4` 做 rollback、恢复、自愈决策和故障处置闭环 |
@@ -405,8 +415,8 @@ Software Engineering
 
 | 二级方向 | `x.x.x` 叶节点与典型例子 |
 |---|---|
-| `4.1 维护与演化` | `4.1.1` 研究 bug fix、hotfix、backport 与维护性修正；`4.1.2` 做重构、remodularization、代码清理与结构重整；`4.1.3` 关注 `API` 演化、依赖升级、库迁移与版本兼容；`4.1.4` 研究遗留系统现代化、语言迁移、上云迁移与体系迁移 |
-| `4.2 程序理解与逆向工程` | `4.2.1` 做代码搜索、导航、摘要和程序解释；`4.2.2` 进行 trace recovery、文档挖掘、知识图谱与知识恢复；`4.2.3` 重建架构、依赖关系和大型代码库结构；`4.2.4` 研究 clone detection、相似性搜索、理解支持与 code-to-code retrieval |
+| `4.1 维护与演化` | `4.1.1` 研究 bug fix、hotfix、backport 与维护性修正；`4.1.2` 做重构、remodularization、代码清理与结构重整；`4.1.3` 关注 `API` 演化、依赖升级、库迁移与版本兼容；`4.1.4` 研究遗留系统现代化、语言迁移、上云迁移与体系迁移；`4.1.5` 研究技术债、克隆债、维护性债务和长期治理 |
+| `4.2 程序理解与逆向工程` | `4.2.1` 做代码搜索、导航、摘要和程序解释；`4.2.2` 进行 trace recovery、文档挖掘、知识图谱与知识恢复；`4.2.3` 重建架构、依赖关系和大型代码库结构；`4.2.4` 研究 clone detection、相似性搜索、理解支持与 code-to-code retrieval；`4.2.5` 研究开发者文档、注释、说明文本、设计 rationale 和解释生成/恢复 |
 | `4.3 发布、配置与持续工程` | `4.3.1` 关注版本管理、配置管理、可复现构建与 build engineering；`4.3.2` 研究持续集成、持续交付、发布闸门与 rollback pipeline；`4.3.3` 研究流水线编排、`IaC`、基础设施自动化与 DevOps automation；`4.3.4` 关注依赖治理、包生态、供应链风险与 provenance 管理 |
 | `4.4 运维与运行` | `4.4.1` 做可观测性、日志分析、遥测聚合和异常检测；`4.4.2` 关注事故诊断、根因定位、运行时回滚与恢复；`4.4.3` 研究 autoscaling、runtime reconfiguration 与自适应运维；`4.4.4` 研究运行时策略执行、continuous assurance 和 runtime governance |
 
@@ -414,7 +424,7 @@ Software Engineering
 
 | 二级方向 | `x.x.x` 叶节点与典型例子 |
 |---|---|
-| `5.1 可靠性、可用性与韧性` | `5.1.1` 做故障预测、失效模式分析、incident mining；`5.1.2` 研究容错、韧性工程、优雅降级与恢复策略；`5.1.3` 分析发布可靠性、`SLO`、可用性与线上失效；`5.1.4` 关注 recoverability、业务连续性和灾难响应软件机制 |
+| `5.1 可靠性、可用性与韧性` | `5.1.1` 做故障预测、失效模式分析、incident mining；`5.1.2` 研究容错、韧性工程、优雅降级与恢复策略；`5.1.3` 分析发布可靠性、`SLO`、可用性与线上失效；`5.1.4` 关注 recoverability、业务连续性和灾难响应软件机制；`5.1.5` 研究功能安全、危害分析、safety case 与 safety assurance |
 | `5.2 安全、隐私、公平与合规` | `5.2.1` 研究安全开发流程、漏洞治理、补丁管理；`5.2.2` 研究隐私需求、数据治理与隐私合规；`5.2.3` 关注 `SBOM`、依赖信任、来源证明和供应链安全；`5.2.4` 研究公平性、问责、审计与法规符合 |
 | `5.3 性能、资源、能耗与可持续性` | `5.3.1` 做 profiling、benchmark、性能建模与性能诊断；`5.3.2` 做容量规划、资源调度、成本与资源优化；`5.3.3` 研究能耗、碳感知、绿色软件工程；`5.3.4` 研究扩展性、吞吐、时延保证与性能回归控制 |
 | `5.4 可用性、可访问性与用户体验` | `5.4.1` 评估开发者向 `API/IDE/tool` 的可用性与开发体验；`5.4.2` 研究终端用户向可访问性、包容式界面与 `UX` 质量；`5.4.3` 做人本评估、交互质量实验与 usability study；`5.4.4` 研究多样性支持、包容性实践与特殊群体开发者支持 |
@@ -433,8 +443,8 @@ Software Engineering
 
 | 二级方向 | `x.x.x` 叶节点与典型例子 |
 |---|---|
-| `7.1 AI for SE` | `7.1.1` 用 `LLM` 做代码生成、补全、翻译与重写；`7.1.2` 用 `AI` 做测试生成、缺陷检测、修复与程序分析；`7.1.3` 用 `AI` 做需求摘要、模型补全、文档生成与 trace 生成；`7.1.4` 研究人机协同开发、信任校准、copilot workflow 与开发评估 |
-| `7.2 SE for AI` | `7.2.1` 研究数据工程、特征/模型管线和模型生命周期；`7.2.2` 做 `AI` 测试、鲁棒性验证、漂移监测和安全评测；`7.2.3` 研究 `MLOps`、模型部署、灰度发布、回滚与持续演化；`7.2.4` 研究 `AI` 治理、合规、安全 case 与责任边界 |
+| `7.1 AI for SE` | `7.1.1` 用 `LLM` 做代码生成、补全、翻译与重写；`7.1.2` 用 `AI` 做测试生成、缺陷检测、修复与程序分析；`7.1.3` 用 `AI` 做需求摘要、模型补全、文档生成与 trace 生成；`7.1.4` 用 `AI` 支持架构、设计、计划与工程决策；`7.1.5` 研究人机协同开发、信任校准、copilot workflow 与开发评估 |
+| `7.2 SE for AI` | `7.2.1` 研究数据工程、特征/模型管线和模型生命周期；`7.2.2` 研究 `AI` 系统需求、建模、文档与接口契约；`7.2.3` 做 `AI` 测试、鲁棒性验证、漂移监测和安全评测；`7.2.4` 研究 `MLOps`、模型部署、灰度发布、回滚与持续演化；`7.2.5` 研究 `AI` 治理、合规、安全 case 与责任边界 |
 | `7.3 智能自治与自适应系统` | `7.3.1` 做反馈回路、`MAPE-K`、适应性规划与自治控制；`7.3.2` 研究 agent workflow、工具编排、agent debugging 与多智能体工程；`7.3.3` 研究自愈、自优化和自治运行；`7.3.4` 研究 adaptive assurance、运行时安全策略和行为约束 |
 
 ### 4.8 `8.x` 应用与系统场景的 `x.x.x` 例子总览
@@ -445,7 +455,70 @@ Software Engineering
 | `8.2 Web、移动、云、服务与平台生态` | `8.2.1` 研究 Web 与移动应用的设计、演化、测试与质量；`8.2.2` 研究云原生、serverless、平台工程与平台演化；`8.2.3` 研究服务组合、`API` 生态、服务治理与互操作；`8.2.4` 研究大规模分布式应用运行、`SRE` 和平台运维 |
 | `8.3 安全关键、工业软件与系统之系统` | `8.3.1` 研究 mission/safety critical 软件的 hazard analysis 与 formal assurance；`8.3.2` 研究企业级、业务关键系统的软件工程方法；`8.3.3` 研究 system-of-systems、互操作与集成 assurance；`8.3.4` 研究受监管行业的软件审计、追责和合规工程 |
 | `8.4 社会技术系统与开放生态` | `8.4.1` 研究开源生态、社区演化与公共依赖；`8.4.2` 研究软件供应链、registry、平台治理与生态安全；`8.4.3` 研究低代码、终端用户开发、众包式工程；`8.4.4` 研究软件政策、伦理与生态治理机制 |
-| `8.5 新型软件系统` | `8.5.1` 研究 `AI-enabled` 产品与软件系统的工程问题；`8.5.2` 研究 quantum software engineering、量子程序测试和资源推理；`8.5.3` 研究大模型原生与 agentic 软件系统的工程化问题；`8.5.4` 研究 GPU/edge/classical-quantum 等异构平台上的软件工程问题 |
+| `8.5 新型软件系统` | `8.5.1` 研究 `AI-enabled` 产品与软件系统的工程问题；`8.5.2` 研究 quantum software engineering、量子程序测试和资源推理；`8.5.3` 研究大模型原生与 agentic 软件系统的工程化问题；`8.5.4` 研究 GPU/edge/classical-quantum 等异构平台上的软件工程问题；`8.5.5` 研究 scientific software、HPC、数据密集与实验计算软件的工程问题 |
+
+### 4.9 覆盖复核结论
+
+这里需要明确回答你关心的核心问题：**为什么之前很多二级方向下面都是 4 个叶子，这样到底能不能覆盖全部论文类型？**
+
+结论是：
+
+1. 之前的 `4` 叉结构更多是初版排版上的对称化结果，不应该被视为方法论约束。
+2. 对后续论文分类服务而言，**叶子数量必须服从覆盖需求，而不是服从树形美观**。
+3. 结合当前 `2025` 语料复核，均匀 `4` 叉会把若干稳定题型硬塞到不自然的位置，因此已经按需要扩成不等叉数。
+
+这次复核主要基于两类证据：
+
+1. **公开学术知识骨架**
+   - `SWEBOK`、`ICSE 2025`、`MSR`、`ICST`、`REFSQ`、`MODELS`、`ICSA`、`SEI roadmap` 等来源给出稳定的大方向。
+2. **本仓库 `2025` 语料的具体信号**
+   - 当前 `6301` 条元数据中，高频主题包括 `建模/模型驱动`、`测试与验证`、`LLM/AI for SE`、`形式化方法`、`可靠性/安全`、`维护与演化`、`需求工程`、`经验软件工程`。
+   - 同时还能稳定观察到若干在分类时经常需要单独落点的题型，例如：
+     - `technical debt`：至少 `46` 条；
+     - `traceability`：至少 `35` 条；
+     - `code review`：至少 `63` 条；
+     - `architecture decision`：已有显式论文；
+     - `flaky tests / test debt`：已有显式论文；
+     - `safety case`：已有显式论文；
+     - `scientific software / HPC`：已有显式论文；
+     - `AI` 辅助架构/设计、`SE for AI` 需求建模、agent 软件工程等也已在 `ICSE/FSE/ASE/ICSME/MSR` 等 venue 中出现。
+
+因此，本次明确补出的稳定叶子包括：
+
+1. `1.1.5` 需求知识复用与需求债务治理
+2. `1.3.5` 模型质量、仓库与治理
+3. `2.1.5` 架构知识、决策与不确定性管理
+4. `3.1.5` 测试质量、脆弱性与测试资产维护
+5. `4.1.5` 技术债、克隆与可维护性治理
+6. `4.2.5` 文档工程、解释与设计 rationale 恢复
+7. `5.1.5` 功能安全、危害分析与 safety assurance
+8. `7.1.4-7.1.5` 中把 `AI` 支持的架构/设计与人机协同开发拆开
+9. `7.2.2-7.2.5` 中把 `SE for AI` 的需求建模、测试验证、运维演化、治理合规拆开
+10. `8.5.5` 科学计算、数据密集与高性能软件工程
+
+后续默认采用下面这条硬规则：
+
+1. 如果出现一批论文长期只能被“勉强塞进”某个叶子，而这个题型本身在问题对象、方法链条和评估证据上都已经稳定成形，就应继续扩出新的 `x.x.x` 叶子。
+2. 不需要追求每个二级方向叶子数量相同。
+3. 只要一级总类别与单篇软工判定规则不变，`x.x.x` 层允许持续增量细化。
+
+### 4.10 分类树持续维护制度
+
+为了让这棵树真正服务后续扫论文与批量分类，而不是变成僵硬目录，后续默认再执行下面几条制度：
+
+1. 这棵树是**持续演化的工作树**，不是冻结 taxonomy。
+2. 扫论文时，只要发现某类软工论文在现有 `x.x.x` 中没有自然落点，或者分类者只能靠“最像哪个旧叶子”来强行解释，就应把它视为扩树信号，而不是视为论文本身“必须服从旧树”。
+3. 若一个候选新方向同时满足以下任一条件，就可以扩出新叶子：
+   - 在当前批次或相邻批次中反复出现；
+   - 在公开综述、社区 scope、CFP、专题 workshop 或多个 venue 中已表现为稳定题型；
+   - 若继续沿用旧叶子，会混淆核心研究问题、主贡献对象、方法链条或评估证据。
+4. 扩树时，优先在最合适的 `x.x` 下新增 `x.x.x`；如果现有二级方向本身也装不下，再考虑新增新的 `x.x` 分支。
+5. 扩树后应同步：
+   - 在本文 `4.x` 例子总览中补充新叶子与典型例子；
+   - 在 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[SUMMARY.md](./SUMMARY.md) 中写明新规则或新覆盖范围；
+   - 若该变化会影响 venue 级先验描述，再同步更新 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)。
+6. 若树尚未更新完成，临时状态应记为“待扩树/待复核”，而不是先把论文硬塞到一个明显不自然的旧节点。
+7. 禁止把“保持对称结构”“保持固定叶子数”或“兼容旧表头”当作拒绝扩树的理由。分类树应服从论文分布与可解释性，而不是反过来让论文迁就旧结构。
 
 ## 5. 这棵树如何实际用于论文分类
 

@@ -98,30 +98,41 @@
 5. 后续若做方向归类，默认先看 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 的 venue 级先验，再做单篇终判。
 6. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才进入 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
 7. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 判定依据（X1/D1-D4）`。
-8. `ccf_se_index_builder.py` 当前负责生成基础元数据层；软工终判与路径回填属于后续分类补录层。
-9. 先做初筛，再决定哪些论文值得获取 `PDF`。
-10. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
+8. 若后续扫论文时发现现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，不要把论文硬塞进最接近的旧节点。
+9. `ccf_se_index_builder.py` 当前负责生成基础元数据层；软工终判与路径回填属于后续分类补录层。
+10. 先做初筛，再决定哪些论文值得获取 `PDF`。
+11. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
 
 ## 5. 下一步建议
 
 1. 基于 `2025` 年度索引，优先从 `🟢 优先跟进` 条目里挑选与形式化建模、验证、需求、修复更贴近的论文获取 `PDF`。
 2. 先对重点 venue 的条目补录 `macro_area / se_inclusion_decision / se_primary_path / se_decision_basis`，把软工边界判定真正落到字段里。
-3. 对 `⏳ 待补信息` 且与你博士研究高度相关的条目，优先补摘要或 publisher 侧信息。
-4. 若继续扩年份，直接复用：
+3. 在分类补录阶段，若发现新稳定题型没有自然 `x.x.x` 落点，优先扩树并统一回填，不要先把论文硬塞进旧标签。
+4. 对 `⏳ 待补信息` 且与你博士研究高度相关的条目，优先补摘要或 publisher 侧信息。
+5. 若继续扩年份，直接复用：
 
 ```bash
 python -m tools.ccf_se_index_builder --year 2024
 ```
 
-5. 若进入全文阶段，再转用 `tools/pdf_extractor.py` 和正式论文集规范。
+6. 若进入全文阶段，再转用 `tools/pdf_extractor.py` 和正式论文集规范。
 
 ## 6. 更新日志
+
+- `2026-04-05 23:42:35`
+  - 进一步把“分类树持续扩充”制度化：明确后续扫论文时，若现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩树再分类，禁止把论文硬塞到旧路径。
+  - 同步更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)、[README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[ccf_history/README.md](./ccf_history/README.md) 与 [../CLAUDE.md](../CLAUDE.md)，把该规则落到执行入口与维护流程。
 
 - `2026-04-05 21:50:18`
   - 继续扩展 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，把 `x.x.x` 方向树补成“ASCII 树 + 二级方向下的 `x.x.x` 典型例子总览 + `X1/D1-D4` 可执行判定矩阵”的准综述版本。
   - 继续重写 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)，把 `82` 个 venue 的主要方向统一改写为“主体问题簇 + 软工边界”的同一套话语体系，并收紧了部分交叉 venue 的归属说明。
   - 同步更新 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[ccf_history/README.md](./ccf_history/README.md)、模板文件、[../tools/README.md](../tools/README.md)、[../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 与 [../CLAUDE.md](../CLAUDE.md)，把后续维护口径统一到 `一级总判定 + 软工纳入判定 + 软工主路径（x.x.x） + 判定依据（X1/D1-D4）`。
   - 修复 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 对 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 表格扩列后的解析兼容性，避免后续重跑时 venue 名录读空。
+
+- `2026-04-05 23:35:39`
+  - 基于 `2025` 年度 `6301` 条元数据再次复核 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 的覆盖性，确认“所有二级方向统一四个叶子”并不合理。
+  - 按语料与公开学术资料补出若干稳定叶子，包括架构决策、测试债务/脆弱测试、技术债治理、文档与 rationale 恢复、功能安全、`AI` 支持架构设计、`SE for AI` 需求建模，以及 scientific/HPC 软件工程。
+  - 在方向树文档中新增“覆盖复核结论”，明确后续分类树允许继续扩叶，不以对称结构为约束。
 
 - `2026-04-05 21:10:45`
   - 把 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 扩展为 `x.x.x` 级的软件工程三级方向树，并为每个叶子路径补充了典型论文问题/例子。

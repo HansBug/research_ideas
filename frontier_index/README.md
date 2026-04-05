@@ -103,6 +103,8 @@
    - 汇总 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议名录、venue 主体归属、软工归属级别、主要方向与边界说明和索引入口。
 5. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
    - 给出当前 `frontier_index/` 使用的软件工程三级方向树、`X1 + D1-D4` 单篇软工判定标准、跨域处理规则，以及 `x.x.x` 主路径分类规则与典型例子总览。
+   - 该树默认允许按覆盖需要继续扩叶，不以固定 `4` 叉结构为约束。
+   - 后续扫论文时，如果发现某类软工论文没有自然落点，应先扩树再分类，禁止为了维持旧结构把论文硬塞进现有叶子。
 6. [ccf_history/README.md](./ccf_history/README.md)
    - 规定后续 `CCF` 往年论文索引如何按“年份主目录”组织，并在每年内按 venue 分 section 汇总。
 7. [arxiv_recent/README.md](./arxiv_recent/README.md)
@@ -169,6 +171,7 @@ python -m tools.ccf_se_index_builder --year 2025
 4. 若任务涉及“什么算软件工程”“非软工论文如何判出”“跨域论文怎么处理”“软工论文如何落到 `x.x.x` 路径”，优先参考 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
 5. 方向归类时，先看 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 的 venue 级先验，再做一级总判定和单篇终判。
 6. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 软工判定依据（X1/D1-D4）`。
-7. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
-8. 若任务是构建某一年的 `CCF` 全量索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 进入分类补录阶段。
-9. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
+7. 若批量扫论文时发现现有 `x.x.x` 没有自然覆盖某一稳定题型，应先更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 及相关说明，再回填分类，不要把论文硬塞到“最接近”的旧路径。
+8. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
+9. 若任务是构建某一年的 `CCF` 全量索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 进入分类补录阶段。
+10. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。

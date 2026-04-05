@@ -139,10 +139,11 @@ ccf_history/
 3. 若需要给论文打 `方向标签`，默认先结合 [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md) 建立 venue 级先验，再做一级总判定。
 4. 再按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的 `X1 + D1-D4` 标准形成最小可追溯的判定依据。
 5. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 回填 `x.x.x` 级主路径。
-6. 不要因为论文来自 `PL / systems / FM` venue 就自动将其视为软件工程论文。
-7. 先做轻量筛选，再决定是否值得获取全文。
-8. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
-9. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
+6. 若扫论文时发现某类软工论文在现有 `x.x.x` 中没有自然落点，应先回到 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 扩树并同步说明，不要把论文硬塞进“最接近”的旧叶子。
+7. 不要因为论文来自 `PL / systems / FM` venue 就自动将其视为软件工程论文。
+8. 先做轻量筛选，再决定是否值得获取全文。
+9. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
+10. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
 
 ## 8. 标准工作流
 
@@ -159,7 +160,8 @@ python -m tools.ccf_se_index_builder --year 2025
 4. 检查 `frontier_index/ccf_history/2025/verification.json` 是否全部 `ok`。
 5. 若发现会议边界、重名文件、官方页缺失等问题，优先修脚本并重跑。
 6. 需要回填分类字段时，优先按“一级总判定 + 软工纳入判定 + 软工主路径（`x.x.x`） + 软工次路径/标签 + 判定依据（`X1/D1-D4`）”的口径统一回填。
-7. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
+7. 若回填时发现一批论文没有自然 `x.x.x` 落点，先扩 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 再批量回填，不要为了赶进度把它们硬塞到旧路径。
+8. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
 
 补充约束：
 
