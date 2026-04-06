@@ -64,9 +64,11 @@ ccf_history/
 
 - 总入口：[../SUBMISSION_TIMELINES.md](../SUBMISSION_TIMELINES.md)
 - 时间格式：统一使用北京时间 `yyyy-mm-dd hh:mm`
+- 文档开头应先给出按周组织的年度投稿规划表，基于近 `5` 年历史节奏推断下一自然年的投稿窗口。
 - 会议 venue：默认查看最近 `5` 年 `摘要截止 / 投稿截止 / rebuttal / 通知 / camera-ready / 会期`。
 - 期刊 venue：默认查看滚动投稿口径与 special issue 提醒。
 - 本页每个 venue 导航 section 与对应 `venues/*.md` 都应附对应时间线锚点。
+- 对期刊也应提供独立时间线锚点，不要只保留总表而没有可跳转 section。
 - 若某一年没有独立年主页，必须明确写为“未检出 standalone 年主页”之类的说明，不能写 generic 系列主页。
 
 ## 5. 覆盖 venue 列表

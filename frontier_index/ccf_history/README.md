@@ -39,8 +39,10 @@ ccf_history/
 3. `metadata/*.json` 负责可重建、可回写的结构化保留载体。
 4. `verification.json` 负责逐 venue 计数复核。
 5. `SUBMISSION_TIMELINES.md` 负责保留 venue 的近 `5` 年投稿时间线与期刊滚动投稿口径。
+   - 文档开头应先给出按北京时间周级展开的年度投稿规划表，基于近 `5` 年历史节奏推断下一自然年的投稿窗口。
    - 其中会议时间统一使用北京时间 `yyyy-mm-dd hh:mm`。
    - 若某年无 standalone 主会或未稳定检出年主页，必须直接写清楚，不能回退成 generic series 主页。
+   - 会议与期刊都应保留可跳转的独立锚点，便于年份页直接链接到对应 venue。
 
 当前已建立的示例年份页：
 

@@ -38,6 +38,7 @@
 ## 4. 投稿时间线资料
 
 - 总入口：[../SUBMISSION_TIMELINES.md](../SUBMISSION_TIMELINES.md)
+- 时间线总入口开头已提供基于 `2021-2025` 历史节奏推断的下一自然年周级投稿规划表，可先按周排全年准备节奏。
 - 会议 venue：默认看最近 `5` 年 `摘要截止 / 投稿截止 / rebuttal / 通知 / camera-ready / 会期`。
 - 期刊 venue：默认看滚动投稿与 special issue 提醒，不机械构造 conference 式年度 `CFP`。
 - 本页每个 venue 导航 section 与对应 `venues/*.md` 都附了该 venue 的时间线锚点。

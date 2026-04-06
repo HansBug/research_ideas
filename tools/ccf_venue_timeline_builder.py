@@ -19,6 +19,7 @@ import io
 import json
 import re
 import time
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
@@ -32,6 +33,7 @@ from dateutil import parser as date_parser
 
 
 ROOT = Path(__file__).resolve().parent.parent
+CCF_MD = ROOT / "frontier_index" / "CCF_SE_A_B_C.md"
 YEAR_DIR = ROOT / "frontier_index" / "ccf_history" / "2025"
 METADATA_DIR = YEAR_DIR / "metadata"
 YEAR_README = YEAR_DIR / "README.md"
@@ -66,6 +68,33 @@ class TimelineEntry:
     source_url: str = ""
     homepage_url: str = ""
     notes: str = ""
+
+
+@dataclass(frozen=True)
+class VenuePrior:
+    abbr: str
+    rank: str
+    kind: str
+    subject: str
+    se_level: str
+    focus: str
+    typical_paths: tuple[str, ...]
+    atmosphere: str
+    relation: str
+
+
+@dataclass(frozen=True)
+class PlannedEvent:
+    week: int
+    stem: str
+    abbr: str
+    rank: str
+    kind: str
+    atmosphere: str
+    subject: str
+    focus: str
+    relation: str
+    label: str
 
 
 RESEARCHR_CONFIG: Dict[str, Dict[str, object]] = {
@@ -547,6 +576,20 @@ FIELD_DEFAULTS = {
     "conference_dates": "未检出",
 }
 
+FIELD_TITLES = {
+    "abstract_deadline": "摘要",
+    "submission_deadline": "投稿",
+    "rebuttal_window": "回应",
+    "notification": "通知",
+    "camera_ready": "终稿",
+    "conference_dates": "会期",
+}
+
+ATMOSPHERE_ORDER = {"A 🔥": 0, "B 🟢": 1, "C 🟡": 2}
+RANK_ORDER = {"A": 0, "B": 1, "C": 2}
+KIND_ORDER = {"会议": 0, "期刊": 1}
+SE_LEVEL_ORDER = {"完全属于软工": 0, "大部分属于软工": 1, "部分属于软工": 2}
+
 
 def format_dt_bjt(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M")
@@ -554,6 +597,192 @@ def format_dt_bjt(dt: datetime) -> str:
 
 def format_now_bjt() -> str:
     return datetime.now(BJT).strftime("%Y-%m-%d %H:%M")
+
+
+def parse_typical_paths(cell: str) -> tuple[str, ...]:
+    matches = re.findall(r"\d+\.(?:x|\d+)\.(?:x|\d+)", cell)
+    deduped: List[str] = []
+    for item in matches:
+        if item not in deduped:
+            deduped.append(item)
+    return tuple(deduped)
+
+
+def parse_venue_priors() -> Dict[tuple[str, str, str], VenuePrior]:
+    text = CCF_MD.read_text(encoding="utf-8")
+    priors: Dict[tuple[str, str, str], VenuePrior] = {}
+    rank = ""
+    kind = ""
+    for line in text.splitlines():
+        match = re.match(r"##\s+\d+\.\s+([ABC])\s+类(会议|期刊)", line)
+        if match:
+            rank, kind = match.groups()
+            continue
+        if not line.startswith("| `") or rank == "" or kind == "":
+            continue
+        parts = [part.strip() for part in line.strip().strip("|").split("|")]
+        if len(parts) < 9:
+            continue
+        abbr = parts[0].strip("`")
+        priors[(abbr, rank, kind)] = VenuePrior(
+            abbr=abbr,
+            rank=rank,
+            kind=kind,
+            subject=parts[2],
+            se_level=parts[3].strip("`"),
+            focus=parts[4],
+            typical_paths=parse_typical_paths(parts[5]),
+            atmosphere=parts[6].strip("`"),
+            relation=parts[7],
+        )
+    return priors
+
+
+def venue_sort_key(record: VenueRecord, prior: Optional[VenuePrior]) -> tuple[object, ...]:
+    if prior is None:
+        return (99, 99, 99, 99, record.abbr)
+    return (
+        ATMOSPHERE_ORDER.get(prior.atmosphere, 99),
+        RANK_ORDER.get(record.rank, 99),
+        KIND_ORDER.get(record.kind, 99),
+        SE_LEVEL_ORDER.get(prior.se_level, 99),
+        record.abbr,
+    )
+
+
+def format_paths(paths: tuple[str, ...]) -> str:
+    return " / ".join(paths) if paths else "-"
+
+
+def collapse_segment_label(segment: str, default_label: str) -> str:
+    stripped = segment.strip()
+    if not stripped or stripped.startswith("未检出"):
+        return ""
+    match = re.search(r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}", stripped)
+    if match is None:
+        candidate = stripped
+    else:
+        candidate = stripped[: match.start()].strip(" ：:;；,，")
+    candidate = re.sub(r"\s+", " ", candidate).strip()
+    if not candidate:
+        return default_label
+    if candidate in {"摘要", "投稿", "截止", "通知", "回应", "终稿", "会期"}:
+        return default_label
+    if candidate == default_label:
+        return default_label
+    if default_label in candidate:
+        return candidate
+    return f"{candidate} {default_label}".strip()
+
+
+def extract_segment_datetimes(value: str, field_name: str) -> List[tuple[str, datetime]]:
+    if not value or value.startswith("未检出"):
+        return []
+    default_label = FIELD_TITLES[field_name]
+    events: List[tuple[str, datetime]] = []
+    for segment in [part.strip() for part in value.split("；") if part.strip()]:
+        match = re.search(r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}", segment)
+        if match is None:
+            continue
+        dt = datetime.strptime(match.group(0), "%Y-%m-%d %H:%M")
+        events.append((collapse_segment_label(segment, default_label), dt))
+    return events
+
+
+def choose_representative_week(dates: List[datetime]) -> int:
+    weeks = [dt.isocalendar().week for dt in dates]
+    counts = Counter(weeks)
+    max_count = max(counts.values())
+    candidates = [week for week, count in counts.items() if count == max_count]
+    median_week = sorted(weeks)[len(weeks) // 2]
+    candidates.sort(key=lambda week: (abs(week - median_week), week))
+    return candidates[0]
+
+
+def build_planned_events(
+    venues: List[VenueRecord],
+    conference_timelines: Dict[str, List[TimelineEntry]],
+    priors: Dict[tuple[str, str, str], VenuePrior],
+) -> Dict[int, List[PlannedEvent]]:
+    planned: Dict[int, List[PlannedEvent]] = defaultdict(list)
+    for venue in venues:
+        if venue.kind != "会议":
+            continue
+        prior = priors.get((venue.abbr, venue.rank, venue.kind))
+        if prior is None:
+            continue
+        grouped: Dict[str, List[datetime]] = defaultdict(list)
+        for entry in conference_timelines.get(venue.stem, []):
+            for field_name in FIELD_TITLES:
+                for label, dt in extract_segment_datetimes(getattr(entry, field_name), field_name):
+                    grouped[label].append(dt)
+        for label, dates in grouped.items():
+            week = choose_representative_week(dates)
+            planned[week].append(
+                PlannedEvent(
+                    week=week,
+                    stem=venue.stem,
+                    abbr=venue.abbr,
+                    rank=venue.rank,
+                    kind=venue.kind,
+                    atmosphere=prior.atmosphere,
+                    subject=prior.subject,
+                    focus=prior.focus,
+                    relation=prior.relation,
+                    label=label,
+                )
+            )
+    for week in planned:
+        planned[week] = sorted(
+            planned[week],
+            key=lambda event: (
+                ATMOSPHERE_ORDER.get(event.atmosphere, 99),
+                RANK_ORDER.get(event.rank, 99),
+                event.abbr,
+                event.label,
+            ),
+        )
+    return dict(sorted(planned.items()))
+
+
+def group_journal_rollups(
+    venues: List[VenueRecord],
+    priors: Dict[tuple[str, str, str], VenuePrior],
+) -> List[tuple[str, List[VenueRecord]]]:
+    buckets: Dict[str, List[VenueRecord]] = defaultdict(list)
+    for venue in venues:
+        if venue.kind != "期刊":
+            continue
+        prior = priors.get((venue.abbr, venue.rank, venue.kind))
+        if prior is None:
+            continue
+        buckets[prior.atmosphere].append(venue)
+    rows: List[tuple[str, List[VenueRecord]]] = []
+    for atmosphere in ("A 🔥", "B 🟢", "C 🟡"):
+        if atmosphere not in buckets:
+            continue
+        rows.append(
+            (
+                atmosphere,
+                sorted(
+                    buckets[atmosphere],
+                    key=lambda venue: venue_sort_key(venue, priors.get((venue.abbr, venue.rank, venue.kind))),
+                ),
+            )
+        )
+    return rows
+
+
+def normalize_week_for_year(year: int, week: int) -> int:
+    max_week = datetime(year, 12, 28).isocalendar().week
+    return max(1, min(week, max_week))
+
+
+def format_week_range(year: int, week: int) -> str:
+    normalized_week = normalize_week_for_year(year, week)
+    start = datetime.fromisocalendar(year, normalized_week, 1).replace(hour=0, minute=0)
+    end = datetime.fromisocalendar(year, normalized_week, 7).replace(hour=23, minute=59)
+    return f"{format_dt_bjt(start)} ~ {format_dt_bjt(end)}"
 
 
 def strip_weekday_prefix(text: str) -> str:
@@ -1097,24 +1326,164 @@ def build_conference_timelines(venues: List[VenueRecord]) -> Dict[str, List[Time
     return output
 
 
-def render_journal_table(venues: List[VenueRecord], homepages: Dict[str, str]) -> str:
+def render_year_planner(
+    venues: List[VenueRecord],
+    priors: Dict[tuple[str, str, str], VenuePrior],
+    conference_timelines: Dict[str, List[TimelineEntry]],
+    planning_year: int,
+) -> List[str]:
+    planned = build_planned_events(venues, conference_timelines, priors)
+    journal_rollups = group_journal_rollups(venues, priors)
+
     lines: List[str] = []
-    lines.append("| venue | 全称 | 等级 | 常规投稿方式 | 公开 rebuttal | 近 5 年节奏判断 | 当前入口 | 说明 |")
-    lines.append("|---|---|---|---|---|---|---|---|")
+    lines.append(f"## 3. `{planning_year}` 年投稿周历（历史节奏推断版）")
+    lines.append("")
+    lines.append(f"- 该周历是基于 `2021-2025` 最近 `5` 年公开时间线做的 `{planning_year}` 年北京时区推断，用于排投稿节奏与准备顺序，不替代当年官方 `CFP`。")
+    lines.append("- 当前文库已清掉 `D` 档与非软工 venue，因此这里的相关性口径只保留 `A 🔥 / B 🟢 / C 🟡`。")
+    lines.append("- 会议按“历史上最常出现的周次”估算 `摘要 / 投稿 / rebuttal / 通知 / 终稿 / 会期`；期刊由于常规稿多为全年滚动，单独按全年窗口汇总。")
+    lines.append("")
+    lines.append("### 3.1 全年滚动期刊")
+    lines.append("")
+    lines.append("| 节奏 | 时间窗（北京时间） | venue | 主要方向 / 用途 | 相关性 |")
+    lines.append("|---|---|---|---|---|")
+    for atmosphere, journal_venues in journal_rollups:
+        venue_texts: List[str] = []
+        direction_texts: List[str] = []
+        for venue in journal_venues:
+            prior = priors[(venue.abbr, venue.rank, venue.kind)]
+            venue_texts.append(f"`{venue.abbr}`（`{venue.rank}`）")
+            direction_texts.append(f"`{venue.abbr}` {prior.focus}")
+        lines.append(
+            "| 全年滚动投稿 | {window} | {venues} | {directions} | {atmosphere} |".format(
+                window=f"{planning_year}-01-01 00:00 ~ {planning_year}-12-31 23:59",
+                venues=md_escape("；".join(venue_texts)),
+                directions=md_escape("；".join(direction_texts)),
+                atmosphere=atmosphere,
+            )
+        )
+    lines.append("")
+    lines.append("### 3.2 会议关键周次")
+    lines.append("")
+    lines.append("| 周次 | 时间窗（北京时间） | 关键时间点 | 主要方向 / 用途 | 相关性 |")
+    lines.append("|---|---|---|---|---|")
+    for week, events in planned.items():
+        normalized_week = normalize_week_for_year(planning_year, week)
+        milestone_parts: List[str] = []
+        direction_parts: List[str] = []
+        relation_parts: List[str] = []
+        seen_directions: set[str] = set()
+        for event in events:
+            milestone_parts.append(f"`{event.abbr}` {event.label}")
+            direction_key = f"{event.abbr}:{event.focus}"
+            if direction_key not in seen_directions:
+                seen_directions.add(direction_key)
+                direction_parts.append(f"`{event.abbr}` {event.focus}")
+                relation_parts.append(f"`{event.abbr}` {event.atmosphere}")
+        lines.append(
+            "| `{year}-W{week:02d}` | {window} | {milestones} | {directions} | {relations} |".format(
+                year=planning_year,
+                week=normalized_week,
+                window=format_week_range(planning_year, week),
+                milestones=md_escape("；".join(milestone_parts)),
+                directions=md_escape("；".join(direction_parts)),
+                relations=md_escape("；".join(relation_parts)),
+            )
+        )
+    lines.append("")
+    return lines
+
+
+def render_conference_section(
+    venue: VenueRecord,
+    prior: VenuePrior,
+    homepages: Dict[str, str],
+    timeline: List[TimelineEntry],
+) -> List[str]:
+    lines: List[str] = []
+    lines.append(f'<a id="timeline-{venue.stem}"></a>')
+    lines.append("")
+    lines.append(f"### `{venue.abbr}`")
+    lines.append("")
+    lines.append(f"- 全称：{venue.full_name}")
+    lines.append(f"- `CCF` 等级：`{venue.rank}`")
+    lines.append(f"- 主体归属：{prior.subject}")
+    lines.append(f"- `软工归属级别`：`{prior.se_level}`")
+    lines.append(f"- 相关性氛围：`{prior.atmosphere}`")
+    lines.append(f"- 主要方向：{prior.focus}")
+    lines.append(f"- 与本课题的关系：{prior.relation}")
+    lines.append(f"- 典型软工路径：`{format_paths(prior.typical_paths)}`")
+    lines.append(f"- 2025 年入口页：[venue](./2025/venues/{venue.stem}.md)")
+    homepage = timeline[0].homepage_url or homepages.get(venue.stem)
+    if homepage:
+        lines.append(f"- 2025 年主页：{homepage}")
+    lines.append(f"- 学术索引页：{venue.index_url}")
+    lines.append("")
+    lines.append("| 年份 | 年主页 | 摘要截止 | 投稿截止 | rebuttal / author response | 录用通知 | 终稿 / camera-ready | 会期 | 来源 | 说明 |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|")
+    for entry in timeline:
+        source_text = entry.source_label
+        if entry.source_url:
+            source_text = f"[{md_escape(entry.source_label)}]({entry.source_url})"
+        if entry.homepage_url.startswith("http://") or entry.homepage_url.startswith("https://"):
+            homepage_text = f"[home]({entry.homepage_url})"
+        else:
+            homepage_text = entry.homepage_url or "待补"
+        lines.append(
+            "| `{year}` | {homepage} | {abstract} | {submission} | {rebuttal} | {notification} | {camera} | {conference} | {source} | {notes} |".format(
+                year=entry.year,
+                homepage=homepage_text,
+                abstract=md_escape(entry.abstract_deadline),
+                submission=md_escape(entry.submission_deadline),
+                rebuttal=md_escape(entry.rebuttal_window),
+                notification=md_escape(entry.notification),
+                camera=md_escape(entry.camera_ready),
+                conference=md_escape(entry.conference_dates),
+                source=source_text,
+                notes=md_escape(entry.notes or ""),
+            )
+        )
+    lines.append("")
+    return lines
+
+
+def render_journal_sections(
+    venues: List[VenueRecord],
+    priors: Dict[tuple[str, str, str], VenuePrior],
+    homepages: Dict[str, str],
+) -> List[str]:
+    lines: List[str] = []
     for venue in venues:
         if venue.kind != "期刊":
             continue
+        prior = priors.get((venue.abbr, venue.rank, venue.kind))
+        if prior is None:
+            continue
         homepage = homepages.get(venue.stem, venue.index_url)
+        lines.append(f'<a id="timeline-{venue.stem}"></a>')
+        lines.append("")
+        lines.append(f"### `{venue.abbr}`（期刊）")
+        lines.append("")
+        lines.append(f"- 全称：{venue.full_name}")
+        lines.append(f"- `CCF` 等级：`{venue.rank}`")
+        lines.append(f"- 主体归属：{prior.subject}")
+        lines.append(f"- `软工归属级别`：`{prior.se_level}`")
+        lines.append(f"- 相关性氛围：`{prior.atmosphere}`")
+        lines.append(f"- 主要方向：{prior.focus}")
+        lines.append(f"- 与本课题的关系：{prior.relation}")
+        lines.append(f"- 典型软工路径：`{format_paths(prior.typical_paths)}`")
+        lines.append(f"- 2025 年入口页：[venue](./2025/venues/{venue.stem}.md)")
+        lines.append(f"- 当前主页：{homepage}")
+        lines.append(f"- 学术索引页：{venue.index_url}")
+        lines.append("")
+        lines.append("| 投稿方式 | 公开 rebuttal | `2021-2025` 常见节奏 | 说明 |")
+        lines.append("|---|---|---|---|")
         lines.append(
-            "| `{abbr}` | {full} | `{rank}` | 全年滚动投稿 | 一般无公开 conference 式 rebuttal | `2021-2025` 默认按常规稿滚动；若当年出现 special issue / special section，需另跟当年 CFP | [official]({homepage}) | {note} |".format(
-                abbr=md_escape(venue.abbr),
-                full=md_escape(venue.full_name),
-                rank=venue.rank,
-                homepage=homepage,
+            "| 全年滚动投稿 | 一般无公开 conference 式 rebuttal | 常规稿全年可投；若出现 special issue / special section，应单独跟踪当年 `CFP` | {note} |".format(
                 note=md_escape(DEFAULT_JOURNAL_NOTE),
             )
         )
-    return "\n".join(lines)
+        lines.append("")
+    return lines
 
 
 def render_markdown(
@@ -1123,6 +1492,11 @@ def render_markdown(
     conference_timelines: Dict[str, List[TimelineEntry]],
 ) -> str:
     ts = format_now_bjt()
+    planning_year = datetime.now(BJT).year
+    priors = parse_venue_priors()
+    sorted_venues = sorted(venues, key=lambda venue: venue_sort_key(venue, priors.get((venue.abbr, venue.rank, venue.kind))))
+    sorted_conferences = [venue for venue in sorted_venues if venue.kind == "会议"]
+    sorted_journals = [venue for venue in sorted_venues if venue.kind == "期刊"]
     conference_count = sum(1 for venue in venues if venue.kind == "会议")
     journal_count = sum(1 for venue in venues if venue.kind == "期刊")
 
@@ -1146,63 +1520,31 @@ def render_markdown(
     lines.append("- 若某一年写为 `未检出`，含义是当前未稳定找到可公开核对的官方归档或可信回退源，不等于该 venue 当年一定停办。")
     lines.append("- 来源优先级：`official dates page / official series page > WikiCFP fallback`。")
     lines.append("- 每个年份行里的 `年主页` 必须指向该年 conference homepage；若该 venue 当年无 standalone 主会或已并入其他系列，会在该列和说明列写清楚。")
+    lines.append("- 全文排序默认先按 `相关性氛围 A 🔥 -> B 🟢 -> C 🟡`，同档再按 `CCF A -> B -> C`。")
     lines.append("")
-    lines.append("## 3. 会议 venue：近 5 年主流程时间线")
+    lines.extend(render_year_planner(sorted_venues, priors, conference_timelines, planning_year))
+    lines.append("## 4. 会议 venue：近 5 年主流程时间线")
     lines.append("")
     lines.append(f"- 当前覆盖会议：`{conference_count}` 个。")
     lines.append("- 推荐使用方式：先在本页确定该 venue 的常见投稿窗口，再回到当年官方 CFP 页确认是否有延期、双轮制、分 track 截止或 `AoE` 约束。")
+    lines.append("- 排序口径：先按与本课题相关性氛围，再按 `CCF` 等级。")
     lines.append("")
 
-    for venue in venues:
-        if venue.kind != "会议":
+    for venue in sorted_conferences:
+        prior = priors.get((venue.abbr, venue.rank, venue.kind))
+        if prior is None:
             continue
-        lines.append(f'<a id="timeline-{venue.stem}"></a>')
-        lines.append("")
-        lines.append(f"### `{venue.abbr}`")
-        lines.append("")
-        lines.append(f"- 全称：{venue.full_name}")
-        lines.append(f"- `CCF` 等级：`{venue.rank}`")
-        lines.append(f"- 2025 年入口页：[venue](./2025/venues/{venue.stem}.md)")
-        homepage = conference_timelines[venue.stem][0].homepage_url or homepages.get(venue.stem)
-        if homepage:
-            lines.append(f"- 2025 年主页：{homepage}")
-        lines.append(f"- 学术索引页：{venue.index_url}")
-        lines.append("")
-        lines.append("| 年份 | 年主页 | 摘要截止 | 投稿截止 | rebuttal / author response | 录用通知 | 终稿 / camera-ready | 会期 | 来源 | 说明 |")
-        lines.append("|---|---|---|---|---|---|---|---|---|---|")
-        for entry in conference_timelines[venue.stem]:
-            source_text = entry.source_label
-            if entry.source_url:
-                source_text = f"[{md_escape(entry.source_label)}]({entry.source_url})"
-            if entry.homepage_url.startswith("http://") or entry.homepage_url.startswith("https://"):
-                homepage_text = f"[home]({entry.homepage_url})"
-            else:
-                homepage_text = entry.homepage_url or "待补"
-            lines.append(
-                "| `{year}` | {homepage} | {abstract} | {submission} | {rebuttal} | {notification} | {camera} | {conference} | {source} | {notes} |".format(
-                    year=entry.year,
-                    homepage=homepage_text,
-                    abstract=md_escape(entry.abstract_deadline),
-                    submission=md_escape(entry.submission_deadline),
-                    rebuttal=md_escape(entry.rebuttal_window),
-                    notification=md_escape(entry.notification),
-                    camera=md_escape(entry.camera_ready),
-                    conference=md_escape(entry.conference_dates),
-                    source=source_text,
-                    notes=md_escape(entry.notes or ""),
-                )
-            )
-        lines.append("")
+        lines.extend(render_conference_section(venue, prior, homepages, conference_timelines[venue.stem]))
 
-    lines.append("## 4. 期刊 venue：常规投稿节奏")
+    lines.append("## 5. 期刊 venue：常规投稿节奏")
     lines.append("")
     lines.append(f"- 当前覆盖期刊：`{journal_count}` 个。")
     lines.append("- 口径：期刊默认不按 conference 式年度 `CFP / rebuttal` 追踪，而按“常规稿是否全年滚动 + 是否常见 special issue / special section”整理。")
     lines.append("- 需要冲特刊时，仍应以当年官方 `special issue CFP` 为准。")
+    lines.append("- 排序口径：先按与本课题相关性氛围，再按 `CCF` 等级。")
     lines.append("")
-    lines.append(render_journal_table(venues, homepages))
-    lines.append("")
-    lines.append("## 5. 维护规则")
+    lines.extend(render_journal_sections(sorted_journals, priors, homepages))
+    lines.append("## 6. 维护规则")
     lines.append("")
     lines.append("- 若官方 venue 网站存在稳定的 archived important-dates 页，后续应优先补官方，不长期依赖 `WikiCFP`。")
     lines.append("- 若某个 venue 在近 `5` 年内实际上已并入其他系列、停办或长期不发独立 CFP，应在“说明”列明确写清，不要机械留空。")
