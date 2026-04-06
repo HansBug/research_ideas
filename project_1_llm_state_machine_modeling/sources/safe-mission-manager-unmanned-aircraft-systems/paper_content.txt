@@ -1,0 +1,1596 @@
+--- Page 1 ---
+ 
+Document downloaded from:  
+ 
+This paper must be cited as:   
+ 
+  
+ 
+   
+ 
+  
+    
+ 
+ 
+The final publication is available at  
+ 
+ 
+Copyright  
+ 
+Additional Information  
+ 
+http://hdl.handle.net/10251/136975
+Usach Molina, H.; Vila Carbó, JA.; Torens, C.; Adolf, FM. (2018). Architectural Design of a
+Safe Mission Manager for Unmanned Aircraft Systems. Journal of Systems Architecture.
+90:94-108. https://doi.org/10.1016/j.sysarc.2018.09.003
+https://doi.org/10.1016/j.sysarc.2018.09.003
+Elsevier
+
+
+--- Page 2 ---
+Architectural Design of a Safe Mission Manager for
+Unmanned Aircraft Systems
+Hector Usach, Juan A. Vila
+Universitat Polit ecnica de Val encia, Cam  de Vera s/n, Val encia, 46022, Spain
+Christoph Torens, Florian Adolf
+German Aerospace Center (DLR), Institute of Flight Systems, Dept. Unmanned Aircraft,
+Lilienthalplatz 7, Braunschweig, 38108, Germany
+Abstract
+Civil Aviation Authorities are elaborating a new regulatory framework for the
+safe operation of Unmanned Aircraft Systems (UAS). Current proposals are
+based on the analysis of the specic risks of the operation as well as on the
+denition of some risk mitigation measures. In order to achieve the target level
+of safety, we propose increasing the level of automation by providing the on-
+board system with Automated Contingency Management functions. The aim
+of the resulting Safe Mission Manager System is to autonomously adapt to con-
+tingency events while still achieving mission objectives through the degradation
+of mission performance. In this paper, we discuss some of the architectural
+issues in designing this system. The resulting architecture makes a conceptual
+dierentiation between event monitoring, decision-making on a policy for deal-
+ing with contingencies and the execution of the corresponding policy. We also
+discuss how to allocate the dierent Safe Mission Manager components to a par-
+titioned, Integrated Modular Avionics architecture. Finally, determinism and
+predictability are key aspects in contingency management due to their overall
+impact on safety. For this reason, we model and verify the correctness of a
+contingency management policy using formal methods.
+Corresponding author
+Email address: hecusmo@doctor.upv.es (Hector Usach)
+
+--- Page 3 ---
+Keywords: Software architecture, Automated Contingency Management,
+Formal methods, Partitioning, UAS
+1. Introduction
+Unmanned Aerial Systems (UAS) have been developing very quickly, thus
+presenting a challenge to traditional aviation. The European Aviation Safety
+Agency (EASA) is elaborating a new regulatory framework for the operation
+of UAS. The current proposal establishes three categories of UAS operation 5
+according to their risk levels [1, 2]. The open category is for low risk opera-
+tions where safety is ensured through compliance with operational limitations,
+mass limitations, product safety requirements and a minimum set of opera-
+tional rules. Authorization from a National Aviation Authority (NAA) is not
+required. The specic category is for medium risk operations and requires NAA 10
+authorization based on a risk assessment performed by the operator. A manual
+of operations lists the risk mitigation measures. Finally, the certied category
+is for large UAS ying in non-segregated airspace, the requirements for which
+are comparable to those for manned aviation. The International Civil Aviation
+Organization (ICAO) addresses this category in Doc. 10019 AN/507 [3]. Ac- 15
+cording to that document, \only unmanned aircraft that are remotely piloted
+could be integrated alongside manned aircraft in non-segregated airspace and
+at aerodromes". This work is focused on Remotely Piloted Aircraft Systems
+(RPAS), a subclass of UAS.
+The specic risks of an RPAS operation as compared to manned aviation 20
+are: 1)reduced situational awareness of the remote pilot, and 2)risk of los-
+ing the communication & control (C2) link between the remote pilot and the
+unmanned aircraft. In the former case, reduced situational awareness means
+that remote pilots, unlike pilots of manned aircraft in visual conditions, have
+reduced perception of environmental elements and events, which results in com- 25
+plex decision-making, especially during an emergency. In the latter case, the C2
+link loss is a degradation or failure of the communication channel, which may
+2
+
+--- Page 4 ---
+result in the aircraft \ying not under command" [3].
+UAS that aim to operate within the specic category, and ultimately within
+the certied category, are required to mitigate the aforementioned specic risks 30
+in order to achieve the target level of safety . This can be accomplished through
+several complementary approaches, such as setting the aforementioned opera-
+tional limitations and even imposing certain functional requirements onto the
+on-board equipment. For example, some special technical equipment is often re-
+quired to compensate for the reduced situational awareness, mainly Detect and 35
+Avoid (DAA) devices [3]. Another approach relies on operational ight plan-
+ning and development of operations manuals with provisions for contingency
+handling.
+In general, the functional requirements imposed on the on-board equipment
+exemplify the need for increased autonomous ight capabilities in RPAS. This 40
+is a focus of this paper. The software framework under development by the
+German Aerospace Center (DLR) for its research eet of unmanned aircraft
+enables high level autonomous behaviors. One of its key software components
+is the automated Mission Planner and Execution (MiPlEx) system. MiPlEx
+performs real-time mission plan execution, 3-D world modeling, as well as al- 45
+gorithms for combinatorial motion planning and task scheduling [4, 5]. The
+Technical University of Valencia (UPV) is also developing a similar component
+based on the same architectural principles [6]. However, both Mission Manager
+implementations have so far only made use of operational limitations to achieve
+the target level of safety, e.g. operating in Very Low Level (VLL) or segregated 50
+airspace. As a collaboration between the two institutions, the goal is to safely
+increase the level of automation to develop a Safe Mission Manager System.
+This concept expands on the current Mission Manager by incorporating Au-
+tomated Contingency Management (ACM) functions. The resulting system is
+expected to adapt autonomously to contingencies , while still achieving mission 55
+objectives by allowing some degradation on mission performance.
+In this paper, we discuss the architectural design of the proposed Safe Mis-
+sion Manager System. In addition, we also discuss how to allocate the dierent
+3
+
+--- Page 5 ---
+software components of the resulting system to an Integrated Modular Avionics
+(IMA) architecture. Finally, we propose using formal methods for specifying and 60
+verifying the contingency management policy. The rest of the paper is organized
+as follows: Sec. 2 presents related works in bibliography; Sec. 3 describes the
+initial Mission Manager System; Sec. 4 identies the need for contingency man-
+agement in RPAS; Sec. 5 discusses architectural considerations for integrating
+ACM functions into the previous Mission Manager; Sec. 6 presents the safety 65
+aspects relating to the software development of the resulting system; Sec. 7 de-
+velops the contingency management policy using formal methods; and nally,
+Sec. 8 concludes the paper.
+2. Related work
+The main topics of this paper are contingency management architectures, 70
+with special emphasis on UAS specic contingencies, and the use of formal
+methods in the software development process.
+The primary guidelines for contingency management can be found in the pro-
+posals of regulatory frameworks for operating UAS currently being drawn up
+by Civil Aviation Authorities. These guidelines dene risks and propose some 75
+risk mitigation procedures, among other things. UAS regulation in Europe is
+led by EASA, which has published the Introduction of a regulatory framework
+for the operation of unmanned aircraft [1], and the Roadmap for the Integra-
+tion of Remotely Piloted Aircraft Systems into the European Navigation System
+[7]. A similar eort has been undertaken by the Unmanned Aircraft Systems 80
+Registration Task Force of the Federal Aviation Administration (FAA) in the
+United States [8, 9]. In addition, the ICAO has published the Manual on RPAS
+[3] to provide guidance on technical and operational issues applicable to the
+integration of RPAS in non-segregated airspace and at aerodromes.
+There is an important research eort behind the regulatory proposals. The 85
+main research frameworks are the SESAR program in Europe [10] and the
+NextGen program in the United States. Some of the projects falling within
+4
+
+--- Page 6 ---
+these initiatives are also related to this work. One of the most relevant is the
+Automated Contingency Management (ACM) [11, 12, 13], which is a NASA-led
+research project in collaboration with Impact Technologies, LLC and Georgia 90
+Tech. ACM is designed to improve the reliability and survivability of safety-
+critical aerospace systems. The approach of ACM diers from the one presented
+in this paper in its focus on control optimization techniques rather than on the
+use of formal methods. One interesting extension to this approach is the work
+in [14] where human-machine interface considerations in contingency manage- 95
+ment are discussed. Another NASA project on drones is the Unmanned Air-
+craft System (UAS) Trac Management (UTM). The UTM concept [15] was
+proposed as a trac management scheme to enable civilian low-altitude UAS
+operations. This work's most relevant proposal with regard to contingency
+management is the level of automation. The proposed scheme ranges from a 100
+completely manual process relying on the operator (Build 1) to fully automatic,
+large-scale, system-wide contingency handling (Build 4).
+The DLR has also conducted important research in the eld of RPAS in the
+WASLA-HALE project for the High Altitude Long Endurance domain. Some
+research work focuses on the procedures and techniques for integrating UAS 105
+into controlled airspace [16, 17]. The proposed procedures are mainly related to
+C2 link failure conditions and communication with ATC. Another interesting
+aspect is the use of formal descriptions for enabling automatic reasoning on the
+consistency and correctness of the model requirements and the generation of
+on-line monitoring checks [18]. Case studies show that the process of formally 110
+writing down requirements is extremely helpful in understanding the domain
+inherent concepts [19].
+The introduction of a Safety Monitor like the one in this paper is also sug-
+gested in [20]. The goal of the referenced work, however, is to expand the
+operational range and raise the autonomy level, rather than contingency han- 115
+dling. The work in [21] presents a predictive alerting method that uses multiple
+hypothesis prediction. It integrates all the onboard sensors and information
+sources with a stochastic estimator to obtain an accurate and reliable estima-
+5
+
+--- Page 7 ---
+tion of the aircraft state, which is key for contingency detection.
+Regarding contingency management policies, C2 link loss is one of the most 120
+dicult to handle since any other contingency may also occur after it. The work
+in [22] presents a method for computing optimal lost-link policies for unmanned
+aircraft conducting surveillance alongside manned aircraft in a wildre scenario.
+Another contingency handling policy especially important to UAS is collision
+avoidance. The work in the NextGen and SESAR programs led to the denition 125
+of a new Airborne Collision Avoidance System (ACAS) based on new logics,
+namely ACAS X. Its denition contains two particular variations: ACAS Xa for
+large aircraft, and ACAS Xu for unmanned aircraft. The work in [23] describes
+the specicities and challenges to the ACAS Xu system.
+3. Initial Mission Manager architecture 130
+The Mission Manager is the core system for performing the automatic guid-
+ance and control of the RPAS. Its functionality is based on the denition of
+aMission Plan that basically species the RPAS route and payload actions.
+Both the MiPlEx framework and the Mission Manager developed at the UPV
+implement a software architecture based on the ideas of the three-tier (3T) ar- 135
+chitecture [24]. In general, a 3T architecture separates the intelligent control
+problem into three interacting layers named Deliberative layer ,Sequencing layer ,
+and Reactive layer . In this approach, the 3T concept has been applied from a
+ight guidance and control perspective, and the three layers have been renamed
+asPath Planner ,Guidance System , and Flight Director , respectively, shown in 140
+Fig. 1:
+The Path Planner is the high level component that has the ability to generate
+a reference trajectory for the Guidance System. As it is shown in Fig. 1, there
+exist multiple path planners that provide dierent path planning policies. The
+\Mission Planner" is a path planner that generates this trajectory based on the 145
+directives of the Mission Plan. In this approach, the Mission Plan is specied as
+a sequence of ight legs that implement the ARINC 424 path terminators [25].
+6
+
+--- Page 8 ---
+system 
+state Mission Manager System 
+Path Planners ...Task 
+Speciﬁc 
+Planner 1
+Task 
+Speciﬁc 
+Planner 2
+Task 
+Speciﬁc 
+Planner nMission 
+Planner 
+Guidance 
+System Flight 
+Director reference 
+trajectory reference 
+state 
+Remotely 
+Piloted 
+Aircraft mission 
+plan remote 
+pilot 
+control 
+actions Figure 1: The initial Mission Manager architecture is structured into three layers: the Path
+Planners, the Guidance System, and the Flight Director.
+Thus, the role of the Mission Planner is to provide each ight leg to the Guidance
+System in a sequential manner. In parallel to the Mission Planner, there exist
+some other Task Specic Planners for special tasks, such as the exploration of 150
+unknown terrain. From an abstract point of view, both the Mission Planner
+and the Task Specic Planners belong to a same class of objects with the ability
+to provide instructions for the Guidance System based on dierent criteria.
+The remote pilot should select the required Task Specic Planner manually in
+accordance with the current operational condition. 155
+The Guidance System determines how to y the reference trajectory pro-
+vided by the active Path Planner and then activates the appropriate control
+modes of the Flight Director. To do so, the Guidance System uses a library
+of elemental maneuvers in the lateral plane (LNAV) and in the vertical plane
+(VNAV). LNAV maneuvers include straight maneuvers (with constant heading, 160
+7
+
+--- Page 9 ---
+with constant course, etc.) and turn maneuvers (with constant radius, with
+constant turn rate, etc). VNAV maneuvers include ight level maneuvers and
+climb/descent maneuvers (at constant speed, at constant vertical speed, etc).
+Thus, each time a new reference trajectory is received, the Guidance System
+plans a suitable sequence of maneuvers. The sequence of maneuvers in the 165
+LNAV plane is independent of the sequence of maneuvers in the VNAV plane.
+Once the list of elemental maneuvers has been planned, the Guidance System
+activates the LNAV maneuvers and the VNAV maneuvers for carrying out the
+plan in a sequential manner. Only one LNAV maneuver and one VNAV maneu-
+ver can be active at a time. According to these active maneuvers, an interpreter 170
+activates the appropriate control modes of the Flight Director. The interpreter
+also computes the target values (the reference state) for the selected modes
+using dierent guidance algorithms. For example, the control mode for ying
+a turn with a constant radius is the heading control mode; and the algorithm
+that computes the target heading for this mode is based on the \carrot-chasing" 175
+algorithm in [26].
+Each control mode is own until some target event occurs. For example,
+the turn with a constant radius can be own until the RPAS reaches a given
+waypoint, or until a given time-out occurs, for instance. When this target event
+is triggered, the Guidance System selects the next maneuver in the sequence. 180
+When the sequence of maneuvers is completed, the Guidance System noties
+the Path Planner so that the high-level component will provide a new reference
+trajectory.
+Finally, the Flight Director implements the control loops of the autopilot
+control modes. For example, the autopilot has the \heading control" mode, the 185
+\altitude control" mode, the \vertical speed control" mode, etc. The Flight
+Director can be commanded not only by the upper layers of the architecture,
+but also by the remote pilot directly.
+8
+
+--- Page 10 ---
+3.1. Levels of automation
+As can be seen in discussion above, the initial Mission Manager provides 190
+two levels of automation, named manual operation and automatic operation .
+Manual operation covers any mode in which the guidance actions are performed
+by the remote pilot. This includes direct control on the aircraft using the yoke,
+as well as giving the proper targets to the Flight Director. Manual operation
+is often used to execute ight procedures that are hard or unsafe to automate, 195
+such as take-o or landing procedures. By contrast, in the automatic operation,
+the guidance actions are performed by the upper layers of the architecture.
+The level of automation plays a key role in aviation since allocating respon-
+sibilities between a human operator and an automatic system can lead to unsafe
+situations [27, 28]. Sheridan introduced a taxonomy with 10 automation lev- 200
+els [29] that characterize this interaction. According to this, manual operation
+is level 1, while automatic operation ranges from level 5 to 6. This means that
+the remote pilot is always in charge of decision making: he or she must always
+approve or reject the reference trajectory computed by the automatic system to
+ensure predictable behavior. As a result, automatic operation still puts some 205
+performance requirements on the C2 link, but not as stringently as it does in
+manual mode.
+In this paper, we will describe the transformation of the previous Mission
+Manager into a Safe Mission Manager that handles contingencies; and we will
+discuss how to allocate the dierent software components of the resulting system 210
+to a partitioned environment based on the IMA concept.
+4. Contingencies in RPAS
+The aforementioned Mission Manager is able to perform the intended RPAS
+mission as long as it is executed in a nominal condition. However, at some
+point in the mission execution, a contingency may occur. Contingencies are 215
+unforeseen events that put other airspace users or people and facilities on the
+ground at risk [1, 2]. Several important contingencies have been identied in
+9
+
+--- Page 11 ---
+RPAS [30]. Some of them are common to manned aviation {e.g. a trac alert or
+the loss of control{, while others are specic to RPAS. Introducing contingency
+management functions into an RPAS means providing the on-board system with 220
+the ability to handle contingencies for the purpose of mitigating safety risks.
+The source of contingencies are faults . These include both system com-
+ponent faults and human faults. Component faults occur when some aircraft
+component {such as an Inertial Measurement Unit (IMU), an engine, a Global
+Positioning System (GPS), or a barometric system{ fails. Human faults refer to 225
+piloting errors, Air Trac Control (ATC) errors, and any other faults related
+to inappropriate aircraft operation. There is a causal relation between faults
+and contingencies. For example, a GPS fault could cause inaccuracy in posi-
+tion determination, thus resulting in a mission boundary violation contingency.
+Another example is the loss of control due to a faulty IMU. Faults usually degen- 230
+erate into contingencies after some short period of time. Early fault detection
+is key for eective contingency management.
+Increasing the level of safety in an aircraft is usually accomplished using two
+complementary techniques: fault tolerance and risk mitigation . Fault tolerance
+is the ability to continue operating in the event of a failure. Risk mitigation is 235
+the process of incorporating defenses or preventive controls to lower the severity
+and/or likelihood of the projected consequence of a hazard. This is a two step
+process: when some fault is not tolerated and becomes a failure, then risk miti-
+gation measures are needed. Faults aecting critical system components can be
+tolerated using redundancy. Full redundancy means replicating a component 240
+with exactly the same functionality and performance. Graceful degradation is
+the ability to maintain a limited or degraded functionality when some compo-
+nent fails. For example, GPS navigation could be replaced with dead-reckoning
+when the GPS fails, though at the cost of position accuracy. An important
+dierence between system faults and human faults is that system faults can 245
+be tolerated to some extent by the use of redundancy, while human errors and
+inappropriate aircraft operation can only be handled through risk mitigation.
+One of the most encouraging measures proposed by EASA for risk mitigation
+10
+
+--- Page 12 ---
+Fault 
+tolerance Risk 
+mitigation Flight 
+termination 
+Increase in criticality Contingency management Figure 2: Framework of techniques for keeping safety in RPAS. Source: [31].
+in RPAS is setting some boundary limits on RPAS operation. The goal here is
+to avoid the RPAS accidentally going out of its operations area or ying over 250
+dangerous or prohibited areas.
+In the specic case of RPAS, there is a third barrier to enforcing safety
+in addition to fault tolerance and risk mitigation techniques: ight termina-
+tion. Flight termination procedures make it possible to immediately ground the
+RPAS, for example by deploying a parachute, or using a self-destructive device. 255
+This option is crucial because it helps lower the severity of some risks and fault
+conditions in the safety assessment: the consequences associated with an unfore-
+seen event can be minimized if it is possible to terminate the ight expeditiously.
+In any case, the ight termination procedure should be considered to be a last
+resort when no other option can mitigate the eect of the contingency, or when 260
+other actions have resulted ineective for the situation being faced. A summary
+of the dierent techniques that can be applied for keeping an adequate level of
+safety can be found in Fig. 2, and is in agreement with the work in [31].
+It is important to consider the most specic contingency in RPAS, which is
+the C2 link loss. Proper handling of this event is strictly required by ICAO for 265
+operating in non-segregated airspace [3]. Moreover, assuming that any combi-
+nation of contingencies can happen in conjunction with C2 link loss, some sort
+of ACM ability is necessarily required to handle the situation. ACM functions
+make use of risk mitigation and ight termination techniques to generate recov-
+ery maneuvers or trajectories that eectively cope with a contingency situation 270
+without pilot intervention. Consequently, the level of automation of a Mission
+11
+
+--- Page 13 ---
+Manager System performing ACM functions should be increased to provide au-
+tonomous operation . In this extended mode, the automatic system assumes
+ight guidance as well as decision-making responsibilities. This corresponds to
+a Sheridan level higher than 6, which goes beyond conventional FMSs [32, 33]. 275
+The next section discusses how to integrate ACM functions into the initial Mis-
+sion Manager System.
+5. Architectural considerations towards Automated Contingency Man-
+agement in RPAS
+The proposed Automated Contingency Management functions will be de- 280
+signed under the hypothesis that the RPAS has a Flight Termination System
+(FTS) that is able to terminate the ight expeditiously, and that this measure
+is an eective mechanism for enforcing safety. The need for this mechanism
+is supported by a number of aviation stakeholders [3, 32, 33, 34]. They also
+indicate that this action is to be triggered manually by the remote pilot as well 285
+as autonomously by the on-board system. This latter aspect implies that it is
+necessary to specify in the embedded software a list of predened conditions for
+the automatic activation of the FTS.
+Based on the initial hypothesis, the ability to engage the FTS becomes a
+safety-critical function. Critical software in aerospace is subject to strict vali- 290
+dation and verication (V&V) processes dened by the DO-178 standard [35].
+According to this document, a software component that cannot be completely
+veried at the design phase should not adversely aect safety. As a consequence,
+the list of predened conditions that determines the automatic activation of the
+FTS must be hardcoded in the embedded software so that extensive testing can 295
+be performed at the design stage.
+Commanding the ight termination action is a drastic decision, though. Ac-
+cording to the safety framework in Fig. 2, less extreme risk mitigation measures
+could also be attempted for mitigating the risk inherent to contingencies in
+some circumstances. In these cases, we consider that the hardcoding of policies 300
+12
+
+--- Page 14 ---
+Soft boundary Hard boundary 
+Risk 
+mitigation Flight 
+termination Figure 3: Safety thresholds managed by the Safety Monitor.
+is not strictly necessary (because there is still a ight termination mechanism,
+and it can be thoroughly tested), and that having exibility to specify some
+aspects of the contingency management policy would be benecial to the nal
+user. For this reason, we advocate separating ACM functions into two separate
+components, named the Safety Monitor andContingency Manager , each with a 305
+dierent impact on the safety process.
+Firstly, the role of the Safety Monitor is to check system behavior for unsafe
+states; and when an unsafe state is detected, to take the critical decision of
+whether a risk mitigation action is feasible, or whether the ight termination
+action is required instead. This decision depends on the criticality of the re- 310
+sulting state. Accordingly, the Safety Monitor manages two safety thresholds ,
+represented in Fig. 3. When a rst threshold is exceeded, the criticality is such
+that there is still a safety margin for attempting a risk mitigation action. The
+resolution of this state will be delegated to the Contingency Manager. But if the
+mitigation action fails and a second threshold is surpassed, the Safety Monitor 315
+will command the FTS to ensure that safety is not further compromised.
+Secondly, when a risk mitigation measure is feasible, the Contingency Man-
+ager should react and plan the appropriate action for reducing the probability
+of infringing the second safety threshold, and ultimately attempting to recover
+the nominal condition of the RPAS. Mitigation actions, also called contingency 320
+procedures , replace the current reference trajectory of the RPAS with a new
+one that is more suitable for the contingency state being faced. For this rea-
+13
+
+--- Page 15 ---
+son, once a selection has been made, the Contingency Manager will notify the
+Mission Manager to execute the selected action.
+However, dening a risk mitigation policy for dealing with contingencies 325
+is a complex matter. In some cases, there could exist multiple contingency
+procedures that could be eective, and the solution might depend on multiple
+factors. The extent to which this policy can be customized by the nal user is
+another design issue that will be discussed later in this section. In any case,
+the fact that some aspects of this policy are open to modication by the nal 330
+user implies that the Contingency Manager cannot be completely veried at the
+design stage, so it cannot be fully trusted.
+As a result, the proposed dierentiation between Safety Monitor and Contin-
+gency Manager provides an interesting tradeo between safety and robustness:
+the Safety Monitor can enforce safety at any time during the mission, even 335
+when everything else fails; and the Contingency Manager enhances robustness
+of the system by providing solutions to contingency states. The implementation
+of the Safety Monitor must be hardcoded at the design phase so that exten-
+sive testing can be performed; in contrast, the verication of the Contingency
+Manager is subject to user modication. Safety aspects relating to the software 340
+development of this architecture will be further discussed in Sec. 6.
+In summary, the execution of the proposed contingency management scheme
+will be composed of the following steps: 1)monitoring the system behavior to
+detect and diagnose contingencies, 2)deciding on a policy for dealing with
+contingencies, and 3)executing the corresponding policy. In this scheme, the 345
+rst step will be performed by the Safety Monitor; the second step will be
+performed at two levels by the Safety Monitor and by the Contingency Manager;
+and the third one will be performed by the Mission Manager or the Flight
+Termination System, depending on the selected policy.
+Thus, the initial Mission Manager architecture will be extended with three 350
+new software components to perform ACM functions. The resulting Safe Mis-
+sion Manager architecture is presented in Fig. 4. Note that the \Mission Man-
+ager System" box in this gure includes all the sub-components that were de-
+14
+
+--- Page 16 ---
+Safety 
+Monitor 
+System Contingency 
+Manager 
+System  Mission 
+Manager 
+System 
+Remotely 
+Piloted 
+Aircraft 
+system state control 
+actions contingency 
+state mitigation 
+action 
+Flight 
+Termination 
+System Figure 4: Safe Mission Manager architecture with four major components: Safety Monitor,
+Contingency Manager, Mission Manager and Flight Termination Systems.
+picted in Fig. 1. In addition to the new software components, the Mission
+Manager module will also be internally redesigned to enable it to execute the 355
+contingency handlers . A contingency handler produces the reference trajectory
+of the mitigation actions that are enabled by the Contingency Manager. The
+sub-sections below will discuss the dierent components in more detail.
+5.1. Detecting contingency states
+Detecting unsafe states and triggering alarms is considered safety critical 360
+functionality. An interesting approach for this task is the use of formal speci-
+cations to derive safety monitors . The advantage of this methodology is that it
+enables very ecient monitors that can be veried because they are automati-
+cally derived from a formal specication. This technique has been an important
+research topic for checking software and hardware behavior in embedded sys- 365
+tems [36]. We propose using similar techniques for system health management
+and the detection of unsafe conditions [37]. We discuss below how to integrate
+monitoring into the system architecture.
+An aircraft is a distributed system consisting of a large number of inde-
+pendent subsystems. Critical system components are usually required to self- 370
+monitor, to perform fault detection and to report their faults. This is the case for
+the GPS subsystem, where Receiver Autonomous Integrity Monitoring (RAIM)
+systems are prescribed. Another example is the Airborne Collision Avoidance
+subsystem (ACAS), which is able to detect collision threats autonomously.
+15
+
+--- Page 17 ---
+However, safety monitoring should be performed not only inside each sub- 375
+system but at the system level as well. This requires having access to the global
+system state because an unsafe situation can be formally specied as a predicate
+on the system state. We understand as a\global" state the aggregation of the
+states of a set of subcomponents of a distributed system [38]. As an example,
+consider the following unsafe condition: \the distance to the airport is greater 380
+than the mileage allowed by the reserve fuel remaining". Checking this predi-
+cate involves knowledge as to the airport location, the aircraft position and the
+remaining fuel. Even if the subsystems that estimate these state variables are
+failure free and are not reporting any alarm, if these data are processed at a
+system level, then an unsafe situation can hold. In general, all contingencies 385
+derived from inappropriate aircraft operation involve the state of several system
+components.
+Thus, online safety monitoring requires some centralized, high level compo-
+nent that coordinates all the distributed monitors and performs diagnoses at
+the system level. Performing this task implies that some knowledge about the 390
+normal behavior of the system is presented to the real-time reasoning. This
+knowledge can be typically developed using model-based or data-based tech-
+niques [39]: in model-based techniques, it is derived from theoretical models,
+while in data-based techniques, it is inferred from empirical experiments of
+fault-free operation. 395
+One of the main problems is the reliability of the detection mechanisms.
+This refers to the probability of reporting false alarms or skipping true alarms.
+The main problem in creating a robust system is that sensors are imperfect and
+noisy. This results in uncertainty in the state determination. For this reason,
+the use of deterministic logic to dene alarm conditions on the state variables 400
+does not guarantee reliable detection. Some proposed techniques for dealing
+with uncertainty are fuzzy logic [40], stochastic alarm detection techniques [41]
+and Markov decision processes [42]. Consequently, the Safety Monitor should
+also manage alarm thresholds.
+Therefore, the centralized Safety Monitor should be modeled as a probabilis- 405
+16
+
+--- Page 18 ---
+Risk 
+mitigation 
+state Nominal 
+state Flight 
+termination 
+state Recovery 
+event Soft 
+contingency 
+event Hard 
+contingency 
+event 
+Soft/hard 
+contingency 
+event 
+Ineﬀective 
+mitigation 
+action Figure 5: Generic model of a centralized Safety Monitor for RPAS.
+tic state automaton [43]. However, current work is still at a conceptual level, so
+we will assume ideal detection mechanisms and avoid the uncertainty analysis.
+The resulting simplied model is depicted in Fig. 5. The state automaton in
+this gure starts at a nominal state where no contingency events have occurred.
+Within this state, the RPAS is ying the planned mission in a manual or auto- 410
+matic manner. According to the safety thresholds in Fig. 3, the Safety Monitor
+can trigger two types of contingency events : when the rst safety boundary is
+exceeded, it triggers a \soft" contingency event. Such events make the system
+shift into a contingency state where a given mitigation action can be planned. In
+this state, the Contingency Manager will be enabled. When the second bound- 415
+ary is exceeded, the Safety Monitor will raise a \hard" contingency event, which
+results in a state where the only feasible action is ight termination; this will
+be handled by the Flight Termination System.
+Once in a risk mitigation state, if the mitigation action turns out to be eec-
+tive, a recovery event will bring the system back to the nominal state; otherwise, 420
+the system will remain in the same state and further mitigation actions can be
+planned. In addition, subsequent contingencies may also occur. However, we
+believe eective handling of nested alerts is highly unfeasible in most cases. For
+this reason, the approach for dealing with these conditions will be prevention :
+avoiding, whenever possible, the occurrence of new contingency events by using 425
+17
+
+--- Page 19 ---
+a safe and conservative design of the mitigation actions; otherwise, new events
+often lead to the ight termination state.
+5.2. Dening a policy for dealing with contingencies
+Once a risk mitigation state is entered, the next step is to decide on a pol-
+icy for dealing with the resulting ight condition. The role of the Contingency 430
+Manager is to select a mitigation action that tries to partially complete the mis-
+sion, probably in some degraded form, while maintaining safety. This requires
+addressing a decision-making problem that should balance the rewards with the
+risks associated with each possible action to maximize the probability of suc-
+cess, see Fig. 6. Once a decision has been made, the Contingency Manager will 435
+instruct the Mission Manager to execute this action.
+In general, the decision-making process for selecting a mitigation action de-
+pends on not only the contingency event reported by the Safety Monitor, but also
+on other state variables. For example, the Contingency Manager could make
+dierent decisions about how to handle a trac alert depending on whether 440
+the RPAS is ying in controlled or uncontrolled airspace. The decision is even
+more complex when several concurrent events are reported by the Safety Mon-
+itor. For this reason, the Contingency Manager also needs to have access to
+the global system state, as shown in Fig 4. Although the system state is huge
+and comprises many variables, it is often possible to limit the decision process 445
+Risk mitigation state 
+Decision 
+logic Mitigation 
+action 1
+Mitigation 
+action 2
+Mitigation 
+action ndecision 2 decision 1 
+decision n 
+Figure 6: Decision logic for nding a feasible action after a contingency happens.
+18
+
+--- Page 20 ---
+to the following subset: the aircraft position (including the segment of ight
+in which the contingency happens, and the airspace class) and the contingency
+event being faced.
+As a result, the decision logic for selecting a suitable mitigation action can
+be also modeled as a state automaton. We call the specication of this au- 450
+tomaton the Contingency Plan . It determines the behavior of the RPAS after a
+contingency occurs. The aim of this plan should be to reduce the time of ight
+of the Remotely Piloted Aircraft (RPA) experiencing the contingency [3]. The
+design of the Contingency Plan is a sensitive task because the resulting logic
+must: a)be deterministic, and ensure predictable behavior even without pilot 455
+intervention [3, 44]; and b)comply with current regulations (e.g. rules of the
+air [45] or procedures for emergency situations [46, 47]).
+An interesting design issue is which level of customization is allowed in the
+design of the Contingency Plan; or, in other words, to what extent should the
+Contingency Plan be hardcoded into the embedded software. Two opposing 460
+trends aect this issue. One the one hand, having the exibility to specify this
+plan on a mission basis {thus avoiding the hardcoding of policies{ can make the
+remote pilot handle a contingency scenario in a more responsive way. On the
+other hand, since the specication of a state automaton with lots of states and
+transitions is a dicult and critical task, it must be veried; and the specication 465
+and verication of a safe state automation is considered to be beyond the scope
+of an RPAS operator.
+For this reason, we have opted for the following mixed solution: the spec-
+ication of the Contingency Plan is assigned to the system developer and is
+hardcoded into the embedded software; but if the mitigation actions have some 470
+conguration parameters dening howto execute this action, then they can be
+specied in a Mission Plan pre-ight. This solution implies that the validation
+of the Contingency Manager is subject to the validation of the Mission Plan at
+operation time: the Contingency Manager will be safe only if the Mission Plan
+specication is correct. 475
+As an example, assume that \land at a designated landing site" is one pos-
+19
+
+--- Page 21 ---
+sible mitigation action, and that the conguration parameters of this action are
+the list of suitable landing sites, as well as the routes towards these sites. Then,
+according to this proposal, the remote pilot will not be able to specify what
+state leads to the selection of this action, but he or she will be able to specify 480
+the possible landing sites, and the possible routes for reaching them. In addi-
+tion, the decision on performing this procedure will be safe only if the Mission
+Plan has been approved by the corresponding aviation authority. Finally, the
+design of a Mission Plan specication that deals with contingency handling is a
+research problem that is currently under study. 485
+5.3. Executing the selected mitigation action
+To execute the selected policy, the corresponding contingency handlers must
+be provided to the on-board system. Contingency handlers implement the mit-
+igation actions that will be executed in response to a contingency. In the pro-
+posed architecture, these handlers are executed by the Mission Manager because 490
+they can be seen as a special case of the Path Planners in Fig. 1. Thus, the goal
+of a contingency handler is to override the Path Planner guidance used during
+the nominal condition with some specic guidance based on safety concerns.
+In general, the list of the required mitigation actions depends on the contin-
+gency events under consideration. As a general rule, the proposed contingency 495
+procedures should be similar to those for manned aviation [49]. For this reason,
+it is possible to classify them into two categories according to their impact on
+the planned route:
+1.Strategical contingency procedures are suitable when the initial route is
+no longer feasible and thus a new mission has to be planned. The new 500
+reference path is often constructed with a more conservative design, with
+limited turns, vertical speeds, etc. This mechanism protects against ex-
+ceeding the ight envelope during a contingency state (thus causing a
+nested alert), but also results in reduced aircraft performance due to the
+contingency being faced. One example of these procedures might be ying 505
+towards the alternative landing site.
+20
+
+--- Page 22 ---
+2.Tactical contingency procedures are ight procedures that deviate the air-
+craft from the intended route temporarily, though the original mission
+may be resumed afterwards once the eect of the contingency has been
+mitigated. In contrast to strategical contingency procedures, tactical ones 510
+often demand high ight performances, like in a trac avoidance maneu-
+ver.
+Based on this dierentiation, contingency handlers can be also classied
+into two classes according to their alternative guidance method: contingency
+handlers relying on the Mission Planner and contingency handlers requiring a 515
+Task Specic Planner. In general, all the tactical contingency procedures re-
+quire a Task Specic Planner because the reference trajectory strongly depends
+on the type of contingency being faced. By contrast, strategical contingency
+procedures do not require a specic Path Planner be introduced but rather an
+alternative route denition be provided to the Mission Planner. How to perform 520
+smooth transitions between the guiding actions of dierent Path Planners is an
+interesting issue that exceeds the scope of this paper.
+5.4. Performing the ight termination action
+As was introduced in this paper, RPAS must often incorporate a Flight Ter-
+mination System that is capable of safely bringing the vehicle back to the ground 525
+in case of severe contingencies. The work in [31] presents a survey of current
+and future technologies and procedures for performing a controlled ight into
+terrain (CFIT), including aerodynamic and ballistic terminations. Alternatives
+are self-destruct systems that allow an in-ight destruction to be performed
+without the loss of human lives [50]. However, this latter alternative may not 530
+be supported in RPAS that aim to operate within the certied category [49, 51].
+In order to reduce the risk for people and ground facilities, the ight termi-
+nation action should be performed in dedicated areas called Flight Termination
+Points (FTPs). These points should be specied in the Mission Plan, segre-
+gated by ATC and located in unpopulated areas or over the sea [17, 49]. For 535
+21
+
+--- Page 23 ---
+this reason, whenever possible, the execution of this action should be preceded
+by a strategical phase in which the RPAS tries to achieve the closest FTP.
+6. Safety aspects relating to the software development
+For the Mission Manager to be considered a safe system, it is necessary
+not only to provide it with ACM functions, but also develop it following a re- 540
+liable software development process [52]. The software project for aerospace
+applications like the one presented in this paper shall demonstrate an adequate
+level of condence in safety to comply with the aerospace standards for cer-
+tication [34, 35]. The reference manual for the avionics industry is the DO-
+178 standard. It denes an explicit correlation between the severity of system 545
+hazards and the scrutiny to which that system is subjected. In particular, it
+establishes ve software levels (Level A to E) related to the eect of ve failure
+conditions (Catastrophic to No safety eect). The work in [53] particularizes
+the denition of these eects to the case of UAS. In DO-178, each level has a
+number of objectives that must be met in the software development process. In 550
+short, the verication eort increases with the software level of a component.
+In regards to UAS, the EASA concept of operation states that system haz-
+ards are operation-centric [2]. According to this regulatory framework, un-
+manned aircraft operating in the open category are not subject to certication
+because the impact on safety of a software error is low: in this category, the air- 555
+craft is operated in visual line of sight (VLOS) and below 150 m, so a dedicated
+remote pilot is assumed to be present at all times of the operation. Accordingly,
+the remote pilot can take control of the vehicle at any point in the mission, and
+specically after a contingency occurs. It can therefore be reasonably justied
+that the embedded software has no eect on the operation in terms of safety. 560
+However, large UAS operating in the specic category, and ultimately in the
+certied category, can eventually operate beyond the line of sight (BVLOS) of
+the remote pilot. In these cases, if the C2 link is lost, the software is essentially
+replacing the remote pilot; and, for this reason, it becomes safety-critical and
+22
+
+--- Page 24 ---
+must be veried [52]. 565
+In this section, we discuss the impact on safety of each architectural com-
+ponent of the proposed Safe Mission Manager system. We also propose the
+use of partitioning as a means of fault contention, and we allocate the dier-
+ent software components to a partitioning scheme that allows the software level
+of some architectural components to be downgraded. Finally, we propose the 570
+use of formal methods to facilitate the analysis and verication of the critical
+software.
+6.1. Preliminary software level determination
+Based on the safety framework in Fig. 2, it is possible to ensure safety as
+long as the RPAS has the ability to command the ight termination action in 575
+an expeditious manner, at any time and under any condition of the RPAS. In
+the ACM scheme proposed in this paper, the Safety Monitor is the software
+component with the ability to command this action autonomously, without the
+collaboration of any other system. Accordingly, in the safety assessment, a
+software error causing the loss of function of either the Safety Monitor or the 580
+Flight Termination System will have catastrophic eects. For this reason, the
+two systems will be considered the hardcore components for maintaining safety
+and should be assigned the highest software level.
+In the case of the Contingency Manager and the Mission Manager compo-
+nents, the loss of any of these systems means that the ight path of the vehicle 585
+cannot be controlled. According to [53], this is thought to have hazardous eects
+on the operation of the RPAS as long as the vehicle is able to initiate a ight
+termination procedure; otherwise, such fault would have catastrophic eects.
+Consequently, assuming that the hardcore components of the architecture are
+able to safely terminate the ight, the Contingency Manager and the Mission 590
+Manager could be assigned a software level \B".
+The problem that emerges is that, according to the DO-178 standard, soft-
+ware components with common modes of failure cannot have dierent software
+levels [35]. That is, if a software error occurs at some component, but this er-
+23
+
+--- Page 25 ---
+ror aects other functional components, then all these components should be 595
+assigned the software level associated with the most severe failure condition.
+In the case of the Safe Mission Manager in Fig. 4, if a serial implementation
+is conceived, then the loss of one component like the Mission Manager could
+cause a total system loss; and, as a result, all the components in the architec-
+ture should be assigned the same (highest) software level, which adds to the 600
+software development eort.
+6.2. Architectural strategies for fault contention
+To overcome this, the DO-178 standard proposes some architectural choices
+that can limit the impact of failures to ultimately demonstrate that sucient
+independence between software components with respect to their failure modes 605
+exists [35]. If this is achieved, it is possible to separate safety-critical functions
+to independent modules with independent failure modes. Consequently, it is
+possible to downgrade the software level of some components by means of an
+appropriate architectural choice.
+One of the possible architectural choices is redundancy . Redundant congu- 610
+rations mitigate hazards by replicating system components in dierent proces-
+sors. So if a fault (either a software fault or a hardware fault) causes a system
+malfunction, the aected component can be replaced by a backup copy that
+provides the same functionality, but one executed on dierent hardware. The
+use of dissimilar , redundant components is required to avoid software develop- 615
+ment errors in this case. Redundant systems are common in aviation. Dual and
+triple redundancy is often required in critical aircraft systems [54, 55]. However,
+having dedicated hardware for each replicated application increases the system
+complexity, as well as development costs. Moreover, in the case of UAS, the
+reduced size and weight restrictions make redundancy hard to implement. 620
+Another architectural choice that can limit the impact of failures is parti-
+tioning . Partitioned architectures, called Integrated Modular Avionics (IMA)
+architectures in aerospace [56], provide protection and separation among ap-
+plications running on the same hardware. This way, failures occurring in one
+24
+
+--- Page 26 ---
+partition are not propagated to other partitions. 625
+The support for IMA architectures is dened by ARINC-650 and ARINC-651
+documents that specify general purpose hardware and software standards, and
+by ARINC-653, which species the application programming interface (API)
+[56]. Previous work by the authors presented an execution environment that
+supports the IMA concept [57]. The proposed framework relies on XtratuM, 630
+a hypervisor for real-time embedded systems developed at the UPV [58]. One
+of its guest real-time operating systems is LithOS [59], which is ARINC-653
+compliant. The next section discusses how to exploit the IMA concept to allo-
+cate the dierent Safe Mission Manager components to the proposed execution
+framework. 635
+6.2.1. Denition of the partitioning scheme
+The denition of the partitioning scheme is a design issue. The simplest
+solution would be to allocate all the software components to a single partition.
+However, this does not exploit the IMA concept and implies that a fault oc-
+curring at some component can produce a total system loss. The opposite is 640
+allocating each function to a separate partition, but this unreasonably increases
+the system complexity. To overcome this, we propose an intermediate solution
+based on allocating software components according to their impact on overall
+safety.
+Accordingly, the proposed partitioning scheme will be composed of two par- 645
+titions, represented in Fig. 7. In this scheme, partition P0 allocates the software
+components that can contribute to failure conditions with catastrophic conse-
+quences; these are the Safety Monitor and the Flight Termination systems. Most
+of the software verication eort will fall on this partition. By contrast, parti-
+tion P1 allocates the components whose failure is considered to have hazardous 650
+eects in the safety assessment, i.e. the Contingency Manager and the Mission
+Manager systems.
+The advantage of this partitioning scheme is that a fault occurring at a
+component allocated to partition P1 will not be propagated to any component in
+25
+
+--- Page 27 ---
+XtratuM API 
+HAL LithOS Partition P1 
+Contingency 
+Manager & 
+Mission Manager 
+LithOS Partition P0 
+Safety Monitor & 
+Flight Termination 
+System 
+Hardware Figure 7: Safe Mission Manager partitioning scheme.
+partition P0. In other words, a software error aecting partition P1 will not have 655
+catastrophic consequences because partition P0 is still able to perform the ight
+termination action (even if P1 fails). As a result, it is possible to downgrade the
+software level of the Contingency Manager and the Mission Manager from level
+\A" (in case of a serial implementation) to level \B" and reduce the number of
+verication objectives. 660
+6.3. Formal methods for software verication
+Along with fault contention mechanisms, reliable software design method-
+ologies must also be followed in the software development process to assure that
+critical software is of high quality and error-free. Practices like defensive pro-
+gramming are often suggested for reducing software complexity and ultimately 665
+limiting the chance of introducing errors. For example, it is possible to limit
+the use of a programming language to a subset; this avoids the use of structures
+that could lead to non-deterministic behaviors. But the key mechanism for er-
+ror prevention is the use of verication methods that ensure that errors entered
+into the software lifecycle get detected. In the previous version of the DO-178 670
+standard (version B), the verication process mostly relies on generating a large
+set of test cases for dierent steps in the development process. However, the
+coverage of these tests cannot demonstrate the total absence of errors in the
+code [18]. Another shortcoming is that safety-related requirements are often
+dicult to test following such verication strategy [19, 60]. 675
+26
+
+--- Page 28 ---
+The last version of the DO-178 standard (version C) introduces the use of
+formal methods through the specic supplement DO-333 [61]. A formal method
+is dened as a formal analysis carried out on a formal model [35]. A formal
+model is a system description expressed with a formal specication language,
+i.e. with precise syntax and formal semantics. Such models can be useful 680
+in several phases of the development process, such as for the simulation of the
+system behavior or the reasoning over such system representation, among others.
+The most extended use is formal verication, however, which is the aim of the
+DO-333 supplement and of this work as well.
+A formal specication makes it possible for system properties to be dened 685
+in a precise, consistent and complete way [62]. When used for verication,
+properties are deduced from the system requirements, and in the case of safety-
+critical system, from the safety requirements. Then, formal methods can be
+used to verify these properties against the model to reveal design errors or
+model inconsistencies, and ultimately to provide verication evidence for the 690
+certication process. One of the advantages of formal methods is that safety-
+critical properties can be checked more easily than with a conventional testing
+strategy [18, 19, 60].
+The DO-333 supplement allows three classes of formal methods to satisfy
+certication objectives: theorem proving, abstract interpretation and model 695
+checking. This latter method is the focus of this work, while the remaining ones
+are omitted for brevity. In model checking, the model is represented as a nite-
+state machine (FSM), and the properties are formalized using temporal logic.
+Both the model and the properties are deduced manually from the system that
+is being veried. Then, the entire state space of the FSM is analyzed to check 700
+the validity of the formal properties, with the advantage that this analysis is
+fully automated. If a property is not satised, a counter-example is generated,
+and the model or the property can be rened and analyzed again. The resulting
+process is schematized in Fig. 8.
+The application of model checking techniques to safety-critical avionics sys- 705
+tems has increased in recent years [18, 19, 63]. The next section studies how to
+27
+
+--- Page 29 ---
+System Model 
+checking Model 
+speciﬁcation 
+Requirement 
+speciﬁcation Formal 
+model 
+Set of 
+properties Manual 
+process 
+Document Automatic 
+process Figure 8: Model checking process. Source: [60].
+exploit this method in the software development of the ACM functions presented
+in this work.
+7. Formal design and verication of a contingency management pol-
+icy: a case study 710
+This section illustrates the use of model checking to verify the correctness
+of a contingency management policy. Based on the contingency management
+scheme in Sec. 5, contingency management policy depends on the Safety Moni-
+tor state automaton and on the Contingency Plan. Accordingly, we will develop
+a particular specication for these models, and we will identity some properties 715
+with which these models must comply. Then, we will translate both the models
+and the properties into a formal language and use the NuSMV model checking
+tool [64] to analyze the formal model with regards to the properties. The result-
+ing process will ensure that the system design reaches a certain level of quality
+before it is implemented. 720
+It is to be noted that the contingency management policy should respond
+to a system safety assessment. The type of contingency events to be handled
+and the required responses to these events often vary depending on the type of
+Remotely Piloted Aircraft (RPA) and the type of mission being performed. It is
+not the goal of this paper to present one given policy for a specic application. 725
+Rather, the purpose is to show how the development and verication of a realistic
+avionics application can benet from formal methods. For this reason, the
+proposed policy will serve for demonstration purposes only. In any case, it will
+28
+
+--- Page 30 ---
+be developed in compliance with current airspace regulation and will aim to be
+generic enough so that it can be applied to a variety of RPA performing dierent 730
+mission types.
+7.1. Specication of the Safety Monitor model
+The proposed Safety Monitor model accounts for the occurrence of the ve
+contingency events described below. These are the fault hypothesis of this case
+study, which are in line with the three key risk areas reported in [1]. Indeed, it 735
+is reasonable to expect these events to occur on any type of RPAS mission. If
+dierent fault hypothesis are assumed, then the subsequent design steps should
+also be rewritten.
+a.C2 link loss is considered to be any situation in which the RPA can no
+longer be controlled by the remote pilot due to the degradation or total loss 740
+of the communication channel. This is likely even when redundant data link
+architectures are provided. Possible causes include screening terrain, ocean
+wave eects, malicious interferences, out of range, equipment failure and
+aircraft maneuvers.
+The C2 link mode of failure is not always a fail-stop failure (i.e. a \clean" 745
+failure). Usually, the C2 link experiences a degradation in which repetitive
+and intermittent unavailabilities or delays in the transaction time occur. It
+is therefore important to determine the sustained loss of link Tsloss, which
+is the time period at which the C2 link should be declared as being lost.
+b.GPS loss of performance is due to the lack of satellite coverage or to a poor 750
+satellite signal. According to ICAO's Performance-Based Navigation (PBN)
+[55], this performance degradation must be detected by RAIM systems. The
+navigation system continuously computes its Actual Navigation Performance
+(ANP), which is the maximum navigation error. When the ANP is higher
+than a specied Required Navigation Performance (RNP) then the system 755
+must signal a GPS loss.
+29
+
+--- Page 31 ---
+c.Loss of control refers to situations where the pilot or the automatic guid-
+ance system are unable to control the aircraft, resulting in an unrecoverable
+deviation from the intended ight path. This is one of the most complex
+contingencies, involving numerous contributing factors that act individually 760
+or, more often, in combination. These factors include mechanical failures,
+weather conditions, sensor failures and ineective aircraft control. Loss of
+control can be detected because the aircraft enters a ight regime outside its
+normal ight envelope. Ineective control occurs when the guidance system
+provides the control loops with targets that cannot be achieved. Control sys- 765
+tems attempt to prevent this situation by setting a ight envelope protection
+that puts some limits on attitude and speed targets; however, mechanical
+failures or extreme environmental conditions can make these preventive ac-
+tions ineective.
+d.Trac alert refers to the Detect and Avoid (DAA) capability which in RPAS 770
+relies on ACAS Xu equipment [23]. It provides two alarm thresholds: Trac
+Advisories (TAs) and Resolution Advisories (RAs). TA is an indication
+alerting that a certain intruder is a potential threat. RA is an indication
+requiring the pilot to perform a quick maneuver deviating from the current
+ight path to provide separation from collision threats. False alerts are an 775
+important issue in collision avoidance systems. Variability in pilot behavior
+and aircraft dynamics make it dicult to predict where the intruder aircraft
+will be in the future. This requires a tradeo between safety and operational
+considerations.
+e.Mission boundary limits violation deals with two slightly dierent problems: 780
+no-y zones and geofencing , see Fig. 9. On one hand, no-y zones are loca-
+tions where ight may be restricted by regulation or raise safety concerns.
+The RPAS shall not y into these zones. On the other hand, geofencing
+consists of setting some boundaries or contention barriers to the area where
+the RPAS operation takes place and taking the proper measures to enforce 785
+these boundaries. The boundaries include both horizontal and vertical lim-
+30
+
+--- Page 32 ---
+No-ﬂy 
+zone Geofence 
+Hard boundary 
+ Soft boundary Figure 9: No-y zones and geofencing.
+its. The RPAS shall not y out of these zones. When the whole mission
+takes place in segregated airspace, these limits also include the path from
+the aerodrome to and from the operations area.
+No-y zones and geofencing require continuous monitoring and checking 790
+of boundary violations. Two type of boundaries associated with the two
+alarm thresholds are usually considered. A hard boundary denes the limits
+that should never be trespassed. Violation of this boundary implies ight
+termination. A soft boundary denes the limits of the last chance to turn
+before violating mission boundaries. This limit strongly depends on the 795
+aircraft performance and the navigation performance.
+7.1.1. Decision logic
+The Safety Monitor model must diagnose each of the previous contingencies
+and decide whether the resulting state is to be handled by the Contingency Man-
+ager or by the Flight Termination System. In this case study, we determine that 800
+the occurrence of one single \soft" contingency can be addressed by the Contin-
+gency Manager, but any combination of nested contingencies or the occurrence
+of a \hard" event require instant ight termination. The resulting decision
+logic is modeled in Fig. 10. It shows an FSM with seven states: the nominal
+state ( S1), the ight termination state ( S7), and ve risk mitigation states ( S2 805
+31
+
+--- Page 33 ---
+S2: 
+Autonomous 
+operation S1: 
+Nominal 
+operation 
+S4: 
+Degraded 
+control S3: 
+Degraded 
+navigation S5: 
+Trafﬁc alert S6: 
+Boundary alert 
+S7: 
+Flight 
+termination g12 g21 g61 
+g15 g16 g51 g41 
+g14 g31 
+g13 
+g67 g27 g57 g47 g37 
+g17 Figure 10: The Safety Monitor model presents one nominal state (in white) and several
+contingency states (in gray). State transitions gijare triggered by contingency events ( i < j )
+and by recovery events ( i > j ).
+toS6, one per contingency under study). For example, Autonomous operation
+(S2) describes C2 link loss conditions; Degraded navigation (S3) implies reduced
+navigation capability due to GPS loss of performance , etc. Transitions between
+these states are labeled as gij, where iis the initial state and jis the resulting
+state. They can be triggered by contingency events (those where i < j ) or by 810
+recovery events ( i > j ).
+Some important properties of this model are: there should always be a tran-
+sition for reaching the ight termination state in one step; the ight termination
+state should be a nal state (i.e. one that has no successors); and one risk mit-
+igation state must not be reached from another risk mitigation state in a direct 815
+manner.
+Finally, note that if a dierent policy is conceived, then dierent states
+should be considered. For example, if risk mitigation measures are allowed for
+nested alert conditions, then additional states between single risk mitigation
+states ( S2toS6) and ight termination ( S7) should be added (for instance, 820
+Autonomous trac alert ).
+32
+
+--- Page 34 ---
+7.2. Specication of the Contingency Plan model
+The behavior of the Contingency Plan model is subject to the behavior of the
+Safety Monitor model: when a risk mitigation state is entered, the Contingency
+Plan determines an appropriate contingency procedure by means of a decision 825
+logic. The specication of the Contingency Plan model thus requires the def-
+inition of: a)a list of suitable contingency procedures for the risk mitigation
+states under study, and b)the corresponding decision logic. The list of proce-
+dures is, of course, dependent on the Safety Monitor states: if dierent states
+are considered, then the list of procedures should be reevaluated, as should the 830
+decision logic.
+Based on the risk mitigation states in this case study (Fig. 10), we propose a
+series of procedures inspired by the emergency procedures for manned aviation
+and by the contingency options in Doc. 10019 AN/507 [3]. The list contains four
+contingency procedures of a tactical nature, including: a.1) loitering ,a.2) climb- 835
+ing to regain the signal (either the GPS signal or C2 link signal), a.3) avoidance
+maneuver , and a.4) reverting to manual control ; and two strategical contingency
+options: b.1) landing at a designated landing site, and b.2) ight termination .
+The fact that the ight termination action is also available for the Contin-
+gency Plan warrants special attention. Even though the Safety Monitor has not 840
+entered the Flight termination state (meaning that there is still a safety margin
+for attempting a risk mitigation action), the Contingency Manager might be
+unable to nd a more convenient option for a given contingency state. In these
+cases, ight termination will be commanded by the Contingency Manager, with
+the dierence that it will not necessarily be performed expeditiously; by con- 845
+trast, it can be preceded by a strategical phase in which the RPAS attempts to
+reach one of the FTPs specied in the Mission Plan, thus increasing safety.
+Each of the aforementioned procedures can be executed under specied con-
+ditions only. For example, revert to manual control shall not be executed if
+the C2 link is lost. Another example is the landing procedure, which should 850
+not be executed after the GPS loss because it requires a high navigation accu-
+racy. In order to develop such requirements, we propose using the Classication
+33
+
+--- Page 35 ---
+Tree Method (CTM) [65], a graphical methodology that facilitates the require-
+ment specication in the following manner: 1)it helps to identify the relevant
+variables for the decision-making problem, as well as their possible values; 2) 855
+it eases the analysis of nested alerts (if applicable); and especially, 3)formal
+requirements can be directly extracted from the tree.
+The resulting classication tree is presented in Fig. 11. It shows that the
+set of requirements are expressed in terms of the state variables introduced in
+Sec. 5.2; these are the tree branches. Therefore, the requirements are expressed 860
+as follows: a)when a specic value of one variable is required to select the
+procedure, it is marked with a black dot; in this case, the remaining values of
+this variable shall be left with no mark for this procedure. b)When the variable
+is not relevant for the selection of this procedure, then all their possible values
+are marked with a question mark. 865
+7.2.1. Decision logic
+Based on the previous list of options, we propose the following decision logic
+for the dierent risk mitigation states under study. Note that, for brevity, the
+following logic only accounts for contingencies occurring during the en-route
+phase, although the full policy can be easily extended: 870
+a. After the C2 link loss event, the system is in the Autonomous operation
+state. In this state, the goal is to minimize the time of ight \not under
+command" [3]. According to ICAO, this can be achieved by either landing
+at a designated landing site, climbing to regain the signal , or performing
+theight termination action. We assume that all of these options have 875
+some conguration parameters specied in the Mission Plan that determine
+the associated locations at which each procedure is to be performed, see
+Sec. 5.2. That is, the Mission Plan will specify all the possible airdromes
+and the allowed areas for climbing and terminating the ight. Based on
+this assumption, we suggest deciding whether to land or climb depending 880
+on which option is closer to the current position of the RPAS; and in case
+the resulting route is unfeasible (i.e. that the associated locations cannot be
+34
+
+--- Page 36 ---
+Figure 11: Preconditions for activating contingency procedures expressed using the Classication Tree Method.
+35
+
+--- Page 37 ---
+reached), then ight termination will be selected.
+b. A GPS loss of performance does not imply that the aircraft cannot determine
+its position by other means. Alternatives are ground-based navigation aids 885
+(if available) and dead-reckoning. However, the accuracy of these methods
+is lower than that of GPS and is probably insucient for performing a given
+mission or complying with the RNP [55]. As such, after the loss of the GPS
+signal, the system evolves to the Degraded navigation state. In this state, if
+the RPAS is ying in controlled airspace, PBN specications require it to 890
+revert to manual control . Otherwise, climbing to regain the signal orloitering
+are the most convenient options, depending on their associated locations and
+the current position of the RPAS.
+c. The only suitable action for dealing with the Degraded control state is re-
+verting to manual control . Note that, in order to maintain safety, this pro- 895
+cedure should be performed without resulting in a transient that requires
+exceptional piloting skill or alertness from the RPA crew [66].
+d. During a Trac alert , the ACAS Xu equipment allows an automatic avoid-
+ance maneuver to be performed in order to regain the separation minima.
+ACAS Xu goes beyond conventional Trac alert and Collision Avoidance 900
+Systems (TCAS) as it not only informs the pilot, but also executes the
+recommended evasion maneuver (though the remote pilot still retains the
+ability to override the proposed action).
+e. Surpassing the soft boundary of a geofence or a no-y zone causes a Bound-
+ary alert state. In this state, the RPAS starts an avoidance maneuver to go 905
+back inside the mission limits. If this is achieved, the original mission can
+be automatically resumed afterwards.
+7.3. Formal specication and verication of the policy
+In order to verify the proposed contingency management policy using the
+model checking techniques, it is necessary to translate the previous specica- 910
+tion into a formal language. In this case, we will use the SMV language, and
+36
+
+--- Page 38 ---
+NuSMV as the model checking tool. The resulting formal model of the contin-
+gency management policy will be composed of two modules: the Safety Monitor
+module, and the Contingency Plan module. An extract from these modules is
+shown in Figures 12 and 13, respectively. 915
+As it can be observed, both modules start with a declaration of the state
+variables using the VARcommand. This is followed by the specication of the
+FSM that describes the behavior of each model. In SMV, the FSM is declared
+using the ASSIGN command, followed by the initial value init(state) and the
+list of transitions next(state) . The last part of the modules species the prop- 920
+erties with which the model must comply. In this case, the properties will be
+expressed using Computation Tree Logic (CTL) formulae, where CTLSPEC de-
+nes the start of a CTL expression, and \ ->" is the logical implication operator.
+The remaining notation is described in [64].
+In the case of the Safety Monitor model, an extract of the FSM in Fig. 10 925
+is shown in lines 58 to 72 of Fig. 12. In particular, it shows some transitions
+from the Nominal andAutonomous operation states. With respect to the formal
+properties, some relevant requirements presented in Sec. 7.1 are also formalized
+in this extract. For example, lines 121 to 125 specify that if a soft contingency
+event occurs when ying in a Nominal state, then the next state shall be a risk 930
+mitigation state; or that the Flight termination state shall be always reachable;
+and that it must be reachable in one step. Note that these properties have
+been specied using symbolic declarations like recoveryEvent ,hardEvent , or
+riskMitigationState , which are omitted in the extract for brevity.
+In the case of the Contingency Plan model, the corresponding module is in- 935
+voked with four input parameters, see line 137 of Fig. 13. These are the variables
+on which the decision logic of the Contingency Plan relies: smstate corresponds
+to the variable state of the Safety Monitor module; shortestContingency-
+Route species which contingency procedure has an associated location that
+is closer to the current position of the RPAS; inEnrouteSegment describes 940
+whether the current phase of ight is en-route or not; and inControlled-
+Airspace denes the airspace class. Note that the last two variables are modeled
+37
+
+--- Page 39 ---
+24MODULE safetyMonitor
+25VAR
+26 state : fnominal, autonomousOp, degradedNav, degradedControl, trafficAlert,
+27 boundaryAlert, flightTermination g;
+28 event : fc2LinkLoss, gpsLoss, lossOfControl, trafficAlert,
+29 softBoundaryAlert, hardBoundaryAlert, c2LinkRcv, gpsRcv, inSteadyFlight,
+30 trafficWellClear, boundaryWellClear g;
+31DEFINE
+32 softEvent := (event = c2LinkLoss | event = gpsLoss | event = lossOfControl |
+33 event = trafficAlert | event = softBoundaryAlert);
+  
+58ASSIGN -- Safety Monitor state automaton
+59 init (state) := nominal;
+60 next (state) :=
+61 case
+62 --In S1: Nominal operation
+63 state = nominal & event = c2LinkLoss : autonomousOp; --g12
+64 state = nominal & event = gpsLoss : degradedNav; --g13
+65 state = nominal & event = lossOfControl : degradedControl; --g14
+66 state = nominal & event = trafficAlert : trafficAlert; --g15
+67 state = nominal & event = softBoundaryAlert : boundaryAlert; --g16
+68 --In S2: Autonomous operation
+69 state = autonomousOp & event = c2LinkRcv : nominal; --g21
+70 state = autonomousOp & (event = trafficAlert | event = softBoundaryAlert
+71 | event = gpsLoss | event = lossOfControl) : flightTermination; --g27
+72 --In S3: Degraded navigation
+  
+121CTLSPEC AG (state = nominal & softEvent -> AX riskMitigationState);
+122CTLSPEC AG (riskMitigationState & recoveryEvent -> AX state = nominal);
+123CTLSPEC AG (hardEvent -> AX state = flightTermination);
+124CTLSPEC AG (state=flightTermination -> ! EF state != flightTermination);
+125CTLSPEC AG EF (state = flightTermination);
+Figure 12: Extract of the Safety Monitor model in SMV language.
+38
+
+--- Page 40 ---
+137MODULE contingencyPlan (sm state, shortestContingencyRoute, inEnrouteSegment,
+138inControlledAirspace)
+139VAR
+140 contingencyProc : fcontinueOriginalPlan, loiter, climb, avoidanceManeuver,
+141 toManual, land, flightTermination g;
+  
+150ASSIGN
+151 init (contingencyProc) := continueOriginalPlan;
+152 next (contingencyProc) :=
+153 case
+154 --In S1: Nominal operation
+155 sm_state = nominal & tacticalProc : continueOriginalPlan;
+156 --In S2: Autonomous operation
+157 smstate = autonomousOp & inEnrouteSegment &
+158 shortestContingencyRoute = climb : climb;
+159 smstate = autonomousOp & inEnrouteSegment &
+160 shortestContingencyRoute = land : land;
+161 smstate = autonomousOp & inEnrouteSegment & shortestContingencyRoute
+162 != climb & shortestContingencyRoute != land : flightTermination;
+163 smstate = autonomousOp & ! inEnrouteSegment : flightTermination;
+164 --In S3: Degraded navigation
+  
+188CTLSPEC AG ((inEnrouteSegment & ! inLossOfControl & ! inTrafficAlert & !
+189inBoundaryAlert) | AX contingencyProc != loiter)
+190CTLSPEC AG ((inEnrouteSegment & ! inLossOfControl & ! inTrafficAlert & !
+191inBoundaryAlert) | AX contingencyProc != climb)
+192CTLSPEC AG ((inEnrouteSegment & ! inGpsLoss & ! inLossOfControl) | AX
+193contingencyProc != avoidanceManeuver)
+194CTLSPEC AG ((! inC2Loss) | AX contingencyProc != toManual)
+195CTLSPEC AG ((inEnrouteSegment & ! inGpsLoss & ! inLossOfControl & !
+196inTrafficAlert & ! inBoundaryAlert) | AX contingencyProc != land)
+197CTLSPEC AG EF contingencyProc=flightTermination;
+Figure 13: Extract of the Contingency Plan model in SMV language.
+39
+
+--- Page 41 ---
+Figure 14: Verication results in the NuSMV console.
+as boolean variables for simplicity.
+Then, an extract of the FSM describing the decision logic of Sec. 7.2.1 is
+shown in lines 150 to 164 of Fig. 13. For example, the contingency procedure 945
+(contingencyProc ) that will be selected during the Autonomous operation can
+be either climb ,land , orflightTermination , depending on the RPAS condi-
+tion. The last part of this extract shows the preconditions for activating each
+procedure, which were depicted in the classication tree of Fig. 11. In this case,
+they have been formalized using CTL formulae of the form AG(s | AX !p) , see 950
+lines 188 to 197; meaning that each occurrence of condition p(the activation of
+a procedure) is preceded by condition s(the required state condition) [67].
+Finally, the previous modules shall be instantiated from a main module which
+is here omitted for brevity. The resulting SMV le can then be interpreted by
+NuSMV, which will check if the CTL specications are satised by the model. 955
+The output of this program is shown in Fig. 14. It shows that the transition
+relation is total, and that all specications hold. In summary, the results demon-
+strate the correctness of the proposed policy before it can be implemented.
+40
+
+--- Page 42 ---
+8. Conclusions
+Current proposals for a regulatory framework for UAS are operation-centric 960
+and rely on a risk analysis. In order to achieve the target level of safety, we
+proposed increasing the level of automation of the on-board system by inserting
+Automated Contingency Management functions. In this paper, we discussed the
+architectural design of the resulting system, which we called the Safe Mission
+Manager. The proposed solution provides an interesting balance between safety 965
+and robustness as it is able to adapt autonomously to contingencies by provid-
+ing dierent risk mitigation policies before commanding the ight termination
+action.
+We also discussed safety aspects related to the software development of this
+system. As a result of this analysis, we proposed the use of partitioning as a 970
+means for fault contention, and we allocated the dierent software components
+of the Safe Mission Manager to a particular partitioning conguration. This
+conguration is expected to reduce the software verication eort of the certi-
+cation process as it makes it possible to downgrade the software level of some
+components of the architecture. 975
+In addition, we proposed using formal methods for software verication. For-
+mal methods, and particularly formal model checking, can help in analyzing the
+consistency, completeness and correctness of a software model. In this paper,
+we illustrated the model checking technique using the specication of a con-
+tingency management policy as a case study. We identied the most relevant 980
+contingencies for RPAS, proposed a list of mitigation actions and developed
+the corresponding decision logic. Finally, we modeled all these aspects using a
+formal specication and demonstrated that the software design is correct before
+implementation.
+In the future, we plan to develop a novel Mission Plan specication that sup- 985
+ports the denition of the conguration parameters of the dierent contingency
+options and to validate the proposed Safe Mission Manager System running in
+a simulation environment.
+41
+
+--- Page 43 ---
+Acknowledgments
+This work was supported by the Spanish Regional Government \Generalitat 990
+Valenciana" under contract ACIF/2016/197.
+References
+[1] European Aviation Safety Agency, Introduction of a regulatory framework
+for the operation of unmanned aircraft, 2015.
+[2] European Aviation Safety Agency, Notice of Proposed Amendment 2017- 995
+05 (A). Introduction of a regulatory framework for the operation of drones:
+Unmanned aircraft system operations in the open and specic category,
+2017.
+[3] International Civil Aviation Organization, Doc. 10019, AN/507: Manual
+on Remotely Piloted Aircraft Systems (RPAS), 1st ed., ICAO, Montr eal, 1000
+Canada, 2015.
+[4] F. Adolf, F. Thielecke, A Sequence Control System for Onboard Mission
+Management of an Unmanned Helicopter, in: AIAA Infotech @ Aerospace,
+AIAA SciTech, AIAA, Rohnert Park, CA, USA, 2007, pp. 2769{2780.
+doi:10.2514/6.2007-2769 . 1005
+[5] F. Adolf, F. Andert, S. Lorenz, L. Goormann, J. Dittrich, An Unmanned
+Helicopter for Autonomous Flights in Urban Terrain, in: T. Kr oger,
+F. Wahl (Eds.), Advances in Robotics Research: Theory, Implementation,
+Application, volume 9, Springer, Berlin, Heidelberg, 2009, pp. 275{285.
+[6] H. Usach, J. Vila, A. Crespo, P. Yuste, A Highly-automated RPAS Mis- 1010
+sion Manager for Integrated Airspace, in: 5th International Conference on
+Application and Theory of Automation in Command and Control Systems,
+ATACCS '15, ACM, 2015, pp. 11{20. doi: 10.1145/2899361.2899363 .
+42
+
+--- Page 44 ---
+[7] European RPAS Steering Group, Roadmap for the integration of civil Re-
+motely Piloted Aircraft Systems into the European Aviation System, Eu- 1015
+ropean Commission, 2013.
+[8] Federal Aviation Administration, Integration of Civil Unmanned Aircraft
+Systems (UAS) in the National Airspace System (NAS), 1st ed., U.S. De-
+partment of Transportation, 2013.
+[9] Unmanned Aircraft System (UAS) Registration Task Force (RTF) Avia- 1020
+tion Rulemaking Committee (ARC), Task Force Recommendations Final
+Report, UAS Task Force, 2015.
+[10] R. Rom an, F. J. S aez-Nieto, C. Cuerno, RPAS Integration in Non-
+segregated Airspace: the SESAR Approach, in: 4th SESAR Innovation
+Days, SESAR Joint Undertaking, Madrid, Spain, 2014. 1025
+[11] L. Tang, A. Saxena, M. E. Orchard, G. J. Kacprzynski, G. Vachtsevanos,
+A. Patterson-Hine, Simulation-based Design and Validation of Automated
+Contingency Management for Propulsion Systems, in: Aerospace Confer-
+ence, IEEE, Big Sky, MT, USA, 2007, pp. 1{11.
+[12] A. Saxena, M. E. Orchard, B. Zhang, G. Vachtsevanos, L. Tang, Y. Lee, 1030
+Y. Wardi, Automated Contingency Management for Propulsion Systems,
+in: European Control Conference (ECC), IEEE, Kos, Greece, 2007, pp.
+3515{3522.
+[13] L. Tang, G. Kacprzynski, K. Goebel, J. Reimann, M. E. Orchard, A. Sax-
+ena, B. Saha, Prognostics in the Control Loop, in: AAAI Fall Symposium 1035
+on Articial Intelligence for Prognostics, AAAI, Arlington, VA, USA, 2007.
+[14] J. Li, G. Vachtsevanos, Human-machine interface: A framework for
+contingency management of complex aerospace systems, in: IEEE AU-
+TOTESTCON, IEEE, National Harbor, MD, USA, 2015, pp. 80{86.
+doi:10.1109/AUTEST.2015.7356470 . 1040
+43
+
+--- Page 45 ---
+[15] P. Kopardekar, Safely enabling UAS operations in low-altitude airspace,
+in: Unmanned Aerial Systems Trac Management (UTM) Convention,
+NASA, Moett Field, CA, USA, 2015.
+[16] B. Korn, A. Udovic, File and Fly: Procedures and techniques for inte-
+gration of UAVs in controlled airspace, in: 25th Congress of International 1045
+Council of the Aeronautical Sciences, ICAS, Hamburg, Germany, 2006.
+[17] M. Finke, Dening RPAS emergency procedures for controllers, remote
+pilots and automatic on-board systems, in: Deutscher Luft- und Raum-
+fahrtkongress (DLRK), Braunschweig, Germany, 2016.
+[18] C. Torens, F. Adolf, Using Formal Requirements and Model-Checking for 1050
+Verication and Validation of an Unmanned Rotorcraft, in: AIAA Infotech
+@ Aerospace, AIAA SciTech, AIAA, 2015, pp. 1645{1657. doi: 10.2514/6.
+2015-1645 .
+[19] D. Cofer, S. P. Miller, Formal Methods: Case Studies for DO-333, Technical
+Report NASA/CR-2014-218244, NF1676L-18435, NASA Langley Research 1055
+Center, Hampton, VA, USA, 2014.
+[20] A. Frey, T. Hanti, Expanding the operational range of UAS with an
+onboard supervisory instance, in: 34th Digital Avionics Systems Con-
+ference (DASC), IEEE/AIAA, Prague, Czech Republic, 2015, pp. 1{12.
+doi:10.1109/DASC.2015.7311437 . 1060
+[21] M. U. de Haag, P. Duan, A multiple hypothesis predictive alerting (MHPA)
+method for improved aircraft state awareness, in: 34th Digital Avionics
+Systems Conference (DASC), IEEE/AIAA, Prague, Czech Republic, 2015,
+pp. 1{15. doi: 10.1109/DASC.2015.7311443 .
+[22] Y. Kim, M. J. Kochenderfer, J. Grana, J. Bono, D. Wolpert, Optimal 1065
+lost-link policies for unmanned aircraft, in: 34th Digital Avionics Systems
+Conference (DASC), IEEE/AIAA, Prague, Czech Republic, 2015, pp. 1{13.
+doi:10.1109/DASC.2015.7311430 .
+44
+
+--- Page 46 ---
+[23] G. Manfredi, Y. Jestin, An introduction to ACAS Xu and the chal-
+lenges ahead, in: 35th Digital Avionics Systems Conference (DASC), 1070
+IEEE/AIAA, Sacramento, CA, USA, 2016, pp. 1{9. doi: 10.1109/DASC.
+2016.7778055 .
+[24] R. P. Bonasso, R. J. Firby, E. Gat, D. Kortenkamp, D. P. Miller, M. G.
+Slack, Experiences with an architecture for intelligent, reactive agents,
+Journal of Experimental & Theoretical Articial Intelligence 9 (1997) 237{ 1075
+256. doi: 10.1080/095281397147103 .
+[25] Aeronautical Radio, Inc., ARINC specication 424-15. Navigation System
+Data Base, 2000.
+[26] G. J. Ducard, Fault-tolerant ight control and guidance systems, 1st ed.,
+Springer-Verlag, London, 2009. 1080
+[27] K. Berry, M. Sawyer, E. Austrian, Human Factors Assessment of RNAV
+Approach and Departure Procedures, Technical Report, FAA Human Fac-
+tors Division (ANG-C1), 2013.
+[28] C. W. Johnson, The hidden human factors in Unmanned Aerial Vehicles,
+in: 26th International Conference on Systems Safety, International Systems 1085
+Safety Society, Vancouver, Canada, 2008.
+[29] T. B. Sheridan, W. L. Verplank, Human and computer control of under-
+sea teleoperators, Technical Report, Massachusetts Institute of Technology,
+1978.
+[30] G. Wild, J. Murray, G. Baxter, Exploring civil drone accidents and inci- 1090
+dents to help prevent potential air disasters, MDPI Aerospace 3 (2016).
+doi:10.3390/aerospace3030022 .
+[31] R. Stansbury, T. Wilson, W. Tanis, A Technology Survey of Emergency
+Recovery and Flight Termination Systems for UAS, in: AIAA Infotech @
+Aerospace, AIAA SciTech, AIAA, Seattle, WA, USA, 2009, pp. 2038{2045. 1095
+doi:10.2514/6.2009-2038 .
+45
+
+--- Page 47 ---
+[32] European Organisation for the Safety of Air Navigation, EUROCONTROL
+Specications for the Use of Military Remotely Piloted Aircraft as Opera-
+tional Air Trac Outside Segregated Airspace, 2nd ed., 2012.
+[33] A. P. Williams, P. D. Scharre (Eds.), Autonomous Systems: Issues for 1100
+Defense Policymakers, NATO Supreme Allied Command Transformation,
+Norfolk, VA, USA, 2015.
+[34] NATO Standardization Agency, STANAG 4671: Unmanned Aerial Vehi-
+cles Systems Airworthiness Requirements (USAR), NATO, 2009.
+[35] Radio Technical Commission for Aeronautics (RTCA), DO-178C/ED-12C 1105
+Software Considerations in Airborne Systems and Equipment Certication,
+Washington, D.C., USA, 2011.
+[36] M. Leucker, C. Schallhart, A Brief Account of Runtime Verication, The
+Journal of Logic and Algebraic Programming 78 (2009). doi: 10.1016/j.
+jlap.2008.08.004 . 1110
+[37] F. Adolf, P. Faymonville, B. Finkbeiner, S. Schirmer, C. Torens, Stream
+Runtime Monitoring on UAS, in: S. Lahiri, G. Reger (Eds.), Runtime
+Verication. Lecture Notes in Computer Science, volume 10548, Springer,
+Cham, 2017. doi: 10.1007/978-3-319-67531-2_3 .
+[38] F. Mattern, Virtual time and global states of distributed systems, in: 1115
+Parallel and Distributed Algorithms, North-Holland, 1989, pp. 215{226.
+[39] A. Dheedan, Distributed Online Safety Monitor Based on Multi-Agent
+System and AADL Safety Assessment Model, in: Q. A. Memon (Ed.),
+Distributed networks: Intelligence, security, and applications, CRC Press,
+2008, pp. 317{345. 1120
+[40] E. Kiyak, F. Caliskan, Application of Fuzzy Logic in Aircraft Sensor Fault
+Diagnosis, International Journal of Systems Applications, Engineering &
+Development 6 (2012).
+46
+
+--- Page 48 ---
+[41] K. Blin, M. Akian, F. Bonnans, E. Homan, C. Martini, K. Zeghal, A
+Stochastic Conict Detection Model Revisited, in: 18th Applied Aero- 1125
+dynamics Conference, AIAA, Denver, CO, USA, 2000, pp. 4270{4279.
+doi:10.2514/6.2000-4270 .
+[42] M. J. Kochenderfer, J. E. Holland, J. P. Chryssanthacopoulos, Next-
+Generation Airborne Collision Avoidance System, Lincoln Laboratory
+Journal 19 (2012). 1130
+[43] M. O. Rabin, Probabilistic automata, Information and Control 6 (1963)
+230{245. doi: 10.1016/S0019-9958(63)90290-0 .
+[44] M. T. DeGarmo, Issues concerning integration of unmanned aerial vehicles
+in civil airspace, Technical Report, MITRE Center for Advanced Aviation
+System Development, 2004. 1135
+[45] International Civil Aviation Organization, Annex 2 to the Convention on
+International Civil Aviation: Rules of the Air, 10th ed., ICAO, Montr eal,
+Canada, 2005.
+[46] International Civil Aviation Organization, Annex 6 to the Convention
+on International Civil Aviation: Operation of Aircraft, 8th ed., ICAO, 1140
+Montr eal, Canada, 2001.
+[47] Federal Aviation Administration, Airplane Flying Handbook (FAA-H-
+8083-3A), 2004.
+[48] H. Usach, J. Vila, Recongurable Mission Plans for RPAS, 2018.
+Manuscript submitted for publication. 1145
+[49] Civil Air Navigation Services Organisation, ANSP Considerations for
+RPAS Operations, 2014.
+[50] C. M. Eaton, E. K. P. Chong, A. A. Maciejewski, Multiple-scenario un-
+manned aerial system control: a systems engineering approach and re-
+view of existing control methods, MDPI Aerospace 3 (2015). doi: 10.3390/ 1150
+aerospace3010001 .
+47
+
+--- Page 49 ---
+[51] R. J. Shively, A. Hobbs, B. Lyall, C. Rorie, Human performance consider-
+ations for Remotely Piloted Aircraft Systems (RPAS), Technical Report,
+Remotely Pilot Aircraft Systems Panel (RPASP), 2015.
+[52] C. Torens, F. Adolf, L. Goormann, Certication and Software Verication 1155
+Considerations for Autonomous Unmanned Aircraft, Journal of Aerospace
+Information Systems 11 (2014) 649{664. doi: 10.2514/1.I010163 .
+[53] K. Hayhurst, J. Maddalon, P. Miner, G. Szatkowski, M. Ulrey, M. DeWalt,
+C. Spitzer, Preliminary considerations for classifying hazards of unmanned
+aircraft systems, Technical Report NASA/TM-2007-214539, NASA, 2007. 1160
+[54] European Aviation Safety Agency, Certication Specications for Large
+Aeroplanes CS-25 Amendment 5, 2008.
+[55] International Civil Aviation Organization, Doc. 9613, AN/937:
+Performance-based Navigation (PBN) Manual, 4th ed., ICAO, Montr eal,
+Canada, 2013. 1165
+[56] Aeronautical Radio, Inc., ARINC specication 653-1. Avionics Application
+Software Standard Interface, 2003.
+[57] H. Usach, J. Vila, A. Crespo, P. Yuste, Automatic Deployment of an
+RPAS Mission Manager to an ARINC-653 Compliant System, Journal of
+Intelligent & Robotic Systems (2017). doi: 10.1007/s10846-017-0694-3 . 1170
+[58] M. Masmano, I. Ripoll, A. Crespo, J. Metge, XtratuM: a hypervisor for
+safety critical embedded systems, in: 11th Real-Time Linux Workshop,
+Dresden, Germany, 2009.
+[59] M. Masmano, Y. Valiente, P. Balbastre, I. Ripoll, A. Crespo, J. Metge,
+LithOS: a ARINC-653 guest operating for XtratuM, in: 12thReal-Time 1175
+Linux Workshop, Nairobi, Kenia, 2010.
+[60] R. Oliveira, Formal Specication and Verication of Interactive Systems
+with Plasticity: Applications to Nuclear-Plant Supervision, Ph.D. thesis,
+Universit e Grenoble Alpes, 2015.
+48
+
+--- Page 50 ---
+[61] Radio Technical Commission for Aeronautics (RTCA), DO-333/ED-216 1180
+Formal Methods Supplement to DO-178C and DO-278A, Washington,
+D.C., USA, 2011.
+[62] V. B. Mi si c, D. M. Vela sevi c, Formal specications in software development:
+An overview, The Yugoslav Journal of Operations Research 7 (1997) 79{96.
+[63] M. Webster, N. Cameron, M. Jump, M. Fisher, Towards certication of 1185
+autonomous unmanned aircraft using formal model checking and simula-
+tion, in: IAIAA Infotech @ Aerospace, Garden Grove, CA, USA, 2012, pp.
+1{15. doi: 10.2514/6.2012-2573 .
+[64] A. Cimatti, E. M. Clarke, E. Giunchiglia, F. Giunchiglia, M. Pistore,
+M. Roveri, R. Sebastiani, A. Tacchella, NuSMV 2: An OpenSource Tool 1190
+for Symbolic Model Checking, in: E. Brinksma, K. G. Larsen (Eds.), Com-
+puter Aided Verication, Springer, Berlin, Heidelberg, 2002, pp. 359{364.
+doi:10.1007/3-540-45657-0_29 .
+[65] M. Grochtmann, J. Wegener, K. Grimm, Test case design using classica-
+tion trees and the classication-tree editor (CTE), in: European Quality 1195
+Week, European Organization for Quality, 1995, pp. 30{39.
+[66] European Aviation Safety Agency, Certication Specication: CS VLA -
+Subpart B, 2016.
+[67] C. Baier, J.-P. Katoen, Principles of model checking, The MIT press, 2008.
+49
