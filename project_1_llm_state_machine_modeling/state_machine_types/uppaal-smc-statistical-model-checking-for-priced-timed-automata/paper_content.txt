@@ -1,0 +1,812 @@
+--- Page 1 ---
+M. Massink andH. Wiklicky(Eds.):Workshop onQuantitative
+Aspects of Programming Languages and Systems 2012 (QAPL201 2)
+EPTCS85, 2012, pp. 1–16,doi:10.4204/EPTCS.85.1©A. Legayetal.
+Thiswork islicensed under the
+Creative Commons AttributionLicense.UPPAAL-SMC:
+StatisticalModelCheckingforPricedTimedAutomata∗
+PeterBulychev AlexandreDavid KimGuldstrandLarsen
+MariusMikuˇ cionis DannyBøgstedPoulsen
+Department of Computer Science
+AalborgUniversity, Denmark
+{pbulychev,adavid,kgl,marius,dannybp }@cs.aau.dkAxelLegay
+INRIARennes, France
+Department of Computer Science
+Aalborg University, Denmark
+alegay@irisa.fr
+Zheng Wang
+Shanghai KeyLaboratory of TrustworthyComputing
+SoftwareEngineering Institute
+EastChina Normal University, China
+This paper offers a survey of U PPAAL-SMC, a major extension of the real-time veriﬁcation tool
+UPPAAL. UPPAAL-SMCallows for the efﬁcient analysis of performance properties of networks of
+priced timed automata under a natural stochastic semantics . In particular, U PPAAL-SMCrelies on
+a series of extensions of the statistical model checking app roach generalized to handle real-time
+systems and estimate undecidable problems. U PPAAL-SMCcomes together with a friendly user
+interface that allows a user to specify complex problems in a n efﬁcient manner as well as to get
+feedback in the form of probability distributions and compa re probabilities to analyze performance
+aspectsof systems. Thefocusof the surveyis on the evolutio nof the tool – includingmodelingand
+speciﬁcationformalismsaswellastechniquesapplied–tog etherwithapplicationsofthetooltocase
+studies.
+1 Introduction
+Quantitativeproperties ofstochasticsystemsareusually speciﬁedinlogicsthatallowonetocomparethe
+measure of executions satisfying certain temporal propert ies withthresholds. Themodel checking prob-
+lemforstochastic systemswithrespect tosuchlogicsistyp ically solvedbyanumerical approach [3,14]
+that iteratively computes (or approximates) the exact meas ure of paths satisfying relevant sub-formulas;
+the algorithms themselves depend on the class of systems bei ng analyzed as well as the logic used for
+specifying the properties.
+Another approach to solve the model checking problem is to simulatethe system for ﬁnitely many
+runs, and use hypothesis testing to infer whether the samples provide a statistical evidence for the sat-
+isfaction or violation of the speciﬁcation [40]. The crux of this approach is that since sample runs of
+a stochastic system are drawn according to the distribution deﬁned by the system, they can be used to
+get estimates of the probability measure on executions. Tho se techniques, also called Statistical Model
+Checking techniques (SMC)[26, 36, 40, 35], can be seen as atrade-off between test ing and formal veri-
+ﬁcation. In fact, SMC is very similar to Monte Carlo used in in dustry, but it relies on a formal model of
+thesystem. ThecoreideaofSMCistomonitoranumberofsimul ationsofasystemwhosebehaviorsde-
+pend on a stochastic semantic. Then, one uses the results of s tatistics (e.g. sequential hypothesis testing
+orMonteCarlo)together withthesimulationstogetanovera llestimateoftheprobability thatthesystem
+∗The paper is supported by VKR Centre of Excellence – MT-LAB an d the IDEA4CPS center established on a grant from
+Danish National ResearchFoundation
+
+--- Page 2 ---
+2 Statistical Model Checking for Priced TimedAutomata
+will behave in some manner. While the idea resembles the one o f classical Monte Carlo simulation, it is
+based on a formal semantic of systems that allows us to reason on very complex behavioral properties
+of systems (hence the terminology). This includes classica l reachability properties such as “can I reach
+such a state?”, but also non trivial properties such as “can I reach this state x times in less than y units
+of time?”. Ofcourse, incontrast withanexhaustive approac h, suchasimulation-based solution does not
+guarantee a result with 100% conﬁdence. However, it is possi ble to bound the probability of making an
+error. Simulation-based methods are known to be far less mem ory and time intensive than exhaustive
+ones, and are sometimes theonly option[41,27].
+Statistical model checking is now widely accepted in variou s research areas such as software engin-
+eering, inparticular for industrial applications[5,33, 1 8], or even for solving problems originating from
+systems biology[17, 29]. There are several reasons for this success. First, SMCisvery simple tounder-
+stand, implement, and use. Second, it does not require extra modeling or speciﬁcation effort, but simply
+an operational model of the system, that can be simulated and checked against state-based properties.
+Third, it allows us to verify properties[15, 16, 5] that cann ot be expressed in classical temporal logics.
+Finally, SMC allows to approximate undecidable problems. T his latter observation is crucial. Indeed
+most of emerging problems such as energy consumption are und ecidable[24, 9] and can hence only be
+estimated. SMC has been applied to a wide range of problems th at goes from embedded systems[15]
+and systems biology[15,16] to moreindustrial application s[5].
+Inaseriesofrecentworks[22,13,21],wehaveinvestigated theproblemofStatistical ModelCheck-
+ing for networks of Priced Timed Automata (PTA). PTAs are tim ed automata, whose clocks can evolve
+with different rates, while1being used with no restrictions in guards and invariants. In [21], we have
+proposed a natural stochastic semantic for such automata, w hich allows to perform statistical model
+checking. Our work has later been implemented in U PPAAL-SMC, that is a stochastic and statistical
+model checking extension of U PPAAL. UPPAAL-SMCrelies on a series of extensions of the statistical
+model checking approach generalized to handle real-time sy stems and estimate undecidable problems.
+UPPAAL-SMCcomes together with a friendly user interface that allows a u ser to specify complex prob-
+lemsinanefﬁcientmanneraswellastogetfeedbackinthefor mofprobabilitydistributions andcompare
+probabilities toanalyze performance aspects of systems.
+The objective of this paper is to offer a survey of U PPAAL-SMC. This includes modeling and spe-
+ciﬁcationformalismaswellastechniques applied–togethe r withapplications ofthetooltocasestudies.
+Structureofthepaper InSection2,weintroducetheformalismofnetworksofPrice dtimedautomata.
+Section 3 provides an overview of some existing statistical model checking algorithms, while Sections
+4 and 5 introduce the GUI and give some details on the engine of UPPAAL-SMC. Finally, Section 6
+presents aseries of applications for the tool-set and Secti on 7concludes the paper.
+2 Modeling Formalism
+The new engine of U PPAAL-SMC[22] supports the analysis of Priced Timed Automata (PTAs) t hat are
+timedautomatawhoseclockscanevolvewithdifferent rates indifferent locations. Infact,theexpressive
+power (up to timed bisimilarity) of NPTA equals that of gener al linear hybrid automata (LHA) [1],
+rendering mostproblems–including thatofreachability –u ndecidable. WealsoassumePTAsareinput-
+enabled, deterministic (with a probability measure deﬁned on the sets of successors), and non-zeno.
+1incontrast tothe usual restrictionof pricedtimedautomat a [7,2]
+
+--- Page 3 ---
+A.Legayet al. 3
+PTAs communicate via broadcast channels and shared variabl es to generate Networks of Price Timed
+Automata (NPTA).
+A1A0
+x<=1
+a!
+B1B0
+y<=2
+b!T1
+T3T0
+C’==2C’==4
+a?
+b?
+A B T
+Figure 1: AnNPTA, (A|B|T).Fig. 1 provides an NPTA with three components A,B, andTas
+speciﬁed using the U PPAALGUI. One can easily see that the compos-
+ite system (A|B|T)has the transition sequence:
+/parenleftbig
+(A0,Bo,T0),[x=0,y=0,C=0]/parenrightbig1−→a!−→
+/parenleftbig
+(A1,B0,T1),[x=1,y=1,C=4]/parenrightbig1−→b!−→/parenleftbig
+(A1,B1,T2),[x=2,y=2,C=6]/parenrightbig
+,
+demonstrating that the ﬁnal location T3ofTis reachable. In fact, loc-
+ationT3is reachable within cost 0 to 6 and within total time 0 and 2
+in(A|B|T)depending onwhen(and inwhichorder) AandBchoose to
+performtheoutput actions a!andb!. Assumingthatthechoiceofthese
+time-delays is governed by probability distributions, ame asure on sets
+of runs of NPTAs is induced, according to which quantitative properties such as “the probability of T 3
+being reached within atotal cost-bound of 4.3” become well-deﬁned.
+TimeCost
+Time/Costprobability
+00.120.240.360.480.600.72
+0 1.2 2.43.64.86.0
+Figure 2: Cumulative probabilities for time
+andCost-bounded reachability of T3.In our early works [21], we provide a natural
+stochastic semantics, wherePTAcomponents associate
+probability distributions to both the time-delays spent
+in a given state as well as to the transition between
+states. In U PPAAL-SMCuniform distributions are ap-
+plied for bounded delays and exponential distributions
+forthecasewhereacomponent canremainindeﬁnitely
+in a state. In a network of PTAs the components re-
+peatedly race against each other, i.e. they independ-
+ently and stochastically decide on their ownhow much
+todelay before outputting, withthe“winner” being the
+component that chooses the minimum delay. For in-
+stance, in the NPTA of Fig. 1, Awins the initial race
+overBwithprobability 0 .75.
+Asobservedin[21],thoughthestochasticsemanticofeachi ndividual PTAinU PPAAL-SMCisrather
+simple (but quiterealistic), arbitrarily complex stochas tic behavior canbeobtained bytheir composition
+when mixing individual distributions through message pass ing. The beauty of our model is that these
+distributions are naturally and automatically deﬁned by th e network of PTAs.
+The Hammer Game To illustrate the stochastic semantics further consider th e network of two priced
+timed automata in Fig. 3 modeling a competition between the t wo players Axel and Alex both having
+to hammer three nails down. As can be seen by the representing Work-locations the time (-interval) and
+rate of energy-consumption required for hammering a nail de pends on the player and the nail-number.
+As expected Axel is initially quite fast and uses a lot of ener gy but becomes slow towards the last nail,
+somewhatincontrasttoAlex. Tomakeitaninteresting compe tition, thereisonly onehammerillustrated
+by repeated competitions between the two players in the Ready-locations, where the slowest player has
+to wait in the Idle-location until the faster player has ﬁnished hammering the next nail. Interestingly,
+despite the somewhat different strategy applied, the best- and worst-case completion times are identical
+for Axel and Alex: 59 seconds and 150 seconds. So, there is no d ifference between the two players and
+their strategy, or isthere?
+
+--- Page 4 ---
+4 Statistical Model Checking for Priced TimedAutomata
+a) Axelx<=15 && D’==2go! done!x=0
+x=0 x=0 x=0 x=0x=0
+x<=12 x<=12x<=13 && D’==3x=0x=0
+x<=11 && D’==4x<=10x=0Work2 Ready2 Ready3Idle2
+done?Idle1
+Ready1 Work1go?
+x>=5 x>=6 x>=4 x>=3Idle3
+Work3
+x>=6Done
+x>=7go?
+go!go? done?
+done! go!done?
+done!
+b) Alexx<=10 && C’==4go! done!x=0
+x=0 x=0 x=0 x=0x=0
+x<=13 x<=13x<=12 && C’==3x=0x=0
+x<=13 && C’==2x<=15x=0Work2 Ready2 Ready3Idle2
+done?Idle1
+Ready1 Work1go?
+x>=5 x>=4 x>=6 x>=7Idle3
+Work3
+x>=4Done
+x>=2go?
+go!go? done?
+done! go!done?
+done!
+Figure 3: 3-Nail HammerGamebetween Axel and Alex.
+Assumenowthatathirdpersonwantstobetonwhoisthemoreli kelywinner–AxelorAlex–given
+a reﬁned semantics, where the time-delay before performing an output is chosen stochastically (e.g. by
+drawing from auniform distribution) and independently by e ach player (component).
+Under such a reﬁned semantics there is a signiﬁcant differen ce between the two players (Axel and
+Alex)intheHammerGame. InFig.4a)theprobabilitydistrib utions foreitherofthetwoplayerswinning
+before acertain timeis given. Though it is clear that Axel ha s ahigher probability of winning than Alex
+(59% versus 41%) given unbounded time, declaring the compet ition a draw if it has not ﬁnished before
+50 seconds actually makes Alex the more likely winner. Simil arly, Fig. 4b) illustrates the probability
+of either of the two players winning given an upper bound on en ergy. With an unlimited amount of
+energy, clearly Axel isthe most likely winner, whereas limi ting theconsumption of energy tomaximum
+52 “energy-units” gives Alexan advantage.
+SomeAxelAlexBoth
+Timeprobability
+00.100.200.300.400.500.600.700.800.901.00
+32 42 5262728292102112122Time−Dependent Distribution
+AxelAlex
+Cost (C for Alex, D for Axel)probability
+00.050.100.150.200.250.300.350.400.450.500.55
+30 40 5060708090100110120130140150160Cost−Dependent Distribution
+a) b)
+Figure 4: Time- and Cost-dependent Probability of winning t he HammerGame
+Extended Input Language UPPAAL-SMCtakes as input NPTAs as described above. Additionally,
+there is support for other features of the U PPAALmodel checker’s input language such as integer vari-
+ables, datastructures anduser-deﬁned functions, whichgr eatly easemodeling. U PPAAL-SMCallowsthe
+usertospecifyanarbitrary(integer) ratefortheclockson anylocation. Inaddition, theautomatasupport
+branching edges whereweightscanbeadded togiveadistribu tion ondiscrete transitions. Itisimportant
+to note that rates and weights may be general expressions tha t depend on the states and not just simple
+constants.
+Toillustratetheextendedinputlanguage,weconsideratra in-gateexample. Thisexampleisavailable
+
+--- Page 5 ---
+A.Legayet al. 5
+in the distributed version of U PPAAL-SMC. A number of trains are approaching a bridge on which there
+is only one track. To avoid collisions, a controller stops th e trains. It restarts them when possible to
+makesurethattrainswilleventually crossthebridge. Ther earetimingconstraints forstopping thetrains
+modeling the fact that it is not possible to stop trains insta ntly. The interesting point w.r.t. SMC is to
+deﬁne the arrival rates of these trains. Figure 5(a) shows th e template for a train. The location Safe
+has no invariant and deﬁnes the rate of the exponential distr ibution for delays. Trains delay according
+to this distribution and then approach and synchronize with appr[i]! with the gate controller. Here
+we deﬁne the rational1+id
+N2whereidis the identiﬁer of the train and Nthe number of trains. Rates are
+given by expressions that can depend on the current states. T rains with higher idarrive faster. Taking
+transitions from locations with invariants is given by a uni form distribution. This happens in Appr,
+Cross, andStart, e.g., it takes some time picked uniformly between 3 and 5 tim e units to cross the
+bridge. Figure 5(b) shows the gate controller that keeps tra ck of the trains with an internal queue data-
+structure(notshownhere). Itusesfunctionstoqueuetrain s(whenatrainisapproaching whilethebridge
+is occupied in Occ)or dequeue them whenpossible (when the bridge isfree and so me train is queued).
+(1 + id) : N*N
+stop[id]?leave[id]!
+x<= 15 x<=20x<=5
+appr[id]!
+go[id]?x>=10
+Start
+x<=10x>=3
+x>=7Safe
+Appr
+StopCross
+x=0x=0 x=0x=0
+appr[e]?leave[e]?
+appr[e]?dequeue()
+enqueue(e)stop[tail()]!go[front()]!
+Occ
+StoppingFree
+e == front()
+e:id_te : id_t
+e : id_tenqueue(e)len == 0
+len > 0
+(a) (b)
+Figure 5: Template of aTrain (a) andthe Gate Controller (b).
+Floating Point Arithmetic For modeling certain systems, e.g., biological systems, in teger arithmetic
+shows its precision limits very quickly. The current engine implements simple arithmetic operations on
+clocksasﬂoatingpointvariables. Thisallowsvarioustric ks,inparticular thetoolcancomputenontrivial
+functions using small step integration. For example, Figur e 6(a) shows a timed automaton with ﬂoating
+point arithmetic. The clocks sintandcostare used to compute sin(t)andcos(t)using simple facts
+sin_t’==0 && 
+cos_t’==01000sin_t=sin_t + cos_t*dt,
+cos_t=cos_t − sin_t*dt,
+dt=0
+sin_t=0, 
+cos_t=1cos_tsin_t
+timevalue
+−1.1−0.6−0.10.40.9
+0 3.0 6.0 9.0 12.0sin(t)
+cos(t)value
+−1.1−0.6−0.10.40.9
+−1.00 −0.01 0.98
+(a) (b) (c)
+Figure 6: Howtouse clock arithmetic tointegrate complex fu nctions.
+
+--- Page 6 ---
+6 Statistical Model Checking for Priced TimedAutomata
+assin(t+dt)≈sin(t)+sin′(t)dtfor small steps of dt→0, whereas sin′(t) =cos(t)andsin(0) =0,
+and similarly for cos(t). The interesting trick on the model is the high exponential r ate (1000) that tells
+the engine to take small (random) time steps and record the du ration in clock dt. The other clocks are
+stopped and updated on transition. The value evolution of va riablessintandcostin terms of time
+areplotted inFigure6(b). Figure6(c)shows sintvalueswithcorresponding costwhichformalmost
+perfect circle. These plots are rendered using value monito ring features described in Section 4.
+3 Propertiesand Queries
+For specifying properties of NPTAs, we use weighted tempora l properties over runs expressed in the
+logic WMTL ≤[10] (Weighted Metric Temporal Logic ), deﬁned by the grammar ϕ::=ap|¬ϕ|ϕ1∧
+ϕ2|Oϕ|ϕ1Ux
+≤dϕ2, whereapis an atomic proposition, dis a natural number and xis a clock. Here, the
+logical operators are interpreted as usual, and Ois a next state operator. An WMTL ≤-formula ϕ1Ux
+≤dϕ2
+issatisﬁed byarun if ϕ1issatisﬁed onthe rununtil ϕ2issatisﬁed, and this will happen before thevalue
+of the clock xincreases with more than d. For an NPTA Mwedeﬁne PM(ψ)to be the probability that a
+random run of Msatisﬁesψ.
+The problem of checking PM(ψ)≥p(p∈[0,1]) is unfortunately undecidable in general2. For
+the sub-logic of cost-bounded reachability problems PM(♦x≤Cφ)≥p, whereφis a state-predicate, xis
+a clock and Cis bound, we approximate the answer using simulation-based algorithms known under
+the name of statistical model checking algorithms. We brieﬂ y recap statistical algorithms permitting to
+answer the following three types of questions:
+1.HypothesisTesting: Istheprobability PM(♦x≤Cφ)foragivenNPTA Mgreaterorequaltoacertain
+threshold p∈[0,1]?
+2.Probability evaluation: What isthe probability PM(♦x≤Cφ)for agiven NPTA M?
+3.Probability comparison: Isthe probability PM(♦x≤Cφ2)greater than the probability PM(♦y≤Dφ2]?
+From a conceptual point of view solving the above questions u sing SMC is simple. First, each run
+of the system is encoded as a Bernoulli random variable that i s true if the run satisﬁes the property and
+false otherwise. Then a statistical algorithm groups the ob servations to answer the three questions. For
+the qualitative questions (1 and 3), we shall use sequential hypothesis testing, while for the quantitative
+question(2)wewilluseanestimationalgorithmthatresemb letheclassical MonteCarlosimulation. The
+twosolutions aredetailed hereafter.
+Hypothesis Testing This approach reduces the qualitative question to testing t he hypothesis H:p=
+PM(♦x≤Cφ)≥θagainstK:p<θ. Toboundtheprobabilityofmakingerrors,weusestrengthp arameters
+αandβand wetest the hypothesis H0:p≥p0andH1:p≤p1withp0=θ+δ0andp1=θ−δ1. The
+intervalp0−p1deﬁnes an indifference region, and p0andp1are used as thresholds in the algorithm.
+The parameter αis the probability of accepting H0whenH1holds (false positives) and the parameter
+βis the probability of accepting H1whenH0holds (false negatives). The above test can be solved by
+using Wald’s sequential hypothesis testing [39]. Thistest computes aproportion ramongthose runsthat
+satisfy the property. With probability 1, the value of the pr oportion will eventually cross log (β/(1−α)
+orlog((1−β)/α)andoneofthetwohypothesis willbeselected. InU PPAAL-SMCweusethefollowing
+query:Pr[bound](φ)>=p0,wherebounddeﬁneshowtoboundtheruns. Thethreewaystoboundthem
+2Exceptions being PTAwith0or 1clocks.
+
+--- Page 7 ---
+A.Legayet al. 7
+are 1) implicitly by time by specifying <=M(where M is a positive integer), 2) explicitly by cost with
+x<=Mwherexisaspeciﬁcclock, or3)bynumber ofdiscrete stepswith #<=M. Inthecaseofhypothesis
+testingp0istheprobability totestfor. Theformula φiseither<>qor[]qwhereqisastatepredicate.
+Probability Estimation This algorithm [26] computes the number of runs needed in ord er to produce
+an approximation interval [p−ε,p+ε]forp=Pr(ψ)with a conﬁdence 1 −α. The values of εandα
+arechosenbytheuserandthenumber ofrunsreliesontheCher noff-Hoeffding bound. In U PPAAL-SMC
+weuse the following query: Pr[bound](φ)
+Probability Comparison Thisalgorithm, whichisdetailed in[21],exploits anexten ded Waldtesting.
+In UPPAAL-SMC, weuse the following query: Pr[bound1](φ1)>=Pr[bound2](φ2).
+In addition to those three classical tests, U PPAAL-SMCalso supports the evaluation of expected
+values of min or max of an expression that evaluates to a clock or an integer value. The syntax is
+as follows: E[bound;N](min:expr)orE[bound;N](max:expr), whereboundis as explained in this
+section,Ngives the number of runs explicitly, and expris the expression to evaluate. For this property,
+no conﬁdence is given (yet).
+Full WMTL ≤Regarding implementation, the reader shall observe that bo th of the above statistical
+algorithms are trivially implementable. To support the ful l logic of WMTL ≤is slightly more complex
+as our simulation engine needs to rely on monitors for such lo gic. In [10], we proposed an extension of
+UPPAAL-SMCthat can handle arbitrary formulas of WMTL ≤. Given a property ϕ, our implementation
+ﬁrst constructs deterministic under- and over-approximat ion monitoring PTAs for ϕ. Then it puts these
+monitors in parallel with a given model M, and applies SMC-based algorithms to bound the probability
+thatϕis satisﬁed on M.
+4 Graphical UserInterface
+Besides short ’yes’ or ’no’ answers and probability estimat es, UPPAAL-SMCveriﬁer also provides a
+few statistical measures in terms of time (or cost), includi ng frequency histogram, average time (or
+cost), probability density distribution, cumulative prob ability distribution (the last two with conﬁdence
+intervals, e.g. using theClopper-Pearson method [19]).
+These statistical data can also be superposed onto a single p lot for comparison purposes using the
+plot composer tool. Figure 7shows the superposed probabili ty distributions of trains 0, 3 and 5crossing
+fromourtrain-gateexample. Ontheleftsideoftheplotcomp oserwindowtheusercanselectaparticular
+datatobeaddedtotheplotandontheright sidetheusercanse ethesuperposed plotandcanalsochange
+some details such as labels, shapes and colors.
+Monitoring Expressions UPPAAL-SMCnow allows the user to visualize the values of expressions
+(evaluating tointegers or clocks) along runs. Thisgives in sight tothe user onthe behavior of thesystem
+so that moreinteresting properties can be asked to the model -checker. Todemonstrate this on our previ-
+oustrain-gateexample,wecanmonitorwhen Train(0) andTrain(5) arecrossingaswellasthelength
+of the queue. The query is simulate 1 [<=300] {Train(0).Cross,Train(5).Cross,Gate.len }.
+ThisgivesustheplotofFigure8. Interestingly Train(5) crossesmoreoften(sinceithasahigherarrival
+rate). Secondly, it seems unlikely that the gate length drop s below 3 after some time (say 20), which is
+
+--- Page 8 ---
+8 Statistical Model Checking for Priced TimedAutomata
+Figure 7: Snapshot of the plot composer displaying three pro bability distributions.
+not an obvious property from the model. We can conﬁrm this by a skingPr[<=300](<> Gate.len <
+3 and t > 20) and adding aclock t. Theprobability isin [0.102,0.123].
+Gate.lenTrain[5].CrossTrain[0].Cross
+timevalue
+01.53.04.56.0
+0 50 100 150 200 250 300Simulations
+Figure 8: Visualizing the gatelength and when Train(0) andTrain(5) cross onone random run.
+As a second example to illustrate this feature, we consider t he modeling of chemical reactions. Fig-
+ure 9(a) and 9(b) show two symmetric timed automata that mode l the concentrations of reactants aand
+b(here as integers). The exponential rate for taking the tran sition is given by the concentration of aand
+b. Figure 9(c) shows theevolution of the system whenit isstar ted witha=99andb=1:aisconsumed to
+produceband vice-versa, and the concentrations oscillate.
+The simulations are obtained by querying simulate 1 [<=10] {a,b}. Figure 9(c) is showing one
+evolution of aandbover time. The tool can also plot clouds of trajectories, whi ch is useful to identify
+patterns inthe behavior, as shownin ﬁgure 9(d).
+It is important to notice that generating such curves is not a s trivial as it seems. In fact, on such
+models, if the exponential rates are higher, then the time st eps are much smaller, which generates a lot
+of points, up to consuming several GB of memory. Drawing such plots is not practical. The tool would
+not workduetoout-of-memory problems orinthebest casewil ltakearound 30stotransfer thedataand
+several seconds for every redraw. To solve this the engine ap plies an on-the-ﬂy ﬁltering of the points
+basedontheprinciplethatiftwopointsaretooclosetoeach othertobedistinguished onthescreen,then
+they are considered to be the same. A resolution parameter is used to deﬁne the maximal resolution of
+the plot and eliminates thememory and speed problems comple tely (downto almost not measurable).
+This plot in Figure 6(b) is obtained by asking simulate 1 [<=12] {sint,cost}to the model-
+checker. Interestingly, U PPAAL-SMCcan generate a run bounded by any clock so we can also plot
+
+--- Page 9 ---
+A.Legayet al. 9
+aa>1 && b<limit
+a−−, b++
+(a)
+bb>1 && a<limit
+b−−, a++ba
+timevalue
+01224364860728496
+0 2.0 4.0 6.0 8.0 10.0ba
+timevalue
+0112233445566778899
+0 2.0 4.0 6.0 8.0 10.0
+(b) (c) (d)
+Figure 9: Evolution of the concentrations of tworeactants aandb.
+simulate 1 [cos t<=1]{sint}and obtain acircle asshown inFigure 6(c).
+5 Engine
+The actual techniques to achieve the current performance of the tool were never exposed before. In this
+section, wepresent afewkeyoptimizations toimplement the algorithms presented andnewfeatures that
+were not available in earlier versions of U PPAAL-SMC.
+Distributed SMC The problem in distributing the implementation of the seque ntial SMC algorithm
+is that abiasmay be introduced. The reason is that sequential testing rel ies on collecting outcomes of
+the generated runs on-the-ﬂy. If some computation cores gen erate some accepting runs faster, which
+is possible if rejecting runs happen to be longer or simply mo re expensive to compute, then the result
+will be biased. The solution of this problem is to force all th e cores to generate the same amount of
+simulations. The paper [40] proposes a method to ensure this by splitting the simulations into batches
+of the same size, and this method has been generalized and imp lemented in U PPAAL-SMC[13]. The
+distributed implementation gives a linear speed-up in then umber of cores used.
+Detection of States When choosing the delays, the engine does not know if it will skipthe state that
+shouldbeobservedbythequeryornot. Thisproblemispresen twhenpickingdelaystotaketransitionsas
+well. For example, the query could be <> A.critical and x >= 2 and x <= 3 wherexisaclock.
+The engine should not delay 4 time units from a state where x=0because the ﬁrst possible transition is
+enabled at this point. Special care is taken to make sure that the formula is part of the next interesting
+points that are computed when choosing the delays. Now comes the question of how to detect those
+interesting points inboth theformula and the guards.
+The technique we use follows the decorator pattern where we e valuate guards (for detecting which
+transitions will be enabled in the future) and formulas in th e query to keep track of the lower bounds.
+We wrap a state inside a decorator state that keeps track of th e constraints on-the-ﬂy, only remembering
+the bounds that we need. The point of the technique here is to a voidsymbolic states that would require
+zones typically implemented with different bound matrices .
+Early Termination The engine checks for query on-the-ﬂy on every generated run . If a query is
+satisﬁed then the computation of the run is stopped before it reaches the speciﬁed bound. In addition,
+in order to give the user a way to stop runs earlier, the engine supports an untilproperty: p U qcan be
+queried instead of <> qand cut the runs assoon as pstops to hold.
+
+--- Page 10 ---
+10 Statistical Model Checking for Priced TimedAutomata
+DependenciesandReuseofChoice Whenaprocesstakesanaction, itmaynotaffectotherproces ses,
+which means that from a stochastic point-of-view, picking a new delay from scratch or reusingthe old
+(random) choice isequivalent. The engine exploits this ind ependence: it remembers the previous delays
+chosen by the processes and invalidates them when dependent transitions are taken. A process has its
+delay invalidated if there is a dependency with another tran sition being taken, which happens in case of
+synchronization or a dependency through a clock rate, invar iant, guard, or update. A static analysis is
+made at the granularity of how transitions affect processes3.
+The result is that whenever a process needsto pick a delay, it does so. Whenever a process takes a
+transition, the processes that may be affected by it must pic k a new delay at the next step. Otherwise,
+processes reusetheir choices from the previous step in the simulation4.
+Checking the query Pr[<=300](<> Train(0).Cross and (forall (i:id t) i!=0 imply
+Trains 5 10 20 40
+Proba. 0.985-0.995 0.286-0.297 0-0.008 0-0.005
+Time−3.9s 17.3s 41.1s 98.1s
+Time+3.5s 14.8s 33.2s 74.8s
+Gain 10.2% 14.4% 19.2% 23.8%
+Table 1: Probability and time results without (-) and with (+ )
+reuse.Train(i).Stop)) to evaluate the
+probabilityof Train(0) crossingwhile
+all the others are stopped gives the res-
+ults in Table 1 for different numbers of
+trains. Theresultsareobtainedwiththe
+parameter ε=0.005 and the probabil-
+ity results agree with or without reuse
+withinε. The experiments are made on
+acorei7at2.66GHz. Thisoptimization
+is designed to improve on systems with large number of compon ents, which is shown by the increasing
+improvement relative toveriﬁcations without reuse.
+6 Case-Studies
+In this section weevaluate the applicability of the develop ed techniques on practical case studies.
+Robot Control In paper [10] we considered a case – explored in [4] – of a robot moving on a two-
+dimensional grid. Each ﬁeld of the grid is either normal, onfire, cold asiceor it is a wall which
+cannot bepassed. Also, there isa goalﬁeld that the robot must reach. Therobot ismoving inarandom
+fashion i.e. it stays in a ﬁeld for some time, and then moves to a neighboring ﬁeld at random (if it is not
+awall).
+FrozenBurnedGoal
+run duration in timeprobability
+00.060.120.180.240.300.36
+0.5 3.6 6.79.8Cumulative Probability Distribution
+Figure 10: Cumulative ProbabilityWe are interested in the probability that the robot reaches i ts
+goal location without staying on consecutive ﬁre ﬁelds for m ore
+than one time unit and on consecutive ice ﬁelds for more than
+twotimeunits. Thispropertyiscaptured bytheWMTL ≤formula
+ϕ≡(ϕ1∧ϕ2)Uτ
+≤10goal, whereτis a special clock that grows
+with rate 1and isnever reset, and:
+ϕ1≡ice=⇒♦τ
+≤2(fire∨normal∨goal)
+ϕ2≡fire=⇒♦τ
+≤1(ice∨normal∨goal)
+We applied U PPAAL-SMCto compute the probability of the robot reaching the goal ϕ, staying too
+longintheﬁreortoolongontheice. Figure10showsthecumul ativedistribution fortheseprobabilities.
+3Wejudge that keeping trackof the dependencies down tothe lo cations may have a toolarge overhead.
+4Iftime elapses then ofcourse the delays chosen are updated.
+
+--- Page 11 ---
+A.Legayet al. 11
+Firewire. IEEE 1394 High Performance Serial Bus or Firewire for short i s used to transport multime-
+dia signals among a network of consumer devices. The protoco l has been extensively studied (see [37]
+forcomparison) andinparticular [31]usesprobabilistic t imedautomatainP RISM[30]. Inpaper [22]we
+adoptthemodelfrom[31]anddemonstrate howU PPAAL-SMCcanbeusedtoevaluatefairnessofanode
+becoming a root (leader) with respect to the mode of operatio n.
+fastslowcomparison
+timeprobability
+00.140.280.420.560.700.840.98
+0 300 60090012001500Probability comparison
+Figure 11: Probability ComparisonUPPAAL-SMCprovides twomethodsforcomparing probabilities:
+estimating the probabilities and then comparing them, or us ing
+indirect probability comparison from [39], which is more ef ﬁ-
+cient. Figure 11 contains a resulting plot of estimated prob abil-
+ities (red and blue lines) and acomparison (yellow area). Th ered
+and blue probability estimates appear very close to each oth er in
+entire range, while the yellow area shows that at the beginni ng
+theprobabilities areindistinguishable (yellowareaisat 0.5level),
+then thefastnode has higher probability to become a root(at 1.0
+level), and later the probabilities become too close to be di stin-
+guishable again (at 0.5 level).
+energyprobability
+00.0210.0420.0630.084
+2440 3130 3820 4510
+Figure 12: Energy consumption.Bluetooth [34] is a wireless telecommunication protocol using
+frequency-hopping tocope with interference between the de vices
+in the wireless network. In paper [22] we adopted the model
+from [23], annotated the model to record the power utilizati on
+andevaluatedtheprobabilitydistributionsoflikelyresp onsetimes
+and energy consumption. Figure 12 shows that after 70s the co st
+of adeviceoperation isatleast 2440 energy units andthemea nis
+about 2853 energy units.
+Lightweight Medium Access Protocol (LMAC) [38] is a communication scheduling protocol based
+on time slot distribution for nodes sharing the same medium. The protocol is designed having wireless
+sensor networks in mind: it is simple enough to ﬁt on a modest h ardware and at the same time ro-
+bust against topology reconﬁguration, minimizing collisi ons andpowerconsumption. Paper[25]studies
+LMAC protocol using classical U PPAALveriﬁcation techniques by systematically exploring netwo rks
+of up to ﬁve nodes but the state space explosion prevents form al veriﬁcation of larger networks. In
+paper[21]weadoptthemodelbyremovingveriﬁcationoptimi zations andparameterizing withprobabil-
+isticweights,andshowhowcollisionscanbeanalyzedandpo werconsumptionestimatedusingstatistical
+model checking techniques. The study showed that there are s till perpetual collisions in a ring topology
+ringchain
+energyprobability density00.00030.00060.00090.00120.0015
+3.01E4 3.45E4 3.89E4
+Figure 13: Likely energy consumption.but the probability that the network will not recover
+isverylow(0.35%). Thelikelyenergyconsumption
+of different network topologies is compared in U P-
+PAALplot (Figure 13),whichshowsthat onaverage
+the likely energy consumption after 1000 time units
+in a ring is higher than in a chain by 10%, possibly
+due to more collisions in a ring. In [13] distributed
+techniques are applied in exploring over 10000 lar-
+ger networks of upto 10nodes, theworst (star-like)
+and the best (chain-like) topologies in terms of col-
+
+--- Page 12 ---
+12 Statistical Model Checking for Priced TimedAutomata
+lisions are identiﬁed and evaluated.
+ComputingNashEquilibriuminWirelessAdHocNetworks Oneoftheimportantaspectsindesign-
+ing wireless ad-hoc networks is to make sure that a network is robust to the selﬁsh behavior of its parti-
+cipants, i.e. that itsconﬁguration satisﬁes Nash equilibr ium (NE).
+ 0 0.2 0.4 0.6 0.8 1 0 0.2 0.4 0.6 0.8 1 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1NE
+Opt
+p’p 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+Figure 14: NashEquilibrium for Aloha CSMA/CDIn paper [11] we proposed an SMC-based al-
+gorithm for computing NE for the case when net-
+work nodes are modeled by SPTA and an utility
+function of a single node is equal to a probability
+that the node will reach its goal. Our algorithm
+consists of two phases. First, we use U PPAAL-
+SMCto ﬁnd a strategy that most likely (heuristic)
+satisﬁes NE.Inthesecond phase weapply statist-
+icstotestthehypothesis that thisstrategyactually
+satisﬁes NE.
+We applied this algorithm to compute NE for Aloha CSMA/CD and IEEE 802.15.4 CSMA/CA
+protocols. Figure 14 depicts the utility function plot for t he Aloha CSMA/CDprotocol with two nodes.
+Here the pandp′axis correspond to the strategies of the honest and cheater n odes (a strategy deﬁnes
+how persistent these nodes are in sending their data). We see , that NE strategy is slightly less efﬁcient
+than thesymmetric optimal strategy (Opt), but it still resu lts inahigh value of the utility function.
+start [2,5] [1,2]End
+wt2
+1start [1,6] [2,3]End[r1=4] [ r2=2]
+[r1=1,r2=2] [ r1=2,r2=1]
+Figure 15: Rectangles are busy states and circles are
+for waiting when resources are not available. There are
+r1=5 andr2=3 resources available.Duration Probabilistic Automata In [20]
+we compared U PPAAL-SMCto Prism [30] in
+the context of Duration Probabilistic Auto-
+mata (DPA) [32]. A Duration Probabilistic
+Automaton (DPA) is a composition of Simple
+Duration Probabilistic Automata (SDPA). An
+SDPA is a linear sequence of tasks that
+must be performed in a sequential order.
+Param. Estim. Hyp. Testing
+n k m PrismUppUpdUpcPrismUppUpdUpc
+4 4 3 2.7 0.3 0.2 0.2 2.0 0.1 0.1 0.1
+6 6 3 7.7 0.6 0.5 0.4 3.9 0.2 0.2 0.3
+8 8 3 26.5 1.2 0.9 0.7 16.4 0.5 0.4 0.3
+20 40 20 >300 >300 35.5 26.2 20.7
+30 40 20 >300 >300 61.2 41.8 33.2
+40 40 20 >300 >300 92.2 56.9 59.5
+40 20 20 >300 >300 41.1 31.2 26.5
+40 30 20 >300 >300 68.8 46.7 46.1
+40 55 40 >300 >300 219.5
+Table2: PerformanceofSMC(sec). The ncolumnisthenum-
+ber of SDPAs, the kcolumn is the number of tasks per SDPA
+andthemcolumnisthenumberofresourcetypesinthemodel.
+Uppis the U PPAALmodel that matches Prism, Updthe dis-
+crete encoding and Upcthecontinuous timeencoding.Each task is associated with a dur-
+ation interval which gives the possible
+durations of the task. The actual dur-
+ation of the tasks is given by a uni-
+form choice from this interval. To
+model races between the SDPAs we
+introduce resources to the model such
+that anSDPAmighthavetowaitforre-
+sourcesbeforeprocessing atask. When
+two SDPAs are in waiting position for
+the same resource, a scheduler decides
+which SDPA is given the resource in a
+deterministic manner.
+The comparison with Prism was
+made by randomly generating models
+with a speciﬁc number of SDPAsand a
+
+--- Page 13 ---
+A.Legayet al. 13
+speciﬁcnumberoftasksperSDPAandtranslate theseintoPri smand U PPAALmodels. ThePrismmodel
+uses a discrete time semantics whereas three models were mad e for UPPAAL- one with continuous time
+semantics, one that matches the Prism model as close as possi ble and one with discrete semantics that
+makes full use of our formalism.
+The queries to the models were What is the probability of all SDPAsending withint time unit s(Estima-
+tion)andIsthe probability that all SDPAsend withint time units grea ter than40% (Hypothesis testing).
+The value of tis different for each model as it was computed by simulating t he system 369 times and
+represent the value for which at least 60% of the runs ﬁnished all their tasks.
+The result of the experiments are shown in Table 2 and indicat es that U PPAALis notably faster than
+Prism, even withaencoding that closely matches that of Pris m.
+201051
+runsprobability
+00.120.240.360.480.600.720.840.96
+10 90 170250330410
+Figure 16: Probability distributions ob-
+tained with 1, 5,10, and 20cores.Checking of Distributed Statistical Model Checking
+As we wrote in Section 5, a naive (and incorrect) dis-
+tributedimplementation ofthesequential SMCalgorithms
+might introduce a bias towards the results that are gener-
+ated by shorter simulations.
+The interesting question is how much this bias affects
+the SMCresults. Inthepaper [12]weanswered thisques-
+tion by modeling the naive distributed SMC algorithm in
+UPPAAL-SMCitself. The comparison was made on the
+basis of the SPTA model that ends up in the OKlocation
+after 100 time units with probability 0 .58, otherwise it
+ends up in the NOKlocation after 1 time unit (thus pro-
+ducingNOKrequires 100 times less time than producing
+OK).
+We used U PPAAL-SMCto compute the probability that the naive distributed SMC al gorithm will
+acceptthehypothesis Pr[<=100]( ♦OK)≥0.5. Theresultsforthedifferentnumbersofcomputational
+cores are given in the plot at Figure 16. The xaxis denotes the total number of runs of the SPTAmodel
+on all the cores, and the yaxis depicts the probability that an SMC algorithm accepts t he hypothesis not
+later than after this number of runs. It can be observed that t he probability of accepting the hypothesis
+tends (incorrectly) to0 asthe number of computational core s increases.
+7 Conclusions
+This paper gives an overview of the features of U PPAAL-SMC, our new efﬁcient extension of U PPAAL
+for Statistical Model Checking. Contrary to other existing SMC-based tool-sets, U PPAAL-SMCallows
+to handle systems with real-time features. The tool has been applied to a series of case studies that are
+beyond the scope of classical model checkers. As has been out lined in this paper, U PPAAL-SMChas a
+large potential for future work and applications.
+Among others, the following extensions of U PPAAL-SMCare contemplated.
+FloatingPoint Sofarthesupportofﬂoatingpointisdoneviamisusingandex tendingclockoperations.
+A better and more general support is needed since the tool has now departed from traditional timed
+automata and model-checking.
+
+--- Page 14 ---
+14 Statistical Model Checking for Priced TimedAutomata
+Since the tool now supports ﬂoating point arithmetic and we c an integrate complex functions, it is
+a natural extension to add differential equations as well to support hybrid systems in a more general
+way. Toﬁtwiththestochastic semantics (inparticular howt opickdelays), onlysimpleequations whose
+analytical solutions are known are planned.
+New Applications With the extended expressivity of our hybrid modeling langu age, our tool can be
+applied to different domains, in particular for biological systems. U PPAAL-SMCnow offers powerful
+visualization capabilities needed bybiologists and alogi c to dostatistical model-checking.
+Another application is to analyze performance of controlle rs generated by U PPAAL-TIGA[6], in
+particular their stability or energy consumption. SMC can a lso be used in the domain of reﬁnement
+checking, which isin theend just another type of game.
+Rare Events Statistical model checking avoids the exponential growth o f states associated with prob-
+abilistic model checking by estimating properties from mul tiple executions of a system and by giving
+results within conﬁdence bounds. Rare properties are often very important but pose a particular chal-
+lenge for simulation-based approaches, hence akey objecti ve under these circumstances isto reduce the
+numberandlengthofsimulationsnecessarytoproduceagive nlevelofconﬁdence. Importancesampling
+isawell-established techniquethatachievesthis,howeve rtomaintaintheadvantages ofstatistical model
+checking it is necessary to ﬁnd good importance sampling dis tributions without considering the entire
+state space. Such problem has been recently investigated fo r the case of discrete stochastic systems. As
+an example, in [28] we presented a simple algorithm that uses the notion of cross-entropy to ﬁnd the
+optimal parameters for an importance sampling distributio n. Our Objective is to extend our results to
+PTAsbyexploiting pure timedmodel checking to improve the s earch for efﬁcient distribution.
+References
+[1] R. Alur, C. Courcoubetis, N. Halbwachs, T. A. Henzinger, P.-H. Ho, X. Nicollin, A. Olivero, J. Sifakis &
+S. Yovine (1995): The algorithmic analysis of hybrid systems .Theoretical Computer Science 138(1), pp.
+3–34,doi: 10.1016/0304-3975(94)00202-T .
+[2] RajeevAlur,SalvatoreLaTorre&GeorgeJ. Pappas(2001) :OptimalPathsinWeightedTimedAutomata . In
+Benedetto& Sangiovanni-Vincentelli[8],pp.49–62,doi: 10.1007/3-540-45351-2_8 .
+[3] Christel Baier, Boudewijn R. Haverkort, Holger Hermann s & Joost-Pieter Katoen (2003): Model-Checking
+AlgorithmsforContinuous-TimeMarkovChains .IEEETrans.SoftwareEng. 29(6),pp.524–541.
+[4] Benoˆ ıt Barbot, Taolue Chen, Tingting Han, Joost-Piete r Katoen & Alexandru Mereacre (2011): Efﬁcient
+CTMC ModelChecking of LinearReal-Time Objectives . InParoshAziz Abdulla& K.RustanM.Leino, edit-
+ors:ToolsandAlgorithmsfortheConstructionandAnalysisofSy stems,LectureNotesinComputerScience
+6605,SpringerBerlin Heidelberg,pp.128–142,doi: 10.1007/978-3-642-19835-9_12 .
+[5] A. Basu, S. Bensalem, M. Bozga, B. Caillaud, B. Delahaye & A. Legay (2010): Statistical Abstraction and
+Model-Checking of Large Heterogeneous Systems . In:FORTE,LNCS6117, Springer, pp. 32–46, doi: 10.
+1007/978-3-642-13464-7_4 .
+[6] Gerd Behrmann, Agn` es Cougnard, Alexandre David, Emman uel Fleury, Kim G. Larsen & Didier Lime
+(2007):UPPAAL-Tiga: Time forPlayingGames! In:CAV,LNCS4590,Springer.
+[7] Gerd Behrmann, Ansgar Fehnker, Thomas Hune, Kim Guldstr and Larsen, Paul Pettersson, Judi Romijn
+& Frits W. Vaandrager (2001): Minimum-Cost Reachability for Priced Timed Automata . In Benedetto &
+Sangiovanni-Vincentelli[8],pp.147–161,doi: 10.1007/3-540-45351-2_15 .
+
+--- Page 15 ---
+A.Legayet al. 15
+[8] MariaDomenicaDiBenedetto&AlbertoL.Sangiovanni-Vi ncentelli,editors(2001): HybridSystems: Com-
+putationandControl,4thInternationalWorkshop,HSCC200 1,Proceedings .LNCS2034,Springer,doi: 10.
+1007/3-540-45351-2 .
+[9] Patricia Bouyer, Uli Fahrenberg,Kim G. Larsen & Nicolas Markey(2010): Timed automatawith observers
+underenergyconstraints . In:HSCC, ACMACM, pp.61–70,doi: 10.1145/1755952.1755963 .
+[10] Peter Bulychev, Alexandre David, Kim G. Larsen, Axel Le gay, Guangyuan Li, Danny Bøgsted Poulsen &
+Amelie Stainer (2012): Monitor-BasedStatistical ModelChecking forWeighted Met ric TemporalLogic . In:
+LPAR-18 ,7180,pp.168–182,doi: 10.1007/978-3-642-28717-6_15 .
+[11] Peter Bulychev, Alexandre David, Kim G. Larsen, Axel Le gay & Marius Mikuˇ cionis (2012): Computing
+Nash Equilibrium in Wireless Ad Hoc Networks: A Simulation- Based Approach . In:iWIGP, 78, pp. 1–14,
+doi:10.4204/EPTCS.78.1 .
+[12] PeterBulychev,AlexandreDavid,KimG.Larsen,AxelLe gay,MariusMikuˇ cionis&DannyBøgstedPoulsen
+(2012):Checking&DistributingStatisticalModelChecking .In:NFM2012: FourthNASAFormalMethods
+Symposium ,7226,pp.449–463,doi: 10.1007/978-3-642-28891-3_39 .
+[13] Peter Bulychev, Alexandre David, Kim Guldstrand Larse n, Marius Mikuˇ cionis & Axel Legay (2011): Dis-
+tributed Parametric and Statistical Model Checking . In Jiˇ r´ ı Barnat & Keijo Heljanko, editors: Proceedings
+10thInternationalWorkshopon Parallel andDistributed Me thodsin Veriﬁcation ,EPTCS, arxiv.org,pp.30–
+42,doi:10.4204/EPTCS.72 .
+[14] F. Ciesinski & M. Gr¨ oßer (2004): On Probabilistic Computation Tree Logic . In:Validation of Stochastic
+Systems,LNCS, 2925,Springer,pp.147–188,doi: 10.1007/978-3-540-24611-4_5 .
+[15] E. M. Clarke, A. Donz´ e & A. Legay (2008): Statistical Model Checking of Mixed-Analog Circuits with a n
+Application to a Third Order Delta-Sigma Modulator . In:Haifa Veriﬁcation Days ,LNCS5394, Springer,
+pp.149–163,doi: 10.1007/978-3-642-01702-5_16 .
+[16] E. M. Clarke, A. Donz´ e & A. Legay (2009): On Simulation-basedProbabilistic Model Checking of Mixed -
+AnalogCircuits .FormalMethodsinSystemDesign To appear.
+[17] E.M.Clarke,J.R.Faeder,C.JamesLangmead,L.A.Harri s,S.K.Jha&A.Legay(2008): StatisticalModel
+Checking in BioLab: Applications to the Automated Analysis of T-Cell Receptor Signaling Pathway . In:
+CMSB,LNCS5307,Springer,pp.231–250,doi: 10.1007/978-3-540-88562-7_18 .
+[18] Edmund M. Clarke & Paolo Zuliani (2011): Statistical Model Checking for Cyber-Physical Sys-
+tems. In: ATVA,Lecture Notes in Computer Science 6996, Springer, pp. 1–12, doi: 10.1007/
+978-3-642-24372-1_1 .
+[19] C.J.Clopper&E.S.Pearson(1934): TheUseofConﬁdenceorFiducialLimitsIllustratedintheCa seofthe
+Binomial.Biometrika 26(4),pp.404–413,doi: 10.1093/biomet/26.4.404 .
+[20] AlexandreDavid,KimG.Larsen,AxelLegay,MariusMiku ˇ cionis,DannyBøgstedPoulsen,JonasVanVliet
+&ZhengWang(2011): Statisticalmodelcheckingfornetworksofpricedtimedaut omata. In:Proceedingsof
+the9thinternationalconferenceonFormalmodelingandana lysisoftimedsystems ,FORMATS’11,Springer-
+Verlag,Berlin,Heidelberg,pp.80–96,doi: 10.1007/978-3-642-24310-3_7 .
+[21] AlexandreDavid,KimG. Larsen,AxelLegay,MariusMiku ˇ cionis,DannyBøgstedPoulsen,JonasvanVliet
+& ZhengWang (2011): Statistical Model Checking for Networks of Priced Timed Aut omata. In Uli Fahren-
+berg & Stavros Tripakis, editors: Formal Modeling and Analysis of Timed Systems ,LNCS6919, springer,
+pp.80–96,doi: 10.1007/978-3-642-24310-3_7 .
+[22] Alexandre David, Kim G. Larsen, Axel Legay, Marius Miku ˇ cionis & Zheng Wang (2011): Time for Stat-
+istical Model Checking of Real-Time Systems . In Ganesh Gopalakrishnan & Shaz Qadeer, editors: Com-
+puter Aided Veriﬁcation ,Lecture Notes in Computer Science 6806, Springer, pp. 349–355, doi: 10.1007/
+978-3-642-22110-1_27 .
+[23] Marie Duﬂot, Marta Kwiatkowska, Gethin Norman & David P arker (2006): A formal analysis of bluetooth
+device discovery .InternationalJournal on Software Tools for TechnologyTra nsfer (STTT) 8, pp. 621–632,
+doi:10.1007/s10009-006-0014-x .
+
+--- Page 16 ---
+16 Statistical Model Checking for Priced TimedAutomata
+[24] Uli Fahrenberg, Line Juhl, Kim G. Larsen & Jir´ ı Srba (20 11):Energy Games in Multiweighted Auto-
+mata. In:ICTAC,Lecture Notes in Computer Science 6916, Springer, pp. 95–115, doi: 10.1007/
+978-3-642-23283-1_9 .
+[25] Ansgar Fehnker, Lodewijk van Hoesel & Angelika Mader (2 007):Modelling and Veriﬁcation of the LMAC
+Protocol forWireless SensorNetworks . In Jim Davies& JeremyGibbons,editors: IntegratedFormal Meth-
+ods,LNCS4591,SpringerBerlin/ Heidelberg,pp.253–272,doi: 10.1007/978-3-540-73210-5_14 .
+[26] Thomas H´ erault, Richard Lassaigne, Fr´ ed´ eric Magni ette & Sylvain Peyronnet (2004): Approxim-
+ate Probabilistic Model Checking . In:VMCAI,LNCS2937, Springer, pp. 73–84, doi: 10.1007/
+978-3-540-24622-0_8 .
+[27] D. N. Jansen, J. Katoen, M. Oldenkamp, M. Stoelinga & I. S . Zapreev (2008): How Fast and Fat Is Your
+Probabilistic Model Checker? An Experimental Performance Comparison . In:Haifa Veriﬁcation Confer-
+ence,LNCS4899,Springer,pp.69–85,doi: 10.1007/978-3-540-77966-7_9 .
+[28] Cyrille J´ egourel, Axel Legay& Sean Sedwards(2012): Cross-entropy optimisation of importancesampling
+parametersforstatistical modelchecking .CoRRabs/1201.5229.
+[29] Sumit Kumar Jha, Edmund M. Clarke, Christopher James La ngmead, Axel Legay, Andr´ e Platzer & Paolo
+Zuliani (2009): A Bayesian Approach to Model Checking Biological Systems . In:CMSB,LNCS5688,
+Springer,pp.218–234,doi: 10.1007/978-3-642-03845-7_15 .
+[30] M. Z. Kwiatkowska,G. Norman& D. Parker(2004): PRISM 2.0: A Tool for ProbabilisticModel Checking .
+In:QEST,IEEE,pp.322–323.
+[31] MartaKwiatkowska,GethinNorman& JeremySproston(20 03):ProbabilisticModelCheckingofDeadline
+Properties in the IEEE 1394 FireWire Root Contention Protoc ol.Formal Aspects of Computing 14, pp.
+295–318,doi: 10.1007/s001650300007 .
+[32] Oded Maler, Kim G. Larsen & Bruce H. Krogh (2010): On Zone-Based Analysis of Duration Probabilistic
+Automata . In:INFINITY ,EPTCS39,pp.33–46.
+[33] Jo˜ ao Martins, Andr´ e Platzer & Jo˜ ao Leite (2011): Statistical Model Checking for Distributed Probabilistic -
+Control Hybrid Automata with Smart Grid Applications . In:ICFEM,Lecture Notes in Computer Science
+6991,Springer,pp.131–146.
+[34] P. McDermott-Wells (2005): What is Bluetooth? Potentials, IEEE 23(5), pp. 33 – 35, doi: 10.1109/MP.
+2005.1368913 .
+[35] Johan Oudinet, Alain Denise, Marie-Claude Gaudel, Ric hard Lassaigne & Sylvain Peyronnet (2011): Uni-
+form Monte-Carlo Model Checking . In:FASE,Lecture Notes in Computer Science 6603, Springer, pp.
+127–140,doi: 10.1007/978-3-642-19811-3_10 .
+[36] KoushikSen, MaheshViswanathan& Gul Agha(2004): StatisticalModel Checkingof Black-BoxProbabil-
+istic Systems . In:CAV,LNCS 3114,Springer,pp.202–215,doi: 10.1007/978-3-540-27813-9_16 .
+[37] Mari¨ elleStoelinga(2003): FunwithFireWire: AComparativeStudyofFormalVeriﬁcatio nMethodsApplied
+to the IEEE1394RootContentionProtocol .FormalAspectsof Computing 14,pp.328–337,doi: 10.1007/
+s001650300009 .
+[38] L.F.W. van Hoesel & P.J.M. Havinga (2004): A Lightweight Medium Access Protocol (LMAC) for Wireless
+Sensor Networks: Reducing Preamble Transmissions and Tran sceiver State Switches . In:1st International
+Workshop on Networked Sensing Systems (INSS , Society of Instrument and Control Engineers (SICE),
+Tokio,Japan,pp.205–208. Availableat http://doc.utwente.nl/64756/ .
+[39] R. Wald (2004): SequentialAnalysis . DovePublisher.
+[40] H˚ akan L. S. Younes (2005): Veriﬁcation and Planning for Stochastic Processes with Asy nchronous Events .
+Ph.D.thesis, CarnegieMellon.
+[41] H˚ akan L. S. Younes, Marta Z. Kwiatkowska, Gethin Norma n& David Parker (2006): Numerical vs. statist-
+icalprobabilisticmodelchecking .STTT8(3),pp.216–228,doi: 10.1007/s10009-005-0187-8 .
