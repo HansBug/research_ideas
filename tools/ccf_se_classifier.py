@@ -40,6 +40,24 @@ SE_LEVEL_PRIOR = {
 }
 
 
+MACRO_DISPLAY_ORDER = (
+    "软件工程",
+    "跨域/待判定",
+    "程序设计语言与形式化基础",
+    "系统软件",
+    "待补",
+)
+
+
+SE_DECISION_DISPLAY_ORDER = (
+    "属于软件工程",
+    "跨域但软工主导",
+    "不属于软件工程",
+    "待判定",
+    "待补",
+)
+
+
 GENERIC_TREE_KEYWORDS = {
     "testing",
     "contracts",
@@ -1979,6 +1997,7 @@ def render_year_readme(
     full_manual_coverage: bool,
 ) -> str:
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    priors = parse_venue_priors()
     venue_count = len(payloads)
     total_papers = verification["total_actual"]
     abbr_counts = Counter(payload["venue"].abbr for payload in payloads)
@@ -2042,23 +2061,67 @@ def render_year_readme(
     lines.append("")
     lines.append("## 3. 覆盖 venue 列表")
     lines.append("")
-    lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | 数据文件 | 备注 |")
-    lines.append("|---|---|---|---|---:|---|---|")
+    lines.append("- 口径：`venue 判定` 按 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 的 `软工归属级别` 折叠而来：`完全属于软工 / 大部分属于软工 -> 软工 venue`，`部分属于软工 -> 混合 venue`，`大部分不属于软工 / 完全不属于软工 -> 非软工 venue`。")
+    lines.append("- `主体归属` 与 `典型软工路径（先验）` 来自 venue 级先验；`2025 一级总判定`、`2025 软工纳入` 与 `2025 高频软工主路径` 直接按本年度逐篇人工复核结果统计。")
+    lines.append("- `典型软工路径（先验）` 与 `2025 高频软工主路径` 使用 [SOFTWARE_ENGINEERING_FIELD_TREE.md](../../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的方向树口径。")
+    lines.append("")
+    lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | venue 判定 | 主体归属 | 典型软工路径（先验） | 2025 一级总判定 | 2025 软工纳入 | 2025 高频软工主路径 | 数据文件 | 备注 |")
+    lines.append("|---|---|---|---|---:|---|---|---|---|---|---|---|---|")
     for payload in payloads:
         venue = payload["venue"]
         files = payload["files"]
-        note = "计数一致" if payload["expected_total"] == payload["actual_total"] else "计数需复核"
         display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
+        prior = priors[(venue.abbr, venue.rank, venue.kind)]
+        venue_bucket, venue_bucket_score = summarize_prior_bucket(prior.se_level)
+        venue_judgement = f"{venue_bucket}（{prior.se_level}）"
+
+        venue_macro_counts = Counter(paper.get("macro_area", "待补") for paper in payload["papers"])
+        venue_se_counts = Counter(
+            paper.get("se_inclusion_decision", "待补") for paper in payload["papers"]
+        )
+        venue_path_counts = Counter(
+            f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
+            for paper in payload["papers"]
+            if paper.get("se_primary_path")
+        )
+
+        macro_summary = format_counter_summary(
+            venue_macro_counts,
+            order=MACRO_DISPLAY_ORDER,
+            empty_text="无 2025 条目",
+        )
+        se_summary = format_counter_summary(
+            venue_se_counts,
+            order=SE_DECISION_DISPLAY_ORDER,
+            empty_text="无 2025 条目",
+        )
+        path_summary = format_top_paths(
+            venue_path_counts,
+            limit=2,
+            empty_text="无纳入软工主路径",
+        )
+        note = compare_prior_and_data_side(
+            expected_total=payload["expected_total"],
+            actual_total=payload["actual_total"],
+            prior_score=venue_bucket_score,
+            se_counts=venue_se_counts,
+        )
         lines.append(
-            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | [metadata]({meta}) / [bib]({bib}) | {note} |".format(
+            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {judgement} | {subject} | {paths} | {macro} | {se} | {path_summary} | [metadata]({meta}) / [bib]({bib}) | {note} |".format(
                 abbr=md_escape(display_abbr),
                 full=md_escape(venue.full_name),
                 rank=venue.rank,
                 kind=venue.kind,
                 count=payload["actual_total"],
+                judgement=md_escape(venue_judgement),
+                subject=md_escape(prior.subject),
+                paths=md_escape(" / ".join(prior.typical_paths) if prior.typical_paths else "-"),
+                macro=md_escape(macro_summary),
+                se=md_escape(se_summary),
+                path_summary=md_escape(path_summary),
                 meta=md_escape(files["metadata"]),
                 bib=md_escape(files["bib"]),
-                note=note,
+                note=md_escape(note),
             )
         )
     lines.append("")
@@ -2196,6 +2259,66 @@ def display_abbr_for_venue(venue: Venue, duplicated: bool) -> str:
     if not duplicated:
         return venue.abbr
     return f"{venue.abbr} / {venue.kind} / {venue.rank}"
+
+
+def summarize_prior_bucket(se_level: str) -> Tuple[str, int]:
+    if se_level in {"完全属于软工", "大部分属于软工"}:
+        return "软工 venue", 2
+    if se_level == "部分属于软工":
+        return "混合 venue", 1
+    return "非软工 venue", 0
+
+
+def format_counter_summary(
+    counter: Counter[str],
+    order: Iterable[str],
+    empty_text: str,
+) -> str:
+    order_index = {key: idx for idx, key in enumerate(order)}
+    items = [
+        (key, count)
+        for key, count in counter.items()
+        if count
+    ]
+    if items:
+        items.sort(key=lambda item: (-item[1], order_index.get(item[0], len(order_index)), item[0]))
+        return " / ".join(f"{key} {count}" for key, count in items)
+    return empty_text
+
+
+def format_top_paths(counter: Counter[str], limit: int, empty_text: str) -> str:
+    if not counter:
+        return empty_text
+    return " / ".join(f"{name} ({count})" for name, count in counter.most_common(limit))
+
+
+def summarize_data_side_bucket(se_counts: Counter[str], actual_total: int) -> int:
+    if actual_total <= 0:
+        return -1
+    soft_total = se_counts.get("属于软件工程", 0) + se_counts.get("跨域但软工主导", 0)
+    soft_ratio = soft_total / actual_total
+    if soft_ratio >= 0.7:
+        return 2
+    if soft_ratio >= 0.25:
+        return 1
+    return 0
+
+
+def compare_prior_and_data_side(
+    expected_total: int,
+    actual_total: int,
+    prior_score: int,
+    se_counts: Counter[str],
+) -> str:
+    count_note = "计数一致" if expected_total == actual_total else "计数需复核"
+    data_side_score = summarize_data_side_bucket(se_counts, actual_total)
+    if data_side_score < 0:
+        return f"{count_note}；2025 无条目，暂以先验为准"
+    if data_side_score == prior_score:
+        return f"{count_note}；2025 与先验一致"
+    if data_side_score > prior_score:
+        return f"{count_note}；2025 比先验更偏软工"
+    return f"{count_note}；2025 比先验更偏非软工"
 
 
 def load_payloads(target_dir: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
