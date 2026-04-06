@@ -1,0 +1,581 @@
+--- Page 1 ---
+Language and Tool Support for Class and State
+Machine Reﬁnement in UML-B
+Mar Yah Said, Michael Butler, and Colin Snook
+ECS, University of Southampton, Southampton, SO17 1BJ, UK
+(mys05r,mjb,cfs)@ecs.soton.ac.uk
+Abstract. UML-B is a ’UML-like’ graphical front end for Event-B that provides
+support for object-oriented modelling concepts. In particular, UML-B supports
+class diagrams and state machines, concepts that are not explicitly supported in
+plain Event-B. In Event-B, reﬁnement is used to relate system models at different
+abstraction levels. The same abstraction-reﬁnement concepts can also be applied
+in UML-B. This paper introduces the notions of reﬁned classes and reﬁned state
+machines to enable reﬁnement of classes and state machines in UML-B. Together
+with these notions, a technique for moving an event between classes to facilitate
+abstraction is also introduced. Our work makes explicit the structures of class
+and state machine reﬁnement in UML-B. The UML-B drawing tool and Event-B
+translator are extended to support the new reﬁnement concepts. A case study of
+an auto teller machine (ATM) is presented to demonstrate application and effec-
+tiveness of reﬁned classes and reﬁned state machines.
+Keywords: Visual modelling languages, Formal speciﬁcation, UML, Event-B,
+Reﬁnement.
+1 Introduction
+UML-B [1] is a graphical formal modelling notation that has some resemblance with
+UML [2, 3] and is based on Event-B [4] which is a new variant of classical B [8]. UML-
+B supports class diagrams and state machines, concepts that are not explicitly supported
+in plain Event-B. The UML-B notation is supported by the UML-B tool which is a plug-
+in feature for the Rodin Event-B veriﬁcation tool [6, 11]. The UML-B tool generates
+Event-B models corresponding to a UML-B development and the Rodin tool is then
+used to discharge proof obligations associated with the generated Event-B models. As
+detailed in [12], our motivations for developing UML-B are twofold. Firstly, in our
+experience industrial users ﬁnd the UML-like language and tool appealing. Secondly,
+UML-B provides additional complementary structuring of Event-B models in the form
+of classes and state machines.
+A development in classical B or Event-B is performed through reﬁnement. Reﬁne-
+ment [8, 9] is a technique which is used to relate the abstract model of a software system
+to another model that is more concrete while maintaining the properties of the abstract
+model. Reﬁnement is an important technique for managing the complexity of a system
+being developed.
+At the most abstract level of a reﬁnement-based development, it is usual to spec-
+ify invariants that deﬁne the properties of the system being modelled. These invariants
+This work has been presented at the IM FMT 2009 workshop of the IFM2009 conference,
+Dusseldorf, Germany on 16 February 2009.
+
+--- Page 2 ---
+must be preserved by all the events of the model. Each reﬁnement step will add fur-
+ther invariants relating the abstract model and the reﬁned model (gluing invariants). In
+Event-B, both state and events may be reﬁned. This is achieved by extending the list
+of state variables (possibly suppressing some of them) and by replacing each abstract
+event by corresponding concrete events.
+There are two main differences between Event-B and classical B with regards to
+reﬁnement of events. In Event-B, several events may reﬁne an abstract event whereas
+in classical B, only one event can reﬁne an abstract event. The other difference is that
+in Event-B, we may have new events that reﬁne skip whereas in classical B, this is not
+allowed. Another difference between classical B and Event-B is that Event-B distin-
+guishes between contexts and machines. A context contains deﬁnitions and properties
+of types and constants. A machine contains state variables, invariants and events that
+update the variables. A machine may see several contexts.
+UML-B incorporates the Event-B machine construct and a single UML-B machine
+may contain multiple classes and multiple state machines. Previously, UML-B sup-
+ported machine reﬁnement (a reﬁnement relationship between UML-B machines) but
+had no support for reﬁnement of classes or state machines (which are nested within
+UML-B machines). The work reported here enriches UML-B to support class and state
+machine reﬁnement. The main contributions of our work are introducing notions of re-
+ﬁned classes and inherited attributes which are described in Section 3 and notions of
+reﬁned state machines and reﬁned states which are described in Section 4. The other
+contribution is introducing a technique of event movement in Section 5. A further con-
+tribution is that we have implemented the UML-B extensions in the UML-B tool. In
+this work we focus on safety-preserving reﬁnement and do not deal with liveness.
+Section 3 describes class reﬁnement using the notion of reﬁned classes and inherited
+attributes which includes techniques for adding new classes and adding new attributes
+and associations to reﬁned classes in a reﬁnement. Section 4 describes state machine
+reﬁnement and a technique for elaborating reﬁned states into sub-states and the transi-
+tions elaboration technique. Section 5 describes a technique for moving class events of
+an abstract machine to a reﬁned class or a new class in a reﬁnement.
+Before the technical details of the contributions are describes, we give some back-
+ground on UML-B and the generated Event-B in Section 2 that outlines the existing
+relevant features of UML-B. Section 6 presents the ATM case study using the reﬁne-
+ment techniques describes in Sections 3, 4 and 5. Section 7 concludes the paper.
+2 Background of UML-B and Generated Event-B
+UML-B provides four kind of diagrams. They are package, context, class and state ma-
+chine diagrams. A package diagram is a top-level diagram that shows the structure and
+relationships between components (machines and contexts) in a project. A context is
+described in a context diagram which is similar to a class diagram but has only constant
+data and structured types. A machine is speciﬁed by a class diagram and state machine
+diagram(s) representing data structures that may be changed by events or transitions.
+Events may be attached to classes in a class diagram. Events can also be represented by
+the transitions in a state machine diagram. Further descriptions focus on the class and
+state machine diagrams as the rest of the sections mostly concerns these. The semantics
+
+--- Page 3 ---
+of a UML-B model is given by the Event-B generated by the UML-B tool according to
+a set of translation rules.
+A class diagram may contain classes. Each class may have attributes, associations,
+events and state machines. An attribute deﬁnes a data value of an instance of a class.
+An association is a special case of an attribute that deﬁnes a relationships between two
+classes. Events and state machines may modify some or all the attributes of any class.
+Each UML-B context gives rise to an Event-B context (i.e., the UML-B tool generates
+a corresponding Event-B context). Each UML-B machine gives rise to both an implicit
+Event-B context and an Event-B machine. The implicit context is used to deﬁne types
+for the classes and states in the UML-B machine. In the generated Event-B machine,
+classes, class attributes and associations become variables. Events and transitions in
+classes and state machines become events in the generated Event-B machine.
+Fig. 1. Package diagram and the UML-B speciﬁcation of the Abstract Machine M1
+Fig. 1 contains screenshots from the UML-B tool showing an example of a package
+diagram that contains machine M1(a) which has a class diagram (b) containing classes
+CAandCB. These classes give rise to the sets CASET andCBSET in the generated
+Event-B implicit context. In the generated Event-B machine the classes CAandCB
+give rise to variables. The class CAconsists of the attribute xof typeNand also the
+association abof typeCB. The multiplicity property for the association abshown in
+Fig. 1(c) speciﬁes a many-to-one relationship (i.e., total function). A full explanation
+
+--- Page 4 ---
+of association multiplicity may be found in [12]. The attributes xandabgive rise to
+variables in the generated Event-B machine.
+For each class, attribute and association, a type invariant will be generated in the
+Event-B machine. For example, the class CAcorresponds to the type invariant which
+speciﬁes that CAis a subset of CASET (CA2P(CASET)). Attribute xcorresponds
+to the type invariant x2CA!Nthat speciﬁes xis deﬁned for all CA. Each class has
+a self name property with a default value self, i.e., the default identiﬁer that represents
+an instance of a class (which may be changed by the modeller). The self name property
+of the class CAis shown in Fig. 1(d). A class may have events and for each event, its
+parameters, guards and actions can be deﬁned explicitly as properties. ¹B (micro B)
+notation [12] that borrows from the Event-B notation is used for textual guards and
+actions. ¹B uses an object-oriented style dot notation to show ownership of entities,
+i.e., attributes and associations, by classes. Variables used in an expression can represent
+owned features using the dot notation. For example, i.xrefers to the value of the variable
+xwhich belongs to instance i. Another example of this will be presented later (Fig. 5).
+Attached to the class CAis its state machine, SM, listing its four transitions t1,t2,t3
+andt4. The state machine SMin Fig. 1(e) shows its two states, AandBand the transi-
+tions. The solid circle is the initial state, whereas, the solid circle with an outer circle is
+the ﬁnal state. The translation to Event-B for a state machine can either be a disjoint sets
+representation or state function representation. These two styles are introduced in [10]
+and they are supported in the UML-B tool. UML-B allows modellers to switch between
+these two representations.
+For a disjoint sets representation, a disjoint sets of CAare introduced as variables
+as follows:
+A2P(CA)
+B2P(CA)
+A\B=?
+That is, variable A represents the set of instances of CA that are in the state A
+and similarly for B. For a state function representation, a variable SM (i.e., the state
+machine belonging to the class CA) is introduced representing a function mapping CA
+to an enumerated set of states, SMSTATES as follows:
+SMSTATES =fA,Bg
+SM2CA¡!SMSTATES
+That is, SM maps each instance of CA to its state. In this paper, the translation
+to Event-B is described using the disjoint sets representation. The generated Event-B
+machine for M1is shown in the Rodin screenshot of Fig. 2. Each Event-B statement
+is preceded by its label which describes its purpose. For example, CA.type is a label
+for the Event-B statement CA2P(CASET ). The states AandBofSMstate ma-
+chine represent variables of type CA(i.e., the state machine owner). An instance of CA
+changes its state when a transition ﬁres. For the states, an additional invariant stating
+that they are disjoint is generated (i.e., A\B=?). For each transition there is a guard
+that speciﬁes an instance source state (labelled as ..isin..) and actions that specify its
+target state (labeled as ..enterState ..) and its departure from the current state (labelled
+as..leaveState ..). The parameter, self, indicates an instance of a class. A transition
+from an initial state such as t1, deﬁnes a constructor for the class. The translation of t1
+
+--- Page 5 ---
+selects an unused instance and adds it to the set of CA(labelled self.type ). A transition to
+a ﬁnal state such as t4is a destructor which removes an instance from current instances
+and from the domain of all the class variables. The transition t3is a self loop transition
+which does not changes state. In the generated Event-B the event t3has a guard that
+speciﬁes its source state but with a skip action i.e., not changing state. Invariants and
+Fig. 2. Generated Event-B speciﬁcation of M1
+theorems (assertions requiring proofs) can be attached to classes or states and become
+part of the Event-B machine. A full explanation and examples of these is in [1].
+3 Reﬁnement of Classes in UML-B
+In this section, the reﬁnement techniques concerning the notion of reﬁned classes and
+inherited attributes are described.
+The motivation for reﬁned classes and inherited attributes come from performing
+reﬁnement in Event-B. The notion of reﬁned classes and inherited attributes in UML-B
+reﬂect the reﬁnement of variables in Event-B. A reﬁned class is one that reﬁnes a more
+abstract class and an inherited attribute is one that inherits an attribute of the abstract
+class. A notion of reﬁned classes is needed in UML-B because some elements of an
+abstract UML-B model need to be retained by the reﬁnement.
+In Event-B reﬁnement, a machine that reﬁnes a more abstract machine may keep
+variables of an abstract machine, may drop some of the variables and may introduce new
+variables. In UML-B reﬁnement, a machine that reﬁnes a more abstract machine may
+contain reﬁned classes where each reﬁned class reﬁnes a class of its abstract machine
+(i.e., keeps variables of its abstract machine). In UML-B reﬁnement, a machine may
+drop some of reﬁned classes (i.e., drop some variables). Also in UML-B reﬁnement, a
+machine may introduce new classes (i.e., new variables) in a class diagram.
+In UML-B reﬁnement, a reﬁned class may inherit attributes of its abstract class (i.e.,
+keeps variables of its abstract machine). A reﬁned class may drop some of the attributes
+of its abstract class (i.e., drop some variables of its abstract machine) and a reﬁned
+
+--- Page 6 ---
+class may introduce new attributes (i.e., new variables). The following schematic table
+illustrates a reﬁned class that inherits and drops abstract attributes and introduces new
+attributes. The table lists the attributes for class Cand a reﬁned class C. ClassCcontains
+attributes a1,a2anda3. In reﬁnement, the reﬁned class Cinherits attributes a1anda2,
+drops attribute a3and has new attributes a4anda5. In the generated Event-B machine,
+both a class and a reﬁned class give rise to variables. A type invariant is generated for an
+abstract class i.e., Class Cbut not for a reﬁned class because its type is already deﬁned in
+the abstract Event-B machine. Similarly both the inherited attributes and new attributes
+give rise to variables and a type invariant is generated for each new attribute but not for
+the inherited attributes.
+Class C Reﬁned Class C
+a1 a1 ( inherited )
+a2 a2 ( inherited )
+a3 a4 ( new)
+a5 (new)
+We describe here a simple example of performing reﬁnement in UML-B using the
+notion of reﬁned classes and inherited attributes. Fig. 3(a) shows an example of a pack-
+age diagram that manages a reﬁnement relationship between machines. The package
+diagram shows that machine M2reﬁnes machine M1(of Fig. 1). The class diagram
+ofM2is shown in Fig. 3(b) where it consists of reﬁned classes CAandCBreﬁning
+the classes CAandCBofM1respectively. The reﬁned class CAinherits attribute xand
+association ab. The reﬁned class CBhas a new association cbcc. Machine M2has a
+new class,CCwhich gives rise to a new set ( CCSET) in the generated Event-B implicit
+context. In the generated Event-B machine for machine M2, the variables CA,CB,x
+andabare retained. The machine M2has new variables CCandcbccwith their type
+invariants CC2P(CCSET) and cbcc2CB!CCrespectively.
+Fig. 3. Package diagram and Class Diagram of Machine M2
+In Event-B reﬁnement, a machine must provide a reﬁnement of each abstract event.
+This can be either one or many event(s) reﬁning one abstract event. New events may
+be introduced in a reﬁnement. Similarly, in UML-B reﬁnement, at least one concrete
+event must reﬁne each abstract event and new events may be introduced. These concrete
+events can either be attached to a reﬁned (or a new) class or a state machine of a reﬁned
+(or a new) class. In UML-B reﬁnement, we can also deﬁne additional invariants and
+theorems by attaching them to reﬁned classes and states that reﬂect adding invariants
+and theorems in Event-B reﬁnement.
+
+--- Page 7 ---
+4 Reﬁnement of State Machines in UML-B
+In this section, the reﬁnement techniques concerning the notion of reﬁned state ma-
+chines and reﬁned states are described. The motivation for reﬁned state machines and
+Fig. 4. Reﬁnement of State machine (machine M2 reﬁnes machine M1)
+reﬁned states come from combining the state machine hierarchy in UML-B with reﬁne-
+ment in Event-B. The essential concept is that state machines are reﬁned by elaborating
+an abstract state with nested sub-states. A reﬁned state machine is one that reﬁnes a
+more abstract state machine and a reﬁned state is one that reﬁnes a more abstract state.
+In UML-B reﬁnement, a machine may contain reﬁned state machines and reﬁned
+states. We describe ﬁrst an example of performing reﬁnement in UML-B using the
+notion of reﬁned state machines and reﬁned states. We will then describe the general
+rules. Fig. 4 shows an example of a state machine reﬁnement. The reﬁned class CAof
+M2(Fig. 3(b)) has a reﬁned state machine SM(Fig. 4(b)) reﬁning the state machine SM
+ofM1(Fig. 4(a)). The states of reﬁned state machine SMare reﬁned state Aand reﬁned
+stateBreﬁning state Aand stateBofM1. The reﬁned state machine SMcontains the
+transitions t1,t2a,t2b,t3andt4which reﬁne the corresponding abstract transitions
+of machine M1. In Fig. 4(b), the abstract transition t2is replaced with transitions t2a
+andt2bwhich reﬁne the abstract transition t2of machine M1. This reﬁnement of a
+state machine reﬂects reﬁnement in Event-B where many events can reﬁne one abstract
+event. The transitions t2aandt2bhave different source sub-states (i.e., representing
+different guards in Event-B) which are deﬁned in the nested state machine SMA.
+The nested state machine SMA(Fig. 4(c)) elaborates the reﬁned state A (Fig. 4(b))
+ofM2. The nested state machine, SMAhas three states A1,A2andA3. The transitions
+t1,t2a,t2bandt3in the nested state machine SMAare labelled the same as the in-
+coming and outgoing transitions of the reﬁned state A. The same labels indicates that
+the transition t1of the state machine SMAis the transition t1of the reﬁned state ma-
+chineSMand similarly for t2a,t2bandt3. The transition t1of the nested state machine
+
+--- Page 8 ---
+SMAin Fig. 4(c) elaborates the incoming transition t1of the reﬁned super-state A. This
+means, in the reﬁnement, the target state of the transition t1is the sub-state A1. The
+transitions t2aandt2bof the nested state machine SMAelaborate the outgoing tran-
+sition t2aandt2bof the reﬁned super-state A. In Fig. 4(b) we do not see a distinction
+between transitions t2aandt2b. In Fig. 4(c) we can see a distinction: t2ahas sub-state
+A1as a source while t2bhasA3as a source. The transition t3of the nested state ma-
+chineSMAelaborates the self loop transition of the reﬁned super-state Aspecifying its
+source state as the state A1and its target state as A2. In the nested state machine SMA,
+the transition t5is a new transition representing a new event in the generated Event-B
+machine.
+In the generated Event-B machine, type invariants are created for all sub-states,
+where their types are their super-state, for example A12P(A) is a type invariant for
+the stateA1. An additional invariant is generated to specify that all sub-states constitute
+their super-state. For example, A=A1[A2[A3. Other generated invariants are a
+number of disjointness invariants specifying that all sub-states are disjoint.
+In the next paragraphs, we give a general deﬁnition of state machine reﬁnement
+based on the example given above. A reﬁned state machine reﬁnes a more abstract state
+machine. The structure of a reﬁned state machine is an elaboration of the structure of
+its abstraction in two possible ways:
+–Each transition is replaced by one or more transitions.
+–An abstract state may be elaborated by a nested state machine (see below).
+In the given example, we used the techniques of state elaboration and transition elabo-
+ration. In UML-B reﬁnement, a reﬁned state may be elaborated to sub-states contained
+in a nested state machine forming a state machine hierarchy. State elaboration enables
+more transitions to be added to a nested state machine. Some of these transitions elab-
+orate the incoming and outgoing transitions of the reﬁned super-state. Some of these
+transitions are new transitions (i.e, reﬂects introducing new events in Event-B reﬁne-
+ment).
+In UML-B, nested state machines are modelled in separate state machine diagrams
+from their parent state machine diagrams. Therefore, the transition elaboration tech-
+nique is needed so that transitions in a nested state machine can elaborate the incoming
+and outgoing transitions of the super-state. In a nested state machine, a transition with
+an initial source state elaborates at most one incoming transition to the super-state and
+a transition with a ﬁnal target state elaborates at most one outgoing transition from the
+super-state. Our experience is that having separate diagrams for nested state machines
+scales better than embedding them directly in a single diagram. A single diagram can
+result in scalability problems when there are many levels of state machine hierarchy
+and a nested state machine has many states. On the other hand, it can be useful to see at
+least one level of nesting in a single diagram. We will investigate this in future.
+An abstract state may have a self loop transition. In UML-B reﬁnement, while the
+state is elaborated into sub-states, the self loop transition may be elaborated as one of the
+transitions between any two of the sub-states. The elaborated transition deﬁnes the state
+changes from a sub-state to another sub-state when the transition ﬁres. When reﬁning a
+self loop transition, the occurrence of the transition can either be many times or can be
+restricted to once. Restriction to once means removing looping behaviour and this is a
+valid reﬁnement since we focus on preserving safety, not liveness, in our current work.
+
+--- Page 9 ---
+5 Event Movement
+This section describes the technique of moving a class event in UML-B reﬁnement.
+There are two methods of moving a class event in a reﬁnement, these are (1) move
+to a reﬁned class as a transition of a state machine and (2) move to a new class in a
+reﬁnement either as a class event or a transition in a state machine. Method (1) does not
+need any new UML-B language feature. However, method (2) creates a motivation for
+the need to be able to change the default selfname in UML-B.
+We describe both methods by giving ﬁrst an example of an abstract machine in
+which a reﬁnement is based upon. Figure 5(a) shows a class CAwith attribute xand
+event ev1. Figure 5(b) shows the properties of the event ev1showing its parameter
+y, a guard and an action. The action is deﬁned using ¹B notation and uses a default
+identiﬁer self, i.e., the self name property which represents an instance of a class CA.
+The self name property becomes a parameter of the ev1event in the corresponding
+Event-B machine.
+Fig. 5. Example of the UML-B speciﬁcation of an abstract machine
+For method (1), in a reﬁnement, the class event of the abstract machine may be
+moved to a state machine of the reﬁned class CAas a transition ev1between the states
+A1andA2. In the generated Event-B machine for the event ev1, an additional guard
+specifying the current state A1for the event to take place ( self2A1) and also addi-
+tional actions specifying an instance move to the state A2(A2:=A2[ fselfg) and
+an action specifying an instance leaves the current state A1(A1:=A1n fselfg) are
+generated.
+For method (2), in a reﬁnement, a class event may be moved to a new class as a
+class event or as a transition in a state machine. We describe here the event movement
+technique when a class event is move to a new class as a transition in a state machine.
+Assume that the UML-B speciﬁcation in Fig. 6 is a reﬁnement of the abstract machine
+in Fig. 5. In the reﬁnement, a new class CCis introduced and event ev1is moved to the
+classCC(Fig. 6(a)). The event ev1become a transition between the states C1andC2
+of state machine CCsm (Fig. 6(c)).
+The self name property of the class CCis changed to selfCC from the default
+self(Figure 6(b)). This change is necessary to avoid conﬂicts with the default selfname
+of the reﬁned class CA. In a class event or a transition reﬁning an abstract class event, a
+parameter whose type is the abstract class is introduced to replace a selfparameter of
+the abstract class. For example, a parameter ca, of typeCAis added to the ev1transi-
+tion as shown in the property view in the Figure 6(d). A witness property is deﬁned for
+
+--- Page 10 ---
+the transition ev1which speciﬁes that cain the reﬁnement level represents selfof its
+abstract level (i.e., ca=self).
+Fig. 6. Example of the UML-B reﬁnement for the second method
+The witness property is adapted from Event-B. In Event-B, a witness is used when
+replacing a parameter of an abstract event with a different parameter in a concrete event
+in the reﬁnement. The witness is deﬁned by a predicate involving the abstract parameter.
+Section 6 of the ATM case study will demonstrate the usefulness of moving events
+from one class to another in reﬁnement. In the ﬁrst reﬁnement of the ATM case study,
+thewithdraw event of the Account class is moved to the ATM class as a transition in a
+state machine of the class ATM.
+6 ATM Case Study
+A case study based on an auto teller machine (ATM) was undertaken to validate the
+extension of UML-B with regards to the notion of reﬁned classes and reﬁned state
+machines. An ATM is a machine that allows bank customers to do some of the banking
+transactions 24 hours per day. It allows bank customers to perform a range of functions,
+including withdraw cash, check account balance and print mini-statements. In order to
+perform these functions through an ATM, bank customers need to use their ATM cards
+which are provided to them by the bank. The case study focused on the requirements
+for the cash withdrawal and check balance functions. There are seven levels for the
+ATM UML-B development. These machines are linked by a reﬁnement relationship.
+We described in details the ﬁrst three levels and described brieﬂy the other four levels.
+The summary for the ﬁrst three machine level is as follows:
+Abstract machine (ATM A): Models bank accounts and operations on accounts.
+First Reﬁnement (ATM R1): Introduces the ATMs and ATM cards.
+
+--- Page 11 ---
+Second Reﬁnement (ATM R2): Introduces an explicit validation transition for
+cards and splits withdrawal into a bank transition and an ATM transition.
+The package diagram in Fig. 7 shows a reﬁnement relationship between the ma-
+chines.
+Fig. 7. ATM Package Diagram
+Fig. 8 shows a UML-B speciﬁcation of the ATM abstract machine. The abstract ma-
+chine consists of a class Account (8(a)) with its attribute baland four events namely,
+createAccount ,deposit ,withdraw andcheckBalance . The Account class represents the
+set of accounts that currently exist in the system. The attribute balrepresents the bal-
+ance of an account. The withdraw event has one added parameter, amof type natural
+number. The parameter is shown in the property view in Fig. 8(b) including the guard
+and action. selfis the self name property deﬁned for the class Account . The withdraw
+event can only occur if the amount, am, is less than or equal to the balance in the ac-
+count. The withdraw event will result in decreasing the balance of the account by am
+amount.
+Fig. 8. UML-B speciﬁcation of ATM abstract machine
+The ﬁrst reﬁnement of the ATM model introduces two new classes which are ATM
+andCard which represent the sets of ATMs and ATM cards respectively. The UML-
+B speciﬁcation is shown in Fig. 9. The class diagram (Fig. 9(a)) of ATMR1contains
+the new classes and a reﬁned class Account reﬁning the Account class of ATM A.
+The classATM has an association atmcard with the class Card . The classCard has an
+association card account with the reﬁned class Account . The reﬁned class inherits the
+balattribute and reﬁnes the two events, namely, createAccount anddeposit ofATMA.
+The other two events namely, withdraw andcheckBalance are moved to the new class
+ATM in this reﬁnement level as transitions in the state machine ATMSMof the class
+ATM. At the abstract level (Fig. 8), we specify the effect of a withdrawal on the account
+balance. In the reﬁnement (Fig. 9), we further specify that the withdrawal takes place
+via an ATM. At the abstract level it is natural to specify the withdrawal as an event of
+the Account class while in the reﬁnement it is natural to specify it as an event of the
+ATM class.
+
+--- Page 12 ---
+Fig. 9. UML-B speciﬁcation of ATM First Reﬁnement
+The state machine ATMSMin Fig. 9(b) partitions the behaviour of an ATM into ei-
+ther an idlestate, (i.e., not being used/not active) or active atmstate (i.e., is being used).
+An ATM changes its state when it is triggered by a transition. The create transition cre-
+ates a new instance of an ATM and sets its state as idle. The insertCard transition can
+occur when an ATM is in the idlestate and the card inserted is a valid ATM card. When
+it occurs it changes an ATM state from idle toactive atm. The ejectCard transition
+changes an ATM state from active atmtoidle. While an ATM is in active atmstate, an
+ATM user can use it for withdrawal or checking an account balance (i.e., checkBalance
+transition). The withdrawOK transition represents a successful withdrawal transaction,
+whereas, the withdrawFail transition represents a failure possibly because the with-
+drawal amount exceeds the account balance. The transitions withdrawOK andcheck-
+Balance reﬁne the abstract event withdraw andcheckBalance respectively. The transi-
+tions insertCard ,ejectCard andwithdrawFail are new events.
+Fig. 9(c) shows the properties of the withdrawOK transition with the parameters,
+witness, guards and action. The witness speciﬁes that the parameter acrepresents the
+selfparameter of the abstract withdraw event. In this reﬁnement, the guards are strength-
+ened so that the withdrawOK transition can only occur when an ATM card is inserted
+(selfATM 2dom(atmcard )) and the card in the ATM is a valid card for the account
+whose balance is being modiﬁed ( selfATM:atm card =candc:card account =
+ac). Fig. 9(d) shows the reﬁnes property of the withdrawOK transition.
+
+--- Page 13 ---
+The second reﬁnement models an explicit validation transition for cards and splits
+withdrawal and balance check into a bank transition and an ATM transition. This is
+Fig. 10. UML-B speciﬁcation of ATM Second Reﬁnement
+achieved by elaborating the active atmstate into sub-states. The class diagram of ma-
+chine ATM R2contains three reﬁned classes reﬁning the classes Account ,ATM and
+Card ofATM R1. An attribute atmcash, which represents the amount of cash stored
+in an ATM is added to the reﬁned class ATM. A new class Pin is introduced which rep-
+resents a set of ATM PIN numbers. The reﬁned class Card has an association card pin
+with the class Pin.The reﬁned class ATM contains reﬁned state machine ATMSMwhich
+contains two reﬁned states reﬁning the states idle andactive atm ofATM R1(Fig.
+10(a)). The transitions ejectCard1 ,ejectCard2 ,ejectCard3 andejectCard4 reﬁne the
+abstract transition ejectCard . The transitions insertCard ,withdrawOK ,withdrawFail
+andcheckBalance reﬁne their corresponding abstract transitions in ATM R1.
+A new state machine named activeatmSMis added to the reﬁned state ac-
+tiveatmofATM R2and it contains ﬁve sub-states, namely, validating ,invalidCard ,
+transOption ,performedTrans andendTrans (Fig. 10(b)). The state machine has a tran-
+sition insertCard which elaborates the incoming transition to the reﬁned super-state
+activeatm. The outgoing transitions ejectCard1 ,ejectCard2 ,ejectCard3 andeject-
+Card4 from the states invalidCard ,transOption ,performedBankTrans andendTrans
+
+--- Page 14 ---
+respectively elaborate the outgoing transitions of the reﬁned super-state active atm.
+The transitions withdrawOK ,withdrawFail andcheckBalance elaborate the self loop
+transitions of the reﬁned super-state active atm. The transitions validateCardOK ,vali-
+dateCardFail ,withdrawATM andcheckBalATM are new transitions.
+The third reﬁnement models the request and response communication between the
+ATMs and the bank. The fourth reﬁnement models the send and receive events of the
+request and response communication between ATMs and the bank. In third and fourth
+reﬁnement, nested state machines are added to the ATM state machine forming four
+levels of nested state state machines. The ﬁfth reﬁnement introduces a form of com-
+munication between ATMs and the bank using message passing via two channels per
+ATM. The sixth reﬁnement merged the channel pairs into single channel.
+The state machine reﬁnement in the second, third and fourth reﬁnements introduced
+additional levels in the state machine nesting hierarchy. This supports a form of modular
+reasoning, since reﬁnement invariants are only required for the states that are being
+elaborated, so it localizes proof effort.
+All the models for the ATM development were constructed using the UML-B tool
+and corresponding Event-B machines were generated. All the proof obligations (POs)
+for the seven machines were generated and proved using the Rodin tool provers [6].
+The total number of proof obligations (POs) is 962 in which all of them are proved
+automatically. The POs for each machine are: ATM A:5,ATM R1:35,ATM R2:169,
+ATM R3:156, ATM R4:186, ATM R5:358 and ATM R6:53.
+7 Conclusions
+We have introduced notions of reﬁned class and reﬁned state machine for UML-B. We
+used these to described the following ﬁve reﬁnement techniques:
+–Add new attributes and associations to a reﬁned class
+–Add new classes in a reﬁnement
+–State elaboration
+–Transition elaboration
+–Move event to a reﬁned class or a new class in a reﬁnement
+We extended the UML-B tool to support these new techniques.
+UML-B enhances classical UML-B [12] which is a proﬁle of UML that deﬁnes
+a subset and specialisation of UML. Classical UML-B is based on classical B rather
+than Event-B and it has restricted support for reﬁnement. Some of the techniques used
+here (state elaboration, transition elaboration) were previously introduced by Snook and
+Walden [13] for classical UML-B. However, we provde a more precise deﬁnition of re-
+ﬁned state machine and we provide tool support based on UML-B giving a different
+modeling visualization from the UML diagram symbols used in [13]. We also intro-
+duce class reﬁnement techniques, which are not with dealt in [13]. In [14], a process
+for reﬁnement involving the application of patterns that are based on the techniques
+introduced in [13] is suggested.
+The techniques of adding new attributes and associations to a class and adding new
+classes to a class diagram have been introduced in informal way for reﬁnement of UML
+class diagram [16] but no formal notation nor formal reﬁnement concept is used. Tem-
+plates are introduced for attributes and associations to specify the translation of model
+
+--- Page 15 ---
+elements to low level design and implementation. Also, the technique of state elabora-
+tion has been introduced in a reﬁnement of UML state diagram [15] again without a
+formal notion of reﬁnement. Simons [21] has presented a theory of compatible object
+reﬁnement based on several proposed state-chart reﬁnements that includes state elabo-
+ration.
+There is much work on combining UML with formal notations and we now out-
+line some of this. However, unlike our work, none of this work supports reﬁnement
+in UML to the best of our knowledge. Lano, Clark and Androutsopoulos [17] present
+the translation of UML-RSDS into classical B. The constraint language used is OCL
+whereas we use ¹B. Idani, Ledru and Bert [18] have investigated the reverse in which
+they proposed an approach and tool support for the construction of UML diagrams from
+B speciﬁcations. Ledang and Souqui ´eres have introduced an approach for modelling the
+communication between UML state charts in B in [23]. Other work on the integration
+of UML and B are in [22, 24] as outlined in [12]. Integration work of UML with Z has
+been investigated in [20]. In this work, class diagrams, state machines and the UML-RT
+structure diagrams are translated to CSP-OZ (an integrated formal method) speciﬁca-
+tions. In [19], a framework called UML + Z for building, analysing and reﬁning models
+based on UML and Z is introduced. In [25], a transformation rules from VDM++ into
+UML class diagram and sequence diagram have been investigated.
+We have presented the use of the above listed techniques in the ATM case study
+which was modelled using the UML-B tool. The Rodin tool was used to generate and
+prove the proof obligations. The approach of elaborating states with sub-states in reﬁne-
+ment supports an incremental reﬁnement approach. The hierarchical structure of nested
+state machines also supports modular reasoning by localising the invariants required
+for reﬁnement proofs into the relevant state and its substates. An archive of UML-B
+development for the ATM case study can be uploaded1. Currently, we are working on
+the extensions to UML-B to support decomposition. We believe that the result of our
+research will be a methodology of reﬁnement in UML-B which will assists modelling
+in UML-B.
+Acknowledgements. This material is based upon work supported by the DEPLOY Project, which
+is an FP7 Integrated Project supported by European Commission (Grant N 214158). The ﬁrst
+author is funded by the Malaysian Government, IPTA Academic Training Scheme and University
+Putra Malaysia (UPM).
+References
+1.Snook, C. and Butler, M. : UML-B and Event-B: An Integration of Languages and Tools. In:
+The IASTED International Conference on Software Engineering.(2008)
+2.Object Management Group (2007). Introduction to OMG’s Uniﬁed Modelling Language
+(UML). Online. Date Last Accessed:25/1/08.
+3.Rumbaugh, J., Booch, G. and Jacobson, I. : The Uniﬁed Modelling Language User Guide.
+Addison Wesley. (1999)
+4.Metayer, C., Abrial, J.R., V oisin, L.: Event-B Language. Technical Report Deliverable 3.2,
+EU Project IST-511599 - RODIN, http://rodin.cs.ncl.ac.uk/deliverables/D7.pdf. Date Last
+Accessed: 25/1/08.(2005)
+1http://deploy-eprints.ecs.soton.ac.uk/95/
+
+--- Page 16 ---
+5.Rigorous Open Development Environment for Complex Systems (RODIN) - IST 511599,
+http://rodin.cs.ncl.ac.uk/. Date Last Accessed: 25/1/08.
+6.Abrial, J. R., Butler, M., Hallerstede, S. and V oisin, L.: An Open Extensible Tool Environ-
+ment for Event-B, In: Proc. ICFEM, LNCS 4260, pp. 588-605. (2006)
+7.Evans, N. and Butler, M. : A Proposal For Records in Event-B, In: Proc Formal Methods
+2006, LNCS 4085, pp. 221-235, Springer-Verlag. (2006)
+8.Abrial, J. : The B-Book: Assigning Programs to Meanings, Cambridge University Press
+(1996)
+9.Abrial, R. and Hallerstede, S. : Reﬁnement, Decomposition and Instantiation of Discrete
+Models: Application to Event-B, Journal Fundamentae Informatica. vol. 77, pp. 1-28, IOS
+Press. (2007).
+10.Butler, M. and Yadav, D. : An Incremental Development of the Mondex System in Event-B,
+vol. 20, number 1, Springer, Journal Formal Aspects of Computing, pp. 61-77. (2008)
+11.Butler, M. and Hallerstede, S.: The Rodin Formal Modelling Tool, BCS-FACS Christmas
+2007 Meeting, Formal Methods In Industry, London.(2007)
+12.Snook, C. and Butler, M. : UML-B: Formal Modelling and Design Aided by UML, ACM
+Transactions on Software Engineering and Methodology, vol. 15, pp. 92-122, ACM Press.
+(2006).
+13.Snook, C. and Walden. M. : Reﬁnement of Statemachines Using Event B Semantics, B2007:
+Formal Semantic and Development in B, LNCS 4355, pp. 171-185, Springer. (2006).
+14.Plaska, M., Walden, M. and C. Snook: Documenting the Progress of the System Develop-
+ment. In: Proc. of Workshop on Methods, Models and Tools for Fault Tolerance. (2007)
+15.OMG: UML 2.1.2 Superstructure Speciﬁcation. (2007) http://www.omg.org/cgi-
+bin/docs/formal/2007-11-02.pdf
+16.Bergner, K., Rausch, A., Sihling, M. and Vilbig, A.: Structuring and Reﬁnement of Class Di-
+agrams. In: Proc. of the 32nd Annual Hawaii International Conference, V ol. Track 6. (1999)
+17.Lano, K., Clark, D. and Androutsopoulos, K.: UML to B: Formal Veriﬁcation of Object
+Oriented Models. In: Proc. IFM2004, pp 761-768, Springer. (2004)
+18.Idani, A. Ledru, L. and Bert, D.: Derivation of UML Class Diagrams as Static Views of
+Formal B Developments, In: Proc. ICFEM, pp. 37-51. (2005)
+19.Am´alio, N., Polack, F. and Stepney, S. : UML + Z: Augmenting UML with Z, In Marc
+Frappier, Henri Habrias, eds. Software Speciﬁcation Methods : an Overview Using a Case
+Study, new edn, Hermes Science Publishing. (2006)
+20.M. Moller, E. Olderog, H. Rasch and H. Wehrheim,: Linking CSP-OZ with UML and Java:
+A Case Study. In: Proc. IFM, pp. 267-286, Springer. (2004)
+21.Simons, A. J. H.: A Theory of Regression Testing for Behaviourally Compatible Object
+Types: Research Articles, Journal Softw. Test. Verif. Reliab., vol. 16, no. 3, pp. 133-156,
+John Wiley and Sons Ltd. (2006)
+22.Facon, P., Laleau, R., and Nguyen, H.P.: Mapping Object Diagrams into B Speciﬁcations.
+In Methods Integration Workshop, Electronic Workshops in Computing (eWiC), Springer-
+Verlag. (1996)
+23.Ledang, H. and Souqui ´eres, J. : Contributions for Modelling UML State-Charts in B. In:
+Proc. IFM, LNCS 2335, pp. 109-127, Springer-Verlag. (2002)
+24.Sekerinski, E. Graphical Design of Reactive systems. In D.Bert, editor, B’98: Recent Ad-
+vances in the Development and Use of the B Method, LNCS 1393, Springer-Verlag, pp.182-
+197. (1998)
+25.Lausdahl, K. G., Lintrup, H. K. A. and Larsen, P. G.: Coupling Overture to MDA and UML.
+Master Thesis. (2008)
