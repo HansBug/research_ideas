@@ -60,13 +60,22 @@ ccf_history/
 - 若需要表达 venue 跟踪优先级，直接使用 `氛围`；同档再参考 `软工归属级别`，不要另造 `A/B/C/D` 或其他四级制。
 - 逐篇论文层面不再额外发明第二套 `A/B/C/D` 等级；默认沿用 `初筛 / PDF 跟进` 字段，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 排序。
 
-## 4. 覆盖 venue 列表
+## 4. 投稿时间线资料
+
+- 总入口：[../SUBMISSION_TIMELINES.md](../SUBMISSION_TIMELINES.md)
+- 时间格式：统一使用北京时间 `yyyy-mm-dd hh:mm`
+- 会议 venue：默认查看最近 `5` 年 `摘要截止 / 投稿截止 / rebuttal / 通知 / camera-ready / 会期`。
+- 期刊 venue：默认查看滚动投稿口径与 special issue 提醒。
+- 本页每个 venue 导航 section 与对应 `venues/*.md` 都应附对应时间线锚点。
+- 若某一年没有独立年主页，必须明确写为“未检出 standalone 年主页”之类的说明，不能写 generic 系列主页。
+
+## 5. 覆盖 venue 列表
 
 | venue | 全称 | 等级 | 类型 | 论文数 | 软工归属级别 | 氛围 | 主体归属 | 典型软工路径（先验） | 当年一级总判定 | 当年软工纳入 | 初筛分布 | 当年高频软工主路径 | 论文名录 | 数据文件 | 备注 |
 |---|---|---|---|---:|---|---|---|---|---|---|---|---|---|---|---|
 | `ICSE` |  | `A` | `会议` |  | `完全属于软工` | `A 🔥` | 软件工程 | `1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x` |  |  |  |  | [venue](./venues/icse_conf_a.md) | [metadata](./metadata/icse_conf_a.json) |  |
 
-## 5. Venue 导航
+## 6. Venue 导航
 
 ### `ICSE`
 
@@ -79,6 +88,7 @@ ccf_history/
 - 条目数：
 - 论文名录页：[venues/icse_conf_a.md](./venues/icse_conf_a.md)
 - 数据文件：[metadata/icse_conf_a.json](./metadata/icse_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icse_conf_a)
 
 - 关键信息页面：
 - 年主页：
@@ -91,7 +101,7 @@ ccf_history/
 - 初筛分布：
 - 高频软工主路径：
 
-## 6. 本年度总体观察
+## 7. 本年度总体观察
 
 - `软工归属级别` 分布：
 - `氛围` 分布：

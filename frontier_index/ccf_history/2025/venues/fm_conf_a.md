@@ -5,6 +5,7 @@
 - 年度总页：[../README.md](../README.md)
 - 计数复核：[../verification.json](../verification.json)
 - 数据文件：[metadata](../metadata/fm_conf_a.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-fm_conf_a](../../SUBMISSION_TIMELINES.md#timeline-fm_conf_a)
 - 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
 
 ## 2. 基本信息
@@ -21,7 +22,7 @@
 
 ## 3. 关键信息页面
 
-- 年主页：待补
+- 年主页：未检出 standalone 2025 年主页
 - 学术索引页：http://dblp.uni-trier.de/db/conf/fm/
 - 官方论文集页：https://doi.org/10.1007/978-3-031-71162-6 / https://doi.org/10.1007/978-3-031-71177-0
 - `CFP`：待补

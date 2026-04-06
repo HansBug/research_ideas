@@ -5,6 +5,7 @@
 - 年度总页：[../README.md](../README.md)
 - 计数复核：[../verification.json](../verification.json)
 - 数据文件：[metadata](../metadata/tse_journal_a.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-tse_journal_a](../../SUBMISSION_TIMELINES.md#timeline-tse_journal_a)
 - 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
 
 ## 2. 基本信息

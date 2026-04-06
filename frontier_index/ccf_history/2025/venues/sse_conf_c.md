@@ -5,6 +5,7 @@
 - 年度总页：[../README.md](../README.md)
 - 计数复核：[../verification.json](../verification.json)
 - 数据文件：[metadata](../metadata/sse_conf_c.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-sse_conf_c](../../SUBMISSION_TIMELINES.md#timeline-sse_conf_c)
 - 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
 
 ## 2. 基本信息
@@ -21,7 +22,7 @@
 
 ## 3. 关键信息页面
 
-- 年主页：待补
+- 年主页：未检出 2025 年主页
 - 学术索引页：http://dblp.uni-trier.de/db/conf/IEEEscc/
 - 官方论文集页：https://doi.org/10.1109/SSE67621.2025
 - `CFP`：待补

@@ -12,6 +12,7 @@
 
 ```text
 ccf_history/
+├── SUBMISSION_TIMELINES.md
 ├── 2025/
 │   ├── README.md
 │   ├── verification.json
@@ -37,11 +38,15 @@ ccf_history/
 2. `venues/*.md` 负责单个 venue 的逐篇论文名录。
 3. `metadata/*.json` 负责可重建、可回写的结构化保留载体。
 4. `verification.json` 负责逐 venue 计数复核。
+5. `SUBMISSION_TIMELINES.md` 负责保留 venue 的近 `5` 年投稿时间线与期刊滚动投稿口径。
+   - 其中会议时间统一使用北京时间 `yyyy-mm-dd hh:mm`。
+   - 若某年无 standalone 主会或未稳定检出年主页，必须直接写清楚，不能回退成 generic series 主页。
 
 当前已建立的示例年份页：
 
 1. [2025/README.md](./2025/README.md)
 2. [year_template/README.md](./year_template/README.md)
+3. [SUBMISSION_TIMELINES.md](./SUBMISSION_TIMELINES.md)
 
 若任务涉及“这篇论文到底算不算软件工程”“方向标签应该怎么打”，还应先读：
 
@@ -74,8 +79,9 @@ ccf_history/
 1. 该年说明
 2. 该年汇总统计
 3. 标准口径说明
-4. 该年覆盖 venue 列表
-5. 每个 venue 一个独立导航 section
+4. 投稿时间线资料入口
+5. 该年覆盖 venue 列表
+6. 每个 venue 一个独立导航 section
 
 每个 venue 导航 section 默认应包含：
 
@@ -91,7 +97,8 @@ ccf_history/
    - `CFP`
    - 程序页 / proceedings / volume / issue 页
 3. 指向对应 `venues/<venue>.md` 的论文名录页链接
-4. 该 venue 在该年的统计概览
+4. 指向 [SUBMISSION_TIMELINES.md](./SUBMISSION_TIMELINES.md) 中对应锚点的链接
+5. 该 venue 在该年的统计概览
    - 一级总判定分布
    - 软工纳入判定分布
    - 初筛分布
@@ -203,3 +210,4 @@ python -m tools.ccf_se_classifier --year 2025
 2. `venues/*.md` 默认是脚本生成的可重建产物，用于承载单个 venue 的逐篇名录。
 3. 构建缓存位于仓库根目录 `.cache/ccf_se_index/<year>/`，不属于年度索引正式内容。
 4. 后续若某些论文被选中进入全文阶段，再转入正式论文集路径处理 `paper.pdf / paper_content.txt / bibtex.bib`。
+5. 若任务涉及投稿规划，默认先读 [SUBMISSION_TIMELINES.md](./SUBMISSION_TIMELINES.md)，再回到对应年份页和 `venues/*.md` 做筛选。

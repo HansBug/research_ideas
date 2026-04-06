@@ -5,6 +5,7 @@
 - 年度总页：[../README.md](../README.md)
 - 计数复核：[../verification.json](../verification.json)
 - 数据文件：[metadata](../metadata/oopsla_conf_a.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-oopsla_conf_a](../../SUBMISSION_TIMELINES.md#timeline-oopsla_conf_a)
 - 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
 
 ## 2. 基本信息
@@ -21,7 +22,7 @@
 
 ## 3. 关键信息页面
 
-- 年主页：待补
+- 年主页：https://2025.splashcon.org/track/oopsla
 - 学术索引页：http://dblp.uni-trier.de/db/conf/oopsla/
 - 正式发布载体页：https://dl.acm.org/journal/pacmpl
 - `CFP`：待补

@@ -6,7 +6,7 @@
 - 覆盖范围：`CCF_SE_A_B_C.md` 当前保留的 `CCF` 软件工程高相关 venue 子集
 - 当前覆盖的 venue 数量：`57`
 - 当前已入表论文数量：`5153`
-- 更新时间：`2026-04-06 16:44:01`
+- 更新时间：`2026-04-06 19:11`
 - 说明：本年度条目已实现全量人工复核；最终裁决已直接固化在 `metadata/*.json` 中。本页只保留年度汇总与 venue 导航，逐篇论文名录拆分到 `venues/*.md`。
 
 ## 2. 年度汇总统计
@@ -35,7 +35,14 @@
 - 若需要表达 venue 的持续跟踪优先级，直接复用 `氛围`；同档再参考 `软工归属级别`，不要再另造 `A/B/C/D` 或其他四级制。
 - 逐篇论文层面不再额外发明 `A/B/C/D` 第二套等级；论文名录只按现有 `初筛` 优先级 `🟢 -> 🟡 -> ⏳ -> ⚪` 排序。
 
-## 4. 覆盖 venue 列表
+## 4. 投稿时间线资料
+
+- 总入口：[../SUBMISSION_TIMELINES.md](../SUBMISSION_TIMELINES.md)
+- 会议 venue：默认看最近 `5` 年 `摘要截止 / 投稿截止 / rebuttal / 通知 / camera-ready / 会期`。
+- 期刊 venue：默认看滚动投稿与 special issue 提醒，不机械构造 conference 式年度 `CFP`。
+- 本页每个 venue 导航 section 与对应 `venues/*.md` 都附了该 venue 的时间线锚点。
+
+## 5. 覆盖 venue 列表
 
 - 口径：当前年度页只覆盖 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 中保留的 venue。
 - `主体归属`、`软工归属级别`、`氛围` 与 `典型软工路径（先验）` 来自 venue 级先验；`2025` 逐篇统计直接按本年度 `metadata/*.json` 中的终判字段汇总。
@@ -101,7 +108,7 @@
 | `VMCAI` | International Conference on Verification,Model Checking, and Abstract Interpretation | `B` | `会议` | 21 | 部分属于软工 | A 🔥 | 形式化方法与软件工程交叉 | 1.2.x / 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 6 / 系统软件 1 | 不属于软件工程 15 / 跨域但软工主导 6 | 🟢 优先跟进 (5) / 🟡 保留观察 (0) / ⏳ 待补信息 (16) / ⚪ 暂不跟进 (0) | 3.2.1 静态分析与抽象解释 (1) / 3.3.2 运行时验证与运行时监测 (1) | [venue](venues/vmcai_conf_b.md) | [metadata](metadata/vmcai_conf_b.json) | 计数一致；2025 与先验一致 |
 | `WICSA` | Working IEEE/IFIP Conference on Software Architecture | `C` | `会议` | 0 | 完全属于软工 | B 🟢 | 软件工程 | 2.1.x / 2.2.x / 4.1.x | 无 2025 条目 | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [venue](venues/wicsa_conf_c.md) | [metadata](metadata/wicsa_conf_c.json) | 计数一致；2025 无条目，暂以先验为准 |
 
-## 5. Venue 导航
+## 6. Venue 导航
 
 ---
 
@@ -119,9 +126,10 @@
 - 初筛分布：🟢 优先跟进 (36) / 🟡 保留观察 (77) / ⏳ 待补信息 (2) / ⚪ 暂不跟进 (2)
 - 论文名录页：[venues/apsec_conf_c.md](./venues/apsec_conf_c.md)
 - 数据文件：[metadata](metadata/apsec_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-apsec_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/apsec-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/apsec/
 - 官方论文集页：https://doi.org/10.1109/APSEC66846.2025
 - `CFP`：待补
@@ -153,6 +161,7 @@
 - 初筛分布：🟢 优先跟进 (124) / 🟡 保留观察 (247) / ⏳ 待补信息 (13) / ⚪ 暂不跟进 (5)
 - 论文名录页：[venues/ase_conf_a.md](./venues/ase_conf_a.md)
 - 数据文件：[metadata](metadata/ase_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-ase_conf_a)
 
 - 关键信息页面：
 - 年主页：https://conf.researchr.org/home/ase-2025
@@ -187,6 +196,7 @@
 - 初筛分布：🟢 优先跟进 (13) / 🟡 保留观察 (13) / ⏳ 待补信息 (47) / ⚪ 暂不跟进 (1)
 - 论文名录页：[venues/ase_journal_b.md](./venues/ase_journal_b.md)
 - 数据文件：[metadata](metadata/ase_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-ase_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://link.springer.com/journal/10515
@@ -220,9 +230,10 @@
 - 初筛分布：🟢 优先跟进 (3) / 🟡 保留观察 (0) / ⏳ 待补信息 (32) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/caise_conf_b.md](./venues/caise_conf_b.md)
 - 数据文件：[metadata](metadata/caise_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-caise_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conferences.big.tuwien.ac.at/caise2025/
 - 学术索引页：http://dblp.uni-trier.de/db/conf/caise/
 - 官方论文集页：https://doi.org/10.1007/978-3-031-94569-4 / https://doi.org/10.1007/978-3-031-94571-7
 - `CFP`：待补
@@ -254,9 +265,10 @@
 - 初筛分布：🟢 优先跟进 (43) / 🟡 保留观察 (253) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (34)
 - 论文名录页：[venues/compsac_conf_c.md](./venues/compsac_conf_c.md)
 - 数据文件：[metadata](metadata/compsac_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-compsac_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://ieeecompsac.computer.org/2025/
 - 学术索引页：http://dblp.uni-trier.de/db/conf/compsac/
 - 官方论文集页：https://doi.org/10.1109/COMPSAC65507.2025
 - `CFP`：待补
@@ -288,9 +300,10 @@
 - 初筛分布：🟢 优先跟进 (25) / 🟡 保留观察 (87) / ⏳ 待补信息 (8) / ⚪ 暂不跟进 (6)
 - 论文名录页：[venues/ease_conf_c.md](./venues/ease_conf_c.md)
 - 数据文件：[metadata](metadata/ease_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-ease_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/ease-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/ease/
 - 官方论文集页：https://doi.org/10.1145/3756681
 - `CFP`：待补
@@ -322,9 +335,10 @@
 - 初筛分布：🟢 优先跟进 (6) / 🟡 保留观察 (11) / ⏳ 待补信息 (26) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/ecoop_conf_b.md](./venues/ecoop_conf_b.md)
 - 数据文件：[metadata](metadata/ecoop_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-ecoop_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/ecoop-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/ecoop/
 - 官方论文集页：https://www.dagstuhl.de/dagpub/978-3-95977-373-7
 - `CFP`：待补
@@ -356,6 +370,7 @@
 - 初筛分布：🟢 优先跟进 (22) / 🟡 保留观察 (51) / ⏳ 待补信息 (103) / ⚪ 暂不跟进 (2)
 - 论文名录页：[venues/ese_journal_b.md](./venues/ese_journal_b.md)
 - 数据文件：[metadata](metadata/ese_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-ese_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://link.springer.com/journal/10664
@@ -389,9 +404,10 @@
 - 初筛分布：🟢 优先跟进 (15) / 🟡 保留观察 (42) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (1)
 - 论文名录页：[venues/esem_conf_b.md](./venues/esem_conf_b.md)
 - 数据文件：[metadata](metadata/esem_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-esem_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/esem-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/esem/
 - 官方论文集页：https://doi.org/10.1109/ESEM64174.2025
 - `CFP`：待补
@@ -423,9 +439,10 @@
 - 初筛分布：🟢 优先跟进 (46) / 🟡 保留观察 (18) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (3)
 - 论文名录页：[venues/fm_conf_a.md](./venues/fm_conf_a.md)
 - 数据文件：[metadata](metadata/fm_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-fm_conf_a)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：未检出 standalone 2025 年主页
 - 学术索引页：http://dblp.uni-trier.de/db/conf/fm/
 - 官方论文集页：https://doi.org/10.1007/978-3-031-71162-6 / https://doi.org/10.1007/978-3-031-71177-0
 - `CFP`：待补
@@ -457,6 +474,7 @@
 - 初筛分布：🟢 优先跟进 (39) / 🟡 保留观察 (92) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (1)
 - 论文名录页：[venues/fse_conf_a.md](./venues/fse_conf_a.md)
 - 数据文件：[metadata](metadata/fse_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-fse_conf_a)
 
 - 关键信息页面：
 - 年主页：https://conf.researchr.org/home/fse-2025
@@ -491,9 +509,10 @@
 - 初筛分布：🟢 优先跟进 (3) / 🟡 保留观察 (0) / ⏳ 待补信息 (19) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/iceccs_conf_c.md](./venues/iceccs_conf_c.md)
 - 数据文件：[metadata](metadata/iceccs_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-iceccs_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://iceccs2025-hangzhou.github.io/
 - 学术索引页：http://dblp.uni-trier.de/db/conf/iceccs/
 - 官方论文集页：https://doi.org/10.1007/978-3-031-66456-4
 - `CFP`：待补
@@ -525,9 +544,10 @@
 - 初筛分布：🟢 优先跟进 (6) / 🟡 保留观察 (0) / ⏳ 待补信息 (15) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/icfem_conf_c.md](./venues/icfem_conf_c.md)
 - 数据文件：[metadata](metadata/icfem_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icfem_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://icfem2025.github.io/
 - 学术索引页：http://dblp.uni-trier.de/db/conf/icfem/
 - `CFP`：待补
 
@@ -558,9 +578,10 @@
 - 初筛分布：🟢 优先跟进 (9) / 🟡 保留观察 (48) / ⏳ 待补信息 (1) / ⚪ 暂不跟进 (1)
 - 论文名录页：[venues/icpc_conf_b.md](./venues/icpc_conf_b.md)
 - 数据文件：[metadata](metadata/icpc_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icpc_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/icpc-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/iwpc/
 - 官方论文集页：https://doi.org/10.1109/ICPC66645.2025
 - `CFP`：待补
@@ -592,6 +613,7 @@
 - 初筛分布：🟢 优先跟进 (75) / 🟡 保留观察 (166) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (4)
 - 论文名录页：[venues/icse_conf_a.md](./venues/icse_conf_a.md)
 - 数据文件：[metadata](metadata/icse_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icse_conf_a)
 
 - 关键信息页面：
 - 年主页：https://conf.researchr.org/home/icse-2025
@@ -626,9 +648,10 @@
 - 初筛分布：🟢 优先跟进 (19) / 🟡 保留观察 (79) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (4)
 - 论文名录页：[venues/icsme_conf_b.md](./venues/icsme_conf_b.md)
 - 数据文件：[metadata](metadata/icsme_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icsme_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/icsme-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/icsm/
 - 官方论文集页：https://doi.org/10.1109/ICSME64153.2025
 - `CFP`：待补
@@ -660,9 +683,10 @@
 - 初筛分布：🟢 优先跟进 (4) / 🟡 保留观察 (0) / ⏳ 待补信息 (51) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/icsoc_conf_b.md](./venues/icsoc_conf_b.md)
 - 数据文件：[metadata](metadata/icsoc_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icsoc_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：http://icsoc2025.hit.edu.cn
 - 学术索引页：http://dblp.uni-trier.de/db/conf/icsoc/
 - 官方论文集页：https://doi.org/10.1007/978-981-96-0805-8 / https://doi.org/10.1007/978-981-96-0808-9
 - `CFP`：待补
@@ -694,9 +718,10 @@
 - 初筛分布：🟢 优先跟进 (5) / 🟡 保留观察 (5) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/icsr_conf_c.md](./venues/icsr_conf_c.md)
 - 数据文件：[metadata](metadata/icsr_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icsr_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/icsr-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/icsr/
 - 官方论文集页：https://doi.org/10.1109/ICSR66718.2025
 - `CFP`：待补
@@ -728,9 +753,10 @@
 - 初筛分布：无 2025 条目
 - 论文名录页：[venues/icssp_conf_c.md](./venues/icssp_conf_c.md)
 - 数据文件：[metadata](metadata/icssp_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icssp_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：未检出独立 2025 年主页
 - 学术索引页：http://dblp.uni-trier.de/db/conf/ispw/
 - `CFP`：待补
 
@@ -755,9 +781,10 @@
 - 初筛分布：🟢 优先跟进 (28) / 🟡 保留观察 (73) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/icst_conf_c.md](./venues/icst_conf_c.md)
 - 数据文件：[metadata](metadata/icst_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icst_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/icst-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/icst/
 - 官方论文集页：https://doi.org/10.1109/ICST62969.2025
 - `CFP`：待补
@@ -789,9 +816,10 @@
 - 初筛分布：🟢 优先跟进 (25) / 🟡 保留观察 (87) / ⏳ 待补信息 (6) / ⚪ 暂不跟进 (10)
 - 论文名录页：[venues/icws_conf_b.md](./venues/icws_conf_b.md)
 - 数据文件：[metadata](metadata/icws_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-icws_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://services.conferences.computer.org/2025/icws-2025/
 - 学术索引页：http://dblp.uni-trier.de/db/conf/icws/
 - 官方论文集页：https://doi.org/10.1109/ICWS67624.2025
 - `CFP`：待补
@@ -823,6 +851,7 @@
 - 初筛分布：🟢 优先跟进 (10) / 🟡 保留观察 (22) / ⏳ 待补信息 (2) / ⚪ 暂不跟进 (1)
 - 论文名录页：[venues/iets_journal_b.md](./venues/iets_journal_b.md)
 - 数据文件：[metadata](metadata/iets_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-iets_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://ietresearch.onlinelibrary.wiley.com/journal/1751880x
@@ -856,6 +885,7 @@
 - 初筛分布：🟢 优先跟进 (17) / 🟡 保留观察 (54) / ⏳ 待补信息 (3) / ⚪ 暂不跟进 (1)
 - 论文名录页：[venues/ijseke_journal_c.md](./venues/ijseke_journal_c.md)
 - 数据文件：[metadata](metadata/ijseke_journal_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-ijseke_journal_c)
 
 - 关键信息页面：
 - 期刊主页：https://www.worldscientific.com/worldscinet/ijseke
@@ -889,9 +919,10 @@
 - 初筛分布：🟢 优先跟进 (3) / 🟡 保留观察 (8) / ⏳ 待补信息 (44) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/internetware_conf_c.md](./venues/internetware_conf_c.md)
 - 数据文件：[metadata](metadata/internetware_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-internetware_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/internetware-2025
 - 学术索引页：https://dblp.org/db/conf/internetware/index.html
 - 官方论文集页：https://doi.org/10.1145/3755881
 - `CFP`：待补
@@ -923,9 +954,10 @@
 - 初筛分布：🟢 优先跟进 (10) / 🟡 保留观察 (35) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (2)
 - 论文名录页：[venues/issre_conf_b.md](./venues/issre_conf_b.md)
 - 数据文件：[metadata](metadata/issre_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-issre_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://issre.github.io/2025/
 - 学术索引页：http://dblp.uni-trier.de/db/conf/issre/
 - 官方论文集页：https://doi.org/10.1109/ISSRE66568.2025
 - `CFP`：待补
@@ -957,6 +989,7 @@
 - 初筛分布：🟢 优先跟进 (45) / 🟡 保留观察 (65) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/issta_conf_a.md](./venues/issta_conf_a.md)
 - 数据文件：[metadata](metadata/issta_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-issta_conf_a)
 
 - 关键信息页面：
 - 年主页：https://conf.researchr.org/home/issta-2025
@@ -991,6 +1024,7 @@
 - 初筛分布：🟢 优先跟进 (38) / 🟡 保留观察 (60) / ⏳ 待补信息 (136) / ⚪ 暂不跟进 (9)
 - 论文名录页：[venues/ist_journal_b.md](./venues/ist_journal_b.md)
 - 数据文件：[metadata](metadata/ist_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-ist_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://www.sciencedirect.com/journal/information-and-software-technology
@@ -1024,6 +1058,7 @@
 - 初筛分布：🟢 优先跟进 (30) / 🟡 保留观察 (83) / ⏳ 待补信息 (3) / ⚪ 暂不跟进 (4)
 - 论文名录页：[venues/jsep_journal_b.md](./venues/jsep_journal_b.md)
 - 数据文件：[metadata](metadata/jsep_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-jsep_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://onlinelibrary.wiley.com/journal/20477481
@@ -1057,6 +1092,7 @@
 - 初筛分布：🟢 优先跟进 (57) / 🟡 保留观察 (65) / ⏳ 待补信息 (134) / ⚪ 暂不跟进 (9)
 - 论文名录页：[venues/jss_journal_b.md](./venues/jss_journal_b.md)
 - 数据文件：[metadata](metadata/jss_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-jss_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://www.sciencedirect.com/journal/journal-of-systems-and-software
@@ -1090,9 +1126,10 @@
 - 初筛分布：🟢 优先跟进 (19) / 🟡 保留观察 (8) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/models_conf_b.md](./venues/models_conf_b.md)
 - 数据文件：[metadata](metadata/models_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-models_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/models-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/models/
 - 官方论文集页：https://doi.org/10.1109/MODELS67397.2025
 - `CFP`：待补
@@ -1124,9 +1161,10 @@
 - 初筛分布：🟢 优先跟进 (13) / 🟡 保留观察 (90) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (6)
 - 论文名录页：[venues/msr_conf_c.md](./venues/msr_conf_c.md)
 - 数据文件：[metadata](metadata/msr_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-msr_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/msr-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/msr/
 - 官方论文集页：https://doi.org/10.1109/MSR66628.2025
 - `CFP`：待补
@@ -1158,9 +1196,10 @@
 - 初筛分布：🟢 优先跟进 (102) / 🟡 保留观察 (108) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (6)
 - 论文名录页：[venues/oopsla_conf_a.md](./venues/oopsla_conf_a.md)
 - 数据文件：[metadata](metadata/oopsla_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-oopsla_conf_a)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://2025.splashcon.org/track/oopsla
 - 学术索引页：http://dblp.uni-trier.de/db/conf/oopsla/
 - 正式发布载体页：https://dl.acm.org/journal/pacmpl
 - `CFP`：待补
@@ -1192,9 +1231,10 @@
 - 初筛分布：无 2025 条目
 - 论文名录页：[venues/paste_conf_c.md](./venues/paste_conf_c.md)
 - 数据文件：[metadata](metadata/paste_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-paste_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：无近 5 年 standalone 年主页
 - 学术索引页：http://dblp.uni-trier.de/db/conf/paste/
 - `CFP`：待补
 
@@ -1219,9 +1259,10 @@
 - 初筛分布：🟢 优先跟进 (37) / 🟡 保留观察 (44) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (7)
 - 论文名录页：[venues/pldi_conf_a.md](./venues/pldi_conf_a.md)
 - 数据文件：[metadata](metadata/pldi_conf_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-pldi_conf_a)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/pldi-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/pldi/
 - 正式发布载体页：https://dl.acm.org/journal/pacmpl
 - `CFP`：待补
@@ -1253,9 +1294,10 @@
 - 初筛分布：无 2025 条目
 - 论文名录页：[venues/qrs_conf_c.md](./venues/qrs_conf_c.md)
 - 数据文件：[metadata](metadata/qrs_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-qrs_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://qrs25.techconf.org/
 - 学术索引页：https://dblp.uni-trier.de/db/conf/qrs
 - `CFP`：待补
 
@@ -1280,9 +1322,10 @@
 - 初筛分布：🟢 优先跟进 (67) / 🟡 保留观察 (2) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (2)
 - 论文名录页：[venues/re_conf_b.md](./venues/re_conf_b.md)
 - 数据文件：[metadata](metadata/re_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-re_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/re-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/re/
 - 官方论文集页：https://doi.org/10.1109/RE63999.2025
 - `CFP`：待补
@@ -1314,6 +1357,7 @@
 - 初筛分布：🟢 优先跟进 (8) / 🟡 保留观察 (0) / ⏳ 待补信息 (1) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/re_journal_b.md](./venues/re_journal_b.md)
 - 数据文件：[metadata](metadata/re_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-re_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://link.springer.com/journal/766
@@ -1347,9 +1391,10 @@
 - 初筛分布：🟢 优先跟进 (19) / 🟡 保留观察 (0) / ⏳ 待补信息 (10) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/refsq_conf_c.md](./venues/refsq_conf_c.md)
 - 数据文件：[metadata](metadata/refsq_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-refsq_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/refsq-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/refsq/
 - 官方论文集页：https://doi.org/10.1007/978-3-031-88531-0
 - `CFP`：待补
@@ -1381,9 +1426,10 @@
 - 初筛分布：🟢 优先跟进 (6) / 🟡 保留观察 (0) / ⏳ 待补信息 (12) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/rv_conf_c.md](./venues/rv_conf_c.md)
 - 数据文件：[metadata](metadata/rv_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-rv_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://rv25.isec.tugraz.at/
 - 学术索引页：https://dblp.org/db/conf/rv/index.html
 - 官方论文集页：https://doi.org/10.1007/978-3-031-74234-7
 - `CFP`：待补
@@ -1415,9 +1461,10 @@
 - 初筛分布：无 2025 条目
 - 论文名录页：[venues/saner_conf_b.md](./venues/saner_conf_b.md)
 - 数据文件：[metadata](metadata/saner_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-saner_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/saner-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/wcre/
 - `CFP`：待补
 
@@ -1442,9 +1489,10 @@
 - 初筛分布：无 2025 条目
 - 论文名录页：[venues/scam_conf_c.md](./venues/scam_conf_c.md)
 - 数据文件：[metadata](metadata/scam_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-scam_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/scam-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/scam/
 - `CFP`：待补
 
@@ -1469,6 +1517,7 @@
 - 初筛分布：🟢 优先跟进 (32) / 🟡 保留观察 (11) / ⏳ 待补信息 (54) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/scp_journal_b.md](./venues/scp_journal_b.md)
 - 数据文件：[metadata](metadata/scp_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-scp_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://www.sciencedirect.com/journal/science-of-computer-programming
@@ -1502,9 +1551,10 @@
 - 初筛分布：🟢 优先跟进 (14) / 🟡 保留观察 (31) / ⏳ 待补信息 (11) / ⚪ 暂不跟进 (7)
 - 论文名录页：[venues/seke_conf_c.md](./venues/seke_conf_c.md)
 - 数据文件：[metadata](metadata/seke_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-seke_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://ksiresearch.org/seke/seke25.html
 - 学术索引页：http://dblp.uni-trier.de/db/conf/seke/
 - `CFP`：待补
 
@@ -1535,6 +1585,7 @@
 - 初筛分布：🟢 优先跟进 (0) / 🟡 保留观察 (1) / ⏳ 待补信息 (23) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/soca_journal_c.md](./venues/soca_journal_c.md)
 - 数据文件：[metadata](metadata/soca_journal_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-soca_journal_c)
 
 - 关键信息页面：
 - 期刊主页：https://link.springer.com/journal/11761
@@ -1567,6 +1618,7 @@
 - 初筛分布：🟢 优先跟进 (43) / 🟡 保留观察 (18) / ⏳ 待补信息 (30) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/sosym_journal_b.md](./venues/sosym_journal_b.md)
 - 数据文件：[metadata](metadata/sosym_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-sosym_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://link.springer.com/journal/10270
@@ -1600,6 +1652,7 @@
 - 初筛分布：🟢 优先跟进 (24) / 🟡 保留观察 (63) / ⏳ 待补信息 (9) / ⚪ 暂不跟进 (13)
 - 论文名录页：[venues/spe_journal_b.md](./venues/spe_journal_b.md)
 - 数据文件：[metadata](metadata/spe_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-spe_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://onlinelibrary.wiley.com/journal/1097024x
@@ -1633,9 +1686,10 @@
 - 初筛分布：🟢 优先跟进 (8) / 🟡 保留观察 (0) / ⏳ 待补信息 (6) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/spin_conf_c.md](./venues/spin_conf_c.md)
 - 数据文件：[metadata](metadata/spin_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-spin_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://spin-web.github.io/SPIN2025/cfp
 - 学术索引页：http://dblp.uni-trier.de/db/conf/spin/index.html
 - 官方论文集页：https://doi.org/10.1007/978-3-031-66149-5
 - `CFP`：待补
@@ -1667,6 +1721,7 @@
 - 初筛分布：🟢 优先跟进 (8) / 🟡 保留观察 (7) / ⏳ 待补信息 (20) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/sqj_journal_c.md](./venues/sqj_journal_c.md)
 - 数据文件：[metadata](metadata/sqj_journal_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-sqj_journal_c)
 
 - 关键信息页面：
 - 期刊主页：https://link.springer.com/journal/11219
@@ -1700,9 +1755,10 @@
 - 初筛分布：🟢 优先跟进 (8) / 🟡 保留观察 (16) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (4)
 - 论文名录页：[venues/sse_conf_c.md](./venues/sse_conf_c.md)
 - 数据文件：[metadata](metadata/sse_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-sse_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：未检出 2025 年主页
 - 学术索引页：http://dblp.uni-trier.de/db/conf/IEEEscc/
 - 官方论文集页：https://doi.org/10.1109/SSE67621.2025
 - `CFP`：待补
@@ -1734,6 +1790,7 @@
 - 初筛分布：🟢 优先跟进 (18) / 🟡 保留观察 (9) / ⏳ 待补信息 (11) / ⚪ 暂不跟进 (3)
 - 论文名录页：[venues/sttt_journal_c.md](./venues/sttt_journal_c.md)
 - 数据文件：[metadata](metadata/sttt_journal_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-sttt_journal_c)
 
 - 关键信息页面：
 - 期刊主页：https://link.springer.com/journal/10009
@@ -1767,6 +1824,7 @@
 - 初筛分布：🟢 优先跟进 (6) / 🟡 保留观察 (11) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/stvr_journal_b.md](./venues/stvr_journal_b.md)
 - 数据文件：[metadata](metadata/stvr_journal_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-stvr_journal_b)
 
 - 关键信息页面：
 - 期刊主页：https://onlinelibrary.wiley.com/journal/10991689
@@ -1800,9 +1858,10 @@
 - 初筛分布：🟢 优先跟进 (7) / 🟡 保留观察 (0) / ⏳ 待补信息 (15) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/tase_conf_c.md](./venues/tase_conf_c.md)
 - 数据文件：[metadata](metadata/tase_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-tase_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://cyprusconferences.org/tase2025/
 - 学术索引页：http://dblp.uni-trier.de/db/conf/tase/
 - `CFP`：待补
 
@@ -1833,6 +1892,7 @@
 - 初筛分布：🟢 优先跟进 (79) / 🟡 保留观察 (156) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (7)
 - 论文名录页：[venues/tosem_journal_a.md](./venues/tosem_journal_a.md)
 - 数据文件：[metadata](metadata/tosem_journal_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-tosem_journal_a)
 
 - 关键信息页面：
 - 期刊主页：https://dl.acm.org/journal/tosem
@@ -1866,6 +1926,7 @@
 - 初筛分布：🟢 优先跟进 (58) / 🟡 保留观察 (194) / ⏳ 待补信息 (25) / ⚪ 暂不跟进 (35)
 - 论文名录页：[venues/tsc_journal_a.md](./venues/tsc_journal_a.md)
 - 数据文件：[metadata](metadata/tsc_journal_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-tsc_journal_a)
 
 - 关键信息页面：
 - 期刊主页：https://ieeexplore.ieee.org/xpl/RecentIssue.jsp?punumber=4629386
@@ -1899,6 +1960,7 @@
 - 初筛分布：🟢 优先跟进 (71) / 🟡 保留观察 (135) / ⏳ 待补信息 (11) / ⚪ 暂不跟进 (11)
 - 论文名录页：[venues/tse_journal_a.md](./venues/tse_journal_a.md)
 - 数据文件：[metadata](metadata/tse_journal_a.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-tse_journal_a)
 
 - 关键信息页面：
 - 期刊主页：https://ieeexplore.ieee.org/xpl/RecentIssue.jsp?punumber=32
@@ -1932,9 +1994,10 @@
 - 初筛分布：🟢 优先跟进 (5) / 🟡 保留观察 (0) / ⏳ 待补信息 (16) / ⚪ 暂不跟进 (0)
 - 论文名录页：[venues/vmcai_conf_b.md](./venues/vmcai_conf_b.md)
 - 数据文件：[metadata](metadata/vmcai_conf_b.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-vmcai_conf_b)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：https://conf.researchr.org/home/vmcai-2025
 - 学术索引页：http://dblp.uni-trier.de/db/conf/vmcai/
 - 官方论文集页：https://doi.org/10.1007/978-3-031-82700-6 / https://doi.org/10.1007/978-3-031-82703-7
 - `CFP`：待补
@@ -1966,9 +2029,10 @@
 - 初筛分布：无 2025 条目
 - 论文名录页：[venues/wicsa_conf_c.md](./venues/wicsa_conf_c.md)
 - 数据文件：[metadata](metadata/wicsa_conf_c.json)
+- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-wicsa_conf_c)
 
 - 关键信息页面：
-- 年主页：待补
+- 年主页：已并入 ICSA，请改跟踪 ICSA 年主页
 - 学术索引页：http://dblp.uni-trier.de/db/conf/wicsa/
 - `CFP`：待补
 
@@ -1977,7 +2041,7 @@
 - 本 venue 年度观察：
 - 本年度未检出直接归属该 venue 的主论文条目。
 
-## 6. 本年度总体观察
+## 7. 本年度总体观察
 
 - `软工归属级别` 分布：完全属于软工 26 / 部分属于软工 22 / 大部分属于软工 9
 - `氛围` 分布：A 🔥 22 / B 🟢 19 / C 🟡 16

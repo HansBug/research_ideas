@@ -20,6 +20,7 @@ import re
 import time
 from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -36,6 +37,8 @@ from tools.ccf_se_index_builder import (
 
 
 TREE_MD = ROOT / "frontier_index" / "SOFTWARE_ENGINEERING_FIELD_TREE.md"
+TIMELINE_MD = ROOT / "frontier_index" / "ccf_history" / "SUBMISSION_TIMELINES.md"
+BJT = timezone(timedelta(hours=8))
 
 
 SE_LEVEL_PRIOR = {
@@ -1932,7 +1935,7 @@ def render_year_readme(
     verification: Dict[str, Any],
     full_manual_coverage: bool,
 ) -> str:
-    ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    ts = datetime.now(BJT).strftime("%Y-%m-%d %H:%M")
     priors = parse_venue_priors()
     venue_count = len(payloads)
     total_papers = verification["total_actual"]
@@ -1970,6 +1973,7 @@ def render_year_readme(
         for paper in payload["papers"]
         if paper.get("se_primary_path")
     )
+    timeline_homepages = parse_timeline_homepages(year)
 
     lines: List[str] = []
     lines.append(f"# `{year}` 年度汇总")
@@ -2010,7 +2014,14 @@ def render_year_readme(
     lines.append("- 若需要表达 venue 的持续跟踪优先级，直接复用 `氛围`；同档再参考 `软工归属级别`，不要再另造 `A/B/C/D` 或其他四级制。")
     lines.append("- 逐篇论文层面不再额外发明 `A/B/C/D` 第二套等级；论文名录只按现有 `初筛` 优先级 `🟢 -> 🟡 -> ⏳ -> ⚪` 排序。")
     lines.append("")
-    lines.append("## 4. 覆盖 venue 列表")
+    lines.append("## 4. 投稿时间线资料")
+    lines.append("")
+    lines.append("- 总入口：[../SUBMISSION_TIMELINES.md](../SUBMISSION_TIMELINES.md)")
+    lines.append("- 会议 venue：默认看最近 `5` 年 `摘要截止 / 投稿截止 / rebuttal / 通知 / camera-ready / 会期`。")
+    lines.append("- 期刊 venue：默认看滚动投稿与 special issue 提醒，不机械构造 conference 式年度 `CFP`。")
+    lines.append("- 本页每个 venue 导航 section 与对应 `venues/*.md` 都附了该 venue 的时间线锚点。")
+    lines.append("")
+    lines.append("## 5. 覆盖 venue 列表")
     lines.append("")
     lines.append("- 口径：当前年度页只覆盖 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 中保留的 venue。")
     lines.append(f"- `主体归属`、`软工归属级别`、`氛围` 与 `典型软工路径（先验）` 来自 venue 级先验；`{year}` 逐篇统计直接按本年度 `metadata/*.json` 中的终判字段汇总。")
@@ -2083,13 +2094,14 @@ def render_year_readme(
             )
         )
     lines.append("")
-    lines.append("## 5. Venue 导航")
+    lines.append("## 6. Venue 导航")
     lines.append("")
 
     for payload in payloads:
         venue = payload["venue"]
         key_pages = payload["key_pages"]
         files = payload["files"]
+        stem = Path(files["metadata"]).stem
         display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
         prior = priors[(venue.abbr, venue.rank, venue.kind)]
         screening_counts_local = Counter(
@@ -2111,6 +2123,7 @@ def render_year_readme(
         lines.append(f"- 初筛分布：{format_screening_summary(screening_counts_local, empty_text=f'无 {year} 条目')}")
         lines.append(f"- 论文名录页：[venues/{Path(files['venue_page']).name}](./{files['venue_page']})")
         lines.append(f"- 数据文件：[metadata]({files['metadata']})")
+        lines.append(f"- 近 `5` 年投稿时间线：[timeline](../SUBMISSION_TIMELINES.md#timeline-{stem})")
         lines.append("")
         lines.append("- 关键信息页面：")
         if venue.kind == "期刊":
@@ -2119,7 +2132,7 @@ def render_year_readme(
             lines.append(f"- 学术索引页：{venue.index_url}")
             lines.append(f"- {year} 年官方 article page：见对应 venue 页中的 `官方落地页` 列")
         else:
-            homepage = key_pages.get("homepage") or "待补"
+            homepage = key_pages.get("homepage") or timeline_homepages.get(stem) or "待补"
             lines.append(f"- 年主页：{homepage}")
             lines.append(f"- 学术索引页：{venue.index_url}")
             carrier = key_pages.get("carrier_homepage")
@@ -2159,7 +2172,7 @@ def render_year_readme(
             lines.append("- 本年度未检出直接归属该 venue 的主论文条目。")
         lines.append("")
 
-    lines.append("## 6. 本年度总体观察")
+    lines.append("## 7. 本年度总体观察")
     lines.append("")
     lines.append("- `软工归属级别` 分布：" + format_counter_summary(se_level_counts, order=SE_LEVEL_DISPLAY_ORDER, empty_text="无"))
     lines.append("- `氛围` 分布：" + format_counter_summary(atmosphere_counts, order=ATMOSPHERE_DISPLAY_ORDER, empty_text="无"))
@@ -2198,6 +2211,7 @@ def render_venue_readme(
     venue = payload["venue"]
     key_pages = payload["key_pages"]
     files = payload["files"]
+    stem = Path(files["metadata"]).stem
     prior = priors[(venue.abbr, venue.rank, venue.kind)]
     display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
     sorted_papers = sort_papers_by_screening(payload["papers"])
@@ -2216,6 +2230,7 @@ def render_venue_readme(
         if paper.get("se_primary_path")
     )
     metadata_link = (Path("..") / files["metadata"]).as_posix()
+    timeline_homepages = parse_timeline_homepages(year)
 
     lines: List[str] = []
     lines.append(f"# `{display_abbr}` (`{year}`) 论文名录")
@@ -2225,6 +2240,7 @@ def render_venue_readme(
     lines.append("- 年度总页：[../README.md](../README.md)")
     lines.append("- 计数复核：[../verification.json](../verification.json)")
     lines.append(f"- 数据文件：[metadata]({metadata_link})")
+    lines.append(f"- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-{stem}](../../SUBMISSION_TIMELINES.md#timeline-{stem})")
     lines.append("- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。")
     lines.append("")
     lines.append("## 2. 基本信息")
@@ -2247,7 +2263,7 @@ def render_venue_readme(
         lines.append(f"- 学术索引页：{venue.index_url}")
         lines.append(f"- {year} 年官方 article page：见下表 `官方落地页` 列")
     else:
-        homepage = key_pages.get("homepage") or "待补"
+        homepage = key_pages.get("homepage") or timeline_homepages.get(stem) or "待补"
         lines.append(f"- 年主页：{homepage}")
         lines.append(f"- 学术索引页：{venue.index_url}")
         carrier = key_pages.get("carrier_homepage")
@@ -2338,6 +2354,27 @@ def display_abbr_for_venue(venue: Venue, duplicated: bool) -> str:
     if not duplicated:
         return venue.abbr
     return f"{venue.abbr} / {venue.kind} / {venue.rank}"
+
+
+def parse_timeline_homepages(year: int) -> Dict[str, str]:
+    if not TIMELINE_MD.exists():
+        return {}
+    text = TIMELINE_MD.read_text(encoding="utf-8")
+    sections = re.split(r'(?m)^<a id="timeline-([^"]+)"></a>\n', text)
+    mapping: Dict[str, str] = {}
+    for idx in range(1, len(sections), 2):
+        stem = sections[idx]
+        section = sections[idx + 1]
+        row_match = re.search(rf"\| `{year}` \| (?P<cell>.*?) \|", section)
+        if not row_match:
+            continue
+        cell = row_match.group("cell").strip()
+        link_match = re.search(r"\[home\]\(([^)]+)\)", cell)
+        if link_match:
+            mapping[stem] = link_match.group(1)
+        elif cell and cell != "待补":
+            mapping[stem] = cell
+    return mapping
 
 
 def summarize_prior_bucket(se_level: str) -> Tuple[str, int]:
