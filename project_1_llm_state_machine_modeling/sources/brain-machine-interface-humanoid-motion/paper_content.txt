@@ -1,0 +1,499 @@
+--- Page 1 ---
+ORIGINAL RESEARCH ARTICLE
+published: 05 August 2014
+doi: 10.3389/fnsys.2014.00138
+Brain-machine interfacing control of whole-body humanoid
+motion
+Karim Bouyarmane1*, Joris Vaillant2,3, Norikazu Sugimoto4, François Keith2,3, Jun-ichiro Furukawa1,5
+and Jun Morimoto1
+1Computational Neuroscience Laboratories, Department of Brain Robot Interface, Advanced Telecommunications Research Institute International (ATR), Kyoto,
+Japan
+2Laboratoire d’Informatique de Robotique et de Micro-électronique de Montpellier, CNRS-University of Montpellier 2, Montpellier, France
+3CNRS-AIST Joint Robotics Laboratory, UMI3218/CRT , National Intitute of Advanced Industrial Science and Technology, Tsukuba, Japan
+4National Institute of Information and Communications Technology, Osaka, Japan
+5Graduate School of Frontier Biosciences, Osaka University, Osaka, Japan
+Edited by:
+Mikhail Lebedev, Duke University,
+USA
+Reviewed by:
+Randal A. Koene, Boston University,USA
+M. Van Der Meulen, University of
+Luxembourg, Luxembourg
+*Correspondence:
+Karim Bouyarmane, ATR
+Computational Neuroscience
+Laboratories, Department of BRI,
+2-2-2 Hikaridai, Seika-choSoraku-gun, Kyoto 619-0288, Japan
+e-mail: karim.bouyarmane@lirmm.frWe propose to tackle in this paper the problem of controlling whole-body humanoid
+robot behavior through non-invasive brain-machine interfacing (BMI), motivated by the
+perspective of mapping human motor control strategies to human-like mechanical avatar.
+Our solution is based on the adequate reduction of the controllable dimensionalityof a high-DOF humanoid motion in line with the state-of-the-art possibilities of
+non-invasive BMI technologies, leaving the complement subspace part of the motion
+to be planned and executed by an autonomous humanoid whole-body motion planning
+and control framework. The results are shown in full physics-based simulation of a
+36-degree-of-freedom humanoid motion controlled by a user through EEG-extracted brainsignals generated with motor imagery task.
+Keywords: humanoid whole-body control, brain-machine interfacing, motor imagery, motion planning, semi-
+autonomous humanoid, contact support planning
+1. INTRODUCTION
+Due to their design that allows them to be readily used in an
+environment that was initially arranged to accommodate thehuman morphology, that makes them more acceptable to theusers, and easier to interact with, it is generally admitted that
+humanoid robots are an appropriate choice as living assistants for
+the everyday tasks, for instance for the elderly and/or reduced-mobility people. The problem that naturally arises is that ofthe control of such an assistant and how to communicate thewills and intentions of the user to the robot. This problem is ofcourse general but becomes more challenging when addressingthe above-mentioned category of users for which communicationcapabilities can also be impaired (stroke patients for example).This brings our initial idea of considering brain-machine inter-faces (BMI) as the possible communication tool between thehuman and the humanoid assistant. Notwithstanding, broughtalong with this reﬂection was the more general question, non-necessarily application-directed, of a human using its brain motorfunctions to control a human-like artiﬁcial body the same waythey control their own human body. This question becomes ourmain motivation and concern in the present work since solving itwould pave the way of the discussed applicative perspectives. Wethus propose our solution to it in this paper.
+The approach we choose to investigate deals with the following
+constraints of the problem. First, we only consider easy-and-ready-to-use non-invasive BMI technologies. Among this class oftechnologies, we aim more speciﬁcally at the one that would alignbest and most intuitively with our expressed desire of mimickinghuman motor-control function, namely motor-imagery-basedBMI, consisting ideally for the human user of imagining a move-ment of their own body for it to be replicated in the humanoidbody, though we do not reach that ideal vision restricting ourstudy for the sake of feasibility demonstration to the use of ageneric motor-imagery task (imagining arm movement) that were-target to the speciﬁc motion of the robot at hand (leg motion ofthe robot). Finally, the control paradigm for the humanoid robotwe set as objective in our study is that of low-level joint/link-levelcontrol, to keep as general behavior and class of movements aspossible for the user to replicate at the robot, without restric-tion of the class of movements allowed by particular higher-levelhumanoid motion controllers.
+We address the related work and existing proposed solu-
+tions for this problem or approaching ones in the next sec-tion (Section 2). We then detail our own solution, based onthe integration of, for the humanoid motion control part,an autonomous contact-based planning and control frame-work (Section 3), and for the BMI part, a motor-imagery-task-generated brain-signal classiﬁcation method (Section 4). Theintegration of these two originally independent components isdiscussed in Section 5, 6 presents an example proof-of-conceptexperiment with a fully physics-simulated humanoid robot.Section 7 concludes the paper with discussion and future work.
+2. RELATED WORK AND PROPOSED SOLUTION
+Various approaches have been proposed to solve the problem westated in the introduction of controlling a humanoid robot with
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |1
+SYSTEMS NEUROSCIENC E
+
+--- Page 2 ---
+Bouyarmane et al. BMI control of humanoid
+BMI ( Bell et al., 2008; Bryan et al., 2011; Chung et al., 2011;
+Finke et al., 2011; Gergondet et al., 2011; Ma et al., 2013 ). All
+approaches, ours included, are based on the integration of a BMItechnology with a humanoid controller, and can thus be catego-rized according to which strategy is followed for each of these twocomponents. See Figure 1 for an overview.
+From the BMI point-of-view, all these works do abide by
+our posed constraint of using non-invasive BMIs that relyon electroencephalography (EEG), generally utilizing the well-established frameworks of visual-stimulation-based event-relatedpotentials (ERP) such as P300 in Bell et al. (2008) ,e v o k e d
+potentials (EP) such as the steady state visually evoked potential(SSVEP) in Bryan et al. (2011); Chung et al. (2011); Gergondet
+et al. (2011) , or hybrid approaches combining electrooculogram
+(EOG) with ERP such as in Ma et al. (2013) , or P300 with motor-
+imagery-evoked event-related desynchronization (ERD) ( Finke
+et al., 2011; Riechmann et al., 2011 ). None, however, investigated
+a solely motor-imagery-based BMI as stated in our motivations ofreplicating intuitive human motor-control strategies. Hence ourﬁrst contribution in the integration initiative.
+We adapt in this work a motor-imagery decoding scheme
+that we previously developed for the control of a one-degree-of-freedom robot and for sending standing-up/sitting-down com-mands to a wearable exoskeleton ( Noda et al., 2012 ). It allows
+us to generate a three-valued discrete command that we proposeto map to a one-dimensional subspace of the multi-dimensionalwhole-body conﬁguration space motion of the humanoid, andmore precisely the motion along a generalized notion of “verti-cal axis” of the moving end-limb, such as the foot of the swingleg in a biped motion for instance. As we detail in the course ofthe paper (Section 5), the motivation behind this strategy is toallow the user to assist the autonomous motion that might leadthe moving limb to be “blocked” in potential ﬁeld local minimawhile trying to avoid collision. The strategy can in future work bedeveloped into a more sophisticated two-dimensional continuouscommand one as proven possible by recent and ongoing studies
+FIGURE 1 | A schematic illustration of the proposed approach vs. the
+existing ones for controlling a humanoid robot with non-invasive BMI.on motor-imagery control ( Wolpaw and McFarland, 2004; Miller
+et al., 2010 ).
+From the humanoid controller point-of-view now, the most
+standard retained solution consists in using available humanoidhigh level controllers. These can be either walking controllerswith the commands “walk forward” “stop” “turn left” “turn right”sent to a walking humanoid, effectively reducing the problem ofhumanoid motion control to that of walk steering control ( Bell
+et al., 2008; Chung et al., 2011; Finke et al., 2011; Gergondet et al.,2011 ), or an object selecton/pick-up controller, where the user
+selects an object in the scene and then the arm reaching/graspingcontroller of the robot picks up the desired object ( Bryan et al.,
+2011 ). Finally Ma et al. (2013) use a hybrid control strategy where
+both walk steering and selecting a high-level behavior among aﬁnite library can be done by switching between EOG and ERPcontrol. With these strategies, a humanoid can be seen as anarm-equipped mobile robot, with wheels instead of legs (as itis actually the case in Bryan et al., 2011 where only the upper
+body is humanoid), and consequently the considerable amount ofwork done on BMI wheelchair control, for example, can be read-ily adapted. However, in doing so, the advantages of using a leggeddevice over a wheeled one are partially lost, and we can no longerclaim the need for the humanoid design nor defend the argumentof the possibility of using the robot in everyday living environ-ment which would present non-ﬂat structures, such as stairs forexample, with which the walking controllers are not efﬁcient todeal.
+While we admit that these strategies relying on walking pattern
+generators can in the long term beneﬁt from the developmentsin these techniques that would allow them to autonomouslycope with unstructured terrain (variable height stairs, rough ter-rain) ( Takanishi and Kato, 1994; Hashimoto et al., 2006; Herdt
+et al., 2010; Morisawa et al., 2011 ), and that they can as well
+use the hierarchical architectures in which they are embeddedas it is the case in Chung et al. (2011); Bryan et al. (2011); Ma
+et al. (2013) for switching, for example, to an appropriate stair-
+climbing controller when facing stairs, we choose in this workto investigate an entirely different approach that does not incor-porate any kind of walking or high-level controller. Instead, wepropose to allow the user to perform lower-level joint/link levelcontrol of the whole-body motion of humanoid, driven againby the desire of replicating the human low-level motor-controlstrategies into the humanoid, but also by the belief that a generic-motion generating approach will allow the robot assistant to dealmore systematically with unpredictable situations that inevitablyoccur in everyday living scenarios and for which the discussedhierarchical architectures would not have exhaustively accounted.This is our second contribution. T o achieve this goal, we relyon the contact planning paradigm that we previously proposedfor fully autonomous robot ( Bouyarmane and Kheddar, 2012 ),
+adapting it here to the instance of a BMI-controlled robot.
+3. HUMANOID CONTROLLER
+Our humanoid controller is based on the multi-contact planningparadigm, introduced in Hauser et al. (2008); Bouyarmane and
+Kheddar (2012) . This controller allows for autonomously plan-
+ning and executing the complex high-degree-of-freedom motion
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |2
+
+--- Page 3 ---
+Bouyarmane et al. BMI control of humanoid
+of the humanoid from a high-level objective expressed in terms
+of a desired contact state to reach. The controller works in twostages: an off-line planning stage and an on-line execution stage.
+At the planning stage ( Bouyarmane and Kheddar, 2011a ), a
+search algorithm explores all the possible contact transitions thatwould allow the robot to go from the initial contact state to thedesired goal contact state. What we mean by contact transition iseither removing one contact from the current contact state (e.g.,removing the right foot from a double-support state to transitionto a left-foot single-support one) or adding one contact to thecurrent contact state (e.g., bringing the swing right foot in contactwith the ﬂoor to transition from a left-foot single-support phaseto a double support phase). One must however note that a contactis deﬁned as a pairing between any surface designated on the coverof the links of the robot and any surface on the environment, andis not restricted to be established between the soles of the feet andthe ﬂoor surface. For instance, a contact can be deﬁned betweenthe forearm of the robot and the arm of an armchair, or betweenthe palm of the hand of the robot and the top of a table. Thisstrategy stems from the observation that all motions of humanscan be broken down to such a succession of contact transitions,be it cyclic motions such as walking where these transitions occurbetween the feet and the ground, or more complex maneuverssuch as standing up from an armchair were contacts transitionsoccur between various parts of the body (hands, forearms feet,tights, etc.) and various parts the environment objects (armchair,table ﬂoor, etc.). This feature makes our planning paradigm ableto cope with situations that are broader than the ones classi-cally tackled by humanoid motion planner that either plan forthe motion assuming a given contact state (e.g., planning a reach-ing motion with the two feet ﬁxed on the ground) ( Kuffner et al.,
+2002; Y amane et al., 2004; Y oshida et al., 2006, 2008 ), or plan-
+ning footprint placements assuming a cyclic walking pattern willoccur on these footprints ( Kuffner et al., 2001; Chestnutt et al.,
+2003, 2005 ). This aligns well with our initially expressed objective
+of controlling whole-body motion of any kind without restrictionto a subclass of taxonomically identiﬁed motions.
+At the above-described contact-transition search stage, every
+contact state that is being explored is validated by running aninverse-kinematics solver which ﬁnds an appropriate whole-bodyconﬁguration (posture) of the robot that meets the desired con-tact state, while at the same time satisfying physics constraintsto make the posture physically realizable within the mechanicallimits of the robots ( Bouyarmane and Kheddar, 2010 ). At the
+end of the ofﬂine-contact planning stage, we are provided with asequence of feasible contact transitions and associated transitionpostures, that go from the initial contact state to the the goal.
+T h es e c o n ds t a g eo ft h ec o n t r o l l e ri sa no n - l i n er e a l - t i m e
+low-level controller ( Bouyarmane and Kheddar, 2011b )t h a tw i l l
+successively track each of the intermediate postures fed by theoff-line planning stage, until the last element of the plannedsequence is reached. The controller is formulated as a multi-objective quadratic program optimization scheme, the objectivesbeing expressed in terms of the moving link of the robot involvedin the current contact transition being tracked along the sequence(e.g., the foot if the contact transition is a sole/ﬂoor one), the cen-ter of mass (CoM) of the robot to keep balance, and the wholeconﬁguration of the robot to solve for the redundancies of the
+high-DOF motion. These objectives are autonomously decidedby a ﬁnite-state machine (FSM) that encodes the current type oftransition among the following two types:
+•Removing-contact transition: the motion of the robot is per-
+formed on the current contact state, and the step is completedwhen the contact forces applied on the contact we want toremove vanish. This is done by shifting the weight of the robotaway from the being-removed contact, tracking the CoM posi-tion of the following conﬁguration in the sequence. There is noend-link motion in this kind of step. The corresponding FSMstate is labeled “Shift CoM.”
+•Adding-contact transition: the motion of the robot is per-
+formed on the current contact state, and the motion of thelink we want to add as a contact is guided to its desired con-tact location. There is thus an end-link motion (contact link) inthis kind of step. Balance is ensured by also tracking the CoMposition of the following conﬁguration in the sequence. Thecorresponding FSM state is labeled “Move contact link.”
+As an example, a cyclic walking FSM state transition sequence will
+look like: Move contact link (left foot) →Shift CoM (on the left
+foot)→M o v ec o n t a c tl i n k( r i g h tf o o t ) →Shift CoM (on the right
+foot)→Move contact link →...But non-cyclic behaviors are
+also possible and allowed, for example when standing up from anarmchair where contacts between the hands of the robot and armsof chair can be added in succession and removed in succession.
+The ﬁnal output of the quadratic program optimization
+scheme is a torque command that is sent to the robot at every con-trol iteration, after the execution of which the state of the robot isfed-back to the controller.
+4. BMI DECODING
+Our aim is for the humanoid system to be controlled by usingbrain activities in the similar brain regions that are used to con-trol the user’s own body. Therefore, we asked a subject to controlthe simulated humanoid system by using motor imagery of armmovements so that brain activities in motor-related regions suchas the primary motor cortex can be used.
+As non-invasive brain signal acquisition device we use an
+electroencephalogram (EEG) system (64 channels and samplingrate of 2048 Hz). The brain signals are decoded and classiﬁedusing the method that was applied and presented in our previ-ous work ( Noda et al., 2012 ), based on the spectral regulariza-
+tion matrix classiﬁer described in T omioka and Aihara (2007);
+T omioka and Muller (2010) . We recall the method here.
+The EEG signals, of covariance matrices Cconsidered as input,
+are classiﬁed into two classes, labeled with the variable k,w i t ht h e
+following output probabilities (at sampled time t):
+P(k
+t=+ 1|Ct)=1
+1+exp (−at), (1)
+P(kt=− 1|Ct)=exp (−at)
+1+exp (−at), (2)
+with the logit being modeled as a linear function of C
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |3
+
+--- Page 4 ---
+Bouyarmane et al. BMI control of humanoid
+at=tr[W/latticetopCt]+b, (3)
+and where Wis the parameter matrix to be learned ( bis a
+constant-valued bias).
+T o learn Wthe following minimization problem is solved
+minn/summationdisplay
+t=1ln (1+exp (−ktat))+λ/bardblW/bardbl1, (4)
+λbeing the regularization variable ( λ=14 in the application
+below) and
+/bardblW/bardbl1=r/summationdisplay
+i=1σi[W] (5)
+being the spectral l1-norm of W(ris the rank of Wandσi[W]its
+i-th singular value).
+Once the classiﬁer learned, the 7–30 Hz band-pass-ﬁltered
+measured EEG signals are decoded online, by down-samplingthem from 2048 to 128 Hz, and applying Laplace ﬁltering andcommon average substraction to remove voltage bias. Theircovariance matrix, initialized at C
+t=x/latticetop
+txtfor the ﬁrst time step
+t=1, where xt∈R1×64denotes the ﬁltered EEG signals, are
+updated at every time step as follows
+Ct=1
+Nx/latticetop
+txt+N−1
+NCt−1, (6)
+and used to compute the probabilities in Equations (1) and (2).
+Finally, the three-valued discrete command ctthat is sent to the
+robot is selected from these probabilities through the followinghysteresis
+c
+t=⎧
+⎪⎨
+⎪⎩+1i f P(kt=+ 1|Ct)>Pthresh andct−1/negationslash=+ 1,
+−1i f P(kt=− 1|Ct)>Pthresh andct−1/negationslash=− 1,
+0 otherwise ,(7)
+where the threshold is set at Pthresh=0.6.5. COMPONENT INTEGRATION
+The command ctdevised in Equation (7) is sent to the online
+humanoid whole-body controller via UDP protocol at 128 Hzfrequency and used to modify the planned and autonomouslyexecuted motion of the humanoid robot as described below andas schematically represented in Figure 2 .
+When the robot is executing a step that requires moving a link
+to a planned contact location (contact-adding step, executed bythe state “Move contact link” of the FSM, see Section 3), theninstead of tracking directly the goal contact location, we decom-
+pose the motion of the end-link (the contact link, for instance thefoot) into two phases:
+•Lift-off phase: The link ﬁrst tracks an intermediate position
+located at a designated way-point.
+•T ouch-down phase: The link then tracks its goal location in the
+planned contact state sequence.
+This two-phase decomposition allows the link to avoid unneces-
+sary friction with the environment contact surface and to avoidcolliding with environment features such as stairs.
+Each of these two phases correspond to a sub-state of the meta-
+state “Move contact link” of the FSM, namely:
+•State “Move contact link to way-point”
+•State “Move contact link to goal”
+Additionally, in order to avoid stopping the motion of the contact
+link at the way-point and to ensure a smooth motion through-out the step, we implemented a strategy that makes the transitionfrom the former to the latter sub-state triggered when the con-tact link crosses a designated threshold plan along the way, beforereaching the tracked way-point.
+A default position of the intermediate way-point is automat-
+ically pre-set by the autonomous framework using the followingheuristic (see Figure 2 ,l e f t ) :L e t P
+sdenote the start position of the
+contact link (at the beginning of the contact-adding step) and Pg
+denote its goal position (its location in the following contact state
+FIGURE 2 | The way-point moving strategy. The rectangles in the left and
+middle ﬁgures represent positions of the moving foot (say the right foot,
+supposing the left foot is the support foot that is ﬁxed and not represented
+here). In the right ﬁgure the whole leg motion is reconstructed from the footmotion. In all three ﬁgures, in black is the initial position of the foot/leg at the
+beginning of the step, in blue the controlled way-point position of the foot/leg
+at the middle of the step, and in red is the planned ﬁnal foot/leg position at
+the end of the step. The left ﬁgure shows how a default position of the way
+point is initialized autonomously by a translation of the ﬁnal planned position./vectorgis the gravity vector, /vectorzthe vertical unit vector (opposite to /vectorg),/vectoruis the unit
+vector from the initial to the goal position along the goal planned-contact
+surface plane, /vectorvis the generalized vertical direction unit vector, i.e., the unit
+vector normal to /vectoruand in the plane deﬁned by /vectoruand/vectorz, ﬁnally, his a pre-set
+default height. The middle ﬁgure shows how the way-point position is
+controlled via the command c
+tsent through the motor imagery interface.
+Finally the left ﬁgure shows how the resulting motion of the leg actually looks
+like with the foot going through the desired way-point that was translated
+downwards via the command ct=− 1.
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |4
+
+--- Page 5 ---
+Bouyarmane et al. BMI control of humanoid
+along the planned sequence). Let /vectorgdenote the gravity vector, /vectorzthe
+unit vector opposite to /vectorg, i.e.,/vectorz=−/vectorg//bardbl/vectorg/bardbl,a n d/vectoruthe unit vector
+from Ps,g(Psprojected on the goal-contact surface plane) to Pg,
+i.e.,/vectoru=−−−→Ps,gPg//bardbl−−−→Ps,gPg/bardbl. Finally let /vectorv=/vectoru×(/vectorz×/vectoru)b et h eu n i t
+vector normal to /vectoruthat lies in the plan deﬁned by /vectoruand/vectorz.T h e
+default way-point Pwis deﬁned as
+Pw=Pg−1
+2−−−→Ps,gPg+h/vectorv, (8)
+where his the hand-tuned user-deﬁned parameter that speciﬁes
+the height of the steps. The command ctin Equation (7) that
+comes from the BMI decoding system is ﬁnally used to modifyin real-time this way-point position P
+wby modifying its height h
+(see Figure 2 , middle). Let δhdenote a desired height control res-
+olution, then the modiﬁed position of the way-point through thebrain command c
+tbecomes
+Pw(ct)=/braceleftBigg
+Pg−1
+2−−−→Ps,gPg+(h+ctδh)/vectorvift=1,
+Pw(ct−1)+ctδh/vectorv ift>1.(9)
+The command ctcould have been used in other ways, however we
+identiﬁed two principles that should in our view stand in a BMIlow-level control endeavor of humanoid motion such as ours:
+•Principle 1: The full detailed motion, that cannot be designed
+joint-wise by the BMI user, should be autonomously plannedand executed from high-level (task-level) command.
+•Principle 2: The brain command can then be used to locally
+correct or bias the autonomously planned and executedmotion, and help overcome shortcomings inherent to fullautonomy.
+The way-point is a key feature to be controlled according to
+these two principles as it helps surmount the main limitationof the autonomous collision-avoidance constraint expressed inthe on-line quadratic-program-formulated controller describedin Section 3. This collision-avoidance constraint, that had to beformulated as a linear constraint in the joint acceleration vec-tor of the robot in order to ﬁt within the quadratic-programformulation [adapting to this end the velocity-damper formula-tion ( Faverjon and T ournassoud, 1987 )], acts as a repulsive ﬁeld,
+with the tracked way-point acting as an attractive ﬁeld, on thecontact link. The resultant ﬁeld (from the superposition of thesetwo ﬁelds) can display local extrema corresponding to equilib-rium situations in which the link stops moving though withouthaving completed its tracking task (see Figure 9 ). Manual user
+intervention, here through the brain command, is then neces-sary to un-block the motion of the link by adequately moving thetracked way-point. The brain command is thus used here for low-level correction of a naturally limitation-affected full-autonomystrategy.
+6. PROOF-OF-CONCEPT EXPERIMENT
+The experiment we designed (see Figure 3 and video that
+can be downloaded at http://www .cns.atr.jp/~xmorimo/videos/frontiers .wmv) to test the whole framework is described as
+follows.
+An initial and goal conﬁgurations ( Figure 4 ) are pre-speciﬁed
+manually by the user among a ﬁnite number of locations in theenvironment. In this case the initial conﬁguration is standing infront of a stair and the goal task is to go up on the stair. This selec-tion is for now done manually, but it can later also be selectedthrough a brain command by embedding the strategy describedin this work within a hierarchical framework such as the ones sug-gested in Chung et al. (2011); Bryan et al. (2011) ,t h a tw i l ls w i t c h
+between the behavior of selecting the high-level goal task and thelow-level motion control.
+Off-line, the framework autonomously plans the sequence of
+contact transitions and associated intermediate static postures toreach that goal ( Figure 5 ), then the on-line controller is executed.
+The user is wearing an EEG cap and is trained with 3 training
+sessions of approximately 5 min each to learn the parameter of theclassiﬁer described in Section 4, through a motor imagery task
+FIGURE 3 | Experiment setup. The user is wearing an EEG cap. The laptop
+on his left side is used for decoding the motor imagery task signal, the
+computer on his right runs the real-time physics simulation allowing him tocontrol the position of the moving foot through the visual feedback he gets
+from the simulator window.
+FIGURE 4 | Intial and goal positions for the experiment. Left :i n i t i a l
+conﬁguration with the robot standing in front of the stair. Right : goal
+conﬁguration with the robot standing at the extremity up on the srair.
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |5
+
+--- Page 6 ---
+Bouyarmane et al. BMI control of humanoid
+FIGURE 5 | The sequence of static postures planned autonomously. The
+ﬁrst posture is the initial posture. The second posture which looks like the
+ﬁrst one keeps both feet on the ground but puts all the weight of the roboton the right foot so as to zero the contact forces on the right left to release it
+for the next posture. The third posture moves the now free left foot and putsit on the stair, but still without any contact force applied on it (all the weith of
+the robot is still supported by the right foot). the fourth postures keeps both
+feet at their current locations but shifts all the weight of the robot away from
+the right foot to put it entirely on the left foot, the right foot becomes free of
+contact forces, and so on.
+FIGURE 6 | The controlled motion. The ﬁgures represent successive
+snapshots from the real-time controlled motion in the physics simulator.
+The controlled position of the way point appears in the simulator as ablack sphere that we circle here in red for clarity. This position is tracked
+by the foot (more precisely at the ankle joint) throught the simulation.
+The two horizontal lines represent the level of the sole of the foot at thetwo positions sent as a command by the user through the BMI. These
+lines do not appear in the simulator we add them here only as common
+visualization reference lines for all the snapshots. In the ﬁrst two framesthe robot tracks the default position of the way point. In the third frame
+the user decides to move that position up, then down in fourth frame,
+and ﬁnally up again in the ﬁfth frame.
+consisting of imagining respectively left arm and right arm cir-
+cling movements for going up and down. This task is generic andwe retained it since it gave us in our experiment better decodingperformances than some other tasks (e.g., leg movements). Theuser has visual feed-back from the simulator on the desktop com-puter screen (on his right in Figure 3 ) and from a bar-diagram
+representing in real-time the decoded probability of the motor-imagery task classiﬁcation on the laptop computer screen (on hisleft in Figure 3 ). The experiment was successfully completed on
+the ﬁrst effective trial, which was the overall third trial (the ﬁrsttwo trials were canceled after their respective training sessionssince we encountered and ﬁxed some minor implementation bugsbefore starting the control phase). The subject had prior experi-
+ence with the same motor-imagery classiﬁer in our previously-cited study ( Noda et al., 2012 ). We only experimented with that
+one subject as we considered that we reached our aim of testingour framework and providing its proof-of-concept experiment.
+The decoding of the BMI command is done in real-time and
+implemented in Matlab, and the brain command is then sent viaUDP protocol to the physics simulator process implemented inC++.
+We tested the way-point control strategy in the second step
+of the motion (the ﬁrst contact-adding step along the sequence,the highlighted transition in Figure 5 ).Figure 6 focuses on this
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |6
+
+--- Page 7 ---
+Bouyarmane et al. BMI control of humanoid
+controlled part of the motion. The user controlled the posi-
+tion of a black sphere that represents the position of the tar-geted way-point, that the foot of the robot tracks in real-time,while autonomously keeping balance and avoiding self-collisions,joint limits, and collision with the environment. A total of 8
+FIGURE 7 | Motor imagery decoding performances. On the horizontal
+axis is iteration number. From top to bottom: the thick blue line represents
+the command cue given as an input to the user, the thin red line represents
+the decoded brain activities [the probability P(kt=+ 1|Ct)], the thick red
+point markers represent the estimated classiﬁed label [ P(kt=+ 1|Ct)≥0.5
+or<0.5], ﬁnally the thick green line represents the command ctsent to the
+robot (based on the threshold Pthres=0.6). Note that this green command
+does not represent the position of the way-point but the instanta neous rate
+of change in this position between two successive time steps tandt+1,
+according to Equation (9), line 2 (i.e., the “derivative” were we talking of a
+continuous and differentiable function rather than the time-discretized one
+at hand).commands (“up”/“down”) were sent during this controlled tran-
+sition phase, that we voluntarily made last around 300 s (5 min)in order to allow the user to send several commands. We thenexternally (manually) triggered the FSM transition to the follow-ing step along the sequence and left the autonomous controllercomplete the motion without brain control. That autonomouspart was completed in about 16 s. See the accompanyingvideo.
+Figure 7 illustrates the decoding performances of the BMI
+system, while Figure 8 shows the tracking performance of the
+humanoid whole-body controller. The table below gives com-putation time ﬁgures executed on a Dell Precision T7600Workstation equipped with a Xeon processor E5-2687W(3.1 GHz, 20 M). Full details on the physics simulator, includingcontact modeling and resolution, and collision detection, can befound in Chardonnet et al. (2006); Chardonnet (2012) .
+Ofﬂine planning 2 .7s
+Average online control command (QP) (@ 200 Hz) 2 .661 ms
+Average online simulation step (@ 1 kHz) 0 .389 ms
+BCI classiﬁer training and learning session ∼30 min
+Average online BCI signal buffering (@ 2048 Hz) 0 .137 ms
+Avg online BCI classiﬁcation (@ 128 Hz) no control signal
+sent ( ct=0)0.204 ms
+Avg BCI classiﬁcation (@ 128 Hz) control signal sent
+(ct=+ 1o r−1)6.20 ms
+From this experiment, we conﬁrmed that the autonomous
+framework can be coupled with the BMI decoding systemin real-time in simulation and that the simulated robot cansafely realize the task while receiving and executing the braincommand.
+FIGURE 8 | Way-point tracking performance. The user-controlled quantity,
+that happens to be in the particular case demonstrated here the z-coordinate
+of the tracked way-point (the “generalized” vertical direction being reduced in
+this case to the “conventional” vertical direction, meaning /vectorv≡/vectorzinFigure 2 ,
+since the goal-contact surface on the stair is horizontal), is represented by thepiecewise-constant red curve. The corresponding motion of the foot, that
+tracks this command-induced way-point position, is shown in yellow curve.
+the two other coordinates of the foot ( xandy) are auonomously maintained
+by the controller at the corresponding ones of the way-point and stay at their
+desired values throught the command phase.
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |7
+
+--- Page 8 ---
+Bouyarmane et al. BMI control of humanoid
+FIGURE 9 | Comparison of the controlled transition motion in three
+instances. T op : without collision-avoidance constraint, the foot of the robot
+collides with the stair while targeting its goal, and the simulation stops.
+Middle : with autonomous collision-avoidance constraint that happens to
+create in this case a local-minimum trap, the robot reaches an equilibriumsituation and stays idle for as long as we let the simulation run (inﬁnite time).
+Bottom : The autonomous collision-avoidance strategy combined with the
+proposed BMI-control approach helps reposition the way-point and overcome
+the local-minimum problem. The robot safely reaches the goal contact
+location and the motion along the sequence can be completed.
+7. DISCUSSION AND FUTURE WORK
+This work demonstrated the technical possibility of real-time
+online low-level control of whole-body humanoid motion usingmotor-imagery-based BMI.We achieved it by coupling an existing EEG decoder
+and whole-body multi-contact acyclic planning and controlframework. In particular, this coupling allowed us to control aone-dimensional feature of the high-DOF whole-body motion,
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |8
+
+--- Page 9 ---
+Bouyarmane et al. BMI control of humanoid
+designed as the generalized height of moving link way-point,
+in a discrete way. Though the motor-imagery task used in ourproof-of-concept experiment was a generic one (left-arm vs.right-arm circling movement), we plan in the future to investigatemore speciﬁc motor-imagery tasks that are in tighter correspon-dence with the limb of the robot being controlled, along thelonger-term user’s-mind-into-robot’s-body “full embodiment”quest that motivates our study as expressed in our introductorysection. Since previous studies reported that imagery of gait andactual gait execution have been found to recruit very similar cere-bral networks ( Miyai et al., 2001; La Fougère et al., 2010 ), we may
+be able to expect that a human can control a humanoid the sameway they control their own human body through motor imagery.
+We also aim now at continuous control of two-dimensional
+feature of this whole-body motion, allowing not only the controlof the tracked way point but also of a corresponding thresh-old plan that decides when to trigger the transition between thelift-off and touch-down phases. We believe this can be achievedbased on the previous work done for example on motor-imagerytwo-dimensional cursor control ( Wolpaw and McFarland, 2004 ).
+Other previous studies also discussed the possibilities of usingEEG for such continuous control ( Y oshimura et al., 2012 ). In
+addition, for the continuous two-dimensional feature control,explicit consideration of individual differences in cerebral recruit-ment during motor imagery may be necessary ( Meulen et al.,
+2014 ). As a future study, we may consider using transfer learn-
+ing approaches ( Samek et al., 2013 ) to cope with this individual
+difference problem.
+Finally, we aim at porting this framework from the simula-
+tion environment to the real robot control, so that in future studywe may possibly use the proposed framework in a rehabilitationtraining program to enhance recovery of motor-related nervoussystem of stroke patients.
+ACKNOWLEDGMENTS
+This work is supported with a JSPS Postodoctoral Fellowshipfor Foreign Researchers, ID No. P12707. This study is the resultof “Development of BMI T echnologies for Clinical Application”carried out under the Strategic Research Program for BrainSciences by the Ministry of Education, Culture, Sports, Scienceand T echnology of Japan. Part of this research was supportedby MIC-SCOPE and a contract with the Ministry of InternalAffairs and Communications entitled “Novel and innovative R&Dmaking use of brain structures.” This research was also par-tially supported by MEXT KAKENHI grant Number 23120004,Strategic International Cooperative Program, Japan Science andT echnology Agency (JST) and by JSPS and MIZS: Japan-Sloveniaresearch Cooperative Program Joris Vaillant and François Keithwere partially suported by grants from the RoboHow.Cog FP7www.robohow .eu, Contract N288533. The authors would like to
+thank Abderrahmane Kheddar for valuable use of the AMELIFdynamics simulation framework.
+REFERENCES
+Bell, C. J., Shenoy, P ., Chalodhorn, R., and Rao, R. P . N. (2008). Control of
+a humanoid robot by a noninvasive brain-computer interface in humans. J.
+Neural Eng. 5, 214–220. doi: 10.1088/1741-2560/5/2/012Bouyarmane, K., and Kheddar, A. (2010). “Static multi-contact inverse prob-
+lem for multiple humanoid robots and manipulated objects,” in 10th IEEE-
+RAS International Conference on Humanoid Robots (Nashville, TN), 8–13. doi:
+10.1109/ICHR.2010.5686317
+Bouyarmane, K., and Kheddar, A. (2011a). “Multi-contact stances planning for
+multiple agents,” in IEEE International Conference on Robotics and Automation
+(Shanghai), 5546–5353.
+Bouyarmane, K., and Kheddar, A. (2011b). “Using a multi-objective controller to
+synthesize simulated humanoid robot motion with changing contact conﬁgu-rations, ” in IEEE/RSJ International Conference on Intelligent Robots and Systems
+(San Fransisco, CA), 4414–4419.
+Bouyarmane, K., and Kheddar, A. (2012). Humanoid robot locomo-
+tion and manipulation step planning. Adv. Robot. 26, 1099–1126. doi:
+10.1080/01691864.2012.686345
+Bryan, M., Green, J., Chung, M., Chang, L., Scherery, R., Smith, J., et al. (2011).
+“An adaptive brain-computer interface for humanoid robot control,” in 11th
+IEEE-RAS International Conference on Humanoid Robots (Bled), 199–204.
+Chardonnet, J.-R. (2012). Interactive dynamic simulator for multibody systems.
+Int. J. Hum. Robot. 9, 1250021:1–1250021:24. doi: 10.1142/S0219843612500211
+Chardonnet, J.-R., Miossec, S., Kheddar, A., Arisumi, H., Hirukawa, H., Pierrot,
+F., et al. (2006). “Dynamic simulator for humanoids using constraint-based
+method with static friction,” in Robotics and Biomimetics, 2006. ROBIO’06. IEEE
+International Conference on (Kunming), 1366–1371.
+Chestnutt, J., Kuffner, J., Nishiwaki, K., and Kagami, S. (2003). “Planning biped
+navigation strategies in complex environments,” in IEEE-RAS International
+Conference on Humanoid Robots (Munich).
+Chestnutt, J., Lau, M., Kuffner, J., Cheung, G., Hodgins, J., and Kanade, T. (2005).
+“Footstep planning for the ASIMO humanoid robot,” in IEEE International
+Conference on Robotics and Automation (Barcelona), 629–634.
+Chung, M., Cheung, W., Scherer, R., and Rao, R. P . N. (2011). “A hierarchi-
+cal architecture for adaptive brain-computer interfacing,” in Proceedings of the
+Twenty-Second International Joint Conference on Artiﬁcial Intelligence Vol. 2
+(Barcelona), 1647–1652.
+Faverjon, B., and T ournassoud, P . (1987). “Planning of manipulators with a high
+number of degrees of freedom,” in IEEE International Conference on Robotics
+and Automation (Raleigh, NC).
+Finke, A., Knoblauch, A., Koesling, H., and Ritter, H. (2011). “A hybrid brain
+interface for a humanoid robot assistant,” in 33rd Annual International
+Conference of the IEEE Engineering in Medicine and Biology Society (EMBC2011)
+(Boston, MA).
+Gergondet, P ., Druon, S., Kheddar, A., Hintermuller, C., Guger, C., and Slater, M.
+(2011). “Using brain-computer interface to steer a humanoid robot,” in IEEE
+International Conference on Robotics and Biomimetics (Phuket), 192–197.
+Hashimoto, K., Sugahara, Y., Kawase, M., Ohta, A., Tanaka, C., Hayashi, A., et al.
+(2006). “Landing pattern modiﬁcation method with predictive attitude and
+compliance control to deal with uneven terrain,” in Proceedings of the IEEE-RSJ
+International Conference on Intelligent Robots and Systems (Beijing).
+Hauser, K., Bretl, T., Latombe, J.-C., Harada, K., and Wilcox, B. (2008). Motion
+planning for legged robots on varied terrain. Int. J. Robot. Res. 27, 1325–1349.
+doi: 10.1177/0278364908098447
+Herdt, A., Diedam, H., Wieber, P .-B., Dimitrov, D., Mombaur, K., and Diehl, M.
+(2010). Online walking motion generation with automatic footstep placement.
+Adv. Robot. 24, 719–737. doi: 10.1163/016918610X493552
+Kuffner, J., Kagami, S., Nishiwaki, K., Inaba, M., and Inoue, H. (2002).
+Dynamically-stable motion planning for humanoid robots. Auton. Robots 12,
+105–118. doi: 10.1023/A:1013219111657
+Kuffner, J., Nishiwaki, K., Kagami, S., Inaba, M., and Inoue, H. (2001). “Footstep
+planning among obstacles for biped robots,” in IEEE/RSJ International
+Conference on Intelligent Robots and Systems - Vol. 1 (Maui, HI), 500–505.
+La Fougère, C., Zwergal, A., Rominger, A., Förster, S., Fesl, G., Dieterich,
+M., et al. (2010). Real versus imagined locomotion: an intraindivid-ual [18F]-FDG PET - fMRI comparison. Neuroimage 50, 1589–1598. doi:
+10.1016/j.neuroimage.2009.12.060
+Ma, J., Zhang, Y., Nam, Y., Cichocki, A., and Matsuno, F. (2013). “EOG/ERP
+hybrid human-machine interface for robot control,” in IEEE-RAS International
+Conference on Intelligent Robots and Systems (T okyo), 859–864.
+Meulen, M. V . D., Allali, G., Rieger, S., Assal, F., and Vuilleumier, P . (2014). The
+inﬂuence of individual motor imagery ability on cerebral recruitment during
+gait imagery. Hum. Brain Mapp. 35, 455–470. doi: 10.1002/hbm.22192
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |9
+
+--- Page 10 ---
+Bouyarmane et al. BMI control of humanoid
+Miller, K. J., Schalk, G., Fetza, E. E., den Nijs, M., Ojemanne, J., and Rao, R.
+(2010). Cortical activity during motor execution, motor imagery, and imagery-
+based online feedback. Proc. Natl. Acad. Sci. U.S.A. 107, 4430–4435. doi:
+10.1073/pnas.0913697107
+Miyai, I., Tanabe, H., Sase, I., Eda, H., Oda, I., Konishi, I., et al. (2001). Cortical
+mapping of gait in humans: a near-infrared spectroscopic topography study.
+Neuroimage 14, 1186–1192. doi: 10.1006/nimg.2001.0905
+Morisawa, M., Kanehiro, F., Kaneko, K., Kajita, S., and Y okoi, K. (2011). “Reactive
+biped walking control for a collision of a swinging foot on uneven terrain,”inProceedings of the IEEE-RAS International Conference on Humanoid Robots
+(Bled).
+Noda, T., Sugimoto, N., Furukawa, J., Sato, M., Hyon, S., and Morimoto, J. (2012).
+“Brain-controlled exoskeleton robot for bmi rehabilitation,” in 12th IEEE-RAS
+International Conference on Humanoid Robots (Osaka), 21–27.
+Riechmann, H., Hachmeister, N., Ritter, H., and Finke, A. (2011). “Asynchronous,
+parallel on-line classiﬁcation of P300 and ERD for an efﬁcient hybrid BCI,” in
+5th IEEE EMBS Conference on Neural Engineering (NER2011) (Cancun).
+Samek, W., Meinecke, F. C., and Muller, K.-R. (2013). Transferring subspaces
+between subjects in brain-computer interfacing. IEEE Trans. Biomed. Eng. 60,
+2289–2298. doi: 10.1109/TBME.2013.2253608
+Takanishi, A., and Kato, I. (1994). “Development of a biped walking robot adapting
+to a horizontally uneven surface,” in Proceedings of the IEEE-RSJ International
+Conference on Intelligent Robots and Systems (Munich).
+T omioka, R., and Aihara, K. (2007). “Classifying matrices with a spectral regular-
+ization,” in 24th International Conference on Machine Learning (New Y ork, NY),
+895–902.
+T omioka, R., and Muller, K. (2010). A regularized discriminative framework for
+EEG analysis with application to brain-computer interface. Neuroimage 49,
+415–432. doi: 10.1016/j.neuroimage.2009.07.045
+Wolpaw, J. R., and McFarland, D. J. (2004). Control of a two-dimensional move-
+ment signal by a noninvasive brain-computer interface in humans. Proc. Natl.
+Acad. Sci. U.S.A. 101, 17849–17854. doi: 10.1073/pnas.0403504101Y amane, K., Kuffner, J., and Hodgins, J. K. (2004). Synthesizing anima-
+tions of human manipulation tasks. ACM Trans. Graph. 23, 532–539. doi:
+10.1145/1015706.1015756
+Y oshida, E., Kanoun, O., Esteves, C., and Laumond, J. P . (2006). “Task-driven
+support polygon reshaping for humanoids,” in 6th IEEE-RAS International
+Conference on Humanoid Robots (Genova), 208–213.
+Y oshida, E., Laumond, J.-P ., Esteves, C., Kanoun, O., Sakaguchi, T., and
+Y okoi, K. (2008). “Whole-body locomotion, manipulation and reaching
+for humanoids,” in Motion in Games , Volume 5277 of LNCS ,e d sA .
+Egges, A. Kamphuis, and M. Overmars (Berlin; Heidelberg: Springer),
+210–221.
+Y oshimura, N., Dasalla, C., Hanakawa, T., Sato, M., and Koike, Y. (2012).
+Reconstuction of ﬂexor and extensor muscle activity from electroen-
+cephalography cortical currents. Neuroimage 59, 1324–1337. doi:
+10.1016/j.neuroimage.2011.08.029
+Conﬂict of Interest Statement: The authors declare that the research was con-
+ducted in the absence of any commercial or ﬁnancial relationships that could be
+construed as a potential conﬂict of interest.
+Received: 28 May 2014; accepted: 15 July 2014; published online: 05 August 2014.
+Citation: Bouyarmane K, Vaillant J, Sugimoto N, Keith F, Furukawa J and MorimotoJ (2014) Brain-machine interfacing control of whole-body humanoid motion. Front.
+Syst. Neurosci. 8:138. doi: 10.3389/fnsys.2014.00138
+This article was submitted to the journal Frontiers in Systems Neuroscience.Copyright © 2014 Bouyarmane, Vaillant, Sugimoto, Keith, Furukawa and Morimoto.
+This is an open-access article distributed under the terms of the Creative Commons
+Attribution License (CC BY). The use, distribution or reproduction in other forums is
+permitted, provided the original author(s) or licensor are credited and that the original
+publication in this journal is cited, in accordance with accepted academic practice.No use, distribution or reproduction is permitted which does not comply with these
+terms.
+Frontiers in Systems Neuroscience www.frontiersin.org August 2014 | Volume 8 | Article 138 |10

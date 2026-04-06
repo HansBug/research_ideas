@@ -1,0 +1,1055 @@
+--- Page 1 ---
+ORIGINAL RESEARCH
+published: 07 May 2020
+doi: 10.3389/frobt.2020.00051
+Frontiers in Robotics and AI | www.frontiersin.org 1 May 2020 | Volume 7 | Article 51Editedby:
+MauroDragone,
+Heriot-WattUniversity,
+UnitedKingdom
+Reviewedby:
+GabrieleValentini,
+ArizonaStateUniversity,UnitedStates
+RemCollier,
+UniversityCollegeDublin,Ireland
+J.MichaelHerrmann,
+UniversityofEdinburgh,
+UnitedKingdom
+*Correspondence:
+DavidSt-Onge
+david.st-onge@etsmtl.ca
+Specialtysection:
+Thisarticlewassubmittedto
+Multi-RobotSystems,
+asectionofthejournal
+FrontiersinRoboticsandAI
+Received: 16July2019
+Accepted: 20March2020
+Published: 07May2020
+Citation:
+St-OngeD,VaradharajanVS,ŠvogorI
+andBeltrameG(2020)FromDesign
+toDeployment:Decentralized
+CoordinationofHeterogeneous
+RoboticTeams.Front.Robot.AI7:51.
+doi:10.3389/frobt.2020.00051From Design to Deployment:
+Decentralized Coordination of
+Heterogeneous Robotic Teams
+DavidSt-Onge1*,VivekShankarVaradharajan2,IvanŠvogor2andGiovanniBeltrame2
+1INITRobotsLaboratory,DepartmentofMechanicalEngineerin g,Écoledetechnologiesupérieure,Montreal,QC,Canada,
+2MISTLaboratory,DepartmentofComputerEngineeringandSof twareEngineering,PolytechniqueMontreal,Montreal,
+QC,Canada
+Many applications beneﬁt from the use of multiple robots, bu t their scalability and
+applicability are fundamentally limited when relying on a c entral control station. Getting
+beyondthecentralizedapproachcanincreasethecomplexit yoftheembeddedsoftware,
+the sensitivity to the network topology, and render the depl oyment on physical devices
+tedious and error-prone. This work introduces a software-b ased solution to cope
+with these challenges on commercial hardware. We bring toge ther our previous work
+on Buzz, the swarm-oriented programming language, and the m any contributions
+of the Robotic Operating System (ROS) community into a relia ble workﬂow, from
+rapid prototyping of decentralized behaviors up to robust ﬁ eld deployment. The Buzz
+programming language is a hardware independent, domain-sp eciﬁc (swarm-oriented),
+and composable language. From simulation to the ﬁeld, a Buzz script can stay
+unmodiﬁed and almost seamlessly applicable to all units of a heterogeneous robotic
+team. We present the software structure of our solution, and the swarm-oriented
+paradigms it encompasses. While the design of a new behavior c an be achieved on a
+lightweight simulator, we show how our security mechanisms enhance ﬁeld deployment
+robustness. In addition, developers can update their scrip ts in the ﬁeld using a safe
+software release mechanism. Integrating Buzz in ROS, addin g safety mechanisms and
+granting ﬁeld updates are core contributions essential to s warm robotics deployment:
+fromsimulationtotheﬁeld.Weshowtheapplicabilityofour workwiththeimplementation
+of two practical decentralized scenarios: a robust generic task allocation strategy and
+an optimized area coverage algorithm. Both behaviors are ex plained and tested with
+simulations, then experimented with heterogeneous ground -and-air robotic teams.
+Keywords: decentralized behaviors, swarm intelligence, h eterogeneous robotic teams, over-the-air update,
+swarm systems, control framework, swarm programming
+1. INTRODUCTION
+The range of applications for multi-robot systems is constant ly and rapidly expanding. Small
+groups of heterogeneous robots collaborating to extend thei r individual potential were repeatedly
+proven to be successful ( Rekleitis et al., 2001; Kruijﬀ et al., 2012; Lliﬀe, 2016 ). Unfortunately,
+each unit of these scenarios is necessary, to the point that a s ingle failure will most likely cause
+the mission to fail. By leveraging a greater number of similar agents, individual failures can be
+compensated, while the imprecision of sensors can be mitigate d by fusion of multiple sources.
+Swarmroboticshasbeenknownfordecadestobeapossiblesolut iontomanyproblemsindynamic,
+
+--- Page 2 ---
+St-Onge et al. ROSBuzz
+hostile, and unknown environments ( Brambilla et al., 2013 ). A
+Swarm Robotics System (SRS) must be ﬂexible, scalable, and
+robust (¸ Sahin, 2004 ). Unfortunately, swarm robotics requires
+development tools speciﬁc to decentralized systems that are s till
+hardlyavailable.
+Researchersareveryactiveindevelopingbehaviorsforrobot ic
+swarms(Bambergeretal.,2006;Brunetetal.,2008;Hauertetal.,
+2011; Bayindir, 2016; Davis et al., 2016 ), with support from a
+handful of companies and some open source initiatives ( Goc
+etal.,2016;Pickemetal.,2016 ).Theseaﬀordableplatformsgrant
+access to physical implementation with a signiﬁcant number of
+robots, but lack a set of software tools for the implementatio n
+oftheircollectivebehavior.Furthermore,swarmsshareco mmon
+behavioral paradigms: no predeﬁned roles, and control based
+on local interactions. For a swarm system, and in particular
+one with heterogeneous members, communication, neighbor
+management, and data sharing need to be re–implemented for
+each platform and experiment. For instance the work presented
+inHauert et al. (2011), similar to many of the previously
+mentioned ones, is hardware speciﬁc and cannot be ported to
+otherroboticsystemseasily.
+The development of an optimized and specialized software
+infrastructure, one that is suﬃciently ﬂexible to make robo tics
+researchers feel unconstrained, while simultaneously inc reasing
+theirdevelopmenteﬃciencyisatedious,andoftenunsuccess ful,
+task. ROS has established itself as a standard for robot
+development,butthecommunityisstillexploringthechallen ges
+of swarm engineering ( Davis et al., 2016 ). This issue became
+moreapparentwiththeintroductionofprogramminglanguages
+that are speciﬁc for swarm development ( Bachrach et al., 2010;
+Pincirolietal.,2015 ).
+Among those, Buzz is a domain-speciﬁc programming
+language for robot swarms ( Pinciroli and Beltrame, 2016 ). Its
+purpose is to help researchers and practitioners by providing a
+setofprimitiveswhichacceleratestheimplementationofswa rm-
+speciﬁcbehaviors.Buzzcomeswithanoptimizedvirtualmachi ne
+that runs on all swarm members, and each robot executes a
+common program or script. The main peculiarity of Buzz is that
+it merges bottom–up behavior development with a top–down
+strategydeﬁnitionforthewholeswarm( Crespietal.,2008 ).Buzz
+and its virtual machine allow a script to be deployed on any
+autonomous robot: from small desk robots, to Unmanned Air
+Vehicles (UAVs) and Unmanned Ground Vehicles (UGVs) of
+any size, and even satellites. While Buzz was natively deploye d
+on embeddedsystems (Kilobots,Zooids, andKheperasrobots)1,
+largerrobotsrequireintegrationwithinasoftwareecosys temthat
+allows roboticists to interface with diﬀerent sensors, actu ators,
+andcomplexalgorithmseasily.
+To address this issue we introduce ROSBuzz, the ROS
+implementationoftheBuzzVirtualMachine(BVM).Muchmore
+than an adapter or a facade, it enables (a) fast script–based
+programming of complex behaviors, (b) seamless script porting
+ondiﬀerenthardware,(c)safeﬁelddeployment, (d)over-the- air
+updatesontheﬁeld,andmostimportantly(e)itallowsacohere nt
+design ﬂow from simulation to ﬁeld deployment. While (a) and
+1https://github.com/MISTLab/BittyBuzz(b)arisefromtheintegrationofBuzzintheROSecosystem,(e) is
+possible only through ROSBuzz and its other core contributions
+(c)and(d).TopresentROSBuzzweﬁrstrecallthekeyprimitives
+of Buzz from ( Pinciroli and Beltrame, 2016 ) (section 2.1), then
+explain the details of this ROS node architecture (section 2.2 ),
+its speciﬁc simulation-to-ﬁeld workﬂow (section 2.3), and t he
+integrated mechanisms to minimize risk at deployment (secti on
+2.4). To test the ROSBuzz performance we introduce two
+decentralized behaviors: a task allocation strategy (sect ion 3.1),
+and an area coverage algorithm (section 3.2). Both algorith ms
+are assessed in term of robustness to packet loss and scalabili ty
+insimulationandwithrealworldexperiments.
+2. METHODS
+In academia and industry, ROS has become a de facto
+standard for any serious mobile robotics application. The shee r
+number of community-developed tools (e.g., Rviz2, Rqt Graph3,
+PlotJuggler4, etc.) makes it almost indispensable for developing,
+testing and integrating all the software layers of the auton omy
+stack that a single robot requires. Though ROS can be used
+to simultaneously control multiple robots, it was never reall y
+designedfordecentralizedcoordinationofroboticteams.
+The long-awaited ROS 2.0 is welcome by the multi-robot
+research community: it brings solutions for some known issu es
+in controlling multi-robot systems. Mostly, those are relate d
+to networking, real-time processing, and deﬁning relations hips
+between robots, but the challenges of decentralized multi- robot
+systems still remain: the main purpose of ROS 2.0 is to provide
+transparency of the network layer, while control resides in th e
+implementationoftheswarmbehavior.
+Themaindiﬀerencesandchallengesofcontrollingaswarm,as
+opposed to a single robot, are that by deﬁnition swarms must be
+(a)decentralized,and(b)programmedwiththesamebehavior .
+(a)meansthattherecannotbeacentralpointorasinglerobot
+in charge of deﬁning the behavior of the swarm. However, this
+doesnotmeanthatanymemberoftheswarmcannottakespeciﬁc
+roles, which brings us to (b). The robots cannot be programmed
+as individuals, or in technical terms, the code deployed to eac h
+member of the swarm must be identical. Therefore, in the true
+spirit of the swarm behavior, the implementation must be such
+thatallthemembersoftheswarmcontainthesamecode,butth e
+behavior of the individual is deﬁned and directed by the enti re
+groupandtheenvironmentalcontext.
+2.1. Buzz, Swarm Language, and Virtual
+Machine
+To better understand our implementation choices, please
+consider the following factors which generally deﬁne a swarm :
+(a) decentralized decision making, (b) behavior deﬁned on l ocal
+interactions and environmental context, and (c) informati on
+propagation latency. Buzz grants the developer with premises
+and constructs that ease the deployment of top–down swarm
+2http://wiki.ros.org/rviz
+3http://wiki.ros.org/rqt
+4http://wiki.ros.org/plotjuggler
+Frontiers in Robotics and AI | www.frontiersin.org 2 May 2020 | Volume 7 | Article 51
+
+--- Page 3 ---
+St-Onge et al. ROSBuzz
+strategies: a set of rules regulating the swarm members acti ons
+followingtheirinteractionandthemission’sgoals.Thisa spectis
+coretomostswarmintelligencealgorithmsdevelopedinthepa st
+decades. However, real robotic systems beneﬁt in many conte xts
+from the heterogeneity of their abilities (for instance diﬀe rent
+sensors and locomotion modes). Buzz allows to program for
+sub-swarms, i.e., subset of the swarm with speciﬁc attribute s to
+completespeciﬁctypeoftasks( PinciroliandBeltrame,2016 ).
+2.1.1. The Buzz Toolbox
+Buzz provides literals and data structures to address three k ey
+conceptsindeﬁningaswarmbehavior5:
+•Virtual stigmergy (VS) : a bio–inspired shared tuple space. The
+original concept of stigmergy is an environment–mediated
+communication modality used by social insects to coordinat e
+activity(Camazineetal.,2003 ).VSisimplementedasashared
+memory table containing /angbracketleftkey,value/angbracketrightpairs. The shared
+memory table stored in a local copy on each robot, which
+is synchronized via communication only when needed. Each
+/angbracketleftkey,value/angbracketrighttuple is associated with a timestamp [a Lamport
+clockLamport, Lamport ] and the ID of the last robot that
+modiﬁed the data. Tuples and metadata are shared between
+swarmmembersviaagossipalgorithm( Pincirolietal.,2016 ).
+Each robot locally decides when to re-broadcast informatio n
+based on the timestamp and conﬂict detection and resolution
+mechanisms. Overall, robots always converge to a common
+set of tuples. The details of the inner workings of the Virtual
+Stigmergy can be found in a previous publication ( Pinciroli
+etal.,2016 ).
+•Swarm Aggregation : is a literal which allows for grouping of
+robots into sub–swarms, through the principle of dynamic
+labeling ( Pinciroli and Beltrame, 2016 ). The swarmconstruct
+is used to create a group of robots that can be attributed with
+a speciﬁc behavior, which diﬀers from the other robots, based
+eitheronthetaskorrobotabilities.
+•Neighbors Operations : in Buzz refer to a rich set of functions
+(reduce,map,size,foreach,broadcast ,listen, etc.)
+which can be performed with or on neighboring robots
+through situated communication ( Støy, 2001 ). Neighbors are
+deﬁned from a network perspective as robots which have a
+direct communication link with each other. With situated
+communication, whenever a robot receives a message, the
+originpositionofthemessageisalsoknowntothereceiver.
+These primitives constitute essential functionality that c omes
+with Buzz and enables robotics software engineers to accele rate
+their way to developing swarm behaviors. To demonstrate this
+considerthefollowingcode:
+var accum = neighbors.map(lj_vector).reduce(lj_
+sum, math.vec2.new(0.0, 0.0)) .
+With this line, every robot in the swarm uses a neighbors
+structure to map a certain function to all the elements of the
+list (i.e., neighboring robots) and uses a rolling computati on
+to reduce it to a single value used by a robot6. By rolling
+5http://the.swarming.buzz/ICRA2017/cheat-sheet/
+6https://the.swarming.buzz/wiki/doku.php?id=buzz_examplescomputation, we refer to the fact that reduceapplies the
+function lj_sumto each neighboring robot’s relative position
+to obtain a single value ( accum) as per the logic deﬁned in the
+lj_sumfunction.
+Buzz is an extension language: if a user needs a speciﬁc
+primitivenotprovidedbyitscurrentsyntax,itcanbeeasilya dded
+using C code. In fact, Buzz provides an intuitive way to expose
+any function written in C to the Buzz script, with access to the
+currentexecutioncontext,i.e.,Cfunctionscanaccessthe literals
+anddatasetsusedinthescript.
+A Buzz script is compiled into a memory-eﬃcient and
+platform-agnostic bytecode to be executed on the Buzz Virtua l
+Machine(BVM).TointerfacetheBVMwiththerobots’actuator s
+and sensors, we use ROS. The following section describes how
+ROS and Buzz are integrated to allow seamless and platform-
+agnostic execution and extension of Buzz scripts that deﬁne
+swarmbehavior.
+2.2. ROSBuzz
+ROS is a widely used tool, accepted by both researchers and
+professionals as it improves the productivity and compatibilit y
+of robotics development, while Buzz provides essentials for
+designinganddevelopingswarmbehaviors.
+A ROS node is generally an executable that uses ROS7to
+communicate with other nodes. ROSBuzz puts Buzz and ROS
+together, providing a ROS node which encapsulates the Buzz
+Virtual Machine. Furthermore, we implement communication
+between swarm members with the Micro-Air Vehicle Link
+(MAVLink) protocol, which is widely available through the
+MAVROS implementation. Buzz messages are serialized and
+packed into the MAVLink standard payload messages, while the
+ROSBuzznodeprovidestheBVMwithaccesstothesemessages.
+Assuch,ROSBuzzallowsanyMAVLink-capablemobilerobotto
+join the swarm, using the common behavior deﬁned by the buzz
+scriptprovidedbythe ROSlaunchﬁle .
+The software architecture of the ROSBuzz node (shown
+inFigure1) is organized in three layers which reconcile the
+step–based (sense, plan, act) execution nature of Buzz and the
+event–basednatureofROS.
+The namespace ROSBuzz represents the entire ROS package.
+Upon launching, ROSBuzz initializes the main ROS loop and
+the necessary conﬁguration parameters. Those consist of ROS
+callbackfunctionsfor subscribers ,publishers ,andservices
+whichholdreferencestoMAVROSspeciﬁcmessagesandexpose
+them to the BVM. These messages can then be used for sensing,
+planningandacting.
+On top of Figure1, the main namespace ROSBuzz
+contains two additional namespace: Communication and
+Coordinates . The latter is used to implement various data
+structures that represent positions in coordinate systems wit h
+diﬀerent bases and the transformations between those. The
+Communication namespace is used to process the MAVROS
+payload and extract the information about the robots neighbor s.
+Namely, BVMMsgs deﬁnes the ROS messages for the MAVROS
+communication, the Communication class processes the
+7http://www.ros.org/
+Frontiers in Robotics and AI | www.frontiersin.org 3 May 2020 | Volume 7 | Article 51
+
+--- Page 4 ---
+St-Onge et al. ROSBuzz
+FIGURE 1 | Simpliﬁed class diagram of the ROSBuzz software architectur e: step-based BVM (lower right) integrated to the event-bas ed ROS ecosystem.
+incoming and outgoing messages, while Neighbors is a class
+usedtostoreneighborinformation.
+There are two additional classes within the ROSBuzz
+namespace: ROSController , which deﬁnes the ROS node
+containing the main loop and implements the callback
+references; and the Robotclass, which implements some logic
+andstoreslocalinformationabouttherobot.
+To use this software stack, a user needs to install a ROSBuzz
+package, write a Buzz script, and point the ROS launch ﬁle
+to it. The BuzzVMinterprets and executes the script, and
+executes the following loop: (a) process incoming messages,
+(b) update sensors information, (c) perform a control step, (d)
+process outgoing messages; and ﬁnally (e) update the actuatio n
+commands. The BVMManager class is used to mediate the step-
+based nature of the Buzz and event-based nature of ROS. As
+messages come in the main ROS loop (in the ROSController
+class), the BVMManager makes the latest information available to
+theBuzzVMinterpreter.
+2.2.1. Under the Hood
+To extend Buzz, a designer needs only to use C to expose
+additional functionality to the Buzz script. In other words, it is
+possible to use existing libraries or algorithms from any oth er
+language outside of the BVM and still grant access to these
+functionalities inside a script. A C function can be exposed as
+a Buzz closure, which is bound and registered to the BuzzVM,
+makingtheclosureavailableforuseintheBuzzscript.Toprov ide
+more details in how Buzz and ROS actually work together,
+let us consider Figure2 and the following scenario: the Buzz
+script needs to access the latest positional information of th eneighborstoavoidacollision.Forthisscenario,thecontr olﬂow
+isasfollows.
+Upon starting the ROSBuzz node, the update and control
+callbacks are initialized and the main ROS loop starts. In
+each step, the main loop calls a ControlStep function from a
+BuzzUtility instance.Afterprocessingallthe inmessages from
+the neighboring swarm members, the UpdateSensors function
+delivers the information about the current position to BuzzVM
+using the UpdateCurrentPosition function (which uses the
+updateClosures collection, which in turn provides access to
+theExecute function of the CurrentPositionImpl ). With this
+setup,theBuzzscriptcanaccessthepositioninformationdurin g
+the execution of its ControlStep . However, to send actuation
+information back to ROS, after the ControlStep method, the
+main ROS loop calls the UpdateActuators which in the similar
+way uses the BuzzControlClosures to perform actuation via
+ROScallbackfunctions.
+From a software engineering standpoint, ROSBuzz provides
+certainlevelofabstractionstomakeitmaintainable,upgra deable,
+and extendable. Figure2 shows the abstraction layers
+within ROSBuzz, with which an user can independently
+adapt the implementation layer to ﬁt the current needs
+without changing any other layers of the software. ROSBuzz
+provides robotics researchers and practitioners a turnkey
+system that can transform a heterogeneous group of robots
+intoaswarm.
+Furthermore, ROSBuzz provides the developer with a
+consistent simulation-to-deployment infrastructure, and
+mechanism to enhance the robustness of the deployment itself:
+over-the-air behavior updates and barrier consensus. The next
+sectionsdetailthesefeatures.
+Frontiers in Robotics and AI | www.frontiersin.org 4 May 2020 | Volume 7 | Article 51
+
+--- Page 5 ---
+St-Onge et al. ROSBuzz
+FIGURE 2 | Relationship between classes of the internal ROSBuzz softw are architecture.
+2.3. Simulation to Deployment
+Designing applications for delicate and expensive hardware put s
+a lot of pressure on the developers. When tens of robots aredeployed to achieve a coordinated task, the risk of failure an d
+hardware damage increase rapidly. To cope with this issue, a
+common approach is to carefully simulate the control before
+Frontiers in Robotics and AI | www.frontiersin.org 5 May 2020 | Volume 7 | Article 51
+
+--- Page 6 ---
+St-Onge et al. ROSBuzz
+FIGURE 3 | Simulation environments: (A)with Gazebo and ROS nodes, allowing for accurate dynamics an d operator inputs, and (B)with ARGoS to simulate large
+swarm size in a lightweight environment.
+taking it out to the ﬁeld. ROSBuzz also provides a step-by-
+step workﬂow to minimize the risks of deploying decentralize d
+behaviors: a low-resource simulator to iterate quickly on t he
+design and test thousands of units, followed by a more realis tic
+full-stacksoftware-in-the-loopenvironment,extendedw henever
+available to hardware-in-the-loop validation and ﬁnally t o the
+deploymentofthebehaviorintheﬁeld.
+Figure3showsthemodulesandecosystemofbothsimulation
+setups. Since the early development phases of Buzz, the BVM
+was integrated in the ARGoS simulator ( Pinciroli et al., 2012 ),
+which features a Buzz editor, allowing for quick development
+and integration of behavioral scripts ( Figure3B ). While ARGoS
+can support thousands of units, it does not accurately represen t
+the dynamics of the robots, it is not compliant with the ROS
+architecture, and does not allow external control during mi ssion
+operations. Therefore, we added a second simulation stage
+based on ROS and Gazebo ( Figure3A ), leveraging community
+packages available for ROS. Three hardware adapters are
+currentlyprovidedforGazebousingthe hectorpackage( Meyer
+et al., 2012 ) for the Matrice 100, the DroneKit-SITL for the 3DR
+Solo, and the nodes provided by Clearpath for the Husky rover.
+Multiple instances of ROSBuzz are launched in a separate group
+namespace, alongside their hardware emulators. On a Core i7
+laptop equipped with a NVIDIA graphics card, we are able to
+smoothly simulate 50 DJI Matrice 100 in Gazebo. The inter-
+robot communication is managed by a relay node that acts as
+a communication hub between ROSBuzz instances. The relay
+providescontroloverthecommunicationsimulationparamete rs
+with user-deﬁned packet drop rates, latency, bandwidth, and
+communication range. In section 3, we use this simulation
+ecosystemtoshowthescalabilityofoursystemanditsrobus tness
+topacketloss.
+2.4. Robustness-Enhancing Mechanisms
+The tools introduced in the above sections grant the develope rs
+withasoftwareecosystemeasingtheimplementation,simula tion
+anddeploymentofdecentralizedbehaviors.Thisisatthecor eof
+theapparentneedsinmulti-robotsteamtechnology,butentir ely
+rely on the developer to ensure minimal risk at deployment.
+To help the user enhance the robustness of the behavior in the
+ﬁeld, we integrate common safety mechanisms (described insection 3.2.3) and we provide two essential contributions wi th
+ROSBuzz:aconsensusstrategyreferredtoas“barrier”andas afe
+Over-The-Air(OTA)scriptupdatemechanism.
+2.4.1. Barrier
+When dealing with the coordination of multiple robots, a group
+of robots that comes to an agreement on the value of some
+variable, is said to have reached consensus . One of the key
+elements for designing complex swarm behaviors, is the abili ty
+to create swarm-level state machines, where all robots agree on
+thecurrentstateoftheswarm(orsub-swarm).Forthispurpose,
+wedesigneda barriermechanism,whichallowsthesynchronous
+transition of all swarm members from one state to another. Th e
+swarm construct of Buzz also broadens the use of the barrier on
+specialized subswarms; a handy feature to split the group over
+parallelmissions.Asafewaitingstate(idle,hover)isusedt owait
+forallrobotstoagreeonthefollowingstate.Thebarrieruse saVS
+table (section 2.1): each robot updates a state value associa ted to
+itsownunique idwhenitisreadytochangestate(i.e.,behavior).
+The robot IDs are attributed following the network interfac e
+address (for instance Xbee serial number or WiFi IP address) .
+Consensus is reached when the table size equals the swarm siz e
+and all values correspond to the same outgoing state: then all
+robotscantransitiontothenextbehavior.
+1BARRIER_VSTIG = 0 #Arbitrary initial VS value
+2BARRIER_TIMEOUT = 600 #Timeout value in~steps
+3# Create the barrier
+4function barrier_create () {
+5# reset the step timeout counter
+6timeIn = 0
+7# create the barrier virtual stigmergy
+8if( barrier != nil )
+9barrier = nil
+10barrier = stigmergy . create (BARRIER_VSTIG)
+11}
+12
+13# Executes the barrier
+14function barrier_wait ( S_size , trans_st , resume_st ) {
+15# share that ‘ id ’ is in the barrier with state ‘ st ’
+16barrier . put( id, st )
+17# look for the stigmergy status
+18barrier . get ( id)
+19if( barrier . get ( "d") == 1) {
+20 # Going out .
+Frontiers in Robotics and AI | www.frontiersin.org 6 May 2020 | Volume 7 | Article 51
+
+--- Page 7 ---
+St-Onge et al. ROSBuzz
+21 timeIn = 0
+22 # launch next state
+23 trans_st ()
+24}else if ( barrier . size () >= S_size ) {
+25 # Check the VS content
+26 if{(} all_same_state () {) } {
+27 # Going out . Share that you are over the barrier
+28 barrier . put( "d", 1)
+29 timeIn = 0
+30 # launch next state
+31 trans_st ()
+32 }
+33}else if (timeW >= BARRIER_TIMEOUT) {
+34 # timed out , remove yourself from stigmergy
+barrier
+35 barrier = nil
+36 timeIn = 0
+37 # launch safe resume state
+38 resume_st ()
+39}
+40timeIn = timeIn+1
+41}
+Listing 1 | Barrier implementation of consensus in Buzz language.
+The Buzz functions implementing the barrier are detailed in
+Listing1.barrier_create is called once and barrier_wait at
+each step, until trans_st orresume_st are called, stopping the
+barrierloop.
+We ﬁrst create the barrier data structure: we initialize a VS
+table with a unique key ( BARRIER_VSTIG ). Then at each step of
+the BVM, the function barrier_wait is called with a transition
+state and a resume state. At each step, the robot puts its state i n
+theVStablewithitsIDasakey.Therobotthenchecksthetabl e
+size: if it reaches the swarm size, the robot checks all value s to
+ensure every unit is ready to go to the next state. If they are, the
+robot transitions its state and pushes a new value, d, in the table
+sotheothersknowthebarrierisdonewithoutcheckingallst ates.
+Otherwise, after a timeout ( timeInequals BARRIER_TIMEOUT ),
+the robot resumes its previous behavior. We acknowledge that
+suchabarriermechanismcanimpactthescalabilityofanyswa rm
+algorithm deployed with our infrastructure. For this reason ,
+the ﬁrst experiment presented below (section 3.1) assesses th e
+performanceandusageofthebarrier.
+2.4.2. Update Mechanism
+ROSBuzz provides a mechanism to hot swap the behavior script
+of the robots safely, with rollback strategies in case of upda te
+failures. The need for a reliable in-mission script update ari ses
+quicklywhendevelopingandexperimentingwithnewbehaviors .
+Since all robots in the swarm run the exact same script, they
+needtoupdatesimultaneouslyandensuretheystaycoordinat ed.
+Our Over-The-Air (OTA) mechanism gets triggered either by
+modifying the script ﬁle or by a neighbor propagating a new
+behavior patch. The components of the update mechanism are
+summarizedin Figure4:theupdatemonitorwatchesforchanges
+in the script ﬁle and notiﬁes the update manager of changes;
+then the new changes are compiled, tested, and an encrypted
+binary patch is generated, to be sent to all the other robots. T he
+newly generated code version (id) is propagated through gossi p
+based broadcasts, and when a version mismatch is identiﬁed
+by a robot, this latter requests the patch to its neighbors. To
+FIGURE 4 | Update monitor within the Buzz Virtual Machine.
+ensure safe transitions across versions, the robots switch ed to a
+standbybehavior(aplatform-dependentsafestate)andabarr ier
+is initialized to reach consensus on the code version to use on
+theswarm.Formoreinformationonthisupdatemechanism,we
+refer the reader to the exhaustive presentation in ( Varadharajan
+et al., 2018 ). The mechanism performance is closely dependent
+of the network quality. We tested our update system extensivel y
+withWiFiandXbeemeshnetworks,andproveditsconvergence
+even in extremely poor network conditions in ( Varadharajan
+etal.,2018 ).
+3. EXPERIMENTS
+Aspreviouslystated,thesoftwareecosystemisplatform-agnost ic.
+Any robot can have a MAVROS-compatible driver node and a
+peer-to-peercommunicationnetwork(WiFi-based,Xbee/Zigb ee,
+etc.). The rest of the paper presents the deployment of two
+decentralizedbehaviors,fromdesigntoﬁelddeployment,pas sing
+throughsimulation.
+ROSBuzz, alongside our custom Xbee manager node
+(XbeeMav), was deployed on NVIDIA boards (TK1, TX1, and
+TX2), all running Ubuntu (16.04 or 18.04) for onboard contro l
+of a ﬂeet of DJI Matrice 100 quadrotors (M100). DJI provides
+an onboard SDK that can be interfaced in ROS to be compliant
+with MAVROS. Using the same NVIDIA boards, we deployed
+ROSBuzzonaﬂeetofPleaidesRoboticsSpiriquadcopters.
+We also integrated a smaller and more resource-limited
+platform: the 3DR Solos, running ROSBuzz on Raspberry
+Pis 3 with Raspbian. As long-demonstrated by the ArduPilot
+community, the MAVlink protocol is also perfectly ﬁtted to
+command and monitor rovers8. ROSBuzz was thus ported
+to a Clearpath Husky to control its navigation within an
+heterogeneous ground to air swarm. All robots use a Xbee 900
+Pro module for inter-robot communication. The serialized and
+optimized Buzz messages payloads are transferred through a
+MAVlinkstandardpayloadmessage(64barray).
+We conducted two outdoor experiments with backup pilots
+for each robot: an autonomous task allocation demonstration
+8http://ardupilot.org/rover/
+Frontiers in Robotics and AI | www.frontiersin.org 7 May 2020 | Volume 7 | Article 51
+
+--- Page 8 ---
+St-Onge et al. ROSBuzz
+FIGURE 5 | The behavior law of the progressive task allocation algorit hm
+represented as a ﬁnite state machine. Every robot joining the mission will
+experience states TurnedOff ,TakeOff,Free,Asking,JoiningandJoined. Before
+switching to state Free, andLockthe robots wait for consensus in a transition
+barrier state.
+withSolos,HuskyandM100(section3.1),andauserdrivenare a
+coveragedemonstrationwithSpirisandM100(section3.2).
+3.1. Task Allocation
+Acommonscenarioforarobotgroupistoexecuteagivenqueue
+of tasks evolving throughout the mission. Before optimizing the
+allocation of the tasks, the swarm must have a mechanism to
+ensure it will reach consensus on a given set of allocations. To
+ease the behavior visualization, let us represent the tasks w ith
+targetpositionsinthefollowingdescription.Thisdemonstr ation
+is adapted from the work of ( Li et al., 2019 ), where the authors
+progressively place robots in a formation starting from a root
+robot selecting neighbors to be placed in the formation and
+proceeding recursively, with the newly placed robots selecti ng
+more followers and so on until the formation is complete.
+We integrated our barrier mechanism in ( Li et al., 2019 )’s
+state machine, deployed the algorithm in ROSBuzz over a real
+decentralizednetwork[Xbee,asopposedtoanemulationusing a
+communicationhubandWiFiin Lietal.,2019 ]onUAVs(instead
+ofwheeledindoorplatforms),andweusedthealgorithmforta sk
+allocationinsteadofgraphformation.
+3.1.1. Algorithm
+We assume that all robots involved in the mission are aware
+of the list of tasks and their location. This hypothesis is not
+limitingsincethestructuretablecanbesharedbeforether obots’
+deployment or through run-time broadcast using VS (refer to
+section2.1.1foradeﬁnition).
+This table contains spatial coordinates of each the tasks.
+However, robots are not pre-assigned to a speciﬁed task in the
+mission. The behavior law allows them to ﬁnd proper tasks
+through simple local interactions with other robots leverag ing
+the Buzz neighbor structure (see section 2.1.1), including robots
+that are already part of the mission and robots that are not yet
+assigned a task. This process can drive free robots to participa te
+in the mission gradually or, from the perspective of the missio n,
+itwillattractfreerobotstojoin,allowingittogrowdynam ically.
+The mission process starts when a robot gets the task 0of
+the list. The progressive attribution of tasks will start from thisrobot, called the root, it is thus considered joined in the mis sion
+as soon as it goes out of the barrier following TakeOﬀ, as shown
+with the dashed line in Figure5. This unique robot has to be
+electedthroughinteractionbetweentherobots(i.e.,acon sensus)
+or a special robot can be attributed this role. The behavior
+law is represented as a ﬁnite state machine, shown in Figure5.
+It consists of seven states: Turned Oﬀ ,Take Oﬀ,Free,Asking,
+Joining,JoinedandLock. After a user asked to start the mission,
+the stakeholder, i.e., the drone the user is connected to, sha re
+the information for take oﬀ. The assignment of tasks will star t
+only after the ﬁrst barrier, waiting for all members to be at a
+safe height, hovering. In state Free, the robot will circle around
+the edge of the mission zone, namely the structure composed of
+JoiningandJoinedrobots,andsearchforapropertaskinthelist,
+using only neighbor interaction (see section 2.1.1). When s uch
+a task is found, and both predecessors are within sight (from a
+network topology point-of-view), the Freerobot will transit to
+stateAsking, sending a message to request for the task. Once the
+request is approved by the JoiningandJoinedrobots, the robot
+transits to state Joining. From that point on, it is part of the
+formationandisattributedatask(position)ofthemission. With
+the knowledge of its Joinedparent and of its own task position,
+therobotwillcomputeitstargetGPScoordinatesandnavigate to
+it. Furthermore, since each robot needs only one predecessor (a
+robot already joined in the tree), it is not necessary to keep the
+entirestructureofthemission,butratheronlyapredecesso rtree.
+This algorithm is a perfect ﬁt for dynamic missions, i.e.,
+changing number of robots and/or mission tasks. Its Buzz scri pt
+is available online9and was extensively tested in simulation
+(section3.1.2)andintheﬁeld(section3.1.3).
+3.1.2. Simulations
+Before releasing the behavior on ﬁeld robots, we must assess its
+robustness to packet drop in the communication network. The
+taskallocationalgorithmishighlydependentoncommunicat ion
+performance between peers in the swarm to reach consensus.
+The ﬁrst set of simulations presented in Figure6 test scenarios
+with up to90% packetdrop. Itdemonstrates theconverge of the
+barrier mechanism used in the algorithm and its robustness to
+imperfect communication. The results of Figure6 illustrate the
+time required by each robot to join a formation (i.e., reachi ng a
+JOINED state, as described in section 3.1.1). The conclusion is
+straightforward and expected: a higher drop rate requires mo re
+time to complete the mission. Without packet lost the simulated
+ﬂeet converge in <30 s while with a packet drop rate of 90%,
+the robots take almost 45 s. For 20% packet loss or less, all
+robots converged in all runs. For 70 and 90%, on average more
+than 90% of the robots converged to their ﬁnal state, with a
+minimum of 80%. As for 90% packet loss, a harsh condition
+that we never experienced in the ﬁeld, only 70% of the robots
+converged on average, with a minimum as low as 50%, but still
+severalrunsshowed90%oftherobotsconverging.Furthermo re,
+if 90% packet loss can be observed in some rare cases, it is
+likely to not be continuous (since all robots are expected to b e
+9https://github.com/MISTLab/ROSBuzz/blob/master/buzz_script s/include/
+taskallocate/graphformGPS.bzz
+Frontiers in Robotics and AI | www.frontiersin.org 8 May 2020 | Volume 7 | Article 51
+
+--- Page 9 ---
+St-Onge et al. ROSBuzz
+FIGURE 6 | Robustness to packet drop of the task allocation algorithm p resented in section 3.1.1. The curves show the percentage of robots in the last state of the
+algorithm: JOINED. Each scenario (packet drop rate) was ran 5 times and the variability of the results are shown in the area around the curves. All simulations were ran
+with 6 robots. The algorithm converges in most runs up to 70% p acket loss.
+moving),asopposedtotheconstantdroprateusedintheseruns .
+These results show the high robustness of our algorithm and
+communication layers to communication issues. A simulatio n
+runwith30robotsisshowninthe SupplementaryVideo .
+The most signiﬁcant output of this set of simulations is
+that consensus is always reached, even with large packet drop
+probability. The time required to reach JOINED state is not
+representativeofthetimerequiredbytheconsensusmechani sm
+alonesinceallrobotshavetomovetotheirtasktoreachthis state.
+Indeed, as explainedin section3.1.1,each taskis associate dwith
+a target location and the robot will be considered to have joi ned
+themissiononlywhentheyreachedit.
+As mentioned in the introduction, a swarm behavior is
+expected to be scalable, i.e., to behave in a similar way with
+both small and large robot teams without changes in the
+script (Pinciroli et al., 2016 ).Figure7 shows simulations from
+6 to 48 robots, and the time required for the robots to reach th e
+JOINED state. For each scenario the task allocation, represen ted
+by a ﬁnal formation, is diﬀerent: 6 go to “P,” 12 to “PO,” 18 to
+“POL,” 24 to “POLY,” 30 to “PPOLY,” and 48 to “YLOPPOLY.”
+While 6 robots converge in <30 s, 48 robots take more than
+200 s to reach their ﬁnal formation. We must recall again that
+more distance is traveled by some robots, slowing down the
+convergence together with the increase of time for consensu s
+betweenmorerobots.3.1.3. Field Deployment
+We validated the task allocation algorithm in the ﬁeld with
+small heterogeneous swarms: three M100, one or two Solos, and
+aHusky.
+We conducted four outdoor experiments to test diﬀerent
+topologies and formation geometries. Each mission had a
+diﬀerent set of robots and diﬀerent localized tasks, represente d
+withfourdiﬀerentgraphs:
+1. 2branches(“L”shape)with4quadrotorsandarover,
+2. 3branches(“Y”shape)with5quadrotorsandarover,
+3. 3branches(“Y”shape)with4quadrotorsandarover,
+4. 3branches(“Y”shape)with5quadrotorsonly.
+The time required for each unit to join the mission, i.e., to g et
+its assigned task and move to its target position, is illustrat ed
+inFigure8. The ﬁrst robot to join takes more than 150 s
+to wait for the rest of the ﬂeet to takeoﬀ and get over the
+ﬁrst barrier. As seen in the ﬁrst experiment, some robots are
+parents (predecessor in the graph) to more than one subsequent
+task and make it possible to have two robots simultaneously
+joining the mission. In the last experiment, the ﬁrst three
+robots joined in <250 s most likely because the ground-to-
+air communication in the other scenarios is slowing down
+the attribution of the tasks. The last experiment is shown in
+theSupplementaryVideo . Except for the third experiment,
+Frontiers in Robotics and AI | www.frontiersin.org 9 May 2020 | Volume 7 | Article 51
+
+--- Page 10 ---
+St-Onge et al. ROSBuzz
+FIGURE 7 | Scalability of the task allocation algorithm presented in s ection 3.1.1. The curves show the percentage of robots in the last state of the algorithm: JOINED.
+Each scenario (packet drop rate) was ran 5 times and the varia bility of the results are shown in the area around the curves. The green dots illustrate the launch position
+of the robots and the blue dots, their ﬁnal position. All simul ations were ran without packet lost. The algorithm converge s even with 48 simulated robots.
+FIGURE 8 | Time required for all the robots to join on each of the four exp eriments conducted. Four experiments had ﬁve robot while the orange one had six. To reach
+theSTATE_JOINED , each robot has to reach the physical location of its task.
+Frontiers in Robotics and AI | www.frontiersin.org 10 May 2020 | Volume 7 | Article 51
+
+--- Page 11 ---
+St-Onge et al. ROSBuzz
+FIGURE 9 | Average ratio of neighbors messages received over the total swarm member for different states.
+the average time to get a new robot to join is less than half
+aminute.
+The time required to join is inﬂuenced by the network
+performance since each robot need to be assigned a label from
+its parent before moving. With Xbee 900 MHz, the range is
+large, but the low bandwidth and dropped packets can aﬀect
+theperformance.
+Figure9shows the ratio of neighbor messages received over
+theswarmsize.Indeed,inaBuzzstep,eachrobotsendsamessa ge
+to all its neighbors sharing its position together with a payloa d
+relevant to the current step operations. We can observe that
+in average the Turned Oﬀ andTake Oﬀ states catches fewer
+messages than the other states. This can be explained with the
+radiowavedeﬂectioncreatedbytheirregularitiesofthegr ound.
+Finally,Figure10 shows the worst example of bandwidth
+usage for all robots on all experiments. It is clear that the
+maximum available payload per step, i.e., the Xbee frame size
+(250B,illustratedasaratio),isneverexceeded.
+3.2. Semi-autonomous Exploration
+In several application scenarios envisioned for robotic team s,
+they should not be fully autonomous: the operator expertise is
+mandatory to the success of the exploration mission. In post-
+disaster emergency response, for instance, successful miss ions
+highlighted the importance of collaborative and complementar y
+work between human and robots, also known as a coactive
+approach( Szaﬁretal.,2017 ).Asimilarreasoningappliestomany
+explorationmissionsinunknownandcomplexenvironments:inorder to optimize the mission strategies under multi-object ive
+pressure (geological analysis, mapping, speciﬁc ground feature
+search, etc.) a human expert is still required. The following
+demonstration is designed to let the user continuously monito r
+andcontroltheswarmexplorationmission.
+3.2.1. Algorithm
+TheVoronoitessellation( Alexandrovetal.,2018 )isanalgorithm
+that has been extensively studied for multi-robot deploymen t. It
+usuallytakestheinitialrobotpositionsas seedstothetessellation
+problem and then partitions the area. The logic is simple: creat e
+a frontier halfway between each robot and then stop those lin es
+when they cross another frontier or the region’s borders. We
+integrated in Buzz the sweeping line algorithm , also known as
+Fortune’salgorithm,oneofthemosteﬃcientwaystoextract cell
+linesfromasetofseeds( Fortune,1987 ).
+We then cut the open cells with a user-deﬁned polygonal
+boundary, shown in Figure11 : a convex region is generated
+from the operator hotspot inputted. At this point, each robot
+has knowledge of its cell’s limits. For a uniform distribution
+of the robots in the area, we use a simple gradient descent
+toward the centroid of each cell, similar to the work of Cort
+et al.(2004). Each robot recomputes the tessellation following
+updates on the relative position of its neighbors; an approach
+that is robust to both packet loss (shown in the next subsectio n)
+and environmental dynamics. If a robot is not in the target
+region to be explored, a random goal inside the region is
+generated. Meanwhile the other members of the swarm will
+Frontiers in Robotics and AI | www.frontiersin.org 11 May 2020 | Volume 7 | Article 51
+
+--- Page 12 ---
+St-Onge et al. ROSBuzz
+FIGURE 10 | Moving average of the bandwidth usage based on a window of 30 s amples (which are represented by gray dots).
+FIGURE 11 | Semi-autonomous ﬂeet deployment algorithm: (A)Operator hotspot inputs, (B)generated convex region from the hotspots list, and (C)the tessellation
+and gradient descend to uniformly cover the region.
+cover the whole region without it (larger cells). This algor ithm
+leverages the neighbor struct (see section 2.1.1) to compute the
+numberofseedandtheirrelativelocation.Italsosharesth euser
+hotspots using VS to ensure each robot has it last updated value
+(seesection2.1.1).
+TheBuzzscriptisavailableonline10andwasextensivelytested
+insimulations(section3.2.2)andintheﬁeld(section3.2.3 ).
+3.2.2. Simulations
+Similar to section 3.1.2 for the ﬁrst ROSBuzz algorithm
+demonstrated, we ran simulations to assess the robustness
+and scalability of the coverage algorithm. Figure12 shows the
+convergence of the area coverage algorithm through a set of
+simulationswithincreasingpacketdroprates.
+For each of the six simulated conﬁgurations, the robots were
+initially distributed over two lines as illustrated with th e red
+dots ofFigure12 . The curves of Figure12 plot the diﬀerence
+(euclidean distance) over time between the each robot positi on
+and their ideal Voronoi cell centroid. The ideal case is obta ined
+from the ﬁrst scenario, without any packet lost. The trajecto ries
+taken by the robots to reach their ﬁnal tessellated positions a re
+10https://github.com/MISTLab/ROSBuzz/blob/master/buzz_script s/include/act/
+states.bzz#L344shownabovethecurves.Thehotspots(redtrianglesin Figure12 )
+arethesameforallrunsandwereselectedinordertoensuret hat
+all six robots were already in the region to cover before laun ch
+(no random goals generated). The ﬂat line starting each curv e
+representsthedelaybeforethetakeoﬀcommandisbeensentand
+thehotspotssharedoverthewholeﬂeet.Theseplotsdemonstrat e
+that the uniform coverage algorithm converge to the same ﬁna l
+formation even with 90% packet drop rate. Moreover, small
+packetdropratesgenerateperiodicoscillationssinceneigh boring
+robots (seeds) disappear and reappear. Same reasoning apply to
+large drop rate: major and lasting changes in the neighbors l ist
+directly inﬂuenced the stability, but nevertheless do not pr event
+theﬂeettoconverge.
+To study the scalability properties of the coverage algorithm ,
+we conducted another set of experiments with up to 50 robots,
+no packet lost, and a similar conﬁguration as the previous
+simulations. Figure13 showstheaverageofallpairwisedistances
+between robots of the swarm. After the robots agreed on the
+hotspot values, they need to navigate toward the region to
+cover. This motion regroup the robots and cause a steep drop
+in the inter-robot distance. Upon arrival in the region, they
+each compute a tessellation to get their own cell centroid
+and navigate toward it. Close to their cell’s centroid, the
+tessellation reﬁned itself over time, slowly spreading the ﬂe et
+Frontiers in Robotics and AI | www.frontiersin.org 12 May 2020 | Volume 7 | Article 51
+
+--- Page 13 ---
+St-Onge et al. ROSBuzz
+FIGURE 12 | Robustness to packet drop in communication for the coverage algorithm. The curves show the distance to the ideal Voronoi cells centroids (taken as the
+one without packet lost) and robot trajectories for differe nt packet drop rates. The starting positions (green dots), ﬁn al formation (blue squares) and hotspots (red
+triangles) are plotted above the curves. Each scenario was r an 5 times and the colored area around the curves show the vari ability of the results. Even with 90%
+packet drop rate, the swarm converge to the right cell centro ids.
+over the area. The inter-robot distance slowly increases un til
+it reaches a steady state. In the end, these results show that
+the software infrastructure and the algorithmic computatio n
+scales well. A simulation run with 30 robots is shown in the
+SupplementaryVideo .
+3.2.3. Field Deployment
+The guarantee of robustness provided by the simulations abov e,
+allowed us to deploy the experiment in the ﬁeld safely. The
+ﬂights were conducted in an outdoor ﬁeld with additional saf ety
+measures: a geofence and a velocity limit. The geofence helpe d
+to prevent the UAVs from ﬂying too far as a result of the
+autonomous cells computation from arbitrary user inputs. The
+velocitylimitmakeiteasierfortheusertounderstandande xpect
+theUAVsmotion.
+Three operators controlled a ﬂeet of two M100 and three
+Spiris for 15 min aiming at the exploration the area comprised
+in the geofence limits. The resulting trajectories are show n
+inFigure14 . Wind burst pushed some robots out of the
+geofence(blackpolygon)onoccasion.Theplotstendtoillustr ate
+that the operators were using hotspots more as attracting
+locations for the ﬂeet, i.e., not waiting for it to reach a sta ble
+uniformlydeployedformation.Nevertheless,commentsgath eredfrom the participants indicate that they felt in control and
+enjoyedtheexperience.Wheretheﬁrstdemonstrationusedpre-
+loaded task graphs, this one added a potential liability from
+its online computation of targets relying on the user inputs.
+The experiments still demonstrated the safe and robust softwar e
+architecture, from design to simulation and ﬁeld deployment .
+A short excerpt from the operators control is shown in the
+SupplementaryVideo .
+4. CONCLUSIONS
+This paper describes the software infrastructure ROSBuzz for
+the deployment of coordination behaviors on multi-robot
+systems. ROSBuzz integrates both the swarm-oriented
+programming language Buzz and the ROS ecosystem. It
+grants the developer of decentralized behaviors with useful
+swarm programming primitives and a set of essential tools
+for robust deployment. We described the implementation
+of a swarm-level barrier mechanism and an OTA update
+mechanism. To demonstrate the software usage, workﬂow and
+performance, we discussed the implementation of progressive
+task allocation strategy and a semi-autonomous exploration
+algorithm. Simulations for both scripts show to be robust to
+Frontiers in Robotics and AI | www.frontiersin.org 13 May 2020 | Volume 7 | Article 51
+
+--- Page 14 ---
+St-Onge et al. ROSBuzz
+FIGURE 13 | Distance between the robots while navigating to the Voronoi centroids, as the number of robots in the swarm increases.
+FIGURE 14 | Trajectories of ﬁve UAVs in semi-autonomous exploration tas k following the hotspots inputted by each operator. The blac k polygon represents the
+geofence.
+large packet drop rate and to scale well. To test the concept and
+the whole platform-agnostic infrastructure, experiments wi th
+heterogeneous teams were conducted in the ﬁeld. The missions
+succeeded in each scenario. The task assignment experiments
+speciﬁcally addressed the communication performance.
+It was shown that throughout the whole mission, robots
+used less than half the available bandwidth for inter-robot
+communication. The semi-autonomous exploration integrate dan external variable: dynamic inputs from an operator. The
+participants enjoyed the experiment and the ﬂeet show
+robustbehavior.
+Based on our experience and the results of our ﬁeld
+experiments, we are providing ROSBuzz to the robotics
+community: it is available11online, just as the scripts described
+11https://github.com/MISTLab/ROSBuzz/
+Frontiers in Robotics and AI | www.frontiersin.org 14 May 2020 | Volume 7 | Article 51
+
+--- Page 15 ---
+St-Onge et al. ROSBuzz
+in this paper. While this paper shown robust performance from
+algorithm design to the ﬁeld, ROSBuzz is still in early stage of
+development. Among the future works, the implementation of
+new external code (hook) must be simpliﬁed and the limitation
+to run with global positioning system (GPS or indoor motion
+capture) is currently being addressed. More laboratories hav e
+started using Buzz in their set of software tools and we hope to
+seethecommunitygrowing.Asmoreresearchwillbeconducted
+with this infrastructure, Buzz and its ROS implementation
+will be enhanced to further support swarm robotics
+ﬁeldresearch.
+DATA AVAILABILITY STATEMENT
+The datasets generated for this study including the scripts u sed
+forparsingthedatasetsareavailableOnline( St-Ongeetal.,2020 )
+ETHICS STATEMENT
+The studies involving human participants were reviewed and
+approved by Ethical committee of Polytechnique Montreal. The
+patients/participantsprovidedtheirwritteninformed consen t to
+participateinthisstudy.AUTHOR CONTRIBUTIONS
+DS-O, VV, IŠ, and GB designed the architecture of the softwar e.
+DS-O, VV, and IŠ implemented the software and wrote the
+sections of the manuscript. DS-O adapted both algorithms for
+the experiments and managed the experiments. VV, IŠ, and GB
+helped conduct the experiments and generated the plots for the
+manuscript.Allauthorscontributedtomanuscriptrevision, read
+andapprovedthesubmittedversion.
+ACKNOWLEDGMENTS
+The authors would like to acknowledge the ﬁnancial support of
+NSERC(StrategicPartnershipGrant479149-2015)andMITACS
+forthisproject.ThefundamentalcontributionofCarloPinc iroli
+to Buzz were essential to this work as well as the generosity
+of professor Gregory Dudek, lending a Husky for the ﬁrst set
+of experiments. Part of this manuscript has been released as a
+Pre-Printat( St-Ongeetal.,2017 ).
+SUPPLEMENTARY MATERIAL
+The Supplementary Material for this article can be found
+online at: https://www.frontiersin.org/articles/10.338 9/frobt.
+2020.00051/full#supplementary-material
+REFERENCES
+Alexandrov,V.,Kirik,K.,andKobrin,A.(2018).Multi-robotVoron oitessellation
+based area partitioning algorithm study. J. Behav. Robot . 9, 214–220.
+doi:10.1515/pjbr-2018-0014
+Bachrach, J., Beal, J., and McLurkin, J. (2010). Composable contin uous-
+space programs for robotic swarms. Neural Comput. Appl . 19, 825–847.
+doi:10.1007/s00521-010-0382-8
+Bamberger, R. J., Watson, D. P., Scheidt, D. H., and Moore, K. L. ( 2006). Flight
+demonstrationsofunmannedaerialvehicleswarmingconcepts. JohnsHopkins
+APL Tech. Digest . 27, 41–55. Available online at: https://pdfs.semanticscholar.
+org/6cbf/5905fa034cc8be107cb234bcbc0e185ed74c.pdf
+Bayindir, L. (2016). A review of swarm robotics tasks. Neurocomputing 172,
+292–321.doi:10.1016/j.neucom.2015.05.116
+Brambilla, M., Ferrante, E., Birattari, M., and Dorigo, M. (2013). Swa rm robotics:
+a review from the swarm engineering perspective. Swarm Intell . 7, 1–41.
+doi:10.1007/s11721-012-0075-2
+Brunet, L., Choi, H.-L., and How, J. P. (2008). “Consensus-base d auction
+approaches for decentralized task assignment,” in AIAA Guidance, Navigation,
+andControlConference (Hawaii),1–24.doi:10.2514/6.2008-6839
+Camazine, S., Deneubourg, J.-L., Franks, N. R., Sneyd, J., Bon abeau, E., and
+Theraula, G. (2003). Self-Organization in Biological Systems . Vol. 7. Princeton
+universitypress.
+Cortes, J., Martinez, S., Karatas, T., Bullo, F. (2004). Coverage c ontrol
+for mobile sensing networks. IEEE Trans. Robot. Automat . 20, 243–255.
+doi:10.1109/TRA.2004.824698
+Crespi, V., Galstyan, A., and Lerman, K. (2008). Top-down vs bottom- up
+methodologies in multi-agent system design. Auton. Robots 24, 3 03–313.
+doi:10.1007/s10514-007-9080-5
+Davis, D. T., Chung, T. H., Clement, M. R., and Day, M. A. (2016).
+“Consensus-based data sharing for large-scale aerial swarm coord ination
+in lossy communications environments,” in 2016 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS) (Daejeon), 3801–3808.
+doi:10.1109/IROS.2016.7759559Fortune, S. (1987). A sweepline algorithm for voronoi diagrams. Algorithmica
+2:153.doi:10.1007/BF01840357
+Goc, M. L., Kim, L. H., Parsaei, A., Fekete, J.-d., Dragicevic, P ., and Follmer, S.
+(2016). “Zooids: building blocks for swarm user interfaces,” i nUIST(Tokyo).
+doi:10.1145/2984511.2984547
+Hauert, S., Leven, S., Varga, M., Ruini, F., Cangelosi, A., Zuﬀ erey,
+J. C., et al. (2011). “Reynolds ﬂocking in reality with ﬁxed-wing
+robots: Communication range vs. maximum turning rate,” in
+2011 IEEE/RSJ International Conference on Intelligent Robots a nd
+Systems (San Francisco, CA), 5015–5020. doi: 10.1109/IROS.2011.60
+95129
+Kruijﬀ, G.-J.M., Tretyakov, V., Linder, T., Augustin,S., Pirri , F., Gianni, M., et al.
+(2012). “Rescue robots at earthquake-hit Mirandola, Italy: A ﬁeld report,” in
+2012 IEEE International Symposium on Safety, Security, and Rescue R obotics
+(SSRR)(CollegeStation,TX),1–8.
+Lamport, L. (1978). Time, clocks, and the ordering of events in a dist ributed
+system.Commun.ACM21,558–565.
+Li,G.,St-Onge,D.,Pinciroli,C.,Gasparri,A.,Garone,E.,andBe ltrame,G.(2019).
+Decentralized progressive shape formation with robot swarms. Auton. Robot.
+43,1505–1521.doi:10.1007/s10514-018-9807-5
+Lliﬀe, M. (2016). Drones in Humanitarian Action. Technical report. The Swiss
+FoundationforMineAction.Geneva;Brussels.
+Meyer, J., Sendobry, A., Kohlbrecher, S., Klingauf, U., and von St ryk, O.
+(2012). “Comprehensive simulation of quadrotor UAVs using ROS and
+Gazebo,” in Simulation, Modeling, and Programming for Autonomous Robot s:
+Third International Conference (Tsukuba). doi: 10.1007/978-3-642-34327-
+8_36
+Pickem, D., Glotfelter, P., Wang, L., Mote, M., Ames, A., Feron, E. , et al. (2016).
+“The robotarium: a remotely accessible swarm robotics research testbe d,”
+inProceedings of the International Conference on Robotics and Automation
+(Stockholm).doi:10.1109/ICRA.2017.7989200
+Pinciroli, C., and Beltrame, G. (2016). Swarm-oriented programming of
+distributed robot networks. Computer 49, 32–41. doi: 10.1109/MC.20
+16.376
+Frontiers in Robotics and AI | www.frontiersin.org 15 May 2020 | Volume 7 | Article 51
+
+--- Page 16 ---
+St-Onge et al. ROSBuzz
+Pinciroli, C., Lee-Brown, A., and Beltrame, G. (2015). Buzz: an ext ensible
+programming language for self-organizing heterogeneous robot swarms.
+arXiv:1507.05946 .doi:10.1109/IROS.2016.7759558
+Pinciroli, C., Lee-Brown, A., and Beltrame, G. (2016). “A tuple space f or data
+sharinginrobotswarms,”in Proceedingsofthe9thEAIInternationalConference
+on Bio-inspired Information and Communications Technologi es (formerly
+BIONETICS) (Daejeon),287–294.doi:10.4108/eai.3-12-2015.2262503
+Pinciroli, C., Trianni, V., O’Grady, R., Pini, G., Brutschy, A., B rambilla, M., et al.
+(2012). ARGoS: a modular, parallel, multi-engine simulator for multi-robo t
+systems.SwarmIntell .6,271–295.doi:10.1007/s11721-012-0072-5
+Rekleitis,I.,Dudek,G.,andMilios,E.(2001).Multi-robotcolla borationforrobust
+exploration. Ann.Math.Artif.Intel. 31,7–40.doi:10.1023/A:1016636024246
+¸ Sahin, E. (2004). “Swarm robotics: from sources of inspiration t o domains of
+application,” in Swarm Robotics , eds E. ¸ Sahin and W. M. Spears (Berlin;
+Heidelberg:Springer),10–20.doi:10.1007/978-3-540-30552-1 _2
+St-Onge, D., Shankar Varadharajan, V., Švogor, I., and Beltrame, G. (2020). “Two
+decentralized behaviors for robotic swarms from simulation to the ﬁe ld,” in
+IEEEDataport .doi:10.21227/5h0h-x104.(accessedApr08,2020).
+St-Onge, D., Varadharajan, V. S., Li, G., Svogor, I., and Beltrame , G. (2017). ROS
+andbuzz:consensusbasedbehaviorsforheterogeneousteams. arXiv[Preprint] .
+arXiv:1710.08843.Støy, K. (2001). “Using situated communication in distributed autonomous
+mobile robots,” in Proceedings of the 7th Scandinavian Conference on Artiﬁcial
+Intelligence (Amsterdam:Citeseer),44–52.
+Szaﬁr, D., Mutlu, B., and Fong, T. (2017). Designing planning an d control
+interfaces to support user collaboration with ﬂying robots. Int. J. Robot. Res.
+36,1–29.doi:10.1177/5920278364916688256
+Varadharajan, V. S., Onge, D. S., Guß, C., and Beltrame, G. (2018).
+Over-the-air updates for robotic swarms. IEEE Softw. 35, 44–50.
+doi:10.1109/MS.2018.111095718
+Conﬂict of Interest: The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could be c onstrued as a
+potentialconﬂictofinterest.
+Copyright © 2020 St-Onge, Varadharajan, Švogor and Beltrame. Th is is an open-
+access article distributed under the terms of the Creative C ommons Attribution
+License(CCBY).Theuse,distributionorreproductioninot herforumsispermitted,
+providedtheoriginalauthor(s)andthecopyrightowner(s)a recreditedandthatthe
+original publication in this journal is cited, in accordanc e with accepted academic
+practice. No use, distribution or reproduction is permitte d which does not comply
+withtheseterms.
+Frontiers in Robotics and AI | www.frontiersin.org 16 May 2020 | Volume 7 | Article 51
