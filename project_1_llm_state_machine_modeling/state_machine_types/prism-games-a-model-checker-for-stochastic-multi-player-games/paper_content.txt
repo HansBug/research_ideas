@@ -1,0 +1,346 @@
+--- Page 1 ---
+PRISM-games: A Model Checker
+for Stochastic Multi-Player Games
+Taolue Chen1,V o j t ˇech Forejt1, Marta Kwiatkowska1,
+David Parker2, and Aistis Simaitis1
+1Department of Computer Science, University of Oxford, UK
+2School of Computer Science, University of Birmingham, UK
+Abstract. We present PRISM-games, a model checker for stochastic
+multi-player games, which supports modelling, automated veriﬁcationand strategy synthesis for probabilistic systems with competitive or co-
+operative behaviour. Models are described in a probabilistic extension
+of the Reactive Modules language and properties are expressed usingrPATL, which extends the well-known logic ATL with operators to reason
+about probabilities, various reward-based measures, quantitative prop-
+erties and preci se bounds. The tool is based on the probabilistic model
+checker PRISM, beneﬁting from its exi sting user interface and simulator,
+whilst adding novel model checking algorithms for stochastic games, as
+well as functionality to synthesise optimal player strategies, explore orexport them, and verify other properties under the speciﬁed strategy.
+1 Introduction
+Stochastic games are a natural model for systems that exhibit probabilistic be-
+haviour and which contain components that may either compete or cooperate
+in order to achieve a certain goal. The model has a rich underlying theory and
+applications in areas as diverse as economics and biology. Stochastic games also
+have many applications in computer science. Game-theoretic models of compet-
+itive or collaborative behaviour can be used to model, for example, distributedsystems, security protocols or sensor net works; furthermore, many such systems
+are inherently probabilistic, e.g. due to failures or randomisation.
+Forsimplermodelsubclasses,variousveriﬁcationtoolsareavailableandwidely
+used. For probabilistic models such as Markov chains or Markov decision pro-
+cesses and their variants, probabilistic model checking tools like PRISM [9] and
+MRMC [8] provide veriﬁcation of quantitative properties in probabilistic tempo-ral logics. For (non-stochastic) games, model checkers such as MCMAS [10] and
+MOCHA[1] verifypropertiesin ATL orepi stemic logics.GAVS+ [7]isa general-
+purpose algorithmic game solver which includes support for simple stochastic
+games. Game-based veriﬁcation tools also have applications to scheduling and
+synthesis problems, for example using timed games [2], qualitative stochasticgames [3] or mean-payoﬀ games [4].
+In this paper, we present PRISM-games , which is, to the best of our knowl-
+edge, the ﬁrst tool to provide modelling and quantitative veriﬁcation for stochas-
+tic multi-player games (SMGs). The games are speciﬁed using an extension of
+N. Piterman and S. Smolka (Eds.): TACAS 2013, LNCS 7795, pp. 185–191, 2013.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2013
+
+--- Page 2 ---
+186 T. Chen et al.
+the existingPRISMmodellinglanguage,which isaguarded-commandbasedlan-
+guageinspiredbytheReactiveModulesfo rmalism.Propertiesarespeciﬁedinthe
+temporal logic rPATL [5], which combines features of the multi-agent logicATL,
+the probabilistic logic PCTL, as well as operators to reason about several diﬀer-
+ent notions of reward/cost measures, numerical properties and precise probabil-ityvalues [6].Currently,PRISM-gamessupports turn-based,perfect-information
+SMGs; future work will investigate eﬃcient techniques for more general prob-
+lem classes such as concurrent games and partial information. Turn-basedgames
+have, though, already proved to be suﬃcient to model, analyse and detect po-
+tential weaknesses systems in algorithms for energy management and collectivedecision making for autonomous systems [5].
+PRISM-gamesbuildsuponthecode-baseoftheexistingPRISMmodelchecker,
+extending existing features to provide a modelling language for stochastic multi-
+player games and a graphical user interface with model editor, discrete-event
+simulator and graph-plotting functionality. The core functionality of the new
+tool comprises novel methods for verifying quantitative properties of stochasticgames [5,6]; and support for synthesising optimal player strategies, exploring or
+exporting them, and verifying other properties under the speciﬁed strategy.
+2 Modelling Stochastic Multi-Player Games
+A (turn-based) stochastic multi-player game (SMG) comprises a ﬁnite set of
+playersand a ﬁnite set of states. In each state, exactly one player chooses (pos-
+sibly randomly) from a set of available probabilistic transitions to determine the
+nextstate.ToreasonaboutSMGs,weuse strategies ,whichdeterminethe choices
+of transitions made by each player, based on the execution of the game so far.
+In PRISM-games, SMGs are described in a modelling language similar to the
+Reactive Modules formalism. A model is composed of modules, whose state is
+determined by a set of variables and whose behaviour is speciﬁed by a set of
+guarded commands , containing an (optional) action label, a guard and a proba-
+bilistic update for the module’s variables:
+[action] guard -> prob 1: update 1+ ... + prob n: update n;
+When a module has a command whose guard is satisﬁed in the current state, it
+can update its variables probabilistically, accordingly to the update. For action-
+labelled commands, multiple modules execute updates synchronously, if all theirguards are satisﬁed. Each probabilistic transition in the model is thus associated
+with either an action label or a single module. A model also deﬁnes players,e a c h
+of which is assigned a disjoint subset of the model’s synchronising action labels
+and modules. This assigns each probabilistic transition to one player. Currently,
+to ensure a turn-based SMG, all possible probabilistic transitions in a state mustbelong to the same player; the tool detects and disallows concurrent actions.
+An excerpt from a PRISM-games model of futures market investors is shown
+in Fig. 1. There are 3 players: 2 investors and the market. At the start of eachmonth, investors decide whether to invest or not; the marketcan decide to bar
+
+--- Page 3 ---
+PRISM-games: A Model Checker for Stochastic Multi-Player Games 187
+smg
+// Player deﬁnitions
+player investor1
+[invest1 ],[noinvest1 ],[cashin1 ]
+endplayer
+player investor2
+[invest2 ],[noinvest2 ],[cashin2 ]
+endplayer
+player market
+[nobar ],[bar1 ],[bar2 ],sched,[month ],[done ]
+endplayer
+// Investor 1
+module investor1
+// State: 0 =no reservation
+// 1 =made reservation
+// 2 =ﬁnished
+i1:[ 0..2];
+// Decide whether invest or not
+[noinvest1 ]i1=0|i1=1 & b1=1→(i1/prime=0);
+[invest1 ]i1=0|i1=1 & b1=1→(i1/prime=1);
+// Cash in shares (if not barred)
+[cashin1 ]i1=1 & b1=0→(i1/prime=2);
+// Finished
+[done ]i1=2|term =1→true;
+endmodule
+// Investor 2
+module investor2 =investor1 [...]endmodule
+// Market
+module market
+// State: 0 =!barred, 1 =barred
+b1:[ 0..1]init 1;
+b2:[ 0..1]init 1;
+// Share value
+v:[ 0..vmax ]init vinit ;
+// Bar one or none of the investors
+[nobar ]true→(b1/prime=0) & ( b2/prime=0);
+[bar1 ]b1=0→(b1/prime=1) & ( b2/prime=0);
+[bar2 ]b2=0→(b2/prime=1) & ( b1/prime=0);
+// Share price movement
+[month ]true→p/10 : ( v/prime=up)
++( 1−p/10) : ( v/prime=down );
+endmodule
+// Scheduling module
+module sched
+// Turn-based scheduling of players
+endmodule
+// Reward: Shares collection value
+// for investor1, and both investors
+rewards “proﬁt1 ”
+[cashin1 ]i1=1 : v;
+endrewards
+rewards “proﬁt12 ”
+[cashin1 ]i1=1 : v;
+[cashin2 ]i2=1 : v;
+endrewards
+Fig. 1. Excerpt from a three-player game modelling futures market investors
+one ofthe investorsfrom investing and alsopicks the orderin which the investors
+take decisions. Share price ﬂuctuations are modelled as a random process. The
+full model, along with several larger examples, is available from [11].
+3 Property Speciﬁcation
+PRISM-games’ property speciﬁcation language is based on rPATL [5]. rPATL is
+a CTL-style branching-time temporal logic used to express properties of SMGs,
+which combines the coalition operator /angbracketleft/angbracketleftC/angbracketright/angbracketrightof ATL, the probabilistic operator
+P⊿/triangleleftqfrom PCTL, and an operator Rr
+⊿/triangleleftxfor reasoning about several types of
+expected reward/cost measures. The s yntax of rPATL is given by the grammar:
+φ::=/latticetop|a|¬φ|φ∧φ|/angbracketleft /angbracketleftC/angbracketright/angbracketrightP⊿/triangleleftq[ψ]|/angbracketleft /angbracketleftC/angbracketright/angbracketrightRr
+⊿/triangleleftx[F⋆φ]
+ψ::=Xφ|φUφ|φU≤kφ|Fφ|F≤kφ|Gφ|G≤kφ
+whereais an atomic proposition used to label SMG states, Cis a coalition (a
+set of players), ⊿/triangleleft∈{<,≤,≥,>},q∈Q∩[0,1],x∈Q≥0,ris areward structure
+mapping states to non-negative rationals, ⋆∈{0,∞,c}andk∈N.
+An examplerPATL formulais /angbracketleft/angbracketleft{1,2}/angbracketright/angbracketrightP≥0.75[F≤5goal], which means“players
+1 and 2 have a (combined) strategy to ensure that the probability of reaching a
+‘goal’ state within 5 steps is at least 0 .75, regardless of the strategies of other
+players in the game”. The /angbracketleft/angbracketleftC/angbracketright/angbracketrightRr
+⊿/triangleleftx[F⋆φ] operator is used in a similar fashion,
+
+--- Page 4 ---
+188 T. Chen et al.
+but is annotated with a reward structure rand a type ⋆∈{0,∞,c}. It states
+that coalition Chas a strategy to ensure that expected amount of reward r
+cumulated until a φ-state is reached satisﬁes ⊿/triangleleft x.T h et y p e ⋆allows us to treat
+the case where φisnotreached diﬀerently, assigning zero reward ( ⋆=0), inﬁnite
+reward (⋆=∞) or allowing reward to accumulate indeﬁnitely ( ⋆=c).
+We support several extensions of rPATL, including ‘quantitative’ (numerical)
+operators, e.g., /angbracketleft/angbracketleftC/angbracketright/angbracketrightPmax=?[ψ], which gives the maximum probability of ψthat
+coalition Ccan guarantee, instead of a true/f alse value. PRISM-games also sup-
+ports precisevalue operators /angbracketleft/angbracketleftC/angbracketright/angbracketrightP=q[ψ]a n d/angbracketleft/angbracketleftC/angbracketright/angbracketrightRr
+=x[Fcφ]f o r stopping games
+(i.e., stochasticgameswhereterminalstatesarereachedwith probability1underany pair of strategies), using the model checking algorithms of [6].
+Examples. Some sample properties for the futures market investor model from
+the previous section (see Fig. 1) are provided below.
+–/angbracketleft/angbracketleft{investor1,investor2 }/angbracketright/angbracketrightR
+proﬁt12
+≥10[Fc(done1∧done2)]–“thetwoinvestorshave
+a joint strategy guaranteeing them an expected proﬁt of at least 10”;
+–/angbracketleft/angbracketleft{investor1,market }/angbracketright/angbracketrightRproﬁt1
+max=?[Fcdone1] – “what is the maximum expected
+proﬁt that investor 1 can achieve with the help of the market?”;
+–/angbracketleft/angbracketleft{investor1,investor2 }/angbracketright/angbracketrightRproﬁt12
+=5[Fcdone] – “both investorscan collaborateto
+achieve an expected proﬁt of precisely 5”;
+–/angbracketleft/angbracketleft{investor1 }/angbracketright/angbracketrightPmax=?[F(done1∧v>5)]–“whatis the maximumprobability
+with which investor 1 can guarant ee a share value greater than 5?”
+4 Synthesis and Analysis of Strategies
+Reasoning about strategies is an essential aspect of modelling and verifying
+games. rPATL queries check for the existence of a strategy that satisﬁes a given
+probability/reward bound or which optimises some objective. When PRISM-
+games model checks such properties, it also supports strategy synthesis , allowing
+the user to obtain a corresponding satisfying/optimal strategy.
+An SMG strategy resolves the choices in each state, using a (possibly inﬁnite)
+set of memory elements , each representing a possible “state” of the strategy.
+The memory element is updated (possibly stochastically) at each transition, andthe action picked by the player is determined by the current memory element
+and the current state. A strategy is memoryless if it has only one memory
+element, and ﬁnite-memory if there are ﬁnitely many. It is deterministic if the
+functions that update memory elements and pick actions are not probabilistic,
+and stochastic-update otherwise. Currently, PRISM-games supports three types
+of strategies: memoryless deterministic ,ﬁnite-memory deterministic and ﬁnite-
+memory stochastic-update .
+Strategies can be analysed manually in the simulator view or exported to
+ﬁles (see Fig. 2 for screenshots). PRISM-games also supports ‘implementation’
+of strategies – the product of a strategy and the original game can be built,
+resulting in a new model on which other properties can be veriﬁed. For exam-
+ple, in a game with 3 players we can generate a strategy for player 1 speciﬁed
+
+--- Page 5 ---
+PRISM-games: A Model Checker for Stochastic Multi-Player Games 189
+Fig. 2. PRISM-games screenshots: simulation of a synthesised strategy (bottom) and
+veriﬁcation of a property under the strategy (top)
+by/angbracketleft/angbracketleft1/angbracketright/angbracketrightP≥0.5[Fgoal1]. Implementing this strategy would then result in a two-
+player game on which further properties may be veriﬁed, e.g., in rPATL formula
+/angbracketleft/angbracketleft2,3/angbracketright/angbracketrightP≥0.99[Fgoal2], player1 now does not minimise the probability ofreaching
+agoal2state; instead its strategy is ﬁxed to one which achieves the ﬁrst rPATL
+formula. Strategy import functionality is also supported.
+5 Algorithms and Further Details
+Underlying Algorithms.. The core parts of the model checking algorithm for
+rPATL are based on reductions to two-player stochastic games, by construct-
+ing a coalition game where player 1 plays represents the coalition Cfrom the
+rPATL formula being veriﬁed and player 2 is all other players. The basic tech-
+niques for solving games formulate systems of equations over + ,·,max,min, and
+then perform value iteration to compute their least or greatest solutions. This
+works directly for /angbracketleft/angbracketleftC/angbracketright/angbracketrightP⊿/triangleleftq[ψ]a n d/angbracketleft/angbracketleftC/angbracketright/angbracketrightRr
+⊿/triangleleftx[F⋆φ]w h e r e⋆∈{c,∞}.F o r⋆=0 ,
+the optimal strategy may depend on the reward accumulated so far and so isnot memoryless. Here, we compute a bound after which the optimal strategy
+picks actions that maximise the probability of reaching φ-states, and reduce
+the problem to previous cases; see [5] for details. For the precisevalue operators
+/angbracketleft/angbracketleftC/angbracketright/angbracketrightP
+=q[ψ]a n d/angbracketleft/angbracketleftC/angbracketright/angbracketrightRr
+=x[Fcφ], weneed to compute the supinf and infsup values
+for the property (using rPATL model checking algorithms). We then constructa ﬁnite-memory stochastic-update strategy based on the results of [6].
+
+--- Page 6 ---
+190 T. Chen et al.
+Table 1. Performance statistics for a representative set of models [5,11]
+Case study
+SMG statistics
+ Model checking
+Players
+ States
+ Transitions
+ Property type
+ Constr.
+ Check
+mdsm [N]
+5
+ 5
+743,904
+ 2,145,120
+/angbracketleft/angbracketleftC/angbracketright/angbracketrightRr
+max=? [F0φ]
+14.5s
+ 61.9s
+7
+ 7
+6,241,312
+ 19,678,246
+ 210.7s
+ 1,054.8s
+cdmsn [N]
+3
+ 3
+ 1,240
+ 1,240
+/angbracketleft/angbracketleftC/angbracketright/angbracketrightP⊿/triangleleftq[F≤kφ]
+0.2s
+ 0.2s
+5
+ 5
+100,032
+ 843,775
+ 3.2s
+ 6.4s
+investor [vmax ]
+10
+ 2
+ 10,868
+ 34,264
+/angbracketleft/angbracketleftC/angbracketright/angbracketrightRr
+min=? [Fcφ]
+1.4s
+ 0.7s
+200
+ 2
+2,931,643
+ 9,688,354
+ 45.9s
+ 820.8s
+team-form [N]
+3
+ 3
+ 17,041
+ 20,904
+/angbracketleft/angbracketleftC/angbracketright/angbracketrightPmax=? [Fφ]
+0.3s
+ 0.5s
+5
+ 5
+2,366,305
+ 2,893,536
+ 36.9s
+ 12.9s
+Implementation and Availability. The model checking implementation is
+currently built upon PRISM’s “explicit” engine, which uses Java-based explicit-
+state data structures (sparse matrices, bit -sets, etc.). Illustrative experimental
+results are shown in Table 1, for games of the order 106-107states (run on a
+2.8GHz PC with 32GB of RAM). A symbolic (BDD-based) implementation is
+under development to oﬀer improved scalability on models exhibiting regularity.
+PRISM-games is released as open source software, currently licensed under
+the GPL. The tool, with documentation and examples, is available from [11].
+Acknowledgments. The authors are part supported by ERC Advanced Grant
+VERIWARE, the Institute for the Future of Computing at the Oxford Martin
+School, EPSRC grant EP/F001096/1 and a Royal Society Newton Fellowship.
+References
+1. Alur, R., Henzinger, T.A., Mang, F.Y.C., Qadeer, S., Rajamani, S.K., Tasiran, S.:
+MOCHA: Modularity in Model Checking. In: Vardi, M.Y. (ed.) CAV 1998. LNCS,
+vol. 1427, pp. 521–525. Springer, Heidelberg (1998)
+2. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+UPPAAL-Tiga: Time for Playing Game s !I n :D a m m ,W . ,H e r m a n n s ,H .( e d s . )
+CAV 2007. LNCS, vol. 4590, pp. 121–125. Springer, Heidelberg (2007)
+3. Chatterjee, K., Henzinger, T.A., Jobstmann, B., Radhakrishna, A.: Gist :AS o l v e r
+for Probabilistic Games. In: Touili, T., Cook, B., Jackson, P. (eds.) CAV 2010.
+LNCS, vol. 6174, pp. 665–669. Springer, Heidelberg (2010)
+4. Chatterjee, K., Henzinger, T.A., Jobstmann, B., Singh, R.: QUASY: Quantita-
+tive Synthesis Tool. In: Abdulla, P.A., Leino, K.R.M. (eds.) TACAS 2011. LNCS,
+vol. 6605, pp. 267–271. Springer, Heidelberg (2011)
+5. Chen, T., Forejt, V., Kwiatkowska, M., Parker, D., Simaitis, A.: Automatic Ver-
+iﬁcation of Competitive Stochastic Systems. In: Flanagan, C., K¨ o n i g ,B .( e d s . )
+TACAS 2012. LNCS, vol. 7214, pp. 315–330. Springer, Heidelberg (2012)
+6. Chen, T., Forejt, V., Kwiatkowska, M., Simaitis, A., Trivedi, A., Ummels, M.:
+Playing Stochastic Games Precisely. In: Koutny, M., Ulidowski, I. (eds.) CONCUR
+2012. LNCS, vol. 7454, pp. 348–363. Springer, Heidelberg (2012)
+7. Cheng, C.-H., Knoll, A., Luttenberger, M., Buckl, C.: GAVS+: An Open Platform
+for the Research of Algorithmic Game Solving. In: Abdulla, P.A., Leino, K.R.M.
+(eds.) TACAS 2011. LNCS, vol. 6605, pp. 258–261. Springer, Heidelberg (2011)
+
+--- Page 7 ---
+PRISM-games: A Model Checker for Stochastic Multi-Player Games 191
+8. Katoen, J.P., Hahn, E.M., Hermanns, H., Jansen, D., Zapreev, I.: The ins and outs
+of the probabilistic model checker MRMC. In: Proc. QEST 2009. IEEE (2009)
+9. Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: Veriﬁcation of Probabilistic
+Real-Time Systems. In: Gopalakrishnan, G., Qadeer, S. (eds.) CAV 2011. LNCS,
+vol. 6806, pp. 585–591. Springer, Heidelberg (2011)
+10. Lomuscio, A., Qu, H., Raimondi, F.: MCMAS: A Model Checker for the Veriﬁcation
+of Multi-Agent Systems. In: Bouajjani, A., Maler, O. (eds.) CAV 2009. LNCS,
+vol. 5643, pp. 682–688. Springer, Heidelberg (2009)
+11. PRISM-games website, http://www.prismmodelchecker.org/games/

@@ -1,0 +1,1706 @@
+--- Page 1 ---
+Coordination of Dynamic
+Software Components with
+JavaBIP
+Anastasia Mavridou, Valentin Rutz, Simon Bliudze
+May 12, 2021
+Abstract: JavaBIP allows the coordination of software components by clearly separating the functional and co-
+ordination aspects of the system behavior. JavaBIP implements the principles of the BIP component framework
+rooted in rigorous operational semantics. Recent work both on BIP and JavaBIP allows the coordination of static
+components dened prior to system deployment, i.e., the architecture of the coordinated system is xed in terms of its
+component instances. Nevertheless, modern systems, often make use of components that can register and deregister
+dynamically during system execution. In this paper, we present an extension of JavaBIP than can handle this type
+of dynamicity. We use rst-order interaction logic to dene synchronization constraints based on component types.
+Additionally, we use directed graphs with coloring edges to model dependencies among components that determine
+the validity of an online system. We present the software architecture of our implementation; provide and discuss
+performance evaluation results.
+iarXiv:1707.09716v2  [cs.SE]  15 Aug 2017
+
+--- Page 2 ---
+@TechReport{DynamicJavaBIP,
+Author = {Anastasia Mavridou and Valentin Rutz and Simon Bliudze},
+Title = {Coordination of {D}ynamic {S}oftware {C}omponents with {J}ava{BIP}},
+note = {available at \url{https://arxiv.org/abs/1707.09716}},
+Year = {2017},
+Eprint = {arXiv:1707.09716}
+}
+
+--- Page 3 ---
+Contents
+1 Introduction 2
+2 The JavaBIP Framework 3
+3 Motivating Case Study 3
+3.1 Componentization and Interaction Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+4 Interaction Logic and Macro-notation 7
+4.1 Propositional Interaction Logic . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+4.2 First-order Interaction Logic . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+4.3 JavaBIP Require/Accept Macro-notation Based on FOIL . . . . . . . . . . . . . . . . . . . . 9
+4.3.1 The Require Macro . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+4.3.2 The Accept Macro . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+5 Dening System Validity 10
+6 Implementation 15
+6.1 Performance Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+7 Related Work 18
+8 Conclusion and Future Work 19
+Appendix A Complete glue specication of the modular phone case study 22
+1
+
+--- Page 4 ---
+1 Introduction
+We have previously introduced JavaBIP [8, 9] that allows coordinating software components exogenously,
+i.e., without requiring access to component source code. JavaBIP relies on the following observations.
+Domain specic components have states (e.g., idle, working) that are known to component users with domain
+expertise. Furthermore, components always provide APIs that allow programs to invoke operations (e.g.,
+suspend or resume) in order to change their state, or to be notied when a component changes its state
+spontaneously. Thus, component behavior can be easily represented by Finite State Machines (FSMs).
+JavaBIP brings the BIP principles into a more general software engineering context than that of embedded
+systems, in which code generation might not be desirable due to continuous code updates. Thus, to use
+JavaBIP, instead of generating Java code from the BIP modeling language, developers must provide|for the
+relevant components|the corresponding FSMs in the form of annotated Java classes. The FSMs describe
+the protocol that must be respected to access a shared resource or use a service provided by a component.
+FSM transitions are associated with calls to API functions, which force a component to take an action, or
+with event notications that allow reacting to external events.
+For component coordination, JavaBIP provides two primitive mechanisms: 1) multi-party synchroniza-
+tions of component transitions and 2) asynchronous event notications. The latter embodies the reactive
+programming paradigm. In particular, JavaBIP extends the Actor model [1], since event notications can
+be used to emulate asynchronous messages, while providing the synchronization of component transitions as
+a primitive mechanism gives developers a powerful and exible tool to manage coordination. The synchro-
+nization of component transitions is managed by a runtime called JavaBIPEngine, which, for simplicity, we
+call \engine" in the rest of the paper. Notice that in a completely asynchronous system the engine is not
+needed.
+JavaBIP clearly separates system-wide coordination policies from component behavior. Synchronization
+constraints, dening the possible synchronizations among transitions of dierent components i.e., the set of
+possible component interactions , are specied independently from the design of individual components in
+dedicated XML les. This separation of functional and coordination aspects greatly reduces the burden of
+system complexity. Finally, integration with the BIP framework, through a JavaBIP to BIP code generation
+tool, allows the use of existing deadlock-detection and model checking tools [6, 7] ensuring the correctness
+of JavaBIP systems.
+The previous implementation of JavaBIP [9] was static. To coordinate a system, the full set of components
+had be registered before starting the engine. No components could be added on-the-y and, most importantly,
+if a failure occurred in a single component, the engine execution had to stop and the full set of constraints
+had to be computed anew. Notice that none of the current BIP implementations [4, 5, 12] allows to add
+or remove components on-the-y, including DyBIP presented in [13] that allows dynamically changing the
+set of interactions among a xed set of components at runtime. This might be problematic, since modern
+systems, e.g., large banking systems or modular smartphones, make use of components that can register and
+deregister during system execution.
+To allow dynamicity in JavaBIP, we use rst-order interaction logic to describe synchronization con-
+straints on component types. As a result, a developer can write synchronization constraints without know-
+ing the exact number of components in the system. Thus, component instances of known types, i.e., types
+for which synchronization constraints exist, can register at runtime without any additional input from the
+developer. To optimize JavaBIP performance, we have introduced a notion of system validity: a system is
+valid if and only if its set of possible interactions is not empty . The notion of validity allows to start and
+stop the engine automatically at runtime by just checking the status of the system. By stopping the engine
+if the system is invalid, we eliminate any processing time needed by the engine. To check system validity,
+we use directed graphs with edge coloring to model component synchronization dependencies. Notice that
+2
+
+--- Page 5 ---
+the introduced notion of validity is only relevant for the engine: in an invalid system components can still
+communicate asynchronously.
+We have extended the interface and implementation of the engine to register, deregister, and pause a
+component at runtime. The dierence between pausing and deregistering a component is as follows. If a
+component deregisters, then the engine clears all the associated data and references to this component; other
+components cannot synchronize with the deregistered component unless it registers anew. If a component is
+paused, other components cannot synchronize with it but the engine keeps all associated data and references
+to it; the paused component can start synchronizing with other components by simply informing the engine
+that it is back on track.
+The rest of the report is structured as follows. Section 2 presents the JavaBIP framework. Section
+3 describes our motivating case study. Section 5 presents the notion of JavaBIP system validity and the
+construction of validity graphs. Section 4 presents the interaction logic and the macro-notation used to specify
+JavaBIP synchronization constraints on component types. Section 6 describes the implemented software
+architecture and presents performance results. Section 7 discusses related work. Section 8 summarizes the
+results and future work directions.
+2 The JavaBIP Framework
+JavaBIP implements the BIP (Behavior-Interaction-Priority) coordination mechanism [4], for coordination of
+concurrent components. In BIP, the behavior of components is described by Finite State Machines (FSMs)
+having transitions labeled with ports and extended with data stored in local variables. Ports form the
+interface of a component and are used to dene its interactions with other components. They can also
+export part of the local variables, allowing access to the component's data. Component coordination is
+dened in BIP by means of interaction models , i.e., sets of interactions. Interactions are sets of ports that
+dene allowed synchronizations among components.
+JavaBIP takes as input the system specication , which is provided by the user and consists of the following:
+Abehavior specication for each component type, which is an FSM extended with ports and data
+provided as an annotated Java class.
+The glue specication , which is the interaction model of the system, is provided as an XML le. It
+species how the transitions of dierent component types must be synchronized, i.e., synchronization
+constrains.
+The optional data-wire specication , which is the data transfer model of the system, is provided as an
+XML le. It species which and how data are exchanged among component types.
+For property analysis, the system specication can be automatically translated into an equivalent model
+of the system in the BIP language. This model can then be veried for deadlock freedom or other properties,
+using DFinder [6], ESST or nuXmv [7]. Other analyses can be performed using any tool for which a model
+transformation from BIP is available.
+3 Motivating Case Study
+Modular phones require application layer specications that can handle dynamic device insertion and removal
+at runtime. In the rest of the paper, we refer to the phone's devices as modules . In this case study, we model
+in JavaBIP some of the application layer protocols oered by Google's Greybus specication1.
+1https://github.com/projectara/greybus-spec
+3
+
+--- Page 6 ---
+Figure 1: Modular phone architecture.
+Application Layer ::= ( AP Message Handler ):(Controller )+:(Driver )
+AP Message Handler ::= ( AP Request Worker ):(AP Response Worker ):
+(AP Message Worker ):(AP Receiver Fifo )
+Controller ::= ( Control Protocol Controller ):(Log Protocol Controller ):
+(Camer Protocol Controller ):(Power Supply Protocol Controller )
+Driver ::= ( Battery Driver ):(Camera Driver )
+Camera Driver ::= ( Control Connect Handler ):(Control Disconnect Handler ):
+(Log Handler ):(Camera Capture Handler ):(Camera Stream Handler )
+Battery Driver ::= ( Control Connect Handler ):(Control Disconnect Handler ):
+(Log Handler ):(Power Supply Handler )
+Figure 2: Hierarchical decomposition of the Application Layer into components.
+Figure 1 illustrates the composite component types, of the case study. Greybus requires that exactly
+one application processor (AP) is present in the system for storing user data and executing applications.
+We consider two types of modules that can be inserted on the phone's frame at runtime: 1) power supply
+modules, e.g., batteries and 2) cameras. Any number of instances of these two types can be inserted or
+removed from the phone at runtime. Figure 1 presents an example conguration of a phone, in which
+two battery and one camera modules are connected. These modules communicate with the AP through
+dedicated device class connection protocols: the camera ,power supply , and logprotocols. The latter can be
+used by any module to send human-readable debug log messages to AP. Additionally, AP uses the control
+protocol to perform basic initialization and conguration actions with other modules. If no power supply
+or camera modules are connected, the system conguration would consist of the AP Message Handler ,
+Control Protocol Controller , the Log Protocol Controller ,Camera Protocol Controller , and the
+Power Supply Protocol Controller composite components. The grammar in Fig. 2 shows how to obtain
+the desired systems as the incremental composition of components. Operators :(dot),and+are used as
+usual to denote composition and repetition. Notice that Fig. 1 illustrates only one of the possible system
+4
+
+--- Page 7 ---
+congurations that are described by the grammar in Fig. 2.
+A Greybus protocol denes a number of Greybus operations, which are request-response pairs of remote
+procedure calls from one module to another. The bi-directional arrows in Fig. 1 represent Greybus operations.
+For instance, the AP very often needs to retrieve information from other modules. This requires that a
+message requesting information be paired with a response message containing the information requested. In
+many cases, Greybus operations need to be performed in a specic order. Additionally, the access to shared
+resources such as memory and logging services needs to be controlled among modules. We enforce action
+ow of Greybus operations, as well as controlled access to the phone's shared resources with JavaBIP. We
+developed the case study using the WebGME-BIP design studio2, the complete system exceeds 2000 lines of
+code.
+3.1 Componentization and Interaction Model
+We have used architecture diagrams [30] to model the architecture style of the case study, which is shown
+in Fig. 3. An architecture style denes the set of all possible architectures for any number of components
+in the system. An architecture diagram consists of a set of component types , with associated cardinality
+constraints representing the expected number of instances of each component type and a set of connec-
+tor motifs . The boxes in Fig. 3 represent the atomic component types of the case style, which are the
+following: AP Request Worker ,AP Response Worker ,AP Message Worker ,Control Protocol Controller ,
+AP Receiver Fifo ,Log Protocol Controller ,Camer Protocol Controller ,Control Connect Handler ,
+Power Supply Protocol Controller ,Control Disconnect Handler ,Log Handler ,Camera Capture Handler ,
+Camera Stream Handler ,Power Supply Handler . The cardinalities of these component types are shown in
+Fig. 3 in the upper left corner of the corresponding boxes. For instance, the cardinality of the AP Request Worker
+component type is 1, while the cardinality of the Camera Capture Handler component type is n. The valu-
+ation of the nparameter depends on the number of cameras attached on the phone.
+Figure 3 contains a set of connector motifs, which dene the glue of the case study, i.e., the interaction
+model. Each connector motif denes a set of BIP connectors [4], which are non-empty sets of port types .
+Each connector motif end has two associated constraints: multiplicity and degree , represented as a pair
+m:d. Multiplicity constrains the number of instances of the port type that must participate in a connector
+dened by the motif; degree constrains the number of connectors attached to any instance of the port type.
+Cardinalities, multiplicities and degrees are either natural numbers or intervals. In this case study we have
+used only natural numbers.
+Let us consider, for instance, the connector motif that connects the port type receive ofAP Message Worker
+with the port type rmofAP Receiver Fifo . The associated constraint pair of each connector motif end is
+equal to 1 : 1. This means a conforming architecture of the style will include a binary BIP connector attached
+to the port instance receive of the component instance of AP Message Worker and to the port instance rm
+of the component instance of AP Receiver Fifo . This binary BIP connector represents a synchronization
+of the actions rmand receive of the corresponding component instances. Lets us now consider the con-
+nector motif that connects the port type send logofLog Handler with the port type rcvFromDriver of
+Log Protocol Controller . The associated constraint pair of the connector motif end attached to send log
+is equal to 1 : 1, while the constraint pair of the connector motif end attached to rcvFromDriver is equal
+to 1 :n, wherenis the cardinality of Log Handler . A conforming architecture that contains ninstances
+ofLog Handler will also contain nbinary connectors, each connecting a distinct component instance of
+Log Handler to the unique component instance of Log Protocol Controller .
+2https://github.com/anmavrid/webgme-bip
+5
+
+--- Page 8 ---
+6/7/17, 17:47BIPv1
+Page 1 of 1http://localhost:8888/?project=guest%2BBIPv1&branch=master&node=%2Ff%2Fe&visualizer=BIPEditor&tab=0&layout=DefaultLayout
+Camera_Capture_Handler
+rcvReq
+sndResmControl_Disconnect_Handler
+rcvReq
+sndResnCamera_Stream_Handler
+rcvReq
+sndResmControl_Connect_Handler
+rcvReq
+sndResnLog_Handler
+rcvRes
+send_lognPower_Supply_Handler
+sndRes
+rcvReqkCamera_Protocol_Controller
+sndToDri
+receive
+send
+rcvDriver
+rcvFromDri1Power_Supply_Protocol_C…
+send
+receive
+sndToDri
+rcvFromDri
+rcvDriver1Control_Protocol_Controller
+receive
+sndToDri
+rcvDriver
+send
+rcvFromDri1AP_ResponseWorker
+getRes1AP_RequestWorker
+sndToController
+getReq1
+AP_MessageWorker
+sndRes
+sndReq
+receive1AP_ReceiverFifo
+rm
+add1
+Log_Protocol_Controller
+receive
+rcvDriver
+sndToDri
+send
+rcvFromDri1
+1:11:12:1
+1:1
+1:11:11:k......1:m1:m
+1:m1:m1:m1:m1:n1:n1:n1:n1:n1:n1:n1:n1:n
+2:12:1
+1:11:11:11:11:11:11:11:11:11:11:11:1
+1:11:11:11:11:11:11:11:11:11:11:11:1
+1:11:11:1
+1:11:1
+1:11:1
+1:1
+Figure 3: Modular phone architecture style.
+6
+
+--- Page 9 ---
+4 Interaction Logic and Macro-notation
+The glue specication is dened in JavaBIP through a macro-notation, similar to the one introduced in
+[13], based on rst-order interaction logic. This notation imposes synchronization constraints based on
+component types rather than on component instances, which allows a developer to write a glue specication
+without knowing the exact number of components in the system. Instances of component types for which
+synchronization constraints exist in the glue specication can be dynamically registered or deregistered at
+runtime without requiring additional input or changes in the glue specication. In the next subsections, we
+present the propositional and rst-order interaction logic, as well as the JavaBIP Require/Accept macro-
+notation, which is based on rst-order interaction logic.
+4.1 Propositional Interaction Logic
+The propositional interaction logic (PIL), studied in [10, 11], is a Boolean logic used to characterize a
+conguration , i.e., a non-empty set of interactions among components on a global set of ports P. We assume
+thatPis given and aP.
+Denition 1. An interaction ais a set of ports aPsuch thata6=;.
+Syntax 1. The propositional interaction logic is dened by the grammar:
+::=truejpjj_; with anyp2P. (1)
+Conjunction is dened as follows: 1^2def=(1_2). Implication is dened as follows: 1)2def=
+1_2. To simplify the notation, we omit conjunction in monomials, e.g., writing sr1r2instead ofs^r1^r2.
+Semantics 1. The meaning of a PIL formula is dened by the following satisfaction relation. Let be a
+non-empty conguration. We dene: j=i for alla2,evaluates to true for the valuation induced
+bya:p=true, for all p2aandp=false, for all p62a.
+The operators meet the usual Boolean axioms and the additional axiomW
+p2Pp=true meaning that
+interactions are non-empty sets of ports.
+Example 1. Consider a Star architecture , where a single component Cacts as the center, and three other
+components S1; S2; S3communicate with the center through binary synchronizations. Component Chas
+a portpand all other components have a single port qi(i= 1;2;3). The corresponding PIL formula is:
+pq1q2q3_pq1q2q3_pq1q2q3.
+4.2 First-order Interaction Logic
+We extend the propositional interaction logic presented in Subsection 4.1 with quantication over components
+to dene interactions independently from the number of component instances. This extension is particularly
+useful because, in practice, systems are built from multiple component instances of the same component
+type. A rst-order interaction logic was also presented in [13] with additional history variables. We make
+the following assumptions:
+A nite set of component types T=fT1;:::;T ngis given. Instances of a component type have the
+same interface and behavior. We write c:Tto denote that a component cis of typeT.
+7
+
+--- Page 10 ---
+Figure 4: Three BIP components
+The interface of each component type has a distinct set of ports. We denote by T:ptheport typep, i.e.,
+a port belonging to the interface of type T. We write T:Pto denote the set of port types of component
+typeTandT:Pto denote the set of port types of all component types. We write c:p, for a component
+c:T, to denote the port instance of typeT:p.
+Letdenote any formula in PIL.
+Syntax 2. The rst-order interaction logic (FOIL) is dened by the grammar:
+ ::= truejjj_j9c:T
+Pr(c)
+:; (2)
+whereTis a component type, which represents a set of component instances with identical interfaces and
+behaviour. Variable cranges over component instances and must occur in the scope of a quantier. Pr(c)is
+some set-theoretic predicate on c(omitted when Pr=true).
+Additionally, we dene the usual notation for the universal quantier:
+8c:T
+Pr(c)
+:def=69c:T
+Pr(c)
+::
+Semantics 2. The semantics is dened for closed formulas, where, for each variable in the formula, there
+is a quantier over this variable in a higher nesting level. We assume that the nite set of component types
+T=fT1;:::;T ngis given. Models are pairs hB;i, whereBis a set of component instances of types from
+Tandis a conguration on the set of ports Pof these components. For quantier-free formulas, the
+semantics is the same as for PIL formulas. For formulas with quantiers, the satisfaction relation is dened
+as follows:
+hB;ij=9c:T
+Pr(c)
+:; ij=_
+c0:T2B^Pr(c0)[c0=c],
+wherec0:Tranges over all component instances of type T2T and[c0=c]is obtained by replacing all
+occurrences of cinbyc0.
+Example 2. Consider three components shown in Fig. 4: a sender Sand two receivers R1; R2. The sender
+has a portsfor sending messages and each receiver has a port ri(i= 1;2)for receiving them. We consider
+the following four coordination schemes:
+Rendezvous ensures strong synchronization between Sand allRi. Rendezvous is specied by a single
+interaction involving all ports represented by the monomial sr1r2. This interaction can occur only if
+all of the components are in states enabling transitions labelled, respectively, by s,r1andr2.
+8
+
+--- Page 11 ---
+Broadcast allows all interactions involving Sand any (possible empty) subset of Ri. Broadcast is
+represented by the formula s, which can be expanded to sr1r2_sr1r2_sr1r2_sr1r2. These interactions
+can only occur if Sis in a state enabling s. EachRiparticipates in an interaction only if it is in a
+state enabling ri.
+Atomic broadcast ensures that either all or none of the receivers are involved in the interaction. Atomic
+broadcast is be characterised by the formula sr1r2_sr1r2. Thesr1r2interaction corresponds to a strong
+synchronization among the sender and all receivers.
+Example 3. The Star architecture (Ex. 1) can be expressed in FOIL for any number of components of type
+Sas follows:
+9c:C:8s:S:(c:p s:q )^ 8s0:S(s6=s0):(s:q s0:q)^8c0:C(c=c0): true .
+4.3 JavaBIP Require/Accept Macro-notation Based on FOIL
+JavaBIP relies on component types, rather than on component instances for the denition of synchronization
+constraints. All instances of a given component type are restricted with the same set of synchronization
+constraints.
+Consider a port pof a component type T, which labels one or more transitions of T. The associated
+synchronization constraint to all transitions of Tlabeled by pis the conjunction of two constraints: the
+causal andacceptance constraints. Similarly to [13], two macros are used: 1) the Require macro and 2) the
+Accept macro to dene the causal and acceptance constraints, respectively. Next, we describe the meaning
+of the two macros through examples.
+4.3.1 The Require Macro
+is used to specify ports required for synchronization. Let T1;T22Tbe two component types. The following:
+T1:pRequireT2:q 8c1:T1:9c2:T2:8c3:T2(c26=c3):
+c1:p)c2:qc3:q
+;
+means that, to participate in an interaction, each of the ports pof component instances of type T1requires
+synchronization with precisely one of the ports qof component instances of type T2. In comparison with [13],
+we have opted for a macro-notation where the cardinality is explicit: should two instances of the same port
+type be required, this is specied by explicitly putting the required port type twice:
+T1:pRequireT2:q T 2:q 8c1:T1:9c2;c3:T2:8c4:T2(c26=c36=c4):
+c1:p)c2:q c3:qc4:q
+;
+and so on for higher cardinalities. We call eect what is specied in the left-hand side of Require (e.g.,
+T1:p) and cause what is specied in the right-hand side (e.g., T2:q T 2:q). A cause consists of a set of OR-
+causes , where each OR-cause is a set of ports. For pto participate in an interaction, all the ports belonging
+to at least one of the OR-causes must synchronize. We dene:
+T1:pRequireT2:q T 2:q;T2:r 8c1:T1:
+9c2;c3:T2:8c4:T2(c26=c36=c4):
+c1:p)c2:q c3:qc4:q
+_
+9c2:T2:8c3:T2(c26=c3):
+c1:p)c2:rc3:r
+;
+which means that prequires either the synchronization of two instances of qor one instance of r. Notice
+the semicolon that separates the two OR-causes.
+9
+
+--- Page 12 ---
+4.3.2 The Accept Macro
+denes optional ports for synchronization, i.e., it denes the boundary of interactions. This is expressed by
+explicitly excluding from interactions all the ports that are not optional. Let T1;T22Tbe two component
+types. The following:
+T1:pAcceptT2:q 8c1:T1:0
+@^
+T:r2T:PnfT2:qg8c:T:(c1:p)c:r)1
+A;
+means that paccepts he synchronization of instances of qbut does not accept instances of any other port
+types.
+The generalization of the above denitions to more complex macros is straightforward, but cumbersome.
+Therefore we omit it here.
+Example 4. The synchronization constraints of the Star architecture (Ex. 3) are specied by the following
+combination of macros:
+S:qRequire C:p S :qAccept C:p
+C:pRequire S:q C :pAccept S:q ;
+Example 5. Let us now consider a more general example to illustrate the expressiveness of the synchro-
+nization constraints. Assume that there are ve component types A, B, C, D, E with port types a, b, c,
+d, e , respectively. Through the Require macros, we enforce the following ve constraints: 1) A.a requires
+synchronization with two instances of B.b; 2) B.b requires synchronization either with a) a single instance
+ofA.aand a single instance of C.cor b) just two instances of C.c; 3)C.cdoes not require synchronizations
+with other ports (however it accepts synchronisations with any possible combination of ports A.a, B.b, C.c );
+4)D.d requires synchronization with a single instance of E.e and 5) E.e does not require synchronizations
+with other ports (however it accepts synchronisations with any number of ports D.d). Notice that by the
+combination of the rst two require macros, a synchronisation involving exactly an instance of A.a and two
+instances of B.b is not allowed, since B.b requires at least one instance of C.c to also participate in the
+synchronisation.
+A:aRequire B:b B:b A :aAccept A:a B:b C:c
+B:bRequire A:a C:c;C:c C:c B :bAccept A:a B:b C:c
+C:cRequire C:cAccept A:a B:b C:c
+D:dRequire E:e D :dAccept E:e
+E:eRequire E:eAccept D:d
+5 Dening System Validity
+In the previous, static JavaBIP implementation, a developer would rst register all components to the engine
+and then start the engine manually. Since, in the dynamic JavaBIP implementation, components may register
+or deregister on the y, we need a notion of validity so that depending on whether there are enough registered
+components, the engine can automatically start or stop its execution. We start by formally dening atomic
+components, BIP systems and valid BIP systems.
+10
+
+--- Page 13 ---
+Denition 2 (Component) .A component Bis a Finite State Machine represented by a triple (Q;P;!),
+whereQis a set of states, Pis a set of communication ports, !QPQis a set of transitions, each
+labeled by a port.
+Below, we use the common notation, writing qp!q0instead of ( q;p;q0)2! .
+Denition 3 (BIP System) .A BIP system is dened by a composition operator parameterized by a set of
+interactions 2P.Bn=(B1;:::;B n)is a Finite State Machine (Q;;!), whereQ=Qn
+i=1Qiand!
+is the least set of transitions satisfying the following rule:
+a=fpigi2I28i2I:qipi!q0
+i8i =2I:qi=q0
+i
+(q1;:::;q n)a!(q0
+1;:::;q0n)
+The inference rule says that a BIP system, consisting of ncomponents, can execute an interaction a2,
+i for each port pi2a, the corresponding component Bi, can execute a transition labeled with pi; the states
+of components that do not participate in the interaction remain the same. The set of possible interactions
+of a BIP system is dened in JavaBIP by the glue specication, i.e., the set of Require and Accept macros.
+We writeB:Tto denote a component Bof typeT. We denote byTthe set of all component types of a
+BIP system.
+Denition 4 extends Def. 3 to describe a valid BIP system. System validity is dened from the perspective
+of starting or stopping the JavaBIP engine, which orchestrates component interaction (synchronization of
+component actions). Notice that even if a system is not valid according to Def. 4, JavaBIP components can
+be communicating in an asynchronous manner.
+Denition 4 (Valid BIP System) .A BIP system (Q;;!)is valid i6=;.
+Remark 5.1. In Def. 2 and Def. 3, for the sake of simplicity, we omit the presentation of data-related
+aspects. However, it should be noted that the full JavaBIP [9] allows data variables within components. In
+such cases, component transitions can be guarded by Boolean predicates on data variables. Notice that in
+Def. 4 we do not consider guards. This is a design choice that we made. The result of guard evaluation
+might easily change multiple times throughout the system lifecycle, e.g., based on the components internal
+state or on component interaction. Thus, it is undesirable to base engine execution on such often recurring
+changes, which could actually result in increasing the engine's overhead.
+Denition 4 says that a BIP system is valid if and only if there are enough registered components such
+that the interaction set of the system is not empty. To determine the validity of a system, we use directed
+graphs with edge coloring to model dependencies among components. The generation of the validity graph
+is based on the Require macros of the glue specication, since these dene the minimum number of required
+interactions among the components. The complete glue specication is used by the engine for orchestrating
+component execution..
+Denition 5 (Validity graph) .A labelled graph G= (T;E;c )is the validity graph of a set of Require macros
+i:
+1. the vertex set Tis the set of component types dened in the Require macros;
+2. the edge set Econtains a directed edge (T1;T2)i there exists a Require macro that contains T1in
+the eect and T2in an OR-cause;
+3. for each edge (T1;T2)2E, the counter c:E!Zis initialized with the cardinality of T2in the
+corresponding OR-cause.
+11
+
+--- Page 14 ---
+The edges of the graph are colored such that: 1) all edges corresponding to an OR-cause of a Require macro
+are colored the same; 2) edges corresponding to dierent OR-causes are colored dierently.
+Clearly, there always exists a validity graph for any set of Require macros. Note that the outgoing edges
+of two dierent vertices may have the same color.
+Figure 5: Validity graph of Ex. 4.Fig. 5 shows the validity graph of the Star architecture de-
+ned in the glue specication of Ex. 4. The two vertices rep-
+resent the two component types S, D of the example. Since,
+component type Srequires synchronization with exactly one in-
+stance of component type C(cardinality = 1), there is an edge
+from vertex Sto vertex Clabeled by a counter initialised to 1.
+Analogously, since, component type Crequires synchronization
+with exactly one instance of component type S(cardinality =
+1), there is an edge from vertex Cto vertex Slabeled by a
+counter initialised to 1.
+Fig. 6 shows the validity graph that corresponds to the glue
+specication of Ex. 5. There are ve vertices A, B, C, D, E each representing a component type of the
+example. Let us consider the second and third Require macros of the example. In the second Require macro
+notice the two OR-causes, each represented by edges with dierent colors (red and green) in Fig. 6. In the
+rst OR-cause, Brequires one instance of Aand one instance of C, represented by the red edges in Fig. 6
+both labeled by 1 since both cardinalities are equal to 1. In the second OR-cause, Brequires two instances
+ofC, represented by the green edge in Fig. 6 labeled by 2. In the third Require macro of the example, Cdoes
+not require synchronization with any other component of the system, and thus, there is no outgoing edge
+from vertex C.
+Figure 6: Validity graph of Ex. 5.Fig. 7 shows the validity graph of the modular phone
+case study. The are 13 vertices, each one representing an
+atomic component type of the case study (Fig. 2). These
+are the following: AP Request Worker ,AP Response Worker ,
+AP Message Worker ,AP Receiver Fifo ,Control Protocol
+Controller ,Log Protocol Controller ,Camera Protocol
+Controller ,Power Supply Protocol Controller ,Control
+Connect Handler ,Control Disconnect Handler ,Log Handler ,
+Camera Capture Handler ,Camera Stream Handler , and
+Power Supply Handler . Due to space limitations, we have
+substituted the full names with their acronyms. For instance,
+we have substituted AP Message Handler byAPMW . In case
+of acronym conicts, we added more letters, e.g., we have
+substituted AP Request Worker byAPReqW , and AP Response
+Worker byAPResW .
+Let us now consider two of the Require macros of the case
+study (the full set of Require and Accept macros can be found in the Appendix).
+PSPC.rcvFromDri Require PSH.sndRes PSH.sndRes
+APRF.add Require ConPC.snd ;CamPC.snd ;PSPC.snd ;LPC.snd
+Since, component type Power Supply Protocol Controller requires synchronization with two instances
+of component type Power Supply Handler , there is an edge from vertex PSPC to vertex PSHlabeled by a
+12
+
+--- Page 15 ---
+1
+executeComponent PoolTrackerPeer11
+ABC2112DE1ABC2111DE1ABC2111DE0ABC1101DE0ABC1101DE1SC11
+APReqWAPResWAPMWAPRFConPC
+LPCCamPCPSPCConCHConDH
+LHCamCHCamSH
+PSH1111111211111111
+1APReqWAPResWAPMWAPRFConPC
+LPCCamPCPSPCConCHConDH
+LHCamCHCamSH
+PSH0111111111111100Text
+Stack of CoordinatorsEngine KernelABC2112DE1
+ABC2112DE11233-step protocolValidity graphstartstopsendexecuteupdateregisterderegisterpausestopBehaviorGlueDataCurrentStateEncodersspecifyGlue
+GlueDataDataCurrentStateBehaviorTotal ConstraintBehavior111111
+11111111
+1111111111Figure 7: Validity graph of the Modular Phone case study.
+counter initialized to 2. Furthermore, component type AP Receiver Fifo requires synchronization either
+with an instance of component type Control Protocol Controller or an instance of component type
+Camera Protocol Controller or an instance of Power Supply Protocol Controller or an instance of
+Logger Protocol Controller . Thus, there are four outgoing edges from vertex APRF , each labeled by a
+counter initialized to 1 and colored by a dierent color, to vertices ConPC ,CamPC ,PSPC , and LPC, respectively.
+In Fig. 7, edges with dierent colors are also represented by dierent line styles.
+Denition 6 (Dynamic change in validity graph) .In the event of a dynamic change, a validity graph is
+updated as follows:
+1. If a component instance of type Tis registered, the counters of all incoming edges of vertex Tare
+decremented by 1.
+2. If a component instance of type Tis deregistered or paused, the counters of all incoming edges of vertex
+Tare incremented by 1.
+Proposition 5.2 (Determining system validity) .Consider a BIP system and a corresponding validity graph.
+The BIP system is valid i for at least one vertex of the validity graph, an instance of the vertex's corre-
+sponding type is registered and the counters of all outgoing edges of at least one color are equal to or less
+than 0.
+13
+
+--- Page 16 ---
+Figure 8: Changes in validity graph when adding/removing components.
+Proof. Necessity: Since 6=;, there exists at least one interaction a2. This means that there exists a
+Require macro such that the eect is the type of a port instance p2aand the causes contain an OR-cause
+ORpthat consists of a subset of the types of port instances in a. We denote this subset by Q. For each port
+typeq2Q, there exists at least one instance of q2a. The cardinality of each port type in ORpis equal
+to the number of corresponding instances in a. By Denition 5, there exists a vertex vin the validity graph
+that corresponds to the component type that contains pand a set of outgoing edges. Let us denote Vpthe
+subset of outgoing edges of vthat correspond to ORp, which are colored the same. Since a2, this implies
+that all counters of Vpare equal to or less than 0 and there is at least a registered instance of the component
+type that contains p.
+Suciency: We know that there exists a vertex with a registered component instance and a color such
+that the counters of all the outgoing edges of that color are equal to or less than 0. Consider a Require
+macro with an OR-cause ORcthat corresponds to this color. Since all the counters of edges of this color
+are equal to 0, we know that there exists a sucient number of registered instances of every type in ORc.
+Since the eect of the Require macro is also registered, there is an enabled interaction involving component
+instances corresponding to the eect and the elements of ORc. This implies that the system is valid, which
+concludes the proof.
+Example 6. Let us now consider a system with the glue specication of Ex. 5. Fig. 8 present the changes
+of the corresponding validity graph (see Fig. 6) when 1) an instance of Bis registered; 2) an instance of Eis
+registered; 3) an instance of Cis registered and 4) the instance of Eis deregistered. Notice that the system
+becomes valid when an instance of Eis registered and becomes invalid when the instance of Eis deregistered.
+To start and stop the engine, we determine rst whether the system is valid by using Prop. 5.2. Nev-
+ertheless, we do not need to check system validity every time a component registers/deregisters/pauses.
+Corollaries 5.3 and 5.4 dene such cases.
+Corollary 5.3. If a BIP systemBnis valid and a component is registered, then the new BIP system Bn+1
+is also valid.
+Proof. It follows directly from Proposition 5.2 and Denition 6.
+14
+
+--- Page 17 ---
+Figure 9: Dynamic JavaBIP Engine software architecture.
+Corollary 5.4. If a BIP systemBnis invalid and a component is deregistered or paused, then the new BIP
+systemBn1is also invalid.
+Proof. It follows directly from Proposition 5.2 and Denition 6.
+6 Implementation
+Next, we discuss the implementation of the dynamic JavaBIP extension, during which the implementation of
+the JavaBIP engine has signicantly changed. Let us consider rst the interface of the JavaBIP engine, i.e.,
+BIPEngine . In the static implementation, BIPEngine consisted of the following functions: 1) register used
+by a developer to register a component to the engine; 2) inform used by a component to inform the engine of
+its current state and enabled transitions; 3) specifyGlue used by a developer to send the glue specication
+to engine; 4) start used by a developer to start the engine thread and 5) stop used by a developer to stop
+the engine.
+We updated BIPEngine as follows. Function start was removed, since the engine thread is now started
+automatically based on whether enough components are registered to form a valid system. We added two
+functions: 1) deregister used by a developer or the component itself (e.g., in the case of a failure) to
+deregister from the engine and 2) pause used by a developer or the component (e.g., in the case that the
+component is going to communicate asynchronously with other components for an amount of time) to pause
+synchronizations with other components. Function register was considerably updated, as well as function
+stop which can also be called internally by the engine in the case of an invalid system. The remaining
+functions were been updated. Figure 9 shows the software architecture of the JavaBIP engine. The arrows
+labeled register ,deregister ,stop ,specifyGlue , and pause represent calls to the BIPEngine functions.
+The ComponentPool object was added, which is used as an interface to the validity graph described in
+Def. 5. The ComponentPool starts the core engine (comprising a stack of coordinators and the engine kernel),
+when the system becomes valid, and stops it, when the system becomes invalid. System validity is checked
+whenever a component is registered, deregistered or paused, excluding the cases described in Cor. 5.3 and
+5.4. Whenever a component is registered or deregistered without aecting the validity of the system, the
+Component Pool sends an update registration/deregistration event to the core engine.
+15
+
+--- Page 18 ---
+Figure 10: Constraint computation phases.
+The engine composes and solves the various constraints of the system. Its implementation is based on
+Binary Decision Diagrams (BDDs) [2], which are ecient data structures to store and manipulate Boolean
+formulas.3The imposed constraints encode information about the behavior, glue, data, and current state of
+the components. Current state constraints allow us to compute the enabled transitions of the component.
+For each type of constraints, we discuss which parts must be recomputed when registering components at
+runtime. There is no need to recompute these constraints when a component is paused or deregistered.
+Whenever constraints are recomputed, the Coordinators send these to the kernel.
+The formulas that dene the behavior, glue, data, and current state constraints were presented in [9].
+Figure 10 summarizes the constraint computation. The white color indicates that the constraint is computed
+only once at system initialization. The light gray indicates that the constraint is recomputed when a
+component is registered. The dark gray color indicates that the constraint is recomputed during each
+execution cycle.
+The behavior constraint of a component includes the ports and states of the component. For each port,
+a Boolean port variable is created. Similarly, for each state, a Boolean state variable is created. Behavior
+constraints are built using these port and state variables. The total behavior constraint is computed as the
+conjunction of all component behavior constraints. When a component is registered, its behavior constraint
+is computed and conjuncted to the total behavior constraint. When a component is deregistered, its port
+variables are set to false.
+The glue constraint is computed by interpreting the Require and Accept macros of the glue specication.
+The same Boolean port variables that were previously created for the behavior constraints are used for
+the glue constraint as well. The glue constraint must be recomputed, in a valid system, every time a new
+component is registered.
+For the data constraint , additional data variables have to be created. The data constraints represent how
+data is exchanged among components, i.e., which components are providing data and which components
+are consuming data. For each pair of components exchanging data, a data variable is created. When a
+component is registered, the data constraints that involve the newly arrived components are recomputed.
+Components exchange data at the beginning of each execution cycle of the system. Based on the exchanged
+data, components may disable some of the possible interactions. As a result, a subset of data constraints is
+recomputed at each execution cycle.
+The current state constraint of a component is computed when a component informs of its disabled
+transitions due to guard evaluation. The total current state BDD is the conjunction of the current state
+constraints of all registered components. During engine execution, i.e., in a valid system, the total current
+3We have used the JavaBDD package, available at http://javabdd.sourceforge.net
+16
+
+--- Page 19 ---
+state constraint is computed at each execution cycle of the engine and is further conjuncted with the total
+behavior constraint, the glue constraint, and the total data constraint.
+The execution of a JavaBIP valid system is driven by the engine kernel applying the following protocol
+in a cyclic manner:
+1. Upon reaching a state, all component constraints are sent to the kernel;
+2. The kernel computes the total constraint , which is the conjunction of the total behavior, glue, current
+state and data constraints. Thus, it computes the possible interactions satisfying the total system
+constraint and picks one of them;
+3. The kernel noties the Coordinators of its decision by calling execute , which then notify the compo-
+nents to execute the necessary transitions.
+Notice that a component can be registered during any step of the engine protocol. The engine, however
+will only include the newly registered component in the BDD computation at the beginning of the next
+cycle. System validity is checked, when a component is paused or deregistered. If the system remains valid
+and the engine is executing the second or third step of the engine protocol, the engine sets the port variables
+of this component to false and recomputes the possible interactions.
+6.1 Performance Results
+We show performance results for the modular phone case study. The experiments were performed on a 3.1
+GHz Intel Core i7 with 8GB RAM. We started with 5 registered components and registered up to 45 additional
+components. The JavaBIP models are available online4. Table 1 summarizes the engine's computation times
+and the BDD Manager peak memory usage for various numbers of components. We present and discuss
+three dierent engine times: 1) the time needed to perform a complete engine execution cycle (three-step
+protocol run by the Engine kernel); 2) the time needed to (partially) recompute the behavior, glue, and
+data BDD constraints due to the registration of a new component; 3) the time needed to add or remove a
+component from the component tool and check the validity of the system.
+The rst column shows the number of components in the system, after the registration or deregistration
+of a component. For instance, 10 means that a new component was registered and the total number of
+components in the system is now 10. The number of components is also decreased in two cases, when it is
+equal to 11 and equal to 29. This means that a component was deregistered or paused and the total number
+of components in the system is 11 or 29, respectively.
+The second column shows the average engine execution time of the rst 1000 engine cycles after a
+component registration or deregistration. The system becomes valid and the engine is started upon the
+registration of the 12thcomponent. As a result, the engine execution times are equal to 0 for the rst two
+rows of the table. If the engine had been started, for instance, after the registration of the 5thcomponent
+(without the system being valid), the engine would have needed <1 ms per execution cycle. This means
+that an overhead of seconds or minutes could have been added in the system's execution if more than a
+certain number of engine execution cycles (e.g., 100000) had been performed by the time the system became
+valid.
+The third column of Table 1 shows the amount of time needed to recompute the behavior, glue, and
+data constraints of the system due to a component registration. The rst two rows are equal to 0 since
+the system is invalid and thus, no BDD computation is required. If the engine had been started before the
+system became valid, the BDDs would have been recomputed upon the registration of each new component.
+4https://github.com/sbliudze/javabip-itest
+17
+
+--- Page 20 ---
+Table 1: Engine times and BDD Manager peak memory usage. Times are in milliseconds and memory usage
+is in Megabytes.
+Number of
+componentsTime: Engine
+execution cycleTime: BDD
+(re)computationTime:
+Component poolMemory
+5 0 0 2.078 0
+10 0 0 2.186 0
+12 <1 63 3.654 0.059
+11 0 0 2.908 0.057
+20 <1 151 <1 0.083
+25 1.149 194 <1 0.099
+30 1.247 239 <1 0.129
+29 1.241 0 2.451 0.121
+40 1.399 283 <1 0.199
+50 1.896 337 <1 0.254
+For instance, after the registration of the 5thcomponent, the engine would have needed 13 ms and after
+the registration of the 11thcomponent, the engine would have needed additional 49 ms to recompute the
+BDDs. The fth column shows the peak memory usage of the BDD manager after a component registration
+or deregistration.
+Finally, the fourth column of Table 1 presents the amount of time needed to add or remove a component
+from the component pool and check for system validity. The time needed is very low, in some cases even less
+than 1 ms. These were the cases that system validity was not checked due to the results of Cor. 5.3 and 5.4.
+The system became valid when the 12thcomponent was registered. This required the maximum amount of
+time (3:654 ms), since the full graph was checked for validity, and then the core engine thread was started.
+Next, a component was deregistered, the system became invalid again, and the engine thread was stopped.
+The amount of time needed by the component pool was 2 :908 ms.
+7 Related Work
+Dynamicity in BIP has been studied by several authors [13, 16, 20]. In [13], the authors present the Dy-BIP
+framework that allows dynamic reconguration of connectors among the ports of the system. They use history
+variables to allow sequences of interactions with the same instance of a given component type. JavaBIP can
+emulate history variables using data. In contrast, our focus is on dynamicity due to the creation and deletion
+of components that is often encountered in modern software systems that are not restricted to the embedded
+systems domain. Additionally, the interface-based design and the modular software architecture of JavaBIP
+allow us to easily extend the JavaBIP implementation.
+Our approach is closest to [16] and [21]. In [16], two extensions of the BIP model are dened: recongurable|
+similar to Dy-BIP|and dynamic, allowing dynamic replication of components. They focus on the opera-
+tional semantics of the two extensions and their properties, by studying their encodability in BIP and
+Place/Transition Petri nets (P/T Nets). Composition is dened through interaction models, without consid-
+ering structured connectors. In contrast, our work focuses mostly on the connectivity among components,
+dened by Require/Accept relations. In [21], the BIP coordination mechanisms are implemented by a set
+of connector combinators in Haskell and Scala. Functional BIP provides combinators for managing connec-
+tions in a dynamically evolving set of components. However, as in [16], such evolution must be managed by
+explicit actions of existing components. In contrast, the JavaBIP approach allows components to be created
+18
+
+--- Page 21 ---
+independently, only requiring that they be subsequently registered with the JavaBIP engine.
+The Reo coordination language [33]|which realizes component coordination through circuit-like connec-
+tors built of channels and nodes|provides dedicated primitives for reconguring connectors by creating new
+channels ( Ch), and manipulating channel ends and nodes ( split ,join ,hide and forget ). A number of
+papers study reconguration of Reo connectors. In particular, [18] provides a framework for model checking
+recongurable circuits, whereas [26] and [27] take the approach based on graph transformation techniques.
+The main dierence between connector reconguration in Reo and dynamicity in JavaBIP is that, in Reo,
+reconguration operations are performed on constituent elements of the connector. Thus, in principle, such
+operations can aect ongoing interactions. This is not possible in JavaBIP, since interactions are completely
+atomic.
+Three main types of formalisms have been studied in the literature for the specication of dynamic
+architectures and architecture styles [14]: 1) graph grammars, 2) process algebras, and 3) logics. Graph
+grammars have been used to specify reconguration in a dynamic architecture through the use of graph
+rewriting rules. Representative approaches include the Le M etayer approach [28], where nodes plus CSP-like
+behavior specications are components and edges are connectors. A dierent way of representing software
+architectures with graph grammars can be found in [23], where hyperedges with CCS labels are components
+and nodes are communication ports. Other graph-based approaches are summarized in [15]. None of these
+approaches oers tool support.
+Additionally, process algebras have been used to dene dynamic architectures as part of several architec-
+ture description languages (ADLs). For instance, -calculus [32] was used in Darwin [29] and LEDA [17],
+CCS was used in PiLar [19], and CSP was used in Dynamic Wright [3]. In comparison with our approach,
+Darwin and PiLar support only binary bindings (connectors), while in Dynamic Wright and LEDA there is
+no clear distinction between behavior and coordination since connectors can have behavior.
+Logic has also been used for the specication of dynamic software architectures and architecture styles.
+Alloy's rst-order logic [25] was used in [22] for the specication of dynamic architectures, while the Alloy
+Analyzer tool was used to analyze these specications. JavaBIP specications can also be analyzed [6, 7],
+however, the main focus of JavaBIP is runtime coordination, which is not oered in [22]. Conguration
+logics [31] were proposed for the specication of architecture styles, which however, in their current form do
+not capture dynamic change.
+8 Conclusion and Future Work
+We presented an extension of the JavaBIP framework for coordination of software components that can
+register, deregister and pause at runtime. To handle this type of dynamicity, JavaBIP uses a macro-notation
+based on rst-order interaction logic that allows specifying synchronization constraints on component types.
+This way, a developer is not required to know the exact number of components that need to be coordinated
+when specifying the synchronization constraints of a system. Additionally, we introduced a notion of system
+validity, which we use to start and stop the JavaBIP engine automatically at runtime depending on whether
+there are enough registered components in the system so that there is at least one enabled synchronization
+among them. In the previous, static JavaBIP implementation, developers had to manually start and stop
+the engine. Starting and stopping the engine in an automatic way helps optimize JavaBIP performance since
+it eliminates the engine's overhead in the case of an invalid system.
+JavaBIP implements the principles of the BIP component framework rooted in rigorous operational
+semantics. Notice, however, that none of the current BIP engine implementations can handle dynamic
+insertion and deletion of components at runtime. The functionality of pausing a component at runtime
+makes the implementation of the JavaBIP engine more incremental. In our previous, static implementation,
+19
+
+--- Page 22 ---
+the engine had to wait for all registered components to inform in each cycle before making any computations.
+As a result, a single component could introduce a long delay in the system execution. In the current
+implementation, when a component is paused, the engine does not wait for it to inform, but rather computes
+the set of enabled interaction in the system that involve only the non-paused components. JavaBIP is an
+open-source tool5.
+In the future, we plan to work towards increasing the incrementality of the engine in the following way:
+the engine does not have to wait for all non-paused components to inform but rather checks whether there is
+an enabled interaction among the components that have already informed and orders its execution. To check
+the enableness of interactions we plan to reuse the notion of validity graphs introduced in this paper and
+extend it with additional information on component ports. Additionally, we plan on extending the engine
+functionality to handle registration of new component types and synchronization patterns.
+References
+[1] Gul Agha. Actors: a model of concurrent computation in distributed systems . MIT Press, Cambridge,
+MA, USA, 1986.
+[2] S.B. Akers. Binary decision diagrams. IEEE Transactions on Computers , C-27(6):509{516, 1978.
+[3] Robert Allen, Remi Douence, and David Garlan. Specifying and analyzing dynamic software architec-
+tures. Fundamental Approaches to Software Engineering , pages 21{37, 1998.
+[4] Ananda Basu, Saddek Bensalem, Marius Bozga, Jacques Combaz, Mohamad Jaber, Thanh-Hung
+Nguyen, and Joseph Sifakis. Rigorous Component-Based System Design Using the BIP Framework.
+IEEE Software , 28(3):41{48, 2011.
+[5] Ananda Basu, Marius Bozga, and Joseph Sifakis. Modeling heterogeneous real-time components in
+BIP. In 4thIEEE Int. Conf. on Software Engineering and Formal Methods (SEFM06) , pages 3{12,
+September 2006. Invited talk.
+[6] Saddek Bensalem, Marius Bozga, Thanh-Hung Nguyen, and Joseph Sifakis. DFinder: A tool for compo-
+sitional deadlock detection and verication. In Computer Aided Verication , pages 614{619. Springer,
+2009.
+[7] Simon Bliudze, Alessandro Cimatti, Mohamad Jaber, Sergio Mover, Marco Roveri, Wajeb Saab, and
+Qiang Wang. Formal verication of innite-state BIP models. In International Symposium on Automated
+Technology for Verication and Analysis , pages 326{343. Springer, 2015.
+[8] Simon Bliudze, Anastasia Mavridou, Radoslaw Szymanek, and Alina Zolotukhina. Coordination of
+software components with BIP: Application to OSGi. In Proceedings of the 6th International Workshop
+on Modeling in Software Engineering , MiSE 2014, pages 25{30, New York, NY, USA, 2014. ACM.
+[9] Simon Bliudze, Anastasia Mavridou, Radoslaw Szymanek, and Alina Zolotukhina. Exogenous coordi-
+nation of concurrent software components with JavaBIP. Software: Practice and Experience , page n/a,
+2017. Early view: http://dx.doi.org/10.1002/spe.2495 .
+[10] Simon Bliudze and Joseph Sifakis. The algebra of connectors|structuring interaction in BIP. IEEE
+Transactions on Computers , 57(10):1315{1330, 2008.
+5github.com/sbliudze/javabip-core, github.com/sbliudze/javabip-engine
+20
+
+--- Page 23 ---
+[11] Simon Bliudze and Joseph Sifakis. Causal semantics for the algebra of connectors. Formal Methods in
+System Design , 36(2):167{194, June 2010.
+[12] Borzoo Bonakdarpour, Marius Bozga, Mohamad Jaber, Jean Quilbeuf, and Joseph Sifakis. From high-
+level component-based models to distributed implementations. In Proceedings of the tenth ACM inter-
+national conference on Embedded software , EMSOFT '10, pages 209{218, New York, NY, USA, 2010.
+ACM.
+[13] Marius Bozga, Mohamad Jaber, Nikolaos Maris, and Joseph Sifakis. Modeling dynamic architectures
+using Dy-BIP. In Software Composition (SC 2012) , volume 7306 of LNCS , pages 1{16. Springer, 2012.
+[14] Jeremy S. Bradbury, James R. Cordy, Juergen Dingel, and Michel Wermelinger. A survey of self-
+management in dynamic software architecture specications. In Proceedings of the 1st ACM SIGSOFT
+Workshop on Self-managed Systems , WOSS '04, pages 28{33, New York, NY, USA, 2004. ACM.
+[15] Roberto Bruni, Antonio Bucchiarone, Stefania Gnesi, and Hern an Melgratti. Modelling dynamic soft-
+ware architectures using typed graph grammars. Electronic Notes in Theoretical Computer Science ,
+213(1):39 { 53, 2008.
+[16] Roberto Bruni, Hern an C. Melgratti, and Ugo Montanari. Behaviour, interaction and dynamics. In
+Specication, Algebra, and Software - Essays Dedicated to Kokichi Futatsugi , volume 8373 of LNCS ,
+pages 382{401. Springer, 2014.
+[17] Calos Canal, Ernesto Pimentel, and Jos e M Troya. Specication and renement of dynamic software
+architectures. In Software Architecture , pages 107{125. Springer, 1999.
+[18] Dave Clarke. A basic logic for reasoning about connector reconguration. Fundamenta Informaticae ,
+82(4):361{390, 2008.
+[19] Carlos E Cuesta, Pablo de la Fuente, and Manuel Barrio-Sol arzano. Dynamic coordination architecture
+through the use of reection. In Proceedings of the 2001 ACM symposium on Applied computing , pages
+134{140. ACM, 2001.
+[20] Cinzia Di Giusto and Jean-Bernard Stefani. Revisiting glue expressiveness in component-based systems.
+InCOORDINATION 2011 , pages 16{30. Springer, 2011.
+[21] Romain Edelmann, Simon Bliudze, and Joseph Sifakis. Functional BIP: Embedding connectors in
+functional programming languages. Journal of Logical and Algebraic Methods in Programming , 2017.
+Under review.
+[22] Ioannis Georgiadis, Je Magee, and Je Kramer. Self-organising software architectures for distributed
+systems. In Proceedings of the rst workshop on Self-healing systems , pages 33{38. ACM, 2002.
+[23] Dan Hirsch, Paola Inverardi, and Ugo Montanari. Graph grammars and constraint solving for software
+architecture styles. In Proceedings of the third international workshop on Software architecture , pages
+69{72. ACM, 1998.
+[24] Paola Inverardi and Alexander L. Wolf. Formal specication and analysis of software architectures
+using the chemical abstract machine model. Software Engineering, IEEE Transactions on , 21(4):373{
+386, 1995.
+21
+
+--- Page 24 ---
+[25] Daniel Jackson. Alloy: a lightweight object modelling notation. ACM Transactions on Software Engi-
+neering and Methodology (TOSEM) , 11(2):256{290, 2002.
+[26] Christian Koehler, David Costa, Jos e Proen ca, and Farhad Arbab. Reconguration of Reo connectors
+triggered by dataow. ECEASST , 10, 2008.
+[27] Christian Krause, Ziyan Maraikar, Alexander Lazovik, and Farhad Arbab. Modeling dynamic recong-
+urations in Reo using high-level replacement systems. Science of Computer Programming , 76(1):23{36,
+2011.
+[28] Daniel Le M etayer. Describing software architecture styles using graph grammars. Software Engineering,
+IEEE Transactions on , 24(7):521{533, 1998.
+[29] Je Magee and Je Kramer. Dynamic structure in software architectures. ACM SIGSOFT Software
+Engineering Notes , 21(6):3{14, 1996.
+[30] Anastasia Mavridou, Eduard Baranov, Simon Bliudze, and Joseph Sifakis. Architecture diagrams:
+A graphical language for architecture style specication. In Proceedings of the 9th Interaction and
+Concurrency Experience (ICE) , pages 83{97, August 2016.
+[31] Anastasia Mavridou, Eduard Baranov, Simon Bliudze, and Joseph Sifakis. Conguration logics: Mod-
+eling architecture styles. Journal of Logical and Algebraic Methods in Programming , 86(1):2{29, 2017.
+[32] Robin Milner, Joachim Parrow, and David Walker. A calculus of mobile processes, I. Information and
+computation , 100(1):1{40, 1992.
+[33] George A. Papadopoulos and Farhad Arbab. Conguration and dynamic reconguration of components
+using the coordination paradigm. Future Generation Computer Systems , 17(8):1023{1038, 2001.
+A Complete glue specication of the modular phone case study
+The glue specication must be provided in an XML le. Each constraint has two parts: effect andcauses .
+The former denes the port to which the constraint is associated|intuitively, the eect is the ring of
+a transition labeled by this port. The latter lists the ports that are necessary to \cause" the \eect".
+For the require constraints, all causes must be present; for the accept constraints, any (possibly empty)
+combination of the causes is accepted. require constraints have a set of options for causes, i.e., the OR-
+causes explained in Subsection 3.3.
+<?xml version ="1.0 " encoding ="UTF -8"?>
+<glue >
+<accepts >
+<accept >
+<effect id=" sndToDri " specType =" Log_Protocol_Controller "/>
+<causes >
+<port id=" rcvRes " specType =" Log_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvFromDri " specType =" Log_Protocol_Controller "/>
+<causes >
+<port id=" send_log " specType =" Log_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" send " specType =" Log_Protocol_Controller "/>
+22
+
+--- Page 25 ---
+<causes >
+<port id="add " specType =" AP_ReceiverFifo "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvDriver " specType =" Log_Protocol_Controller "/>
+<causes >
+<port id=" send_log " specType =" Log_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" receive " specType =" Log_Protocol_Controller "/>
+<causes >
+<port id=" sndToController " specType ="/f/e/Z"/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" add " specType =" AP_ReceiverFifo "/>
+<causes >
+<port id=" send " specType =" Control_Protocol_Controller "/>
+<port id=" send " specType =" Camera_Protocol_Controller "/>
+<port id=" send " specType =" Log_Protocol_Controller "/>
+<port id=" send " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id="rm" specType =" AP_ReceiverFifo "/>
+<causes >
+<port id=" receive " specType =" AP_MessageWorker "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndRes " specType =" AP_MessageWorker "/>
+<causes >
+<port id=" getReq " specType ="/f/e/Z"/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" receive " specType =" AP_MessageWorker "/>
+<causes >
+<port id="rm" specType =" AP_ReceiverFifo "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndReq " specType =" AP_MessageWorker "/>
+<causes >
+<port id=" getRes " specType =" AP_ResponseWorker "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndToController " specType =" AP_RequestWorker "/>
+<causes >
+<port id=" receive " specType =" Control_Protocol_Controller "/>
+<port id=" receive " specType =" Log_Protocol_Controller "/>
+<port id=" receive " specType =" Power_Supply_Protocol_Controller "/>
+<port id=" receive " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" getReq " specType =" AP_RequestWorker "/>
+<causes >
+<port id=" sndRes " specType =" AP_MessageWorker "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" getRes " specType =" AP_ResponseWorker "/>
+<causes >
+<port id=" sndReq " specType =" AP_MessageWorker "/>
+</ causes >
+</ accept >
+23
+
+--- Page 26 ---
+<accept >
+<effect id=" sndToDri " specType =" Control_Protocol_Controller "/>
+<causes >
+<port id=" rcvReq " specType =" Control_Disconnect_Handler "/>
+<port id=" rcvReq " specType =" Control_Connect_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvFromDri " specType =" Control_Protocol_Controller "/>
+<causes >
+<port id=" sndRes " specType =" Control_Connect_Handler "/>
+<port id=" sndRes " specType =" Control_Disconnect_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" send " specType =" Control_Protocol_Controller "/>
+<causes >
+<port id="add " specType =" AP_ReceiverFifo "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvDriver " specType =" Control_Protocol_Controller "/>
+<causes >
+<port id=" sndRes " specType =" Control_Connect_Handler "/>
+<port id=" sndRes " specType =" Control_Disconnect_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" receive " specType =" Control_Protocol_Controller "/>
+<causes >
+<port id=" sndToController " specType =" AP_RequestWorker "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndToDri " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<port id=" rcvReq " specType =" Power_Supply_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvFromDri " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<port id=" sndRes " specType =" Power_Supply_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" send " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<port id="add " specType =" AP_ReceiverFifo "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvDriver " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<port id=" sndRes " specType =" Power_Supply_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" receive " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<port id=" sndToController " specType =" AP_RequestWorker "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndToDri " specType =" Camera_Protocol_Controller "/>
+<causes >
+<port id=" rcvReq " specType =" Camera_Stream_Handler "/>
+<port id=" rcvReq " specType =" Camera_Capture_Handler "/>
+</ causes >
+</ accept >
+24
+
+--- Page 27 ---
+<accept >
+<effect id=" rcvFromDri " specType =" Camera_Protocol_Controller "/>
+<causes >
+<port id=" sndRes " specType =" Camera_Capture_Handler "/>
+<port id=" sndRes " specType =" Camera_Stream_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" send " specType =" Camera_Protocol_Controller "/>
+<causes >
+<port id="add " specType =" AP_ReceiverFifo "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvDriver " specType =" Camera_Protocol_Controller "/>
+<causes >
+<port id=" sndRes " specType =" Camera_Capture_Handler "/>
+<port id=" sndRes " specType =" Camera_Stream_Handler "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" receive " specType =" Camera_Protocol_Controller "/>
+<causes >
+<port id=" sndToController " specType =" AP_RequestWorker "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvReq " specType =" Power_Supply_Handler "/>
+<causes >
+<port id=" sndToDri " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndRes " specType =" Power_Supply_Handler "/>
+<causes >
+<port id=" rcvDriver " specType =" Power_Supply_Protocol_Controller "/>
+<port id=" rcvFromDri " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvRes " specType =" Log_Handler "/>
+<causes >
+<port id=" sndToDri " specType =" Log_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" send_log " specType =" Log_Handler "/>
+<causes >
+<port id=" rcvDriver " specType =" Log_Protocol_Controller "/>
+<port id=" rcvFromDri " specType =" Log_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvReq " specType =" Control_Connect_Handler "/>
+<causes >
+<port id=" sndToDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndRes " specType =" Control_Connect_Handler "/>
+<causes >
+<port id=" rcvFromDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvReq " specType =" Camera_Stream_Handler "/>
+<causes >
+<port id=" sndToDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ accept >
+25
+
+--- Page 28 ---
+<accept >
+<effect id=" sndRes " specType =" Camera_Stream_Handler "/>
+<causes >
+<port id=" rcvDriver " specType =" Camera_Protocol_Controller "/>
+<port id=" rcvFromDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvReq " specType =" Control_Disconnect_Handler "/>
+<causes >
+<port id=" sndToDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndRes " specType =" Control_Disconnect_Handler "/>
+<causes >
+<port id=" rcvDriver " specType =" Control_Protocol_Controller "/>
+<port id=" rcvFromDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" rcvReq " specType =" Camera_Capture_Handler "/>
+<causes >
+<port id=" sndToDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ accept >
+<accept >
+<effect id=" sndRes " specType =" Camera_Capture_Handler "/>
+<causes >
+<port id=" rcvDriver " specType =" Camera_Protocol_Controller "/>
+<port id=" rcvFromDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ accept >
+</ accepts >
+<requires >
+<require >
+<effect id=" sndToDri " specType =" Log_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvRes " specType =" Log_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvFromDri " specType =" Log_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" send_log " specType =" Log_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" send " specType =" Log_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id="add" specType =" AP_ReceiverFifo "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvDriver " specType =" Log_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+26
+
+--- Page 29 ---
+<port id=" send_log " specType =" Log_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" receive " specType =" Log_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToController " specType =" AP_RequestWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" add " specType =" AP_ReceiverFifo "/>
+<causes >
+<option >
+<causes >
+<port id=" send " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" send " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" send " specType =" Log_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" send " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id="rm" specType =" AP_ReceiverFifo "/>
+<causes >
+<option >
+<causes >
+<port id=" receive " specType =" AP_MessageWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndRes " specType =" AP_MessageWorker "/>
+<causes >
+<option >
+<causes >
+<port id=" getReq " specType =" AP_RequestWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" receive " specType =" AP_MessageWorker "/>
+<causes >
+<option >
+<causes >
+<port id="rm" specType =" AP_ReceiverFifo "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+27
+
+--- Page 30 ---
+<require >
+<effect id=" sndReq " specType =" AP_MessageWorker "/>
+<causes >
+<option >
+<causes >
+<port id=" getRes " specType =" AP_ResponseWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndToController " specType =" AP_RequestWorker "/>
+<causes >
+<option >
+<causes >
+<port id=" receive " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" receive " specType =" Log_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" receive " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" receive " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" getReq " specType =" AP_RequestWorker "/>
+<causes >
+<option >
+<causes >
+<port id=" sndRes " specType =" AP_MessageWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" getRes " specType =" AP_ResponseWorker "/>
+<causes >
+<option >
+<causes >
+<port id=" sndReq " specType =" AP_MessageWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndToDri " specType =" Control_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvReq " specType =" Control_Disconnect_Handler "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" rcvReq " specType =" Control_Connect_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+28
+
+--- Page 31 ---
+<require >
+<effect id=" rcvFromDri " specType =" Control_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndRes " specType =" Control_Connect_Handler "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" sndRes " specType =" Control_Disconnect_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" send " specType =" Control_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id="add" specType =" AP_ReceiverFifo "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvDriver " specType =" Control_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndRes " specType =" Control_Connect_Handler "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" sndRes " specType =" Control_Disconnect_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" receive " specType =" Control_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToController " specType =" AP_RequestWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndToDri " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvReq " specType =" Power_Supply_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvFromDri " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndRes " specType =" Power_Supply_Handler "/>
+<port id=" sndRes " specType =" Power_Supply_Handler "/>
+</ causes >
+</ option >
+</ causes >
+29
+
+--- Page 32 ---
+</ require >
+<require >
+<effect id=" send " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id="add" specType =" AP_ReceiverFifo "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvDriver " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndRes " specType =" Power_Supply_Handler "/>
+<port id=" sndRes " specType =" Power_Supply_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" receive " specType =" Power_Supply_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToController " specType =" AP_RequestWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndToDri " specType =" Camera_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvReq " specType =" Camera_Stream_Handler "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" rcvReq " specType =" Camera_Capture_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvFromDri " specType =" Camera_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndRes " specType =" Camera_Capture_Handler "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" sndRes " specType =" Camera_Stream_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" send " specType =" Camera_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id="add" specType =" AP_ReceiverFifo "/>
+</ causes >
+</ option >
+30
+
+--- Page 33 ---
+</ causes >
+</ require >
+<require >
+<effect id=" rcvDriver " specType =" Camera_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndRes " specType =" Camera_Capture_Handler "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" sndRes " specType =" Camera_Stream_Handler "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" receive " specType =" Camera_Protocol_Controller "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToController " specType =" AP_RequestWorker "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvReq " specType =" Power_Supply_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToDri " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndRes " specType =" Power_Supply_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvDriver " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" rcvFromDri " specType =" Power_Supply_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvRes " specType =" Log_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToDri " specType =" Log_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" send_log " specType =" Log_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvDriver " specType =" Log_Protocol_Controller "/>
+</ causes >
+</ option >
+31
+
+--- Page 34 ---
+<option >
+<causes >
+<port id=" rcvFromDri " specType =" Log_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvReq " specType =" Control_Connect_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndRes " specType =" Control_Connect_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvFromDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" rcvFromDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvReq " specType =" Camera_Stream_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndRes " specType =" Camera_Stream_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvDriver " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" rcvFromDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvReq " specType =" Control_Disconnect_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndRes " specType =" Control_Disconnect_Handler "/>
+<causes >
+32
+
+--- Page 35 ---
+<option >
+<causes >
+<port id=" rcvDriver " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" rcvFromDri " specType =" Control_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" rcvReq " specType =" Camera_Capture_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" sndToDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+<require >
+<effect id=" sndRes " specType =" Camera_Capture_Handler "/>
+<causes >
+<option >
+<causes >
+<port id=" rcvDriver " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+<option >
+<causes >
+<port id=" rcvFromDri " specType =" Camera_Protocol_Controller "/>
+</ causes >
+</ option >
+</ causes >
+</ require >
+</ requires >
+</ glue >
+33
