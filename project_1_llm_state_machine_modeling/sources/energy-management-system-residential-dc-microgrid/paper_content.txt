@@ -1,0 +1,1700 @@
+--- Page 1 ---
+energies
+Article
+Design and Implementation of an
+Energy-Management System for a Grid-Connected
+Residential DC Microgrid
+Alfredo Padilla-Medina1, Francisco Perez-Pinal1
+, Alonso Jimenez-Garibay2
+,
+Antonio Vazquez-Lopez3and Juan Martinez-Nolasco2,*
+1Departamento de Ingenier ía Electr ónica, Tecnol ógico Nacional de M éxico/IT de Celaya,
+Celaya 38010, Guanajuato, Mexico; alfredo.padilla@itcelaya.edu.mx (A.P .-M.);
+francisco.perez@itcelaya.edu.mx (F.P .-P .)
+2Departamento de Ingenier ía Mecatr ónica, Tecnol ógico Nacional de M éxico/IT de Celaya,
+Celaya 38010, Guanajuato, Mexico; alonso.jimenez@itcelaya.edu.mx
+3Departamento de Ingenier ía Industria, Tecnol ógico Nacional de M éxico/IT de Celaya,
+Celaya 38010, Guanajuato, Mexico; antonio.vazquez@itcelaya.edu.mx
+*Correspondence: juan.martinez@itcelaya.edu.mx
+Received: 13 May 2020; Accepted: 3 August 2020; Published: 6 August 2020
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Abstract: The design and implementation of an energy-management system (EMS) applied to a
+residential direct current microgrid (DC- G) is presented in this work. The proposed residential
+DC-G is designed to provide a maximum power of one kilowatt by using two photovoltaic arrays
+(PAs) of 500 W, a battery bank (BB) of 120 V–115 Ah, a supercapacitor module of 0.230 F and a
+bidirectional DC–AC converter linked to the AC main grid (MG). The EMS works as a centralized
+manager and it deﬁnes the working operation mode for each section of the DC- G. The operation
+modes are based on: (1) the DC-link bus voltage, (2) the generated or demanded power to each
+section of the DC- G and (3) the BB’s state of charge. The proposed EMS—during the several working
+operation modes and at the same time—can obtain the maximum energy from the PAs, reduce
+the energy consumption from the main grid and keep the DC-link bus voltage inside a range of
+190 V 5%.The EMS and local controllers are implemented by using LabVIEW and NI myRIO-1900
+platforms. Moreover, experimental results during connection and disconnection of each DC- G
+sections and di erent on-the-ﬂy transitions are reported, these results focus on the behavior of the DC
+bus, which shows the DC bus robustness and stability. The robustness of the DC- G is demonstrated
+by maintaining a balance of energy between the sources and loads connected to the DC bus under
+dierent scenarios.
+Keywords: energy-management system; residential DC microgrid; grid-connected; photovoltaic
+array; embedded system
+1. Introduction
+Power consumption increase and the never-ending industrial demand on electrical energy have
+resulted in a higher requirement of electrical energy generation worldwide and therefore, a depletion
+of conventional generation resources, such as fossil fuels. On the other hand, renewable energies
+are still facing issues for massive generation and supply due to its unpredictable nature. These
+challenges have allowed a development in e cient technologies for energy conversion. An alternative
+to cope this situation is the use of renewable energy sources; however, its’ massive introduction and
+sustainable production are still open challenges to be satisﬁed. One alternative to solve these issues is
+Energies 2020 ,13, 4074; doi:10.3390 /en13164074 www.mdpi.com /journal /energies
+
+--- Page 2 ---
+Energies 2020 ,13, 4074 2 of 30
+the distributed generation techniques sourced by renewable energy which require e cient and highly
+reliable power management schemes in microgrids [1].
+Among the investigations carried out on energy-management systems (EMSs) in microgrids
+(Gs) there are di erent approaches. In [ 2] a theoretical reference is presented for the optimization
+and operation of Gs considering the impact of energy storage, the integration of renewable energy
+sources and the request for an answer for a case in Hong Kong. In [ 3] a study of interconnected Gs
+is presented, focusing on energy commercialization and scheduling strategies considering the local
+energy consumption (individual G), but also on the exchange of energy between Gs, demonstrating
+a reduction in operating cost up to 13%. In [ 4] an e ective EMS applied in integrated building systems
+andGs is presented, demonstrating that the proposed system has the ability to preserve energy
+and reduce consumption costs. This EMS considers aspects such as distributed heat generation and
+characteristics of electrical generation. The results of this research focus on the behavior of the energy
+of the elements of the G, the frequency and the voltage in response to their proposed master-slave
+control system, heat ﬂow and temperature. All these studies present results using numeric simulation
+and focus on the analysis of energy levels between Gs and the elements that compose them.
+An example, of the conﬁguration of a microgrid is a residential direct current microgrid (DC- G)
+using photovoltaic solar panels as a main energy source. A conventional grid-connected DC- G
+is constituted by di erent elements such as: generators, storage energy devices, loads and the
+interconnexion device linked to the alternating current (AC) main grid (MG). Usually, those elements
+are connected to the DC-link through power electronic converters (PECs). In this proposal, the e ciency
+of two optimization strategies of a DC- G is evaluated: (1) a centralized EMS that manages the energy
+in the batteries in order to keep the bus voltage stable; (2) optimization of switching frequency of each
+converter to improve its e ciency. The authors conclude that both independent strategies increase the
+eciency of DC- G [5].
+In [6], the authors carry out a scientiﬁc review about control strategies, stability analysis
+and stabilization techniques implemented in a DC- G, one of their main conclusions is that the
+local control of the converters is relevant to the integration of a level of control higher than most
+used in the control techniques that are proportional-integral (PI), proportional-derivative (PD),
+proportional-integral-derivative (PID) and fuzzy control (FC). Regarding communication between
+the elements of a DC- G, the authors conclude that three basic control strategies have been widely
+reported: (1) Decentralized control: the digital communications links are nulled and the electric lines
+are used as communication channels. Usually, the DC-link voltage demand is used as feedback; (2)
+Centralized control: the information is generated by di erent devices, and it is sent to a unique master.
+In this master, data are processed and sent it back by using di erent digital communication links; (3)
+Distributed control: The digital communication channels are implemented between systems and the
+coordinated control strategies are locally processed.
+Lately, there have been reports of EMS applied in DC- G with good simulation results, and a
+brief review following the report. Reference [ 7] reported an isolated DC- G with a DC-link of 24 V
+and connected to di erent loads (laptop (19 V , 65 W), lighting LED (240 V , 90 W), fan (48 V , 90 W)) by
+using appropriate PECs and one active ﬁlter. The proposed design facilitates standalone powering of a
+rural household which need less than 250 W provided by a PA. Reference [ 8] proposed a hierarchical
+controller based on three operation modes, the controller guaranteed the DC-link bus stability for the
+dierent operation modes, only numeric results are reported. Considering three modes of operation
+under six operational situations in terms of load variations, an analysis of operation times is performed
+for each of the six operational situations under consideration.
+Further DC-G conﬁgurations are the ones reported in [ 9,10]. In these proposals, a supercapacitor
+bank is connected to the DC-link bus by using a bidirectional converter. Additionally, a virtual resistor
+and capacitor is used as an impedance control loop, between the DC-link and converter. The reported
+numeric results in MATLAB, showed a good dynamic response, which was more precise compared
+with previous topologies. However, it lacked practical or at least hardware in the loop (HIL) validation.
+
+--- Page 3 ---
+Energies 2020 ,13, 4074 3 of 30
+On the other hand, a decentralized power management for an isolated DC- G was reported in [ 11]. In
+this investigation, numeric results were obtained by using SIMULINK the results showed an adaptive
+I/V characteristic as a decentralized control strategy of a hybrid DC- G whose structure contains a
+PA and battery energy storage system and wind turbine generator that can keep the DC-link bus
+stable even when the energy demand exceeds the maximum power generation. Following this trend,
+a dierent isolated DC- G with six operation modes was controlled by using an energy balance
+method [ 12]. In this study, an interesting scheme to control the on-the-ﬂy photovoltaic transitions
+between modes was reported, which reduced the DC-link bus oscillations. Restrictions of this scheme
+were the use of only linear loads and a maximum bus variation of 6%.
+Another branch of EMS is the development and application of intelligent algorithms. For instance,
+reference [ 13] proposed an isolated residential DC- G controlled by a fuzzy logic EMS. In this work,
+only SIMULINK numeric results were achieved and the FC is evaluated under two scenarios of a
+DC-G consisting of PAs, wind turbine, battery bank (BB), fuel cell and diesel generator supplying a
+typical residential load, the EMS is controlled by a low complexity FC with only 25 fuzzy rules that
+combine two input variables, the state of battery charge and the power di erence between generated
+power from renewables and load demand DP represent the power di erence between generated
+power from renewables and load power during day hours. The authors consider their proposal as
+an economic dispatch problem. A further centralized fuzzy logic proposal was reported in [ 14]. In
+this study, an accurate DC-link voltage and current regulation was achieved for a DC- G. As a result,
+authors claimed a cost reduction compared with centralized controllers. Unfortunately, only resistive
+loads and numeric results were stated. In [ 15], a low voltage (200 V) grid-connected DC- G with PA
+and storage unit was reported. In this proposal, a neuronal controller was implemented and behavior
+in the DC-link was given. Once again, HIL or practical results were missed.
+On the other hand, investigations that present experimental tests, [ 16] proposes a ﬂexible control
+mechanism to change the operation mode of photovoltaic systems in a DC- G, although experimental
+results were presented, the stability of the DC-link bus was not presented. Study [ 17] present a
+multi-condition strategy based on energy management for an isolated DC- G consisting of a PA, a
+fuel cell and a BB. This proposal distributes the energy and keeps the DC-link bus voltage stable in
+dierent operating conditions that depend on the state of charge (SC) of the batteries, the loads and
+the power of the PA. To verify the operation of the proposed administration system, an experimental
+prototype was implemented considering that the results obtained were good.
+In [18] the authors proposed a centralized control technique for EMS in an experimental prototype
+of a DC-G with a 380 V bus, this G is interconnected to the MG through a PEC, which is in charge
+of EMS, regulating the DC-link bus. LabVIEW software is used to monitor the power of the DC- G.
+Case studies are presented considering irradiation changes, resistive load, SC and power limits. In
+the quest to improve energy management in a DC- G with a BB, [ 19] proposed the use of a fuzzy
+controller to improve the life cycle of a BB, stabilizing the DC-link bus in a range of 380 V 20 V; this
+system uses LabVIEW software to implement the EMS. LabVIEW is an alternative in EMS design, this
+is because it has boards for monitoring and control. [ 20] used the PCI-MIO16-E-4 board to control
+a three-phase converter which is used to control an induction motor connected in a DC- G with
+a 600 V bus, the experimental tests presented used resistive loads. In [ 21] the authors proposed a
+power control approach to provide energy management and stabilization of a hybrid DC- G for
+transportation applications, the control system was implemented on dSPACE real-time boards. The
+simulation results shown the e ectiveness of the control system to manage the power ﬂows between the
+supercapacitor, the rectiﬁer and the load; furthermore, the authors found that the experimental results
+are consistent with the simulations. In [ 22] a fault-tolerant supervisory controller (FTSC) is proposed,
+and its e ectiveness is evaluated using a hybrid AC /DCG simulated in MATLAB considering the
+eects of maximum power derived from possible failures in solar and wind systems, the proposed
+FTSC considers a procedure to determine the maximum power available under fault conditions and
+increases the tolerance of the supervisory controller. These faults in solar and wind systems represent
+
+--- Page 4 ---
+Energies 2020 ,13, 4074 4 of 30
+an unknown dynamic that can be modeled using fuzzy controllers. Consequently, in [ 23] a control
+strategy for a hybrid renewable energy sources (HRES) system is proposed using FC systems that
+contain adaptive rules to obtain better performance from an HRES system evaluated under di erent
+load conditions and failures in renewable energy sources.
+The previously described state of the art shows that several architectures implemented in
+hardware have been reported with satisfactory results. However, in author’s opinion, some of them
+are oversimpliﬁed and other considers ideal conditions, which are not satisﬁed in real-life situations.
+Therefore, this study proposes a methodology for the design and implementation of a EMS that has
+a global administrator, which deﬁnes the operation mode each PEC’s controllers inside the DC- G.
+Both controllers use National Instruments technology; indeed, the embedded EMS was used in an
+experimental DC- G prototype that has two PAs, a BB and a bidirectional DC–AC converter to
+interconnect it. Experimental tests on DC- G’s behavior with the EMS were performed using electronic
+loads such as computer equipment, LED lamps and ﬂuorescent lamps focusing on the behavior of the
+DC-link bus when connecting and disconnecting sources and loads which generate changes in the
+operating modes of each of the local controllers in charge of manipulating the PECs that make up the
+DC-G.
+The obtained results show stability in the DC-link bus due to the generated disturbances and
+to changes in the operating modes of the DC- G components, advantages of this proposed system
+compared with reported literature is listed to follow. First, results obtained show that it is not necessary
+to include electrical components to the network for the connection and disconnection of energy sources
+and real loads. Second, the DC- G state machine that controls the global manager considers six
+operating scenarios to stability of the DC bus, taking advantage of the maximum power of the PAs,
+balancing the energy generated and demanded by the elements that make up the DC - G, and take care
+of the charging and discharging processes of the battery bank, thus increasing their useful life. Third,
+results presented focus on the behavior of the DC bus when connecting and disconnecting electronic
+sources and loads used daily, which shows robustness and stability, presenting transitory response
+times between 4 and 20 s with variations in voltage on the bus less than 5%. Finally, using the LabVIEW
+virtual instrumentation software (2015, National Instruments, USA) and the NI myRIO-1900 for the
+implementation of the global administrator and local controllers has virtues such as the generation
+of a user-friendly interface, which allows monitoring relevant variables of the DC- G and modify
+parameters of the controllers in real time. Additionally, it has ﬂexibility for the quick reconﬁguration
+of the generated controllers, which enables the generation of more complex systems in a short time,
+adapting embedded systems to new experiments.
+This work is organized as follows: In Section 2, the structure of the DC- G used to evaluate the
+EMS under di erent scenarios is described. In Section 3, the control and management system (CMS) is
+described which establishes the mode of operation for each element of the DC- G in order to extract
+the maximum energy from the PVEs. In Section 4, the results obtained are described to verify the
+behavior of the CMS embedded with the experimental prototype of the DC- G, each of the PVEs
+was conﬁgured with the following parameters: V mpp=120 V , V oc=130 V , I mpp=2 A and I sc=3 A.
+Section 5, ﬁnally, presents a brief summary and conclusions of the obtained results.
+2. DC Microgrid Structure
+The DC-G was designed to deal with a maximum power of 1 kW, with a DC-link bus of 190 V .
+The energy direction between sources and loads is shown with blue color lines Figure 1 and the
+experimental prototype is shown in Figure 2. The left part of Figure 1 shows two PAs emulated with
+two Agilent E4360A which were connected to a pair of 600 W DC–DC boost converters this section as
+the main energy source. On the other hand, in the right section of Figure 2, a bidirectional DC–AC
+converter allows to ﬂow energy, in both directions, between the DC- G to the MG. Additionally, a BB
+of 115 Ah and 120 V is connected to the DC-link bus by using a bidirectional buck–boost converter.
+
+--- Page 5 ---
+Energies 2020 ,13, 4074 5 of 30
+Finally, a supercapacitor bank of 0.230 F is directly linked to the DC-link bus, without converter, this
+bank allows to support the DC-link voltage during connection or disconnection of any G section.
+Energies 2020 , 13, x FOR PEER REVIEW 5 of 30 
+ type of electrical modification to  be connected to the voltage bus of  the proposed DC-µG. With these 
+considerations, the PECs in charge of transferring energy between the different elements of the DC-µG were designed. It is important to mention that  the reported research studies operate with DC 
+buses in operating ranges between 190 V to 210 V [24,25]. 
+ 
+Figure 1. Direct current microgri d (DC-µG) block diagram.  
+ 
+Figure 2. DC-µG experimental test-bed.  
+2.1 DC–DC Boost Converter 
+As mentioned before, the main DC-µG sources, PAs, are two photovoltaic emulators (PVEs), 
+those are connected to a pair of classical boost converters, Figure 3. The boosts converters were 
+designed with a step-up relation of V µG ⁄VPVE  = 1.5 (V µG D C  b u s  v o l t a g e ,  V PVE PVE voltage) and 
+continuous conduction mode. These specifications allow to achieve 190 V in the maximum power point (MPP) and buy using [26], with a frequency of 40 kHz, the following data were obtained, L = 107 µH, C = 440 µF. It is necessary to mention that, in order to use of PVEs was required to provide the following parameters: voltage in the maximum power point (V
+mpp), open-circuit voltage (V oc), 
+current in the maximum power point (I mpp) and short-circuit current (I sc). Additionally, those 
+parameters rely on the µG‘s experimental tests. 
+Figure 1. Direct current microgrid (DC- G) block diagram.
+Energies 2020 , 13, x FOR PEER REVIEW 5 of 30 
+ type of electrical modification to  be connected to the voltage bus of  the proposed DC-µG. With these 
+considerations, the PECs in charge of transferring energy between the different elements of the DC-µG were designed. It is important to mention that  the reported research studies operate with DC 
+buses in operating ranges between 190 V to 210 V [24,25]. 
+ 
+Figure 1. Direct current microgri d (DC-µG) block diagram.  
+ 
+Figure 2. DC-µG experimental test-bed.  
+2.1 DC–DC Boost Converter 
+As mentioned before, the main DC-µG sources, PAs, are two photovoltaic emulators (PVEs), 
+those are connected to a pair of classical boost converters, Figure 3. The boosts converters were 
+designed with a step-up relation of V µG ⁄VPVE  = 1.5 (V µG D C  b u s  v o l t a g e ,  V PVE PVE voltage) and 
+continuous conduction mode. These specifications allow to achieve 190 V in the maximum power point (MPP) and buy using [26], with a frequency of 40 kHz, the following data were obtained, L = 107 µH, C = 440 µF. It is necessary to mention that, in order to use of PVEs was required to provide the following parameters: voltage in the maximum power point (V
+mpp), open-circuit voltage (V oc), 
+current in the maximum power point (I mpp) and short-circuit current (I sc). Additionally, those 
+parameters rely on the µG‘s experimental tests. 
+Figure 2. DC-G experimental test-bed.
+The selection of the DC- G bus voltage level is due to the operating characteristics of the loads
+connected to the bus, these are conventional electrical loads designed for connection to the AC MG
+with a universal input voltage range of 100–264 VAC according to manufacturer speciﬁcations, the
+objective of using these loads is to demonstrate that these types of nonlinear loads do not require any
+type of electrical modiﬁcation to be connected to the voltage bus of the proposed DC- G. With these
+considerations, the PECs in charge of transferring energy between the di erent elements of the DC- G
+were designed. It is important to mention that the reported research studies operate with DC buses in
+operating ranges between 190 V to 210 V [24,25].
+2.1. DC–DC Boost Converter
+As mentioned before, the main DC- G sources, PAs, are two photovoltaic emulators (PVEs), those
+are connected to a pair of classical boost converters, Figure 3. The boosts converters were designed
+with a step-up relation of V G⁄VPVE=1.5 (V GDC bus voltage, V PVEPVE voltage) and continuous
+conduction mode. These speciﬁcations allow to achieve 190 V in the maximum power point (MPP) and
+buy using [ 26], with a frequency of 40 kHz, the following data were obtained, L =107H,C=440F.It
+
+--- Page 6 ---
+Energies 2020 ,13, 4074 6 of 30
+is necessary to mention that, in order to use of PVEs was required to provide the following parameters:
+voltage in the maximum power point (V mpp), open-circuit voltage (V oc), current in the maximum
+power point (I mpp) and short-circuit current (I sc). Additionally, those parameters rely on the G’s
+experimental tests.
+Energies 2020 , 13, x FOR PEER REVIEW 6 of 30 
+  
+Figure 3. DC–DC boost converter. 
+2.2 Bidirectional DC–AC Converter 
+Figure 4 shows the designed bidirectional buck–b oost converter. During the rectifier operation 
+from MG to the DC-link, this converter provides energy to the DC loads, to the BB or both. On the other hand, during the inverter  operation, it provides ener gy from the DC-link to the MG. 
+ 
+Figure 4. Bidirectional DC–AC converter.  
+This converter requires a capacitor C bus, to stabilize the DC-link voltage. The minimum 
+capacitance is given by: 
+Cୠ୳ୱ=(ସ୔ ౥౫౪)(୲భ)
+୚మಔృ,ౣ౟౤ = 308 μF , (1) 
+where P out represents the output power, V µG,min  the minimum DC bus voltage required to transfer 
+energy to the MG and t 1 the time interval given as 
+tଵ=ଵ
+ସ୤ౝ౨౟ౚ=4 . 1 6  m s , (2) 
+where f grid is the grid frequency, with a value of 60 Hz. On the AC side, an LCL filter is connected 
+to the midpoints of inverter legs and is used to interface the DC-link to the MG. To design the LCL was followed the Official Mexican Norm (NOM) and the Mexican Electricity Commission (CFE), those are based on IEC 61727:2004. The filtering inductance is obtained as 
+L
+୤=൫୚ಔృି୚ౝ౨౟ౚ,౦ౡ ൯ୈ
+୬∙△୍ ౜∙୤౩౭=(ଵଽ଴ିଵ଻଴)×(଴.଼)
+(ଷ)×(଴.ଵ)×(ଶହ,଴଴଴)=2 . 1 3  m H , (3) 
+where n represents the number of levels of the inverter (+V µG, −VµG and 0), D the duty cycle, f sw 
+the commutation frequency and ΔIf the ripple current. The criteria considered for the design of the 
+filtering inductance is that ΔIf should be 10% of the nominal value of I f. The C f capacitance was 
+designed to allow the maximum reactive power ex change. In this operation point the value were: 
+Xେ౜≥୚ౝ౨౟ౚ,ౣ౗౮మ
+୔౨౛౗ౙ౪౟౬౛=5 4  Ω , (4) 
+C୤≤ଵ
+ன∙ଡ଼ ి౜= 49 μF , (5) 
+Figure 3. DC–DC boost converter.
+2.2. Bidirectional DC–AC Converter
+Figure 4 shows the designed bidirectional buck–boost converter. During the rectiﬁer operation
+from MG to the DC-link, this converter provides energy to the DC loads, to the BB or both. On the
+other hand, during the inverter operation, it provides energy from the DC-link to the MG.
+Energies 2020 , 13, x FOR PEER REVIEW 6 of 30 
+  
+Figure 3. DC–DC boost converter. 
+2.2 Bidirectional DC–AC Converter 
+Figure 4 shows the designed bidirectional buck–b oost converter. During the rectifier operation 
+from MG to the DC-link, this converter provides energy to the DC loads, to the BB or both. On the other hand, during the inverter  operation, it provides ener gy from the DC-link to the MG. 
+ 
+Figure 4. Bidirectional DC–AC converter.  
+This converter requires a capacitor C bus, to stabilize the DC-link voltage. The minimum 
+capacitance is given by: 
+Cୠ୳ୱ=(ସ୔ ౥౫౪)(୲భ)
+୚మಔృ,ౣ౟౤ = 308 μF , (1) 
+where P out represents the output power, V µG,min  the minimum DC bus voltage required to transfer 
+energy to the MG and t 1 the time interval given as 
+tଵ=ଵ
+ସ୤ౝ౨౟ౚ=4 . 1 6  m s , (2) 
+where f grid is the grid frequency, with a value of 60 Hz. On the AC side, an LCL filter is connected 
+to the midpoints of inverter legs and is used to interface the DC-link to the MG. To design the LCL was followed the Official Mexican Norm (NOM) and the Mexican Electricity Commission (CFE), those are based on IEC 61727:2004. The filtering inductance is obtained as 
+L
+୤=൫୚ಔృି୚ౝ౨౟ౚ,౦ౡ ൯ୈ
+୬∙△୍ ౜∙୤౩౭=(ଵଽ଴ିଵ଻଴)×(଴.଼)
+(ଷ)×(଴.ଵ)×(ଶହ,଴଴଴)=2 . 1 3  m H , (3) 
+where n represents the number of levels of the inverter (+V µG, −VµG and 0), D the duty cycle, f sw 
+the commutation frequency and ΔIf the ripple current. The criteria considered for the design of the 
+filtering inductance is that ΔIf should be 10% of the nominal value of I f. The C f capacitance was 
+designed to allow the maximum reactive power ex change. In this operation point the value were: 
+Xେ౜≥୚ౝ౨౟ౚ,ౣ౗౮మ
+୔౨౛౗ౙ౪౟౬౛=5 4  Ω , (4) 
+C୤≤ଵ
+ன∙ଡ଼ ి౜= 49 μF , (5) 
+Figure 4. Bidirectional DC–AC converter.
+This converter requires a capacitor C bus, to stabilize the DC-link voltage. The minimum capacitance
+is given by:
+Cbus=(4Pout)(t1)
+V2G,min=308F, (1)
+where P outrepresents the output power, V G,min the minimum DC bus voltage required to transfer
+energy to the MG and t 1the time interval given as
+t1=1
+4fgrid=4.16 ms, (2)
+where f gridis the grid frequency, with a value of 60 Hz. On the AC side, an LCL ﬁlter is connected to
+the midpoints of inverter legs and is used to interface the DC-link to the MG. To design the LCL was
+followed the O cial Mexican Norm (NOM) and the Mexican Electricity Commission (CFE), those are
+based on IEC 61727:2004. The ﬁltering inductance is obtained as
+Lf=
+VGVgrid,pk
+D
+nDIffsw=(190170)(0.8)
+(3)(0.1)(25000 )=2.13 mH, (3)
+
+--- Page 7 ---
+Energies 2020 ,13, 4074 7 of 30
+where n represents the number of levels of the inverter ( +VG,VGand 0), D the duty cycle, f swthe
+commutation frequency and DIfthe ripple current. The criteria considered for the design of the ﬁltering
+inductance is that DIfshould be 10% of the nominal value of I f. The C fcapacitance was designed to
+allow the maximum reactive power exchange. In this operation point the value were:
+XCfV2
+grid,max
+Preactive=54W, (4)
+Cf1
+!XCf=49F, (5)
+The ﬁlter resonance frequency, f res, was given as
+fres=1
+2vtLf+Lg
+(Lf)
+Lg
+(Cf), (6)
+where f resshould be 0.5 times the commutation frequency and 10 times the fundamental frequency of
+the MG, to avoid any problems related with the resonance state of the LCL ﬁlter. This criterion is met
+by assigning values of 1 mH and 1 F to L gand C f, respectively, and considering a 2% of the value
+obtained for C f[27]. As a result, a f resof 6.1 kHz was obtained.
+2.3. Bidirectional DC–DC Converter
+A traditional buck–boost DC–DC converter was used, and it is shown in Figure 5. In this kind of
+converter, the energy direction is controlled by ﬁring S 1and S 2. In the step-down operation, DC-link to
+BB, S 1is switching and S 2is open. During the step-up operation, BB to DC-link, S 1is open and S 2is
+switching. The BB was made by connecting ten deep-cycle batteries CALE-SOLAR (CL-31 T /S-190 M)
+in series, each one with a voltage of 12 V and 115 Ah. Additionally, a passive equalization method was
+employed to guarantee the voltage balance between cells [ 28]. Table 1 shows the parameters to design
+the bidirectional DC–DC converter; Table 2 shows the determined parameters.
+Energies 2020 , 13, x FOR PEER REVIEW 7 of 30 
+ The filter resonance frequency, f res, was given as 
+f୰ୣୱ=ଵ
+ଶ஠ට୐౜ା୐ౝ
+(୐౜)(୐ ౝ)(େ౜), (6) 
+where f res should be 0.5 times the commutation frequency and 10 times the fundamental 
+frequency of the MG, to avoid any problems related with the resonance state of the LCL filter. This 
+criterion is met by assigning values of 1 mH and 1 µF to L g and C f, respectively, and considering a 
+2% of the value obtained for C f [27]. As a result, a f res of 6.1 kHz was obtained. 
+2.3 Bidirectional DC–DC Converter 
+A traditional buck–boost DC–DC converter was used, and it is shown in Figure 5. In this kind 
+of converter, the energy direction is controlled by firing S 1 and S 2. In the step-down operation, DC-
+link to BB, S 1 is switching and S 2 is open. During the step-up operation, BB to DC-link, S 1 is open and 
+S2 is switching. The BB was made by connecting ten deep-cycle batteries CALE-SOLAR (CL-31 T/S-
+190 M) in series, each one with a voltage of 12 V and 115 Ah. Additionally, a passive equalization 
+method was employed to guarantee the voltage balance between cells [28]. Table 1 shows the 
+parameters to design the bidirectional DC–DC conv erter; Table 2 shows the determined parameters. 
+ 
+Figure 5. Bidirectional DC–DC converter. 
+Table 1. Bidirectional DC–DC co nverter parameters.  
+Design Feature Value 
+Rated power 1000 W 
+Maximum low voltage 135 V 
+Minimum low voltage 100 V 
+Maximum high voltage 180 V 
+Minimum high voltage 200 V 
+Switching frequency 30 kHz 
+Current ripple in the inductor 10% 
+Voltage ripple on the high side 5% 
+Table 2. Passive elements.  
+Elements Value 
+Inductor (L) 11.11 mH 
+Low voltage capacitor (C 1) 12.50 µF 
+High voltage capacitor (C 2) 157.92 µF 
+2.4 Load Description 
+To evaluate the system under different scenar ios, linear and nonlinear loads were used. A 
+resistive load of 600 Ω was utilized as a linear load. On the contrary, three different nonlinear loads 
+were used. The first one was a set of seven LED lamp s of 23 W each one; the second was a group of 
+Figure 5. Bidirectional DC–DC converter.
+
+--- Page 8 ---
+Energies 2020 ,13, 4074 8 of 30
+Table 1. Bidirectional DC–DC converter parameters.
+Design Feature Value
+Rated power 1000 W
+Maximum low voltage 135 V
+Minimum low voltage 100 V
+Maximum high voltage 180 V
+Minimum high voltage 200 V
+Switching frequency 30 kHz
+Current ripple in the inductor 10%
+Voltage ripple on the high side 5%
+Table 2. Passive elements.
+Elements Value
+Inductor (L) 11.11 mH
+Low voltage capacitor (C 1) 12.50 F
+High voltage capacitor (C 2) 157.92 F
+2.4. Load Description
+To evaluate the system under di erent scenarios, linear and nonlinear loads were used. A resistive
+load of 600 Wwas utilized as a linear load. On the contrary, three di erent nonlinear loads were used.
+The ﬁrst one was a set of seven LED lamps of 23 W each one; the second was a group of four Louver
+light system with three ﬂuorescent lamps of 28 W T5 each one (those included an electronic ballast);
+ﬁnally, a laptop with a maximum power of 300 W was employed.
+3. Control and Management System
+The proposed CMS consist of a general administrator and independent controllers, which operates
+dierentG’s systems. The general block system of the G is shown in Figure 6. The black color
+represents the G’s systems and the blue color the di erent local controllers. Additionally, the global
+controller is shown in red color. More details about the di erent working modes and operation of the
+DC-G are given in the following sections.
+Energies 2020 , 13, x FOR PEER REVIEW 8 of 30 
+ four Louver light system with three fluorescent lamps of 28 W T5 each one (those included an 
+electronic ballast); finally, a laptop with  a maximum power of 300 W was employed. 
+3. Control and Management System 
+The proposed CMS consist of a general admi nistrator and independent controllers, which 
+operates different µG´s systems. The general block sy stem of the µG is shown in Figure 6. The black 
+color represents the µG´s systems and the blue color the different lo cal controllers. Additionally, the 
+global controller is shown in red color. More de tails about the different working modes and operation 
+of the DC-µG are given in the following sections. 
+ 
+Figure 6. General block system.  
+3.1 Global Management Controller 
+The global management controller (GMC) operates with the followin g six hierarchical scenarios: 
+(1) to maintain the DC-link bus voltage in an operation range of 190 V ± 5%, (2) to consume the maximum energy from the PVE (to reduce the energy coming from the MG), (3) in the case of low 
+load energy consumption and over generated energy from the PVE, the remained energy is stored in 
+the BB, (4) in the case of full charge of the BB or  BB discharge, the generated energy is send to the 
+MG, (5) in the case that the load´s consumption is  bigger than the generated energy from the PVE, 
+the energy difference will be provided by the MG and (6) energy from BB will be used only when the 
+MG is not available or in the case that the gene rated energy from the PVE and the MG are not enough 
+to cope the demanded load energy. 
+These scenarios were considered for the design of the GMC in order to keep the DC bus stable, 
+if the bus destabilizes or goes out of the establ ished range, the connected loads could be damaged. 
+On the other hand, it is of utmost importance to make the most of the renewable energy source that 
+MG has. In addition, to defining the energy exchange between the BB and the MG loads, the cost of 
+electrical energy was considered. It is more expensive to transfer energy to the BB than to the MG. Reason why, if there is a surplus of photovoltaic energy, this energy will be stored in the BB and not 
+in the MG. Otherwise, if the loads connected to th e DC bus demand more energy than that generated 
+by the PVEs, the missing energy will be taken from  the MG and not from the BB. Finally, for the BB 
+charging and discharging process, it is considered that the processes must be  completed to take care 
+of the BB's useful life. 
+Figure 6. General block system.
+
+--- Page 9 ---
+Energies 2020 ,13, 4074 9 of 30
+3.1. Global Management Controller
+The global management controller (GMC) operates with the following six hierarchical scenarios:
+(1) to maintain the DC-link bus voltage in an operation range of 190 V 5%, (2) to consume the
+maximum energy from the PVE (to reduce the energy coming from the MG), (3) in the case of low load
+energy consumption and over generated energy from the PVE, the remained energy is stored in the BB,
+(4) in the case of full charge of the BB or BB discharge, the generated energy is send to the MG, (5) in
+the case that the load’s consumption is bigger than the generated energy from the PVE, the energy
+dierence will be provided by the MG and (6) energy from BB will be used only when the MG is not
+available or in the case that the generated energy from the PVE and the MG are not enough to cope the
+demanded load energy.
+These scenarios were considered for the design of the GMC in order to keep the DC bus stable,
+if the bus destabilizes or goes out of the established range, the connected loads could be damaged.
+On the other hand, it is of utmost importance to make the most of the renewable energy source that
+MG has. In addition, to deﬁning the energy exchange between the BB and the MG loads, the cost of
+electrical energy was considered. It is more expensive to transfer energy to the BB than to the MG.
+Reason why, if there is a surplus of photovoltaic energy, this energy will be stored in the BB and not in
+the MG. Otherwise, if the loads connected to the DC bus demand more energy than that generated
+by the PVEs, the missing energy will be taken from the MG and not from the BB. Finally, for the BB
+charging and discharging process, it is considered that the processes must be completed to take care of
+the BB’s useful life.
+It can be noticed that the GMC works as a function of the DC-link bus voltage and the working
+operation mode of each G section. During the startup, the PVEs are turned on and those work in the
+voltage control (VC) mode, in this period, the BB and the MG are turned o . Once the system reaches
+the steady state, the di erent loads are connected.
+If the demanded load energy is greater than the generated by the PVEs, the DC-link voltage will
+decrease, in this situation if the voltage reaches a minimum of 183 V (2 V before the critical value of
+180.5 V), the GMC changes the PVEs controller to a maximum power point tracking (MPPT), and it
+obtains the energy di erence from the DC–AC rectiﬁer. As a result, the DC-link voltage is stabilized
+and the load energy demand is handled. This operation mode is also used if the energy generated by
+the PVEs is not enough to supply the energy demanded by the loads connected to the bus. However,
+this operation mode can be changed if the BB is chosen to cope the energy di erence or during lack of
+solar or MG energy.
+On the other hand, if the G is in steady state, with the PVEs working in VC mode, and the
+demanded power by loads in less than 80% of the DC-link maximum capacity, the GMC monitors
+the SC of the BB and the MG with the main aim to change the PVE’s operation mode to MPPT and
+send energy to the BB or the MG. In other words, the energy sent to the BB or the MG is the di erence
+energy generated from the PVEs and the one demanded by loads.
+If the BB is depleted or in charging mode, with a light load and the PVE energy is not available,
+the energy to charge the BB is obtained from the bidirectional DC–DC converter. On the contrary, if
+the BB is charged, with a light load and the PVE energy is available, the energy is sent to the MG by
+using the bidirectional DC–DC converter. Figure 7 shows the state machine diagram used in the GMC
+and Tables 3–7 show the transitions deﬁned between states. Figure 8 presents the ﬂow diagram of the
+behavior of the GMC. This diagram illustrates the priorities of the GMC. These priorities are based
+on the six hierarchical scenarios described at the beginning of this section. The priority of the GMC
+algorithm is to keep the DC bus voltage level within the established range, to extract the maximum
+power from the PVEs, if the energy demanded by the loads is greater than that generated by the PVEs,
+the missing energy is taken from the MG, if the MG is not available the energy is drawn from the BB.
+In the event that the energy demanded by the loads is less than that generated by the PVEs, the excess
+energy will be transferred to the BB, if the BB is charged or in the process of discharge, this energy will
+be transferred to the MG.
+
+--- Page 10 ---
+Energies 2020 ,13, 4074 10 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 10 of 30 
+  
+Figure 7. Global management controller (GMC) state machine diagram. 
+Figure 7. Global management controller (GMC) state machine diagram.
+Table 3. GMC START transitions.
+INPUTS STATES OUTPUTS
+Condition Vbus PV Power MG Battery Current State Next State PV DC /DC DC /AC Loads
+1 185–195 V >800 W – – START START VC OFF OFF ON
+2 188–192 V <800 W – CHARGE START STATE 2 MPPT BUCK OFF ON
+3 188–192 V <800 W AVAILABLE – START STATE 1 MPPT OFF INVERTER ON
+4 <183 V >800 W AVAILABLE – START STATE 3 MPPT OFF RECTIFIER ON
+5 <183 V >800 W NOT DISCHARGE START STATE 4 MPPT BOOST OFF ON
+6 <180 – NOT WITHOUT START STATE 7 OFF OFF OFF OUT
+
+--- Page 11 ---
+Energies 2020 ,13, 4074 11 of 30
+Table 4. GMC transitions in STATE 1 and 2.
+INPUTS STATES OUTPUTS
+Condition Vbus PV Power MG Battery Current State Next State PV DC /DC DC /AC Loads
+7 185–195 V – <100 W – STATE 1 START VC OFF OFF ON
+8 185–195 V – – – STATE 1 STATE 1 MPPT OFF INVERTER ON
+9 >198 V – – CHARGED STATE 2 START VC OFF OFF ON
+10 185–195 V – – <50 W STATE 2 START VC OFF OFF ON
+11 185–195 V – – – STATE 2 STATE 2 MPPT BUCK OFF ON
+Table 5. GMC transitions in STATE 3 and 4.
+INPUTS STATES OUTPUTS
+Condition Vbus PV Power MG Battery Current State Next State PV DC /DC DC /AC Loads
+12 <183 V >800 W >800 W DISCHARGE STATE 3 STATE 5 MPPT BOOST RECTIFIER ON
+13 >198 V – <100 W – STATE 3 START VC OFF OFF ON
+14 <183 V – NOT DISCHARGE STATE 3 STATE 4 MPPT BOOST OFF ON
+15 <183 V – NOT NOT STATE 3 START VC OFF OFF ON
+16 185–195 V – – – STATE 3 STATE 3 MPPT OFF RECTIFIER ON
+17 188–192 V – AVAILABLE – STATE 4 STATE 3 MPPT OFF RECTIFIER ON
+18 >198 V – – – STATE 4 START VC OFF OFF ON
+19 <183 V – – WITHOUT STATE 4 START VC OFF OFF ON
+20 185–195 V – NOT DISCHARGE STATE 4 STATE 4 MPPT BOOST OFF ON
+Table 6. GMC transitions in STATE 5 and 6.
+INPUTS STATES OUTPUTS
+Condition Vbus PV Power MG Battery Current State Next State PV DC /DC DC /AC Loads
+21 <183 V >800 W >800 W >800 W STATE 5 STATE 6 MPPT BOOST RECTIFIER OUT
+22 >198 V – – – STATE 5 STATE 3 MPPT OFF RECTIFIER ON
+23 <183 V – – WITHOUT STATE 5 STATE 8 MPPT OFF RECTIFIER OUT
+24 <183 V – NOT – STATE 5 STATE 9 MPPT BOOST OFF OUT
+25 185–195 V – – – STATE 5 STATE 5 MPPT BOOST RECTIFIER ON
+26 >198 V – – – STATE 6 STATE 5 MPPT BOOST RECTIFIER ON
+27 <180 V >800 W >800 W >800 W STATE 6 STATE 7 OFF OFF OFF OUT
+28 <180 V – NOT – STATE 6 STATE 7 OFF OFF OFF OUT
+29 <180 V – – WITHOUT STATE 6 STATE 7 OFF OFF OFF OUT
+30 185–195 V – – – STATE 6 STATE 6 MPPT BOOST RECTIFIER OUT
+Table 7. GMC transitions in STATE 8 and 9.
+INPUTS STATES OUTPUTS
+Condition Vbus PV Power MG Battery Current State Next State PV DC /DC DC /AC Loads
+31 >198 V – – – STATE 8 STATE 3 MPPT OFF RECTIFIER ON
+32 <183 V – NOT – STATE 8 STATE 7 OFF OFF OFF OUT
+33 185–195 V – – – STATE 8 STATE 8 MPPT OFF RECTIFIER OUT
+34 <183 V – – WITHOUT STATE 9 STATE 7 OFF OFF OFF OUT
+35 >198 V – – – STATE 9 STATE 4 MPPT BOOST OFF ON
+36 185–195 V – – – STATE 9 STATE 9 MPPT BOOST OFF OUT
+
+--- Page 12 ---
+Energies 2020 ,13, 4074 12 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 11 of 30 
+  
+Figure 8. GMC flow diagram. 
+Figure 8. GMC ﬂow diagram.
+
+--- Page 13 ---
+Energies 2020 ,13, 4074 13 of 30
+The state machine diagram used in G has ten states, which are listed to follow: START, STATE
+1, STATE 2, STATE 3, STATE 4, STATE 5, STATE 6, STATE 7, STATE 8 and STATE 9. For the overall
+states, there are deﬁned three main systems: the PVE (PV), the BB DC–DC converter (DC–DC) and the
+bidirectional converter connected to the MG (DC–AC). For instance, if the GMC is in the START mode,
+the PV works in voltage control mode (VC), the DC–DC is turned o (OFF) and the DC–AC is also
+turned o (OFF). Another example is STATE 6, the PV works in the MPPT, the DC–DC as BOOST and
+the DC–AC as RECTIFIER.
+Tables 3–7 show the states transition tables; these have a section of entries that deﬁne the conditions
+for changing from the current state to the next. These inputs are the following signals that were
+monitored in the G: the bus voltage level (Vbus), the power generated by the PVE (PV Power), the
+condition of the MG (MG) and the condition of the BB (Battery). Tables have an output section that
+deﬁnes the operation mode of the PECs and the condition of the local loads connected to the DC bus,
+these operation modes are the same as those deﬁned in the state machine of Figure 7. For example,
+when the current state is START, if condition 1 is met, the next state will be START. In this condition
+Vbus must be greater than 185 V and less than 195 V , the PV Power must be greater than 800 W, here
+the MG and Battery status are not considered. In condition 12, Vbus must be less than 183 V , the PV
+Power must be greater than 800 W, just like the power extracted from the MG (MG), in addition Battery
+must be in the discharge process.
+3.2. Local Controllers
+The GMC deﬁnes the operation mode of each of the local controllers. While these are responsible
+for generating the control signals that are used in each of the PECs that make up the G. The following
+describes the embedded control systems designed to keep the system stable.
+The DC–DC boost converters connected to the PVEs have two operation modes: (1) the VC mode,
+and (2) the MPPT mode. In VC mode, a classic PI controller is responsible for maintaining the output
+voltage of the DC–DC converter (DC bus voltage) at a level of 190 V . This control mode only works
+when the BB and MG do not supply or extract power to the DC bus. Figure 9 illustrates the converter
+diagram with the PI controller; this controller monitors the converter output voltage level (V G) by
+performing corrective actions to eliminate the e ects generated by system disturbances (connection
+and disconnection of loads to the bus of DC).
+Energies 2020 , 13, x FOR PEER REVIEW 13 of 30 
+ that defines the operation mode of the PECs and the condition of the local loads connected to the DC 
+bus, these operation modes are the same as those defined in the state machine of Figure 7. For 
+example, when the current state is START, if conditio n 1 is met, the next state will be START. In this 
+condition Vbus must be greater than 185 V and less than 195 V, the PV Power must be greater than 
+800 W, here the MG and Battery status are not considered. In condition 12, Vbus must be less than 183 V, the PV Power must be greater than 800 W, ju st like the power extracted from the MG (MG), in 
+addition Battery must be in the discharge process. 
+3.2 Local Controllers 
+The GMC defines the operation mode of each of th e local controllers. While these are responsible 
+for generating the control signals that are used in each of the PECs that make up the µG. The 
+following describes the embedded control syst ems designed to keep the system stable. 
+The DC–DC boost converters connected to the PVEs have two operation modes: (1) the VC 
+mode, and (2) the MPPT mode. In VC mode, a classic PI controller is responsible for maintaining the output voltage of the DC–DC converter (DC bus voltage) at a level of 190 V. This control mode only works when the BB and MG do not supply or extract power to the DC bus. Figure 9 illustrates the converter diagram with the PI controller; this cont roller monitors the converter output voltage level 
+(V
+µG) by performing corrective actions to eliminate the effects generated by system disturbances 
+(connection and disconnection of loads to the bus of DC). 
+ 
+Figure 9. Voltage control (VC) for the boost converter.  
+The operating point on the characteristics of the PVE module primarily depends on the 
+impedance matching of the PVE module regarding the connected load. A DC–DC converter between 
+the PVE module and the DC bus acts as an interface to operate at MPP by changing the duty cycle of the converter generated by the MPPT controller. In the MPPT operation mode, the boost converters extract the maximum power of the PVEs using th e perturb and observe (P&O) control algorithm 
+illustrated in Figure 10. The co nventional P&O MPPT algorithm is developed based on the slope 
+(d
+P/dV) variation on the P–V characteristics of the PVE module [29]. In this algorithm, an initial value 
+of the duty cycle is first defined, th en the voltage and current of the PVE (V PVE and I PVE) are measured 
+to calculate its supplied power, once the value of the current power (P NEW) is known, it is compared 
+with the power obtained in the past iteration (P PRE), the current value of the duty cycle (D NEW) is also 
+compared and is compared with the previous value of the same (D PRE), based on these comparisons 
+an increase is defined (Duty +) or a decrease (Duty-) in the duty cycle; with this new value of the duty 
+cycle the process is repeated, always seeking to in crease the value of the po wer supplied by the PVE. 
+Figure 11 shows the diagram of the converter with the MPPT controller. The controller modifies the 
+duty cycle of the power switch and monitors the changes in the voltage and current of the PVEs, 
+always looking for an increase in the power extracted from the PVEs. 
+Figure 9. Voltage control (VC) for the boost converter.
+The operating point on the characteristics of the PVE module primarily depends on the impedance
+matching of the PVE module regarding the connected load. A DC–DC converter between the PVE
+module and the DC bus acts as an interface to operate at MPP by changing the duty cycle of the
+converter generated by the MPPT controller. In the MPPT operation mode, the boost converters extract
+the maximum power of the PVEs using the perturb and observe (P&O) control algorithm illustrated in
+Figure 10. The conventional P&O MPPT algorithm is developed based on the slope (d P/dV) variation
+on the P–V characteristics of the PVE module [ 29]. In this algorithm, an initial value of the duty cycle
+
+--- Page 14 ---
+Energies 2020 ,13, 4074 14 of 30
+is ﬁrst deﬁned, then the voltage and current of the PVE (V PVEand I PVE) are measured to calculate its
+supplied power, once the value of the current power (P NEW ) is known, it is compared with the power
+obtained in the past iteration (P PRE), the current value of the duty cycle (D NEW ) is also compared and
+is compared with the previous value of the same (D PRE), based on these comparisons an increase is
+deﬁned (Duty +) or a decrease (Duty-) in the duty cycle; with this new value of the duty cycle the
+process is repeated, always seeking to increase the value of the power supplied by the PVE. Figure 11
+shows the diagram of the converter with the MPPT controller. The controller modiﬁes the duty cycle
+of the power switch and monitors the changes in the voltage and current of the PVEs, always looking
+for an increase in the power extracted from the PVEs.
+Energies 2020 , 13, x FOR PEER REVIEW 14 of 30 
+  
+Figure 10. Perturb and observe (P&O) control algorithm. 
+ 
+Figure 11. Maximum power point tracking (MPPT) control system diagram. 
+The bidirectional DC–AC converter used to interc onnect the DC-µG with the MG can operate as 
+a rectifier (transferring energy from the MG to the lo ads connected to the DC bus) or as an inverter 
+(transferring energy from the DC bus to the MG). The block diagram of the control system 
+implemented for the converter when operating as an in verter is presented in Figure 12. This controller 
+has a PI control action in charge of defining the amplitude of the high frequency triangular signal 
+based on the voltage level of the DC bus, thereby mo difying the amount of energy that is transferred 
+to the MG. If the DC bus suffers a voltage drop, a re duction in the amplitude of the triangular signal 
+is generated causing a decrease in the energy transf erred to the MG and thus causing an increase in 
+the bus voltage level. In case the bus suffers a vo ltage overcharge, the amplitude of the triangular 
+signal is increased generating a surge in the energy  that is transferred to the MG, thereby lessening 
+the voltage level of the DC bus. 
+Figure 10. Perturb and observe (P&O) control algorithm.
+Energies 2020 , 13, x FOR PEER REVIEW 14 of 30 
+  
+Figure 10. Perturb and observe (P&O) control algorithm. 
+ 
+Figure 11. Maximum power point tracking (MPPT) control system diagram. 
+The bidirectional DC–AC converter used to interc onnect the DC-µG with the MG can operate as 
+a rectifier (transferring energy from the MG to the lo ads connected to the DC bus) or as an inverter 
+(transferring energy from the DC bus to the MG). The block diagram of the control system 
+implemented for the converter when operating as an in verter is presented in Figure 12. This controller 
+has a PI control action in charge of defining the amplitude of the high frequency triangular signal 
+based on the voltage level of the DC bus, thereby mo difying the amount of energy that is transferred 
+to the MG. If the DC bus suffers a voltage drop, a re duction in the amplitude of the triangular signal 
+is generated causing a decrease in the energy transf erred to the MG and thus causing an increase in 
+the bus voltage level. In case the bus suffers a vo ltage overcharge, the amplitude of the triangular 
+signal is increased generating a surge in the energy  that is transferred to the MG, thereby lessening 
+the voltage level of the DC bus. 
+Figure 11. Maximum power point tracking (MPPT) control system diagram.
+
+--- Page 15 ---
+Energies 2020 ,13, 4074 15 of 30
+The bidirectional DC–AC converter used to interconnect the DC- G with the MG can operate as
+a rectiﬁer (transferring energy from the MG to the loads connected to the DC bus) or as an inverter
+(transferring energy from the DC bus to the MG). The block diagram of the control system implemented
+for the converter when operating as an inverter is presented in Figure 12. This controller has a PI
+control action in charge of deﬁning the amplitude of the high frequency triangular signal based on the
+voltage level of the DC bus, thereby modifying the amount of energy that is transferred to the MG. If
+the DC bus su ers a voltage drop, a reduction in the amplitude of the triangular signal is generated
+causing a decrease in the energy transferred to the MG and thus causing an increase in the bus voltage
+level. In case the bus su ers a voltage overcharge, the amplitude of the triangular signal is increased
+generating a surge in the energy that is transferred to the MG, thereby lessening the voltage level of
+the DC bus.
+Energies 2020 , 13, x FOR PEER REVIEW 15 of 30 
+  
+Figure 12. Control algorithm diagram for inverter. 
+The converter diagram with the controller is shown in Figure 13. The synchronization between 
+the signal generated by the inverter and the MG is  performed by the zero crossing detection modules 
+and the second-order generalized integrators with fr equency-locked loop (SOGI-FLL) algorithm, this 
+when determined by the GMC. The control signals of the four switches of the complete bridge 
+inverter are generated by comparing the output si gnal of the SOGI-FLL block with the triangular 
+signal of 25 kHz frequency. 
+ 
+Figure 13. Control for DC–AC converter working as an inverter.  
+When the DC–AC bidirectional converter works as a rectifier, the control system is carried out 
+with a classic PI controller, which is responsible for stabilizing the bus voltage level at 190 V by increasing or decreasing the amplitude of the high frequency triangular signal ƒ
+s which is compared 
+with the low frequency sine wave signal  u(t) as illustrated in Figure 14. 
+ 
+Figure 12. Control algorithm diagram for inverter.
+The converter diagram with the controller is shown in Figure 13. The synchronization between
+the signal generated by the inverter and the MG is performed by the zero crossing detection modules
+and the second-order generalized integrators with frequency-locked loop (SOGI-FLL) algorithm, this
+when determined by the GMC. The control signals of the four switches of the complete bridge inverter
+are generated by comparing the output signal of the SOGI-FLL block with the triangular signal of
+25 kHz frequency.
+Energies 2020 , 13, x FOR PEER REVIEW 15 of 30 
+  
+Figure 12. Control algorithm diagram for inverter. 
+The converter diagram with the controller is shown in Figure 13. The synchronization between 
+the signal generated by the inverter and the MG is  performed by the zero crossing detection modules 
+and the second-order generalized integrators with fr equency-locked loop (SOGI-FLL) algorithm, this 
+when determined by the GMC. The control signals of the four switches of the complete bridge 
+inverter are generated by comparing the output si gnal of the SOGI-FLL block with the triangular 
+signal of 25 kHz frequency. 
+ 
+Figure 13. Control for DC–AC converter working as an inverter.  
+When the DC–AC bidirectional converter works as a rectifier, the control system is carried out 
+with a classic PI controller, which is responsible for stabilizing the bus voltage level at 190 V by increasing or decreasing the amplitude of the high frequency triangular signal ƒ
+s which is compared 
+with the low frequency sine wave signal  u(t) as illustrated in Figure 14. 
+ 
+Figure 13. Control for DC–AC converter working as an inverter.
+
+--- Page 16 ---
+Energies 2020 ,13, 4074 16 of 30
+When the DC–AC bidirectional converter works as a rectiﬁer, the control system is carried out with
+a classic PI controller, which is responsible for stabilizing the bus voltage level at 190 V by increasing
+or decreasing the amplitude of the high frequency triangular signal f swhich is compared with the low
+frequency sine wave signal u(t) as illustrated in Figure 14.
+Energies 2020 , 13, x FOR PEER REVIEW 15 of 30 
+  
+Figure 12. Control algorithm diagram for inverter. 
+The converter diagram with the controller is shown in Figure 13. The synchronization between 
+the signal generated by the inverter and the MG is  performed by the zero crossing detection modules 
+and the second-order generalized integrators with fr equency-locked loop (SOGI-FLL) algorithm, this 
+when determined by the GMC. The control signals of the four switches of the complete bridge 
+inverter are generated by comparing the output si gnal of the SOGI-FLL block with the triangular 
+signal of 25 kHz frequency. 
+ 
+Figure 13. Control for DC–AC converter working as an inverter.  
+When the DC–AC bidirectional converter works as a rectifier, the control system is carried out 
+with a classic PI controller, which is responsible for stabilizing the bus voltage level at 190 V by increasing or decreasing the amplitude of the high frequency triangular signal ƒ
+s which is compared 
+with the low frequency sine wave signal  u(t) as illustrated in Figure 14. 
+ 
+Figure 14. Control for the DC–AC converter working as a rectiﬁer.
+The bidirectional DC–DC converter used to interconnect the DC bus with the BB is controlled by a
+PI controller similar to that used for VC in the PVE converter (Figure 9). This control system has three
+modes of operation deﬁned by the GMC based on the status of the PVEs, the MG, the electronic loads
+connected to the DC bus and the electrical charge status of the BB.
+(1) Battery charging: The PVEs work with the algorithm for the MPPT and the bidirectional DC–DC
+converter as a buck transferring power to the BB, while the MG is disabled. The controller
+operates based on the voltage level of the DC bus. If the voltage level increases, the energy
+transferred to the BB increases; otherwise, if the voltage level decreases, the energy transferred to
+the BB decreases;
+(2) Battery charging: The PVEs work with the MPPT algorithm, the bidirectional DC–AC converter
+operates as a rectiﬁer by transferring power from the MG to the loads connected to the DC bus.
+In this operation mode, it is possible to transfer power from the MG to the BB, the bidirectional
+DC–DC converter works as a buck. For the control of the energy that is transferred to the BB, the
+controller operates with the electric current that is transferred to the BB. This electric current is
+deﬁned by the power demanded from the DC–AC converter before transferring power to the BB,
+caring not to exceed the maximum capacity of the DC–AC converter designed to work at 1 kW;
+(3) Battery discharge: The PVEs work with the algorithm for the MPPT, the bidirectional DC–DC
+converter functions as a boost transferring power from the BB to the loads connected to the bus,
+while the MG is disabled. The controller operates based on the voltage level of the DC bus. If the
+voltage level decreases, the energy transferred from the BB to the DC bus increases; otherwise, if
+the voltage level increases, the energy transferred decreases.
+The previously described cases were deﬁned based on the following BB operating criteria: (1) the
+BB charging and discharging process must always be completed, (2) the constant current charging
+process ends until the BB takes a value of maximum voltage of 135 V (if the energy generated is not
+enough to transfer energy to the BB at constant current the available energy is transferred to the BB),
+(3) the constant voltage charging process ends when the current that is injected into the BB is less than
+0.5 A and (4) the discharge process ends when the battery voltage is 100 V . It is important to mention
+that the bidirectional power converter used in the BB has a maximum capacity of 1 kW, for this reason,
+the maximum current that can be extracted or transferred to the bank is 10 A.
+
+--- Page 17 ---
+Energies 2020 ,13, 4074 17 of 30
+4. Experimental Results
+To verify the behavior of the CMS embedded with the experimental prototype of the DC- G, each
+of the PVEs was conﬁgured with the following parameters: V mpp=120 V , V oc=130 V , I mpp=2 A and
+Isc=3 A. During the experimental tests, this conﬁguration was used, although the PVEs can operate
+under uncertainties, it was not the objective of this investigation.
+4.1. PVEs’ Ignition
+Before activating the CMS, the PVEs are switched on, the DC bus has a resistive load of 116 W and
+the 0.23 F supercapacitor bank, the DC–DC and DC–AC bidirectional converters are disabled and the
+DC–DC boost converter behaves like a short circuit by directly connecting the PVEs with the resistive
+load and the supercapacitor bank. Figure 15 shows the response of the DC bus during the activating of
+the PVEs. The DC bus takes 6.4 s to reach a voltage of 131 V , this is due to the time it takes for the
+supercapacitor bank to absorb the PVEs energy.
+Energies 2020 , 13, x FOR PEER REVIEW 17 of 30 
+  
+Figure 15. Bus behavior on the two photovol taic emulators (PVEs) ignition.  
+4.2 PVEs in Voltage Control Mode, MG and BB Disabled 
+Once the DC bus stabilizes, the CMS is activated and the first operating condition is START, the 
+MG and the BB remain disabled, while the PVEs co nverters work in VC mode. Figure 16 shows the 
+response of the DC bus when activating the CMS, th e VC needs 20 seconds to stabilize at the desired 
+voltage level (190 V). 
+ 
+Figure 16. Bus behavior when the control and mana gement system (CMS) is switched on.  
+When the CMC works in the START condition, the sy stem is able to keep the DC bus stable in 
+case of load changes, the PVEs are responsible fo r supplying the energy demanded by the loads while 
+the DC–DC boost converters operate in mode VC. Figure 17 shows the behavior when connecting a 
+115 W LED-type electronic lighting load, while Figu re 18 shows the behavior when disconnecting the 
+load. When the load is connected or disconnected , a drop and an overshoot of 1.5 V (0.78%) is 
+generated regarding the established voltage level of 190 V, the response has a transition time of 10 
+seconds. 
+Figure 15. Bus behavior on the two photovoltaic emulators (PVEs) ignition.
+4.2. PVEs in Voltage Control Mode, MG and BB Disabled
+Once the DC bus stabilizes, the CMS is activated and the first operating condition is START, the MG
+and the BB remain disabled, while the PVEs converters work in VC mode. Figure 16 shows the response
+of the DC bus when activating the CMS, the VC needs 20 s to stabilize at the desired voltage level (190 V).
+Energies 2020, 13, x FOR PEER REVIEW 17 of 30 
+Figure 15. Bus behavior on the two photovol taic emulators (PVEs) ignition.  
+4.2 PVEs in Voltage Control Mode, MG and BB Disabled 
+Once the DC bus stabilizes, the CMS is activated and the first operating condition is START, the 
+MG and the BB remain disabled, while the PVEs co nverters work in VC mode. Figure 16 shows the
+response of the DC bus when activating the CMS, th e VC needs 20 seconds to stabilize at the desired 
+voltage level (190 V). 
+Figure 16. Bus behavior when the control and mana gement system (CMS) is switched on.
+When the CMC works in the START condition, the sy stem is able to keep the DC bus stable in 
+case of load changes, the PVEs are responsible fo r supplying the energy demanded by the loads while
+the DC–DC boost converters operate in mode VC. Figure 17 shows the behavior when connecting a 
+115 W LED-type electronic lighting load, while Figu re 18 shows the behavior when disconnecting the 
+load. When the load is connected or disconnected , a drop and an overshoot of 1.5 V (0.78%) is 
+generated regarding the established voltage level of 190 V, the response has a transition time of 10 
+seconds. 
+Figure 16. Bus behavior when the control and management system (CMS) is switched on.
+
+--- Page 18 ---
+Energies 2020 ,13, 4074 18 of 30
+When the CMC works in the START condition, the system is able to keep the DC bus stable in case
+of load changes, the PVEs are responsible for supplying the energy demanded by the loads while the
+DC–DC boost converters operate in mode VC. Figure 17 shows the behavior when connecting a 115 W
+LED-type electronic lighting load, while Figure 18 shows the behavior when disconnecting the load.
+When the load is connected or disconnected, a drop and an overshoot of 1.5 V (0.78%) is generated
+regarding the established voltage level of 190 V , the response has a transition time of 10 s.
+Energies 2020, 13, x FOR PEER REVIEW 18 of 30 
+Figure 17. L
+ED-type lamp connection.  
+Figure 18. Disconnection of LED-type lamp.
+A 300 W fluorescent luminaire was used in the experimental tests, Figure 19 illustrates the
+behavior of the DC bus when connecting the lo ad, while Figure 20 shows the behavior when 
+disconnecting it. When the load is connected, the bus has a voltage drop of 1.5 V (0.78%), while the 
+load is disconnected there is an excess of 4.25 V (2 .2%), both responses with a stabilization time of 4
+seconds. 
+Figure 19. Connection of 300 W fluorescent lamps.  
+Figure 17. LED-type lamp connection.
+Energies 2020 , 13, x FOR PEER REVIEW 18 of 30 
+  
+Figure 17. LED-type lamp connection.  
+ 
+Figure 18. Disconnection of LED-type lamp.  
+A 300 W fluorescent luminaire was used in the experimental tests, Figure 19 illustrates the 
+behavior of the DC bus when connecting the lo ad, while Figure 20 shows the behavior when 
+disconnecting it. When the load is connected, the bus has a voltage drop of 1.5 V (0.78%), while the 
+load is disconnected there is an excess of 4.25 V (2 .2%), both responses with a stabilization time of 4 
+seconds. 
+ 
+Figure 19. Connection of 300 W fluorescent lamps.  
+Figure 18. Disconnection of LED-type lamp.
+A 300 W ﬂuorescent luminaire was used in the experimental tests, Figure 19 illustrates the behavior
+of the DC bus when connecting the load, while Figure 20 shows the behavior when disconnecting it.
+When the load is connected, the bus has a voltage drop of 1.5 V (0.78%), while the load is disconnected
+there is an excess of 4.25 V (2.2%), both responses with a stabilization time of 4 s.
+
+--- Page 19 ---
+Energies 2020 ,13, 4074 19 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 18 of 30 
+  
+Figure 17. LED-type lamp connection.  
+ 
+Figure 18. Disconnection of LED-type lamp.  
+A 300 W fluorescent luminaire was used in the experimental tests, Figure 19 illustrates the 
+behavior of the DC bus when connecting the lo ad, while Figure 20 shows the behavior when 
+disconnecting it. When the load is connected, the bus has a voltage drop of 1.5 V (0.78%), while the 
+load is disconnected there is an excess of 4.25 V (2 .2%), both responses with a stabilization time of 4 
+seconds. 
+ 
+Figure 19. Connection of 300 W fluorescent lamps.  
+Figure 19. Connection of 300 W ﬂuorescent lamps.
+Energies 2020 , 13, x FOR PEER REVIEW 19 of 30 
+  
+Figure 20. Disconnection of 300 W fluorescent lamps.  
+To verify the behavior of the GMS in the limit of the START state a fluorescent load of 400 W 
+was used. When connecting this load, the energy generated by the PVEs is equal to the energy 
+demanded by the loads, in Figures 21 and 22 th e bus behavior, when connecting and disconnecting 
+the load, is presented. When the load is connected, the bus has a voltage drop of 3 V (1.57%) when disconnecting, it has an overshoot of 7.5 V (3.94%), in both cases there is a stabilization time of 10 seconds. 
+ 
+Figure 21. Connection of 400 W fluorescent lamps.  
+Figure 20. Disconnection of 300 W ﬂuorescent lamps.
+To verify the behavior of the GMS in the limit of the START state a ﬂuorescent load of 400 W was
+used. When connecting this load, the energy generated by the PVEs is equal to the energy demanded
+by the loads, in Figures 21 and 22 the bus behavior, when connecting and disconnecting the load, is
+presented. When the load is connected, the bus has a voltage drop of 3 V (1.57%) when disconnecting,
+it has an overshoot of 7.5 V (3.94%), in both cases there is a stabilization time of 10 s.
+Energies 2020 , 13, x FOR PEER REVIEW 19 of 30 
+  
+Figure 20. Disconnection of 300 W fluorescent lamps.  
+To verify the behavior of the GMS in the limit of the START state a fluorescent load of 400 W 
+was used. When connecting this load, the energy generated by the PVEs is equal to the energy 
+demanded by the loads, in Figures 21 and 22 th e bus behavior, when connecting and disconnecting 
+the load, is presented. When the load is connected, the bus has a voltage drop of 3 V (1.57%) when disconnecting, it has an overshoot of 7.5 V (3.94%), in both cases there is a stabilization time of 10 seconds. 
+ 
+Figure 21. Connection of 400 W fluorescent lamps.  
+Figure 21. Connection of 400 W ﬂuorescent lamps.
+
+--- Page 20 ---
+Energies 2020 ,13, 4074 20 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 20 of 30 
+  
+Figure 22. Disconnection of 400 W fluorescent lamps.  
+4.3 DC–AC Converter Working as Rectifier, PVE’s and BB Disabled 
+When PVEs are not available to generate power, the GMC has the priority of transferring power 
+from the MG to the DC bus while keeping the BB disabled. The GMC enables the DC–AC converter to work as a rectifier with the control system illustr ated in Figure 14. Figure 23 shows the behavior of 
+the bus when enabling the converter, at this moment the supercapacitor bank absorbs energy from the MG and stabilizes at a voltage level of 144 V in a time of 12 seconds. Next, the GMC activates the rectifier controller by stabilizing the bus at the desired voltage level of 190 V (See Figure 24). The DC bus has a stabilization time of 12 seconds. 
+ 
+Figure 23. Connection to the main grid (MG).  
+Figure 22. Disconnection of 400 W ﬂuorescent lamps.
+4.3. DC–AC Converter Working as Rectiﬁer, PVE’s and BB Disabled
+When PVEs are not available to generate power, the GMC has the priority of transferring power
+from the MG to the DC bus while keeping the BB disabled. The GMC enables the DC–AC converter to
+work as a rectiﬁer with the control system illustrated in Figure 14. Figure 23 shows the behavior of the
+bus when enabling the converter, at this moment the supercapacitor bank absorbs energy from the
+MG and stabilizes at a voltage level of 144 V in a time of 12 s. Next, the GMC activates the rectiﬁer
+controller by stabilizing the bus at the desired voltage level of 190 V (See Figure 24). The DC bus has a
+stabilization time of 12 s.
+Energies 2020 , 13, x FOR PEER REVIEW 20 of 30 
+  
+Figure 22. Disconnection of 400 W fluorescent lamps.  
+4.3 DC–AC Converter Working as Rectifier, PVE’s and BB Disabled 
+When PVEs are not available to generate power, the GMC has the priority of transferring power 
+from the MG to the DC bus while keeping the BB disabled. The GMC enables the DC–AC converter to work as a rectifier with the control system illustr ated in Figure 14. Figure 23 shows the behavior of 
+the bus when enabling the converter, at this moment the supercapacitor bank absorbs energy from the MG and stabilizes at a voltage level of 144 V in a time of 12 seconds. Next, the GMC activates the rectifier controller by stabilizing the bus at the desired voltage level of 190 V (See Figure 24). The DC bus has a stabilization time of 12 seconds. 
+ 
+Figure 23. Connection to the main grid (MG).  
+Figure 23. Connection to the main grid (MG).
+
+--- Page 21 ---
+Energies 2020 ,13, 4074 21 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 21 of 30 
+  
+Figure 24. Ignition of the control for the rectifier.  
+For this case, the same loads were used as in th e previous case, presenting the behavior of the 
+DC bus before the connection (Con) and disconnectio n (Discon) of these loads, in Figures 25 and 26 
+a 115 W LED luminaire is used, in Figures 27 and 28 a fluorescent luminaire (FL) of 300 W, finally in Figures 29 and 30 a FL of 400 W. Table 8 shows the voltage drops (D), the overshoots (O) and the stabilization times before these di sturbances. This table presents th e behavior of the DC bus under 
+the following conditions: (1) MG supplying power to the loads, (2) PVEs supplying power to the loads, (3) MG supplying power to the loads and the BB and (4) PVEs supplying power to the loads 
+and the BB. 
+ 
+Figure 25. Connection of 115 W LED lamp.  
+Figure 24. Ignition of the control for the rectiﬁer.
+For this case, the same loads were used as in the previous case, presenting the behavior of the
+DC bus before the connection (Con) and disconnection (Discon) of these loads, in Figures 25 and 26
+a 115 W LED luminaire is used, in Figures 27 and 28 a ﬂuorescent luminaire (FL) of 300 W, ﬁnally
+inFigures 29 and 30 a FL of 400 W. Table 8 shows the voltage drops (D), the overshoots (O) and the
+stabilization times before these disturbances. This table presents the behavior of the DC bus under the
+following conditions: (1) MG supplying power to the loads, (2) PVEs supplying power to the loads,
+(3) MG supplying power to the loads and the BB and (4) PVEs supplying power to the loads and the BB.
+Energies 2020 , 13, x FOR PEER REVIEW 21 of 30 
+  
+Figure 24. Ignition of the control for the rectifier.  
+For this case, the same loads were used as in th e previous case, presenting the behavior of the 
+DC bus before the connection (Con) and disconnectio n (Discon) of these loads, in Figures 25 and 26 
+a 115 W LED luminaire is used, in Figures 27 and 28 a fluorescent luminaire (FL) of 300 W, finally in Figures 29 and 30 a FL of 400 W. Table 8 shows the voltage drops (D), the overshoots (O) and the stabilization times before these di sturbances. This table presents th e behavior of the DC bus under 
+the following conditions: (1) MG supplying power to the loads, (2) PVEs supplying power to the loads, (3) MG supplying power to the loads and the BB and (4) PVEs supplying power to the loads 
+and the BB. 
+ 
+Figure 25. Connection of 115 W LED lamp.  
+Figure 25. Connection of 115 W LED lamp.
+
+--- Page 22 ---
+Energies 2020 ,13, 4074 22 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 22 of 30 
+  
+Figure 26. Disconnection of 115 W LED lamp.  
+ 
+Figure 27. Connection of 300 W fluorescent lamps.  
+ 
+Figure 28. Disconnection of 300 W fluorescent lamps.  
+Figure 26. Disconnection of 115 W LED lamp.
+Energies 2020 , 13, x FOR PEER REVIEW 22 of 30 
+  
+Figure 26. Disconnection of 115 W LED lamp.  
+ 
+Figure 27. Connection of 300 W fluorescent lamps.  
+ 
+Figure 28. Disconnection of 300 W fluorescent lamps.  
+Figure 27. Connection of 300 W ﬂuorescent lamps.
+Energies 2020 , 13, x FOR PEER REVIEW 22 of 30 
+  
+Figure 26. Disconnection of 115 W LED lamp.  
+ 
+Figure 27. Connection of 300 W fluorescent lamps.  
+ 
+Figure 28. Disconnection of 300 W fluorescent lamps.  
+Figure 28. Disconnection of 300 W ﬂuorescent lamps.
+
+--- Page 23 ---
+Energies 2020 ,13, 4074 23 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 23 of 30 
+  
+Figure 29. Connection of 400 W fluorescent lamps. 
+ 
+Figure 30. Disconnection of 400 W fluorescent lamps. 
+4.4 Disabled PVEs, MG Supplying Energy to the Loads and the BB 
+When the MG is supplying power to the loads co nnected to the DC bus and the power is less 
+than 1 kW, the remaining energy is transferred to the BB (P BB = 1 kW–P LOADS ). The control of the energy 
+that is transferred to the BB is determined by the current that is injected into the BB (the setpoint of this power is determined from the P
+BB), in this operation mode the bidirectional DC–DC converter 
+works as a buck. 
+Figure 31 shows the behavior of the DC bus and the power that is injected into the BB when 
+activating the DC–DC bidirectional converter as a buck. When activating the energy transfer to the 
+BB, the DC bus has a voltage drop of 1.65 V (0.86%), while the power injected into the BB takes the desired level of 3 A, this transition has a stabilization time of 10 seconds. When energy is being transferred to the BB and it is charged at 80%, the power injected into the BB is canceled. Figure 32 
+shows the behavior of the current and the DC bus at the time of changing the operating mode. At the 
+time of the transition, the DC bus has a 2.5 V (1.31%) overshoot with a stabilization time of 4 seconds. 
+Table 8. Response of the DC-µG to the connection and disconnection of loads and sources. 
+MG Supplying Power to the Loads 
+Response Loads 
+Con LED Discon LED Con FL 300 W Discon FL 300 W Con FL 400 W Discon FL 400 W 
+Disturbance 2.4 V (D) 
+(1.26%) 2 V (O) 
+(1.05%) 4 V (D) 
+(2.1%) 8 V (O) 
+(4.2%) 8 V (D) 
+(4.2%) 8 V (O) 
+(4.2%) 
+Figure 29. Connection of 400 W ﬂuorescent lamps.
+Energies 2020 , 13, x FOR PEER REVIEW 23 of 30 
+  
+Figure 29. Connection of 400 W fluorescent lamps. 
+ 
+Figure 30. Disconnection of 400 W fluorescent lamps. 
+4.4 Disabled PVEs, MG Supplying Energy to the Loads and the BB 
+When the MG is supplying power to the loads co nnected to the DC bus and the power is less 
+than 1 kW, the remaining energy is transferred to the BB (P BB = 1 kW–P LOADS ). The control of the energy 
+that is transferred to the BB is determined by the current that is injected into the BB (the setpoint of this power is determined from the P
+BB), in this operation mode the bidirectional DC–DC converter 
+works as a buck. 
+Figure 31 shows the behavior of the DC bus and the power that is injected into the BB when 
+activating the DC–DC bidirectional converter as a buck. When activating the energy transfer to the 
+BB, the DC bus has a voltage drop of 1.65 V (0.86%), while the power injected into the BB takes the desired level of 3 A, this transition has a stabilization time of 10 seconds. When energy is being transferred to the BB and it is charged at 80%, the power injected into the BB is canceled. Figure 32 
+shows the behavior of the current and the DC bus at the time of changing the operating mode. At the 
+time of the transition, the DC bus has a 2.5 V (1.31%) overshoot with a stabilization time of 4 seconds. 
+Table 8. Response of the DC-µG to the connection and disconnection of loads and sources. 
+MG Supplying Power to the Loads 
+Response Loads 
+Con LED Discon LED Con FL 300 W Discon FL 300 W Con FL 400 W Discon FL 400 W 
+Disturbance 2.4 V (D) 
+(1.26%) 2 V (O) 
+(1.05%) 4 V (D) 
+(2.1%) 8 V (O) 
+(4.2%) 8 V (D) 
+(4.2%) 8 V (O) 
+(4.2%) 
+Figure 30. Disconnection of 400 W ﬂuorescent lamps.
+Table 8. Response of the DC- G to the connection and disconnection of loads and sources.
+MG Supplying Power to the Loads
+ResponseLoads
+Con LED Discon LED Con FL 300 W Discon FL 300 W Con FL 400 W Discon FL 400 W
+Disturbance2.4 V (D)
+(1.26%)2 V (O)
+(1.05%)4 V (D)
+(2.1%)8 V (O)
+(4.2%)8 V (D)
+(4.2%)8 V (O)
+(4.2%)
+Timing 4 s 4 s 6 s 6 s 6 s 6 s
+PVEs Supplying Power to the Loads
+ResponseLoads
+Con LED Discon LED Con FL 300 W Discon FL 300 W Con FL 400 W Discon FL 400 W
+Disturbance1.5 V (D)
+(0.78%)1.5 V (O)
+(0.78%)1.5 V (D)
+(0.78%)4.25 V (O)
+(2.2%)3 V (D)
+(1.57%)7.5 V (O)
+(3.94%)
+Timing 10 s 10 s 4 s 4 s 10 s 10 s
+MG Supplying Power to the Loads and the BB
+ResponseOperation
+Activation Deactivation
+Disturbance 1.65 V (D) (0.86%) 2.5 V (O) (1.31%)
+Timing 10 s 4 s
+PVEs Supplying Power to the Loads and the BB
+ResponseOperation
+Activation Deactivation
+Disturbance 8.75 V (D) (4.6%) 8.75 V (O) (4.6%)
+Timing 6 s 6 s
+
+--- Page 24 ---
+Energies 2020 ,13, 4074 24 of 30
+4.4. Disabled PVEs, MG Supplying Energy to the Loads and the BB
+When the MG is supplying power to the loads connected to the DC bus and the power is less than
+1 kW, the remaining energy is transferred to the BB (P BB=1 kW–P LOADS ). The control of the energy
+that is transferred to the BB is determined by the current that is injected into the BB (the setpoint of this
+power is determined from the P BB), in this operation mode the bidirectional DC–DC converter works
+as a buck.
+Figure 31 shows the behavior of the DC bus and the power that is injected into the BB when
+activating the DC–DC bidirectional converter as a buck. When activating the energy transfer to the BB,
+the DC bus has a voltage drop of 1.65 V (0.86%), while the power injected into the BB takes the desired
+level of 3 A, this transition has a stabilization time of 10 s. When energy is being transferred to the BB
+and it is charged at 80%, the power injected into the BB is canceled. Figure 32 shows the behavior of
+the current and the DC bus at the time of changing the operating mode. At the time of the transition,
+the DC bus has a 2.5 V (1.31%) overshoot with a stabilization time of 4 s.
+Energies 2020 , 13, x FOR PEER REVIEW 24 of 30 
+ Timing 4 seconds 4 seconds 6 seconds 6 seconds 6 seconds 6 seconds 
+PVEs Supplying Power to the Loads 
+Response Loads 
+Con LED Discon LED Con FL 300 W Discon FL 300 W Con FL 400 W Discon FL 400 W 
+Disturbance 1.5 V (D) 
+(0.78%) 1.5 V (O) 
+(0.78%) 1.5 V (D) 
+(0.78%) 4.25 V (O) 
+(2.2%) 3 V (D) 
+(1.57%) 7.5 V (O) 
+(3.94%) 
+Timing 10 seconds 10 seconds 4 seconds 4 seconds 10 seconds 10 seconds 
+MG Supplying Power to the Loads and the BB 
+Response Operation 
+Activation Deactivation 
+Disturbance 1.65 V (D) (0.86%) 2.5 V (O) (1.31%) 
+Timing 10 seconds 4 seconds 
+PVEs Supplying Power to the Loads and the BB 
+Response Operation 
+Activation Deactivation 
+Disturbance 8.75 V (D) (4.6%) 8.75 V (O) (4.6%) 
+Timing 6 seconds 6 seconds 
+ 
+ 
+Figure 31. Start of the power supply to the battery bank (BB).  
+ 
+Figure 32. End of the power supply to the BB.  
+4.5 PVEs Supplying Energy to the Loads and to BB and Disabled MG 
+Another way to transfer energy to the BB is to us e excess energy from the PVEs. In this state, the 
+energy transferred to the BB is determined by P BB = P PVEs − PLOADS . If the control of the DC–DC 
+Figure 31. Start of the power supply to the battery bank (BB).
+Energies 2020 , 13, x FOR PEER REVIEW 24 of 30 
+ Timing 4 seconds 4 seconds 6 seconds 6 seconds 6 seconds 6 seconds 
+PVEs Supplying Power to the Loads 
+Response Loads 
+Con LED Discon LED Con FL 300 W Discon FL 300 W Con FL 400 W Discon FL 400 W 
+Disturbance 1.5 V (D) 
+(0.78%) 1.5 V (O) 
+(0.78%) 1.5 V (D) 
+(0.78%) 4.25 V (O) 
+(2.2%) 3 V (D) 
+(1.57%) 7.5 V (O) 
+(3.94%) 
+Timing 10 seconds 10 seconds 4 seconds 4 seconds 10 seconds 10 seconds 
+MG Supplying Power to the Loads and the BB 
+Response Operation 
+Activation Deactivation 
+Disturbance 1.65 V (D) (0.86%) 2.5 V (O) (1.31%) 
+Timing 10 seconds 4 seconds 
+PVEs Supplying Power to the Loads and the BB 
+Response Operation 
+Activation Deactivation 
+Disturbance 8.75 V (D) (4.6%) 8.75 V (O) (4.6%) 
+Timing 6 seconds 6 seconds 
+ 
+ 
+Figure 31. Start of the power supply to the battery bank (BB).  
+ 
+Figure 32. End of the power supply to the BB.  
+4.5 PVEs Supplying Energy to the Loads and to BB and Disabled MG 
+Another way to transfer energy to the BB is to us e excess energy from the PVEs. In this state, the 
+energy transferred to the BB is determined by P BB = P PVEs − PLOADS . If the control of the DC–DC 
+Figure 32. End of the power supply to the BB.
+4.5. PVEs Supplying Energy to the Loads and to BB and Disabled MG
+Another way to transfer energy to the BB is to use excess energy from the PVEs. In this state, the
+energy transferred to the BB is determined by P BB=PPVEsPLOADS . If the control of the DC–DC
+
+--- Page 25 ---
+Energies 2020 ,13, 4074 25 of 30
+converters of the PVEs is in VC mode and the extracted power is less than 80% of the maximum power,
+the GMC modiﬁes its operating state, changing the VC mode to the MPPT mode in the converters of
+the PVEs and activating the control for the bidirectional DC–DC converter of the BB in buck mode.
+Figure 33 illustrates the behavior of the DC bus and the current (power) that is injected into the
+BB. When changing state, the bus su ers a voltage drop of 8.75 V (4.6%) with a stabilization time of
+6 s, while the current takes its maximum value in 3 s. The current has constant variations because the
+control algorithm for the MPPT is responsible for disturbing the energy generated by the PVEs, which
+aects the injected current to the BB and the DC bus. Figure 34 shows the behavior of the same signals
+when the BB stops transferring energy.
+Energies 2020 , 13, x FOR PEER REVIEW 25 of 30 
+ converters of the PVEs is in VC mode and the extracted power is less than 80% of the maximum 
+power, the GMC modifies its oper ating state, changing the VC mode to the MPPT mode in the 
+converters of the PVEs and activating the control for the bidirectional DC–DC converter of the BB in 
+buck mode. 
+Figure 33 illustrates the behavior of the DC bus and the current (power) that is injected into the 
+BB. When changing state, the bus suffers a voltage drop of 8.75 V (4.6%) with a stabilization time of 6 seconds, while the current takes its maximum value in 3 seconds. The current has constant 
+variations because the control algorithm for the MPPT is responsible for disturbing the energy 
+generated by the PVEs, which affects the injected cu rrent to the BB and the DC bus. Figure 34 shows 
+the behavior of the same signals when the BB stops transferring energy. 
+ 
+Figure 33. Start of the power supply to the BB.  
+ 
+Figure 34. End of the power supply to the BB.  
+To recognize the dynamic response of the BB in th e charging process, the bidirectional converter 
+was used in buck mode, this converter takes the el ectrical energy generated by the PVEs and transfers 
+it to the BB. When the BB is fully discharged, the co nstant current charge is carried out maintaining a 
+current (power) level of 8.8 A (because the maximum capacity of the bidirectional DC–DC converter is 
+1 kW), as the time passes the BB voltage tends to increase up to a voltage level of 135 V, at this moment the control changes to constant voltage mode, decreasing the current that is transferred to the BB. The BB is considered to be fully charged when the current supplied is 500 mA. Figure 35 illustrates the 
+behavior of the BB voltage while charging in constant  power mode and voltage, the charge in constant 
+power mode has a duration of 8 hours, while the ch arge in constant voltage mode was 8.5 hours. The 
+behavior of the current in both modes is illustrated in Figure 36. 
+Figure 33. Start of the power supply to the BB.
+Energies 2020 , 13, x FOR PEER REVIEW 25 of 30 
+ converters of the PVEs is in VC mode and the extracted power is less than 80% of the maximum 
+power, the GMC modifies its oper ating state, changing the VC mode to the MPPT mode in the 
+converters of the PVEs and activating the control for the bidirectional DC–DC converter of the BB in 
+buck mode. 
+Figure 33 illustrates the behavior of the DC bus and the current (power) that is injected into the 
+BB. When changing state, the bus suffers a voltage drop of 8.75 V (4.6%) with a stabilization time of 6 seconds, while the current takes its maximum value in 3 seconds. The current has constant 
+variations because the control algorithm for the MPPT is responsible for disturbing the energy 
+generated by the PVEs, which affects the injected cu rrent to the BB and the DC bus. Figure 34 shows 
+the behavior of the same signals when the BB stops transferring energy. 
+ 
+Figure 33. Start of the power supply to the BB.  
+ 
+Figure 34. End of the power supply to the BB.  
+To recognize the dynamic response of the BB in th e charging process, the bidirectional converter 
+was used in buck mode, this converter takes the el ectrical energy generated by the PVEs and transfers 
+it to the BB. When the BB is fully discharged, the co nstant current charge is carried out maintaining a 
+current (power) level of 8.8 A (because the maximum capacity of the bidirectional DC–DC converter is 
+1 kW), as the time passes the BB voltage tends to increase up to a voltage level of 135 V, at this moment the control changes to constant voltage mode, decreasing the current that is transferred to the BB. The BB is considered to be fully charged when the current supplied is 500 mA. Figure 35 illustrates the 
+behavior of the BB voltage while charging in constant  power mode and voltage, the charge in constant 
+power mode has a duration of 8 hours, while the ch arge in constant voltage mode was 8.5 hours. The 
+behavior of the current in both modes is illustrated in Figure 36. 
+Figure 34. End of the power supply to the BB.
+To recognize the dynamic response of the BB in the charging process, the bidirectional converter
+was used in buck mode, this converter takes the electrical energy generated by the PVEs and transfers
+it to the BB. When the BB is fully discharged, the constant current charge is carried out maintaining a
+current (power) level of 8.8 A (because the maximum capacity of the bidirectional DC–DC converter is
+1 kW), as the time passes the BB voltage tends to increase up to a voltage level of 135 V , at this moment
+the control changes to constant voltage mode, decreasing the current that is transferred to the BB. The
+BB is considered to be fully charged when the current supplied is 500 mA. Figure 35 illustrates the
+behavior of the BB voltage while charging in constant power mode and voltage, the charge in constant
+
+--- Page 26 ---
+Energies 2020 ,13, 4074 26 of 30
+power mode has a duration of 8 h, while the charge in constant voltage mode was 8.5 h. The behavior
+of the current in both modes is illustrated in Figure 36.
+Energies 2020 , 13, x FOR PEER REVIEW 26 of 30 
+  
+Figure 35. BB voltage in charging mode.  
+ 
+Figure 36. BB current in charging mode.  
+4.6 BB Supplying Energy to the Loads, Disabled PVEs and MG 
+After conducting experimental tests of the BB's charge, obtaining energy from the MG and the 
+PVEs, the behavior of the BB's charging and discharg ing process is presented. For these tests, a load 
+was connected to the DC bus that requires a constant power of 1 kW (maximum power of the µG), while the bidirectional converter works in boost mode keeping the voltage of the DC bus at 190 V. 
+The behavior of the BB voltage with an initial voltage of 121.2 V is shown in Figure 37; as time passes, 
+the BB voltage decreases and this generates an increase in the current delivered by the BB (See Figure 38), this due to a constant power of 1 kW being de manded for the load connected to the bus. Figure 
+38 presents the behavior of the BB current at th e discharge. The discharge was carried out until the 
+BB voltage dropped to a level of 100 V, so as not to damage the BB following the specifications given by the manufacturer. Under these conditions, the DC–DC converter was able to maintain the voltage level of the DC bus at a level of 190 V while supplying power at a 1 kW load for approximately 10 
+hours until the BB was discharged. 
+ 110115120125130135140
+8:01
+9:21
+10:41
+12:01
+13:2114:4115:5516:35
+17:15
+17:5518:3519:15
+19:55
+20:3521:1521:5522:35
+23:15
+23:55
+0:35Volts
+Hour of day
+0246810
+8:01
+9:21
+10:4112:0113:2114:4115:55
+16:35
+17:1517:5518:3519:1519:55
+20:35
+21:1521:5522:3523:15
+23:55
+0:35Ampers
+Hour of day
+100102104106108110112114116118120122
+8:07
+8:47
+9:27
+10:07
+10:47
+11:2712:0712:47
+13:27
+14:0714:47
+15:27
+16:0716:47
+17:27
+17:4717:51Volts
+Hour of day
+Figure 35. BB voltage in charging mode.
+Energies 2020 , 13, x FOR PEER REVIEW 26 of 30 
+  
+Figure 35. BB voltage in charging mode.  
+ 
+Figure 36. BB current in charging mode.  
+4.6 BB Supplying Energy to the Loads, Disabled PVEs and MG 
+After conducting experimental tests of the BB's charge, obtaining energy from the MG and the 
+PVEs, the behavior of the BB's charging and discharg ing process is presented. For these tests, a load 
+was connected to the DC bus that requires a constant power of 1 kW (maximum power of the µG), while the bidirectional converter works in boost mode keeping the voltage of the DC bus at 190 V. 
+The behavior of the BB voltage with an initial voltage of 121.2 V is shown in Figure 37; as time passes, 
+the BB voltage decreases and this generates an increase in the current delivered by the BB (See Figure 38), this due to a constant power of 1 kW being de manded for the load connected to the bus. Figure 
+38 presents the behavior of the BB current at th e discharge. The discharge was carried out until the 
+BB voltage dropped to a level of 100 V, so as not to damage the BB following the specifications given by the manufacturer. Under these conditions, the DC–DC converter was able to maintain the voltage level of the DC bus at a level of 190 V while supplying power at a 1 kW load for approximately 10 
+hours until the BB was discharged. 
+ 110115120125130135140
+8:01
+9:21
+10:41
+12:01
+13:2114:4115:5516:35
+17:15
+17:5518:3519:15
+19:55
+20:3521:1521:5522:35
+23:15
+23:55
+0:35Volts
+Hour of day
+0246810
+8:01
+9:21
+10:4112:0113:2114:4115:55
+16:35
+17:1517:5518:3519:1519:55
+20:35
+21:1521:5522:3523:15
+23:55
+0:35Ampers
+Hour of day
+100102104106108110112114116118120122
+8:07
+8:47
+9:27
+10:07
+10:47
+11:2712:0712:47
+13:27
+14:0714:47
+15:27
+16:0716:47
+17:27
+17:4717:51Volts
+Hour of day
+Figure 36. BB current in charging mode.
+4.6. BB Supplying Energy to the Loads, Disabled PVEs and MG
+After conducting experimental tests of the BB’s charge, obtaining energy from the MG and the
+PVEs, the behavior of the BB’s charging and discharging process is presented. For these tests, a load
+was connected to the DC bus that requires a constant power of 1 kW (maximum power of the G),
+while the bidirectional converter works in boost mode keeping the voltage of the DC bus at 190 V . The
+behavior of the BB voltage with an initial voltage of 121.2 V is shown in Figure 37; as time passes, the
+BB voltage decreases and this generates an increase in the current delivered by the BB (See Figure 38),
+this due to a constant power of 1 kW being demanded for the load connected to the bus. Figure 38
+presents the behavior of the BB current at the discharge. The discharge was carried out until the BB
+voltage dropped to a level of 100 V , so as not to damage the BB following the speciﬁcations given by
+the manufacturer. Under these conditions, the DC–DC converter was able to maintain the voltage level
+of the DC bus at a level of 190 V while supplying power at a 1 kW load for approximately 10 h until
+the BB was discharged.
+
+--- Page 27 ---
+Energies 2020 ,13, 4074 27 of 30
+Energies 2020 , 13, x FOR PEER REVIEW 26 of 30 
+  
+Figure 35. BB voltage in charging mode.  
+ 
+Figure 36. BB current in charging mode.  
+4.6 BB Supplying Energy to the Loads, Disabled PVEs and MG 
+After conducting experimental tests of the BB's charge, obtaining energy from the MG and the 
+PVEs, the behavior of the BB's charging and discharg ing process is presented. For these tests, a load 
+was connected to the DC bus that requires a constant power of 1 kW (maximum power of the µG), while the bidirectional converter works in boost mode keeping the voltage of the DC bus at 190 V. 
+The behavior of the BB voltage with an initial voltage of 121.2 V is shown in Figure 37; as time passes, 
+the BB voltage decreases and this generates an increase in the current delivered by the BB (See Figure 38), this due to a constant power of 1 kW being de manded for the load connected to the bus. Figure 
+38 presents the behavior of the BB current at th e discharge. The discharge was carried out until the 
+BB voltage dropped to a level of 100 V, so as not to damage the BB following the specifications given by the manufacturer. Under these conditions, the DC–DC converter was able to maintain the voltage level of the DC bus at a level of 190 V while supplying power at a 1 kW load for approximately 10 
+hours until the BB was discharged. 
+ 110115120125130135140
+8:01
+9:21
+10:41
+12:01
+13:2114:4115:5516:35
+17:15
+17:5518:3519:15
+19:55
+20:3521:1521:5522:35
+23:15
+23:55
+0:35Volts
+Hour of day
+0246810
+8:01
+9:21
+10:4112:0113:2114:4115:55
+16:35
+17:1517:5518:3519:1519:55
+20:35
+21:1521:5522:3523:15
+23:55
+0:35Ampers
+Hour of day
+100102104106108110112114116118120122
+8:07
+8:47
+9:27
+10:07
+10:47
+11:2712:0712:47
+13:27
+14:0714:47
+15:27
+16:0716:47
+17:27
+17:4717:51Volts
+Hour of day
+Figure 37. BB voltage in discharge mode.
+Energies 2020 , 13, x FOR PEER REVIEW 27 of 30 
+ Figure 37. BB voltage in discharge mode.  
+ 
+Figure 38. BB current in discharge mode.  
+4.7 PVEs Supplying Power to the Loads and the MG, Disabled BB 
+In this test, the interconnection of the DC-µG wi th the MG is generated. In this condition the 
+PVEs operate with the control algorithm for the MPPT and the DC–AC converter is enabled as an 
+inverter transferring energy from the PVEs to the MG. In this way, the remaining energy between the 
+energy generated by the PVEs and the energy consumed by the loads connected to the DC bus (P MG 
+= P PVEs − PLOADS ) is transferred to the MG. During the interconnection with the MG the voltage level of 
+the DC bus suffers a drop of 2.2% with a duration of  the transitory response of 6 seconds. Figure 39 
+shows the AC output voltage–curre nt oscillogram of the inverter interconnected with the MG 
+supplying 320 W. This image illustrates the AC voltage and power signals when performing the energy transfer; In addition, the instantaneous po wer being supplied to the AC MG and the power 
+factor are displayed. 
+ 
+Figure 39. Output voltage–current oscillograms of th e interconnected inverter with the MG. 
+5. Conclusions 
+This study shows the design and implementation  of a management and control system applied 
+to an experimental prototype of a DC-µG for a maximum power of 1 kW with a DC bus with a voltage level 190 V, which can operate isolated or interco nnected with the MG. The proposed DC-µG is made 
+up of two photovoltaic systems, a complete brid ge inverter, a BB and electronic loads (LED-type, 
+fluorescent and computer equipment). For the admi nistration and control of energy in the DC-µG, 
+an EMS was implemented on the NI myRIO-1900 platform using the LabVIEW virtual programming 
+software for the design of the EMS. 
+In the experimental results, the operation of the DC-µG is presented un der principle operating 
+conditions, all of them with the objective of evaluating the response of the DC bus to disturbances caused by the connection and disconnection of energy sources and real electronic loads. Throughout 6789101112
+8:07
+8:47
+9:27
+10:07
+10:47
+11:2712:07
+12:47
+13:27
+14:07
+14:4715:27
+16:07
+16:4717:27
+17:47
+17:51Ampers
+Hour of day
+Figure 38. BB current in discharge mode.
+4.7. PVEs Supplying Power to the Loads and the MG, Disabled BB
+In this test, the interconnection of the DC- G with the MG is generated. In this condition the
+PVEs operate with the control algorithm for the MPPT and the DC–AC converter is enabled as an
+inverter transferring energy from the PVEs to the MG. In this way, the remaining energy between
+the energy generated by the PVEs and the energy consumed by the loads connected to the DC bus
+(PMG=PPVEsPLOADS ) is transferred to the MG. During the interconnection with the MG the voltage
+level of the DC bus su ers a drop of 2.2% with a duration of the transitory response of 6 s. Figure 39
+shows the AC output voltage–current oscillogram of the inverter interconnected with the MG supplying
+320 W. This image illustrates the AC voltage and power signals when performing the energy transfer;
+In addition, the instantaneous power being supplied to the AC MG and the power factor are displayed.
+Energies 2020 , 13, x FOR PEER REVIEW 27 of 30 
+ Figure 37. BB voltage in discharge mode.  
+ 
+Figure 38. BB current in discharge mode.  
+4.7 PVEs Supplying Power to the Loads and the MG, Disabled BB 
+In this test, the interconnection of the DC-µG wi th the MG is generated. In this condition the 
+PVEs operate with the control algorithm for the MPPT and the DC–AC converter is enabled as an 
+inverter transferring energy from the PVEs to the MG. In this way, the remaining energy between the 
+energy generated by the PVEs and the energy consumed by the loads connected to the DC bus (P MG 
+= P PVEs − PLOADS ) is transferred to the MG. During the interconnection with the MG the voltage level of 
+the DC bus suffers a drop of 2.2% with a duration of  the transitory response of 6 seconds. Figure 39 
+shows the AC output voltage–curre nt oscillogram of the inverter interconnected with the MG 
+supplying 320 W. This image illustrates the AC voltage and power signals when performing the energy transfer; In addition, the instantaneous po wer being supplied to the AC MG and the power 
+factor are displayed. 
+ 
+Figure 39. Output voltage–current oscillograms of th e interconnected inverter with the MG. 
+5. Conclusions 
+This study shows the design and implementation  of a management and control system applied 
+to an experimental prototype of a DC-µG for a maximum power of 1 kW with a DC bus with a voltage level 190 V, which can operate isolated or interco nnected with the MG. The proposed DC-µG is made 
+up of two photovoltaic systems, a complete brid ge inverter, a BB and electronic loads (LED-type, 
+fluorescent and computer equipment). For the admi nistration and control of energy in the DC-µG, 
+an EMS was implemented on the NI myRIO-1900 platform using the LabVIEW virtual programming 
+software for the design of the EMS. 
+In the experimental results, the operation of the DC-µG is presented un der principle operating 
+conditions, all of them with the objective of evaluating the response of the DC bus to disturbances caused by the connection and disconnection of energy sources and real electronic loads. Throughout 6789101112
+8:07
+8:47
+9:27
+10:07
+10:47
+11:2712:07
+12:47
+13:27
+14:07
+14:4715:27
+16:07
+16:4717:27
+17:47
+17:51Ampers
+Hour of day
+Figure 39. Output voltage–current oscillograms of the interconnected inverter with the MG.
+
+--- Page 28 ---
+Energies 2020 ,13, 4074 28 of 30
+5. Conclusions
+This study shows the design and implementation of a management and control system applied to
+an experimental prototype of a DC- G for a maximum power of 1 kW with a DC bus with a voltage
+level 190 V , which can operate isolated or interconnected with the MG. The proposed DC- G is made
+up of two photovoltaic systems, a complete bridge inverter, a BB and electronic loads (LED-type,
+ﬂuorescent and computer equipment). For the administration and control of energy in the DC- G, an
+EMS was implemented on the NI myRIO-1900 platform using the LabVIEW virtual programming
+software for the design of the EMS.
+In the experimental results, the operation of the DC- G is presented under principle operating
+conditions, all of them with the objective of evaluating the response of the DC bus to disturbances
+caused by the connection and disconnection of energy sources and real electronic loads. Throughout
+the di erent tests carried out, it was observed that the voltage bus of the proposed DC- G remains
+within the operating range established in the design, and in each case the transitory response time
+ranged between 4 and 20 s. These periods are suitable for the design of the DC- G because the voltage
+peaks and drops in the DC bus do not exceed 5% of the nominal value of the bus, this period is deﬁned
+by the capacitance that the bus presents, that increased with the use of the bank of supercapacitors.
+This can result in the proposed bus voltage of the DC- G being able to achieve short-term stability after
+being exposed to di erent disturbances. In addition, in the experiments performed, no inconvenience
+was observed in the operation of the power converters, so it is suggested that it is possible to extrapolate
+the design of the proposed DC- G to a higher power.
+Our proposal for administration and energy control of a DC- G based on a state machine that
+presents response times similar to those shown in [ 30]. The authors obtained times between 4 and
+37 s in 15 di erent operation modes using a supervisory control based on a state machine to satisfy
+the energy demand of an AC /DCG and a FC to maintain the SC of a BB. The e ectiveness of the
+proposed was evaluated through extensive numeric simulations.
+During the experiments that were carried out in this research, problems related to system instability
+caused by the dynamic interaction of the converters and /or impedances were not observed. For the
+design of the PECs, design techniques such as the one reported by [ 31] were used, taking into account
+whether the PEC commutes at a frequency at least ten times greater than the dynamics of the output
+voltage (or current), the switching noise is not mixed. The control technique used in parallel converters,
+in addition to the ratio of the impedances of the input /output sources contributed to the dynamics [ 32].
+However, for future studies, a stability study, under conditions of higher power and a greater number of
+distributed generations (DGs) and loads, is necessary to ensure stability in certain interaction scenarios
+in the MG. If the noise is present in the complete system, a stability analysis can be done using the
+impedance of the source output ﬁlter and the input ﬁlter of the loads to ﬁnd the loop with the lowest
+gain and evaluate it against criteria such as phase gain- phase margin or others [33–35].
+Finally, for further study, the dimensioning of the components of the DC- G proposed in order
+to make it economically viable will be considered. The methodology proposed by [ 36] is viable for
+this purpose because it demonstrates the e ectiveness of a sizing method based on genetic algorithms
+applied to EMS similar to that proposed in this article. From the point of view of power electronics, the
+increase in the number of DGs represents a greater number of switched power converters. Dynamics
+under voltage drop conditions could present a problem in the stability of the DC bus.
+Author Contributions: Investigation, A.P .-M.; Methodology, F.P .-P . and A.V .-L.; Project Administration, J.M.-N.;
+Validation, A.J.-G. All authors have read and agree to the published version of the manuscript.
+Funding: This research received no external funding.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+
+--- Page 29 ---
+Energies 2020 ,13, 4074 29 of 30
+References
+1. Yu, Y.; Wada, K. Simulation Study of Power Management for a Highly Reliable Distribution System using a
+Triple Active Bridge Converter in a DC Microgrid. Energies 2018 ,11, 3178. [CrossRef]
+2. Wang, H.; Huang, J. Joint investment and operation of microgrid. IEEE Trans. Smart Grid 2015 ,8, 833–845.
+[CrossRef]
+3. Wang, H.; Huang, J. Incentivizing energy trading for interconnected microgrids. IEEE Trans. Smart Grid 2016 ,
+9, 2647–2657. [CrossRef]
+4. Anvari-Moghaddam, A.; Guerrero, J.M.; Vasquez, J.C.; Monsef, H.; Rahimi-Kian, A. E cient energy
+management for a grid-tied residential microgrid. IET Gener. Transm. Distrib. 2017 ,11, 2752–2761. [CrossRef]
+5. García Elvira, D.; Valderrama Blav í, H.; Cid Pastor, À.; Mart ínez Salamero, L. E ciency optimization of a
+variable bus voltage DC microgrid. Energies 2018 ,11, 3090. [CrossRef]
+6. Dragiˇ cevi´ c, T.; Lu, X.; Vasquez, J.C.; Guerrero, J.M. DC microgrids—Part I: A review of control strategies and
+stabilization techniques. IEEE Trans. Power Electron. 2015 ,31, 4876–4891. [CrossRef]
+7. Arunkumar, G.; Elangovan, D.; Sanjeevikumar, P .; Nielsen, J.B.H.; Leonowicz, Z.; Joseph, P .K. DC Grid for
+Domestic Electriﬁcation. Energies 2019 ,12, 2157. [CrossRef]
+8. Zhao, Z.; Zhang, J.; He, Y.; Zhang, Y. Island DC Microgrid Hierarchical Coordinated Multi-Mode Control
+Strategy. Energies 2019 ,12, 3012. [CrossRef]
+9. Zhang, Y.; Li, Y.W. Energy management strategy for supercapacitor in droop-controlled DC microgrid using
+virtual impedance. IEEE Trans. Power Electron. 2016 ,32, 2704–2716. [CrossRef]
+10. Zhao, X.; Li, Y.W.; Tian, H.; Wu, X. Energy management strategy of multiple supercapacitors in a DC
+microgrid using adaptive virtual impedance. IEEE J. Emerg. Sel. Top. Power Electron. 2016 ,4, 1174–1185.
+[CrossRef]
+11. Beykverdi, M.; Jalilvand, A.; Ehsan, M. Cooperative energy management of hybrid DC renewable grid using
+decentralized control strategies. Energies 2016 ,9, 859. [CrossRef]
+12. Chen, M.; Ma, S.; Wan, H.; Wu, J.; Jiang, Y. Distributed Control Strategy for DC Microgrids of Photovoltaic
+Energy Storage Systems in O -Grid Operation. Energies 2018 ,11, 2637. [CrossRef]
+13. Al-Sakkaf, S.; Kassas, M.; Khalid, M.; Abido, M.A. An energy management system for residential autonomous
+DC microgrid using optimized fuzzy logic controller considering economic dispatch. Energies 2019 ,12, 1457.
+[CrossRef]
+14. Zhang, L.; Chen, K.; Chi, S.; Lyu, L.; Cai, G. The Hierarchical Control Algorithm for DC Microgrid Based on
+the Improved Droop Control of Fuzzy Logic. Energies 2019 ,12, 2995. [CrossRef]
+15. Zhang, L.; Chen, K.; Lyu, L.; Cai, G. Research on the Operation Control Strategy of a Low-Voltage Direct
+Current Microgrid Based on a Disturbance Observer and Neural Network Adaptive Control Algorithm.
+Energies 2019 ,12, 1162. [CrossRef]
+16. Wu, H.; Locment, F.; Sechilariu, M. Experimental Implementation of a Flexible PV Power Control Mechanism
+in a DC Microgrid. Energies 2019 ,12, 1233. [CrossRef]
+17. Han, Y.; Chen, W.; Li, Q. Energy management strategy based on multiple operating states for a
+photovoltaic /fuel cell /energy storage DC microgrid. Energies 2017 ,10, 136. [CrossRef]
+18. Salas-Puente, R.; Marzal, S.; Gonz ález-Medina, R.; Figueres, E.; Garcera, G. Experimental study of a
+centralized control strategy of a DC microgrid working in grid connected mode. Energies 2017 ,10, 1627.
+[CrossRef]
+19. Chen, Y.K.; Wu, Y.C.; Song, C.C.; Chen, Y.S. Design and implementation of energy management system with
+fuzzy control for DC microgrid systems. IEEE Trans. Power Electron. 2012 ,28, 1563–1570. [CrossRef]
+20. Behera, R.K.; Parida, S.K. DC microgrid management using power electronics converters. In Proceedings of
+the IEEE Eighteenth National Power Systems Conference, Guwahati, India, 18–20 December 2014; pp. 1–6.
+21. Zadeh, M.K.; Saublet, L.M.; Gavagsaz-Ghoachani, R.; Nahid-Mobarakeh, B.; Pierfederici, S.; Molinas, M.
+Energy management and stabilization of a hybrid DC microgrid for transportation applications.
+In Proceedings of the IEEE Applied Power Electronics Conference and Exposition, Long Beach, CA,
+USA, 20–24 March 2016; pp. 3397–3402.
+22. Hosseinzadeh, M.; Rajaei Salmasi, F. Fault-Tolerant Supervisory Controller for a Hybrid AC /DC Micro-Grid.
+IEEE Trans. Smart Grid 2018 ,9, 2809–2823. [CrossRef]
+
+--- Page 30 ---
+Energies 2020 ,13, 4074 30 of 30
+23. Sedaghati, R.; Shakarami, M.R. A Novel Control Strategy and Power Management of Hybrid PV /FC/SC/Battery
+Renewable Power System-Based Grid-Connected Microgrid. Sustain. Cities Soc. 2018 . [CrossRef]
+24. Prasana, R.J.K.; Ramprasath, S.; Vijayasarathi, N. Design and analysis of hybrid DC-DC boost converter in
+continuous conduction mode. In Proceedings of the IEEE International Conference on Circuit, Power and
+Computing Technologies, Nagercoil, India, 18–19 March 2016; pp. 1–5.
+25. Attanasio, R.; Gennaro, F.; Scuderi, G. A grid tie micro inverter with reactive power control capability.
+In Proceedings of the AEIT Annual Conference, Mondello, Italy, 3–5 October 2013; pp. 1–6.
+26. Cao, J.; Schoﬁeld, N.; Emadi, A. Battery balancing methods: A comprehensive review. In Proceedings of the
+IEEE Vehicle Power and Propulsion Conference, Harbin, China, 3–5 September 2008; pp. 1–6.
+27. Killi, M.; Samanta, S. Modiﬁed perturb and observe MPPT algorithm for drift avoidance in photovoltaic
+systems. IEEE Trans. Ind. Electron. 2015 ,62, 5549–5559. [CrossRef]
+28. Kwon, M.; Choi, S. Control scheme for autonomous and smooth mode switching of bidirectional DC–DC
+converters in a DC microgrid. IEEE Trans. Power Electron. 2017 ,33, 7094–7104. [CrossRef]
+29. Li, X.; Guo, L.; Zhang, S.; Wang, C.; Li, Y.W.; Chen, A.; Feng, Y. Observer-based DC voltage droop and current
+feed-forward control of a DC microgrid. IEEE Trans. Smart Grid 2017 ,9, 5207–5216. [CrossRef]
+30. Hosseinzadeh, M.; Salmasi, F.R. Power management of an isolated hybrid AC /DC micro-grid with fuzzy
+control of battery banks. IET Renew. Power Gener. 2014 ,9, 484–493. [CrossRef]
+31. Erickson, R.W.; Maksimovic, D. Fundamentals of Power Electronics ; Springer Science & Business Media:
+New York, NY, USA, 2001.
+32. Zhi, N.; Zhang, H.; Li, N.; Yang, J. System-level design and stability analysis of DC microgrid. In Proceedings
+of the International Power Electronics and Application Conference and Exposition, Shanghai, China, 5–8
+November 2014; pp. 1134–1137.
+33. Wildrick, C.M.; Lee, F.C.; Cho, B.H.; Choi, B. A method of deﬁning the load impedance speciﬁcation for a
+stable distributed power system. IEEE Trans. Power Electron. 1995 ,10, 280–285. [CrossRef]
+34. Feng, X.; Liu, J.; Lee, F.C. Impedance speciﬁcations for stable DC distributed power systems. IEEE Trans.
+Power Electron. 2002 ,17, 157–162. [CrossRef]
+35. Sudho , S.D.; Glover, S.F.; Lamm, P .T.; Schmucker, D.H.; Delisle, D.E. Admittance space stability analysis of
+power electronic systems. IEEE Trans. Aerosp. Electron. Syst. 2000 ,36, 965–973. [CrossRef]
+36. Feroldi, D.; Degliuomini, L.N.; Basualdo, M. Energy management of a hybrid system based on wind–solar
+power sources and bioethanol. Chem. Eng. Res. Des. 2013 ,91, 1441–1455. [CrossRef]
+©2020 by the authors. Licensee MDPI, Basel, Switzerland. This article is an open access
+article distributed under the terms and conditions of the Creative Commons Attribution
+(CC BY) license (http: //creativecommons.org /licenses /by/4.0/).
