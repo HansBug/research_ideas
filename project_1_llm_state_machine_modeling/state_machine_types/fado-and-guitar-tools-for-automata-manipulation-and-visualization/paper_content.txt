@@ -1,0 +1,380 @@
+--- Page 1 ---
+FAdo and GUItar: tools for automata
+manipulation and visualization?
+Andr e Almeida Marco Almeida??Jos e Alves Nelma Moreira
+Rog erio Reis
+fbernarduh,sobuy,mfa,nam,rvr g@ncc.up.pt
+DCC-FC & LIACC, Universidade do Porto
+R. do Campo Alegre 1021/1055, 4169-007 Porto, Portugal
+Abstract. FAdo is an ongoing project which aims to provide a set
+of tools for symbolic manipulation of formal languages. To allow high-
+level programming with complex data structures, easy prototyping of
+algorithms, and portability (to use in computer grid systems for exam-
+ple), are its main features. Our main motivation is the theoretical and
+experimental research, but we have also in mind the construction of a
+pedagogical tool for teaching automata theory and formal languages. For
+the graphical visualization and interactive manipulation a new interface
+application, GUItar , is being developed. In this paper, we describe the
+main components of the FAdo system as well as the basics of the graphi-
+cal interface and editor, the export/import lters and its generic interface
+with external systems, such as FAdo .
+1 Introduction
+TheFAdo [pro08] project aims to provide an open source extensible
+high-performance software library for the symbolic manipulation of au-
+tomata and other models of computation. A rst implementation cur-
+rently includes most standard operations for the manipulation of regu-
+lar languages [MR05], a Turing machine simulator and parsing tools for
+context-free languages. An automata random generator package was re-
+leased, based on previous theoretical work on enumeration and generation
+of initially connected deterministic nite automata (ICDFA) [AMR07].
+Although there are several software packages for the symbolic manip-
+ulation of formal languages they either are not open source, have re-
+stricted purposes, or are no longer being maintained. Examples include:
+Grail+ [RW94,Yu09], Automate [CH91], Amore [JPTW90], Fire Sta-
+tion [FW09] and OpenFst [Ril09]. An exception to this is the Vaucanson
+?This work was partially funded by Funda c~ ao para a Ci^ encia e Tecnologia (FCT) and
+Program POSI, and by project ASA (PTDC/MAT/65481/2006).
+??Marco Almeida is funded by FCT grant SFRH/BD/27726/2006.
+
+--- Page 2 ---
+package [LRGS04] whose basic structures, due to its orientation to more
+algebraic applications of automata, are too heavy for the combinatorial
+and algorithmic simulations we think useful for complexity studies of
+formal languages. JFLAP [RF06] is a specialized pedagogical tool with
+an extensive coverage of formal language topics taught in undergraduate
+computer science courses. The possibility of interactively experimenting
+with the construction proofs is a major feature of this system. The FAdo
+system was rst developed for pedagogical purposes. However the neces-
+sity of easily prototyping new algorithms, testing algorithm performance
+with large datasets, and the combinatorial nature of formal languages rep-
+resentations led us to continue FAdo development. The use of Python ,
+a high-level object-oriented language with high-level data types and dy-
+namic typing, ensures a system which is modular, extensible, clearly and
+easily implemented, and portable. Specialized and optimized data struc-
+tures and performance critical algorithms may be written in a low-level
+language like C, and easily interfaced with Python , via the Cython lan-
+guage extension [BB09]. Here, we will describe the main components of
+theFAdo system for regular languages manipulation.
+GUItar is a visualization software tool for various types of automata
+(standard, weighted, pushdown, transducers, Turing machines, etc.). Its
+purposes include automatic and assisted diagram drawing, algorithm an-
+imation, interactive editing and export/import lters. Automatic graph
+drawing has been a very active research area and several commercial
+software packages are now available for general and specic applications
+(database design, information systems, bioinformatics, social networks,
+etc.) [BERT99,Gra08,JM04]. In contrast, automata diagrams (labelled
+multi-digraphs) require additional aesthetics and graphical constraints:
+left-to-right reading, initial states on the left and nal states on the right,
+edge shapes and label placements, etc. We intend to design and implement
+tools for automatic drawing of automata diagrams according to common
+accepted aesthetics principles. As a rst step, in this paper, we describe
+the basic GUItar framework that includes assisted diagram drawing,
+interactive editing, and export/import lters.
+2 FAdo: tools for regular languages manipulation
+Regular languages can be represented by regular expressions (r.e.) or nite
+automata, among other formalisms. Finite automata may be determin-
+istic (DFA) or non-deterministic (NFA). In FAdo these representations
+are implemented as Python classes, as presented in Figure 1. The class
+
+--- Page 3 ---
+AbsREACIREREFANFADFAEFA
+ICDFAgeneratorADFAgeneratorLarge sets DBRandom generatorsRE random generatorFig. 1. FAdo classes for regular languages.
+FAimplements the basic structure of a nite automaton shared by DFAs
+and NFAs. This class also provides methods for manipulating these struc-
+tures. The class DFA andNFA implements DFAs and NFAs, respectively.
+The class EFA implements generalized NFAs that are used in the con-
+version between nite automata and r.e. There are two representations
+for r.e.: the class REimplements, in a object-oriented manner, the usual
+inductive denition (it is elegant, but not ecient) and the class ACIRE
+implements irreducible regular expressions modulo ACIA , i.e., associativ-
+ityof the concatenation and disjunction, commutativity of the disjunc-
+tion, and idempotence of both disjunction and Kleene star operations.
+Disjunctions are represented as sets, which are eciently implemented
+inPython . Concatenated r.e. are kept in an ordered list. The idempo-
+tence of the Kleene star is assured by not allowing double stared r.e.
+Whether or not a r.e. accepts the empty word is tabulated as a ACIRE
+attribute, to avoid unnecessary recursive calls. Elementary regular lan-
+guages operations as union, intersection, concatenation, complementation
+and reverse are implemented for each class. Several conversions between
+these representations are implemented: NFA !DFA : subset construc-
+tion; NFA !RE: recursive method; EFA !RE: state elimination,
+with possible choice of state orderings; RE!NFA : Thompson method,
+Glushkov method, follow, Brzozowski, and partial derivatives.
+For DFAs several minimization algorithms are available (some with
+Cimplementations): Moore, Hopcroft, incremental algorithms of Watson
+and Daciuk. Brzozowski minimization is available for NFAs. Language
+
+--- Page 4 ---
+equivalence of two DFAs can be determined by reducing their correspon-
+dent minimal DFA to a canonical form [AMR07], or by the Hopcroft
+and Karp algorithm. Language equivalence of two r.e. is implemented in
+theACIRE class using variants of a rewrite system [AMR08a]. The class
+ACIRE has also several simplication methods for r.e.
+2.1 Generators and Random samples
+We have designed and implemented several exact and random generators
+for some classes of automata and regular expressions. An exact and a
+uniform random generator are available for ICDFAs [AMR07]. Based on
+new canonical forms we also developed exact generators for acyclic (trim)
+deterministic nite automata (ADFA)[AMR08b], and for minimal ADFA
+(MADFA) [AMR08c]. For the uniform generation of random r.e. we im-
+plemented the method described by Mairson [Mai94] for the generation of
+context-free languages. Random (non-uniform) generators for NFAs that
+allow to generate initially connected NFAs (with one initial state) and to
+control the transition density are also implemented.
+For a given number of states and symbols, the number of DFAs grows
+in a way that experimental tests over the complete universe quickly be-
+come impractical [AMR07]. For statistical analysis (or experimental re-
+sults), a subset of manageable size from which we can make inferences or
+extrapolations to the whole universe may be used.
+As the probability of any individual member of the universe being
+selected is exactly the same as any other individual member, a uniform
+random generator produces a true, unbiased, random sample. In order to
+have a reasonable sized (enough for statistically signicant results), con-
+sistent, random sample readily available, we designed and implemented
+an SQL database to store the uniformly generated DFAs (and r.e.). We
+used the PostgreSQL open source relational database system [DBM08] to
+store the random samples of both DFAs and r.e.
+Database The ICDFAs database keeps and makes available random sam-
+ples of automata with n2 f10;20; : : : ; 90;100gstates, each over an al-
+phabet of k2 f2;3;4; : : : ; 18;20;25;30; : : : ; 45;50gsymbols. Besides the
+automaton structure, the database stores some properties such as mini-
+mality, being trimmed, acyclic, etc. This allows to obtain, with a simple
+SQL query, some automata datasets with specic properties. For eciency
+reasons, besides its unique string representation [AMR07], the database is
+used to store the pre-parsed internal FAdo representation of each ICDFA.
+
+--- Page 5 ---
+This avoids the need to parse an automaton's description every single
+time we need to manipulate it. By similar reasons, each automaton's -
+nal states set is stored in two dierent ways: as a comma separated list
+of integers and as a bitmap.
+REs Database The r.e. database is similar to the ones pertaining to
+nite automata. Pre-parsed representations of each object is kept in the
+database, both in the ACIRE and RErepresentation, to avoid overhead
+parsing time in any algorithm process.
+3 GUItar: interactive visualization
+TheGUItar graphical interface allows the interactive visualization of
+generic graph diagrams and the execution of external graph manipulation
+tools. It is implemented with the wxPython [SRZD06] graphical toolkit.
+Figure 2 shows the interactive diagram editor. The basic frame has a
+menu bar , atool bar , and a notebook that manipulates multiple pages.
+The menu bar and the tool bar are dynamically built from XML [Con08a]
+conguration les and event handler les, allowing an easy extensibility
+and modularity. Each notebook page contains a canvas for diagram draw-
+ing and manipulation. The canvas is based on the wxPython 'sFloatcanvas
+component [Bar08] which allows to draw and to interact with graphic ob-
+jects. It provides zooming, panning and binding mouse clicks on object to
+callbacks. It allows the addition of new objects and to alter its interactive
+behavior. To draw graph transitions a new FloatCanvas object called Ar-
+rowSpline was created. This object denes splines with or without arrow
+heads. It allows the access to the spline interpolation points, which was
+not possible in the native implementation. The main classes of GUItar
+are presented in Figure 3, and are summarized in the next subsections.
+3.1 Drawing a graph
+A graph is dened by a set of nodes and a set of edges. The class Draw-
+Graph allows the display and the editing of a graph diagram, and its main
+components are a canvas, a set of node objects, a set of edge objects and
+a grid. Nodes and edges can be added, edited, moved or deleted. Node
+labels can be automatically generated according to a given specication.
+The grid uses a general coordinate system to manage node positions and
+prevent objects to overlap. Each object can occupy several grid cells. To
+assist diagram editing a specialized graphical user interface (GUI) mode,
+
+--- Page 6 ---
+Fig. 2. GUItar graphical interface.
+a draw assistant and an undo/redo manager were implemented. Objects
+properties can be inspected and changed in the properties panel .
+Nodes The Node class has an identier (ID), a position, canvas objects
+and a style. This class has methods to change node position and to de-
+termine borders for docking edges.
+Edges The Edge class has an ID, an origin and an target nodes, a canvas
+ArrowSpline object, and a label object (with side and position).This class
+has methods to edit ArrowSpline control points, change nodes dock points
+and change label location.
+Labels A label can be simple (text string) or composed of several com-
+ponents.
+Embeddings The embedding is the layout of the nodes and edges in the
+plane. Currently a integer coordinate embedding is provided.
+Editing Mode The GUIFAMode class implements an user interface that
+allows several interactions with the graphical objects, essentially mouse
+based events, such as addition, deletion, selection, or movement of objects,
+as well as activation of pop-up menus. It also provides movement in the
+canvas viewport. The DrawAssistant class helps to place the edges and
+the loops. The edges can be edited by dragging their control points freely
+or using stepwise movements. To support undo and redo actions, the
+Undo/Redo manager assigns an ID to each kind of action, a method that
+
+--- Page 7 ---
+GuitarNoteBook
+DrawGraphPropertiesPanelGuiFAModeFloatCanvasGraphClassiﬁerUIGraphClassiﬁerNodeManagerEdgeManagerNodeStyleEdgeStyleFAStyleUndoRedoGridDiagramGridDotGridNodeEdgeLabelGeneratorDrawAssistantEmbeddingUserToolBarMenuBarExportImportFFCFig. 3. AGUItar overview.
+handles the undo event, and the ID of the reverse action. The handler
+method receives as an argument the information needed to undo/redo the
+action. For each performed action, its ID and the information that the
+Undo handler method needs are pushed into the Undo stack. The Undo
+and the Redo methods pop an action from the stack and call the handler
+method with the appropriated information.
+Complex style managers In general, automata diagrams provide sev-
+eral graphical information on state or transition representations. For in-
+stance, an initial state representation can have a side arrow, or a nal
+state representation can have a doubled line border. Instead of having a
+few special styles built-in, GUItar provides a Node Style Manager that
+allows the construction of node styles with complex graphical objects. A
+node style can have several graphic objects, as components. Two of these
+
+--- Page 8 ---
+are mandatory: the primary object and the primary label. Primary ob-
+jects must be ellipses or rectangles, and they ensure that there is always
+a docking object for the edges. The primary label must be text. For each
+object, its usual style properties such as line color, line width, line style,
+ll color, ll style, sizes, fonts, etc. can be dened. A node style can be
+previewed while it is being dened (or edited), and saved in the GUItar
+internal database. A set of tags (key/value pairs) may also be associated
+with each node style. The Edge Style Manager permits the denition of
+edge styles. An edge style is characterized by the graphical properties of
+the edge's ArrowSpline canvas object. It is possible to specify the number
+of heads and their shapes, line style properties, and loop properties.
+Graph Classier The GraphClassifer class allows the denition of
+graph classes by specifying graphic properties of each object. The Graph-
+ClassicationUI class provides an user interface to visualize and to create
+new classes. Graph ,digraph , ormultidigraph are the default classes.
+Automatic graph drawing A simple layout algorithm for visualizing
+graphs without any embedding information is implemented. An automatic
+placement based on physical forces simulation is also available.
+3.2 Foreign Function Calls
+GUItar provides a generic foreign function calls (FFC) interface be-
+tween the diagram graphical editor and external manipulation tools, as
+theFAdo toolkit. The FFCs have two components: a description on a
+XML conguration le and a Python module. The description includes
+the module path and the methods that will be imported by GUItar . Each
+method must have a name , areturn type , and, for each argument its type
+and a possible default value . Each module may have a menu in the main
+GUItar 's frame, or be accessed from a general FFC menu. At startup,
+GUItar loads the FFC congurations and builds the FFC menus.
+3.3 Export/Import
+Diagram descriptions and embeddings are saved in a XML format that
+was dened as a dialect of the GraphML language [Gro08]. GraphML is
+a simple language to describe the structural properties of a graph and
+has a exible extension mechanism to add application-specic data. Ex-
+tensions are provided by a key/data mechanism that can be added to
+each graph element. For eciency reasons, for the GUItar internal in-
+formation our dialect encodes this mechanism directly. A fragment of the
+GUItar Relax NG schema, is presented below, where diag data repre-
+sent the embedding information, and draw data correspond to general
+drawing information.
+
+--- Page 9 ---
+include "styles.rnc"
+guitar = element guitar {
+attribute version {text},
+graph*
+}
+graph = element graph {
+attribute id {text},
+element node {
+attribute id {text},
+label,
+node_diag,
+node_draw,
+node_automata
+}*,
+element edge {
+attribute id {text},
+attribute source {text},
+attribute target {text},
+label,
+edge_diag,
+edge_draw
+}*,graph_diag,
+graph_class,
+style*
+}
+node_diag = element diag_data {
+attribute x {text},
+attribute y {text}}
+node_draw = element draw_data {
+attribute style {text},
+attribute x {text},
+attribute y {text} }
+node_auto = element auto_data {
+attribute initial {1 | 0},
+attribute final {1 | 0} }
+edge_draw = element draw_data {
+attribute style {text},
+element point{
+attribute x {text},
+attribute y {text}} * }
+label = element label {
+attribute type {"sim"|"com"},
+(dict*|text),
+label_draw }
+GUItar exports its objects in three other formats: basic GraphML ,
+dotandVaucanson-g [LS08]. GUItar can also import from GraphML and
+FAdo automata format. These export/import methods are implemented
+asXSLT transformations [Con08b] from the GUItar format. We are
+developing XSLT transformations for the fsmxml format [Gro09].
+4 Conclusions
+The development of a solid and reliable symbolic manipulation package
+for formal languages is not a simple task. Being written in a high-level
+programming language and kept in an free software license promotes its
+usability by the scientic community. Visualization tools, and specially
+automatic drawing of automata diagrams, are challenging and important
+for both research and pedagogical purposes.
+References
+[AMR07] M. Almeida, N. Moreira, and R. Reis. Enumeration and generation with
+a string automata representation. Theoret. Comput. Sci. , 387(2):93{102,
+2007.
+[AMR08a] M. Almeida, N. Moreira, and R. Reis. Antimirov and Mosses's rewrite
+system revisited. In O. Ibarra and B. Ravikumar, editors, CIAA 2008 ,
+number 5448 in LNCS, pages 46{56. Springer-Verlag, 2008.
+
+--- Page 10 ---
+[AMR08b] M. Almeida, N. Moreira, and R. Reis. Exact generation of acyclic deter-
+ministic nite automata. In DCFS'08 , Charlottetown, Canada, 2008.
+[AMR08c] M. Almeida, N. Moreira, and R. Reis. Exact generation of minimal acyclic
+deterministic nite automata. I. J. of F. of Com. Sci. , 19(4):751{765, 2008.
+[Bar08] C. Barker. Floatcanvas. http://morticia.cs.dal.ca/FloatCanvas/ , Ac-
+cess date:1.12.2008.
+[BB09] S. Behnel and R. Bradshaw. Cython: C-extensions for Python.
+http://www.cython.org/ , Access date:03.01.2009.
+[BERT99] G. Battista, P. Eades, R.Tamassia, and I. G. Tolli. Graph Drawing, Algo-
+rithms for the Visualisation of Graphs . Prentice Hall, 1999.
+[CH91] J. M. Champarnaud and G. Hanset. AUTOMATE, a computing package
+for automata and nite semigroups. J. of Symb. Comput. , 12:197{220, 1991.
+[Con08a] World Wide Web Consortium. XML specication WWW page.
+http://www.w3.org/TR/xml , Access date:1.12.2008.
+[Con08b] World Wide Web Consortium. XSLT specication WWW page.
+http://www.w3.org/TR/xslt , Access date:1.12.2008.
+[DBM08] PostgreSQL DBMS. PostgreSQL website. http://www.postgressql.org ,
+Access date:1.12.2008.
+[FW09] M. Frishert and B. W. Watson. Fire Station. http://www.fastar.org/ ,
+Access date:1.4.2009.
+[Gra08] Graphviz | Graph Visualization Software. The dot language.
+http://www.graphviz.org/ , Access date:1.12.2008.
+[Gro08] GraphML Working Group. Graphml le format.
+http://graphml.graphdrawing.org/ , Access date: 01.12.2008.
+[Gro09] Vaucanson Group. FSMXML format. http://www.lrde.epita.fr/cgi-
+bin/twiki/view/Vaucanson/XML, Access date:1.3.2009.
+[JM04] M. J unger and P. Mutzel, editors. Graph Drawing Software . Mathematics
+and visualization. Springer-Verlag, 2004.
+[JPTW90] V. Jansen, A. Pottho, W. Thomas, and U. Wermuth. A short guide to
+the AMoRE system. Aachener informatik-berichte (90) 02, Lehrstuhl fur
+Informatik II, Universitat Aachen, January 1990.
+[LRGS04] S. Lombardy, Y. R egis-Gianas, and J. Sakarovitch. Introducing Vaucanson.
+Theoret. Comput. Sci. , 328:77{96, 2004.
+[LS08] S. Lombardy and J. Sakarovitch. Vaucanson-G. http://igm.univ-mlv.fr/
+lombardy/ , Access date:1.12.2008.
+[Mai94] H. G. Mairson. Generating words in a context-free language uniformly at
+random. Information Processing Letters , 49:95{99, 1994.
+[MR05] N. Moreira and R. Reis. Interactive manipulation of regular objects with
+FAdo. In ITiCSE 2005 , pages 335{339. ACM, 2005.
+[pro08] FAdo project. FAdo: tools for formal languages manipulation.
+http://www.ncc.up.pt/FAdo , Access date:1.12.2008.
+[RF06] S. Rodger and T. Finlea. JFLAP - An Interactive Formal Languages and
+Automata Package . Jones and Bartlett, 2006.
+[Ril09] M. Riley. OpenFst. http://www.openfst.org , Access date:1.4.2009.
+[RW94] D. Raymond and D. Wood. Grail: A C++ Library for automata and ex-
+pressions. J. Symb. Comp. , 17(4):341{350, 1994.
+[SRZD06] Julian Smart, Robert Roebling, Vadim Zeitlin, and Robin Dunn. wxWidgets
+2.6.3: A portable C++ and Python GUI toolkit , 2006.
+[Yu09] S. Yu. Grail+. http://www.csd.uwo.ca/Research/grail/ , Access
+date:1.3.2009.
