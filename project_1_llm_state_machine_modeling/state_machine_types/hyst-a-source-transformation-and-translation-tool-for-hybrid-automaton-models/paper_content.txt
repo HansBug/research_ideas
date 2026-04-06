@@ -1,0 +1,690 @@
+--- Page 1 ---
+HYST: A Source Transformation and Translation Tool
+for Hybrid Automaton Models
+Stanley Bak
+Air Force Research Laboratory Rome, NY , USASergiy Bogomolov
+IST Austria
+University of Freiburg,
+GermanyTaylor T. Johnson
+University of Texas at
+Arlington USA
+ABSTRACT
+A number of powerful and scalable hybrid systems model
+checkers have recently emerged. Although all of them honor
+roughly the same hybrid systems semantics, they have dras-
+tically diﬀerent model description languages. This situation
+(a) makes it diﬃcult to quickly evaluate a speciﬁc hybrid
+automaton model using the diﬀerent tools, (b) obstructs
+comparisons of reachability approaches, and (c) impedes
+the widespread application of research results that perform
+model modiﬁcation and could beneﬁt many of the tools. In
+this paper, we present Hyst, a Hybrid Source Transformer.
+Hystis a source-to-source translation tool, currently taking
+input in the SpaceEx model format, and translating to the
+formats of HyCreate, Flow*, or dReach. Internally, the tool
+supports generic model-to-model transformation passes that
+serve to both ease the translation and potentially improve
+reachability results for the supported tools. Although these
+model transformation passes could be implemented within
+each tool, the Hystapproach provides a single place for
+model modiﬁcation, generating modiﬁed input sources for
+the unmodiﬁed target tools. Our evaluation demonstrates
+Hystis capable of automatically translating benchmarks
+in several classes (including aﬃne and nonlinear hybrid au-
+tomata) to the input formats of several tools. Additionally,
+we illustrate a general model transformation pass based on
+pseudo-invariants implemented in Hystthat illustrates the
+reachability improvement.
+Categories and Subject Descriptors
+D.2.4 [Software Engineering ]: Software/Program Veriﬁ-
+cationModel checking
+General Terms
+Veriﬁcation
+Keywords
+Hybrid systems, formal methods, reachability
+DISTRIBUTION A. Approved for public release; Distribu-
+tion unlimited. (Approval AFRL PA #88ABW-2015-0468,
+09 FEB 2015)
+Publication rights licensed to ACM. ACM acknowledges that this contribution was
+authored or co-authored by an employee, contractor or afﬁliate of the United States
+government. As such, the Government retains a nonexclusive, royalty-free right to
+publish or reproduce this article, or to allow others to do so, for Government purposes
+only.
+HSCC ’15 April 14 - 16, 2015, Seattle, WA, USA
+Copyright is held by the owner/author(s). Publication rights licensed to ACM.
+ACM 978-1-4503-3433-4/15/04...$15.00
+http://dx.doi.org/10.1145/2728606.2728630.1. INTRODUCTION
+Hybrid systems are mathematical models that combine
+discrete and continuous dynamics. This formalism can cap-
+ture the behavior of a large range of real-world systems. For
+example, embedded systems [27] and biological systems [15,
+17] can be modeled using the hybrid systems formalism. At
+thesametime, theresultingsystembehaviorrequiresacare-
+ful handling to ensure a precise yet time eﬃcient analysis.
+A number of powerful and scalable model checkers have re-
+cently emerged [6,12,20,22,26]. They cover a number of
+hybrid system classes, e.g., aﬃne vs. non-linear continu-
+ous dynamics and monolithic vs. automata networks. Fur-
+thermore, the analysis algorithms are built around diﬀerent
+ideas and state representations, e.g., ﬂow-pipe construction
+vs. decision procedures for diﬀerential equations. These de-
+sign decisions make the tools particularly eﬃcient in some
+settings, e.g., such as only for some classes of continuous
+dynamics.
+Wepresentanautomaticsource-to-sourcemodelconverter
+from the SpaceEx input format to the Flow*, HyCreate,
+and dReach formats. At present, direct comparisons be-
+tween model checkers cannot be done out-of-the-box as the
+input languages are syntactically diﬀerent. However, a man-
+ual comparison is possible because, although the input lan-
+guages of the considered model checkers diﬀer syntactically ,
+they rely on the same behavioral semantics .
+We envision Hystbeing used in three main ways. First, a
+user of veriﬁcation tools can quickly generate a model ﬁle for
+anumberoftoolsinordertoﬁndatoolthatbestﬁtsthesys-
+tem under consideration. Second, a developer of hybrid sys-
+tems model checkers can use Hystto both compare the per-
+formance of newly developed algorithms with other up-to-
+dateanalysistools, aswellastoquicklycheckforcorrectness
+against a common set of models and as part of a regression
+test suite. Third, researches can write generic model trans-
+formation passes that modify the tool’s hybrid automaton
+intermediate representation. Then, all supported tools can
+immediately beneﬁt from these research advances, rather
+than having to reimplement new approaches piecemeal for
+each tool.
+Related Work. In the last decade, several research
+groups have worked on approaches to unify the syntax of hy-
+brid model checkers. Sangiovanni-Vincentelli et al suggest
+the hybrid systems interchange format (HSIF) [9,10,31,32].
+A further attempt to provide a common input language fo-
+cused on the model composition has been undertaken within
+the FP7 Multiform project [2,35]. The project resulted in
+the Compositional Interchange Format (CIF). Earlier eﬀorts
+
+--- Page 2 ---
+for interchange formats were initiated for Charon [4]. The
+aboveoutlinedprojectshaveincommonanideatocollectall
+the features available in diﬀerent hybrid model checkers and
+provide an input language which essentially subsumes the
+languages of every particular tool. Although having a com-
+mon interchange language supported by all the tools would
+be an ultimate solution, this approach hinges on the willing-
+ness of the tool developers to support such an input format.
+Furthermore, the incorporation of a common format into an
+established tool by third party developers would be diﬃcult
+due to the time overhead needed to get acquainted with the
+code of each particular hybrid model checker.
+Alternativeapproachesincludeusingotherfrequently-used
+languages as standard input formats. Agrawal et al. [1] sug-
+gest an algorithm to translate Simulink and Stateﬂow mod-
+els (SSM) into the equivalent HSIF models. In a slightly dif-
+ferent setting, Schrammel et al. [34] consider the translation
+problemforcomplexSSMswhereinvolvedtreatmentofzero-
+crossings (enabling conditions for guards) is needed. Chen
+et al. [11] provide a translation from Stateﬂow to CSP [25].
+Alur et al. [5] propose to use the symbolic analysis in or-
+der to improve the test coverage of SSMs. In this scope,
+a considered SSM is converted to a linear hybrid automa-
+ton. Assuming that a SSM can be converted to a hybrid
+automaton, our tool can principally use the resulting au-
+tomaton as its input. Mathworks, unfortunately, does not
+provide any rigid operational semantics for its tools. This
+makes the model translation process error-prone and am-
+biguous, whereas we are mostly concerned with the formal
+veriﬁcation of a given model. Other recent languages in-
+clude the HYbrid systems with Discrete Interaction (HyDI)
+language, which is an extension of the SMV input language
+[13]. Recent converter initiatives include a converter from
+Ptolemy II to SpaceEx [33], and the HyLink converter from
+SSMs to hybrid automata [28].
+2. HYBRID MODEL CHECKERS
+Hystallows for the same model to be analyzed in several
+hybrid system model checkers. Each tool has unique char-
+acteristics and will have varying performance depending on
+the features of the model. In this section a brief compari-
+son of the diﬀerent tools supported by Hystis given, along
+with their diﬀerent features. For syntax and semantics, we
+assume the hybrid automaton framework [3], particularly
+the same setup as deﬁned for SpaceEx (modulo explicitly
+allowing nonlinear polynomials for expressions) [20].
+2.1 SpaceEx
+SpaceEx [20] is a reachability tool for aﬃne hybrid sys-
+tems. It operates on symbolic states comprising of a dis-
+crete location and a continuous region. Its reachability al-
+gorithm can be represented as a ﬁxed point computation:
+S0:=postc(Init),Si+1:=Si∪postc(postd(Si)), whereInit
+stands for the initial states of the considered hybrid system,
+postc(S)denotes the continuous post operator and postd(S)
+is the discrete post operator.
+The continuous post operator in SpaceEx can be done in
+one of three scenarios: PHAVer [18], LGG [20], or STC [19].
+The PHAVer scenario uses the constraint polyhedra repre-
+sentation. The reachability computation is exact for the
+class of hybrid systems with piecewise constant dynamics
+as the PHAVer scenario uses the exact arithmetic, although
+for aﬃne dynamics the computed reachable sets of states israther coarse because the tool internally abstracts the aﬃne
+dynamics with piecewise constant ones. LGG performs bet-
+ter on systems with aﬃne dynamics through computation
+of linear maps, Minkowski sums and convex hulls, using a
+support function representation. The STC scenario extends
+the ideas of the LGG scenario. It introduces the notion of
+aﬂowpipe sampling . A ﬂowpipe sampling maps every time
+moment to a polyhedral enclosure of the states reachable at
+that moment. In other words, the algorithm attributes to
+every time moment the values of the support function on
+the predeﬁned template direction set.
+2.2 HyCreate
+HyCreate [6] is a tool which computes reachable states
+in a way similar to mixed face-lifting [14], combined with
+support for pseudo-invariants [7]. This technique works by
+over-approximating the reachable set of states by moving
+the faces of a tracked polytope outward at the maximum
+derivative near each face. Neighborhoods around each face
+are constructed, and then the maximum derivative in the
+outward direction is considered along each face. Time is ad-
+vanced in such as way that guarantees no trajectories leave
+the constructed neighborhoods. After time is advanced, a
+new polytope provides a bound on the reach state at some
+future time instant and the process repeats.
+In HyCreate, states are tracked as N-dimensional rect-
+angles (intervals aligned with the axes). This can lead to
+wrapping-eﬀect error [29] for larger time bounds, which is
+somewhatcontrolledthoughsplittingtrackedboxesintosmaller
+states. However, for large dimensional systems the boxes
+may need to be split into an exponential number of smaller
+boxes, such that the work needed to evaluate a certain pas-
+sage of time keeps increasing. Thus, it works best for low-
+dimensional systems. In HyCreate, a limit can be set to
+prevent splitting if too many boxes are being tracked, which
+has the eﬀect of letting the computation proceed at the price
+of over-approximation error.
+2.3 Flow*
+Flow* [12] is a tool which computes reach sets for nonlin-
+ear hybrid systems using Taylor models [30] as a state-space
+representation. The set of states is over-approximated at
+each point in time using a single Taylor model with an or-
+der that is conﬁgurable. A Taylor model is a polynomial
+with interval terms for each of the variables, along with an
+interval bloating term.
+Time is advanced in Flow* by repeated application of the
+Picard iteration. This requires symbolically integrating the
+Taylor model, which is not diﬃcult since it is a polynomial
+(or a polynomial Taylor expansion for non-polynomials).
+The error interval is bloated to encompass the result after a
+certainnumberofiterations(theTaylormodelistrimmedto
+have a maximum order, and the remaining terms are pushed
+into the remainder interval). Time can then be advanced
+again from the newly obtained Taylor model. Taylor mod-
+els work well even for medium-dimension ( ∼10) nonlinear
+systems, as long as the set of states being tracked remains
+relatively small. For high accuracy, a high order is desired.
+However, in high dimensions a lower order might be neces-
+sary because the number of combinations of variables grows
+quickly, so the number of terms in each polynomial can grow
+as well; it is not uncommon to get hundreds of terms being
+tracked for each variable.
+
+--- Page 3 ---
+Tool Dynamics Extra Inputs Representation Problem
+SpaceEx (PHAVer) Aﬃne n/a Polyhedra Unbounded reachability
+SpaceEx (LGG) Aﬃne Sampling time Support functions Unbounded reachability
+SpaceEx (STC) Aﬃne Sampling time Support functions Unbounded reachability
+Flow* Nonlinear Order Cutoﬀ, Error Interval, Time Step Taylor models Bounded reachability
+HyCreate Nonlinear Min/max derivatives, Time Step Hyper-rectangles Bounded reachability
+dReach Nonlinear Max time, bad states SMT Bounded model checking
+Table 1: Summary comparison between tools supported by Hyst.
+2.4 dReach and dReal
+dReachisatoolforboundedreachabilityanalysis(bounded
+model checking [BMC]) of hybrid systems [22] that uses
+the dReal satisﬁability modulo theories (SMT) solver for δ-
+complete decidability queries over the reals [21]. In dReach,
+after conversion to the SMT representation, the continuous
+variables of a hybrid automaton are represented as nullary
+real-valued functions (i.e., symbolic real constants). The lo-
+cationsofahybridautomatonarealsorepresentedasnullary
+real-valued functions, albeit their constraints ensure they
+correspond to bounded integers to create a one-to-one cor-
+respondence with the ﬁnite set of locations. The continuous
+dynamics are speciﬁed as ODEs, and invariants over contin-
+uous variables are supported. Sets of states are represented
+symbolically as formulas over these variables. The inputs to
+dReach are a hybrid system model, an integer bound k≥0,
+and a safety property φ, and dReach unrolls the transition
+and trajectory relations ktimes to check if φis reachable in
+exactlykiterations.
+2.5 Tool Comparison
+A summary of the output tools and comparison between
+them appears in Table 1.
+Veriﬁcation Problem. Tools may be classiﬁed by the
+veriﬁcation problem they address. All of the SpaceEx sce-
+narios target unbounded reachability for enabling veriﬁca-
+tion primarily of safety properties (invariants). Addition-
+ally, as unbounded reachability is a generalization of time-
+bounded reachability, SpaceEx may solve the time-bounded
+reachability problem. All the other tools focus on time-
+bounded veriﬁcation.
+Networks and Compositions of Hybrid Automata.
+SpaceEx supports composing networks of hybrid automata,
+whereas the other tools work with ﬂat automata. SpaceEx
+does include preliminary support for ﬂattening which can be
+used to interface with the other tools.
+State Representation and Error Control. All tools
+maintain symbolic representations of reachable states, al-
+though the speciﬁc representation and its possible error con-
+trol capabilities diﬀer. For example, SpaceEx uses either
+polyhedra (in PHAVer scenario) or support functions (in
+STC and LGG scenarios). Flow* works with Taylor mod-
+els, HyCreate uses sets of hyper-rectangles, and dReach uti-
+lizessymbolicformulasintheSMT-LIBstandard(eﬀectively
+nonlinear real arithmetic with transcendentals) [8].
+Flows, Invariants, Guards, Resets. SpaceEx sup-
+ports aﬃne functions for ﬂows (as aﬃne ODEs), invariants,
+and resets. The SpaceEx syntax, however, does not restrict
+from using nonlinear functions (although the tool itself will
+not compute reachability for such models). Therefore, we
+can deﬁne nonlinear functions in SpaceEx XML and trans-
+late them to the corresponding tool with Hyst. Flow*, Hy-
+Create, and dReach support nonlinear ﬂows, invariants, and
+resets. All tools use may transition semantics, so urgency
+may be modeled by modifying the invariant and guard con-
+ditions appropriately.
+SpaceEx
+XMLHYST
+Intermediate
+RepresentationFlow*
+HyCreate
+dReach
+(other 
+formats)Model 
+Transformation
+Passes
+(other 
+formats)
+Figure 1: Hystconversion architecture. SpaceEx XML
+models specifying hybrid automata are translated to an in-
+termediate representation (IR) inside Hyst, where model
+transformation passes are performed. Then, the hybrid au-
+tomatonisoutputindiﬀerentsyntaxforinputtoothertools,
+including HyCreate, Flow*, and dReach. It is not shown,
+but the SpaceEx conﬁguration ﬁle is also used, where, e.g.,
+initial states and potentially bad states are speciﬁed.
+Comparison Challenges. Given that Hystcan trans-
+late the same model to multiple tools, a reasonable question
+is which tool is the best for a particular model. A com-
+parison between tools is not a straightforward operation.
+First, the problems the tools solve diﬀers. SpaceEx typically
+solves an unbounded veriﬁcation problem, and typically ter-
+minates based on a ﬁxed-point check. Flow* and HyCreate
+solve time-bounded reachability, while dReach solves time-
+bounded veriﬁcation problems in a bounded model checking
+manner. One way to force termination of SpaceEx to com-
+pare to time-bounded reachability tools is to add a time
+variable ˙t= 1and add an invariant in every location that
+t≤Tmax. Typically this is achieved by composing the orig-
+inal SpaceEx hybrid automaton model of interest with a
+single-location timed automaton with ˙t= 1and invariant
+t≤Tmax, which after composition ensures every location
+has the time variable with dynamics ˙t= 1and invariant
+t≤Tmax. Adding such a variable, however, may aﬀect tool
+performance.
+Another issue is subtle diﬀerences in allowed tool seman-
+tics. InSpaceEx, forexample, alocationwithoutdeﬁneddy-
+namics means that every continuous state is possible. Other
+tools may not support this directly, and this could be either
+expressed using a non-deterministic assignment, or simply
+rejected during generation.
+Finally, the outputs of the tools are typically in the in-
+ternal representation of the tools, and therefore diﬃcult to
+compare. A conversion to a common format, for example
+the bounding box at a point in time, needs to be done prior
+to comparison.
+3. CONVERTER ARCHITECTURE
+The conversion architecture used in Hystis shown in Fig-
+ure 1. The tools takes as input a source ﬁle, parses it to an
+intermediate representation (IR), then prints the resulting
+outputsourceformatdesired. UsingtheSpaceExformathas
+anumberofpracticaladvantages: severalavailableexamples
+
+--- Page 4 ---
+/lscriptoﬀ /lscripton
+˙x=−8·x
+˙t= 1x≥18
+0≤t≤Tmax
+˙x=−8·(x−30)
+˙t= 1x≤22
+0≤t≤Tmaxx≤18.1
+x:= 20
+t:= 0H:
+x≥21.9
+Figure 2: Thermostat/heater example hybrid automaton.
+already exist in the format, there is a visual model editor
+for these ﬁles, SpaceEx can import from the CIF format [23]
+and output SpaceEx XML, and there is preliminary support
+in SpaceEx for hybrid automata ﬂattening. As an input for-
+mat, the grammar specifying ﬂows, guards, invariants, and
+resets of the automata does not have any restrictions on be-
+ing aﬃne, so we use the input format of SpaceEx for Hyst
+and allow for nonlinear expressions. We note that in its
+current version, however, SpaceEx cannot analyze nonlinear
+examples as the algorithms it uses do require aﬃne expres-
+sions. In terms of output formats, the supported tools are
+Flow*, HyCreate (both reachability and simulation), and
+dReach, and output to other tools is part of our planned
+future work.
+Internally, the IR is currently a set of data structures in
+Java which encode the modes, transitions, continuous vari-
+ables, ﬂow diﬀerential equations, guards, and invariants.
+The intermediate representation may be modiﬁed prior to
+output for a speciﬁc tool’s format through model transfor-
+mationpasses. Passescanbeviewedasmodel-to-modelcon-
+versions. Some passes can aid in the exporting process. For
+example, dReach requires that identity resets are explicitly
+deﬁned, whereas other tools do not. A model transforma-
+tion pass is therefore run before writing a dReach source ﬁle
+which adds identity resets to transitions which did not de-
+ﬁne them. Another model transformation pass can be used
+to check and rename variables that are disallowed keywords
+for speciﬁc tools. Finally, model transformation passes can
+be used to modify the reachability computation itself. For
+example, the method of pseudo-invariants [7] has previously
+been shown to improve the accuracy and speed of the reach-
+ability computation for multiple tools. Implementing it as
+a model transformation pass allows all supported tools to
+be able to use the technique. An example using this pass is
+shown later in Section 4. Other candidate passes we plan on
+implementing include over-approximating abstraction tech-
+niques, such as hybridization. Once implemented in Hyst,
+these techniques would not need to be reimplemented for
+each tool to use the approach, saving implementation eﬀort
+and reducing the likelihood of mistakes.
+4. RESULTS
+In the introduction, three classes of users were consid-
+ered for Hyst: (1) Users of veriﬁcation tools, (2) developers
+of the tools, and (3) researchers who develop general tech-
+niques which may be applicable to a wide variety of tools.
+4.1 Users of Veriﬁcation Tools
+Users can use Hystas a quick way to create workable
+model ﬁles for all of the supported tools. We used Hyst
+to convert numerous hybrid system models from diﬀerent
+classes, including typical aﬃne and nonlinear examples. For
+the purposes of illustration, we use the example of a heater
+systeminteractingwiththetemperatureinaroommeasured
+(a) SpaceEx LGG
+ (b) SpaceEx STC
+(c) SpaceEx PHAVer
+(d) Flow*
+(e) HyCreate2 Sim
+ (f) HyCreate2
+(g) dReach
+Figure 3: Default reach set visualizations for ther-
+mostat/heater hybrid automata example from Figure 2 for
+the various output model ﬁles and tools.
+by a thermostat, as shown in Figure 2 [24]. Although a
+simple system, it is illustrative of most of the features found
+in hybrid automata including invariants, guards, ﬂows, and
+non-determinism. More complicated benchmarks have been
+converted using Hyst, however this system is suﬃcient for
+reach-set illustration.
+This system was converted by Hystinto the input format
+of the various tools. Each tool was then run on the ﬁles, pro-
+ducing a reach set as the output. The graphical results for
+each of the tools are shown in Figure 3. For all tools except
+dReach, these ﬁgures correspond to reachable states. For
+dReach, the image corresponds to a witness counterexample
+execution that leads to a bad (goal) set of states. These
+models serve as initial starting points for users who want
+to analyze a model, as they can immediately see the rough
+performance of the various tools. As described earlier, the
+tools contain tool-speciﬁc parameters which, after genera-
+tion using Hyst, can be further tweaked by the user.
+We currently have about a dozen benchmarks which can
+be run through the translator and executed by the vari-
+ous tools. These examples range from biological systems,
+neuron models, power converters, and typical systems for
+evaluations of nonlinear reachability methods. The full set
+of examples and their converted models are available on the
+Hystwebsite1. The conversion process for each model takes
+less than a second and is negligible when compared with the
+reachability computation runtime.
+4.2 Tool Developers
+For tool developers such output can also be illuminating.
+One unexpected ﬁnding was that the visualization output
+1HYST and examples are available at: http://www.
+verivital.com/hyst/
+
+--- Page 5 ---
+(a) HyCreate2
+(b) Flow* original
+ (c) Flow* rescaled
+Figure 4: The reach set computed by HyCreate2 and Flow* appears to diﬀer. By rescaling time in the Flow* model, this is
+conﬁrmed as a result of the number of decimal digits Flow* outputs, rather than a bug in the tool.
+for a buck-boost converter diﬀered between HyCreate2 and
+Flow* for the same model, shown in Figure 4. If the pro-
+ducedreachsetsdonotintersect,thisisindicativeofabugin
+one of the tools (or in the translation process). In this case,
+the issue was not caused by the reachability algorithm but
+rather by the visualization output of Flow* being strictly six
+digits after the decimal point, which is not suﬃcient for the
+time scales considered for this fast-switching system. This
+was conﬁrmed by rescaling time in the model ﬁle (using mil-
+liseconds as the X-axis instead of seconds), which corrected
+the visualization of the reach set.
+4.3 Researchers
+Many research results are applicable to general hybrid au-
+tomata models, and not only a speciﬁc tool. Reimplement-
+ing these results in each tool would require signiﬁcant eﬀort,
+and be an error prone process. Piecemeal implementation
+of such results is also problematic because it is not clear if
+a tool is superior to another one because of an optimization
+performedonthemodel, ortheunderlyingalgorithm, ordue
+to subtle diﬀerences in the implementation of the technique.
+By implementing generic model transformations in Hyst,
+eﬀort and errors can be reduced, and a more ﬁne-grained
+comparison of tools becomes possible.
+For example, the time-scaling performed on the buck-
+boost system in Figure 4 was done using a time-scaling
+model transformation pass. Using a command-line ﬂag to
+Hyst, the user can select the pass to perform and time scale
+desired, and the output model will be modiﬁed accordingly.
+Another model transformation pass implemented in Hyst
+is the insertion of pseudo-invariants (PI) [7]. This method
+splits an individual mode of a hybrid automaton into several
+usinga setofprovidedconditions(calledpseudo-invariants).
+The modes after splitting have identical dynamics to the
+mode they came from, and the transformed automaton is
+bisimilar to the original automaton. However, these artiﬁ-
+cial discrete transitions allow accumulating the set of states
+beingtrackedfortoolsthatuseﬂow-pipeconstructionmeth-
+ods. This can, in certain cases, serve to increase computa-
+tion accuracy and reduce computation time.
+Todemonstratethispass, weusedthe2-dnonlinearmodel
+of a FitzHugh-Nagumo Neuron, using the dynamics and ini-
+tial states given by Dang et al. [16]. This system was con-
+verted to both Flow* and HyCreate2 (which support nonlin-
+ear dynamics). Without pseudo-invariants, neither tool can
+complete a single cycle within the state-space of the system
+due to accumulated error. By passing the appropriate ﬂag
+and parameters to Hyst, a modiﬁed model is produced, for
+(a) HyCreate2 (no PI)
+ (b) Flow* (no PI)
+(c) HyCreate2 (with PI)
+ (d) Flow* (with PI)
+Figure 5: A single implementation of pseudo-invariants
+within Hystimproves reachability computation for both
+Flow* and HyCreate2.
+which an improvement in computation is visible for both of
+the tools. The reachability plots with and without the PI
+pass are shown in Figure 5. Other model-transformations
+passes that we plan to implement include variants of hy-
+bridization.
+5. CONCLUSION
+In this paper, we present a source-to-source conversion
+tool called Hystfor hybrid automata. The tool is capable
+of quickly converting a model to a number of hybrid system
+model checking tools. Additionally, it supports model trans-
+formation passes, which serve to both ease conversion, and
+allow generic application of model-transformation research
+results.
+As future work, we plan to extend Hystto more case
+studiesandmoretools, andwewelcomecontributionsoftool
+authors interested to integrate in the Hystframework. The
+limitations of the converter include a lack of compositions
+beyond using SpaceEx to compute the composition (which
+mayingeneralblowup),andsomelimitationsinautomation
+for comparing diﬀerent tools. Additionally, as the language
+ofSpaceExcorrespondscloselytothehybridautomatamod-
+eling framework, other tools that support more general lan-
+guage deﬁnitions may be better suited as the source input
+format, and we can envision extensions of Hystas a general
+
+--- Page 6 ---
+source-to-source translation framework. Once composition
+is better supported, we can envision integrating other tools
+like Passel [26].
+Acknowledgment
+The material presented in this paper is based upon work sup-
+ported by the Air Force Research Laboratory’s Information Di-
+rectorate (AFRL/RI) through the Visiting Faculty Research Pro-
+gram (VFRP) under contract number FA8750-13-2-0115 and the
+Air Force Oﬃce of Scientiﬁc Research (AFOSR). Any opinions,
+ﬁndings, and conclusions or recommendations expressed in this
+publication are those of the authors and do not necessarily reﬂect
+the views of the AFRL/RI or AFOSR. This work was also partly
+supported in part by the German Research Foundation (DFG) as
+part of the Transregional Collaborative Research Center “Auto-
+matic Veriﬁcation and Analysis of Complex Systems” (SFB/TR
+14 AVACS, http://www.avacs.org/ ), by the European Research
+Council (ERC) under grant 267989 (QUAREM) and by the Aus-
+trian Science Fund (FWF) under grants S11402-N23 (RiSE) and
+Z211-N23 (Wittgenstein Award).
+6. REFERENCES
+[1] A. Agrawal, G. Simon, and G. Karsai. Semantic translation of
+simulink/stateﬂow models to hybrid automata using graph
+transformations. Electronic Notes in Theoretical Computer
+Science, 109:43–56, 2004.
+[2] D. N. Agut, D. van Beek, and J. Rooda. Syntax and semantics
+of the compositional interchange format for hybrid systems.
+The Journal of Logic and Algebraic Programming , 82(1):1 –
+52, 2013.
+[3] R. Alur, C. Courcoubetis, T. A. Henzinger, and P.-H. Ho.
+Hybrid automata: An algorithmic approach to the speciﬁcation
+and veriﬁcation of hybrid systems. In R. L. Grossman,
+A. Nerode, A. P. Ravn, and H. Rischel, editors, Hybrid
+Systems, pages 209–229, London, UK, 1993. Springer-Verlag.
+[4] R. Alur, R. Grosu, Y. Hur, V. Kumar, and I. Lee. Modular
+speciﬁcation of hybrid systems in Charon. In N. Lynch and
+B. Krogh, editors, Hybrid Systems: Computation and Control ,
+volume 1790 of LNCS, pages 6–19. Springer Berlin Heidelberg,
+2000.
+[5] R. Alur, A. Kanade, S. Ramesh, and K. C. Shashidhar.
+Symbolic analysis for improving simulation coverage of
+simulink/stateﬂow models. In Proceedings of the 8th ACM
+International Conference on Embedded Software , EMSOFT
+’08, pages 89–98, New York, NY, USA, 2008. ACM.
+[6] S. Bak. HyCreate: A tool for overapproximating reachability of
+hybrid automata.
+[7] S. Bak. Reducing the wrapping eﬀect in ﬂowpipe construction
+using pseudo-invariants. In 4th ACM SIGBED International
+Workshop on Design, Modeling, and Evaluation of
+Cyber-Physical Systems (CyPhy 2014) , pages 40–43, 2014.
+[8] C. Barrett, A. Stump, and C. Tinelli. The SMT-LIB standard:
+Version 2.0, 2010.
+[9] L. Carloni, M. D. Di Benedetto, A. Pinto, and
+A. Sangiovanni-Vincentelli. Modeling techniques, programming
+languages, design toolsets and interchange formats for hybrid
+systems. Technical report, 2004.
+[10] L. P. Carloni, R. Passerone, A. Pinto, and A. L.
+Sangiovanni-Vincentelli. Languages and tools for hybrid
+systems design. Foundations and Trends in Electronic Design
+Automation , 1, 2006.
+[11] C. Chen, J. Sun, Y. Liu, J. Dong, and M. Zheng. Formal
+modeling and validation of stateﬂow diagrams. International
+Journal on Software Tools for Technology Transfer ,
+14(6):653–671, 2012.
+[12] X. Chen, E. Abraham, and S. Sankaranarayanan. Taylor model
+ﬂowpipe construction for non-linear hybrid systems. 2013
+IEEE 34th Real-Time Systems Symposium , 0:183–192, 2012.
+[13] A. Cimatti, S. Mover, and S. Tonetta. Hydi: A language for
+symbolic hybrid systems with discrete interaction. In Software
+Engineering and Advanced Applications (SEAA), 2011 37th
+EUROMICRO Conference on , pages 275–278, Aug. 2011.
+[14] T. Dang. Veriﬁcation et synthese des systemes hybrides . PhD
+thesis, INPG, oct 2000.[15] T. Dang, C. Le Guernic, and O. Maler. Computing reachable
+states for nonlinear biological models. In Computational
+Methods in Systems Biology , pages 126–141. Springer, 2009.
+[16] T. Dang and R. Testylier. Reachability analysis for polynomial
+dynamical systems using the Bernstein expansion, 2012.
+[17] T. Dreossi and T. Dang. Parameter synthesis for polynomial
+biological models. In Proceedings of the 17th international
+conference on Hybrid systems: computation and control ,
+pages 233–242. ACM, 2014.
+[18] G. Frehse. Phaver: Algorithmic veriﬁcation of hybrid systems
+past hytech. In Hybrid Systems: Computation and Control,
+8th International Workshop, HSCC 2005, Zurich,
+Switzerland, March 9-11, 2005, Proceedings , pages 258–273,
+2005.
+[19] G. Frehse, R. Kateja, and C. Le Guernic. Flowpipe
+approximation and clustering in space-time. In Proc. Hybrid
+Systems: Computation and Control (HSCC’13) , pages
+203–212. ACM, 2013.
+[20] G. Frehse, C. Le Guernic, A. Donzé, S. Cotton, R. Ray,
+O. Lebeltel, R. Ripado, A. Girard, T. Dang, and O. Maler.
+SpaceEx: Scalable veriﬁcation of hybrid systems. In Computer
+Aided Veriﬁcation (CAV) , LNCS. Springer, 2011.
+[21] S. Gao, J. Avigad, and E. Clarke. Delta-decidability over the
+reals. InLogic in Computer Science (LICS), 2012 27th
+Annual IEEE Symposium on , pages 305–314, 2012.
+[22] S. Gao, S. Kong, and E. Clarke. Satisﬁability modulo ODEs. In
+International Conference on Formal Methods in
+Computer-Aided Design (FMCAD) , Oct. 2013.
+[23] M. Goyal. Translation between cif and spaceex/phaver.
+Master’s thesis, Verimag Research Lab, 2011.
+[24] T. A. Henzinger. The theory of hybrid automata. In IEEE
+Symposium on Logic in Computer Science (LICS) , page 278,
+Washington, DC, USA, 1996. IEEE Computer Society.
+[25] C. A. R. Hoare. Communicating sequential processes , volume
+178. Prentice-hall Englewood Cliﬀs, 1985.
+[26] T. T. Johnson. Uniform Veriﬁcation of Safety for
+Parameterized Networks of Hybrid Automata . PhD thesis,
+University of Illinois at Urbana-Champaign, Electrical and
+Computer Engineering, Urbana, IL 61801, 2013.
+[27] C. Livadas, J. Lygeros, and N. A. Lynch. High-level modelling
+and analysis of tcas. In IEEE Real-Time Systems Symposium ,
+pages 115–125, 1999.
+[28] K. Manamcheri, S. Mitra, S. Bak, and M. Caccamo. A step
+towards veriﬁcation and synthesis from Simulink/Stateﬂow
+models. In Proc. of the 14th Intl. Conf. on Hybrid Systems:
+Computation and Control (HSCC) , pages 317–318. ACM,
+2011.
+[29] R. Moore. Interval analysis . Prentice-Hall series in automatic
+computation. Prentice-Hall, 1966.
+[30] M. Neher, K. R. Jackson, and N. S. Nedialkov. On taylor model
+based integration of odes. SIAM J. Numer. Anal , 45:2007.
+[31] A. Pinto, L. Carloni, R. Passerone, and
+A. Sangiovanni-Vincentelli. Interchange format for hybrid
+systems: Abstract semantics. In J. P. Hespanha and A. Tiwari,
+editors,Hybrid Systems: Computation and Control , volume
+3927 ofLNCS, pages 491–506. Springer Berlin Heidelberg,
+2006.
+[32] A. Pinto, A. L. Sangiovanni-Vincentelli, L. P. Carloni, and
+R. Passerone. Interchange formats for hybrid systems: Review
+and proposal. In M. Morari and L. Thiele, editors, Hybrid
+Systems: Computation and Control , volume 3414 of LNCS,
+pages 526–541. Springer Berlin Heidelberg, 2005.
+[33] S. Ran, J. Lin, Y. Wu, J. Zhang, and Y. Xu. Converting
+ptolemy ii models to spaceex for applied veriﬁcation. In X.-h.
+Sun, W. Qu, I. Stojmenovic, W. Zhou, Z. Li, H. Guo, G. Min,
+T. Yang, Y. Wu, and L. Liu, editors, Algorithms and
+Architectures for Parallel Processing , volume 8630 of LNCS,
+pages 669–683. Springer International Publishing, 2014.
+[34] P. Schrammel and B. Jeannet. From hybrid data-ﬂow languages
+to hybrid automata: A complete translation. In Proceedings of
+the 15th ACM International Conference on Hybrid Systems:
+Computation and Control , HSCC ’12, pages 167–176, New
+York, NY, USA, 2012. ACM.
+[35] D. van Beek, M. Reniers, R. Schiﬀelers, and J. Rooda.
+Foundations of a compositional interchange format for hybrid
+systems. In A. Bemporad, A. Bicchi, and G. Buttazzo, editors,
+Hybrid Systems: Computation and Control , volume 4416 of
+LNCS, pages 587–600. Springer Berlin Heidelberg, 2007.
