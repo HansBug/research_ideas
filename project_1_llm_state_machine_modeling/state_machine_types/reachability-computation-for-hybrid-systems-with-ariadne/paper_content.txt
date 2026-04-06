@@ -1,0 +1,636 @@
+--- Page 1 ---
+Reachability computation for hybrid
+systems with Ariadne
+Luca BenvenutiDavide BresolinAlberto Casagrande
+Pieter CollinsAlberto FerrariyEmanuele Mazziy
+Alberto Sangiovanni-Vincentelliy;zTiziano Villa
+Universit a di Roma \La Sapienza", Roma, Italy
+(luca.benvenuti@uniroma1.it)
+Universit a di Verona, Verona, Italy (bresolin@sci.univr.it,
+villa@univr.it)
+Universit a di Udine, Udine, Italy (casagrande@dimi.uniud.it)
+CWI, Amsterdam, The Netherlands (pieter.collins@cwi.nl)
+yPARADES, Roma, Italy (aferrari@parades.rm.cnr.it,
+emazzi@parades.rm.cnr.it)
+zDept. of EECS, University of California, Berkeley,
+California(alberto@eecs.berkeley.edu)
+Abstract: Ariadne is an in-progress open environment to design algorithms for computing
+with hybrid automata, that relies on a rigorous computable analysis theory to represent
+geometric objects, in order to achieve provable approximation bounds along the computations.
+In this paper we discuss the problem of reachability analysis of hybrid automata to decide
+safety properties. We describe in details the algorithm used in Ariadne to compute over-
+approximations of reachable sets. Then we show how it works on a simple example. Finally,
+we discuss the lower-approximation approach to the reachability problem and how to extend
+Ariadne to support it.
+1. INTRODUCTION
+In many applicative fields there is the need to model
+systems having a mixed discrete and continuous behaviour
+that cannot be characterized faithfully using either only
+discrete or continuous models. This is the case, for exam-
+ple, of automotive powertrain systems, where a four stroke
+engine is modelled by a switching continuous system and
+is controlled by a digital controller. Such systems consist
+of a discrete control part that operates in a continuous
+environment and are named hybrid systems because of
+their mixed nature.
+In order to model and specify hybrid systems in a formal
+way, Alur et al. (1992) and Maler et al. (1991) intro-
+duced the notion of hybrid automata . Intuitively, a hybrid
+automaton is a \finite-state automaton" with continuous
+variables that evolve according to dynamics characterizing
+each discrete node.
+Of particular importance in the study of a hybrid automa-
+ton is the reachable set , which consists of all states that can
+be reached under the dynamical evolution starting from a
+given initial state set. Hybrid automaton states consist
+of a discrete location paired with a vector of continuous
+variables, and therefore they have the cardinality of contin-
+uum. Because of this, the reachable set is, in general, not
+decidable, as it has been proved in Henzinger et al. (1995).
+Many papers therefore propose approximation techniques
+to estimate the reachable set (see Halbwachs et al. (1994);
+Dang and Maler (1998); Asarin et al. (2000); Kurzhanski
+and Varaiya (2000); Botchkarev and Tripakis (2000); Silvaet al. (2001)). However, even the computation of approxi-
+mations to the reachable set is not straightforward; indeed,
+it may not even be possible to compute a sequence of over-
+approximations convergent to the reachable set (Collins
+(2005)).
+Many tools have been developed to compute or approx-
+imate reachable sets for hybrid systems, using differ-
+ent approaches. Tools like Kronos (Daws et al. (1995);
+Yovine (1997)) and UPPAAL (Larsen et al. (1997))
+compute the reachability relation for systems based on
+timed automata. Other tools, such as, d/dt (Asarin et al.
+(2002)), VeriShift (Botchkarev and Tripakis (2000)), and
+HyTech (Henzinger et al. (1997)) compute approximations
+to the reachable set for hybrid automata with linear con-
+tinous dynamics. Another tool is PHAVer (Frehse (2005)),
+that can compute approximations of the reachable set for
+linear hybrid automata with an arbitrary level of pre-
+cision. Additionally, general-purpose tools for set-based
+analysis, such as GAIO (Dellnitz et al. (2001)) may be
+used. These tools also include many interesting features
+such as model checking capabilities or graphical model-
+ing interfaces. However, all these tools have two main
+disadvantages. Firstly, the class of systems which can be
+studied is limited to either timed automata or linear hybrid
+systems. Secondly, most of these software packages have
+restrictive licences, and some are even closed source. With-
+out access to the source code, users can neither customize
+or optimize them for a specific class of instances of the
+reachability problem, nor check that the algorithms are
+correctly implemented.
+
+--- Page 2 ---
+To overcome these limitations, in Balluchi et al. (2006)
+we have recently proposed a framework for hybrid system
+verification. This tool, called Ariadne , is a development
+environment in which to construct space representation
+techniques and algorithms for reachability analysis. It in-
+tegrates and implements existing and new algorithms and
+representation techniques with a high degree of 
+exibility
+and customization, to let users choose the best methods for
+their needs. The package is released as an open source dis-
+tribution, so that different research groups may contribute
+with new data structures, algorithms and heuristics. In
+this paper we concentrate on the algorithm used in Ari-
+adne to compute over-approximations of reachable sets.
+Because of the modular structure of the package, it can
+work with many different types of numeric representations
+of real numbers, continuous functions and regions of space.
+It can be also easily extended to cover different classes
+of hybrid automata. Furthermore, it relies on a rigorous
+computable analysis theory to represent geometric objects,
+in order to achieve provable approximation bounds along
+the computations.
+The paper is organized as follows. In Section 2 we brie
+y
+introduce both syntax and semantics of hybrid automata.
+In Section 3 we describe the reachability problem and
+give possible approaches for its solution. In Section 4 we
+describe in details the algorithm used in Ariadne to
+compute over-approximations of reachable sets, while in
+Section 5 we give a simple example of how the algorithm
+works. In Section 6 we discuss the lower-approximation
+approach to the reachability problem. Finally, Section 7
+ends the paper discussing the current implementation
+status and future work.
+2. HYBRID SYSTEMS AND AUTOMATA
+We first give a formal definition of a hybrid automaton,
+based on an underlying discrete automaton.
+Definition 1. (Hybrid Automaton). A hybrid automaton
+is a tuple H=hQ;E;X;Inv;Dyn;Act;Resetisuch that:
+(1)hQ;Eiis a finite directed graph; the vertexes, Q, are
+called locations orcontrol modes , and the directed
+edges, E, are called control switches ;
+(2) Each location q2Qis labeled by the predicate
+Inv(q) on the set Xand the transitive relation Dyn(q)
+onX x X x R>=0such that if Inv(q)[p] is true then
+Dyn(q)[p; p;0] is true;
+(3) Each edge e2Eis labeled by the predicate Act(e) on
+Xand the relation Reset (e) onX x X.
+The predicate Inv(q) is the invariant condition ofq, and
+Dyn(q) is the dynamic law ofq, while Act(e) is the
+activation condition ofeand Reset (e) is the reset relation
+ofe.
+Dyn(q) is a transitive relation, i.e., 8x; y; z2X,
+Dyn(q)[x; z; t 1+t2] is true if and only if both Dyn(q)[x; y; t 1]
+and Dyn(q)[y; z; t 2] are true.
+We specify Inv,Act and Reset by a formula in some
+language over the reals, while we use differential equations
+to define Dyn. In this setting the dynamic law Dyn(q) of a
+location qcan be obtained by integrating the correspond-
+ing differential equations, with the intuitive meaning thatifDyn(q)[z; z0; t] holds, then the continuous 
+ow can reach
+z0from zafter time t. This definition of hybrid automata is
+quite general. As an example, O-minimal hybrid automata
+(see Lafferriere et al. (2000); Brihaye et al. (2004)) are a
+subclass of our hybrid automata, since we do not impose
+restrictions on the formulae and on the resets, and rectan-
+gular hybrid automata (see Henzinger and Kopke (1996))
+can be easily mapped into our definition.
+Example 1. Consider a tank that is controlled through a
+monitor, which continuously senses the water level and
+turns the pump on and off. Water enters the tank from
+the top and leaves through an orifice in its base. The rate
+at which water leaves is proportional to the water level,
+denoted by the variable y, and it is such that _ y=0:1y.
+When the pump is on, the rate at which water enters is
+constant and equal to 2 :0. Furthermore, from the time that
+the monitor signals to change the status of the pump to
+the time that the change becomes effective, there is a 2
+seconds delay.
+An hybrid automaton H=hQ,E,X,Inv,Dyn,Act,
+Reseti, that models this example, is depicted in Figure 1.
+The automaton has four locations: in locations q0andq1
+the pump is turned on, while in locations q2andq3the
+pump is turned off. The continuous state variable xis used
+to model the delays, while the continuous state variable y
+is the water level. The monitor signals to stop the pump
+when the water level raises to 10 and signals to start the
+pump when the level decreases to 4 :5.
+q0
+y<=10
+_x= 1
+_y= 20:1yq1
+x<=2
+_x= 1
+_y= 20:1y
+q2
+y>=4:5
+_x= 1
+_y=0:1yq3
+x<=2
+_x= 1
+_y=0:1yy= 10
+x:= 0
+x= 2
+y= 4:5
+x:= 0x= 2
+Fig. 1. Water level monitor.
+In Section 5 we will show how this hybrid automaton can
+be analyzed using Ariadne .
+To formalize the semantics of hybrid automata, we first
+need to define the concept of hybrid automaton's state.
+Definition 2. (Hybrid Automaton - States). Let Hbe a
+hybrid automaton. A state `ofHis a pairhv; ri, where
+v2Qis a location and r2Rkis an assignment of values
+for the continuous variables. A state hv; riis said to be
+admissible ifInv(v)[r] holds.
+Intuitively, an execution of a hybrid automaton corre-
+sponds to a sequence of transitions from a state to an-
+other. Hybrid automata have two kinds of transitions: con-
+tinuous reachability transitions , capturing the continuous
+evolution of a state, and discrete reachability transitions ,
+capturing the changes of location. More formally, we can
+define hybrid automaton semantics as follows.
+Definition 3. (Hybrid Automaton - Semantics). Let Hbe
+a hybrid automaton. The continuous transition relation
+
+--- Page 3 ---
+t !Cbetween admissible states, where t>=0 is the elapsed
+time of the transition, is defined as follows:
+hv; rit !Chv; si ()
+9continuous f:R>=0!Rks.t.r=f(0); s=f(t);and
+8t02[0; t];Inv(v)[f(t0)]^Dyn(v)[r; f(t0); t0] (1)
+Such a function fis called a 
+ow function .
+The discrete transition relatione !Dbetween admissible
+states, where e2E, is defined as follows:
+hv; rihv;ui! Dhu; si ()
+hv; ui2E^Inv(v)[r]^Act(hv; ui)[r]
+^Reset (hv; ui)[r; s]^Inv(u)[s]:(2)
+This semantics allows us to define the reachability rela-
+tion.
+3. THE REACHABILITY PROBLEM
+Definition 4. (Hybrid Automaton - Reachability). Let H
+be a hybrid automaton. A state hqr; rireaches a state
+hqs; siif there exist a sequence ( `i)i2Iof states such that
+`0=hqr; ri,`n=hqs; siand either `i1t !C`ior
+`i1e !D`i, for some t2R>=0, and e2E.
+We use ReachSet H(hqr; ri) to denote the set of states
+reachable fromhqr; ri. Moreover, given a set of states
+RQ x Xwe use ReachSet H(R) to denote the set
+[hqr;ri2RReachSet H(hqr; ri).
+Checking safety properties on hybrid automata reduces to
+the reachability problem. Suppose we wish to verify that
+a safety property 'holds for a hybrid automaton H; in
+other words, that 'remains true for all possible executions
+starting from a set Rof initial states. Then we only need
+to prove that ReachSet H(R)Sat('), where Sat( ') is the
+set of states where 'is true.
+Unfortunately, the reachability problem is not decidable
+in general; there exists at least a hybrid automaton H
+and two sets of its states, RandT, such that there is no
+algorithm to decide whether T\ReachSet H(R) is empty
+or not (see Henzinger et al. (1995)). Some tools avoid these
+difficulties by restricting to classes of hybrid systems for
+which the reachable set is computable by algebraic means,
+and so the reachability relation is decidable.
+Nevertheless, formal verification methods can be applied
+to hybrid automata. Suppose we can compute an over-
+approximation StoReachSet H(R). Then if Sis a subset
+of Sat( '), then so is the reachable set.
+For these reasons, tools for reachability analysis of general
+hybrid automata are based on approximation techniques.
+The challenge is to find the \best" approximations of
+continuous regions. Some tools simply compute approx-
+imations to the reachable set, without any control of
+the errors; these may solve many practical problems, but
+the user cannot have absolute confidence in the answer.
+More sophisticated tools compute over-approximations to
+the reachable set, but work with fixed precision, and so
+may not be able to verify systems which are indeed safe.
+Even so, it is not possible, in general, to compute over-approximations to the reachable set to arbitrary accuracy
+in an approximative framework Collins (2005).
+Ariadne can compute convergent over-approximations to
+thechain-reachable set , which contains all points that can
+be reached by introducing an arbitrarily small amount of
+noise and can be proved to be the best possible over-
+approximation to the reachable set (see Collins (2007)).
+This means that, given an hybrid automaton Hand an
+inital set RQ x X, it can compute a set SQ x X
+such that ReachSet H(R)S. Moreover, by increasing the
+precision of the approximation, the set Scan be made
+arbitrarily close to the chain-reachable set.
+4. THE REACHABILITY ALGORITHM
+Before discussing the reachability algorithm in details,
+we brie
+y describe how we represent regions of space in
+Ariadne . For a more accurate description, see Balluchi
+et al. (2006).
+Compact subsets of the Euclidean space Rnare approx-
+imated in Ariadne by finite unions of simple sets, such
+as intervals, simplices, cuboids, parallelotopes, zonotopes,
+polytopes, spheres and ellipsoids, defined using rational
+coefficents. Since they form a base for the topology, they
+are called basic sets . The sets that can be represented
+exactly as a finite union of basic sets of a given type are
+called denotable sets .
+Fig. 2. Examples of approximations of a set.
+Regions of space can be also represented in Ariadne by
+means of grids . Grids are subdivision of Rninto cells of
+fixed size. A set can be represented on a grid as a union
+of cells. Figure 2 shows how a non-denotable set can be
+over-approximated by using ellipsoids or grids.
+In the case of hybrid automata we need to represent hybrid
+sets, which are regions in the space Q x Rn. Hybrid sets
+are represented in Ariadne starting from hybrid basic
+sets that pair a location of the automaton with a single
+basic set. Hence, we can have hybrid intervals, hybrid
+simplices, hybrid cuboids, hybrid parallelotopes, hybrid
+zonotopes, hybrid polytopes, hybrid spheres and hybrid
+ellipsoids. Finite unions of hybrid basic sets are called
+hybrid denotable sets .Ariadne can also use hybrid grids ,
+that consist of a grid for every location of the automaton.
+Hybrid sets are then represented by marking the cells of
+the different grids.
+The chain-reachability algorithm of Ariadne takes as
+inputs an hybrid automaton, a finite (hybrid) grid, an
+initial set and a bounding set (represented as sets of cells of
+the hybrid grid). It computes an over approximation of the
+infinite-time chain-reachable set of the automaton starting
+from the initial set and staying withing the bounding set.
+
+--- Page 4 ---
+Since the infinite-time chain-reachable set of an hybrid
+automaton is (in general) not computable, we need to
+constrain the search space of the algorithm to assure
+termination. In our case, by giving a bounding set we
+restrict the algorithm to a bounded region of space that
+can be represented by a finite number of cells of the grid.
+The grid is used also to control the precision of algorithm
+(the finer the grid, the more accurate the computed region)
+and to store inputs, outputs and intermediate results by
+using a constant amount of memory (a region in a grid is
+represented by marking the corresponding cells).
+The chain-reachability algorithm alternates continuous
+evolution and discrete evolution of the automaton until
+a fixpoint is reached, and it proceeds as follows.
+(1) Start from the initial set and compute the continuous
+evolution of the automaton as long as possible. Mark
+the cells of the grid that are touched during the
+continuous evolution.
+(2) When no more cells can be marked, compute a single
+discrete evolution step. Mark the new cells of the grid
+that are reached by the discrete step.
+(3) If new cells are reached, go to (1). Otherwise, stop.
+The algorithm terminates since the bounding set is divided
+into a finite number of cells by the underlying grid. Hence,
+after a finite number of steps either no more cells are
+marked or the whole search space is marked. In the
+following we describe in details how the continuous and
+the discrete evolution of an hybrid automaton is computed
+inAriadne .
+4.1 Computing the continuous evolution
+The continuous evolution of the system is computed by
+means of an integrator. Ariadne 's modularity allows
+the user to choose between different types of integrators
+included in the tool (we currently have an integrator
+for affine systems, the Euler integrator, and the Lohner
+integrator), or to add new custom integration methods.
+Given a location q2Qof the hybrid automaton, the
+computation of the continuous evolution in qstarts from
+a set of cells of the hybrid grid and proceeds as follows.
+First, the initial set of cells is approximated as a union of
+basic sets. Then each basic set is integrated for a number
+of integration steps using the dynamic law Dyn(q). The
+length of the integration step is adaptively determined,
+between user-specified minimum and maximum values. If
+a basic set becomes too large, the error in the evolution
+step becomes large, and the basic set may be subdivided
+to avoid catastrophic loss of accuracy. Finally, after a
+specified number of integration steps, the evolved sets are
+over-approximated or \locked" back to the grid. Figure 3
+depicts this procedure.
+Locking to the grid causes a loss of accuracy due to the
+over-approximation, but it is necessary for termination.
+After locking to the grid, the algorithm checks if new
+cells have been reached or not. In the former case, it
+continues with the integration phase starting from the
+newly reached cells. In the latter case, a fixpoint in the
+continuous evolution of the system has been reached and
+a number of \snapshots" of the system evolution have
+been computed, one for each locking-to-grid phase. The
+Fig. 3. Integration of a basic set with integration step h.
+algorithm ends with a reachability step that computes an
+over approximation of the 
+ow of the system starting from
+such snapshots. This last step is explained in Figure 4.
+Fig. 4. Computing the 
+ow of the system.
+4.2 Computing the discrete evolution
+Computing the discrete evolution of an hybrid automaton
+is simpler than computing its continuous evolution. Given
+an hybrid set of reached cells, we proceed as follows.
+(1) For every control switch e2Ewe determine the set
+of cells that intersects with Act(e);
+(2) if such set is not empty, we apply the reset function
+Reset (e) to obtain the set of cells reached by the
+transition.
+The discrete evolution of the system is computed using
+upper semantics : when there are multiply enabled tran-
+sitions, or when the system exhibits grazing (tangential
+contact between a reached region and an activation set),
+the system evolves nondeterministically with all possible
+courses of action being taken. This guarantees that every
+point that can be reached by the automaton is included
+in the result, and thus that the algorithm computes an
+over-approximation of the reachable set.
+5. AN EXAMPLE
+In this section, we present a test case of reachability
+analysis for the hybrid automaton Hdefined in Example 1.
+The automaton models a water level monitor system:
+suppose that we start from an empty tank and that we
+want to guarantee that the water level is always between
+3 and 13, except for the initial phase.
+To this end, we start the reachability algorithm of Ari-
+adne from the initial location q0with initial values for
+the continuous variables x= 0 and y= 0. The first
+step of the algorithm is the computation of the continuous
+evolution of the system in the location q0, that is depicted
+in Figure 5a. During this phase, the water level increases
+up to 10, since Inv(q0) isy<=10. Then, the algorithm
+
+--- Page 5 ---
+checks if there are active transitions. In this case, we have
+that the transition hq0; q1iis active: the controller signals
+to switch off the pump and goes to location q1. The reset
+function ofhq0; q1iis applied: xis reset to 0, ykeeps its
+value (10) and the computation of the continuous evolution
+starts again from location q1. Figure 5b portraits the reach
+set after the computation of the continuous evolution in
+q1.
+ 0 2 4 6 8 10 12 14
+ 0 2 4 6 8 10 12 14q0
+(a)
+ 0 2 4 6 8 10 12 14
+ 0 2 4 6 8 10 12 14q0q1 (b)
+Fig. 5. Computing the continuous evolution in q0andq1.
+The water level continue to increase during the 2 seconds
+delay, then the transition hq1; q2iis activated: the pump
+is switched off and the water level decreases following the
+dynamics of location q2, until it reaches 4 :5 (see Figure 6a).
+Then the controller signals to switch on the pump: tran-
+sitionhq2; q3iis activated and the continuous evolution
+of the system proceeds in location q3. When the compu-
+tation of this last continuous evolution is terminated the
+algorithm activates the transition hq3; q0i. By doing this
+the system reaches a region that has been reached already
+during the computation of the continuous evolution in q0.
+Hence, a fixpoint has been reached: the algorithm stops
+and returns the reached set depicted in Figure 6b.
+ 0 2 4 6 8 10 12 14
+ 0 2 4 6 8 10 12 14q0q1
+q2
+(a)
+ 0 2 4 6 8 10 12 14
+ 0 2 4 6 8 10 12 14q0q1
+q2
+q3 (b)
+Fig. 6. Computing the continuous evolution in q2andq3.
+It is easy to see that, except for the initial phase, the water
+level is always between 3 and 13, and thus that the safety
+property we want to check is verified.
+Ariadne supports many other types of analysis. For
+instance, it can be used to compute an over-approximation
+of the system evolution for a certain time. Figure 7
+represents the evolution of the water level for 40 time
+units. As one can expect, the system presents an oscillating
+behaviour that keeps the water level into the desired
+boundaries. The solution's loss of precision over time
+is caused by over-approximation errors, and cannot be
+completely eliminated even by increasing the precision of
+the algorithm.
+ 0 2 4 6 8 10 12 14
+ 0  5 10  15  20  25  30  35  40Water Level
+TimeFig. 7. Evolution of the water level with respect to time.
+6. LOWER APPROXIMATION
+In the previous sections we have described how Ariadne
+computes over-approximations of reachable sets. However,
+there are some cases where over-approximations are not
+sufficient to determine if a system is safe or not. Let
+'be a safety property, RQ x Xan initial set, and
+suppose that we have computed an over-approximation S
+ofReachSet H(R). If SSat('), we can conclude that
+the system is safe. However, if S*Sat(') we cannot say
+anything about the safety of the system: it could be the
+case that the system is safe, but the points in SnSat(')
+have been included in Sbecause of over-approximation
+errors.
+A possible way to determine if a system is unsafe is to
+compute an under-approximation of the reachable set, that
+is, a set SReachSet H(R). In this case, if S*Sat(') we
+can conclude that the system does not satisfy the safety
+property '. Unfortunately, in most cases, it is not possible
+to compute an under-approximation of the reachable set,
+or we have that the only possible under-approximation
+is the empty set (this is the case, for instance, of single
+points and single trajectories). To overcome the problems
+with under-approximations, in order to establish whether
+a system respect a safety property in a sufficiently large
+class of practical applications, we are currently extending
+Ariadne to support lower-approximations of reachable
+sets. Given a set TQ x X, a lower-approximation of
+Tis any finite union of basic sets S=Sn
+i=1Sisuch that
+for every i= 1; : : : ; n ,Si\T6=;(there is at least one
+point of Tin each Si). Now, let 'be a safety property
+andRQ x Xbe an initial set. If S=Sn
+i=1Siis a
+lower-approximation of ReachSet H(R) and there exists an
+Sithat is completely disjoint from Sat( '), we can conclude
+that there is at least one point of ReachSet H(R) that sits
+outside Sat( '), and thus that the system is unsafe.
+Computing lower-approximations of reachable sets is
+harder than computing over-approximations. Additional
+care should be taken in order to guarantee that the com-
+puted set is indeed a lower-approximation of the reachable
+set. The main problems that arise are the following.
+- During the computation of the continuous evolution
+basic sets cannot be split. If Bis a basic set of a
+lower-approximation of ReachSet H(R) (that is, Bis
+such that B\ReachSet H(R)6=;) and we split it into
+
+--- Page 6 ---
+B1andB1, it is not guaranteed that both B1andB2
+satisfy the lower-approximation property.
+- During the computation of the discrete evolution of
+the system, if there are multiply enabled transitions,
+or if the system exhibits grazing (tangential contact
+between a 
+ow line and an activation set), it may
+be impossible to determine exactly what transition is
+activated.
+All these problems should be considered and correctly
+solved in order to obtain an algorithm that computes
+a lower-approximation of the reachable set of an hybrid
+automaton.
+7. CONCLUSION
+In this paper we described the algorithm used in Ari-
+adne to compute over-approximations of reachable sets of
+hybrid automata. We discussed also how to extend it to
+support lower-approximations as well.
+Currently Ariadne supports both linear and non-linear
+discrete-time systems, continuous-time systems and hybrid
+systems in its C++ kernel. For all these systems it can
+compute over-approximations of the evolution and of the
+reachable set. A Python scripting interface is available
+and can be used for a fast and easy modeling and testing
+of real-world applications. We are working on extending
+the evaluation engine in order to fully support lower-
+approximations.
+REFERENCES
+R. Alur, C. Courcoubetis, T. A. Henzinger, and P. H.
+Ho. Hybrid Automata: An Algorithmic Approach to
+the Specification and Verification of Hybrid Systems. In
+Hybrid Systems , LNCS, pages 209{229. Springer, 1992.
+E. Asarin, T. Dang, O. Maler, and O. Bournez. Approx-
+imate Reachability Analysis of Piecewise-Linear Dy-
+namical Systems. In Proceedings of Hybrid Systems:
+Computation and Control (HSCC'00) , volume 1790 of
+LNCS , pages 20{31. Springer, 2000.
+E. Asarin, T. Dang, and O. Maler. The d/dt tool for
+verification of hybrid systems. In CAV '02: Proceed-
+ings of the 14th International Conference on Computer
+Aided Verification , pages 365{370, London, UK, 2002.
+Springer-Verlag.
+A. Balluchi, A. Casagrande, P. Collins, A. Ferrari, T. Villa,
+and A. Sangiovanni-Vincentelli. Ariadne: a framework
+for reachability analysis of hybrid automata. In Pro-
+ceedings of the 17th International Symposium on Mathe-
+matical Theory of Networks and Systems (MTNS 2006) ,
+Kyoto, Japan, July 2006.
+O. Botchkarev and S. Tripakis. Verification of hybrid sys-
+tems with linear differential inclusions using ellipsoidal
+approximations. In Proceedings of Hybrid Systems:
+Computation and Control (HSCC'00) , volume 1790 of
+LNCS , pages 73{88. Springer, 2000.
+T. Brihaye, C. Michaux, C. Rivi ere, and C. Troestler. On
+O-Minimal Hybrid Systems. In Proceedings of Hybrid
+Systems: Computation and Control (HSCC'04) , volume
+2993 of LNCS , pages 219{233. Springer, 2004.
+P. Collins. Continuity and computability of reachable sets.
+Theoretical Computer Science , 341:162{195, 2005.P. Collins. Optimal semicomputable approximations to
+reachable and invariant sets. Theory Comput. Syst. , 41
+(1):33{48, 2007.
+T. Dang and O. Maler. Reachability analysis via face
+lifting. In Proceedings of Hybrid Systems: Computation
+and Control (HSCC'98) , volume 1386 of LNCS , pages
+96{109, 1998.
+C. Daws, A. Olivero, S. Tripakis, and S. Yovine. The tool
+Kronos. In Proceedings of Hybrid Systems: Computation
+and Control (HSCC'95) , volume 1066 of LNCS , pages
+208{219. Springer, 1995.
+Michael Dellnitz, Gary Froyland, and Oliver Junge. The
+algorithms behind GAIO-set oriented numerical meth-
+ods for dynamical systems. In Ergodic theory, analysis,
+and efficient simulation of dynamical systems , pages
+145{174, 805{807. Springer, Berlin, 2001.
+G. Frehse. PHAVer: Algorithmic verification of hybrid
+systems past HyTech. In Hybrid Systems: Computation
+and Control, 8th International Workshop, HSCC 2005 ,
+volume 3414 of LNCS , pages 258{273, Zurich, Switzer-
+land, 2005. Springer.
+N. Halbwachs, Y.-E. Proy, and P. Raymond. Verification
+of linear hybrid systems by means of convex approxi-
+mations. In Static Analysis Symposium , pages 223{237.
+Springer-Verlag, 1994.
+T. A. Henzinger and P. W. Kopke. State Equivalences
+for Rectangular Hybrid Automata. In Proceedings of
+CONCUR'96 , volume 1119 of LNCS , pages 530{545.
+Springer, 1996.
+T. A. Henzinger, P. W. Kopke, A. Puri, and P. Varaiya.
+What's decidable about hybrid automata? In Proceed-
+ings of the 27th Annual ACM Symposium on the Theory
+of Computing (STOCS '95) , pages 373{382, New York,
+NY, USA, 1995. ACM Press.
+T. A. Henzinger, P. H. Ho, and H. Wong-Toi. HYTECH: a
+model checker for hybrid systems. International Journal
+on Software Tools for Technology Transfer , 1(1{2):110{
+122, 1997.
+A. B. Kurzhanski and P. Varaiya. Ellipsoidal techniques
+for reachability analysis. In Proceedings of Hybrid
+Systems: Computation and Control (HSCC'00) , volume
+1790 of LNCS , pages 202{214, 2000.
+G. Lafferriere, G. J. Pappas, and S. Sastry. O-Minimal
+Hybrid Systems. Mathematics of Control, Signals, and
+Systems , 13:1{21, 2000.
+K. G. Larsen, P. Pettersson, and W. Yi. UPPAAL in a
+nutshell. International Journal on Software Tools for
+Technology Transfer , 1(1{2):134{152, 1997.
+O. Maler, Z. Manna, and A. Pnueli. From timed to
+hybrid systems. In J. W. de Bakker, C. Huizing,
+W. P. de Roever, and G. Rozenberg, editors, Real-
+Time: Theory in Practice , volume 600, pages 447{484.
+Springer-Verlag, 3{7 June 1991.
+B. I. Silva, O. Stursberg, B. H. Krogh, and S. Engell.
+An assessment of the current status of algorithmic
+approaches to the verification of hybrid systems. In
+Proceedings of the Fortieth IEEE Conference on Deci-
+sion and Control (CDC '01) , pages 2867{2874, Orlando
+(Florida), 2001.
+S. Yovine. Kronos: a verification tool for real-time systems.
+International Journal on Software Tools for Technology
+Transfer , 1(1{2):123{133, 1997.
