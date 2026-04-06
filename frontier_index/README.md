@@ -4,7 +4,7 @@
 
 `frontier_index/` 是本仓库面向“前沿论文信息”的顶层索引入口。它当前不承担“正式全文文库”的职责，而是先承担一个更前置、更轻量的职责：
 
-1. 维护 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议的往年论文信息索引入口。
+1. 维护从 `CCF` 软件工程/系统软件/程序设计语言方向中筛选后保留的、与软件工程高度相关且值得持续跟踪的 `A/B/C` venue 往年论文索引入口。
 2. 维护近期 `arXiv` 上软件工程方向论文的滚动索引入口。
 3. 先积累论文元数据、`BibTeX`、`DOI`、学术站落地页链接和初步判断结果，再决定哪些论文值得进一步获取 `PDF` 做深读。
 
@@ -36,7 +36,7 @@
 
 本路径当前优先覆盖两类来源：
 
-1. `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议的往年论文。
+1. `CCF_SE_A_B_C.md` 当前保留的 `CCF` 软件工程高相关 `A/B/C` venue 往年论文。
 2. `arXiv` 上近期的软件工程方向论文，优先关注 `cs.SE`，并视需要补充和软件工程高度相关的交叉方向。
 
 这里的“收录”当前默认指“收录索引信息”，不是“收录完整论文全文材料”。
@@ -102,7 +102,7 @@
 3. [SUMMARY.md](./SUMMARY.md)
    - 记录当前已经准备好的基础信息、后续待做事项和更新日志。
 4. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
-   - 汇总 `CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议名录、venue 主体归属、软工归属级别、主要方向与边界说明和索引入口。
+   - 汇总当前保留的 `CCF` 软件工程高相关 venue 名录、venue 主体归属、软工归属级别、主要方向与边界说明和索引入口。
 5. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
    - 给出当前 `frontier_index/` 使用的软件工程三级方向树、`X1 + D1-D4` 单篇软工判定标准、跨域处理规则，以及 `x.x.x` 主路径分类规则与典型例子总览。
    - 该树默认允许按覆盖需要继续扩叶，不以固定 `4` 叉结构为约束。
@@ -189,6 +189,6 @@ frontier_index/ccf_history/2025/manual_review/batches/*.json
 6. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 软工判定依据（X1/D1-D4）`。
 7. 若批量扫论文时发现现有 `x.x.x` 没有自然覆盖某一稳定题型，应先更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 及相关说明，再回填分类，不要把论文硬塞到“最接近”的旧路径。
 8. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
-9. 若任务是构建某一年的 `CCF` 全量索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再用 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 回填软工判定与 `x.x.x` 路径，最后按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 做复核。
+9. 若任务是构建某一年的 `CCF` 保留子集索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再用 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 回填软工判定与 `x.x.x` 路径，最后按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 做复核。
 10. 若任务要求“逐篇人工终判”，默认以 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 为覆盖入口；未进入覆盖文件的条目只能视为启发式初判，不能宣称已人工复核完成。
 11. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。

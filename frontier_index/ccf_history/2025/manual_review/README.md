@@ -102,7 +102,7 @@
 ## 6. 当前状态
 
 1. 当前覆盖文件：[overrides.json](./overrides.json) / [batches/](./batches/)
-2. `2025` 年度的全量人工终判当前实际保存在 [batches/](./batches/) 下的 `82` 个 venue 文件中；[overrides.json](./overrides.json) 当前保留为空占位文件，供后续零星补丁使用。
+2. `2025` 年度当前保留范围的人工终判实际保存在 [batches/](./batches/) 下的 `57` 个 venue 文件中；[overrides.json](./overrides.json) 当前保留为小规模补丁层。
 3. 若同一论文同时出现在 [batches/](./batches/) 与 [overrides.json](./overrides.json) 中，后者应视为更晚的人工补丁层，并优先覆盖前者。
-4. 当前默认状态：已完成 `2025` 年 `6301` 条论文的逐篇人工终判。
+4. 当前默认状态：已完成 `2025` 年保留范围内 `5153` 条论文的逐篇人工终判。
 5. [../README.md](../README.md) 中当前所有条目都应显示为 `人工复核 / 已人工复核`。

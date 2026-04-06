@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build yearly CCF SE/Systems/PL venue indexes.
+"""Build yearly curated CCF SE-oriented venue indexes.
 
-This script focuses on the CCF category documented in
+This script focuses on the curated venue subset documented in
 `frontier_index/CCF_SE_A_B_C.md` and currently targets the yearly
 metadata index workflow under `frontier_index/ccf_history/<year>/`.
 
@@ -1135,7 +1135,7 @@ class Builder:
         lines.append("## 1. 年份说明")
         lines.append("")
         lines.append(f"- 年份：`{self.year}`")
-        lines.append("- 覆盖范围：`CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议")
+        lines.append("- 覆盖范围：`CCF_SE_A_B_C.md` 当前保留的 `CCF` 软件工程高相关 venue 子集")
         lines.append(f"- 当前覆盖的 venue 数量：`{venue_count}`")
         lines.append(f"- 当前已入表论文数量：`{total_papers}`")
         lines.append(f"- 更新时间：`{ts}`")

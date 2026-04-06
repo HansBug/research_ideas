@@ -12,7 +12,7 @@
    - 从单篇 `paper.pdf` 提取 `paper_content.txt`。
    - 适用于正式论文集路径中的全文整理阶段。
 2. [ccf_se_index_builder.py](./ccf_se_index_builder.py)
-   - 批量生成 `CCF` 软件工程/系统软件/程序设计语言方向年度索引。
+   - 批量生成当前 `CCF_SE_A_B_C.md` 保留的 `CCF` 软件工程高相关 venue 年度索引。
    - 输出年度 `README.md`、`verification.json`、`metadata/*.json`、`bib/*.bib`。
 3. [ccf_se_classifier.py](./ccf_se_classifier.py)
    - 在已有年度元数据之上，先做启发式初判，再加载 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 与 `frontier_index/ccf_history/<year>/manual_review/batches/*.json` 中的逐篇人工复核覆盖。
@@ -45,7 +45,7 @@ frontier_index/ccf_history/2025/
 
 推荐顺序：
 
-1. 先运行构建器生成全量结果。
+1. 先运行构建器生成当前保留子集结果。
 2. 再检查 `verification.json` 是否全部 `ok`。
 3. 再运行分类器回填软工判定与 `x.x.x` 路径：
 

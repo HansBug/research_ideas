@@ -42,8 +42,8 @@
    - `SEI` 的 `2021` roadmap 把 `AI-augmented software development`、`continuously evolving systems`、`socio-technical systems`、`AI-enabled systems`、`quantum systems` 提升为长期重要方向。[R10]
    - `Software Engineering for AI-Based Systems: A Survey`（2021）说明 `SE for AI` 已经形成可独立讨论的问题簇，而且其组织方式可以映射回 `SWEBOK` 知识域。[R14]
 5. **本仓库当前语料的现实覆盖检查**
-   - 当前 [SUMMARY.md](./SUMMARY.md) 记录了 `2025` 年 `CCF` 索引中的 `6301` 条论文元数据。
-   - 当前 `2025` 元数据自动标签的前几类信号分别是：`建模/模型驱动 2308`、`测试与验证 1969`、`LLM/AI for SE 1445`、`形式化方法 1404`、`可靠性/安全 1270`、`维护与演化 921`、`需求工程 898`、`经验软件工程 759`。
+   - 当前 [SUMMARY.md](./SUMMARY.md) 记录了 `2025` 年 `CCF` 保留子集索引中的 `5153` 条论文元数据。
+   - 当前 `2025` 元数据自动标签的前几类信号分别是：`建模/模型驱动 2026`、`测试与验证 1675`、`LLM/AI for SE 1335`、`可靠性/安全 1127`、`形式化方法 908`、`维护与演化 848`、`需求工程 742`、`经验软件工程 719`。
    - 这说明如果分类树缺少需求/建模、测试/分析/验证、维护/演化、经验研究/仓库挖掘、架构、过程/组织、人因、`AI for SE / SE for AI` 与运行时工程等主枝，就无法覆盖当前软工语料。
 
 ## 3. 边界说明与单篇论文判定标准
@@ -614,7 +614,7 @@ Software Engineering
    - 主要覆盖 `6.3.x / 6.4.x / 6.5.x`。
 7. `ICWS / ICSOC / Internetware / TSC / SOCA`
    - 主要覆盖 `2.1.4 / 4.3.x / 4.4.x / 8.2.x`。
-8. `PLDI / POPL / OOPSLA / TOPLAS / PACM PL / SOSP / OSDI / Middleware`
+8. `PLDI / OOPSLA / FM / VMCAI / SCP / TSC`
    - 只有其中一部分论文会落入本文方向树；是否纳入，必须按第 `3.6-3.7` 节的单篇标准重新判断。
 
 ## 7. 过去与近期领域综述/roadmap 对本树的影响

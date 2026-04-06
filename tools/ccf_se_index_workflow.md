@@ -1,4 +1,4 @@
-# `CCF` 软件工程方向年度索引工作流
+# `CCF` 软件工程高相关年度索引工作流
 
 本文档说明如何使用 `tools/ccf_se_index_builder.py` 维护 `frontier_index/ccf_history/` 下的年度索引。
 
@@ -85,9 +85,9 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 
 建议按以下顺序操作：
 
-1. 先运行构建器生成当年的全量结果。
+1. 先运行构建器生成当年的保留子集结果。
 2. 检查 `verification.json` 是否全部为 `ok`。
-3. 若该年份还没有全量人工终判，第一次运行分类器，先获得全量启发式初判结果。
+3. 若该年份还没有人工终判覆盖，第一次运行分类器，先获得当前保留子集的启发式初判结果。
 4. 逐篇人工复核时，不要直接手改 `metadata/*.json`；应把最终裁决写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 或 `frontier_index/ccf_history/<year>/manual_review/batches/*.json`。
 5. 重新运行分类器，让人工复核覆盖脚本结果，并重渲染年度页；如果该年已经实现全量人工覆盖，则分类器会直接按人工终判结果回填与渲染。
 6. 若某类论文没有自然 `x.x.x` 落点，应先扩 `frontier_index/SOFTWARE_ENGINEERING_FIELD_TREE.md`，再更新分类器规则并重跑，不要把论文硬塞进旧路径。

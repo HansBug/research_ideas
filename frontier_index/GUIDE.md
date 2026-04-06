@@ -13,7 +13,7 @@
 3. [SUMMARY.md](./SUMMARY.md)
    - 负责记录当前基础建设状态、已准备好的入口、下一步计划和更新日志。
 4. [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
-   - 负责固定 `CCF` 相关 venue 的名录、主体归属、软工归属级别与索引入口。
+   - 负责固定当前保留的 `CCF` 软件工程高相关 venue 名录、主体归属、软工归属级别与索引入口。
 5. [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)
    - 负责给出当前默认的软件工程三级方向树、单篇论文可执行判定标准，以及 `x.x.x` 主路径分类规则。
 6. [../tools/README.md](../tools/README.md)
@@ -40,6 +40,7 @@
 2. 为后续批量整理论文元数据建立统一字段口径。
 3. 先完成轻量级初筛，减少后续全文获取与深读成本。
 4. 形成“哪些论文值得进一步拿 `PDF`”的候选池。
+5. `CCF` 侧默认只维护 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 现存的保留 venue，不再在本路径中继续保留被筛出的非目标 venue。
 
 本路径不应承担的事：
 
