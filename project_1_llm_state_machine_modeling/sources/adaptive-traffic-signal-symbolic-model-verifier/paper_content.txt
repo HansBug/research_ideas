@@ -1,0 +1,479 @@
+--- Page 1 ---
+International Journal of Computer Applications (0975 - 8887)
+Volume 53 - No. 3, September 2012
+Modeling and Veriﬁcation of Agent Based Adaptive
+Trafﬁc Signal using Symbolic Model Veriﬁer
+Vivek Vishal, Sagar Gugwad and Sanjay Singh
+Department of Information and Communication Technology
+Manipal Institute of Technology, Manipal University, Manipal-576104, India
+ABSTRACT
+This paper addresses the issue of modeling and veriﬁcation of
+a Multi Agent System (MAS) scenario. We have considered an
+agent based adaptive trafﬁc signal system. The system monitors
+the smooth ﬂow of trafﬁc at intersection of two road segment. Af-
+ter describing how the adaptive trafﬁc signal system can efﬁciently
+be used and showing its advantages over trafﬁc signals with pre-
+determined periods, we have shown how we can transform this
+scenario into a Finite State Machine (FSM). Once the system is
+transformed into a FSM, we have veriﬁed the speciﬁcations speci-
+ﬁed in Computational Tree Logic(CTL) using NuSMV as a model
+checking tool. Simulation results obtained from NuSMV showed
+us whether the system satisﬁed the speciﬁcations or not. It has also
+identiﬁed the state where the system speciﬁcation does not hold.
+Using this information we traced back our system to ﬁnd the source
+of error, leading to the speciﬁcation violation. Finally, we again
+veriﬁed the modiﬁed system with NuSMV for its speciﬁcations.
+General Terms:
+Agent System, Trafﬁc Agent System
+Keywords:
+Model Checking, NuSMV , Multi-Agent System, Adaptive Traf-
+ﬁc Signal
+1. INTRODUCTION
+A signiﬁcant amount of work has been done in the ﬁeld of arti-
+ﬁcial intelligence. It has resulted in the development of different
+types of logics, semantics and tools but very few work focuses
+on its veriﬁcation. Anand Rao [1] introduced the agent-oriented
+programming language AgentSpeak(L). It tried to bridge up the
+gap between the theoretical perspective and practical design. It
+served as one of the major breakthrough in the agent technology
+and gave rise to many research activities in this direction [2].
+All of the early work done concentrated in the development of
+different variations of this language to support their domain and
+related tools to build applications. Bordini et al. [3] came up with
+his AgentSpeak(F), a ﬁnite state version of AgentSpeak(L), to
+support model checking of applications developed in AgentS-
+peak(L).
+In this paper we have considered a scenario of adaptive trafﬁc
+signal across the intersection of two roads (any other scenario is
+just a special case of it). Duration of green light vary based on
+the length of trafﬁc at a particular junction of the road in such a
+way that each vehicle gets a fair opportunity to cross the intersec-
+tion. Modeling of this scenario has been shown and the required
+properties of the model has been veriﬁed using NuSMV [4].Rest of the paper is organized as follows. Section 2 gives an in-
+troduction to current trafﬁc scenario which is based on predeter-
+mined trafﬁc signal periods. Section 3 discusses about the detail
+design of agent based adaptive trafﬁc monitoring system. Sec-
+tion 4 explains about the model checking and the properties of
+the agent based adaptive trafﬁc signal, speciﬁed using CTL. Sec-
+tion 5 discusses about the veriﬁcation results obtained. Finally
+section 7 concludes this paper.
+2. CURRENT TRAFFIC SCENARIO
+Trafﬁc jams are becoming a daily routine on roads especially
+in cities with large population. The main reason for this is the
+increase in the number of on-road vehicles versus limited road
+area. One solution of this problem can be the construction of
+new roads or widening of already existing roads. However, it is
+not possible in most of the cases due to the scarcity of land and
+other issues. In that case we are only left out with the option of
+efﬁcient ﬂow-management of the on-road vehicles particularly at
+intersection point of two roads.
+Today the only ﬂow-management available is through trafﬁc sig-
+nals. Trafﬁc light systems are built to control the smooth trafﬁc
+ﬂows at the intersections within the trafﬁc network. In this pa-
+per we have tried to convert this ”ﬂow-management aid” to an
+”effective ﬂow-management aid” for controlling the trafﬁc in ef-
+ﬁcient way so that we can manage the available trafﬁc to the
+limited road space. Our aim here is to ensure a fair chance to
+each vehicle waiting for a green signal.
+Nowadays, most of the trafﬁc light control systems are still using
+predetermined setting. Consider the road intersection scenario as
+shown in the Fig.1. Suppose the lanes 1 and 2 are more busy than
+lanes 3 and 4. Due to the predetermined settings of the trafﬁc
+lights, the duration for green signal for each lane is ﬁxed. As a
+result whenever there are no vehicles on lane 3 and 4 their lights
+will be green for the entire ﬁxed interval. Even if there are more
+vehicles on lane 1 and 2, they will have to wait unnecessarily.
+This results in the increase of vehicle queue in lanes 1 and 2.
+This process continues as the cycle proceeds leading to trafﬁc
+jam. This is one of the major drawbacks of using trafﬁc signals
+with predetermined settings.
+Many works has been done in the past in order to overcome the
+problem caused by the usage of predetermined trafﬁc signals.
+Teo and Chin [5] has extended the concept of Genetic Algorithm
+for the optimization of the Trafﬁc Flow Control. Longer green
+time will pass through more vehicles, but it will increase the cy-
+cle time at the same time which causes more vehicles to accu-
+mulate at the intersection during the waiting time. Using Genetic
+Algorithm the optimal value of the green time of the signal is de-
+termined. They have predicted the duration of current green time
+on the basis of its wait time that is duration for which the other
+lanes were green. Since this approach is based on prediction and
+23
+
+--- Page 2 ---
+International Journal of Computer Applications (0975 - 8887)
+Volume 53 - No. 3, September 2012
+Fig. 1. Adaptive Trafﬁc Scenario
+not on any current real time data, the whole system cannot be
+considered as reliable as far as average waiting time for each ve-
+hicle is concerned.
+Zhou et al [6] has proposed an algorithm which takes care of
+almost all the considerable parameters such as trafﬁc volume,
+waiting time, vehicle density, etc., to determine green light se-
+quence and the optimal green light duration. One drawback in
+this approach is that they have considered 12 possible conﬁgura-
+tion of green light, which is indeed not required and is a system
+overhead.
+Cheng [7] has also proposed a similar approach by applying an
+improved adaptive PI algorithm to calculate the weight of each
+state, which is the key to determine the next state of a trafﬁc light.
+If the current state is identical to the expected one, green light pe-
+riod is extended for the current state, otherwise the expected state
+is switched on, and its green light period is launched. However
+as in the previous paper [6] they have also considered 12 possible
+conﬁguration of green light and suffers from same drawback.
+A number of research work [8][9][10] have addressed the issue
+of adaptive trafﬁc signal via wireless sensor networks, machine
+learning, and other approaches.
+3. AGENT BASED ADAPTIVE TRAFFIC
+MONITORING SYSTEM
+The aim of the agent based trafﬁc monitoring model is to provide
+an efﬁcient ﬂow of trafﬁc across intersections of two or more
+roads. In our scenario we have considered an intersection of two
+road segments. Each road segment has two lanes. Though we
+have tried to take a generalized scenario, the real world road in-
+tersections can be of higher dimension. This model can easily be
+ﬁtted to model even those scenarios with a little modiﬁcation.
+In this approach, instead of taking twelve possible combinations
+of green light we have taken only four possible combination of
+green light as shown in the Fig.1. Each one of the four combina-
+tions will get a chance in a weighted round-robin fashion. Now
+the question is how we can determine the weight for the round-
+robin that is for how much duration that green light will be ON.
+The metric for this weight is the queue length at the time when
+the green light is about to turn ON. Before going into the detailed
+design let us deﬁne some terminologies used:(a)Tthr: maximum duration for which any green light can be
+turned ON.
+(b)tv:time required for any vehicle to cross the intersection.
+For simplicity we have assumed that it is constant and for
+modeling it in NuSMV we have taken it as 1.
+Each incoming lane (towards the intersection) of a road segment
+has two monitoring agents which can be a sensor in real life sce-
+nario. Let Ag1Entry and Ag1Exit respectively be that two agents
+for lane 1 for counting the number of incoming and outgoing ve-
+hicles from lane 1 as shown in Fig.1. Ag1entry is placed some-
+what far from the intersection, in such a way that its distance
+from the intersection point is at least Tthrtv. By doing so, we
+are ensuring that even if the vehicle queue exceeds the location
+point of the agent, the Agent is not counting it. Ag1Exit Agent is
+situated at the intersection point. Similarly for all other three in-
+coming lanes we have two monitoring agent for each lane, giving
+us a total of eight agents. There is yet another agent, Ag Master
+which determines the weight that is the duration for which a par-
+ticular green light is ON.
+Now we will see how this Multi Agent System (MAS) works
+in a cooperative manner in order to provide an optimal weight
+for each green signal in each round. The Ag1Entry and Ag2Exit
+agents are very simple agents whose work is simply to pass a sig-
+nal to the master agent, Ag Master as and when a vehicle passes
+through it. Now it is the master’s job to determine the queue
+length of a particular lane just before it allocates a green signal
+to it.
+The master maintains a counter for each Entry/Exit Agents. Ini-
+tially all the counters are initialized to zero. As and when it re-
+ceives a signal from any Entry/Exit agent it updates the counter
+of that particular agent by 1. Suppose that the current green sig-
+nal is about to die (that is going to be red), at that instance
+the master will determine the weight of the next (determined
+by round-robin) green signal by subtracting the number of exit
+count from the entry count for that particular lane. This subtrac-
+tion gives us the number of vehicles in the queue in a particular
+lane at that particular instance of time.
+Now the master agent know the number of vehicles (say n) in
+a particular lane at the time of its scheduling. It also knows the
+time required by a vehicle to cross the intersection that is tv.
+Therefore, time required for all the vehicles to cross is ntv. If
+24
+
+--- Page 3 ---
+International Journal of Computer Applications (0975 - 8887)
+Volume 53 - No. 3, September 2012
+Fig. 2. Weighted Round-Robin
+this value is less than the Tthr, then a weight of ntvis allocated
+to that green signal otherwise a weight of Tthris assigned to it.
+Here one question may arise that why do we need two agents
+when only one agent is sufﬁcient? The answer is that as far as
+there is no trafﬁc over head that is number of vehicles is less
+than the threshold value then this approach works ﬁne. However,
+what about a situation when the number of vehicles are more
+than theTthr. In such situations how the master agent come to
+know how many vehicles have passed and how many are still in
+queue. Under such scenario it is unable to predict the number
+of vehicles after one iteration in a particular lane. Therefore, at
+least two agents are required for discovering the correct number
+of vehicles in each lane.
+4. MODEL CHECKING
+Model checking [11] is a formal and automatic technique used
+to verify computational systems against given properties. They
+are applicable for ﬁnite state systems and they generally oper-
+ate on system models and not on the actual system. The sys-
+tem is represented by a ﬁnite model Mand the speciﬁcation is
+represented by a formula using an appropriate logic. The ver-
+iﬁcation method consists of computing whether the model M
+satisﬁes(i.e.Mj=) or not (i.e.M6j=).
+The model checker either conﬁrms that the properties hold or
+reports that they are violated. In the latter case, it provides a
+counter example: a run that violates the property. Such a run can
+provide valuable feedback and points to design errors. Model
+checking is based on temporal logic. The idea of temporal logic
+is that a formula is not statically true or false in a model, as it is
+in propositional and predicate logic. Instead, the models of tem-
+poral logic contain several states and a formula can be true in
+some states and false in others. Thus, the static notion of truth is
+replaced by a dynamic one, in which the formulas may change
+their truth values as the system evolves from state to state. In
+model checking, the models Mare transition systems expressed
+in terms of FSM and the properties are formulas in temporal
+logic written either in LTL or CTL. To verify that a system satis-
+ﬁes a property, following steps are taken [12]:(a) Model the system using the description language of a model
+checker, arriving at a model M;
+(b) Code the property using the speciﬁcation language of the
+model checker, resulting in a temporal logic formula ;
+(c) Run the model checker with inputs Mand.
+5. FINITE STATE MACHINE FOR AGENT
+BASED ADAPTIVE TRAFFIC SIGNAL
+SYSTEM
+In this section we will see how we can model our current trafﬁc
+scenario into a Finite State System (FSM) and verify its proper-
+ties against the speciﬁcation. The FSM representation of trafﬁc
+scenario F can be expressed as [13]:
+F: (Q;T;S o;L), where
+(i) Q : Set of States.
+The system can be in any one state at any moment of
+time. Each state denotes a particular instance of time.
+The number of states in this system is ﬁnite but is non-
+deterministically determined on the basis of number of ve-
+hicles in a particular lane at a particular moment of time.
+(ii) T : Transition Function.
+A transition function determines how we can move from
+one state to another. In this scenario, upon every tick of
+clock we move from one state to another.
+(iii) L : Labeling Function.
+It states which variables takes what value in which state. It
+should be noted that every variable declared in NuSMV is
+present in every state of the system.
+(iv)So: Starting state.
+It is state from where system start executing. It comes only
+once for the considered scenario.
+Readers having some knowledge of FSM might be wondering
+why we haven’t shown the terminating state of the system. It is
+simply due to the reason that this system never terminates.
+25
+
+--- Page 4 ---
+International Journal of Computer Applications (0975 - 8887)
+Volume 53 - No. 3, September 2012
+Fig. 3. State Transition Diagram
+5.1 State Transition Diagram
+The state transition diagram of the adaptive trafﬁc scenario is
+shown in Fig.3. Initially, we assume that the system begins its
+execution from signal post labeled as NORTH in the Fig.1. The
+system proceeds in a weighted round-robin fashion as NORTH,
+WEST, SOUTH, EAST, NORTH and so on. The duration of time
+allocated to each signal is directly proportional to the number of
+vehicles in that road segment. Mapping the Fig.1 to the modal in
+Fig.3, we have,
+(a) Turn = 0 corresponds to green light of signal post at NORTH.
+(b) Turn = 1 corresponds to green light of signal post at WEST.
+(c) Turn = 2 corresponds to green light of signal post at SOUTH.
+(d) Turn = 3 corresponds to green light of signal post at EAST.
+The master agent Ag Master at the time of expiry of green light
+of the previous signal allocates a counter value to the current
+green signal. The counter value depends not only on the number
+of vehicles but also on Tthr. Let the time duration calculated by
+the master agent AgMaster beTcal. Now the counter value
+(CV) is calculated as
+CV =minfTcal;Tthrg
+Once the counter value is determined, it keeps on decrement-
+ing, moving from one state to another till counter value becomes
+zero. Once the counter value becomes zero, the turn moves on
+to the next signal. It again computes the counter value for that
+particular signal and proceeds further in a round-robin fashion.
+Moving further, each state has wait time counter. The function of
+this wait time counter is to compute the waiting time of a green
+signal after it goes red and before it becomes green again. This
+measure gives us information regarding average waiting time and
+waiting time of vehicles in a particular road segment. Using wait
+time measurement we have checked the speciﬁcation whether the
+maximum waiting time for any vehicle exceeds any particular
+predetermined value.5.2 Speciﬁcation Veriﬁcation using NuSMV
+NuSMV [14][15] stands for New Symbolic Model Veriﬁer.
+NuSMV is an Open Source product, is actively supported and
+has a substantial user community. NuSMV provides a language
+for describing the models we have been drawing as diagrams and
+it directly checks the validity of LTL (and also CTL) formulas on
+those models. NuSMV takes as input a text consisting of a pro-
+gram describing a model and some speciﬁcations expressed in
+terms of temporal logic formulas. It produces as output either the
+word true if the speciﬁcations hold, or a trace showing why the
+speciﬁcation is false for the model represented by our program.
+In real world trafﬁc scenario the value of Tthrcan be 180 sec-
+onds. Thus, any vehicle will have to wait for a maximum of
+1803 = 540 seconds. However, as a model is abstraction
+of real world application, we have scaled down Tthrto 18. We
+can also simulate the system with value of Tthras 180 but doing
+so will be computing intensive process. If the required proper-
+ties are satisﬁed in the model, then it will also be satisﬁed in real
+system. Therefore, we can carry on with our abstraction.
+In the agent based adaptive trafﬁc monitoring system the desired
+properties of the system and their speciﬁcation are :
+(i) To verity that whether each trafﬁc signal post is getting a
+chance in a round-robin fashion.
+This property holds good if NORTH signal is followed by
+WEST signal, WEST signal by SOUTH signal, SOUTH
+signal by EAST signal,which is followed by NORTH. This
+property can be speciﬁed in CTL as :
+SPEC AF (light0.counter = 0 !AX light1.colour =green)
+SPEC AF (light1.counter = 0 !AX light2.colour =green)
+SPEC AF (light2.counter = 0 !AX light3.colour =green)
+SPEC AF (light3.counter = 0 !AX light0.colour =green)
+In simple English whenever in any future light0.counter
+becomes zero then always the next state would be the state
+26
+
+--- Page 5 ---
+International Journal of Computer Applications (0975 - 8887)
+Volume 53 - No. 3, September 2012
+Fig. 4. Simulation Result Before Correction
+Fig. 5. Simulation Result After Correction
+in which light1.colour = green. The other speciﬁcations
+can be analyzed in a similar way.(ii) To verify that a signal post always gets an opportunity to
+turn green in some future state. The CTL spec in NuSMV
+is as follows:
+27
+
+--- Page 6 ---
+International Journal of Computer Applications (0975 - 8887)
+Volume 53 - No. 3, September 2012
+Fig. 6. Comparison Graph
+SPEC AG(light0.colour =red !AF light0.colour =green)
+SPEC AG(light1.colour =red !AF light1.colour =green)
+SPEC AG(light2.colour =red !AF light2.colour =green)
+SPEC AG(light3.colour =red !AF light3.colour =green)
+The speciﬁcation states that for any state if light0.colour
+= red then eventually in some future state it will become
+green.
+(iii) To verify that maximum waiting time for a particular vehi-
+cle does not exceeds a predetermined value.The CTL spec
+would be:
+SPEC AG (light0.wait 54)
+SPEC AG (light1.wait 54)
+SPEC AG (light2.wait 54)
+SPEC AG (light3.wait 54)
+The speciﬁcation states that in every state the wait time for
+a particular signal should not be more than 54.
+6. SIMULATION RESULTS AND DISCUSSION
+While simulating the stated properties in NuSMV we found that
+the ﬁrst two properties holds good in all situations but there is
+some contradiction with third property. The maximum waiting
+time for any green signal can be at most 3Tthr. This situation
+can occur when the trafﬁc is at its peak level in all the lanes. In
+such a case time duration of each green signal will equal to Tthr.
+Therefore, in our model the maximum waiting time for any green
+signal is 54 (318). However, the simulation results obtained
+from NuSMV as shown in Fig.4 shows that this speciﬁcation
+does not hold. While tracing back the results, we have found that
+the programmer has taken the value counter from 0 to 18 which is
+actually 19 counts. Therefore, according to this value of counter
+the maximum waiting time is 193which comes out to be 57.
+Hence, if the system was deployed without any previous simu-
+lation each lane has to wait 3 seconds more than its actual wait
+time value. After correcting the value of counter from ”0 to 18”
+to ”0 to 17”, we get the correct simulation result as shown in the
+Fig.5.
+Let us consider a real life trafﬁc scenario in which Tthris 180
+seconds and tvis 1 second. For predetermined trafﬁc signal, let
+the value of periods be 180 seconds. As long as the number of
+vehicles in all the lanes are less than the threshold Tthr, Agent
+Based Adaptive Trafﬁc Monitoring System will show higher per-
+formance with respect to predetermined trafﬁc periods based sys-tems. Once the trafﬁc of all the lanes reaches its threshold Tthr,
+both systems will show identical performance as shown in the
+Fig.6. Average waiting time for each vehicle in adaptive system
+is far less than the average waiting time of predetermined trafﬁc
+system.
+7. CONCLUSION
+There is a great advantage in being able to verify the correctness
+of computer systems, whether they are hardware, software, or a
+combination. As model checking considers each and every state,
+where a system can go in its entire lifetime, it can easily detect
+under what conditions the required properties of the system will
+not hold.
+Results obtained from agent based adaptive trafﬁc signal ensures
+a fair chance to cross an intersection for every vehicle in each
+lane based on their wait time. The system also takes care of the
+idle green light duration that is green light for a particular lane is
+turned ON even when there are no vehicles in that particular lane.
+The system has very effective results when the trafﬁc is under a
+threshold value and reduces average waiting time signiﬁcantly.
+When the trafﬁc is above that threshold level, the performance
+of agent based adaptive trafﬁc signal is same as that of predeter-
+mined.
+The work done in this paper regarding the effective trafﬁc mon-
+itoring system has ignored some of the real world constrains for
+the sake of simplicity. This includes trafﬁc lights for civilians
+crossing the roads on foot, providing some mechanism for giving
+pass to ambulances, VIPs etc. Our future work will be directed
+in the way of providing all real world constrains and verifying
+the system using formal method in NuSMV .
+8. REFERENCES
+[1] Anand S. Rao. Agentspeak(l): Bdi agents speak out in a
+logical computable language. In Proceedings of the 7th
+European workshop on Modelling autonomous agents in a
+multi-agent world : agents breaking away: agents breaking
+away , MAAMAW ’96, pages 42–55, Secaucus, NJ, USA,
+1996. Springer-Verlag New York, Inc.
+[2] AgentSpeak. [Available Online]
+http://en.wikipedia.org/wiki/AgentSpeak, 2011.
+[3] Carmen Pardavila Rafael H. Bordini, Michael Fisher and
+Michael Wooldridge. Model checking agentspeak. In Proc.
+28
+
+--- Page 7 ---
+International Journal of Computer Applications (0975 - 8887)
+Volume 53 - No. 3, September 2012
+2nd Intl Joint Conf. Autonomous Agents and Multiagent
+Systems , pages 409–416, Melbourne, Australia, July 2003.
+[4] Nusmv. [Available Online]
+http://en.wikipedia.org/wiki/NuSMV , 2011.
+[5] K.T.K. Teo, W.Y . Kow, and Y .K. Chin. Optimization of
+trafﬁc ﬂow within an urban trafﬁc light intersection with
+genetic algorithm. In Computational Intelligence, Mod-
+elling and Simulation (CIMSiM), 2010 Second Interna-
+tional Conference on , pages 172 –177, sept. 2010.
+[6] Xiaoqin Zeng Binbin Zhou, Jiannong Cao and Hejun Wu.
+Adaptive trafﬁc light control in wireless sensor network-
+based intelligent transportation system. In Vehicular Tech-
+nology Conference Fall (VTC 2010-Fall),IEEE 72nd , pages
+1–5, September 2010.
+[7] Yun Wang Cheng Hu. A novel intelligent trafﬁc light con-
+trol scheme. In Grid and Cooperative Computing (GCC),
+2010 9th International Conference on Digital Object Iden-
+tiﬁer , pages 372–376, November 2010.
+[8] Krohkaew Jaturapith; Hirankitti Visit. An agent approach
+for intelligent trafﬁc-light control. In Modelling And Sim-
+ulation, AMS 07. First Asia International Conference on
+Digital Object Identiﬁer , pages 496–501, 2007.
+[9] Kulkarn G.H.; Wainganka P.G. Fuzzy logic based trafﬁc
+light controller. In Industrial and Information Systems,2007. ICIIS 2007. International Conference on , pages 107–
+110, August 2007.
+[10] Deshpande R.S. Chavan S.S. and J.G. Rana. Design
+of intelligent trafﬁc light controller using embedded sys-
+tem. In Emerging Trends in Engineering and Technology
+(ICETET), 2009 2nd International Conference on , pages
+1086–1091, December 2010.
+[11] C. Baier and J.P. Katoen. Principles of model checking .
+The MIT Press, 2008.
+[12] Michael Huth and Mark Ryan. Logic In computer science .
+Cambridge University Press, Cambridge,U.K., 2007.
+[13] John E. Hopcroft, Rajeev. Motwani, and Ullman Jeffrey D.
+Introduction to Automata Theory, Languages and Compu-
+tation . Pearson Education, New Delhi, India, 3 edition,
+2009.
+[14] Roberto Cavada et.al. Nusmv 2.5
+user manual. [Available Online]
+http://nusmv.fbk.eu/NuSMV/userman/v25/nusmv.pdf,
+2010.
+[15] Roberto Cavada et.al. Nusmv 2.5 tutorial. [Available On-
+line] http://nusmv.fbk.eu/NuSMV/tutorial/v25/tutorial.pdf,
+2010.
+29
