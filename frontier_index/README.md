@@ -148,7 +148,7 @@
    - `软工主路径（x.x.x）`
    - `软工次路径/标签`
    - `软工判定依据（X1/D1-D4）`
-6. 若需要把某篇论文的类型判断提升为终判，不要直接散改年度 `metadata`；应把逐篇人工结论写入 `ccf_history/<year>/manual_review/overrides.json` 或 `ccf_history/<year>/manual_review/batches/*.json`，再重跑分类器。
+6. 若需要把某篇论文的类型判断提升为终判，直接把逐篇人工结论写回对应年度 `metadata/*.json` 中的分类字段，再重跑分类器重渲染年度页。
 7. 再做初步判定
    - 基于会议/期刊、年份、标题、摘要、关键词做轻量筛选。
 8. 再选择容易关注、且与博士研究更相关的一部分
@@ -168,12 +168,7 @@ python -m tools.ccf_se_index_builder --year 2025
 python -m tools.ccf_se_classifier --year 2025
 ```
 
-若要把人工逐篇复核结果覆盖进去，再编辑：
-
-```bash
-frontier_index/ccf_history/2025/manual_review/overrides.json
-frontier_index/ccf_history/2025/manual_review/batches/*.json
-```
+若要把人工逐篇复核结果固化进去，直接编辑对应 `metadata/*.json` 中的分类字段，再重跑分类器。
 
 如需进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py)。
 
@@ -190,5 +185,5 @@ frontier_index/ccf_history/2025/manual_review/batches/*.json
 7. 若批量扫论文时发现现有 `x.x.x` 没有自然覆盖某一稳定题型，应先更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 及相关说明，再回填分类，不要把论文硬塞到“最接近”的旧路径。
 8. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
 9. 若任务是构建某一年的 `CCF` 保留子集索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再用 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 回填软工判定与 `x.x.x` 路径，最后按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 做复核。
-10. 若任务要求“逐篇人工终判”，默认以 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 为覆盖入口；未进入覆盖文件的条目只能视为启发式初判，不能宣称已人工复核完成。
+10. 若任务要求“逐篇人工终判”，默认把终判字段直接写回 `metadata/*.json`，并把对应条目标成 `classification_source=人工复核 / manual_review_status=已人工复核`；未写回的条目只能视为启发式初判。
 11. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。

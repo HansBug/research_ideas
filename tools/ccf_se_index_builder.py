@@ -10,10 +10,10 @@ The generated artifacts are:
 1. `README.md`
 2. `verification.json`
 3. `metadata/<venue>.json`
-4. `bib/<venue>.bib`
 
 The script is intentionally cache-aware so repeated runs can refine the
-result without re-fetching every remote resource from scratch.
+result without re-fetching every remote resource from scratch. The cache
+is stored outside the checked-in yearly directory.
 """
 
 from __future__ import annotations
@@ -253,9 +253,8 @@ class Builder:
     def __init__(self, year: int, target_dir: Path):
         self.year = year
         self.target_dir = target_dir
-        self.cache_dir = target_dir / "_cache"
+        self.cache_dir = ROOT / ".cache" / "ccf_se_index" / str(year)
         self.metadata_dir = target_dir / "metadata"
-        self.bib_dir = target_dir / "bib"
 
     @staticmethod
     def new_session() -> requests.Session:
@@ -265,11 +264,9 @@ class Builder:
         return session
 
     def ensure_dirs(self) -> None:
-        for path in [self.target_dir, self.cache_dir, self.metadata_dir, self.bib_dir]:
+        for path in [self.target_dir, self.cache_dir, self.metadata_dir]:
             path.mkdir(parents=True, exist_ok=True)
         for path in self.metadata_dir.glob("*.json"):
-            path.unlink()
-        for path in self.bib_dir.glob("*.bib"):
             path.unlink()
 
     def cache_path(self, namespace: str, key: str, suffix: str) -> Path:
@@ -1049,15 +1046,9 @@ class Builder:
     def write_venue_files(self, venue: Venue, payload: Dict[str, Any]) -> Dict[str, str]:
         stem = self.venue_stem(venue)
         metadata_path = self.metadata_dir / f"{stem}.json"
-        bib_path = self.bib_dir / f"{stem}.bib"
         metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        bib_text = "\n\n".join(entry["bibtex"].strip() for entry in payload["papers"])
-        if bib_text:
-            bib_text += "\n"
-        bib_path.write_text(bib_text, encoding="utf-8")
         return {
             "metadata": metadata_path.relative_to(self.target_dir).as_posix(),
-            "bib": bib_path.relative_to(self.target_dir).as_posix(),
         }
 
     def build(self) -> Dict[str, Any]:
@@ -1159,14 +1150,13 @@ class Builder:
             note = "计数一致" if payload["expected_total"] == payload["actual_total"] else "计数需复核"
             display_abbr = self.display_abbr(venue, abbr_counts[venue.abbr] > 1)
             lines.append(
-                "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | [metadata]({meta}) / [bib]({bib}) | {note} |".format(
+                "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | [metadata]({meta}) | {note} |".format(
                     abbr=self.md_escape(display_abbr),
                     full=self.md_escape(venue.full_name),
                     rank=venue.rank,
                     kind=venue.kind,
                     count=payload["actual_total"],
                     meta=self.md_escape(files["metadata"]),
-                    bib=self.md_escape(files["bib"]),
                     note=note,
                 )
             )
@@ -1190,7 +1180,7 @@ class Builder:
             lines.append(f"- 类型：`{venue.kind}`")
             lines.append(f"- 年份：`{self.year}`")
             lines.append(f"- 条目数：`{payload['actual_total']}`")
-            lines.append(f"- 数据文件：[metadata]({files['metadata']}) / [bib]({files['bib']})")
+            lines.append(f"- 数据文件：[metadata]({files['metadata']})")
             lines.append("")
             lines.append("### 4.2 关键信息页面")
             lines.append("")
@@ -1216,7 +1206,7 @@ class Builder:
             lines.append("")
             lines.append("### 4.3 论文名录")
             lines.append("")
-            lines.append("- 说明：完整摘要、初筛理由与可直接引用的完整 `BibTeX` 已写入对应 `metadata` / `bib` 文件。")
+            lines.append("- 说明：完整摘要、初筛理由与可直接引用的完整 `BibTeX` 已内嵌写入对应 `metadata` 文件。")
             lines.append("")
             lines.append("| 序号 | 标题 | 作者 | 一句话说明 | DOI | 官方落地页 | 方向标签 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |")
             lines.append("|---|---|---|---|---|---|---|---|---|---|---|")

@@ -236,23 +236,22 @@
 
 当任务要求“逐篇确认真正所属类型”时，默认必须遵守以下规则：
 
-1. 不要直接散改 `metadata/*.json` 中的分类字段。
-2. 人工终判统一写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 或 `frontier_index/ccf_history/<year>/manual_review/batches/*.json`。
+1. 人工终判直接写回 `frontier_index/ccf_history/<year>/metadata/*.json` 中对应论文的分类字段。
+2. 至少应回填或确认以下字段：
 3. 每条人工复核记录至少应包含：
-   - `paper_key`
    - `macro_area`
    - `se_inclusion_decision`
    - `cross_domain_flag`
-   - `se_primary_path`（若属于软工或跨域但软工主导）
+    - `se_primary_path`（若属于软工或跨域但软工主导）
    - `se_secondary_paths`
    - `se_decision_basis`
-   - `manual_review_note`
-   - `manual_review_reviewer`
-   - `manual_review_updated_at`
+    - `manual_review_note`
+    - `manual_review_reviewer`
+    - `manual_review_updated_at`
 4. 如果人工复核认为论文不属于软件工程，应清空 `se_primary_path / se_primary_label / se_secondary_paths`。
 5. 如果人工复核发现现有 `x.x.x` 没有自然落点，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，再写人工结论。
-6. 分类器重跑后，应把带覆盖的条目标成 `classification_source=人工复核`、`manual_review_status=已人工复核`。
-7. 未进入任一覆盖文件的条目只能保留 `classification_source=启发式初判`、`manual_review_status=未人工复核`，不能当作终判。
+6. 人工写回后，应把对应条目标成 `classification_source=人工复核`、`manual_review_status=已人工复核`。
+7. 未写回人工终判的条目只能保留 `classification_source=启发式初判`、`manual_review_status=未人工复核`，不能当作终判。
 
 ### 5.1 优先跟进的典型信号
 
@@ -348,19 +347,16 @@ python -m tools.ccf_se_classifier --year 2025
 1. `frontier_index/ccf_history/<year>/README.md`
 2. `frontier_index/ccf_history/<year>/verification.json`
 3. `frontier_index/ccf_history/<year>/metadata/*.json`
-4. `frontier_index/ccf_history/<year>/bib/*.bib`
-5. `frontier_index/ccf_history/<year>/_cache/`
-6. `frontier_index/ccf_history/<year>/manual_review/overrides.json`
-7. `frontier_index/ccf_history/<year>/manual_review/batches/*.json`
+4. 外置临时缓存：`<repo>/.cache/ccf_se_index/<year>/`
 
 执行要求如下：
 
-1. `_cache/` 默认保留，不应在常规复跑中删除。
+1. `.cache/ccf_se_index/<year>/` 是临时缓存，不属于年度索引正式产物，也不应提交入库。
 2. 若发现 venue 边界判断、重名覆盖、官方页回退等规则问题，应先修 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 再重跑。
-3. 不应把生成后的 `metadata/*.json`、`bib/*.bib` 当作优先手工维护对象。
+3. 生成后的 `metadata/*.json` 是最终保留载体；若任务涉及逐篇终判，应直接回写这里。
 4. 全量生成完成后，必须复核 `verification.json`，再运行分类器生成全量启发式初判。
-5. 若任务要求逐篇终判，应把人工复核结果写入 `manual_review/overrides.json` 或 `manual_review/batches/*.json`，再重跑分类器。
-6. 构建器当前负责**基础元数据层**；分类器负责启发式分类补录、人工复核覆盖整合，并重写年度 `README.md`。
+5. 若任务要求逐篇终判，应直接回写 `metadata/*.json` 中的终判字段，再重跑分类器。
+6. 构建器当前负责**基础元数据层**；分类器负责启发式分类补录、保留已写回终判并重写年度 `README.md`。
 
 若后续某批论文进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py) 生成 `paper_content.txt`。
 

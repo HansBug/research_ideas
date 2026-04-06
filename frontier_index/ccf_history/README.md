@@ -144,7 +144,7 @@ ccf_history/
 5. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 回填 `x.x.x` 级主路径。
 6. 若扫论文时发现某类软工论文在现有 `x.x.x` 中没有自然落点，应先回到 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 扩树并同步说明，不要把论文硬塞进“最接近”的旧叶子。
 7. 不要因为论文来自 `PL / systems / FM` venue 就自动将其视为软件工程论文。
-8. 若任务要求逐篇终判，人工结论应统一写入 `manual_review/overrides.json` 或 `manual_review/batches/*.json`；未进入覆盖文件的条目只能视为启发式初判。
+8. 若任务要求逐篇终判，人工结论应直接写回 `metadata/*.json`；未写回的条目只能视为启发式初判。
 9. 先做轻量筛选，再决定是否值得获取全文。
 10. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
 11. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
@@ -168,13 +168,13 @@ python -m tools.ccf_se_index_builder --year 2025
 python -m tools.ccf_se_classifier --year 2025
 ```
 
-6. 若任务要求逐篇人工终判，把人工结论写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 或 `frontier_index/ccf_history/<year>/manual_review/batches/*.json`，再重跑分类器。
+6. 若任务要求逐篇人工终判，把人工结论直接写回 `frontier_index/ccf_history/<year>/metadata/*.json`，再重跑分类器。
 7. 若发现会议边界、重名文件、官方页缺失等问题，优先修构建脚本并重跑。
 8. 若回填时发现一批论文没有自然 `x.x.x` 落点，先扩 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 再更新分类脚本并重跑，不要为了赶进度把它们硬塞到旧路径。
 9. 最后再回写 [../SUMMARY.md](../SUMMARY.md) 里的统计与更新日志。
 
 补充约束：
 
-1. `metadata/*.json` 与 `bib/*.bib` 默认视为脚本生成产物。
-2. `_cache/` 是重跑加速缓存，应保留。
+1. `metadata/*.json` 默认既是脚本生成产物，也是最终保留载体。
+2. 构建缓存位于仓库根目录 `.cache/ccf_se_index/<year>/`，不属于年度索引正式内容。
 3. 后续若某些论文被选中进入全文阶段，再转入正式论文集路径处理 `paper.pdf / paper_content.txt / bibtex.bib`。

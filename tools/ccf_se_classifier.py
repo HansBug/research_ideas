@@ -26,9 +26,6 @@ from tools.ccf_se_index_builder import CCF_MD, ROOT, Venue
 
 
 TREE_MD = ROOT / "frontier_index" / "SOFTWARE_ENGINEERING_FIELD_TREE.md"
-MANUAL_REVIEW_DIRNAME = "manual_review"
-MANUAL_OVERRIDE_FILENAME = "overrides.json"
-MANUAL_BATCH_DIRNAME = "batches"
 
 
 SE_LEVEL_PRIOR = {
@@ -1395,14 +1392,6 @@ class LeafDef:
     keywords: Tuple[str, ...]
 
 
-@dataclass(frozen=True)
-class ManualOverrideIndex:
-    by_key: Dict[str, Dict[str, Any]]
-    by_doi: Dict[str, Dict[str, Any]]
-    by_title: Dict[str, Dict[str, Any]]
-    entry_count: int
-
-
 def normalize_text(text: str) -> str:
     text = text.lower()
     text = text.replace("’", "'").replace("–", "-").replace("—", "-")
@@ -1497,80 +1486,6 @@ def parse_typical_paths(cell: str) -> Tuple[str, ...]:
         if item not in deduped:
             deduped.append(item)
     return tuple(deduped)
-
-
-def manual_override_path(target_dir: Path) -> Path:
-    return target_dir / MANUAL_REVIEW_DIRNAME / MANUAL_OVERRIDE_FILENAME
-
-
-def manual_override_candidate_paths(target_dir: Path) -> List[Path]:
-    candidates: List[Path] = []
-    batch_dir = target_dir / MANUAL_REVIEW_DIRNAME / MANUAL_BATCH_DIRNAME
-    if batch_dir.exists():
-        candidates.extend(sorted(path for path in batch_dir.rglob("*.json") if path.is_file()))
-
-    root_override = manual_override_path(target_dir)
-    if root_override.exists():
-        candidates.append(root_override)
-
-    return candidates
-
-
-def load_manual_override_index(target_dir: Path) -> ManualOverrideIndex:
-    paths = manual_override_candidate_paths(target_dir)
-    if not paths:
-        return ManualOverrideIndex(by_key={}, by_doi={}, by_title={}, entry_count=0)
-
-    by_key: Dict[str, Dict[str, Any]] = {}
-    by_doi: Dict[str, Dict[str, Any]] = {}
-    by_title: Dict[str, Dict[str, Any]] = {}
-    unique_entries: Set[str] = set()
-
-    for path in paths:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        entries = payload.get("entries", [])
-        if not isinstance(entries, list):
-            continue
-        for entry in entries:
-            if not isinstance(entry, dict):
-                continue
-            paper_key = str(entry.get("paper_key") or "").strip()
-            doi = normalize_text(str(entry.get("doi") or ""))
-            title = normalize_text(str(entry.get("title") or ""))
-            if paper_key:
-                by_key[paper_key] = entry
-            if doi:
-                by_doi[doi] = entry
-            if title:
-                by_title[title] = entry
-            unique_marker = paper_key or doi or title
-            if unique_marker:
-                unique_entries.add(unique_marker)
-
-    return ManualOverrideIndex(
-        by_key=by_key,
-        by_doi=by_doi,
-        by_title=by_title,
-        entry_count=len(unique_entries),
-    )
-
-
-def find_manual_override(
-    paper: Dict[str, Any], override_index: ManualOverrideIndex
-) -> Optional[Dict[str, Any]]:
-    paper_key = str(paper.get("key") or "").strip()
-    if paper_key and paper_key in override_index.by_key:
-        return override_index.by_key[paper_key]
-
-    doi = normalize_text(str(paper.get("doi") or ""))
-    if doi and doi in override_index.by_doi:
-        return override_index.by_doi[doi]
-
-    title = normalize_text(str(paper.get("title") or ""))
-    if title and title in override_index.by_title:
-        return override_index.by_title[title]
-
-    return None
 
 
 def normalize_secondary_paths(value: Any) -> List[str]:
@@ -1779,28 +1694,19 @@ def choose_primary_path(
     return primary, secondary
 
 
-def apply_manual_override(
+def is_embedded_manual_review(paper: Dict[str, Any]) -> bool:
+    return (
+        str(paper.get("classification_source") or "").strip() == "人工复核"
+        and str(paper.get("manual_review_status") or "").strip() == "已人工复核"
+    )
+
+
+def normalize_reviewed_paper(
     paper: Dict[str, Any],
-    override: Dict[str, Any],
     leaf_defs: Dict[str, LeafDef],
 ) -> Dict[str, Any]:
     updated = dict(paper)
-    override_fields = [
-        "macro_area",
-        "se_inclusion_decision",
-        "cross_domain_flag",
-        "se_primary_path",
-        "se_primary_label",
-        "se_decision_basis",
-    ]
-    for field in override_fields:
-        if field in override:
-            updated[field] = override[field]
-
-    if "se_secondary_paths" in override:
-        updated["se_secondary_paths"] = normalize_secondary_paths(override.get("se_secondary_paths"))
-    else:
-        updated["se_secondary_paths"] = normalize_secondary_paths(updated.get("se_secondary_paths"))
+    updated["se_secondary_paths"] = normalize_secondary_paths(updated.get("se_secondary_paths"))
 
     primary_path = str(updated.get("se_primary_path") or "").strip()
     decision = str(updated.get("se_inclusion_decision") or "").strip()
@@ -1810,17 +1716,17 @@ def apply_manual_override(
         updated["se_secondary_paths"] = []
     elif primary_path:
         if primary_path not in leaf_defs:
-            raise ValueError(f"Unknown manual review primary path: {primary_path}")
-        override_label = str(override.get("se_primary_label") or "").strip()
-        updated["se_primary_label"] = override_label or leaf_defs[primary_path].label
+            raise ValueError(f"Unknown reviewed primary path: {primary_path}")
+        existing_label = str(updated.get("se_primary_label") or "").strip()
+        updated["se_primary_label"] = existing_label or leaf_defs[primary_path].label
     else:
         updated["se_primary_label"] = ""
 
     updated["manual_review_status"] = "已人工复核"
     updated["classification_source"] = "人工复核"
-    updated["manual_review_note"] = str(override.get("manual_review_note") or "")
-    updated["manual_review_reviewer"] = str(override.get("manual_review_reviewer") or "")
-    updated["manual_review_updated_at"] = str(override.get("manual_review_updated_at") or "")
+    updated["manual_review_note"] = str(updated.get("manual_review_note") or "")
+    updated["manual_review_reviewer"] = str(updated.get("manual_review_reviewer") or "")
+    updated["manual_review_updated_at"] = str(updated.get("manual_review_updated_at") or "")
     return updated
 
 
@@ -2035,15 +1941,10 @@ def render_year_readme(
     lines.append(f"- 当前覆盖的 venue 数量：`{venue_count}`")
     lines.append(f"- 当前已入表论文数量：`{total_papers}`")
     lines.append(f"- 更新时间：`{ts}`")
-    lines.append(
-        f"- 人工复核覆盖文件：[manual_review/README.md]({MANUAL_REVIEW_DIRNAME}/README.md) / "
-        f"[manual_review/{MANUAL_OVERRIDE_FILENAME}]({MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}) / "
-        f"[manual_review/{MANUAL_BATCH_DIRNAME}/]({MANUAL_REVIEW_DIRNAME}/{MANUAL_BATCH_DIRNAME})"
-    )
     if full_manual_coverage:
-        lines.append("- 说明：本年度条目已实现全量人工复核；本页由 `tools/ccf_se_index_builder.py` 提供基础元数据，再由 `tools/ccf_se_classifier.py` 直接读取 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 中的人工终判结果进行回填与渲染，不再依赖启发式分类结果。")
+        lines.append("- 说明：本年度条目已实现全量人工复核；最终裁决已直接固化在 `metadata/*.json` 中，本页按这些嵌入字段统计与渲染。")
     else:
-        lines.append("- 说明：本页先由 `tools/ccf_se_index_builder.py` 生成基础元数据，再由 `tools/ccf_se_classifier.py` 做启发式初判；若 `manual_review/overrides.json` 或 `manual_review/batches/*.json` 中存在逐篇人工复核结果，则人工复核优先覆盖脚本结果。")
+        lines.append("- 说明：本页先由 `tools/ccf_se_index_builder.py` 生成基础元数据，再由 `tools/ccf_se_classifier.py` 对未终判条目做启发式初判；若 `metadata/*.json` 中已写回人工终判，则直接保留该终判。")
     lines.append("")
     lines.append("## 2. 年度汇总统计")
     lines.append("")
@@ -2107,7 +2008,7 @@ def render_year_readme(
             se_counts=venue_se_counts,
         )
         lines.append(
-            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {judgement} | {subject} | {paths} | {macro} | {se} | {path_summary} | [metadata]({meta}) / [bib]({bib}) | {note} |".format(
+            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {judgement} | {subject} | {paths} | {macro} | {se} | {path_summary} | [metadata]({meta}) | {note} |".format(
                 abbr=md_escape(display_abbr),
                 full=md_escape(venue.full_name),
                 rank=venue.rank,
@@ -2120,7 +2021,6 @@ def render_year_readme(
                 se=md_escape(se_summary),
                 path_summary=md_escape(path_summary),
                 meta=md_escape(files["metadata"]),
-                bib=md_escape(files["bib"]),
                 note=md_escape(note),
             )
         )
@@ -2144,7 +2044,7 @@ def render_year_readme(
         lines.append(f"- 类型：`{venue.kind}`")
         lines.append(f"- 年份：`{year}`")
         lines.append(f"- 条目数：`{payload['actual_total']}`")
-        lines.append(f"- 数据文件：[metadata]({files['metadata']}) / [bib]({files['bib']})")
+        lines.append(f"- 数据文件：[metadata]({files['metadata']})")
         lines.append("")
         lines.append("### 4.2 关键信息页面")
         lines.append("")
@@ -2169,7 +2069,7 @@ def render_year_readme(
         lines.append("")
         lines.append("### 4.3 论文名录")
         lines.append("")
-        lines.append("- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。")
+        lines.append("- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。")
         lines.append("")
         lines.append("| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |")
         lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
@@ -2245,11 +2145,7 @@ def render_year_readme(
     if path_counts:
         lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(15)))
     lines.append("- 计数复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
-    lines.append(
-        f"- 分类终判状态：以 [./{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}](./{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}) "
-        f"与 [./{MANUAL_REVIEW_DIRNAME}/{MANUAL_BATCH_DIRNAME}/](./{MANUAL_REVIEW_DIRNAME}/{MANUAL_BATCH_DIRNAME}) 为准；"
-        "未进入覆盖文件的条目仍只是启发式初判。"
-    )
+    lines.append("- 分类终判状态：以 `metadata/*.json` 中的 `classification_source / manual_review_status / manual_review_note` 为准。")
     lines.append("- 后续若继续扩年份或重跑年度页，建议先运行 `tools/ccf_se_index_builder.py`，再运行 `tools/ccf_se_classifier.py`。")
     lines.append("")
     return "\n".join(lines)
@@ -2351,18 +2247,18 @@ def load_payloads(target_dir: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any
 def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
     priors = parse_venue_priors()
     leaf_defs = parse_leaf_defs()
-    override_index = load_manual_override_index(target_dir)
     payloads, verification = load_payloads(target_dir)
 
-    total_manual_hits = 0
-    for payload in payloads:
-        for paper in payload["papers"]:
-            if find_manual_override(paper, override_index) is not None:
-                total_manual_hits += 1
-    full_manual_coverage = total_manual_hits == verification["total_actual"]
+    total_manual_hits = sum(
+        1
+        for payload in payloads
+        for paper in payload["papers"]
+        if is_embedded_manual_review(paper)
+    )
+    full_manual_coverage = verification["total_actual"] > 0 and total_manual_hits == verification["total_actual"]
 
     counters: Counter[str] = Counter()
-    counters["manual_override_entries"] = total_manual_hits
+    counters["embedded_manual_entries"] = total_manual_hits
     for payload in payloads:
         venue = payload["venue"]
         prior = priors[(venue.abbr, venue.rank, venue.kind)]
@@ -2370,22 +2266,14 @@ def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
         original = json.loads(metadata_path.read_text(encoding="utf-8"))
         updated_papers: List[Dict[str, Any]] = []
         for paper in original["papers"]:
-            override = find_manual_override(paper, override_index)
-            if full_manual_coverage:
-                if override is None:
-                    raise ValueError(f"Expected full manual coverage but no manual review entry found for: {paper.get('key')}")
-                updated = apply_manual_override(dict(paper), override, leaf_defs)
+            if is_embedded_manual_review(paper):
+                updated = normalize_reviewed_paper(paper, leaf_defs)
                 counters["review:已人工复核"] += 1
                 counters["source:人工复核"] += 1
             else:
                 updated = classify_paper(paper, prior, leaf_defs)
-                if override is not None:
-                    updated = apply_manual_override(updated, override, leaf_defs)
-                    counters["review:已人工复核"] += 1
-                    counters["source:人工复核"] += 1
-                else:
-                    counters["review:未人工复核"] += 1
-                    counters["source:启发式初判"] += 1
+                counters["review:未人工复核"] += 1
+                counters["source:启发式初判"] += 1
             updated_papers.append(updated)
             counters["papers"] += 1
             counters[f"macro:{updated['macro_area']}"] += 1

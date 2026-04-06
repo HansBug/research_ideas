@@ -6,9 +6,8 @@
 - 覆盖范围：`CCF_SE_A_B_C.md` 当前保留的 `CCF` 软件工程高相关 venue 子集
 - 当前覆盖的 venue 数量：`57`
 - 当前已入表论文数量：`5153`
-- 更新时间：`2026-04-06 15:33:42`
-- 人工复核覆盖文件：[manual_review/README.md](manual_review/README.md) / [manual_review/overrides.json](manual_review/overrides.json) / [manual_review/batches/](manual_review/batches)
-- 说明：本年度条目已实现全量人工复核；本页由 `tools/ccf_se_index_builder.py` 提供基础元数据，再由 `tools/ccf_se_classifier.py` 直接读取 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 中的人工终判结果进行回填与渲染，不再依赖启发式分类结果。
+- 更新时间：`2026-04-06 15:57:04`
+- 说明：本年度条目已实现全量人工复核；最终裁决已直接固化在 `metadata/*.json` 中，本页按这些嵌入字段统计与渲染。
 
 ## 2. 年度汇总统计
 
@@ -34,63 +33,63 @@
 
 | venue | 全称 | 等级 | 类型 | 论文数 | venue 判定 | 主体归属 | 典型软工路径（先验） | 2025 一级总判定 | 2025 软工纳入 | 2025 高频软工主路径 | 数据文件 | 备注 |
 |---|---|---|---|---:|---|---|---|---|---|---|---|---|
-| `APSEC` | Asia-Pacific Software Engineering Conference | `C` | `会议` | 117 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 108 / 跨域/待判定 8 / 程序设计语言与形式化基础 1 | 属于软件工程 108 / 不属于软件工程 9 | 7.1.1 代码生成、补全与变换 (23) / 6.3.4 replication、benchmark 与开放科学 (21) | [metadata](metadata/apsec_conf_c.json) / [bib](bib/apsec_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ASE / 会议 / A` | International Conference on Automated Software Engineering | `A` | `会议` | 389 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 387 / 程序设计语言与形式化基础 2 | 属于软件工程 387 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (89) / 7.1.2 AI 支持的测试、分析与修复 (55) | [metadata](metadata/ase_conf_a.json) / [bib](bib/ase_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `ASE / 期刊 / B` | Automated Software Engineering | `B` | `期刊` | 74 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 72 / 跨域/待判定 2 | 属于软件工程 72 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (14) / 7.1.2 AI 支持的测试、分析与修复 (7) | [metadata](metadata/ase_journal_b.json) / [bib](bib/ase_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `CAiSE` | International Conference on Advanced Information Systems Engineering | `B` | `会议` | 35 | 混合 venue（部分属于软工） | 信息系统工程与软件工程交叉 | 1.3.x / 2.1.x / 4.3.x / 8.3.x | 跨域/待判定 29 / 软件工程 5 / 系统软件 1 | 不属于软件工程 30 / 跨域但软工主导 3 / 属于软件工程 2 | 1.3.1 建模语言与元模型 (2) / 6.1.2 过程挖掘、符合性与改进 (2) | [metadata](metadata/caise_conf_b.json) / [bib](bib/caise_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `COMPSAC` | International Computer Software and Applications Conference | `C` | `会议` | 330 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 跨域/待判定 231 / 软件工程 61 / 系统软件 32 / 程序设计语言与形式化基础 6 | 不属于软件工程 269 / 属于软件工程 47 / 跨域但软工主导 14 | 6.3.1 实验、案例研究与调查 (6) / 4.1.1 缺陷修复与维护性修正 (4) | [metadata](metadata/compsac_conf_c.json) / [bib](bib/compsac_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
-| `EASE` | International Conference on Evaluation and Assessment in Software Engineering | `C` | `会议` | 126 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 122 / 跨域/待判定 4 | 属于软件工程 122 / 不属于软件工程 4 | 6.3.1 实验、案例研究与调查 (25) / 6.3.4 replication、benchmark 与开放科学 (20) | [metadata](metadata/ease_conf_c.json) / [bib](bib/ease_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ECOOP` | European Conference on Object-Oriented Programming | `B` | `会议` | 43 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 2.2.x / 3.2.x / 4.2.x | 程序设计语言与形式化基础 35 / 软件工程 6 / 系统软件 2 | 不属于软件工程 37 / 属于软件工程 4 / 跨域但软工主导 2 | 7.1.1 代码生成、补全与变换 (1) / 1.2.1 形式化规约与契约 (1) | [metadata](metadata/ecoop_conf_b.json) / [bib](bib/ecoop_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `ESE` | Empirical Software Engineering | `B` | `期刊` | 178 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 144 / 跨域/待判定 31 / 程序设计语言与形式化基础 2 / 系统软件 1 | 属于软件工程 144 / 不属于软件工程 34 | 6.3.1 实验、案例研究与调查 (33) / 4.1.1 缺陷修复与维护性修正 (25) | [metadata](metadata/ese_journal_b.json) / [bib](bib/ese_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `ESEM` | International Symposium on Empirical Software Engineering and Measurement | `B` | `会议` | 58 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 58 | 属于软件工程 58 | 6.3.1 实验、案例研究与调查 (12) / 6.3.4 replication、benchmark 与开放科学 (9) | [metadata](metadata/esem_conf_b.json) / [bib](bib/esem_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `FM` | International Symposium on Formal Methods | `A` | `会议` | 67 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 54 / 软件工程 7 / 系统软件 6 | 不属于软件工程 60 / 属于软件工程 5 / 跨域但软工主导 2 | 3.3.1 面向软工问题的形式化验证 (3) / 3.2.4 分析驱动的理解、重构与综合 (1) | [metadata](metadata/fm_conf_a.json) / [bib](bib/fm_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `FSE` | ACM International Conference on the Foundations of Software Engineering | `A` | `会议` | 132 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 131 / 程序设计语言与形式化基础 1 | 属于软件工程 131 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (30) / 6.3.4 replication、benchmark 与开放科学 (15) | [metadata](metadata/fse_conf_a.json) / [bib](bib/fse_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `ICECCS` | International Conference on Engineering of Complex Computer Systems | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.3.x | 跨域/待判定 16 / 软件工程 6 | 不属于软件工程 16 / 属于软件工程 3 / 跨域但软工主导 3 | 1.3.1 建模语言与元模型 (1) / 3.3.1 面向软工问题的形式化验证 (1) | [metadata](metadata/iceccs_conf_c.json) / [bib](bib/iceccs_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICFEM` | International Conference on Formal Engineering Methods | `C` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 15 / 软件工程 6 | 不属于软件工程 15 / 跨域但软工主导 4 / 属于软件工程 2 | 1.1.1 需求获取与发现 (1) / 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/icfem_conf_c.json) / [bib](bib/icfem_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICPC` | IEEE International Conference on Program Comprehension | `B` | `会议` | 59 | 软工 venue（完全属于软工） | 软件工程 | 4.2.x / 4.1.x / 6.5.1 | 软件工程 59 | 属于软件工程 59 | 6.5.1 开发者认知、生产力与福祉 (17) / 7.1.1 代码生成、补全与变换 (10) | [metadata](metadata/icpc_conf_b.json) / [bib](bib/icpc_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ICSE` | International Conference on Software Engineering | `A` | `会议` | 245 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 245 | 属于软件工程 245 | 7.1.1 代码生成、补全与变换 (43) / 7.1.2 AI 支持的测试、分析与修复 (28) | [metadata](metadata/icse_conf_a.json) / [bib](bib/icse_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `ICSME` | International Conference on Software Maintenance and Evolution | `B` | `会议` | 102 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.2.x / 4.3.x / 6.4.x | 软件工程 102 | 属于软件工程 102 | 7.1.2 AI 支持的测试、分析与修复 (9) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/icsme_conf_b.json) / [bib](bib/icsme_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ICSOC` | International Conference on Service Oriented Computing | `B` | `会议` | 55 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 36 / 软件工程 17 / 系统软件 2 | 不属于软件工程 38 / 属于软件工程 9 / 跨域但软工主导 8 | 2.1.4 云/服务/平台架构 (10) / 4.4.3 运行时重配置与自适应运维 (2) | [metadata](metadata/icsoc_conf_b.json) / [bib](bib/icsoc_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ICSR` | International Conference on Software Reuse | `C` | `会议` | 10 | 软工 venue（完全属于软工） | 软件工程 | 1.4.x / 2.3.x / 4.1.x / 4.3.x | 软件工程 10 | 属于软件工程 10 | 2.1.4 云/服务/平台架构 (2) / 4.3.3 流水线与基础设施自动化 (1) | [metadata](metadata/icsr_conf_c.json) / [bib](bib/icsr_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICSSP` | International Conference on Software and System Process | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 6.1.x / 6.2.x / 6.5.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/icssp_conf_c.json) / [bib](bib/icssp_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `ICST` | IEEE International Conference on Software Testing, Verification and Validation | `C` | `会议` | 101 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 101 | 属于软件工程 101 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (17) / 3.1.4 场景化测试 (13) | [metadata](metadata/icst_conf_c.json) / [bib](bib/icst_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICWS` | IEEE International Conference on Web Services | `B` | `会议` | 128 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.4.x / 5.3.x / 8.2.3 | 跨域/待判定 72 / 系统软件 29 / 软件工程 25 / 程序设计语言与形式化基础 2 | 不属于软件工程 103 / 属于软件工程 21 / 跨域但软工主导 4 | 2.1.4 云/服务/平台架构 (8) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/icws_conf_b.json) / [bib](bib/icws_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `IETS` | IET Software | `B` | `期刊` | 35 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 3.x.x / 4.x.x / 5.x.x | 软件工程 28 / 跨域/待判定 6 / 系统软件 1 | 属于软件工程 28 / 不属于软件工程 7 | 3.1.4 场景化测试 (2) / 1.1.1 需求获取与发现 (2) | [metadata](metadata/iets_journal_b.json) / [bib](bib/iets_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `IJSEKE` | International Journal of Software Engineering and Knowledge Engineering | `C` | `期刊` | 75 | 软工 venue（大部分属于软工） | 软件工程与知识工程交叉 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 软件工程 55 / 跨域/待判定 18 / 程序设计语言与形式化基础 1 / 系统软件 1 | 属于软件工程 55 / 不属于软件工程 20 | 7.1.1 代码生成、补全与变换 (10) / 6.3.4 replication、benchmark 与开放科学 (6) | [metadata](metadata/ijseke_journal_c.json) / [bib](bib/ijseke_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `Internetware` | Asia-Pacific Symposium on Internetware | `C` | `会议` | 55 | 软工 venue（大部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.x | 软件工程 30 / 跨域/待判定 21 / 程序设计语言与形式化基础 2 / 系统软件 2 | 属于软件工程 30 / 不属于软件工程 25 | 2.1.4 云/服务/平台架构 (10) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/internetware_conf_c.json) / [bib](bib/internetware_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
-| `ISSRE` | IEEE International Symposium on Software Reliability Engineering | `B` | `会议` | 47 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.3.x / 5.1.x / 5.2.x / 4.4.x | 软件工程 47 | 属于软件工程 47 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (6) / 3.3.3 assurance、认证与合规验证 (5) | [metadata](metadata/issre_conf_b.json) / [bib](bib/issre_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ISSTA` | International Symposium on Software Testing and Analysis | `A` | `会议` | 110 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 110 | 属于软件工程 110 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (14) / 7.1.2 AI 支持的测试、分析与修复 (11) | [metadata](metadata/issta_conf_a.json) / [bib](bib/issta_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `IST` | Information and Software Technology | `B` | `期刊` | 243 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 183 / 跨域/待判定 58 / 系统软件 2 | 属于软件工程 180 / 不属于软件工程 60 / 跨域但软工主导 3 | 7.1.1 代码生成、补全与变换 (27) / 6.3.3 系统综述、mapping 与 meta-analysis (21) | [metadata](metadata/ist_journal_b.json) / [bib](bib/ist_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `JSEP` | Journal of Software: Evolution and Process | `B` | `期刊` | 120 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.3.x / 6.1.x / 6.4.x | 软件工程 116 / 跨域/待判定 3 / 程序设计语言与形式化基础 1 | 属于软件工程 116 / 不属于软件工程 4 | 6.1.1 敏捷、精益与 DevOps 方法 (12) / 6.3.3 系统综述、mapping 与 meta-analysis (7) | [metadata](metadata/jsep_journal_b.json) / [bib](bib/jsep_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `JSS` | Journal of Systems and Software | `B` | `期刊` | 265 | 软工 venue（大部分属于软工） | 软件工程 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 软件工程 190 / 跨域/待判定 71 / 程序设计语言与形式化基础 3 / 系统软件 1 | 属于软件工程 189 / 不属于软件工程 75 / 跨域但软工主导 1 | 2.1.1 架构描述与恢复 (30) / 5.2.1 安全开发与漏洞治理 (13) | [metadata](metadata/jss_journal_b.json) / [bib](bib/jss_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `MoDELS` | ACM/IEEE International Conference on Model Driven Engineering Languages and Systems | `B` | `会议` | 27 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 27 | 属于软件工程 27 | 1.3.1 建模语言与元模型 (8) / 7.1.1 代码生成、补全与变换 (4) | [metadata](metadata/models_conf_b.json) / [bib](bib/models_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `MSR` | Mining Software Repositories | `C` | `会议` | 109 | 软工 venue（完全属于软工） | 软件工程 | 6.4.x / 6.3.x / 4.1.x / 6.5.x | 软件工程 109 | 属于软件工程 109 | 6.3.4 replication、benchmark 与开放科学 (48) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/msr_conf_c.json) / [bib](bib/msr_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `OOPSLA` | Conference on Object-Oriented Programming Systems, Languages,and Applications | `A` | `会议` | 216 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 2.2.x / 3.2.x / 3.4.x / 4.2.x | 程序设计语言与形式化基础 165 / 软件工程 29 / 系统软件 22 | 不属于软件工程 187 / 属于软件工程 20 / 跨域但软工主导 9 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (11) / 3.2.1 静态分析与抽象解释 (5) | [metadata](metadata/oopsla_conf_a.json) / [bib](bib/oopsla_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `PASTE` | ACMSIGPLAN-SIGSOFT Workshop on Program Analysis for Software Tools and Engineering | `C` | `会议` | 0 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 3.2.x / 3.4.x / 4.2.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/paste_conf_c.json) / [bib](bib/paste_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `PLDI` | ACM SIGPLAN Conference on Programming Language Design and Implementation | `A` | `会议` | 88 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x / 3.4.x | 程序设计语言与形式化基础 70 / 系统软件 15 / 软件工程 3 | 不属于软件工程 85 / 跨域但软工主导 2 / 属于软件工程 1 | 3.2.3 面向质量属性的分析 (1) / 3.1.3 模糊、搜索式、变异与性质驱动测试 (1) | [metadata](metadata/pldi_conf_a.json) / [bib](bib/pldi_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `QRS` | International Conference on Software Quality, Reliability and Security | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 3.x.x / 5.1.x / 5.2.x / 4.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/qrs_conf_c.json) / [bib](bib/qrs_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `RE / 会议 / B` | IEEE International Requirements Engineering Conference | `B` | `会议` | 71 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x / 6.1.x | 软件工程 70 / 跨域/待判定 1 | 属于软件工程 70 / 不属于软件工程 1 | 1.1.1 需求获取与发现 (24) / 7.1.3 AI 支持的需求、建模与文档 (8) | [metadata](metadata/re_conf_b.json) / [bib](bib/re_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `RE / 期刊 / B` | Requirements Engineering | `B` | `期刊` | 9 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x | 软件工程 9 | 属于软件工程 9 | 1.1.1 需求获取与发现 (3) / 7.1.3 AI 支持的需求、建模与文档 (1) | [metadata](metadata/re_journal_b.json) / [bib](bib/re_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `REFSQ` | Requirements Engineering: Foundation for Software Quality | `C` | `会议` | 29 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x | 软件工程 29 | 属于软件工程 29 | 1.1.1 需求获取与发现 (20) / 6.3.1 实验、案例研究与调查 (2) | [metadata](metadata/refsq_conf_c.json) / [bib](bib/refsq_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `RV` | International Conference on Runtime Verification | `C` | `会议` | 18 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 3.3.2 / 4.4.4 / 5.1.x | 程序设计语言与形式化基础 12 / 软件工程 5 / 系统软件 1 | 不属于软件工程 13 / 跨域但软工主导 4 / 属于软件工程 1 | 3.3.2 运行时验证与运行时监测 (5) | [metadata](metadata/rv_conf_c.json) / [bib](bib/rv_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `SANER` | IEEE International Conference on Software Analysis, Evolution,and Reengineering | `B` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.2.x / 3.2.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/saner_conf_b.json) / [bib](bib/saner_conf_b.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `SCAM` | IEEE International Working Conference on Source Code Analysis and Manipulation | `C` | `会议` | 0 | 软工 venue（大部分属于软工） | 软件工程 | 3.2.x / 4.2.x / 4.1.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/scam_conf_c.json) / [bib](bib/scam_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `SCP` | Science of Computer Programming | `B` | `期刊` | 97 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x / 4.1.x | 程序设计语言与形式化基础 64 / 软件工程 29 / 系统软件 4 | 不属于软件工程 68 / 属于软件工程 18 / 跨域但软工主导 11 | 1.2.1 形式化规约与契约 (6) / 3.3.2 运行时验证与运行时监测 (3) | [metadata](metadata/scp_journal_b.json) / [bib](bib/scp_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `SEKE` | International Conference on Software Engineering and Knowledge Engineering | `C` | `会议` | 63 | 混合 venue（部分属于软工） | 软件工程与知识工程交叉 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 跨域/待判定 36 / 软件工程 23 / 程序设计语言与形式化基础 3 / 系统软件 1 | 不属于软件工程 40 / 属于软件工程 18 / 跨域但软工主导 5 | 7.1.2 AI 支持的测试、分析与修复 (4) / 3.1.4 场景化测试 (2) | [metadata](metadata/seke_conf_c.json) / [bib](bib/seke_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `SOCA` | Service Oriented Computing and Applications | `C` | `期刊` | 24 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.4.x / 8.2.3 | 跨域/待判定 24 | 不属于软件工程 24 | 无纳入软工主路径 | [metadata](metadata/soca_journal_c.json) / [bib](bib/soca_journal_c.bib) | 计数一致；2025 比先验更偏非软工 |
-| `SoSyM` | Software and Systems Modeling | `B` | `期刊` | 91 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 62 / 跨域/待判定 28 / 程序设计语言与形式化基础 1 | 属于软件工程 61 / 不属于软件工程 29 / 跨域但软工主导 1 | 1.3.1 建模语言与元模型 (17) / 1.3.4 基于模型的生成、测试与运行时支持 (6) | [metadata](metadata/sosym_journal_b.json) / [bib](bib/sosym_journal_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `SPE` | Software: Practice and Experience | `B` | `期刊` | 109 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | 2.3.x / 4.3.x / 4.4.x / 6.3.x / 8.2.x | 跨域/待判定 61 / 系统软件 26 / 软件工程 17 / 程序设计语言与形式化基础 5 | 不属于软件工程 92 / 属于软件工程 15 / 跨域但软工主导 2 | 6.3.1 实验、案例研究与调查 (3) / 2.2.1 设计原则、模式与反模式 (2) | [metadata](metadata/spe_journal_b.json) / [bib](bib/spe_journal_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `SPIN` | International Symposium on Model Checking of Software | `C` | `会议` | 14 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x | 软件工程 8 / 程序设计语言与形式化基础 6 | 不属于软件工程 6 / 属于软件工程 5 / 跨域但软工主导 3 | 3.3.1 面向软工问题的形式化验证 (3) / 1.3.3 模型分析、仿真与验证 (3) | [metadata](metadata/spin_conf_c.json) / [bib](bib/spin_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `SQJ` | Software Quality Journal | `C` | `期刊` | 35 | 软工 venue（完全属于软工） | 软件工程 | 5.x.x / 3.x.x / 6.3.x | 软件工程 29 / 跨域/待判定 6 | 属于软件工程 29 / 不属于软件工程 6 | 3.4.2 缺陷定位、补丁生成与程序修复 (3) / 3.1.1 测试生成与增强 (3) | [metadata](metadata/sqj_journal_c.json) / [bib](bib/sqj_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `SSE` | IEEE International Conference on Software Services Engineering | `C` | `会议` | 28 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 16 / 软件工程 10 / 程序设计语言与形式化基础 1 / 系统软件 1 | 不属于软件工程 18 / 属于软件工程 9 / 跨域但软工主导 1 | 2.1.4 云/服务/平台架构 (5) / 4.4.1 可观测性、日志与异常检测 (1) | [metadata](metadata/sse_conf_c.json) / [bib](bib/sse_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `STTT` | International Journal of Software Tools for Technology Transfer | `C` | `期刊` | 41 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 28 / 软件工程 12 / 系统软件 1 | 不属于软件工程 29 / 属于软件工程 6 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (3) / 6.3.1 实验、案例研究与调查 (1) | [metadata](metadata/sttt_journal_c.json) / [bib](bib/sttt_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `STVR` | Software Testing, Verification and Reliability | `B` | `期刊` | 17 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.3.x / 5.1.x | 软件工程 17 | 属于软件工程 17 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (7) / 3.3.3 assurance、认证与合规验证 (3) | [metadata](metadata/stvr_journal_b.json) / [bib](bib/stvr_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `TASE` | Theoretical Aspects of Software Engineering Conference | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 8 | 不属于软件工程 14 / 跨域但软工主导 6 / 属于软件工程 2 | 3.3.1 面向软工问题的形式化验证 (4) / 5.3.1 性能建模、基准与调优 (1) | [metadata](metadata/tase_conf_c.json) / [bib](bib/tase_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `TOSEM` | ACM Transactions on Software Engineering and Methodology | `A` | `期刊` | 242 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 241 / 跨域/待判定 1 | 属于软件工程 241 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (45) / 6.3.5 路线图、研究议程与领域回顾 (23) | [metadata](metadata/tosem_journal_a.json) / [bib](bib/tosem_journal_a.bib) | 计数一致；2025 与先验一致 |
-| `TSC` | IEEE Transactions on Services Computing | `A` | `期刊` | 312 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 5.3.x / 8.2.x | 跨域/待判定 190 / 系统软件 88 / 软件工程 32 / 程序设计语言与形式化基础 2 | 不属于软件工程 280 / 属于软件工程 26 / 跨域但软工主导 6 | 2.1.4 云/服务/平台架构 (9) / 6.2.1 估算、计划与排程 (5) | [metadata](metadata/tsc_journal_a.json) / [bib](bib/tsc_journal_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `TSE` | IEEE Transactions on Software Engineering | `A` | `期刊` | 228 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 224 / 跨域/待判定 3 / 系统软件 1 | 属于软件工程 224 / 不属于软件工程 4 | 7.1.1 代码生成、补全与变换 (35) / 6.3.5 路线图、研究议程与领域回顾 (28) | [metadata](metadata/tse_journal_a.json) / [bib](bib/tse_journal_a.bib) | 计数一致；2025 与先验一致 |
-| `VMCAI` | International Conference on Verification,Model Checking, and Abstract Interpretation | `B` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 6 / 系统软件 1 | 不属于软件工程 15 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (1) / 3.3.2 运行时验证与运行时监测 (1) | [metadata](metadata/vmcai_conf_b.json) / [bib](bib/vmcai_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `WICSA` | Working IEEE/IFIP Conference on Software Architecture | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 2.1.x / 2.2.x / 4.1.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/wicsa_conf_c.json) / [bib](bib/wicsa_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `APSEC` | Asia-Pacific Software Engineering Conference | `C` | `会议` | 117 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 108 / 跨域/待判定 8 / 程序设计语言与形式化基础 1 | 属于软件工程 108 / 不属于软件工程 9 | 7.1.1 代码生成、补全与变换 (23) / 6.3.4 replication、benchmark 与开放科学 (21) | [metadata](metadata/apsec_conf_c.json) | 计数一致；2025 与先验一致 |
+| `ASE / 会议 / A` | International Conference on Automated Software Engineering | `A` | `会议` | 389 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 387 / 程序设计语言与形式化基础 2 | 属于软件工程 387 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (89) / 7.1.2 AI 支持的测试、分析与修复 (55) | [metadata](metadata/ase_conf_a.json) | 计数一致；2025 与先验一致 |
+| `ASE / 期刊 / B` | Automated Software Engineering | `B` | `期刊` | 74 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 72 / 跨域/待判定 2 | 属于软件工程 72 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (14) / 7.1.2 AI 支持的测试、分析与修复 (7) | [metadata](metadata/ase_journal_b.json) | 计数一致；2025 与先验一致 |
+| `CAiSE` | International Conference on Advanced Information Systems Engineering | `B` | `会议` | 35 | 混合 venue（部分属于软工） | 信息系统工程与软件工程交叉 | 1.3.x / 2.1.x / 4.3.x / 8.3.x | 跨域/待判定 29 / 软件工程 5 / 系统软件 1 | 不属于软件工程 30 / 跨域但软工主导 3 / 属于软件工程 2 | 1.3.1 建模语言与元模型 (2) / 6.1.2 过程挖掘、符合性与改进 (2) | [metadata](metadata/caise_conf_b.json) | 计数一致；2025 比先验更偏非软工 |
+| `COMPSAC` | International Computer Software and Applications Conference | `C` | `会议` | 330 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 跨域/待判定 231 / 软件工程 61 / 系统软件 32 / 程序设计语言与形式化基础 6 | 不属于软件工程 269 / 属于软件工程 47 / 跨域但软工主导 14 | 6.3.1 实验、案例研究与调查 (6) / 4.1.1 缺陷修复与维护性修正 (4) | [metadata](metadata/compsac_conf_c.json) | 计数一致；2025 比先验更偏非软工 |
+| `EASE` | International Conference on Evaluation and Assessment in Software Engineering | `C` | `会议` | 126 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 122 / 跨域/待判定 4 | 属于软件工程 122 / 不属于软件工程 4 | 6.3.1 实验、案例研究与调查 (25) / 6.3.4 replication、benchmark 与开放科学 (20) | [metadata](metadata/ease_conf_c.json) | 计数一致；2025 与先验一致 |
+| `ECOOP` | European Conference on Object-Oriented Programming | `B` | `会议` | 43 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 2.2.x / 3.2.x / 4.2.x | 程序设计语言与形式化基础 35 / 软件工程 6 / 系统软件 2 | 不属于软件工程 37 / 属于软件工程 4 / 跨域但软工主导 2 | 7.1.1 代码生成、补全与变换 (1) / 1.2.1 形式化规约与契约 (1) | [metadata](metadata/ecoop_conf_b.json) | 计数一致；2025 比先验更偏非软工 |
+| `ESE` | Empirical Software Engineering | `B` | `期刊` | 178 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 144 / 跨域/待判定 31 / 程序设计语言与形式化基础 2 / 系统软件 1 | 属于软件工程 144 / 不属于软件工程 34 | 6.3.1 实验、案例研究与调查 (33) / 4.1.1 缺陷修复与维护性修正 (25) | [metadata](metadata/ese_journal_b.json) | 计数一致；2025 与先验一致 |
+| `ESEM` | International Symposium on Empirical Software Engineering and Measurement | `B` | `会议` | 58 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 58 | 属于软件工程 58 | 6.3.1 实验、案例研究与调查 (12) / 6.3.4 replication、benchmark 与开放科学 (9) | [metadata](metadata/esem_conf_b.json) | 计数一致；2025 与先验一致 |
+| `FM` | International Symposium on Formal Methods | `A` | `会议` | 67 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 54 / 软件工程 7 / 系统软件 6 | 不属于软件工程 60 / 属于软件工程 5 / 跨域但软工主导 2 | 3.3.1 面向软工问题的形式化验证 (3) / 3.2.4 分析驱动的理解、重构与综合 (1) | [metadata](metadata/fm_conf_a.json) | 计数一致；2025 比先验更偏非软工 |
+| `FSE` | ACM International Conference on the Foundations of Software Engineering | `A` | `会议` | 132 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 131 / 程序设计语言与形式化基础 1 | 属于软件工程 131 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (30) / 6.3.4 replication、benchmark 与开放科学 (15) | [metadata](metadata/fse_conf_a.json) | 计数一致；2025 与先验一致 |
+| `ICECCS` | International Conference on Engineering of Complex Computer Systems | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.3.x | 跨域/待判定 16 / 软件工程 6 | 不属于软件工程 16 / 属于软件工程 3 / 跨域但软工主导 3 | 1.3.1 建模语言与元模型 (1) / 3.3.1 面向软工问题的形式化验证 (1) | [metadata](metadata/iceccs_conf_c.json) | 计数一致；2025 与先验一致 |
+| `ICFEM` | International Conference on Formal Engineering Methods | `C` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 15 / 软件工程 6 | 不属于软件工程 15 / 跨域但软工主导 4 / 属于软件工程 2 | 1.1.1 需求获取与发现 (1) / 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/icfem_conf_c.json) | 计数一致；2025 与先验一致 |
+| `ICPC` | IEEE International Conference on Program Comprehension | `B` | `会议` | 59 | 软工 venue（完全属于软工） | 软件工程 | 4.2.x / 4.1.x / 6.5.1 | 软件工程 59 | 属于软件工程 59 | 6.5.1 开发者认知、生产力与福祉 (17) / 7.1.1 代码生成、补全与变换 (10) | [metadata](metadata/icpc_conf_b.json) | 计数一致；2025 与先验一致 |
+| `ICSE` | International Conference on Software Engineering | `A` | `会议` | 245 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 245 | 属于软件工程 245 | 7.1.1 代码生成、补全与变换 (43) / 7.1.2 AI 支持的测试、分析与修复 (28) | [metadata](metadata/icse_conf_a.json) | 计数一致；2025 与先验一致 |
+| `ICSME` | International Conference on Software Maintenance and Evolution | `B` | `会议` | 102 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.2.x / 4.3.x / 6.4.x | 软件工程 102 | 属于软件工程 102 | 7.1.2 AI 支持的测试、分析与修复 (9) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/icsme_conf_b.json) | 计数一致；2025 与先验一致 |
+| `ICSOC` | International Conference on Service Oriented Computing | `B` | `会议` | 55 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 36 / 软件工程 17 / 系统软件 2 | 不属于软件工程 38 / 属于软件工程 9 / 跨域但软工主导 8 | 2.1.4 云/服务/平台架构 (10) / 4.4.3 运行时重配置与自适应运维 (2) | [metadata](metadata/icsoc_conf_b.json) | 计数一致；2025 与先验一致 |
+| `ICSR` | International Conference on Software Reuse | `C` | `会议` | 10 | 软工 venue（完全属于软工） | 软件工程 | 1.4.x / 2.3.x / 4.1.x / 4.3.x | 软件工程 10 | 属于软件工程 10 | 2.1.4 云/服务/平台架构 (2) / 4.3.3 流水线与基础设施自动化 (1) | [metadata](metadata/icsr_conf_c.json) | 计数一致；2025 与先验一致 |
+| `ICSSP` | International Conference on Software and System Process | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 6.1.x / 6.2.x / 6.5.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/icssp_conf_c.json) | 计数一致；2025 无条目，暂以先验为准 |
+| `ICST` | IEEE International Conference on Software Testing, Verification and Validation | `C` | `会议` | 101 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 101 | 属于软件工程 101 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (17) / 3.1.4 场景化测试 (13) | [metadata](metadata/icst_conf_c.json) | 计数一致；2025 与先验一致 |
+| `ICWS` | IEEE International Conference on Web Services | `B` | `会议` | 128 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.4.x / 5.3.x / 8.2.3 | 跨域/待判定 72 / 系统软件 29 / 软件工程 25 / 程序设计语言与形式化基础 2 | 不属于软件工程 103 / 属于软件工程 21 / 跨域但软工主导 4 | 2.1.4 云/服务/平台架构 (8) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/icws_conf_b.json) | 计数一致；2025 比先验更偏非软工 |
+| `IETS` | IET Software | `B` | `期刊` | 35 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 3.x.x / 4.x.x / 5.x.x | 软件工程 28 / 跨域/待判定 6 / 系统软件 1 | 属于软件工程 28 / 不属于软件工程 7 | 3.1.4 场景化测试 (2) / 1.1.1 需求获取与发现 (2) | [metadata](metadata/iets_journal_b.json) | 计数一致；2025 与先验一致 |
+| `IJSEKE` | International Journal of Software Engineering and Knowledge Engineering | `C` | `期刊` | 75 | 软工 venue（大部分属于软工） | 软件工程与知识工程交叉 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 软件工程 55 / 跨域/待判定 18 / 程序设计语言与形式化基础 1 / 系统软件 1 | 属于软件工程 55 / 不属于软件工程 20 | 7.1.1 代码生成、补全与变换 (10) / 6.3.4 replication、benchmark 与开放科学 (6) | [metadata](metadata/ijseke_journal_c.json) | 计数一致；2025 与先验一致 |
+| `Internetware` | Asia-Pacific Symposium on Internetware | `C` | `会议` | 55 | 软工 venue（大部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.x | 软件工程 30 / 跨域/待判定 21 / 程序设计语言与形式化基础 2 / 系统软件 2 | 属于软件工程 30 / 不属于软件工程 25 | 2.1.4 云/服务/平台架构 (10) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/internetware_conf_c.json) | 计数一致；2025 比先验更偏非软工 |
+| `ISSRE` | IEEE International Symposium on Software Reliability Engineering | `B` | `会议` | 47 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.3.x / 5.1.x / 5.2.x / 4.4.x | 软件工程 47 | 属于软件工程 47 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (6) / 3.3.3 assurance、认证与合规验证 (5) | [metadata](metadata/issre_conf_b.json) | 计数一致；2025 与先验一致 |
+| `ISSTA` | International Symposium on Software Testing and Analysis | `A` | `会议` | 110 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 110 | 属于软件工程 110 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (14) / 7.1.2 AI 支持的测试、分析与修复 (11) | [metadata](metadata/issta_conf_a.json) | 计数一致；2025 与先验一致 |
+| `IST` | Information and Software Technology | `B` | `期刊` | 243 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 183 / 跨域/待判定 58 / 系统软件 2 | 属于软件工程 180 / 不属于软件工程 60 / 跨域但软工主导 3 | 7.1.1 代码生成、补全与变换 (27) / 6.3.3 系统综述、mapping 与 meta-analysis (21) | [metadata](metadata/ist_journal_b.json) | 计数一致；2025 与先验一致 |
+| `JSEP` | Journal of Software: Evolution and Process | `B` | `期刊` | 120 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.3.x / 6.1.x / 6.4.x | 软件工程 116 / 跨域/待判定 3 / 程序设计语言与形式化基础 1 | 属于软件工程 116 / 不属于软件工程 4 | 6.1.1 敏捷、精益与 DevOps 方法 (12) / 6.3.3 系统综述、mapping 与 meta-analysis (7) | [metadata](metadata/jsep_journal_b.json) | 计数一致；2025 与先验一致 |
+| `JSS` | Journal of Systems and Software | `B` | `期刊` | 265 | 软工 venue（大部分属于软工） | 软件工程 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 软件工程 190 / 跨域/待判定 71 / 程序设计语言与形式化基础 3 / 系统软件 1 | 属于软件工程 189 / 不属于软件工程 75 / 跨域但软工主导 1 | 2.1.1 架构描述与恢复 (30) / 5.2.1 安全开发与漏洞治理 (13) | [metadata](metadata/jss_journal_b.json) | 计数一致；2025 与先验一致 |
+| `MoDELS` | ACM/IEEE International Conference on Model Driven Engineering Languages and Systems | `B` | `会议` | 27 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 27 | 属于软件工程 27 | 1.3.1 建模语言与元模型 (8) / 7.1.1 代码生成、补全与变换 (4) | [metadata](metadata/models_conf_b.json) | 计数一致；2025 与先验一致 |
+| `MSR` | Mining Software Repositories | `C` | `会议` | 109 | 软工 venue（完全属于软工） | 软件工程 | 6.4.x / 6.3.x / 4.1.x / 6.5.x | 软件工程 109 | 属于软件工程 109 | 6.3.4 replication、benchmark 与开放科学 (48) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/msr_conf_c.json) | 计数一致；2025 与先验一致 |
+| `OOPSLA` | Conference on Object-Oriented Programming Systems, Languages,and Applications | `A` | `会议` | 216 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 2.2.x / 3.2.x / 3.4.x / 4.2.x | 程序设计语言与形式化基础 165 / 软件工程 29 / 系统软件 22 | 不属于软件工程 187 / 属于软件工程 20 / 跨域但软工主导 9 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (11) / 3.2.1 静态分析与抽象解释 (5) | [metadata](metadata/oopsla_conf_a.json) | 计数一致；2025 比先验更偏非软工 |
+| `PASTE` | ACMSIGPLAN-SIGSOFT Workshop on Program Analysis for Software Tools and Engineering | `C` | `会议` | 0 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 3.2.x / 3.4.x / 4.2.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/paste_conf_c.json) | 计数一致；2025 无条目，暂以先验为准 |
+| `PLDI` | ACM SIGPLAN Conference on Programming Language Design and Implementation | `A` | `会议` | 88 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x / 3.4.x | 程序设计语言与形式化基础 70 / 系统软件 15 / 软件工程 3 | 不属于软件工程 85 / 跨域但软工主导 2 / 属于软件工程 1 | 3.2.3 面向质量属性的分析 (1) / 3.1.3 模糊、搜索式、变异与性质驱动测试 (1) | [metadata](metadata/pldi_conf_a.json) | 计数一致；2025 比先验更偏非软工 |
+| `QRS` | International Conference on Software Quality, Reliability and Security | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 3.x.x / 5.1.x / 5.2.x / 4.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/qrs_conf_c.json) | 计数一致；2025 无条目，暂以先验为准 |
+| `RE / 会议 / B` | IEEE International Requirements Engineering Conference | `B` | `会议` | 71 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x / 6.1.x | 软件工程 70 / 跨域/待判定 1 | 属于软件工程 70 / 不属于软件工程 1 | 1.1.1 需求获取与发现 (24) / 7.1.3 AI 支持的需求、建模与文档 (8) | [metadata](metadata/re_conf_b.json) | 计数一致；2025 与先验一致 |
+| `RE / 期刊 / B` | Requirements Engineering | `B` | `期刊` | 9 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x | 软件工程 9 | 属于软件工程 9 | 1.1.1 需求获取与发现 (3) / 7.1.3 AI 支持的需求、建模与文档 (1) | [metadata](metadata/re_journal_b.json) | 计数一致；2025 与先验一致 |
+| `REFSQ` | Requirements Engineering: Foundation for Software Quality | `C` | `会议` | 29 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x | 软件工程 29 | 属于软件工程 29 | 1.1.1 需求获取与发现 (20) / 6.3.1 实验、案例研究与调查 (2) | [metadata](metadata/refsq_conf_c.json) | 计数一致；2025 与先验一致 |
+| `RV` | International Conference on Runtime Verification | `C` | `会议` | 18 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 3.3.2 / 4.4.4 / 5.1.x | 程序设计语言与形式化基础 12 / 软件工程 5 / 系统软件 1 | 不属于软件工程 13 / 跨域但软工主导 4 / 属于软件工程 1 | 3.3.2 运行时验证与运行时监测 (5) | [metadata](metadata/rv_conf_c.json) | 计数一致；2025 与先验一致 |
+| `SANER` | IEEE International Conference on Software Analysis, Evolution,and Reengineering | `B` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.2.x / 3.2.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/saner_conf_b.json) | 计数一致；2025 无条目，暂以先验为准 |
+| `SCAM` | IEEE International Working Conference on Source Code Analysis and Manipulation | `C` | `会议` | 0 | 软工 venue（大部分属于软工） | 软件工程 | 3.2.x / 4.2.x / 4.1.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/scam_conf_c.json) | 计数一致；2025 无条目，暂以先验为准 |
+| `SCP` | Science of Computer Programming | `B` | `期刊` | 97 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x / 4.1.x | 程序设计语言与形式化基础 64 / 软件工程 29 / 系统软件 4 | 不属于软件工程 68 / 属于软件工程 18 / 跨域但软工主导 11 | 1.2.1 形式化规约与契约 (6) / 3.3.2 运行时验证与运行时监测 (3) | [metadata](metadata/scp_journal_b.json) | 计数一致；2025 与先验一致 |
+| `SEKE` | International Conference on Software Engineering and Knowledge Engineering | `C` | `会议` | 63 | 混合 venue（部分属于软工） | 软件工程与知识工程交叉 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 跨域/待判定 36 / 软件工程 23 / 程序设计语言与形式化基础 3 / 系统软件 1 | 不属于软件工程 40 / 属于软件工程 18 / 跨域但软工主导 5 | 7.1.2 AI 支持的测试、分析与修复 (4) / 3.1.4 场景化测试 (2) | [metadata](metadata/seke_conf_c.json) | 计数一致；2025 与先验一致 |
+| `SOCA` | Service Oriented Computing and Applications | `C` | `期刊` | 24 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.4.x / 8.2.3 | 跨域/待判定 24 | 不属于软件工程 24 | 无纳入软工主路径 | [metadata](metadata/soca_journal_c.json) | 计数一致；2025 比先验更偏非软工 |
+| `SoSyM` | Software and Systems Modeling | `B` | `期刊` | 91 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 62 / 跨域/待判定 28 / 程序设计语言与形式化基础 1 | 属于软件工程 61 / 不属于软件工程 29 / 跨域但软工主导 1 | 1.3.1 建模语言与元模型 (17) / 1.3.4 基于模型的生成、测试与运行时支持 (6) | [metadata](metadata/sosym_journal_b.json) | 计数一致；2025 比先验更偏非软工 |
+| `SPE` | Software: Practice and Experience | `B` | `期刊` | 109 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | 2.3.x / 4.3.x / 4.4.x / 6.3.x / 8.2.x | 跨域/待判定 61 / 系统软件 26 / 软件工程 17 / 程序设计语言与形式化基础 5 | 不属于软件工程 92 / 属于软件工程 15 / 跨域但软工主导 2 | 6.3.1 实验、案例研究与调查 (3) / 2.2.1 设计原则、模式与反模式 (2) | [metadata](metadata/spe_journal_b.json) | 计数一致；2025 比先验更偏非软工 |
+| `SPIN` | International Symposium on Model Checking of Software | `C` | `会议` | 14 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x | 软件工程 8 / 程序设计语言与形式化基础 6 | 不属于软件工程 6 / 属于软件工程 5 / 跨域但软工主导 3 | 3.3.1 面向软工问题的形式化验证 (3) / 1.3.3 模型分析、仿真与验证 (3) | [metadata](metadata/spin_conf_c.json) | 计数一致；2025 与先验一致 |
+| `SQJ` | Software Quality Journal | `C` | `期刊` | 35 | 软工 venue（完全属于软工） | 软件工程 | 5.x.x / 3.x.x / 6.3.x | 软件工程 29 / 跨域/待判定 6 | 属于软件工程 29 / 不属于软件工程 6 | 3.4.2 缺陷定位、补丁生成与程序修复 (3) / 3.1.1 测试生成与增强 (3) | [metadata](metadata/sqj_journal_c.json) | 计数一致；2025 与先验一致 |
+| `SSE` | IEEE International Conference on Software Services Engineering | `C` | `会议` | 28 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 16 / 软件工程 10 / 程序设计语言与形式化基础 1 / 系统软件 1 | 不属于软件工程 18 / 属于软件工程 9 / 跨域但软工主导 1 | 2.1.4 云/服务/平台架构 (5) / 4.4.1 可观测性、日志与异常检测 (1) | [metadata](metadata/sse_conf_c.json) | 计数一致；2025 与先验一致 |
+| `STTT` | International Journal of Software Tools for Technology Transfer | `C` | `期刊` | 41 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 28 / 软件工程 12 / 系统软件 1 | 不属于软件工程 29 / 属于软件工程 6 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (3) / 6.3.1 实验、案例研究与调查 (1) | [metadata](metadata/sttt_journal_c.json) | 计数一致；2025 与先验一致 |
+| `STVR` | Software Testing, Verification and Reliability | `B` | `期刊` | 17 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.3.x / 5.1.x | 软件工程 17 | 属于软件工程 17 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (7) / 3.3.3 assurance、认证与合规验证 (3) | [metadata](metadata/stvr_journal_b.json) | 计数一致；2025 与先验一致 |
+| `TASE` | Theoretical Aspects of Software Engineering Conference | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 8 | 不属于软件工程 14 / 跨域但软工主导 6 / 属于软件工程 2 | 3.3.1 面向软工问题的形式化验证 (4) / 5.3.1 性能建模、基准与调优 (1) | [metadata](metadata/tase_conf_c.json) | 计数一致；2025 与先验一致 |
+| `TOSEM` | ACM Transactions on Software Engineering and Methodology | `A` | `期刊` | 242 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 241 / 跨域/待判定 1 | 属于软件工程 241 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (45) / 6.3.5 路线图、研究议程与领域回顾 (23) | [metadata](metadata/tosem_journal_a.json) | 计数一致；2025 与先验一致 |
+| `TSC` | IEEE Transactions on Services Computing | `A` | `期刊` | 312 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 5.3.x / 8.2.x | 跨域/待判定 190 / 系统软件 88 / 软件工程 32 / 程序设计语言与形式化基础 2 | 不属于软件工程 280 / 属于软件工程 26 / 跨域但软工主导 6 | 2.1.4 云/服务/平台架构 (9) / 6.2.1 估算、计划与排程 (5) | [metadata](metadata/tsc_journal_a.json) | 计数一致；2025 比先验更偏非软工 |
+| `TSE` | IEEE Transactions on Software Engineering | `A` | `期刊` | 228 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 224 / 跨域/待判定 3 / 系统软件 1 | 属于软件工程 224 / 不属于软件工程 4 | 7.1.1 代码生成、补全与变换 (35) / 6.3.5 路线图、研究议程与领域回顾 (28) | [metadata](metadata/tse_journal_a.json) | 计数一致；2025 与先验一致 |
+| `VMCAI` | International Conference on Verification,Model Checking, and Abstract Interpretation | `B` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 6 / 系统软件 1 | 不属于软件工程 15 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (1) / 3.3.2 运行时验证与运行时监测 (1) | [metadata](metadata/vmcai_conf_b.json) | 计数一致；2025 与先验一致 |
+| `WICSA` | Working IEEE/IFIP Conference on Software Architecture | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 2.1.x / 2.2.x / 4.1.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/wicsa_conf_c.json) | 计数一致；2025 无条目，暂以先验为准 |
 
 ## 4. Venue Sections
 
@@ -105,7 +104,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`117`
-- 数据文件：[metadata](metadata/apsec_conf_c.json) / [bib](bib/apsec_conf_c.bib)
+- 数据文件：[metadata](metadata/apsec_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -116,7 +115,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -258,7 +257,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`389`
-- 数据文件：[metadata](metadata/ase_conf_a.json) / [bib](bib/ase_conf_a.bib)
+- 数据文件：[metadata](metadata/ase_conf_a.json)
 
 ### 4.2 关键信息页面
 
@@ -269,7 +268,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -683,7 +682,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`74`
-- 数据文件：[metadata](metadata/ase_journal_b.json) / [bib](bib/ase_journal_b.bib)
+- 数据文件：[metadata](metadata/ase_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -693,7 +692,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -792,7 +791,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`35`
-- 数据文件：[metadata](metadata/caise_conf_b.json) / [bib](bib/caise_conf_b.bib)
+- 数据文件：[metadata](metadata/caise_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -803,7 +802,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -863,7 +862,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`330`
-- 数据文件：[metadata](metadata/compsac_conf_c.json) / [bib](bib/compsac_conf_c.bib)
+- 数据文件：[metadata](metadata/compsac_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -874,7 +873,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1229,7 +1228,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`126`
-- 数据文件：[metadata](metadata/ease_conf_c.json) / [bib](bib/ease_conf_c.bib)
+- 数据文件：[metadata](metadata/ease_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -1240,7 +1239,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1391,7 +1390,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`43`
-- 数据文件：[metadata](metadata/ecoop_conf_b.json) / [bib](bib/ecoop_conf_b.bib)
+- 数据文件：[metadata](metadata/ecoop_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -1402,7 +1401,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1470,7 +1469,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`178`
-- 数据文件：[metadata](metadata/ese_journal_b.json) / [bib](bib/ese_journal_b.bib)
+- 数据文件：[metadata](metadata/ese_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -1480,7 +1479,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1683,7 +1682,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`58`
-- 数据文件：[metadata](metadata/esem_conf_b.json) / [bib](bib/esem_conf_b.bib)
+- 数据文件：[metadata](metadata/esem_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -1694,7 +1693,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1777,7 +1776,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`67`
-- 数据文件：[metadata](metadata/fm_conf_a.json) / [bib](bib/fm_conf_a.bib)
+- 数据文件：[metadata](metadata/fm_conf_a.json)
 
 ### 4.2 关键信息页面
 
@@ -1788,7 +1787,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -1880,7 +1879,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`132`
-- 数据文件：[metadata](metadata/fse_conf_a.json) / [bib](bib/fse_conf_a.bib)
+- 数据文件：[metadata](metadata/fse_conf_a.json)
 
 ### 4.2 关键信息页面
 
@@ -1891,7 +1890,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2048,7 +2047,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`22`
-- 数据文件：[metadata](metadata/iceccs_conf_c.json) / [bib](bib/iceccs_conf_c.bib)
+- 数据文件：[metadata](metadata/iceccs_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -2059,7 +2058,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2106,7 +2105,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`21`
-- 数据文件：[metadata](metadata/icfem_conf_c.json) / [bib](bib/icfem_conf_c.bib)
+- 数据文件：[metadata](metadata/icfem_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -2116,7 +2115,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2162,7 +2161,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`59`
-- 数据文件：[metadata](metadata/icpc_conf_b.json) / [bib](bib/icpc_conf_b.bib)
+- 数据文件：[metadata](metadata/icpc_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -2173,7 +2172,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2257,7 +2256,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`245`
-- 数据文件：[metadata](metadata/icse_conf_a.json) / [bib](bib/icse_conf_a.bib)
+- 数据文件：[metadata](metadata/icse_conf_a.json)
 
 ### 4.2 关键信息页面
 
@@ -2268,7 +2267,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2538,7 +2537,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`102`
-- 数据文件：[metadata](metadata/icsme_conf_b.json) / [bib](bib/icsme_conf_b.bib)
+- 数据文件：[metadata](metadata/icsme_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -2549,7 +2548,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2676,7 +2675,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`55`
-- 数据文件：[metadata](metadata/icsoc_conf_b.json) / [bib](bib/icsoc_conf_b.bib)
+- 数据文件：[metadata](metadata/icsoc_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -2687,7 +2686,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2767,7 +2766,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`10`
-- 数据文件：[metadata](metadata/icsr_conf_c.json) / [bib](bib/icsr_conf_c.bib)
+- 数据文件：[metadata](metadata/icsr_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -2778,7 +2777,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2813,7 +2812,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 数据文件：[metadata](metadata/icssp_conf_c.json) / [bib](bib/icssp_conf_c.bib)
+- 数据文件：[metadata](metadata/icssp_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -2823,7 +2822,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2843,7 +2842,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`101`
-- 数据文件：[metadata](metadata/icst_conf_c.json) / [bib](bib/icst_conf_c.bib)
+- 数据文件：[metadata](metadata/icst_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -2854,7 +2853,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -2980,7 +2979,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`128`
-- 数据文件：[metadata](metadata/icws_conf_b.json) / [bib](bib/icws_conf_b.bib)
+- 数据文件：[metadata](metadata/icws_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -2991,7 +2990,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3144,7 +3143,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`35`
-- 数据文件：[metadata](metadata/iets_journal_b.json) / [bib](bib/iets_journal_b.bib)
+- 数据文件：[metadata](metadata/iets_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -3154,7 +3153,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3214,7 +3213,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`75`
-- 数据文件：[metadata](metadata/ijseke_journal_c.json) / [bib](bib/ijseke_journal_c.bib)
+- 数据文件：[metadata](metadata/ijseke_journal_c.json)
 
 ### 4.2 关键信息页面
 
@@ -3224,7 +3223,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3324,7 +3323,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`55`
-- 数据文件：[metadata](metadata/internetware_conf_c.json) / [bib](bib/internetware_conf_c.bib)
+- 数据文件：[metadata](metadata/internetware_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -3335,7 +3334,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3415,7 +3414,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`47`
-- 数据文件：[metadata](metadata/issre_conf_b.json) / [bib](bib/issre_conf_b.bib)
+- 数据文件：[metadata](metadata/issre_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -3426,7 +3425,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3498,7 +3497,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`110`
-- 数据文件：[metadata](metadata/issta_conf_a.json) / [bib](bib/issta_conf_a.bib)
+- 数据文件：[metadata](metadata/issta_conf_a.json)
 
 ### 4.2 关键信息页面
 
@@ -3509,7 +3508,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3644,7 +3643,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`243`
-- 数据文件：[metadata](metadata/ist_journal_b.json) / [bib](bib/ist_journal_b.bib)
+- 数据文件：[metadata](metadata/ist_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -3654,7 +3653,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3922,7 +3921,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`120`
-- 数据文件：[metadata](metadata/jsep_journal_b.json) / [bib](bib/jsep_journal_b.bib)
+- 数据文件：[metadata](metadata/jsep_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -3932,7 +3931,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4077,7 +4076,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`265`
-- 数据文件：[metadata](metadata/jss_journal_b.json) / [bib](bib/jss_journal_b.bib)
+- 数据文件：[metadata](metadata/jss_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -4087,7 +4086,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4377,7 +4376,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`27`
-- 数据文件：[metadata](metadata/models_conf_b.json) / [bib](bib/models_conf_b.bib)
+- 数据文件：[metadata](metadata/models_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -4388,7 +4387,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4440,7 +4439,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`109`
-- 数据文件：[metadata](metadata/msr_conf_c.json) / [bib](bib/msr_conf_c.bib)
+- 数据文件：[metadata](metadata/msr_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -4451,7 +4450,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4585,7 +4584,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`216`
-- 数据文件：[metadata](metadata/oopsla_conf_a.json) / [bib](bib/oopsla_conf_a.bib)
+- 数据文件：[metadata](metadata/oopsla_conf_a.json)
 
 ### 4.2 关键信息页面
 
@@ -4596,7 +4595,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4837,7 +4836,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 数据文件：[metadata](metadata/paste_conf_c.json) / [bib](bib/paste_conf_c.bib)
+- 数据文件：[metadata](metadata/paste_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -4847,7 +4846,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4867,7 +4866,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`88`
-- 数据文件：[metadata](metadata/pldi_conf_a.json) / [bib](bib/pldi_conf_a.bib)
+- 数据文件：[metadata](metadata/pldi_conf_a.json)
 
 ### 4.2 关键信息页面
 
@@ -4878,7 +4877,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -4991,7 +4990,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 数据文件：[metadata](metadata/qrs_conf_c.json) / [bib](bib/qrs_conf_c.bib)
+- 数据文件：[metadata](metadata/qrs_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5001,7 +5000,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5021,7 +5020,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`71`
-- 数据文件：[metadata](metadata/re_conf_b.json) / [bib](bib/re_conf_b.bib)
+- 数据文件：[metadata](metadata/re_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -5032,7 +5031,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5128,7 +5127,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`9`
-- 数据文件：[metadata](metadata/re_journal_b.json) / [bib](bib/re_journal_b.bib)
+- 数据文件：[metadata](metadata/re_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -5138,7 +5137,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5172,7 +5171,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`29`
-- 数据文件：[metadata](metadata/refsq_conf_c.json) / [bib](bib/refsq_conf_c.bib)
+- 数据文件：[metadata](metadata/refsq_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5183,7 +5182,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5237,7 +5236,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`18`
-- 数据文件：[metadata](metadata/rv_conf_c.json) / [bib](bib/rv_conf_c.bib)
+- 数据文件：[metadata](metadata/rv_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5248,7 +5247,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5291,7 +5290,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 数据文件：[metadata](metadata/saner_conf_b.json) / [bib](bib/saner_conf_b.bib)
+- 数据文件：[metadata](metadata/saner_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -5301,7 +5300,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5321,7 +5320,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 数据文件：[metadata](metadata/scam_conf_c.json) / [bib](bib/scam_conf_c.bib)
+- 数据文件：[metadata](metadata/scam_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5331,7 +5330,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5351,7 +5350,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`97`
-- 数据文件：[metadata](metadata/scp_journal_b.json) / [bib](bib/scp_journal_b.bib)
+- 数据文件：[metadata](metadata/scp_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -5361,7 +5360,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5483,7 +5482,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`63`
-- 数据文件：[metadata](metadata/seke_conf_c.json) / [bib](bib/seke_conf_c.bib)
+- 数据文件：[metadata](metadata/seke_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5493,7 +5492,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5581,7 +5580,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`24`
-- 数据文件：[metadata](metadata/soca_journal_c.json) / [bib](bib/soca_journal_c.bib)
+- 数据文件：[metadata](metadata/soca_journal_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5591,7 +5590,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5639,7 +5638,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`91`
-- 数据文件：[metadata](metadata/sosym_journal_b.json) / [bib](bib/sosym_journal_b.bib)
+- 数据文件：[metadata](metadata/sosym_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -5649,7 +5648,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5765,7 +5764,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`109`
-- 数据文件：[metadata](metadata/spe_journal_b.json) / [bib](bib/spe_journal_b.bib)
+- 数据文件：[metadata](metadata/spe_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -5775,7 +5774,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5909,7 +5908,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`14`
-- 数据文件：[metadata](metadata/spin_conf_c.json) / [bib](bib/spin_conf_c.bib)
+- 数据文件：[metadata](metadata/spin_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5920,7 +5919,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -5959,7 +5958,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`35`
-- 数据文件：[metadata](metadata/sqj_journal_c.json) / [bib](bib/sqj_journal_c.bib)
+- 数据文件：[metadata](metadata/sqj_journal_c.json)
 
 ### 4.2 关键信息页面
 
@@ -5969,7 +5968,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -6029,7 +6028,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`28`
-- 数据文件：[metadata](metadata/sse_conf_c.json) / [bib](bib/sse_conf_c.bib)
+- 数据文件：[metadata](metadata/sse_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -6040,7 +6039,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -6093,7 +6092,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`41`
-- 数据文件：[metadata](metadata/sttt_journal_c.json) / [bib](bib/sttt_journal_c.bib)
+- 数据文件：[metadata](metadata/sttt_journal_c.json)
 
 ### 4.2 关键信息页面
 
@@ -6103,7 +6102,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -6169,7 +6168,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`17`
-- 数据文件：[metadata](metadata/stvr_journal_b.json) / [bib](bib/stvr_journal_b.bib)
+- 数据文件：[metadata](metadata/stvr_journal_b.json)
 
 ### 4.2 关键信息页面
 
@@ -6179,7 +6178,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -6221,7 +6220,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`22`
-- 数据文件：[metadata](metadata/tase_conf_c.json) / [bib](bib/tase_conf_c.bib)
+- 数据文件：[metadata](metadata/tase_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -6231,7 +6230,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -6278,7 +6277,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`242`
-- 数据文件：[metadata](metadata/tosem_journal_a.json) / [bib](bib/tosem_journal_a.bib)
+- 数据文件：[metadata](metadata/tosem_journal_a.json)
 
 ### 4.2 关键信息页面
 
@@ -6288,7 +6287,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -6555,7 +6554,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`312`
-- 数据文件：[metadata](metadata/tsc_journal_a.json) / [bib](bib/tsc_journal_a.bib)
+- 数据文件：[metadata](metadata/tsc_journal_a.json)
 
 ### 4.2 关键信息页面
 
@@ -6565,7 +6564,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -6902,7 +6901,7 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`228`
-- 数据文件：[metadata](metadata/tse_journal_a.json) / [bib](bib/tse_journal_a.bib)
+- 数据文件：[metadata](metadata/tse_journal_a.json)
 
 ### 4.2 关键信息页面
 
@@ -6912,7 +6911,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -7165,7 +7164,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`21`
-- 数据文件：[metadata](metadata/vmcai_conf_b.json) / [bib](bib/vmcai_conf_b.bib)
+- 数据文件：[metadata](metadata/vmcai_conf_b.json)
 
 ### 4.2 关键信息页面
 
@@ -7176,7 +7175,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -7222,7 +7221,7 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 数据文件：[metadata](metadata/wicsa_conf_c.json) / [bib](bib/wicsa_conf_c.bib)
+- 数据文件：[metadata](metadata/wicsa_conf_c.json)
 
 ### 4.2 关键信息页面
 
@@ -7232,7 +7231,7 @@
 
 ### 4.3 论文名录
 
-- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已写入对应 `metadata` / `bib` 文件。
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
 
 | 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -7251,5 +7250,5 @@
 - 人工复核状态分布：已人工复核 (5153)
 - 高频软工主路径：7.1.1 代码生成、补全与变换 (398) / 6.3.4 replication、benchmark 与开放科学 (229) / 3.1.3 模糊、搜索式、变异与性质驱动测试 (222) / 7.1.2 AI 支持的测试、分析与修复 (218) / 6.3.1 实验、案例研究与调查 (169) / 7.1.4 AI 支持的架构、设计与工程决策 (112) / 1.1.1 需求获取与发现 (102) / 3.1.4 场景化测试 (101) / 4.1.1 缺陷修复与维护性修正 (82) / 3.2.1 静态分析与抽象解释 (76) / 5.2.1 安全开发与漏洞治理 (70) / 3.2.3 面向质量属性的分析 (68) / 2.1.4 云/服务/平台架构 (63) / 2.2.1 设计原则、模式与反模式 (62) / 6.3.5 路线图、研究议程与领域回顾 (61)
 - 计数复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。
-- 分类终判状态：以 [./manual_review/overrides.json](./manual_review/overrides.json) 与 [./manual_review/batches/](./manual_review/batches) 为准；未进入覆盖文件的条目仍只是启发式初判。
+- 分类终判状态：以 `metadata/*.json` 中的 `classification_source / manual_review_status / manual_review_note` 为准。
 - 后续若继续扩年份或重跑年度页，建议先运行 `tools/ccf_se_index_builder.py`，再运行 `tools/ccf_se_classifier.py`。
