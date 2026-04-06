@@ -1,0 +1,604 @@
+--- Page 1 ---
+A Type System for Weighted Automata
+and Rational Expressions?
+Akim Demaille1, Alexandre Duret-Lutz1, Sylvain Lombardy2,
+Luca Saiu3;1and Jacques Sakarovitch3
+1LRDE, EPITA,fakim,adlg@lrde.epita.fr
+2LaBRI, Institut Polytechnique de Bordeaux, Sylvain.Lombardy@labri.fr
+3LTCI, CNRS / T el ecom-ParisTech, fsaiu,sakarovitch g@telecom-paristech.fr
+Abstract. We present a type system for automata and rational expres-
+sions, expressive enough to encompass weighted automata and transduc-
+ers in a single coherent formalism. The system allows to express useful
+properties about the applicability of operations including binary hetero-
+geneous functions over automata.
+We apply the type system to the design of the Vaucanson 2 platform,
+a library dedicated to the computation with nite weighted automata,
+in which genericity and high eciency are obtained at the lowest level
+through the use of template metaprogramming, by letting the C ++tem-
+plate system play the role of a static type system for automata. Between
+such a low-level layer and the interactive high-level interface, the type
+system plays the crucial role of a mediator and allows for a cleanly-
+structured use of dynamic compilation.
+1 Introduction
+Vaucanson4is a free software5platform dedicated to the computation of and
+with nite automata . It is designed with several use cases in mind. First and
+foremost it must support experiments by automata theory researchers. As a
+consequence, genericity and exibility have been goals since day one: automata
+and transducers must support any kind of semiring of weights, and labels must
+not be restricted to just letters. In order to demonstrate the computational
+qualities of algorithms, performance must also be a main concern. To enforce
+this we aim, eventually, at applying Vaucanson to linguistics, whose problems
+are known for their size; on this standpoint we share goals with systems such
+as OpenFST [2]. Finally our platform should be easy to use by teachers and
+students in language theory courses (a common goal with FAdo [3]), which also
+justies our focus on rational expressions.
+?This is not the ocially submitted \nal" version of the paper, despite the content
+being the same but for an important correction in Fig. 4, added after publication
+and hence absent in the \nal" version. The nal publication is available at http:
+//link.springer.com/chapter/10.1007%2F978-3-319-08846-4_12 .
+4Work supported by ANR Project 10-INTB-0203 VAUCANSON 2.
+5http://vaucanson.lrde.epita.fr
+
+--- Page 2 ---
+Among our goals exibility and eciency are potentially in conict. The
+main objective of this work is demonstrating how to reconcile them, and how to
+use a type system to manage such complexity.
+Aiming at both eciency and exibility essentially dictates the architecture:
+the software needs to be rigidly divided into layers , varying in comfort and speed.
+The bottom layer (named static ) is a C ++library. For the sake of eciency
+the classical object-oriented run-time method dispatch (associated to the C ++
+virtual keyword) is systematically avoided, instead achieving compile-time code
+generation by using template metaprogramming [1]. This results in a closed
+world : new types of automata require the compilation of dedicated code.
+At the opposite end of the spectrum, the topmost layer is based on IPython [6].
+It is visual (automata are displayed on-screen) and, most importantly, interac-
+tive: the user no longer needs to write a C ++or even a Python program, and
+instead just interacts with the system using Python as a command language. In
+such a high-level environment the closed-world restriction would be unaccept-
+able, resulting as it would in error messages such as \this type of automaton is
+not supported; please recompile and rerun". To address this issue Vaucanson
+uses on-the-y generation and compilation of code, relying on our type system
+in a fundamental way.
+This paper builds on top of ideas introduced last year [4]6. However, in
+that work contexts were partitioned and entities of dierent types could not
+be mixed together. In particular algorithms such as the union of automata were
+\homogenous": operands had all the same type, which was that of the result.
+The contribution of this paper is to introduce support for heteregeneous types:
+the denition of a type calculus, its implementation and, to gain full benet from
+it, dynamic code generation.
+This paper is structured as follows. In Sec. 2 we describe the types of weighted
+automata, rational expressions and their components. Then, in Sec. 3, we study
+how types relate to one another and how to type operations over automata. We
+introduce the implementation counterpart of types in Sec. 4, which also explains
+how run-time compilation reconciles performances and exibility. Sec. 5 discusses
+the pros and cons of the current implementation.
+2 Typing Automata and Rational Expressions
+Computing with weighted automata or rational expressions entails reasoning
+about types . We should have a system strong enough to detect some unmet pre-
+conditions (for instance applying subset construction on an automaton weighted
+inZ), and at the same time expressive enough to encompass many dierent kinds
+of automata, including transducers.
+6Names and notations have slightly changed. We now name \Value/ValueSet" the core
+design principle in Vaucanson, rather than \Element/ElementSet". For consistency
+with POSIX regular expression syntax, curly braces now denote power: ` af2g' means
+aainstead of a2, which is now written ` a<2>'. Similarly, ` a(*min,max)' is now written
+`afmin,maxg'.
+2
+
+--- Page 3 ---
+2.1 Weighted Automata
+Usually a weighted automaton Ais dened as a sextuple ( A;K; Q; I; F; E ),A
+being an alphabet (a nite set of symbols), Ka semiring, Qa nite set of states,
+I/Finitial/nal (partial) functions Q!K, and Ea (partial) function in QA
+Q!K. With such a denition, the generalization to transducers involves turning
+the sextuple into a septuple by adding a second output alphabet, changing the
+transition function domain to also take output labels into account, among the
+rest. Independently from transducers, denitions also need variants for many
+alternative cases, such as admitting the empty word as an input or output label.
+InVaucanson this variability is captured by contexts , each composed of one
+LabelSet and one WeightSet .
+Dierent LabelSets model multiple variations on labels , members of a monoid:
+letterset Fully dened by an alphabet A, its labels being just letters. It is
+simply denoted by A. It corresponds to the usual denition of an NFA.
+nullableset Denoted by A?, also dened by an alphabet A, its labels being
+either letters or the empty word. This corresponds to what is often called
+"-NFAs.
+wordset Denoted by A, also dened by an alphabet A, its labels being (pos-
+sibly empty) words on this alphabet.
+oneset Denoted byf1g, containing a single label: 1, the empty word.
+tupleset Cartesian product of LabelSets, L1 Ln. This type implements
+the concept of transducers with an arbitrary number of \tapes".
+In the implementation LabelSets dene the underlying monoid operations, and
+a few operators such as comparison.
+AWeightSet is a semiring whose operations determine how to combine
+weights when evaluating words. Examples of WeightSets include hB;_;^i, the
+familyhN;+;i,hZ;+;i,hQ;+;i,hR;+;iand tropical semirings such as
+hZ[f1g ;min;+i; moreover tuplesets also allow to combine WeightSets, making
+weight tuples into weights.
+In the implementation a WeightSet denes the semiring operations and compar-
+ison operators, plus some feature tests such as \star-ability" [5].
+We may nally introduce contexts, and the denition of automata used in
+Vaucanson | a triple corresponding to its type (context), its set of states and
+its set of transitions.
+Denition 1 (Context). Acontext C is a pair (L; W ), denoted by L!W,
+where:
+{Lis aLabelSet , a subset of a monoid,
+{Wis aWeightSet , a semiring.
+Denition 2 ((Typed, Weighted) Automaton). An automatonAis a triple
+(C; Q; E )where:
+{C=L!Wis a context;
+{Qis a nite set of states;
+3
+
+--- Page 4 ---
+A1
+Pre p q Post$h1
+2ia
+h1
+3ib
+h1
+3ibh1
+2ia
+$A2
+r shy+zib
+hxia
+hxiahy+zib
+Fig. 1: Two (typed) automata: A1, whose context is C1=fa; b; cg!Q, and
+A2, whose context is C2=fa; b; dg! RatE [fx; y; zg!B], i.e., with rational
+expressions as weights. In A1we reveal the PreandPost hidden states.
+{Eis a (partial) function whose domain represents the set of transitions, in:
+(QLQ)[(fPregf $gQ)[(Qf$gf Postg)!(Wnf0g).
+Notice that the initial and nal functions are embedded in the denition
+ofEthrough two special states |the pre-initial and post-nal states Preand
+Post | and a special label not part on Land only occurring on pre-transitions
+(transitions from Pre) and post-transitions (transitions from Post ). This some-
+what contrived denition actually results in much simpler data structures and
+algorithms: with a unique Preand a unique Post there is no need to deal with
+initial and nal weights in any special way. On Fig. 1, automaton A1is drawn
+with explicit PreandPost states, whileA2is drawn without them.
+2.2 Rational Expressions
+Denition 3 ((Typed, Weighted) Rational Expression). A rational ex-
+pressionEis a pair (C;E)where:
+{C=L!W, is a context,
+{Eis a term built from the following abstract grammar
+E:= 0j1j`jE+EjEEjEjhwiEjEhwi
+where `2Lis any label, and w2Wis any weight.
+The set of rational expressions of type L!Wis denoted by RatE [L!W],
+and called a ratexpset . With a bit of caution rational expressions can be used as
+weights, as exemplied by automaton A2in Fig. 1: equipped with the sum of
+rational expressions as sum, their concatenation as product, 0 as zero, and 1 as
+unit, it is very close to being a semiring7.
+Rational expressions may also serve as labels, yielding what is sometimes
+named Extended Finite Automata [3], a convenient internal representation to
+perform, for example, state elimination, a technique useful to extract a rational
+expression from an automaton. So, just like tuplesets, ratexpsets can be used as
+either a WeightSet or a LabelSet.
+7Ratexpset do notconstitute a semiring for lack of, for instance, equality between
+two rational expressions; however rational expressions provide an acceptable approx-
+imation of rational series [7, Chap. III], the genuine corresponding semiring.
+4
+
+--- Page 5 ---
+hcontexti: :=hlabelseti"!"hweightseti
+hlabelseti: := "f1g"j halphabeti j h alphabeti"?"j halphabeti"*"
+j hratexpseti j h labelseti  h labelseti
+hweightseti: := "B"j"N"j"Z"j"Q"j"R"j"Zmin"
+j hratexpseti j h weightseti  h weightseti
+hratexpseti: := "RatE"hcontexti
+Fig. 2: A Grammar of Types
+Fig. 2 shows the precise relation among the dierent entities introduced up
+to this point: LabelSets, WeightSets, contexts, ratexpsets.
+3 The Type System
+3.1 Operations on Automata
+Several binary operations on automata exist: union, concatenation, product,
+shue and inltration products, to name a few. To demonstrate our purpose we
+consider the simplest one, i.e., the union of two automata, whose behavior is the
+sum of the behavior of each operand.
+Denition 4 ((Homogeneous) Union of Automata). LetA1= (C; Q 1; E1)
+andA2= (C; Q 2; E2)be two automata of the same type C.A1[A 2is the
+automaton (C; Q 1[Q2; E1[E2).
+Def. 4 is simple, but has the defect of requiring the two argument automata
+to have exactly the same type. Overcoming this restriction and making opera-
+tions such as automata union more widely applicable is a particularly stringent
+requirement in an interactive system (Sec. 4.3).
+Automata union can serve as a good example to convey the intuition of
+heterogeneous operation typing: if its two operands have LabelSets with dier-
+ent alphabets, the result LabelSet should have their union as alphabet; if one
+operand is an NFA and the other a "-NFA, their union should also be a "-NFA.
+It is also reasonable to dene the union between an automaton with spontaneous
+transitions only (oneset) and an NFA (letterset) as a "-NFA (nullableset) | a
+type dierent from both operands', and intuitively \more general" than either.
+Much in the same way, some WeightSets are straightforward to embed into
+others: ZintoQ, and even Qinto RatE [L!Q]. Then, let two automata have
+weights in Qand RatE [L!Z]; their union should have weights in the least
+WeightSet that contains both QandRatE [L!Z], which is to say RatE [L!Q].
+Once more the resulting type is new: it does not match the type of either operand.
+3.2 The hierarchy of types
+The observations above can be captured by introducing a subtype relation as
+a partial order on LabelSets, WeightSets and contexts, henceforth collectively
+5
+
+--- Page 6 ---
+denoted as ValueSets . We write V1<:V2to mean that V1is a subtype of V2; in
+this case each element of V1may be used wherever an element of V2would be
+expected, and we have in particular that V1V2. Notice that this makes our
+relation reexive, so for every ValueSet Vwe have that V <:V.
+For simplicity we will focus on free monoids only. Let A; B be any alphabets
+such that AB. Then we dene:
+f1g<:A?A <:A?A?<:A
+A <:B A?<:B?A<:B
+For WeightSets, if the WeightSet W1is a sub-semiring of W2, it trivially
+holds that W1<:W2; therefore N<:Z<:Q<:R. The WeightSet B, as the
+WeightSet of language recognizers, is worthy of special treatment; in particular
+it is convenient to allow heterogeneous operations between automata over Band
+automata over other WeightSets, which yields:
+B<:N<:Z<:Q<:R B <:Zmin (1)
+This allows for instance to restrict the domain of a series realized by a weighted
+automaton to the rational language described by a Boolean automaton. For this
+reason it is desirable to have Bat the bottom of the WeightSet hierarchy, so
+that it can be promoted to any other WeightSet simply by mapping false to
+the WeightSet zero, and true to its unit. However such conversion requires care
+and should not be used blindly; in particular converting an ambiguous Boolean
+automaton to another WeightSet leads in general to an automaton which does
+notrealize the characteristic series of the language recognized by the original.
+A context C1is a subtype of a context C2ifC1has a LabelSet and a Weight-
+Set which are respectively subtypes of the LabelSet and WeightSet of C2.
+(L1!W1)<: (L2!W2) i L1<:L2andW1<:W2 (2)
+As of today tuples of ValueSets do not mix with other values:
+(V1 Vn)<: (V0
+1 V0
+n) i ( Vi<:V0
+i) for all 1in(3)
+Interestingly, rational expressions can play the role of both labels and weights:
+RatE [C1]<:RatE [C2] i C1<:C2
+L1<:RatE [L2!W2] i L1<:L2
+W1<:RatE [L2!W2] i W1<:W2(4)
+The subtype relations between LabelSets are summarized in Fig. 3. If two
+LabelSets L1andL2admit a least upper bound ( resp. a greatest lower bound),
+we call it the join ( resp. the meet) of these two LabelSets and we denote it
+byL1_L2(resp. theL1^L2). The cases where no join or meet exists cor-
+respond in practice to compilation errors about undened cases. The join and
+meet operations extend naturally to other ValueSets such as WeightSets, tuples,
+6
+
+--- Page 7 ---
+A B
+A\BA[B
+A?B?
+(A\B)?(A[B)?
+AB
+(A\B)(A[B)
+f1g
+Fig. 3: The Hasse diagram of the LabelSets generated by the two alphabets A
+andBshowing, for instance, that A?_B= (A[B)?.
+contexts and rational expressions, as per Equations (1) to (4)). For instance, for
+any LabelSet L1,L2and any WeightSet W1; W2:
+RatE [L1!W1]_L2:=RatE [(L1_L2)!W1]
+RatE [L1!W1]_W2:=RatE [L1!(W1_W2)]
+RatE [L1!W1]_RatE [L2!W2]:=RatE [(L1!W1)_(L2!W2)]
+At this point we are ready to describe typing for binary operations on hetero-
+geneous automata more formally. An operation on two automata with contexts
+L1!W1andL2!W2will yield a result with context ( L1_L2)!(W1_W2).
+As an example we can extend Def. 4 into:
+Denition 5 (Heterogeneous Union of Automata). LetA1= (C1; Q1; E1)
+andA2= (C2; Q2; E2)be two automata. A1[A2:= (C1_C2; Q1[Q2; E1[E2).
+3.3 Type restriction
+The specic semantics of some binary operations let us characterize the result
+type more precisely. For instance spontaneous-transition-removal applied to an
+automaton with LabelSet A?returns a proper automaton, i.e., an automaton
+with LabelSet A. Another interesting example is the product of automata labeled
+by letters8, whose behavior is the Hadamard product of series of the behavior of
+each operand, if the WeightSet is commutative.
+Denition 6 (Product of Automata). LetA1= ((L1!W1); Q1; E1)and
+A2= ((L2!W2); Q2; E2)be two automata, where L1andL2arelettersets .
+A1&A2is the accessible part of the automaton (C&; Q&; E&)where C&= (L1^
+L2)!(W1_W2),Q&=Q1Q2, and
+((q1; q2); `;(q0
+1; q0
+2))2Dom(E&) i(
+(q1; `; q0
+1)2Dom(E1);
+(q2; `; q0
+2)2Dom(E2);
+E&((q1; q2); `;(q0
+1; q0
+2)) =E1(q1; `; q0
+1)E2(q2; `; q0
+2):
+8The product operation can actually be extended to nullablesets, using a more com-
+plex algorithm related to weighted transducer composition.
+7
+
+--- Page 8 ---
+p; r
+q; rp; s
+q; shFibhEia
+hFib
+hEiahEia
+hFib
+hEiahFibFig. 4:A3=A1&A2(see Fig. 1), with
+E=h1
+2ixandF=h1
+3i(y+z). Its type is
+C3=fa; bg! RatE [fx; y; zg!Q].
+Like for other binary operations it would be correct to describe the type of
+the result of a product as the join of its operand types; however in this case
+the specic operation semantics permits us to be more precise: a product result
+transition is created if and only if labels match in the two argument automata,
+and therefore the result LabelSet happens to lie in the meet of the argument
+LabelSets. By contrast, each weight is computed as the product of argument
+weights, in general belonging to two dierent WeightSets: the WeightSet of the
+product hence lies in the join of the argument WeightSets.
+Fig. 4 shows the heterogeneous product of A1andA2from Fig. 1.
+4 Implementation Facet
+4.1 The Value/ValueSet Design Principle
+The implementation of Vaucanson closely follows its algebraic design illus-
+trated in Sec. 2 in terms of labels, weights, automata and rational expressions.
+Other entities not shown here also exist, such as polynomials.
+In a typical object-oriented implementation each of these concepts would be
+implemented as a class, possibly templated. For instance a Boolean weight would
+be an instance of some class boolean weight having a bool attribute. However
+some of these concepts require run-time meta-data; for instance a letterset needs
+a set of letters, so a letter label would aggregate not only a char for the
+label, but also the whole alphabet , as a char vector. As a context aggregates
+a LabelSet and a WeightSet it requires run-time meta-data as well, and since
+rational expressions can also be used as weights, they, too, depend on run-time
+meta-data. Therefore weights and LabelSets both need to be associated to meta-
+data at run time.
+However it would result in an unacceptable penalty to have every instance
+carry even a mere pointer to meta-data such as an alphabet (a simple char label,
+because of alignment, would then require at least eight bytes, a 8 space penalty
+on a 32-bit architecture!). To cut this Gordian knot, as a design principle, we
+split traditional values into Value/ValueSet pairs. The value part is but the
+implementation of a datum; the ValueSet , on the other hand, stores only one
+copy of the meta-data related to the type (such as the alphabet) and performs
+8
+
+--- Page 9 ---
+the operations on values (such as +forZandminforZmin) without relying on
+dynamic dispatch.
+This design is asymmetric: ValueSets implement the operations on their Val-
+ues; conversely from a Value there is no means to reach the corresponding Val-
+ueSet. Values may in fact ultimately come down to plain data types like intor
+char .
+Following the Value/ValueSet design principle, Vaucanson implements La-
+belSets such as oneset ,letterset< generatorset >9,nullableset< generatorset >,
+wordset< generatorset >, and WeightSets such as b,z, . . . , ratexpset< context >;
+nally, tupleset< ValueSet 1, ..., ValueSet n>implements Cartesian prod-
+ucts.
+4.2 Computations on Types
+Two dierent sets of routines are needed to support heterogeneous operations
+such as the product and sum of automata or rational expressions: rst a com-
+putation on types based on join and meet, then a conversion of values to these
+types.
+The computation of joins and meets on basic types is straightforward.
+r join(const r&, const b&) { return r(); }
+r join(const r&, const z&) { return r(); }
+r join(const r&, const q&) { return r(); }
+The code snippet above states that R_W:=RforW2fB;Z;Qg. Compos-
+ite types such as rational expressions, tuples or even contexts follow the same
+pattern, but are computed recursively.
+Some features new to C ++11 let us express the product context computation
+(as per Def. 6) quite cleanly, as follows:
+template <typename LhsLabelSet, typename LhsWeightSet,
+typename RhsLabelSet, typename RhsWeightSet>
+auto product_ctx(const context<LhsLabelSet, LhsWeightSet>& lhs,
+const context<RhsLabelSet, RhsWeightSet>& rhs)
+-> context<decltype(meet(lhs.LabelSet(), rhs.LabelSet())),
+decltype(join(lhs.WeightSet(), rhs.WeightSet()))>
+{
+auto ls = meet(lhs.LabelSet(), rhs.LabelSet());
+auto ws = join(lhs.WeightSet(), rhs.WeightSet());
+return {ls, ws};
+}
+Two WeightSets are involved in the process of value conversions: the source
+one, which is used below as a key to select the proper conv routine, and the
+9generatorset provides type and value information on the monoid generators; in
+practice this corresponds to the type of characters and the alphabet, as a vector of
+characters of the appropriate type.
+9
+
+--- Page 10 ---
+destination one ( rin the following example). Type conversion may require run-
+time computation such as the oating-point division below, or even something
+more substantial like the construction of a rational expression in other cases.
+class r {
+using value_t = float;
+...
+value_t conv(b, b::value_t v) { return v; }
+value_t conv(z, z::value_t v) { return v; }
+value_t conv(q, q::value_t v) { return value_t(v.num)/value_t(v.den); }
+...
+};
+The process generalizes in a natural way to the case of composite types.
+The join ,meet andconv functions are used in the implementation of binary
+operations such as the product, shown below as an example10; the idea is to rst
+compute the result type ctx, and then use it to create the result automaton res.
+template <typename Ctx1, typename Ctx2>
+auto product(const automaton<Ctx1>& lhs, const automaton<Ctx2>& rhs)
+-> ...
+{
+auto ctx = product_ctx(lhs.context(), rhs.context());
+auto res = make_automaton(ctx);
+auto ws = res.WeightSet(); // a shorthand to the resulting WeightSet.
+...
+return res;
+}
+The core of the algorithm consists in an iteration over each reachable left-right
+pair of states ( lhssrc;rhssrc); for each pair of transitions with the same label
+from lhssrcandrhssrc, it adds a transition from the source state pair to the
+destination state pair, with the same label and the product of weights as weight.
+for (auto lhs_trans : lhs.out(lhs_src))
+for (auto rhs_trans : rhs.out(rhs_src, lhs_trans.label))
+{
+auto weight = ws.mul(ws.conv(lhs.WeightSet(), lhs_trans.weight),
+ws.conv(rhs.WeightSet(), rhs_trans.weight));
+res.add_transition({lhs_src, rhs_src}, {lhs_trans.dst, rhs_trans.dst},
+lhs_trans.label, weight);
+}
+Three WeightSets play a role in the computation of the resulting weight : rst
+ws.conv(lhs.WeightSet(), lhs trans.weight) promotes the left-hand side
+weight from its original WeightSet lhs.WeightSet() to the resulting one ws,
+and likewise for the second weight; nally the resulting WeightSet multiplies the
+weights ( ws.mul(...) ). For instance in Fig. 4 there is a transition from state
+10In the following code excerpts some details have been omitted for clarity.
+10
+
+--- Page 11 ---
+(p; r) to state ( p; s) with label a, and whose weight is the product of1
+2andx. The
+conversion of the rst weight corresponds to ` C3:W:conv (C1:W;1
+2)', which re-
+sults inh1
+2i1; likewise for the second weight: ` C3:W:conv (C2:W;h111ix)=h1
+1ix'.
+The resulting WeightSet, C3then multiplies them: ` C3:W:mul(h1
+2i1;h1
+1ix))', i.e.,
+h1
+2ix.
+4.3 On-the-Fly Compilation
+Code snippets shown so far are all part of the static layer, the statically-typed,
+lowest-level Application Program Interface (API) of Vaucanson , which strictly
+follows the Value/ValueSet principle. As long as this API is used the compiler
+will take care of generating the appropriate versions of the routine for the types
+at hand, with no run-time overhead. Programming at this level however oers
+little exibility: the program is written and then compiled, period. Moreover,
+types have to be explicitly spelled out in the program.
+On top of this static layer, the dynAPI takes care of the template parame-
+ter book-keeping, memory allocation and deallocation, and even re-unites split
+objects: for example a dyn::ratexp aggregates both a (static-level) rational ex-
+pression and its (static-level) ratexpset. By design dynonly includes a handful of
+types such as dyn::context ,dyn::automaton ,dyn::weight anddyn::label :
+all the wide variety of static-level entities is collapsed into a few categories of
+objects carrying their own run-time type information (exposed to the user as
+dyn::context objects), so that operations can automatically perform their own
+conversions without exposing the user to the type system.
+The static/dyn bridge works with registries, one per algorithm. They play
+a role similar to virtual tables in C++: to select the precise implementation
+of an algorithm that corresponds to the eective type of the operands. These
+registries are just dictionaries, mapping each given list of argument types to
+the corresponding specic (static) implementation. This mechanism and other
+details on the static/dyn bridge have been described in a previous work [4,
+Sec. 4.2]; its complete treatment is beyond the scope of this paper.
+Several commonly-used basic contexts are precompiled | in other words
+registries are initially loaded for some specic types. However, not only the
+number of contexts is too large to permit a \complete" precompilation (24:
+4 basic LabelSets times 6 WeightSets), but tupleset and ratexpset also let the
+user dene an unbounded number of composite ones. Moreover, as demonstrated
+in Fig. 4, some operation results belong to contexts that were not even in the
+operands. For these reasons only some select contexts can be precompiled, which
+will certainly frustrate some users.
+On top of dyn Vaucanson oers IPython support (see Fig. 5). IPython is an
+enhanced interactive Python environment [6]. Thanks to specic hooks, entities
+such as rational expressions feature nice L ATEX-based rendering, and automata
+are rendered as pictures. This binding of dyn features the familiar Python object-
+oriented avor as in \ automaton .minimize() ", and operator overloading as in
+\automaton &automaton ". In such an interactive environment (similar to what
+11
+
+--- Page 12 ---
+CodeCell Toolbar:None
+ (/tree/)CIAA 2014 Last Checkpoint: May 15 09:16 (autosaved)FileEditViewInsertCellKernelHelp!+#$%&'()*In [3]:In [4]:In [5]:In [6]:01<1/3>b<1/3>bOut[3]:{a,b}→/u1D5B1/u1D5BA/u1D5CD/u1D5A4[{x,y,z}→ℚ]Out[4]:{a,b}→/u1D5B1/u1D5BA/u1D5CD/u1D5A4[{x,y,z}→/u1D539]Out[5]:⟨y+z⟩a(⟨⟩b)x∗∗(⟨⟩b+⟨y+z⟩a⟨y+z⟩a)x∗(⟨⟩b)x∗∗∗Out[6]:
+02<<1/2>ε>a1<<1/3>ε>b<<1/3>ε>b<<1/2>ε>a<x*>b3<y+z>a<y+z>a<x*>bvcsn.context('lal_char(ab)_ratexpset<lal_char(xyz)_q>')ctx = vcsn.context("lal_char(ab)_ratexpset<lal_char(xyz)_b>"); ctxr2 = ctx.ratexp('(<x*>b)*<y+z>a(<x*>b+<y+z>a(<x*>b)*<y+z>a)*'); r2a2 = r2.derived_term().minimize()a1|a2Fig. 5: The computation of
+A1[A2in the IPython note-
+book interface of Vaucan-
+son. The symbol "denotes
+the empty word. Weights in
+Qsuch as1
+2have been lifted
+into the WeightSet of C3:
+h1
+2i"2RatE [fx; y; zg!Q].
+formal mathematics environments oer), working with just a nite, predened
+set of types would be unacceptable.
+To address these limitations Vaucanson 'sdynlayer features run-time code
+generation, compilation, and dynamic object loading. The code generation is
+a simple translation from the context object into C ++code instantiating the
+existing algorithms for a given context and then entering into the appropri-
+ate registries. Once the context-plugin is successfully compiled and linked, it is
+loaded into the program via dlopen ; however, dierently from the usual prac-
+tice, we do not need dlsym calls to locate plugin functions one by one; rather,
+when a plugin is loaded, its initialization code simply adds its functions to the
+registries. In other words a plugin compiled on the y and loaded at run-time is
+treated exactly like precompiled contexts.
+Because a call in IPython eventually resolves into a call in the static library,
+one benets from both exibility andeciency | when C ++algorithms take
+most of the time; of course Python-heavy computations would be a dierent
+matter.
+5 Future Work and Improvements
+The subtype relation among semirings we introduced is natural; however a closer
+look at these denitions reveals that several mechanisms are involved, which may
+deserve more justication.
+12
+
+--- Page 13 ---
+5.1 Syntactic and Semantic Improvements of Contexts
+Contexts proved to be a powerful concept; however some early design decisions
+resulted in limitations, to be lifted in the near future.
+First, the concrete syntax the user must use to dene the context is cum-
+bersome. For instance C3=fa; bg! RatE [fx; y; zg!Q] has to be written
+lalchar(ab) ratexpset<lal char(xyz) q>(see Fig. 5); a syntax closer to the
+mathematical notation would be an improvement.
+Second, the quantiers `?' and ` *' should probably apply to an entire La-
+belSet, and not just to an alphabet like in Fig. 2:
+hlabelseti: := "f1g"j halphabeti j h labelseti"?"j hlabelseti"*"
+j hratexpseti j h labelseti  h labelseti
+which would allow to dene, for instance, two-tape transducers whose labels are
+either a couple of letters, or the empty (two-tape) word: ( fa; bgfx; yg)?.
+Third, our implementation of automata does not follow the Value/ValueSet
+pattern, which prevents us from using them like other entities.
+5.2 Dynamic Compilation Granularity
+The compilation of plugins today is coarse-grained , in that we compile \all" the
+existing algorithms for a given context. This is at the same time too much, and
+not enough.
+It is too much as it may suspend an interactive IPython session for half a
+minute even on a fast laptop, to compile and load the given context library;
+caching compiled code however makes this cost a one-time penalty.
+It is not enough because algorithms such as union have an open set of pos-
+sible signatures. The resulting type of the union of two automata might not be
+precompiled, in which case, for lack of support for the resulting context, the com-
+putation would fail. An unpleasant but eective workaround consists in warning
+the system, at runtime, that a given context will be needed.
+To address both shortcomings we plan to support ne-grained plugins able
+to generate, compile and load code for onefunction with onesignature.
+6 Conclusion
+We presented a type system for weighted automata and rational expressions |
+a novel feature to the best of our knowledge| currently implemented in our
+Vaucanson 2 system, but not coupled to any particular platform.
+Types lie at the very foundation of our design. At the lowest level, where
+performance concerns are strong, we follow the Value/ValueSet principle and
+types parameterize C ++template structures and functions; there a calculus on
+types based on a subtype relation allows to dene operations on automata of
+dierent types and handles value conversions. At a higher level types make up
+the bridge between the static low-level API and a dynamic one built on top of it.
+13
+
+--- Page 14 ---
+Finally, run-time translation of types into C ++code allows to compile, generate,
+and load plugins during interactive sessions, for instance under IPython.
+Vaucanson 2 is free software. Its source code is available at http://vaucanson.
+lrde.epita.fr , along with virtual machine images to let users experiment and
+play with the system without need for an installation.
+Acknowledgements
+We wish to thank the anonymous reviewers for their helpful and constructive
+suggestions.
+References
+1. A. Alexandrescu. Modern C++ Design: Generic Programming and Design Patterns
+Applied . Addison-Wesley, 2001.
+2. C. Allauzen, M. Riley, J. Schalkwyk, W. Skut, and M. Mohri. OpenFst: A general
+and ecient weighted nite-state transducer library. In CIAA'07 , vol. 4783 of LNCS ,
+pp. 11{23. Springer, 2007. http://www.openfst.org .
+3. A. Almeida, M. Almeida, J. Alves, N. Moreira, and R. Reis. FAdo and GUItar. In
+CIAA'09 , vol. 5642 of LNCS , pp. 65{74. Springer, 2009.
+4. A. Demaille, A. Duret-Lutz, S. Lombardy, and J. Sakarovitch. Implementation
+concepts in Vaucanson 2. In CIAA'13 , vol. 7982 of LNCS , pp. 122{133, July 2013.
+Springer.
+5. S. Lombardy and J. Sakarovitch. The validity of weighted automata. Int. J. of
+Algebra and Computation , 23(4):863{914, 2013.
+6. F. P erez and B. E. Granger. IPython: a system for interactive scientic computing.
+Computing in Science and Engineering , 9(3):21{29, May 2007. http://ipython.
+org.
+7. J. Sakarovitch. Elements of Automata Theory . Cambridge University Press, 2009.
+Corrected English translation of El ements de th eorie des automates , Vuibert, 2003.
+14
