@@ -6,7 +6,7 @@
 - 覆盖范围：`CCF` 软件工程/系统软件/程序设计语言方向 `A/B/C` 类期刊会议
 - 当前覆盖的 venue 数量：`82`
 - 当前已入表论文数量：`6301`
-- 更新时间：`2026-04-06 13:58:07`
+- 更新时间：`2026-04-06 13:32:16`
 - 人工复核覆盖文件：[manual_review/README.md](manual_review/README.md) / [manual_review/overrides.json](manual_review/overrides.json) / [manual_review/batches/](manual_review/batches)
 - 说明：本年度条目已实现全量人工复核；本页由 `tools/ccf_se_index_builder.py` 提供基础元数据，再由 `tools/ccf_se_classifier.py` 直接读取 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 中的人工终判结果进行回填与渲染，不再依赖启发式分类结果。
 
@@ -24,102 +24,98 @@
 - 软工纳入判定分布：属于软件工程 (3410) / 不属于软件工程 (2755) / 跨域但软工主导 (136)
 - 判定来源分布：人工复核 (6301)
 - 人工复核状态分布：已人工复核 (6301)
-- 本博士研究相关性（氛围 A/B/C/D，按 venue 数）：A 🔥 (22) / B 🟢 (22) / C 🟡 (20) / D ⚪ (18)
-- 本博士研究相关性（氛围 A/B/C/D，按 2025 论文数）：A 🔥 (1994) / B 🟢 (1618) / C 🟡 (2029) / D ⚪ (660)
 - 高频软工主路径：7.1.1 代码生成、补全与变换 (402) / 3.1.3 模糊、搜索式、变异与性质驱动测试 (237) / 6.3.4 replication、benchmark 与开放科学 (231) / 7.1.2 AI 支持的测试、分析与修复 (222) / 6.3.1 实验、案例研究与调查 (170) / 3.1.4 场景化测试 (116) / 7.1.4 AI 支持的架构、设计与工程决策 (115) / 1.1.1 需求获取与发现 (103) / 3.2.1 静态分析与抽象解释 (87) / 4.1.1 缺陷修复与维护性修正 (83) / 5.2.1 安全开发与漏洞治理 (71) / 3.2.3 面向质量属性的分析 (70)
 
 ## 3. 覆盖 venue 列表
 
-- 本博士研究相关性口径：综合 [AGENTS.md](../../../AGENTS.md)、[TARGET.md](../../../TARGET.md)、[project_1_llm_state_machine_modeling/README.md](../../../project_1_llm_state_machine_modeling/README.md)、[open_explore/README.md](../../../open_explore/README.md)、[open_explore/uppaal_tech/README.md](../../../open_explore/uppaal_tech/README.md)、[open_explore/uppaal_apps/README.md](../../../open_explore/uppaal_apps/README.md)、开题报告 [sec_2.tex](../../../phd_proposal/phd_proposal_report/content/sec_2.tex) 与文献综述 [sec_1.tex](../../../phd_proposal/phd_proposal_literature_review/content/sec_1.tex) / [sec_3.tex](../../../phd_proposal/phd_proposal_literature_review/content/sec_3.tex) 的研究问题边界。
-- 分级：`A 🔥` = 高度贴题、值得长期重点跟踪；`B 🟢` = 较高相关、常能补方法链或评测链；`C 🟡` = 间接相关、只建议按子题筛选；`D ⚪` = 低相关、通常只保留极少数特例。
 - 口径：`venue 判定` 按 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 的 `软工归属级别` 折叠而来：`完全属于软工 / 大部分属于软工 -> 软工 venue`，`部分属于软工 -> 混合 venue`，`大部分不属于软工 / 完全不属于软工 -> 非软工 venue`。
 - `主体归属` 与 `典型软工路径（先验）` 来自 venue 级先验；`2025 一级总判定`、`2025 软工纳入` 与 `2025 高频软工主路径` 直接按本年度逐篇人工复核结果统计。
 - `典型软工路径（先验）` 与 `2025 高频软工主路径` 使用 [SOFTWARE_ENGINEERING_FIELD_TREE.md](../../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的方向树口径。
 
-| venue | 全称 | 等级 | 类型 | 论文数 | venue 判定 | 主体归属 | 博士研究相关性（氛围） | 本研究贴题点 | 典型软工路径（先验） | 2025 一级总判定 | 2025 软工纳入 | 2025 高频软工主路径 | 数据文件 | 备注 |
-|---|---|---|---|---:|---|---|---|---|---|---|---|---|---|---|
-| `PLDI` | ACM SIGPLAN Conference on Programming Language Design and Implementation | `A` | `会议` | 88 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | C 🟡 | 程序分析 / 软件验证 / repair 邻近但需严格筛选 | 1.2.x / 3.2.x / 3.3.x / 3.4.x | 程序设计语言与形式化基础 70 / 系统软件 15 / 软件工程 3 | 不属于软件工程 85 / 跨域但软工主导 2 / 属于软件工程 1 | 3.2.3 面向质量属性的分析 (1) / 3.1.3 模糊、搜索式、变异与性质驱动测试 (1) | [metadata](metadata/pldi_conf_a.json) / [bib](bib/pldi_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `POPL` | ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages | `A` | `会议` | 79 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 语义 / 类型 / 逻辑证明主场，低概率直接贴题 | 1.2.x / 3.3.1 | 程序设计语言与形式化基础 72 / 系统软件 4 / 软件工程 3 | 不属于软件工程 76 / 属于软件工程 2 / 跨域但软工主导 1 | 3.3.1 面向软工问题的形式化验证 (2) / 7.1.5 人机协同开发与评估 (1) | [metadata](metadata/popl_conf_a.json) / [bib](bib/popl_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `FSE` | ACM International Conference on the Foundations of Software Engineering | `A` | `会议` | 132 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | broad SE + LLM/需求建模/测试验证/修复主线 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 131 / 程序设计语言与形式化基础 1 | 属于软件工程 131 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (30) / 6.3.4 replication、benchmark 与开放科学 (15) | [metadata](metadata/fse_conf_a.json) / [bib](bib/fse_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `SOSP` | ACM Symposium on Operating Systems Principles | `A` | `会议` | 66 | 非软工 venue（大部分不属于软工） | 系统软件 | D ⚪ | 操作系统机制主场，低概率直接贴题 | 4.4.x / 5.1.x / 5.3.x | 系统软件 56 / 软件工程 6 / 程序设计语言与形式化基础 4 | 不属于软件工程 60 / 跨域但软工主导 4 / 属于软件工程 2 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (2) / 7.1.2 AI 支持的测试、分析与修复 (2) | [metadata](metadata/sosp_conf_a.json) / [bib](bib/sosp_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `OOPSLA` | Conference on Object-Oriented Programming Systems, Languages,and Applications | `A` | `会议` | 216 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | C 🟡 | 软件结构 / 程序分析 / 重构与验证偶发贴题 | 2.2.x / 3.2.x / 3.4.x / 4.2.x | 程序设计语言与形式化基础 165 / 软件工程 29 / 系统软件 22 | 不属于软件工程 187 / 属于软件工程 20 / 跨域但软工主导 9 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (11) / 3.2.1 静态分析与抽象解释 (5) | [metadata](metadata/oopsla_conf_a.json) / [bib](bib/oopsla_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `ASE / 会议 / A` | International Conference on Automated Software Engineering | `A` | `会议` | 389 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 自动化软件工程 / LLM for SE / 建模-验证-修复主场 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 387 / 程序设计语言与形式化基础 2 | 属于软件工程 387 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (89) / 7.1.2 AI 支持的测试、分析与修复 (55) | [metadata](metadata/ase_conf_a.json) / [bib](bib/ase_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `ICSE` | International Conference on Software Engineering | `A` | `会议` | 245 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | broad SE 主会，需求-建模-验证-修复全链可见 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 245 | 属于软件工程 245 | 7.1.1 代码生成、补全与变换 (43) / 7.1.2 AI 支持的测试、分析与修复 (28) | [metadata](metadata/icse_conf_a.json) / [bib](bib/icse_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `ISSTA` | International Symposium on Software Testing and Analysis | `A` | `会议` | 110 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 测试分析 / 形式化验证 / 缺陷定位与修复主场 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 110 | 属于软件工程 110 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (14) / 7.1.2 AI 支持的测试、分析与修复 (11) | [metadata](metadata/issta_conf_a.json) / [bib](bib/issta_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `OSDI` | USENIX Symposium on Operating Systems Design and Implementation | `A` | `会议` | 53 | 非软工 venue（大部分不属于软工） | 系统软件 | D ⚪ | 系统实现 / 平台机制为主，仅极少验证个案 | 4.4.x / 5.1.x / 5.3.x / 8.2.x | 系统软件 52 / 软件工程 1 | 不属于软件工程 52 / 跨域但软工主导 1 | 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/osdi_conf_a.json) / [bib](bib/osdi_conf_a.bib) | 计数一致；2025 与先验一致 |
-| `FM` | International Symposium on Formal Methods | `A` | `会议` | 67 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | A 🔥 | 形式化方法 / timed automata / 工业与控制系统验证邻近 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 54 / 软件工程 7 / 系统软件 6 | 不属于软件工程 60 / 属于软件工程 5 / 跨域但软工主导 2 | 3.3.1 面向软工问题的形式化验证 (3) / 3.2.4 分析驱动的理解、重构与综合 (1) | [metadata](metadata/fm_conf_a.json) / [bib](bib/fm_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `TOPLAS` | ACM Transactions on Programming Languages and Systems | `A` | `期刊` | 20 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 语言 / 语义 / 编译与理论为主 | 1.2.x / 3.2.x / 3.3.x | 程序设计语言与形式化基础 20 | 不属于软件工程 20 | 无纳入软工主路径 | [metadata](metadata/toplas_journal_a.json) / [bib](bib/toplas_journal_a.bib) | 计数一致；2025 与先验一致 |
-| `TOSEM` | ACM Transactions on Software Engineering and Methodology | `A` | `期刊` | 242 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 软件工程方法 / 需求建模 / 测试验证 / AI for SE | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 241 / 跨域/待判定 1 | 属于软件工程 241 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (45) / 6.3.5 路线图、研究议程与领域回顾 (23) | [metadata](metadata/tosem_journal_a.json) / [bib](bib/tosem_journal_a.bib) | 计数一致；2025 与先验一致 |
-| `TSE` | IEEE Transactions on Software Engineering | `A` | `期刊` | 228 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | broad SE 主刊 / 建模验证修复与 LLM 子题持续出现 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 224 / 跨域/待判定 3 / 系统软件 1 | 属于软件工程 224 / 不属于软件工程 4 | 7.1.1 代码生成、补全与变换 (35) / 6.3.5 路线图、研究议程与领域回顾 (28) | [metadata](metadata/tse_journal_a.json) / [bib](bib/tse_journal_a.bib) | 计数一致；2025 与先验一致 |
-| `TSC` | IEEE Transactions on Services Computing | `A` | `期刊` | 312 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | C 🟡 | 服务工作流 / 平台 orchestration 邻近，可补性质工程 | 2.1.4 / 4.3.x / 4.4.x / 5.3.x / 8.2.x | 跨域/待判定 190 / 系统软件 88 / 软件工程 32 / 程序设计语言与形式化基础 2 | 不属于软件工程 280 / 属于软件工程 26 / 跨域但软工主导 6 | 2.1.4 云/服务/平台架构 (9) / 6.2.1 估算、计划与排程 (5) | [metadata](metadata/tsc_journal_a.json) / [bib](bib/tsc_journal_a.bib) | 计数一致；2025 比先验更偏非软工 |
-| `ECOOP` | European Conference on Object-Oriented Programming | `B` | `会议` | 43 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | C 🟡 | OO 程序结构 / 分析与重构邻近 | 2.2.x / 3.2.x / 4.2.x | 程序设计语言与形式化基础 35 / 软件工程 6 / 系统软件 2 | 不属于软件工程 37 / 属于软件工程 4 / 跨域但软工主导 2 | 7.1.1 代码生成、补全与变换 (1) / 1.2.1 形式化规约与契约 (1) | [metadata](metadata/ecoop_conf_b.json) / [bib](bib/ecoop_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `ETAPS` | European Joint Conferences on Theory and Practice of Software | `B` | `会议` | 0 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | B 🟢 | TACAS/FASE 等 formal methods 线对验证与工具很有用 | 1.2.x / 1.3.x / 3.3.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/etaps_conf_b.json) / [bib](bib/etaps_conf_b.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `ICPC` | IEEE International Conference on Program Comprehension | `B` | `会议` | 59 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 程序理解 / 缺陷分析 / 修复解释与人因辅助 | 4.2.x / 4.1.x / 6.5.1 | 软件工程 59 | 属于软件工程 59 | 6.5.1 开发者认知、生产力与福祉 (17) / 7.1.1 代码生成、补全与变换 (10) | [metadata](metadata/icpc_conf_b.json) / [bib](bib/icpc_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `RE / 会议 / B` | IEEE International Requirements Engineering Conference | `B` | `会议` | 71 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 需求工程 / 规约抽取 / 性质生成 / 需求到模型 | 1.1.x / 1.2.x / 1.4.x / 6.1.x | 软件工程 70 / 跨域/待判定 1 | 属于软件工程 70 / 不属于软件工程 1 | 1.1.1 需求获取与发现 (24) / 7.1.3 AI 支持的需求、建模与文档 (8) | [metadata](metadata/re_conf_b.json) / [bib](bib/re_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `CAiSE` | International Conference on Advanced Information Systems Engineering | `B` | `会议` | 35 | 混合 venue（部分属于软工） | 信息系统工程与软件工程交叉 | B 🟢 | 信息系统与过程/模型工程，适合补需求-建模-规约链 | 1.3.x / 2.1.x / 4.3.x / 8.3.x | 跨域/待判定 29 / 软件工程 5 / 系统软件 1 | 不属于软件工程 30 / 跨域但软工主导 3 / 属于软件工程 2 | 1.3.1 建模语言与元模型 (2) / 6.1.2 过程挖掘、符合性与改进 (2) | [metadata](metadata/caise_conf_b.json) / [bib](bib/caise_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `ICFP` | ACM SIGPLAN International Conference on Function Programming | `B` | `会议` | 36 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 函数式语言理论主场 | - | 程序设计语言与形式化基础 32 / 系统软件 4 | 不属于软件工程 36 | 无纳入软工主路径 | [metadata](metadata/icfp_conf_b.json) / [bib](bib/icfp_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `LCTES` | ACM SIGPLAN/SIGBED International Conference on Languages, Compilers andTools for Embedded Systems | `B` | `会议` | 20 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | C 🟡 | 嵌入式 / 实时软件邻近，可补控制系统实现背景 | 3.2.x / 5.3.x / 8.1.x | 程序设计语言与形式化基础 16 / 系统软件 4 | 不属于软件工程 20 | 无纳入软工主路径 | [metadata](metadata/lctes_conf_b.json) / [bib](bib/lctes_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `MoDELS` | ACM/IEEE International Conference on Model Driven Engineering Languages and Systems | `B` | `会议` | 27 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | A 🔥 | 模型驱动 / 状态机-SysML / 形式化建模主场 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 27 | 属于软件工程 27 | 1.3.1 建模语言与元模型 (8) / 7.1.1 代码生成、补全与变换 (4) | [metadata](metadata/models_conf_b.json) / [bib](bib/models_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `CP` | International Conference on Principles and Practice of Constraint Programming | `B` | `会议` | 44 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 约束求解主场，仅少量可借工具思想 | - | 程序设计语言与形式化基础 44 | 不属于软件工程 44 | 无纳入软工主路径 | [metadata](metadata/cp_conf_b.json) / [bib](bib/cp_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ICSOC` | International Conference on Service Oriented Computing | `B` | `会议` | 55 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | C 🟡 | 服务组合 / 流程 / 性质与治理偶有贴题 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 36 / 软件工程 17 / 系统软件 2 | 不属于软件工程 38 / 属于软件工程 9 / 跨域但软工主导 8 | 2.1.4 云/服务/平台架构 (10) / 4.4.3 运行时重配置与自适应运维 (2) | [metadata](metadata/icsoc_conf_b.json) / [bib](bib/icsoc_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `SANER` | IEEE International Conference on Software Analysis, Evolution,and Reengineering | `B` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 代码分析 / 逆向 / 演化与 reengineering | 4.1.x / 4.2.x / 3.2.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/saner_conf_b.json) / [bib](bib/saner_conf_b.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `ICSME` | International Conference on Software Maintenance and Evolution | `B` | `会议` | 102 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 维护演化 / 修复 / 回归验证 / 工程闭环邻近 | 4.1.x / 4.2.x / 4.3.x / 6.4.x | 软件工程 102 | 属于软件工程 102 | 7.1.2 AI 支持的测试、分析与修复 (9) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/icsme_conf_b.json) / [bib](bib/icsme_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `VMCAI` | International Conference on Verification,Model Checking, and Abstract Interpretation | `B` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | A 🔥 | 程序验证 / 模型检查 / 抽象解释直接支撑验证框架 | 1.2.x / 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 6 / 系统软件 1 | 不属于软件工程 15 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (1) / 3.3.2 运行时验证与运行时监测 (1) | [metadata](metadata/vmcai_conf_b.json) / [bib](bib/vmcai_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ICWS` | IEEE International Conference on Web Services | `B` | `会议` | 128 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | C 🟡 | Web services / orchestration / 性质验证偶有贴题 | 2.1.4 / 4.4.x / 5.3.x / 8.2.3 | 跨域/待判定 72 / 系统软件 29 / 软件工程 25 / 程序设计语言与形式化基础 2 | 不属于软件工程 103 / 属于软件工程 21 / 跨域但软工主导 4 | 2.1.4 云/服务/平台架构 (8) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/icws_conf_b.json) / [bib](bib/icws_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `Middleware` | International Middleware Conference | `B` | `会议` | 36 | 非软工 venue（大部分不属于软工） | 系统软件 | D ⚪ | 中间件与平台机制为主 | 4.4.x / 5.1.x / 5.3.x / 8.2.x | 系统软件 35 / 软件工程 1 | 不属于软件工程 35 / 跨域但软工主导 1 | 2.3.3 组件、包与集成工程 (1) | [metadata](metadata/middleware_conf_b.json) / [bib](bib/middleware_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `SAS` | International Static Analysis Symposium | `B` | `会议` | 18 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | C 🟡 | 静态分析与抽象解释对验证/修复有方法借鉴 | 3.2.x / 3.3.1 | 程序设计语言与形式化基础 14 / 软件工程 2 / 系统软件 2 | 不属于软件工程 16 / 跨域但软工主导 2 | 3.2.1 静态分析与抽象解释 (1) / 3.3.1 面向软工问题的形式化验证 (1) | [metadata](metadata/sas_conf_b.json) / [bib](bib/sas_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ESEM` | International Symposium on Empirical Software Engineering and Measurement | `B` | `会议` | 58 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 实证方法 / 评测设计 / LLM-SE 实验口径重要 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 58 | 属于软件工程 58 | 6.3.1 实验、案例研究与调查 (12) / 6.3.4 replication、benchmark 与开放科学 (9) | [metadata](metadata/esem_conf_b.json) / [bib](bib/esem_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ISSRE` | IEEE International Symposium on Software Reliability Engineering | `B` | `会议` | 47 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 可靠性 / assurance / 安全关键验证与缺陷检测很近 | 3.1.x / 3.3.x / 5.1.x / 5.2.x / 4.4.x | 软件工程 47 | 属于软件工程 47 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (6) / 3.3.3 assurance、认证与合规验证 (5) | [metadata](metadata/issre_conf_b.json) / [bib](bib/issre_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `HotOS` | USENIX Workshop on Hot Topics in Operating Systems | `B` | `会议` | 29 | 非软工 venue（大部分不属于软工） | 系统软件 | D ⚪ | 系统热点想法为主 | 4.4.x / 5.1.x / 5.3.x | 系统软件 26 / 软件工程 2 / 程序设计语言与形式化基础 1 | 不属于软件工程 27 / 跨域但软工主导 2 | 6.3.1 实验、案例研究与调查 (1) / 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/hotos_conf_b.json) / [bib](bib/hotos_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `CC` | International Conference on Compiler Construction | `B` | `会议` | 17 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 编译构造主场 | - | 程序设计语言与形式化基础 14 / 系统软件 2 / 软件工程 1 | 不属于软件工程 16 / 跨域但软工主导 1 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (1) | [metadata](metadata/cc_conf_b.json) / [bib](bib/cc_conf_b.bib) | 计数一致；2025 与先验一致 |
-| `ASE / 期刊 / B` | Automated Software Engineering | `B` | `期刊` | 74 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 自动化软件工程 / LLM for SE / 建模-验证-修复主场 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 72 / 跨域/待判定 2 | 属于软件工程 72 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (14) / 7.1.2 AI 支持的测试、分析与修复 (7) | [metadata](metadata/ase_journal_b.json) / [bib](bib/ase_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `ESE` | Empirical Software Engineering | `B` | `期刊` | 178 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 实证研究 / 数据集 / benchmark / 人因与评测设计 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 144 / 跨域/待判定 31 / 程序设计语言与形式化基础 2 / 系统软件 1 | 属于软件工程 144 / 不属于软件工程 34 | 6.3.1 实验、案例研究与调查 (33) / 4.1.1 缺陷修复与维护性修正 (25) | [metadata](metadata/ese_journal_b.json) / [bib](bib/ese_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `IETS` | IET Software | `B` | `期刊` | 35 | 软工 venue（大部分属于软工） | 软件工程 | C 🟡 | broad SE 期刊，可筛少量建模/验证论文 | 1.x.x / 3.x.x / 4.x.x / 5.x.x | 软件工程 28 / 跨域/待判定 6 / 系统软件 1 | 属于软件工程 28 / 不属于软件工程 7 | 3.1.4 场景化测试 (2) / 1.1.1 需求获取与发现 (2) | [metadata](metadata/iets_journal_b.json) / [bib](bib/iets_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `IST` | Information and Software Technology | `B` | `期刊` | 243 | 软工 venue（大部分属于软工） | 软件工程 | B 🟢 | broad SE / 建模测试 / AI4SE 论文较常见 | 1.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 183 / 跨域/待判定 58 / 系统软件 2 | 属于软件工程 180 / 不属于软件工程 60 / 跨域但软工主导 3 | 7.1.1 代码生成、补全与变换 (27) / 6.3.3 系统综述、mapping 与 meta-analysis (21) | [metadata](metadata/ist_journal_b.json) / [bib](bib/ist_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `JFP` | Journal of Functional Programming | `B` | `期刊` | 25 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 函数式编程理论主场 | - | 程序设计语言与形式化基础 22 / 系统软件 2 / 软件工程 1 | 不属于软件工程 24 / 跨域但软工主导 1 | 1.2.1 形式化规约与契约 (1) | [metadata](metadata/jfp_journal_b.json) / [bib](bib/jfp_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `JSEP` | Journal of Software: Evolution and Process | `B` | `期刊` | 120 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 演化 / 过程 / 迭代闭环与工程实践邻近 | 4.1.x / 4.3.x / 6.1.x / 6.4.x | 软件工程 116 / 跨域/待判定 3 / 程序设计语言与形式化基础 1 | 属于软件工程 116 / 不属于软件工程 4 | 6.1.1 敏捷、精益与 DevOps 方法 (12) / 6.3.3 系统综述、mapping 与 meta-analysis (7) | [metadata](metadata/jsep_journal_b.json) / [bib](bib/jsep_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `JSS` | Journal of Systems and Software | `B` | `期刊` | 265 | 软工 venue（大部分属于软工） | 软件工程 | B 🟢 | 系统与软件工程综合刊，常见建模/验证/CPS 个案 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 软件工程 190 / 跨域/待判定 71 / 程序设计语言与形式化基础 3 / 系统软件 1 | 属于软件工程 189 / 不属于软件工程 75 / 跨域但软工主导 1 | 2.1.1 架构描述与恢复 (30) / 5.2.1 安全开发与漏洞治理 (13) | [metadata](metadata/jss_journal_b.json) / [bib](bib/jss_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `RE / 期刊 / B` | Requirements Engineering | `B` | `期刊` | 9 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 需求工程 / 规约抽取 / 性质生成 / 需求到模型 | 1.1.x / 1.2.x / 1.4.x | 软件工程 9 | 属于软件工程 9 | 1.1.1 需求获取与发现 (3) / 7.1.3 AI 支持的需求、建模与文档 (1) | [metadata](metadata/re_journal_b.json) / [bib](bib/re_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `SCP` | Science of Computer Programming | `B` | `期刊` | 97 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | B 🟢 | 软件程序与形式化/验证/程序分析交叉，贴题概率中高 | 1.2.x / 3.2.x / 3.3.x / 4.1.x | 程序设计语言与形式化基础 64 / 软件工程 29 / 系统软件 4 | 不属于软件工程 68 / 属于软件工程 18 / 跨域但软工主导 11 | 1.2.1 形式化规约与契约 (6) / 3.3.2 运行时验证与运行时监测 (3) | [metadata](metadata/scp_journal_b.json) / [bib](bib/scp_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `SoSyM` | Software and Systems Modeling | `B` | `期刊` | 91 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | A 🔥 | 软件与系统建模 / DSL / 状态机与模型分析主场 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 62 / 跨域/待判定 28 / 程序设计语言与形式化基础 1 | 属于软件工程 61 / 不属于软件工程 29 / 跨域但软工主导 1 | 1.3.1 建模语言与元模型 (17) / 1.3.4 基于模型的生成、测试与运行时支持 (6) | [metadata](metadata/sosym_journal_b.json) / [bib](bib/sosym_journal_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `STVR` | Software Testing, Verification and Reliability | `B` | `期刊` | 17 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 测试 / 验证 / 可靠性与 formal properties 非常贴题 | 3.1.x / 3.3.x / 5.1.x | 软件工程 17 | 属于软件工程 17 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (7) / 3.3.3 assurance、认证与合规验证 (3) | [metadata](metadata/stvr_journal_b.json) / [bib](bib/stvr_journal_b.bib) | 计数一致；2025 与先验一致 |
-| `SPE` | Software: Practice and Experience | `B` | `期刊` | 109 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | C 🟡 | 工程实践 / 系统实现为主，偶有 runtime/verification | 2.3.x / 4.3.x / 4.4.x / 6.3.x / 8.2.x | 跨域/待判定 61 / 系统软件 26 / 软件工程 17 / 程序设计语言与形式化基础 5 | 不属于软件工程 92 / 属于软件工程 15 / 跨域但软工主导 2 | 6.3.1 实验、案例研究与调查 (3) / 2.2.1 设计原则、模式与反模式 (2) | [metadata](metadata/spe_journal_b.json) / [bib](bib/spe_journal_b.bib) | 计数一致；2025 比先验更偏非软工 |
-| `PEPM` | ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation | `C` | `会议` | 7 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 部分求值与程序变换主场 | - | 程序设计语言与形式化基础 6 / 软件工程 1 | 不属于软件工程 6 / 跨域但软工主导 1 | 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/pepm_conf_c.json) / [bib](bib/pepm_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `PASTE` | ACMSIGPLAN-SIGSOFT Workshop on Program Analysis for Software Tools and Engineering | `C` | `会议` | 0 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | B 🟢 | 程序分析与软件工具工程，对验证/修复较近 | 3.2.x / 3.4.x / 4.2.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/paste_conf_c.json) / [bib](bib/paste_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `APLAS` | Asian Symposium on Programming Languages and Systems | `C` | `会议` | 18 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 程序设计语言理论主场 | - | 程序设计语言与形式化基础 15 / 软件工程 3 | 不属于软件工程 15 / 跨域但软工主导 2 / 属于软件工程 1 | 3.2.1 静态分析与抽象解释 (1) / 8.5.3 大模型原生与 agentic 软件系统 (1) | [metadata](metadata/aplas_conf_c.json) / [bib](bib/aplas_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `APSEC` | Asia-Pacific Software Engineering Conference | `C` | `会议` | 117 | 软工 venue（大部分属于软工） | 软件工程 | B 🟢 | broad SE / 亚洲社区，LLM-SE/测试/建模可见 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 108 / 跨域/待判定 8 / 程序设计语言与形式化基础 1 | 属于软件工程 108 / 不属于软件工程 9 | 7.1.1 代码生成、补全与变换 (23) / 6.3.4 replication、benchmark 与开放科学 (21) | [metadata](metadata/apsec_conf_c.json) / [bib](bib/apsec_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `EASE` | International Conference on Evaluation and Assessment in Software Engineering | `C` | `会议` | 126 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 评测与实验设计 / benchmark / replication 有用 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 122 / 跨域/待判定 4 | 属于软件工程 122 / 不属于软件工程 4 | 6.3.1 实验、案例研究与调查 (25) / 6.3.4 replication、benchmark 与开放科学 (20) | [metadata](metadata/ease_conf_c.json) / [bib](bib/ease_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICECCS` | International Conference on Engineering of Complex Computer Systems | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 软件工程与系统建模交叉 | B 🟢 | 复杂系统建模与验证 / safety-critical / CPS 邻近 | 1.3.x / 2.1.x / 3.3.x / 8.3.x | 跨域/待判定 16 / 软件工程 6 | 不属于软件工程 16 / 属于软件工程 3 / 跨域但软工主导 3 | 1.3.1 建模语言与元模型 (1) / 3.3.1 面向软工问题的形式化验证 (1) | [metadata](metadata/iceccs_conf_c.json) / [bib](bib/iceccs_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICST` | IEEE International Conference on Software Testing, Verification and Validation | `C` | `会议` | 101 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 测试 / 形式化验证 / 缺陷检测与修复直接相关 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 101 | 属于软件工程 101 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (17) / 3.1.4 场景化测试 (13) | [metadata](metadata/icst_conf_c.json) / [bib](bib/icst_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ISPASS` | IEEE International Symposium on Performance Analysis of Systems and Software | `C` | `会议` | 48 | 非软工 venue（大部分不属于软工） | 系统软件 | D ⚪ | 性能分析主场 | 5.3.x / 4.4.x / 8.2.x / 8.1.x | 系统软件 43 / 软件工程 4 / 程序设计语言与形式化基础 1 | 不属于软件工程 44 / 属于软件工程 3 / 跨域但软工主导 1 | 5.3.4 扩展性、吞吐与时延保证 (2) / 5.3.1 性能建模、基准与调优 (2) | [metadata](metadata/ispass_conf_c.json) / [bib](bib/ispass_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `SCAM` | IEEE International Working Conference on Source Code Analysis and Manipulation | `C` | `会议` | 0 | 软工 venue（大部分属于软工） | 软件工程 | B 🟢 | 源码分析与变换 / 缺陷修复 / 程序理解邻近 | 3.2.x / 4.2.x / 4.1.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/scam_conf_c.json) / [bib](bib/scam_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `COMPSAC` | International Computer Software and Applications Conference | `C` | `会议` | 330 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | C 🟡 | 覆盖过宽，需按建模/验证/AI4SE 子题筛选 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 跨域/待判定 231 / 软件工程 61 / 系统软件 32 / 程序设计语言与形式化基础 6 | 不属于软件工程 269 / 属于软件工程 47 / 跨域但软工主导 14 | 6.3.1 实验、案例研究与调查 (6) / 4.1.1 缺陷修复与维护性修正 (4) | [metadata](metadata/compsac_conf_c.json) / [bib](bib/compsac_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
-| `ICFEM` | International Conference on Formal Engineering Methods | `C` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | A 🔥 | formal engineering / 规约建模 / 验证与证明 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 15 / 软件工程 6 | 不属于软件工程 15 / 跨域但软工主导 4 / 属于软件工程 2 | 1.1.1 需求获取与发现 (1) / 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/icfem_conf_c.json) / [bib](bib/icfem_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `SSE` | IEEE International Conference on Software Services Engineering | `C` | `会议` | 28 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | C 🟡 | 软件服务工程混合 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 16 / 软件工程 10 / 程序设计语言与形式化基础 1 / 系统软件 1 | 不属于软件工程 18 / 属于软件工程 9 / 跨域但软工主导 1 | 2.1.4 云/服务/平台架构 (5) / 4.4.1 可观测性、日志与异常检测 (1) | [metadata](metadata/sse_conf_c.json) / [bib](bib/sse_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICSSP` | International Conference on Software and System Process | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | C 🟡 | 软件过程 / 团队与流程，对主问题较间接 | 6.1.x / 6.2.x / 6.5.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/icssp_conf_c.json) / [bib](bib/icssp_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `SEKE` | International Conference on Software Engineering and Knowledge Engineering | `C` | `会议` | 63 | 混合 venue（部分属于软工） | 软件工程与知识工程交叉 | C 🟡 | SE+知识工程混合，AI/建模偶有贴题 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 跨域/待判定 36 / 软件工程 23 / 程序设计语言与形式化基础 3 / 系统软件 1 | 不属于软件工程 40 / 属于软件工程 18 / 跨域但软工主导 5 | 7.1.2 AI 支持的测试、分析与修复 (4) / 3.1.4 场景化测试 (2) | [metadata](metadata/seke_conf_c.json) / [bib](bib/seke_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `QRS` | International Conference on Software Quality, Reliability and Security | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 质量 / 可靠性 / 安全 / assurance 与验证链很近 | 3.x.x / 5.1.x / 5.2.x / 4.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/qrs_conf_c.json) / [bib](bib/qrs_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `ICSR` | International Conference on Software Reuse | `C` | `会议` | 10 | 软工 venue（完全属于软工） | 软件工程 | C 🟡 | 复用 / 组件资产，可补模型资产与可复用工件 | 1.4.x / 2.3.x / 4.1.x / 4.3.x | 软件工程 10 | 属于软件工程 10 | 2.1.4 云/服务/平台架构 (2) / 4.3.3 流水线与基础设施自动化 (1) | [metadata](metadata/icsr_conf_c.json) / [bib](bib/icsr_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ICWE` | International Conference on Web Engineering | `C` | `会议` | 39 | 软工 venue（大部分属于软工） | 软件工程 | D ⚪ | Web 工程主场 | 2.1.x / 2.2.x / 4.1.x / 8.2.1 | 跨域/待判定 30 / 软件工程 9 | 不属于软件工程 30 / 属于软件工程 8 / 跨域但软工主导 1 | 2.1.1 架构描述与恢复 (3) / 3.1.4 场景化测试 (2) | [metadata](metadata/icwe_conf_c.json) / [bib](bib/icwe_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
-| `SPIN` | International Symposium on Model Checking of Software | `C` | `会议` | 14 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | A 🔥 | 软件模型检查 / state-based verification / UPPAAL 邻近 | 1.2.x / 1.3.x / 3.3.x | 软件工程 8 / 程序设计语言与形式化基础 6 | 不属于软件工程 6 / 属于软件工程 5 / 跨域但软工主导 3 | 3.3.1 面向软工问题的形式化验证 (3) / 1.3.3 模型分析、仿真与验证 (3) | [metadata](metadata/spin_conf_c.json) / [bib](bib/spin_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `ATVA` | International Symposium on Automated Technology for Verification and Analysis | `C` | `会议` | 14 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | B 🟢 | 自动验证与分析 / 模型检查工具链直接邻近 | 1.2.x / 3.3.x | 程序设计语言与形式化基础 14 | 不属于软件工程 14 | 无纳入软工主路径 | [metadata](metadata/atva_conf_c.json) / [bib](bib/atva_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `LOPSTR` | International Symposium on Logic-based Program Synthesis and Transformation | `C` | `会议` | 13 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 逻辑程序综合与变换主场 | - | 程序设计语言与形式化基础 13 | 不属于软件工程 13 | 无纳入软工主路径 | [metadata](metadata/lopstr_conf_c.json) / [bib](bib/lopstr_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `TASE` | Theoretical Aspects of Software Engineering Conference | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | B 🟢 | 软件工程名下的 formal verification / assurance 邻近 | 1.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 8 | 不属于软件工程 14 / 跨域但软工主导 6 / 属于软件工程 2 | 3.3.1 面向软工问题的形式化验证 (4) / 5.3.1 性能建模、基准与调优 (1) | [metadata](metadata/tase_conf_c.json) / [bib](bib/tase_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `MSR` | Mining Software Repositories | `C` | `会议` | 109 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 仓库挖掘 / benchmark / LLM-SE 证据与数据建设有用 | 6.4.x / 6.3.x / 4.1.x / 6.5.x | 软件工程 109 | 属于软件工程 109 | 6.3.4 replication、benchmark 与开放科学 (48) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/msr_conf_c.json) / [bib](bib/msr_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `REFSQ` | Requirements Engineering: Foundation for Software Quality | `C` | `会议` | 29 | 软工 venue（完全属于软工） | 软件工程 | A 🔥 | 需求质量 / 需求规约 / 需求到性质非常贴题 | 1.1.x / 1.2.x / 1.4.x | 软件工程 29 | 属于软件工程 29 | 1.1.1 需求获取与发现 (20) / 6.3.1 实验、案例研究与调查 (2) | [metadata](metadata/refsq_conf_c.json) / [bib](bib/refsq_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `WICSA` | Working IEEE/IFIP Conference on Software Architecture | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 软件架构 / 设计决策 / 模型结构与演化有用 | 2.1.x / 2.2.x / 4.1.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/wicsa_conf_c.json) / [bib](bib/wicsa_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `Internetware` | Asia-Pacific Symposium on Internetware | `C` | `会议` | 55 | 软工 venue（大部分属于软工） | 软件工程与服务系统工程交叉 | C 🟡 | 平台 / 网络化软件 / 运行治理邻近 | 2.1.4 / 4.3.x / 4.4.x / 8.2.x | 软件工程 30 / 跨域/待判定 21 / 程序设计语言与形式化基础 2 / 系统软件 2 | 属于软件工程 30 / 不属于软件工程 25 | 2.1.4 云/服务/平台架构 (10) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/internetware_conf_c.json) / [bib](bib/internetware_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
-| `RV` | International Conference on Runtime Verification | `C` | `会议` | 18 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | A 🔥 | 运行时验证 / 监测 / 时序性质 / 工具链直接邻近 | 3.3.2 / 4.4.4 / 5.1.x | 程序设计语言与形式化基础 12 / 软件工程 5 / 系统软件 1 | 不属于软件工程 13 / 跨域但软工主导 4 / 属于软件工程 1 | 3.3.2 运行时验证与运行时监测 (5) | [metadata](metadata/rv_conf_c.json) / [bib](bib/rv_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `MEMOCODE` | International Conference on Formal Methods and Models for Co-Design | `C` | `会议` | 16 | 非软工 venue（大部分不属于软工） | 形式化方法与系统软件交叉 | B 🟢 | 协同设计 / 嵌入式与形式化模型，控制/CPS 邻近 | 1.3.x / 3.3.x / 8.1.x | 程序设计语言与形式化基础 16 | 不属于软件工程 16 | 无纳入软工主路径 | [metadata](metadata/memocode_conf_c.json) / [bib](bib/memocode_conf_c.bib) | 计数一致；2025 与先验一致 |
-| `CL` | Computer Languages, Systems and Structures | `C` | `期刊` | 0 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | C 🟡 | 语言/结构与偶发程序分析，可补方法链 | 3.2.x / 4.2.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/cl_journal_c.json) / [bib](bib/cl_journal_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
-| `IJSEKE` | International Journal of Software Engineering and Knowledge Engineering | `C` | `期刊` | 75 | 软工 venue（大部分属于软工） | 软件工程与知识工程交叉 | C 🟡 | SE+知识工程混合，AI/建模可补链但不稳定 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 软件工程 55 / 跨域/待判定 18 / 程序设计语言与形式化基础 1 / 系统软件 1 | 属于软件工程 55 / 不属于软件工程 20 | 7.1.1 代码生成、补全与变换 (10) / 6.3.4 replication、benchmark 与开放科学 (6) | [metadata](metadata/ijseke_journal_c.json) / [bib](bib/ijseke_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `STTT` | International Journal of Software Tools for Technology Transfer | `C` | `期刊` | 41 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | A 🔥 | 验证工具 / formal methods tool transfer / UPPAAL 邻近 | 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 28 / 软件工程 12 / 系统软件 1 | 不属于软件工程 29 / 属于软件工程 6 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (3) / 6.3.1 实验、案例研究与调查 (1) | [metadata](metadata/sttt_journal_c.json) / [bib](bib/sttt_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `JLAMP` | Journal of Logical and Algebraic Methods in Programming | `C` | `期刊` | 32 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 逻辑与代数程序方法理论主场 | - | 程序设计语言与形式化基础 31 / 软件工程 1 | 不属于软件工程 31 / 属于软件工程 1 | 3.3.2 运行时验证与运行时监测 (1) | [metadata](metadata/jlamp_journal_c.json) / [bib](bib/jlamp_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `JWE` | Journal of Web Engineering | `C` | `期刊` | 54 | 软工 venue（大部分属于软工） | 软件工程 | D ⚪ | Web 工程主刊，与主问题距离较远 | 2.1.x / 2.2.x / 4.1.x / 8.2.1 | 软件工程 44 / 跨域/待判定 10 | 属于软件工程 44 / 不属于软件工程 10 | 3.1.4 场景化测试 (13) / 8.2.1 Web 与移动应用工程 (6) | [metadata](metadata/jwe_journal_c.json) / [bib](bib/jwe_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `SOCA` | Service Oriented Computing and Applications | `C` | `期刊` | 24 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | C 🟡 | 服务计算与应用为主 | 2.1.4 / 4.4.x / 8.2.3 | 跨域/待判定 24 | 不属于软件工程 24 | 无纳入软工主路径 | [metadata](metadata/soca_journal_c.json) / [bib](bib/soca_journal_c.bib) | 计数一致；2025 比先验更偏非软工 |
-| `SQJ` | Software Quality Journal | `C` | `期刊` | 35 | 软工 venue（完全属于软工） | 软件工程 | B 🟢 | 质量 / 度量 / assurance 视角可支撑验证评价 | 5.x.x / 3.x.x / 6.3.x | 软件工程 29 / 跨域/待判定 6 | 属于软件工程 29 / 不属于软件工程 6 | 3.4.2 缺陷定位、补丁生成与程序修复 (3) / 3.1.1 测试生成与增强 (3) | [metadata](metadata/sqj_journal_c.json) / [bib](bib/sqj_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `TPLP` | Theory and Practice of Logic Programming | `C` | `期刊` | 44 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | D ⚪ | 逻辑程序设计理论与实践主场 | - | 程序设计语言与形式化基础 38 / 系统软件 4 / 软件工程 2 | 不属于软件工程 42 / 属于软件工程 2 | 3.2.1 静态分析与抽象解释 (1) / 3.1.1 测试生成与增强 (1) | [metadata](metadata/tplp_journal_c.json) / [bib](bib/tplp_journal_c.bib) | 计数一致；2025 与先验一致 |
-| `PACM PL` | Proceedings of the ACM on Programming Languages | `C` | `期刊` | 420 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | C 🟡 | PL 主刊，程序验证/分析个案可补链 | 1.2.x / 3.2.x / 3.3.x | 程序设计语言与形式化基础 340 / 系统软件 45 / 软件工程 35 | 不属于软件工程 385 / 属于软件工程 23 / 跨域但软工主导 12 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (12) / 3.2.1 静态分析与抽象解释 (5) | [metadata](metadata/pacm_pl_journal_c.json) / [bib](bib/pacm_pl_journal_c.bib) | 计数一致；2025 与先验一致 |
+| venue | 全称 | 等级 | 类型 | 论文数 | venue 判定 | 主体归属 | 典型软工路径（先验） | 2025 一级总判定 | 2025 软工纳入 | 2025 高频软工主路径 | 数据文件 | 备注 |
+|---|---|---|---|---:|---|---|---|---|---|---|---|---|
+| `PLDI` | ACM SIGPLAN Conference on Programming Language Design and Implementation | `A` | `会议` | 88 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x / 3.4.x | 程序设计语言与形式化基础 70 / 系统软件 15 / 软件工程 3 | 不属于软件工程 85 / 跨域但软工主导 2 / 属于软件工程 1 | 3.2.3 面向质量属性的分析 (1) / 3.1.3 模糊、搜索式、变异与性质驱动测试 (1) | [metadata](metadata/pldi_conf_a.json) / [bib](bib/pldi_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
+| `POPL` | ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages | `A` | `会议` | 79 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.3.1 | 程序设计语言与形式化基础 72 / 系统软件 4 / 软件工程 3 | 不属于软件工程 76 / 属于软件工程 2 / 跨域但软工主导 1 | 3.3.1 面向软工问题的形式化验证 (2) / 7.1.5 人机协同开发与评估 (1) | [metadata](metadata/popl_conf_a.json) / [bib](bib/popl_conf_a.bib) | 计数一致；2025 与先验一致 |
+| `FSE` | ACM International Conference on the Foundations of Software Engineering | `A` | `会议` | 132 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 131 / 程序设计语言与形式化基础 1 | 属于软件工程 131 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (30) / 6.3.4 replication、benchmark 与开放科学 (15) | [metadata](metadata/fse_conf_a.json) / [bib](bib/fse_conf_a.bib) | 计数一致；2025 与先验一致 |
+| `SOSP` | ACM Symposium on Operating Systems Principles | `A` | `会议` | 66 | 非软工 venue（大部分不属于软工） | 系统软件 | 4.4.x / 5.1.x / 5.3.x | 系统软件 56 / 软件工程 6 / 程序设计语言与形式化基础 4 | 不属于软件工程 60 / 跨域但软工主导 4 / 属于软件工程 2 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (2) / 7.1.2 AI 支持的测试、分析与修复 (2) | [metadata](metadata/sosp_conf_a.json) / [bib](bib/sosp_conf_a.bib) | 计数一致；2025 与先验一致 |
+| `OOPSLA` | Conference on Object-Oriented Programming Systems, Languages,and Applications | `A` | `会议` | 216 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 2.2.x / 3.2.x / 3.4.x / 4.2.x | 程序设计语言与形式化基础 165 / 软件工程 29 / 系统软件 22 | 不属于软件工程 187 / 属于软件工程 20 / 跨域但软工主导 9 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (11) / 3.2.1 静态分析与抽象解释 (5) | [metadata](metadata/oopsla_conf_a.json) / [bib](bib/oopsla_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
+| `ASE / 会议 / A` | International Conference on Automated Software Engineering | `A` | `会议` | 389 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 387 / 程序设计语言与形式化基础 2 | 属于软件工程 387 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (89) / 7.1.2 AI 支持的测试、分析与修复 (55) | [metadata](metadata/ase_conf_a.json) / [bib](bib/ase_conf_a.bib) | 计数一致；2025 与先验一致 |
+| `ICSE` | International Conference on Software Engineering | `A` | `会议` | 245 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 245 | 属于软件工程 245 | 7.1.1 代码生成、补全与变换 (43) / 7.1.2 AI 支持的测试、分析与修复 (28) | [metadata](metadata/icse_conf_a.json) / [bib](bib/icse_conf_a.bib) | 计数一致；2025 与先验一致 |
+| `ISSTA` | International Symposium on Software Testing and Analysis | `A` | `会议` | 110 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 110 | 属于软件工程 110 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (14) / 7.1.2 AI 支持的测试、分析与修复 (11) | [metadata](metadata/issta_conf_a.json) / [bib](bib/issta_conf_a.bib) | 计数一致；2025 与先验一致 |
+| `OSDI` | USENIX Symposium on Operating Systems Design and Implementation | `A` | `会议` | 53 | 非软工 venue（大部分不属于软工） | 系统软件 | 4.4.x / 5.1.x / 5.3.x / 8.2.x | 系统软件 52 / 软件工程 1 | 不属于软件工程 52 / 跨域但软工主导 1 | 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/osdi_conf_a.json) / [bib](bib/osdi_conf_a.bib) | 计数一致；2025 与先验一致 |
+| `FM` | International Symposium on Formal Methods | `A` | `会议` | 67 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 54 / 软件工程 7 / 系统软件 6 | 不属于软件工程 60 / 属于软件工程 5 / 跨域但软工主导 2 | 3.3.1 面向软工问题的形式化验证 (3) / 3.2.4 分析驱动的理解、重构与综合 (1) | [metadata](metadata/fm_conf_a.json) / [bib](bib/fm_conf_a.bib) | 计数一致；2025 比先验更偏非软工 |
+| `TOPLAS` | ACM Transactions on Programming Languages and Systems | `A` | `期刊` | 20 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x | 程序设计语言与形式化基础 20 | 不属于软件工程 20 | 无纳入软工主路径 | [metadata](metadata/toplas_journal_a.json) / [bib](bib/toplas_journal_a.bib) | 计数一致；2025 与先验一致 |
+| `TOSEM` | ACM Transactions on Software Engineering and Methodology | `A` | `期刊` | 242 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 241 / 跨域/待判定 1 | 属于软件工程 241 / 不属于软件工程 1 | 7.1.1 代码生成、补全与变换 (45) / 6.3.5 路线图、研究议程与领域回顾 (23) | [metadata](metadata/tosem_journal_a.json) / [bib](bib/tosem_journal_a.bib) | 计数一致；2025 与先验一致 |
+| `TSE` | IEEE Transactions on Software Engineering | `A` | `期刊` | 228 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 5.x.x / 6.x.x / 7.x.x | 软件工程 224 / 跨域/待判定 3 / 系统软件 1 | 属于软件工程 224 / 不属于软件工程 4 | 7.1.1 代码生成、补全与变换 (35) / 6.3.5 路线图、研究议程与领域回顾 (28) | [metadata](metadata/tse_journal_a.json) / [bib](bib/tse_journal_a.bib) | 计数一致；2025 与先验一致 |
+| `TSC` | IEEE Transactions on Services Computing | `A` | `期刊` | 312 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 5.3.x / 8.2.x | 跨域/待判定 190 / 系统软件 88 / 软件工程 32 / 程序设计语言与形式化基础 2 | 不属于软件工程 280 / 属于软件工程 26 / 跨域但软工主导 6 | 2.1.4 云/服务/平台架构 (9) / 6.2.1 估算、计划与排程 (5) | [metadata](metadata/tsc_journal_a.json) / [bib](bib/tsc_journal_a.bib) | 计数一致；2025 比先验更偏非软工 |
+| `ECOOP` | European Conference on Object-Oriented Programming | `B` | `会议` | 43 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 2.2.x / 3.2.x / 4.2.x | 程序设计语言与形式化基础 35 / 软件工程 6 / 系统软件 2 | 不属于软件工程 37 / 属于软件工程 4 / 跨域但软工主导 2 | 7.1.1 代码生成、补全与变换 (1) / 1.2.1 形式化规约与契约 (1) | [metadata](metadata/ecoop_conf_b.json) / [bib](bib/ecoop_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
+| `ETAPS` | European Joint Conferences on Theory and Practice of Software | `B` | `会议` | 0 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 1.2.x / 1.3.x / 3.3.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/etaps_conf_b.json) / [bib](bib/etaps_conf_b.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `ICPC` | IEEE International Conference on Program Comprehension | `B` | `会议` | 59 | 软工 venue（完全属于软工） | 软件工程 | 4.2.x / 4.1.x / 6.5.1 | 软件工程 59 | 属于软件工程 59 | 6.5.1 开发者认知、生产力与福祉 (17) / 7.1.1 代码生成、补全与变换 (10) | [metadata](metadata/icpc_conf_b.json) / [bib](bib/icpc_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `RE / 会议 / B` | IEEE International Requirements Engineering Conference | `B` | `会议` | 71 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x / 6.1.x | 软件工程 70 / 跨域/待判定 1 | 属于软件工程 70 / 不属于软件工程 1 | 1.1.1 需求获取与发现 (24) / 7.1.3 AI 支持的需求、建模与文档 (8) | [metadata](metadata/re_conf_b.json) / [bib](bib/re_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `CAiSE` | International Conference on Advanced Information Systems Engineering | `B` | `会议` | 35 | 混合 venue（部分属于软工） | 信息系统工程与软件工程交叉 | 1.3.x / 2.1.x / 4.3.x / 8.3.x | 跨域/待判定 29 / 软件工程 5 / 系统软件 1 | 不属于软件工程 30 / 跨域但软工主导 3 / 属于软件工程 2 | 1.3.1 建模语言与元模型 (2) / 6.1.2 过程挖掘、符合性与改进 (2) | [metadata](metadata/caise_conf_b.json) / [bib](bib/caise_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
+| `ICFP` | ACM SIGPLAN International Conference on Function Programming | `B` | `会议` | 36 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 32 / 系统软件 4 | 不属于软件工程 36 | 无纳入软工主路径 | [metadata](metadata/icfp_conf_b.json) / [bib](bib/icfp_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `LCTES` | ACM SIGPLAN/SIGBED International Conference on Languages, Compilers andTools for Embedded Systems | `B` | `会议` | 20 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 3.2.x / 5.3.x / 8.1.x | 程序设计语言与形式化基础 16 / 系统软件 4 | 不属于软件工程 20 | 无纳入软工主路径 | [metadata](metadata/lctes_conf_b.json) / [bib](bib/lctes_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `MoDELS` | ACM/IEEE International Conference on Model Driven Engineering Languages and Systems | `B` | `会议` | 27 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 27 | 属于软件工程 27 | 1.3.1 建模语言与元模型 (8) / 7.1.1 代码生成、补全与变换 (4) | [metadata](metadata/models_conf_b.json) / [bib](bib/models_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `CP` | International Conference on Principles and Practice of Constraint Programming | `B` | `会议` | 44 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 44 | 不属于软件工程 44 | 无纳入软工主路径 | [metadata](metadata/cp_conf_b.json) / [bib](bib/cp_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `ICSOC` | International Conference on Service Oriented Computing | `B` | `会议` | 55 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 36 / 软件工程 17 / 系统软件 2 | 不属于软件工程 38 / 属于软件工程 9 / 跨域但软工主导 8 | 2.1.4 云/服务/平台架构 (10) / 4.4.3 运行时重配置与自适应运维 (2) | [metadata](metadata/icsoc_conf_b.json) / [bib](bib/icsoc_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `SANER` | IEEE International Conference on Software Analysis, Evolution,and Reengineering | `B` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.2.x / 3.2.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/saner_conf_b.json) / [bib](bib/saner_conf_b.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `ICSME` | International Conference on Software Maintenance and Evolution | `B` | `会议` | 102 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.2.x / 4.3.x / 6.4.x | 软件工程 102 | 属于软件工程 102 | 7.1.2 AI 支持的测试、分析与修复 (9) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/icsme_conf_b.json) / [bib](bib/icsme_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `VMCAI` | International Conference on Verification,Model Checking, and Abstract Interpretation | `B` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 6 / 系统软件 1 | 不属于软件工程 15 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (1) / 3.3.2 运行时验证与运行时监测 (1) | [metadata](metadata/vmcai_conf_b.json) / [bib](bib/vmcai_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `ICWS` | IEEE International Conference on Web Services | `B` | `会议` | 128 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.4.x / 5.3.x / 8.2.3 | 跨域/待判定 72 / 系统软件 29 / 软件工程 25 / 程序设计语言与形式化基础 2 | 不属于软件工程 103 / 属于软件工程 21 / 跨域但软工主导 4 | 2.1.4 云/服务/平台架构 (8) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/icws_conf_b.json) / [bib](bib/icws_conf_b.bib) | 计数一致；2025 比先验更偏非软工 |
+| `Middleware` | International Middleware Conference | `B` | `会议` | 36 | 非软工 venue（大部分不属于软工） | 系统软件 | 4.4.x / 5.1.x / 5.3.x / 8.2.x | 系统软件 35 / 软件工程 1 | 不属于软件工程 35 / 跨域但软工主导 1 | 2.3.3 组件、包与集成工程 (1) | [metadata](metadata/middleware_conf_b.json) / [bib](bib/middleware_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `SAS` | International Static Analysis Symposium | `B` | `会议` | 18 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 3.2.x / 3.3.1 | 程序设计语言与形式化基础 14 / 软件工程 2 / 系统软件 2 | 不属于软件工程 16 / 跨域但软工主导 2 | 3.2.1 静态分析与抽象解释 (1) / 3.3.1 面向软工问题的形式化验证 (1) | [metadata](metadata/sas_conf_b.json) / [bib](bib/sas_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `ESEM` | International Symposium on Empirical Software Engineering and Measurement | `B` | `会议` | 58 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 58 | 属于软件工程 58 | 6.3.1 实验、案例研究与调查 (12) / 6.3.4 replication、benchmark 与开放科学 (9) | [metadata](metadata/esem_conf_b.json) / [bib](bib/esem_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `ISSRE` | IEEE International Symposium on Software Reliability Engineering | `B` | `会议` | 47 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.3.x / 5.1.x / 5.2.x / 4.4.x | 软件工程 47 | 属于软件工程 47 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (6) / 3.3.3 assurance、认证与合规验证 (5) | [metadata](metadata/issre_conf_b.json) / [bib](bib/issre_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `HotOS` | USENIX Workshop on Hot Topics in Operating Systems | `B` | `会议` | 29 | 非软工 venue（大部分不属于软工） | 系统软件 | 4.4.x / 5.1.x / 5.3.x | 系统软件 26 / 软件工程 2 / 程序设计语言与形式化基础 1 | 不属于软件工程 27 / 跨域但软工主导 2 | 6.3.1 实验、案例研究与调查 (1) / 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/hotos_conf_b.json) / [bib](bib/hotos_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `CC` | International Conference on Compiler Construction | `B` | `会议` | 17 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 14 / 系统软件 2 / 软件工程 1 | 不属于软件工程 16 / 跨域但软工主导 1 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (1) | [metadata](metadata/cc_conf_b.json) / [bib](bib/cc_conf_b.bib) | 计数一致；2025 与先验一致 |
+| `ASE / 期刊 / B` | Automated Software Engineering | `B` | `期刊` | 74 | 软工 venue（完全属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 7.1.x | 软件工程 72 / 跨域/待判定 2 | 属于软件工程 72 / 不属于软件工程 2 | 7.1.1 代码生成、补全与变换 (14) / 7.1.2 AI 支持的测试、分析与修复 (7) | [metadata](metadata/ase_journal_b.json) / [bib](bib/ase_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `ESE` | Empirical Software Engineering | `B` | `期刊` | 178 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 144 / 跨域/待判定 31 / 程序设计语言与形式化基础 2 / 系统软件 1 | 属于软件工程 144 / 不属于软件工程 34 | 6.3.1 实验、案例研究与调查 (33) / 4.1.1 缺陷修复与维护性修正 (25) | [metadata](metadata/ese_journal_b.json) / [bib](bib/ese_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `IETS` | IET Software | `B` | `期刊` | 35 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 3.x.x / 4.x.x / 5.x.x | 软件工程 28 / 跨域/待判定 6 / 系统软件 1 | 属于软件工程 28 / 不属于软件工程 7 | 3.1.4 场景化测试 (2) / 1.1.1 需求获取与发现 (2) | [metadata](metadata/iets_journal_b.json) / [bib](bib/iets_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `IST` | Information and Software Technology | `B` | `期刊` | 243 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 183 / 跨域/待判定 58 / 系统软件 2 | 属于软件工程 180 / 不属于软件工程 60 / 跨域但软工主导 3 | 7.1.1 代码生成、补全与变换 (27) / 6.3.3 系统综述、mapping 与 meta-analysis (21) | [metadata](metadata/ist_journal_b.json) / [bib](bib/ist_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `JFP` | Journal of Functional Programming | `B` | `期刊` | 25 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 22 / 系统软件 2 / 软件工程 1 | 不属于软件工程 24 / 跨域但软工主导 1 | 1.2.1 形式化规约与契约 (1) | [metadata](metadata/jfp_journal_b.json) / [bib](bib/jfp_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `JSEP` | Journal of Software: Evolution and Process | `B` | `期刊` | 120 | 软工 venue（完全属于软工） | 软件工程 | 4.1.x / 4.3.x / 6.1.x / 6.4.x | 软件工程 116 / 跨域/待判定 3 / 程序设计语言与形式化基础 1 | 属于软件工程 116 / 不属于软件工程 4 | 6.1.1 敏捷、精益与 DevOps 方法 (12) / 6.3.3 系统综述、mapping 与 meta-analysis (7) | [metadata](metadata/jsep_journal_b.json) / [bib](bib/jsep_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `JSS` | Journal of Systems and Software | `B` | `期刊` | 265 | 软工 venue（大部分属于软工） | 软件工程 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 软件工程 190 / 跨域/待判定 71 / 程序设计语言与形式化基础 3 / 系统软件 1 | 属于软件工程 189 / 不属于软件工程 75 / 跨域但软工主导 1 | 2.1.1 架构描述与恢复 (30) / 5.2.1 安全开发与漏洞治理 (13) | [metadata](metadata/jss_journal_b.json) / [bib](bib/jss_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `RE / 期刊 / B` | Requirements Engineering | `B` | `期刊` | 9 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x | 软件工程 9 | 属于软件工程 9 | 1.1.1 需求获取与发现 (3) / 7.1.3 AI 支持的需求、建模与文档 (1) | [metadata](metadata/re_journal_b.json) / [bib](bib/re_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `SCP` | Science of Computer Programming | `B` | `期刊` | 97 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x / 4.1.x | 程序设计语言与形式化基础 64 / 软件工程 29 / 系统软件 4 | 不属于软件工程 68 / 属于软件工程 18 / 跨域但软工主导 11 | 1.2.1 形式化规约与契约 (6) / 3.3.2 运行时验证与运行时监测 (3) | [metadata](metadata/scp_journal_b.json) / [bib](bib/scp_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `SoSyM` | Software and Systems Modeling | `B` | `期刊` | 91 | 软工 venue（大部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.1.x | 软件工程 62 / 跨域/待判定 28 / 程序设计语言与形式化基础 1 | 属于软件工程 61 / 不属于软件工程 29 / 跨域但软工主导 1 | 1.3.1 建模语言与元模型 (17) / 1.3.4 基于模型的生成、测试与运行时支持 (6) | [metadata](metadata/sosym_journal_b.json) / [bib](bib/sosym_journal_b.bib) | 计数一致；2025 比先验更偏非软工 |
+| `STVR` | Software Testing, Verification and Reliability | `B` | `期刊` | 17 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.3.x / 5.1.x | 软件工程 17 | 属于软件工程 17 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (7) / 3.3.3 assurance、认证与合规验证 (3) | [metadata](metadata/stvr_journal_b.json) / [bib](bib/stvr_journal_b.bib) | 计数一致；2025 与先验一致 |
+| `SPE` | Software: Practice and Experience | `B` | `期刊` | 109 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | 2.3.x / 4.3.x / 4.4.x / 6.3.x / 8.2.x | 跨域/待判定 61 / 系统软件 26 / 软件工程 17 / 程序设计语言与形式化基础 5 | 不属于软件工程 92 / 属于软件工程 15 / 跨域但软工主导 2 | 6.3.1 实验、案例研究与调查 (3) / 2.2.1 设计原则、模式与反模式 (2) | [metadata](metadata/spe_journal_b.json) / [bib](bib/spe_journal_b.bib) | 计数一致；2025 比先验更偏非软工 |
+| `PEPM` | ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation | `C` | `会议` | 7 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 6 / 软件工程 1 | 不属于软件工程 6 / 跨域但软工主导 1 | 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/pepm_conf_c.json) / [bib](bib/pepm_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `PASTE` | ACMSIGPLAN-SIGSOFT Workshop on Program Analysis for Software Tools and Engineering | `C` | `会议` | 0 | 混合 venue（部分属于软工） | 程序设计语言与形式化基础 | 3.2.x / 3.4.x / 4.2.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/paste_conf_c.json) / [bib](bib/paste_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `APLAS` | Asian Symposium on Programming Languages and Systems | `C` | `会议` | 18 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 15 / 软件工程 3 | 不属于软件工程 15 / 跨域但软工主导 2 / 属于软件工程 1 | 3.2.1 静态分析与抽象解释 (1) / 8.5.3 大模型原生与 agentic 软件系统 (1) | [metadata](metadata/aplas_conf_c.json) / [bib](bib/aplas_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `APSEC` | Asia-Pacific Software Engineering Conference | `C` | `会议` | 117 | 软工 venue（大部分属于软工） | 软件工程 | 1.x.x / 2.x.x / 3.x.x / 4.x.x / 6.x.x / 7.x.x | 软件工程 108 / 跨域/待判定 8 / 程序设计语言与形式化基础 1 | 属于软件工程 108 / 不属于软件工程 9 | 7.1.1 代码生成、补全与变换 (23) / 6.3.4 replication、benchmark 与开放科学 (21) | [metadata](metadata/apsec_conf_c.json) / [bib](bib/apsec_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `EASE` | International Conference on Evaluation and Assessment in Software Engineering | `C` | `会议` | 126 | 软工 venue（完全属于软工） | 软件工程 | 6.3.x / 6.4.x / 6.5.x / 4.1.x | 软件工程 122 / 跨域/待判定 4 | 属于软件工程 122 / 不属于软件工程 4 | 6.3.1 实验、案例研究与调查 (25) / 6.3.4 replication、benchmark 与开放科学 (20) | [metadata](metadata/ease_conf_c.json) / [bib](bib/ease_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `ICECCS` | International Conference on Engineering of Complex Computer Systems | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 软件工程与系统建模交叉 | 1.3.x / 2.1.x / 3.3.x / 8.3.x | 跨域/待判定 16 / 软件工程 6 | 不属于软件工程 16 / 属于软件工程 3 / 跨域但软工主导 3 | 1.3.1 建模语言与元模型 (1) / 3.3.1 面向软工问题的形式化验证 (1) | [metadata](metadata/iceccs_conf_c.json) / [bib](bib/iceccs_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `ICST` | IEEE International Conference on Software Testing, Verification and Validation | `C` | `会议` | 101 | 软工 venue（完全属于软工） | 软件工程 | 3.1.x / 3.2.x / 3.3.x / 3.4.x / 5.1.x / 5.2.x | 软件工程 101 | 属于软件工程 101 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (17) / 3.1.4 场景化测试 (13) | [metadata](metadata/icst_conf_c.json) / [bib](bib/icst_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `ISPASS` | IEEE International Symposium on Performance Analysis of Systems and Software | `C` | `会议` | 48 | 非软工 venue（大部分不属于软工） | 系统软件 | 5.3.x / 4.4.x / 8.2.x / 8.1.x | 系统软件 43 / 软件工程 4 / 程序设计语言与形式化基础 1 | 不属于软件工程 44 / 属于软件工程 3 / 跨域但软工主导 1 | 5.3.4 扩展性、吞吐与时延保证 (2) / 5.3.1 性能建模、基准与调优 (2) | [metadata](metadata/ispass_conf_c.json) / [bib](bib/ispass_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `SCAM` | IEEE International Working Conference on Source Code Analysis and Manipulation | `C` | `会议` | 0 | 软工 venue（大部分属于软工） | 软件工程 | 3.2.x / 4.2.x / 4.1.x / 3.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/scam_conf_c.json) / [bib](bib/scam_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `COMPSAC` | International Computer Software and Applications Conference | `C` | `会议` | 330 | 混合 venue（部分属于软工） | 软件工程与系统软件交叉 | 2.x.x / 3.x.x / 4.x.x / 5.x.x / 8.x.x | 跨域/待判定 231 / 软件工程 61 / 系统软件 32 / 程序设计语言与形式化基础 6 | 不属于软件工程 269 / 属于软件工程 47 / 跨域但软工主导 14 | 6.3.1 实验、案例研究与调查 (6) / 4.1.1 缺陷修复与维护性修正 (4) | [metadata](metadata/compsac_conf_c.json) / [bib](bib/compsac_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
+| `ICFEM` | International Conference on Formal Engineering Methods | `C` | `会议` | 21 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x / 8.1.x / 8.3.x | 程序设计语言与形式化基础 15 / 软件工程 6 | 不属于软件工程 15 / 跨域但软工主导 4 / 属于软件工程 2 | 1.1.1 需求获取与发现 (1) / 3.2.1 静态分析与抽象解释 (1) | [metadata](metadata/icfem_conf_c.json) / [bib](bib/icfem_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `SSE` | IEEE International Conference on Software Services Engineering | `C` | `会议` | 28 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.3 | 跨域/待判定 16 / 软件工程 10 / 程序设计语言与形式化基础 1 / 系统软件 1 | 不属于软件工程 18 / 属于软件工程 9 / 跨域但软工主导 1 | 2.1.4 云/服务/平台架构 (5) / 4.4.1 可观测性、日志与异常检测 (1) | [metadata](metadata/sse_conf_c.json) / [bib](bib/sse_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `ICSSP` | International Conference on Software and System Process | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 6.1.x / 6.2.x / 6.5.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/icssp_conf_c.json) / [bib](bib/icssp_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `SEKE` | International Conference on Software Engineering and Knowledge Engineering | `C` | `会议` | 63 | 混合 venue（部分属于软工） | 软件工程与知识工程交叉 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 跨域/待判定 36 / 软件工程 23 / 程序设计语言与形式化基础 3 / 系统软件 1 | 不属于软件工程 40 / 属于软件工程 18 / 跨域但软工主导 5 | 7.1.2 AI 支持的测试、分析与修复 (4) / 3.1.4 场景化测试 (2) | [metadata](metadata/seke_conf_c.json) / [bib](bib/seke_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `QRS` | International Conference on Software Quality, Reliability and Security | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 3.x.x / 5.1.x / 5.2.x / 4.4.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/qrs_conf_c.json) / [bib](bib/qrs_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `ICSR` | International Conference on Software Reuse | `C` | `会议` | 10 | 软工 venue（完全属于软工） | 软件工程 | 1.4.x / 2.3.x / 4.1.x / 4.3.x | 软件工程 10 | 属于软件工程 10 | 2.1.4 云/服务/平台架构 (2) / 4.3.3 流水线与基础设施自动化 (1) | [metadata](metadata/icsr_conf_c.json) / [bib](bib/icsr_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `ICWE` | International Conference on Web Engineering | `C` | `会议` | 39 | 软工 venue（大部分属于软工） | 软件工程 | 2.1.x / 2.2.x / 4.1.x / 8.2.1 | 跨域/待判定 30 / 软件工程 9 | 不属于软件工程 30 / 属于软件工程 8 / 跨域但软工主导 1 | 2.1.1 架构描述与恢复 (3) / 3.1.4 场景化测试 (2) | [metadata](metadata/icwe_conf_c.json) / [bib](bib/icwe_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
+| `SPIN` | International Symposium on Model Checking of Software | `C` | `会议` | 14 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 1.3.x / 3.3.x | 软件工程 8 / 程序设计语言与形式化基础 6 | 不属于软件工程 6 / 属于软件工程 5 / 跨域但软工主导 3 | 3.3.1 面向软工问题的形式化验证 (3) / 1.3.3 模型分析、仿真与验证 (3) | [metadata](metadata/spin_conf_c.json) / [bib](bib/spin_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `ATVA` | International Symposium on Automated Technology for Verification and Analysis | `C` | `会议` | 14 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.3.x | 程序设计语言与形式化基础 14 | 不属于软件工程 14 | 无纳入软工主路径 | [metadata](metadata/atva_conf_c.json) / [bib](bib/atva_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `LOPSTR` | International Symposium on Logic-based Program Synthesis and Transformation | `C` | `会议` | 13 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 13 | 不属于软件工程 13 | 无纳入软工主路径 | [metadata](metadata/lopstr_conf_c.json) / [bib](bib/lopstr_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `TASE` | Theoretical Aspects of Software Engineering Conference | `C` | `会议` | 22 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 1.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 14 / 软件工程 8 | 不属于软件工程 14 / 跨域但软工主导 6 / 属于软件工程 2 | 3.3.1 面向软工问题的形式化验证 (4) / 5.3.1 性能建模、基准与调优 (1) | [metadata](metadata/tase_conf_c.json) / [bib](bib/tase_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `MSR` | Mining Software Repositories | `C` | `会议` | 109 | 软工 venue（完全属于软工） | 软件工程 | 6.4.x / 6.3.x / 4.1.x / 6.5.x | 软件工程 109 | 属于软件工程 109 | 6.3.4 replication、benchmark 与开放科学 (48) / 4.1.1 缺陷修复与维护性修正 (8) | [metadata](metadata/msr_conf_c.json) / [bib](bib/msr_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `REFSQ` | Requirements Engineering: Foundation for Software Quality | `C` | `会议` | 29 | 软工 venue（完全属于软工） | 软件工程 | 1.1.x / 1.2.x / 1.4.x | 软件工程 29 | 属于软件工程 29 | 1.1.1 需求获取与发现 (20) / 6.3.1 实验、案例研究与调查 (2) | [metadata](metadata/refsq_conf_c.json) / [bib](bib/refsq_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `WICSA` | Working IEEE/IFIP Conference on Software Architecture | `C` | `会议` | 0 | 软工 venue（完全属于软工） | 软件工程 | 2.1.x / 2.2.x / 4.1.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/wicsa_conf_c.json) / [bib](bib/wicsa_conf_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `Internetware` | Asia-Pacific Symposium on Internetware | `C` | `会议` | 55 | 软工 venue（大部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.3.x / 4.4.x / 8.2.x | 软件工程 30 / 跨域/待判定 21 / 程序设计语言与形式化基础 2 / 系统软件 2 | 属于软件工程 30 / 不属于软件工程 25 | 2.1.4 云/服务/平台架构 (10) / 7.1.1 代码生成、补全与变换 (2) | [metadata](metadata/internetware_conf_c.json) / [bib](bib/internetware_conf_c.bib) | 计数一致；2025 比先验更偏非软工 |
+| `RV` | International Conference on Runtime Verification | `C` | `会议` | 18 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 3.3.2 / 4.4.4 / 5.1.x | 程序设计语言与形式化基础 12 / 软件工程 5 / 系统软件 1 | 不属于软件工程 13 / 跨域但软工主导 4 / 属于软件工程 1 | 3.3.2 运行时验证与运行时监测 (5) | [metadata](metadata/rv_conf_c.json) / [bib](bib/rv_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `MEMOCODE` | International Conference on Formal Methods and Models for Co-Design | `C` | `会议` | 16 | 非软工 venue（大部分不属于软工） | 形式化方法与系统软件交叉 | 1.3.x / 3.3.x / 8.1.x | 程序设计语言与形式化基础 16 | 不属于软件工程 16 | 无纳入软工主路径 | [metadata](metadata/memocode_conf_c.json) / [bib](bib/memocode_conf_c.bib) | 计数一致；2025 与先验一致 |
+| `CL` | Computer Languages, Systems and Structures | `C` | `期刊` | 0 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 3.2.x / 4.2.x | 无 2025 条目 | 无 2025 条目 | 无纳入软工主路径 | [metadata](metadata/cl_journal_c.json) / [bib](bib/cl_journal_c.bib) | 计数一致；2025 无条目，暂以先验为准 |
+| `IJSEKE` | International Journal of Software Engineering and Knowledge Engineering | `C` | `期刊` | 75 | 软工 venue（大部分属于软工） | 软件工程与知识工程交叉 | 1.x.x / 2.x.x / 3.x.x / 7.1.x | 软件工程 55 / 跨域/待判定 18 / 程序设计语言与形式化基础 1 / 系统软件 1 | 属于软件工程 55 / 不属于软件工程 20 | 7.1.1 代码生成、补全与变换 (10) / 6.3.4 replication、benchmark 与开放科学 (6) | [metadata](metadata/ijseke_journal_c.json) / [bib](bib/ijseke_journal_c.bib) | 计数一致；2025 与先验一致 |
+| `STTT` | International Journal of Software Tools for Technology Transfer | `C` | `期刊` | 41 | 混合 venue（部分属于软工） | 形式化方法与软件工程交叉 | 3.2.x / 3.3.x / 5.1.x | 程序设计语言与形式化基础 28 / 软件工程 12 / 系统软件 1 | 不属于软件工程 29 / 属于软件工程 6 / 跨域但软工主导 6 | 3.2.1 静态分析与抽象解释 (3) / 6.3.1 实验、案例研究与调查 (1) | [metadata](metadata/sttt_journal_c.json) / [bib](bib/sttt_journal_c.bib) | 计数一致；2025 与先验一致 |
+| `JLAMP` | Journal of Logical and Algebraic Methods in Programming | `C` | `期刊` | 32 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 31 / 软件工程 1 | 不属于软件工程 31 / 属于软件工程 1 | 3.3.2 运行时验证与运行时监测 (1) | [metadata](metadata/jlamp_journal_c.json) / [bib](bib/jlamp_journal_c.bib) | 计数一致；2025 与先验一致 |
+| `JWE` | Journal of Web Engineering | `C` | `期刊` | 54 | 软工 venue（大部分属于软工） | 软件工程 | 2.1.x / 2.2.x / 4.1.x / 8.2.1 | 软件工程 44 / 跨域/待判定 10 | 属于软件工程 44 / 不属于软件工程 10 | 3.1.4 场景化测试 (13) / 8.2.1 Web 与移动应用工程 (6) | [metadata](metadata/jwe_journal_c.json) / [bib](bib/jwe_journal_c.bib) | 计数一致；2025 与先验一致 |
+| `SOCA` | Service Oriented Computing and Applications | `C` | `期刊` | 24 | 混合 venue（部分属于软工） | 软件工程与服务系统工程交叉 | 2.1.4 / 4.4.x / 8.2.3 | 跨域/待判定 24 | 不属于软件工程 24 | 无纳入软工主路径 | [metadata](metadata/soca_journal_c.json) / [bib](bib/soca_journal_c.bib) | 计数一致；2025 比先验更偏非软工 |
+| `SQJ` | Software Quality Journal | `C` | `期刊` | 35 | 软工 venue（完全属于软工） | 软件工程 | 5.x.x / 3.x.x / 6.3.x | 软件工程 29 / 跨域/待判定 6 | 属于软件工程 29 / 不属于软件工程 6 | 3.4.2 缺陷定位、补丁生成与程序修复 (3) / 3.1.1 测试生成与增强 (3) | [metadata](metadata/sqj_journal_c.json) / [bib](bib/sqj_journal_c.bib) | 计数一致；2025 与先验一致 |
+| `TPLP` | Theory and Practice of Logic Programming | `C` | `期刊` | 44 | 非软工 venue（完全不属于软工） | 程序设计语言与形式化基础 | - | 程序设计语言与形式化基础 38 / 系统软件 4 / 软件工程 2 | 不属于软件工程 42 / 属于软件工程 2 | 3.2.1 静态分析与抽象解释 (1) / 3.1.1 测试生成与增强 (1) | [metadata](metadata/tplp_journal_c.json) / [bib](bib/tplp_journal_c.bib) | 计数一致；2025 与先验一致 |
+| `PACM PL` | Proceedings of the ACM on Programming Languages | `C` | `期刊` | 420 | 非软工 venue（大部分不属于软工） | 程序设计语言与形式化基础 | 1.2.x / 3.2.x / 3.3.x | 程序设计语言与形式化基础 340 / 系统软件 45 / 软件工程 35 | 不属于软件工程 385 / 属于软件工程 23 / 跨域但软工主导 12 | 3.1.3 模糊、搜索式、变异与性质驱动测试 (12) / 3.2.1 静态分析与抽象解释 (5) | [metadata](metadata/pacm_pl_journal_c.json) / [bib](bib/pacm_pl_journal_c.bib) | 计数一致；2025 与先验一致 |
 
 ## 4. Venue Sections
 
@@ -134,8 +130,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`88`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：程序分析 / 软件验证 / repair 邻近但需严格筛选
 - 数据文件：[metadata](metadata/pldi_conf_a.json) / [bib](bib/pldi_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -260,8 +254,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`79`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：语义 / 类型 / 逻辑证明主场，低概率直接贴题
 - 数据文件：[metadata](metadata/popl_conf_a.json) / [bib](bib/popl_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -377,8 +369,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`132`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：broad SE + LLM/需求建模/测试验证/修复主线
 - 数据文件：[metadata](metadata/fse_conf_a.json) / [bib](bib/fse_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -547,8 +537,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`66`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：操作系统机制主场，低概率直接贴题
 - 数据文件：[metadata](metadata/sosp_conf_a.json) / [bib](bib/sosp_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -651,8 +639,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`216`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：软件结构 / 程序分析 / 重构与验证偶发贴题
 - 数据文件：[metadata](metadata/oopsla_conf_a.json) / [bib](bib/oopsla_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -905,8 +891,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`389`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：自动化软件工程 / LLM for SE / 建模-验证-修复主场
 - 数据文件：[metadata](metadata/ase_conf_a.json) / [bib](bib/ase_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -1332,8 +1316,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`245`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：broad SE 主会，需求-建模-验证-修复全链可见
 - 数据文件：[metadata](metadata/icse_conf_a.json) / [bib](bib/icse_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -1615,8 +1597,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`110`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：测试分析 / 形式化验证 / 缺陷定位与修复主场
 - 数据文件：[metadata](metadata/issta_conf_a.json) / [bib](bib/issta_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -1763,8 +1743,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`53`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：系统实现 / 平台机制为主，仅极少验证个案
 - 数据文件：[metadata](metadata/osdi_conf_a.json) / [bib](bib/osdi_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -1854,8 +1832,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`67`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：形式化方法 / timed automata / 工业与控制系统验证邻近
 - 数据文件：[metadata](metadata/fm_conf_a.json) / [bib](bib/fm_conf_a.bib)
 
 ### 4.2 关键信息页面
@@ -1959,8 +1935,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`20`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：语言 / 语义 / 编译与理论为主
 - 数据文件：[metadata](metadata/toplas_journal_a.json) / [bib](bib/toplas_journal_a.bib)
 
 ### 4.2 关键信息页面
@@ -2015,8 +1989,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`242`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：软件工程方法 / 需求建模 / 测试验证 / AI for SE
 - 数据文件：[metadata](metadata/tosem_journal_a.json) / [bib](bib/tosem_journal_a.bib)
 
 ### 4.2 关键信息页面
@@ -2294,8 +2266,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`228`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：broad SE 主刊 / 建模验证修复与 LLM 子题持续出现
 - 数据文件：[metadata](metadata/tse_journal_a.json) / [bib](bib/tse_journal_a.bib)
 
 ### 4.2 关键信息页面
@@ -2559,8 +2529,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`312`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：服务工作流 / 平台 orchestration 邻近，可补性质工程
 - 数据文件：[metadata](metadata/tsc_journal_a.json) / [bib](bib/tsc_journal_a.bib)
 
 ### 4.2 关键信息页面
@@ -2908,8 +2876,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`43`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：OO 程序结构 / 分析与重构邻近
 - 数据文件：[metadata](metadata/ecoop_conf_b.json) / [bib](bib/ecoop_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -2989,8 +2955,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：TACAS/FASE 等 formal methods 线对验证与工具很有用
 - 数据文件：[metadata](metadata/etaps_conf_b.json) / [bib](bib/etaps_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3022,8 +2986,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`59`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：程序理解 / 缺陷分析 / 修复解释与人因辅助
 - 数据文件：[metadata](metadata/icpc_conf_b.json) / [bib](bib/icpc_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3119,8 +3081,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`71`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：需求工程 / 规约抽取 / 性质生成 / 需求到模型
 - 数据文件：[metadata](metadata/re_conf_b.json) / [bib](bib/re_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3228,8 +3188,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`35`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：信息系统与过程/模型工程，适合补需求-建模-规约链
 - 数据文件：[metadata](metadata/caise_conf_b.json) / [bib](bib/caise_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3301,8 +3259,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`36`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：函数式语言理论主场
 - 数据文件：[metadata](metadata/icfp_conf_b.json) / [bib](bib/icfp_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3374,8 +3330,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`20`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：嵌入式 / 实时软件邻近，可补控制系统实现背景
 - 数据文件：[metadata](metadata/lctes_conf_b.json) / [bib](bib/lctes_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3431,8 +3385,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`27`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：模型驱动 / 状态机-SysML / 形式化建模主场
 - 数据文件：[metadata](metadata/models_conf_b.json) / [bib](bib/models_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3496,8 +3448,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`44`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：约束求解主场，仅少量可借工具思想
 - 数据文件：[metadata](metadata/cp_conf_b.json) / [bib](bib/cp_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3577,8 +3527,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`55`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：服务组合 / 流程 / 性质与治理偶有贴题
 - 数据文件：[metadata](metadata/icsoc_conf_b.json) / [bib](bib/icsoc_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3670,8 +3618,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：代码分析 / 逆向 / 演化与 reengineering
 - 数据文件：[metadata](metadata/saner_conf_b.json) / [bib](bib/saner_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3702,8 +3648,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`102`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：维护演化 / 修复 / 回归验证 / 工程闭环邻近
 - 数据文件：[metadata](metadata/icsme_conf_b.json) / [bib](bib/icsme_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3842,8 +3786,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`21`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：程序验证 / 模型检查 / 抽象解释直接支撑验证框架
 - 数据文件：[metadata](metadata/vmcai_conf_b.json) / [bib](bib/vmcai_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -3901,8 +3843,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`128`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：Web services / orchestration / 性质验证偶有贴题
 - 数据文件：[metadata](metadata/icws_conf_b.json) / [bib](bib/icws_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -4067,8 +4007,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`36`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：中间件与平台机制为主
 - 数据文件：[metadata](metadata/middleware_conf_b.json) / [bib](bib/middleware_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -4141,8 +4079,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`18`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：静态分析与抽象解释对验证/修复有方法借鉴
 - 数据文件：[metadata](metadata/sas_conf_b.json) / [bib](bib/sas_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -4197,8 +4133,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`58`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：实证方法 / 评测设计 / LLM-SE 实验口径重要
 - 数据文件：[metadata](metadata/esem_conf_b.json) / [bib](bib/esem_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -4293,8 +4227,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`47`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：可靠性 / assurance / 安全关键验证与缺陷检测很近
 - 数据文件：[metadata](metadata/issre_conf_b.json) / [bib](bib/issre_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -4378,8 +4310,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`29`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：系统热点想法为主
 - 数据文件：[metadata](metadata/hotos_conf_b.json) / [bib](bib/hotos_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -4444,8 +4374,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`17`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：编译构造主场
 - 数据文件：[metadata](metadata/cc_conf_b.json) / [bib](bib/cc_conf_b.bib)
 
 ### 4.2 关键信息页面
@@ -4499,8 +4427,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`74`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：自动化软件工程 / LLM for SE / 建模-验证-修复主场
 - 数据文件：[metadata](metadata/ase_journal_b.json) / [bib](bib/ase_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -4610,8 +4536,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`178`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：实证研究 / 数据集 / benchmark / 人因与评测设计
 - 数据文件：[metadata](metadata/ese_journal_b.json) / [bib](bib/ese_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -4825,8 +4749,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`35`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：broad SE 期刊，可筛少量建模/验证论文
 - 数据文件：[metadata](metadata/iets_journal_b.json) / [bib](bib/iets_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -4897,8 +4819,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`243`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：broad SE / 建模测试 / AI4SE 论文较常见
 - 数据文件：[metadata](metadata/ist_journal_b.json) / [bib](bib/ist_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -5177,8 +5097,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`25`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：函数式编程理论主场
 - 数据文件：[metadata](metadata/jfp_journal_b.json) / [bib](bib/jfp_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -5239,8 +5157,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`120`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：演化 / 过程 / 迭代闭环与工程实践邻近
 - 数据文件：[metadata](metadata/jsep_journal_b.json) / [bib](bib/jsep_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -5396,8 +5312,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`265`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：系统与软件工程综合刊，常见建模/验证/CPS 个案
 - 数据文件：[metadata](metadata/jss_journal_b.json) / [bib](bib/jss_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -5698,8 +5612,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`9`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：需求工程 / 规约抽取 / 性质生成 / 需求到模型
 - 数据文件：[metadata](metadata/re_journal_b.json) / [bib](bib/re_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -5744,8 +5656,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`97`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：软件程序与形式化/验证/程序分析交叉，贴题概率中高
 - 数据文件：[metadata](metadata/scp_journal_b.json) / [bib](bib/scp_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -5878,8 +5788,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`91`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：软件与系统建模 / DSL / 状态机与模型分析主场
 - 数据文件：[metadata](metadata/sosym_journal_b.json) / [bib](bib/sosym_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -6006,8 +5914,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`17`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：测试 / 验证 / 可靠性与 formal properties 非常贴题
 - 数据文件：[metadata](metadata/stvr_journal_b.json) / [bib](bib/stvr_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -6060,8 +5966,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`109`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：工程实践 / 系统实现为主，偶有 runtime/verification
 - 数据文件：[metadata](metadata/spe_journal_b.json) / [bib](bib/spe_journal_b.bib)
 
 ### 4.2 关键信息页面
@@ -6206,8 +6110,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`7`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：部分求值与程序变换主场
 - 数据文件：[metadata](metadata/pepm_conf_c.json) / [bib](bib/pepm_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6251,8 +6153,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：程序分析与软件工具工程，对验证/修复较近
 - 数据文件：[metadata](metadata/paste_conf_c.json) / [bib](bib/paste_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6283,8 +6183,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`18`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：程序设计语言理论主场
 - 数据文件：[metadata](metadata/aplas_conf_c.json) / [bib](bib/aplas_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6339,8 +6237,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`117`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：broad SE / 亚洲社区，LLM-SE/测试/建模可见
 - 数据文件：[metadata](metadata/apsec_conf_c.json) / [bib](bib/apsec_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6494,8 +6390,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`126`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：评测与实验设计 / benchmark / replication 有用
 - 数据文件：[metadata](metadata/ease_conf_c.json) / [bib](bib/ease_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6658,8 +6552,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`22`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：复杂系统建模与验证 / safety-critical / CPS 邻近
 - 数据文件：[metadata](metadata/iceccs_conf_c.json) / [bib](bib/iceccs_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6718,8 +6610,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`101`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：测试 / 形式化验证 / 缺陷检测与修复直接相关
 - 数据文件：[metadata](metadata/icst_conf_c.json) / [bib](bib/icst_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6857,8 +6747,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`48`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：性能分析主场
 - 数据文件：[metadata](metadata/ispass_conf_c.json) / [bib](bib/ispass_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6943,8 +6831,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：源码分析与变换 / 缺陷修复 / 程序理解邻近
 - 数据文件：[metadata](metadata/scam_conf_c.json) / [bib](bib/scam_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -6975,8 +6861,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`330`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：覆盖过宽，需按建模/验证/AI4SE 子题筛选
 - 数据文件：[metadata](metadata/compsac_conf_c.json) / [bib](bib/compsac_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7343,8 +7227,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`21`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：formal engineering / 规约建模 / 验证与证明
 - 数据文件：[metadata](metadata/icfem_conf_c.json) / [bib](bib/icfem_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7401,8 +7283,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`28`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：软件服务工程混合
 - 数据文件：[metadata](metadata/sse_conf_c.json) / [bib](bib/sse_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7467,8 +7347,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：软件过程 / 团队与流程，对主问题较间接
 - 数据文件：[metadata](metadata/icssp_conf_c.json) / [bib](bib/icssp_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7499,8 +7377,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`63`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：SE+知识工程混合，AI/建模偶有贴题
 - 数据文件：[metadata](metadata/seke_conf_c.json) / [bib](bib/seke_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7599,8 +7475,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：质量 / 可靠性 / 安全 / assurance 与验证链很近
 - 数据文件：[metadata](metadata/qrs_conf_c.json) / [bib](bib/qrs_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7631,8 +7505,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`10`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：复用 / 组件资产，可补模型资产与可复用工件
 - 数据文件：[metadata](metadata/icsr_conf_c.json) / [bib](bib/icsr_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7679,8 +7551,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`39`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：Web 工程主场
 - 数据文件：[metadata](metadata/icwe_conf_c.json) / [bib](bib/icwe_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7755,8 +7625,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`14`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：软件模型检查 / state-based verification / UPPAAL 邻近
 - 数据文件：[metadata](metadata/spin_conf_c.json) / [bib](bib/spin_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7807,8 +7675,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`14`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：自动验证与分析 / 模型检查工具链直接邻近
 - 数据文件：[metadata](metadata/atva_conf_c.json) / [bib](bib/atva_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7858,8 +7724,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`13`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：逻辑程序综合与变换主场
 - 数据文件：[metadata](metadata/lopstr_conf_c.json) / [bib](bib/lopstr_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7907,8 +7771,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`22`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：软件工程名下的 formal verification / assurance 邻近
 - 数据文件：[metadata](metadata/tase_conf_c.json) / [bib](bib/tase_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -7966,8 +7828,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`109`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：仓库挖掘 / benchmark / LLM-SE 证据与数据建设有用
 - 数据文件：[metadata](metadata/msr_conf_c.json) / [bib](bib/msr_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -8113,8 +7973,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`29`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：需求质量 / 需求规约 / 需求到性质非常贴题
 - 数据文件：[metadata](metadata/refsq_conf_c.json) / [bib](bib/refsq_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -8180,8 +8038,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：软件架构 / 设计决策 / 模型结构与演化有用
 - 数据文件：[metadata](metadata/wicsa_conf_c.json) / [bib](bib/wicsa_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -8212,8 +8068,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`55`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：平台 / 网络化软件 / 运行治理邻近
 - 数据文件：[metadata](metadata/internetware_conf_c.json) / [bib](bib/internetware_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -8305,8 +8159,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`18`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：运行时验证 / 监测 / 时序性质 / 工具链直接邻近
 - 数据文件：[metadata](metadata/rv_conf_c.json) / [bib](bib/rv_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -8361,8 +8213,6 @@
 - 类型：`会议`
 - 年份：`2025`
 - 条目数：`16`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：协同设计 / 嵌入式与形式化模型，控制/CPS 邻近
 - 数据文件：[metadata](metadata/memocode_conf_c.json) / [bib](bib/memocode_conf_c.bib)
 
 ### 4.2 关键信息页面
@@ -8414,8 +8264,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`0`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：语言/结构与偶发程序分析，可补方法链
 - 数据文件：[metadata](metadata/cl_journal_c.json) / [bib](bib/cl_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -8446,8 +8294,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`75`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：SE+知识工程混合，AI/建模可补链但不稳定
 - 数据文件：[metadata](metadata/ijseke_journal_c.json) / [bib](bib/ijseke_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -8558,8 +8404,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`41`
-- 与本博士研究相关性（氛围）：`A 🔥（强相关）`
-- 贴题点：验证工具 / formal methods tool transfer / UPPAAL 邻近
 - 数据文件：[metadata](metadata/sttt_journal_c.json) / [bib](bib/sttt_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -8636,8 +8480,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`32`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：逻辑与代数程序方法理论主场
 - 数据文件：[metadata](metadata/jlamp_journal_c.json) / [bib](bib/jlamp_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -8705,8 +8547,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`54`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：Web 工程主刊，与主问题距离较远
 - 数据文件：[metadata](metadata/jwe_journal_c.json) / [bib](bib/jwe_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -8796,8 +8636,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`24`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：服务计算与应用为主
 - 数据文件：[metadata](metadata/soca_journal_c.json) / [bib](bib/soca_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -8856,8 +8694,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`35`
-- 与本博士研究相关性（氛围）：`B 🟢（较相关）`
-- 贴题点：质量 / 度量 / assurance 视角可支撑验证评价
 - 数据文件：[metadata](metadata/sqj_journal_c.json) / [bib](bib/sqj_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -8928,8 +8764,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`44`
-- 与本博士研究相关性（氛围）：`D ⚪（低相关）`
-- 贴题点：逻辑程序设计理论与实践主场
 - 数据文件：[metadata](metadata/tplp_journal_c.json) / [bib](bib/tplp_journal_c.bib)
 
 ### 4.2 关键信息页面
@@ -9009,8 +8843,6 @@
 - 类型：`期刊`
 - 年份：`2025`
 - 条目数：`420`
-- 与本博士研究相关性（氛围）：`C 🟡（可补链）`
-- 贴题点：PL 主刊，程序验证/分析个案可补链
 - 数据文件：[metadata](metadata/pacm_pl_journal_c.json) / [bib](bib/pacm_pl_journal_c.bib)
 
 ### 4.2 关键信息页面
