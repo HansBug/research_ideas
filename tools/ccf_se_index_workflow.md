@@ -13,7 +13,8 @@
 
 1. 年度总 README
 2. 每个 venue 的 `metadata` 数据文件
-3. 逐 venue 计数复核结果
+3. 每个 venue 的 `venues/*.md` 论文名录页
+4. 逐 venue 计数复核结果
 
 当前默认服务于：
 
@@ -46,7 +47,8 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 1. `README.md`
 2. `verification.json`
 3. `metadata/*.json`
-4. 仓库根目录下的临时缓存 `.cache/ccf_se_index/<year>/`
+4. `venues/*.md`
+5. 仓库根目录下的临时缓存 `.cache/ccf_se_index/<year>/`
 
 其中：
 
@@ -56,7 +58,9 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
    - 记录逐 venue 的 `expected_total / actual_total`。
 3. `metadata/*.json`
    - 保存每篇论文的结构化元数据、摘要、方向标签、官方页，以及内嵌 `BibTeX`。
-4. `.cache/ccf_se_index/<year>/`
+4. `venues/*.md`
+   - 保存单个 venue 的逐篇论文名录。
+5. `.cache/ccf_se_index/<year>/`
    - 保存网络请求缓存，用于重复运行时加速和减小远端压力；不属于年度索引正式产物。
 6. 后续分类补录字段
    - 例如 `macro_area`、`se_inclusion_decision`、`se_primary_path`、`se_secondary_paths`、`se_decision_basis`、`classification_source`、`manual_review_status`。
@@ -84,7 +88,7 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 5. 重新运行分类器，让年度页按已写回的终判结果重渲染；如果该年已经实现全量人工覆盖，则分类器会直接保留这些终判结果。
 6. 若某类论文没有自然 `x.x.x` 落点，应先扩 `frontier_index/SOFTWARE_ENGINEERING_FIELD_TREE.md`，再更新分类器规则并重跑，不要把论文硬塞进旧路径。
 7. 若某些 venue 仍有边界或来源异常，再回到构建器中的特殊配置补规则。
-8. 最后再人工抽查关键 venue 的 `README.md`、`metadata`、`classification_source` 与 `manual_review_status` 是否一致。
+8. 最后再人工抽查关键 venue 的 `README.md`、`venues/*.md`、`metadata`、`classification_source` 与 `manual_review_status` 是否一致。
 
 ## 5. 当前脚本的来源策略
 
@@ -102,7 +106,7 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 当前默认分工如下：
 
 1. 构建器负责生成**基础元数据层**。
-2. 分类器负责启发式 `soft/non-soft` 初判、`x.x.x` 主路径建议、`X1/D1-D4` 依据和人工复核覆盖整合。
+2. 分类器负责启发式 `soft/non-soft` 初判、`x.x.x` 主路径建议、`X1/D1-D4` 依据和人工复核覆盖整合，并重写年度总页与 venue 页。
 
 ## 6. 维护约束
 
@@ -111,3 +115,5 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 3. 若官方主页或 `CFP` 无法可靠自动获取，允许在生成结果中保留 `待补`，但主论文名录、`doi`、官方落地页、`BibTeX` 和计数复核必须优先保证。
 4. 若 `CCF_SE_A_B_C.md` 扩展了列数或说明文字，构建器仍必须能稳定解析 venue 名录，不应把文档格式变化变成索引中断点。
 5. 逐篇“最终属于什么类型”这件事，默认以已经写回 `metadata/*.json` 的人工终判字段为准；脚本规则只能降低人工成本，不能替代终判。
+6. venue 级说明统一使用 [../frontier_index/CCF_SE_A_B_C.md](../frontier_index/CCF_SE_A_B_C.md) 中的 `软工归属级别` 与 `氛围 A 🔥 / B 🟢 / C 🟡`；若要表达跟踪优先级，直接用 `氛围`，同档再看 `软工归属级别`。
+7. 逐篇论文名录继续沿用 `initial_screening / pdf_followup`，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 排序，不再另造 `A/B/C/D` 第二套等级。

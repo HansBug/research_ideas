@@ -8,7 +8,8 @@ the current SE field tree, then writes back:
 
 1. per-paper macro area and SE inclusion fields
 2. x.x.x primary path and label for SE papers
-3. a re-rendered yearly README with the new classification columns
+3. a re-rendered yearly README and per-venue pages aligned to the
+   normalized venue priors
 """
 
 from __future__ import annotations
@@ -22,7 +23,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from tools.ccf_se_index_builder import CCF_MD, ROOT, Venue
+from tools.ccf_se_index_builder import (
+    CCF_MD,
+    ROOT,
+    SCREENING_PRIORITY_ORDER,
+    SCREENING_TO_PDF_HINT,
+    Venue,
+    format_screening_summary,
+    screening_priority_for_paper,
+    sort_papers_by_screening,
+)
 
 
 TREE_MD = ROOT / "frontier_index" / "SOFTWARE_ENGINEERING_FIELD_TREE.md"
@@ -52,6 +62,20 @@ SE_DECISION_DISPLAY_ORDER = (
     "不属于软件工程",
     "待判定",
     "待补",
+)
+
+
+SE_LEVEL_DISPLAY_ORDER = (
+    "完全属于软工",
+    "大部分属于软工",
+    "部分属于软工",
+)
+
+
+ATMOSPHERE_DISPLAY_ORDER = (
+    "A 🔥",
+    "B 🟢",
+    "C 🟡",
 )
 
 
@@ -1383,6 +1407,8 @@ class VenuePrior:
     subject: str
     se_level: str
     typical_paths: Tuple[str, ...]
+    atmosphere: str
+    relation: str
 
 
 @dataclass(frozen=True)
@@ -1519,12 +1545,14 @@ def parse_venue_priors() -> Dict[Tuple[str, str, str], VenuePrior]:
         if not line.startswith("| `") or rank == "" or kind == "":
             continue
         parts = [part.strip() for part in line.strip().strip("|").split("|")]
-        if len(parts) < 7:
+        if len(parts) < 9:
             continue
         abbr = parts[0].strip("`")
         subject = parts[2]
         se_level = parts[3].strip("`")
         typical_paths = parse_typical_paths(parts[5])
+        atmosphere = parts[6].strip("`")
+        relation = parts[7]
         priors[(abbr, rank, kind)] = VenuePrior(
             abbr=abbr,
             rank=rank,
@@ -1532,6 +1560,8 @@ def parse_venue_priors() -> Dict[Tuple[str, str, str], VenuePrior]:
             subject=subject,
             se_level=se_level,
             typical_paths=typical_paths,
+            atmosphere=atmosphere,
+            relation=relation,
         )
     return priors
 
@@ -1907,6 +1937,13 @@ def render_year_readme(
     venue_count = len(payloads)
     total_papers = verification["total_actual"]
     abbr_counts = Counter(payload["venue"].abbr for payload in payloads)
+    se_level_counts = Counter()
+    atmosphere_counts = Counter()
+    for payload in payloads:
+        venue = payload["venue"]
+        prior = priors[(venue.abbr, venue.rank, venue.kind)]
+        se_level_counts[prior.se_level] += 1
+        atmosphere_counts[prior.atmosphere] += 1
 
     rank_kind_counts: Counter[Tuple[str, str]] = Counter()
     for payload in payloads:
@@ -1923,6 +1960,9 @@ def render_year_readme(
     )
     source_counts = Counter(
         paper.get("classification_source", "启发式初判") for payload in payloads for paper in payload["papers"]
+    )
+    screening_counts = Counter(
+        screening_priority_for_paper(paper) for payload in payloads for paper in payload["papers"]
     )
     path_counts = Counter(
         f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
@@ -1942,9 +1982,9 @@ def render_year_readme(
     lines.append(f"- 当前已入表论文数量：`{total_papers}`")
     lines.append(f"- 更新时间：`{ts}`")
     if full_manual_coverage:
-        lines.append("- 说明：本年度条目已实现全量人工复核；最终裁决已直接固化在 `metadata/*.json` 中，本页按这些嵌入字段统计与渲染。")
+        lines.append("- 说明：本年度条目已实现全量人工复核；最终裁决已直接固化在 `metadata/*.json` 中。本页只保留年度汇总与 venue 导航，逐篇论文名录拆分到 `venues/*.md`。")
     else:
-        lines.append("- 说明：本页先由 `tools/ccf_se_index_builder.py` 生成基础元数据，再由 `tools/ccf_se_classifier.py` 对未终判条目做启发式初判；若 `metadata/*.json` 中已写回人工终判，则直接保留该终判。")
+        lines.append("- 说明：本页先由 `tools/ccf_se_index_builder.py` 生成基础元数据，再由 `tools/ccf_se_classifier.py` 对未终判条目做启发式初判；若 `metadata/*.json` 中已写回人工终判，则直接保留该终判。逐篇论文名录拆分到 `venues/*.md`。")
     lines.append("")
     lines.append("## 2. 年度汇总统计")
     lines.append("")
@@ -1953,6 +1993,9 @@ def render_year_readme(
             lines.append(f"- {rank} 类{kind}：`{rank_kind_counts.get((rank, kind), 0)}`")
     lines.append(f"- 期望总条目数：`{verification['total_expected']}`")
     lines.append(f"- 实际总条目数：`{verification['total_actual']}`")
+    lines.append("- `软工归属级别` 分布：" + format_counter_summary(se_level_counts, order=SE_LEVEL_DISPLAY_ORDER, empty_text="无"))
+    lines.append("- `氛围` 分布：" + format_counter_summary(atmosphere_counts, order=ATMOSPHERE_DISPLAY_ORDER, empty_text="无"))
+    lines.append("- 初筛分布：" + format_screening_summary(screening_counts, empty_text="无条目"))
     lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts.most_common()))
     lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
     lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts.most_common()))
@@ -1960,25 +2003,34 @@ def render_year_readme(
     if path_counts:
         lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(12)))
     lines.append("")
-    lines.append("## 3. 覆盖 venue 列表")
+    lines.append("## 3. 标准口径")
     lines.append("")
-    lines.append("- 口径：当前年度页只覆盖 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 中保留的 venue；`venue 判定` 按其 `软工归属级别` 折叠而来：`完全属于软工 / 大部分属于软工 -> 软工 venue`，`部分属于软工 -> 混合 venue`。")
-    lines.append("- `主体归属` 与 `典型软工路径（先验）` 来自 venue 级先验；`2025 一级总判定`、`2025 软工纳入` 与 `2025 高频软工主路径` 直接按本年度逐篇人工复核结果统计。")
-    lines.append("- `典型软工路径（先验）` 与 `2025 高频软工主路径` 使用 [SOFTWARE_ENGINEERING_FIELD_TREE.md](../../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的方向树口径。")
+    lines.append("- `软工归属级别` 统一使用 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 中的 `完全属于软工 / 大部分属于软工 / 部分属于软工`。")
+    lines.append("- `氛围` 统一使用 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 中的 `A 🔥 / B 🟢 / C 🟡`。")
+    lines.append("- 若需要表达 venue 的持续跟踪优先级，直接复用 `氛围`；同档再参考 `软工归属级别`，不要再另造 `A/B/C/D` 或其他四级制。")
+    lines.append("- 逐篇论文层面不再额外发明 `A/B/C/D` 第二套等级；论文名录只按现有 `初筛` 优先级 `🟢 -> 🟡 -> ⏳ -> ⚪` 排序。")
     lines.append("")
-    lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | venue 判定 | 主体归属 | 典型软工路径（先验） | 2025 一级总判定 | 2025 软工纳入 | 2025 高频软工主路径 | 数据文件 | 备注 |")
-    lines.append("|---|---|---|---|---:|---|---|---|---|---|---|---|---|")
+    lines.append("## 4. 覆盖 venue 列表")
+    lines.append("")
+    lines.append("- 口径：当前年度页只覆盖 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 中保留的 venue。")
+    lines.append(f"- `主体归属`、`软工归属级别`、`氛围` 与 `典型软工路径（先验）` 来自 venue 级先验；`{year}` 逐篇统计直接按本年度 `metadata/*.json` 中的终判字段汇总。")
+    lines.append(f"- `典型软工路径（先验）` 与 `{year} 高频软工主路径` 使用 [SOFTWARE_ENGINEERING_FIELD_TREE.md](../../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的方向树口径。")
+    lines.append("")
+    lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | 软工归属级别 | 氛围 | 主体归属 | 典型软工路径（先验） | 当年一级总判定 | 当年软工纳入 | 初筛分布 | 当年高频软工主路径 | 论文名录 | 数据文件 | 备注 |")
+    lines.append("|---|---|---|---|---:|---|---|---|---|---|---|---|---|---|---|---|")
     for payload in payloads:
         venue = payload["venue"]
         files = payload["files"]
         display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
         prior = priors[(venue.abbr, venue.rank, venue.kind)]
-        venue_bucket, venue_bucket_score = summarize_prior_bucket(prior.se_level)
-        venue_judgement = f"{venue_bucket}（{prior.se_level}）"
+        _, venue_bucket_score = summarize_prior_bucket(prior.se_level)
 
         venue_macro_counts = Counter(paper.get("macro_area", "待补") for paper in payload["papers"])
         venue_se_counts = Counter(
             paper.get("se_inclusion_decision", "待补") for paper in payload["papers"]
+        )
+        venue_screening_counts = Counter(
+            screening_priority_for_paper(paper) for paper in payload["papers"]
         )
         venue_path_counts = Counter(
             f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
@@ -2002,30 +2054,36 @@ def render_year_readme(
             empty_text="无纳入软工主路径",
         )
         note = compare_prior_and_data_side(
+            year=year,
             expected_total=payload["expected_total"],
             actual_total=payload["actual_total"],
             prior_score=venue_bucket_score,
             se_counts=venue_se_counts,
         )
         lines.append(
-            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {judgement} | {subject} | {paths} | {macro} | {se} | {path_summary} | [metadata]({meta}) | {note} |".format(
+            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {se_level} | {atmosphere} | {subject} | {paths} | {macro} | {se} | {screening} | {path_summary} | [venue]({venue_page}) | [metadata]({meta}) | {note} |".format(
                 abbr=md_escape(display_abbr),
                 full=md_escape(venue.full_name),
                 rank=venue.rank,
                 kind=venue.kind,
                 count=payload["actual_total"],
-                judgement=md_escape(venue_judgement),
+                se_level=md_escape(prior.se_level),
+                atmosphere=md_escape(prior.atmosphere),
                 subject=md_escape(prior.subject),
                 paths=md_escape(" / ".join(prior.typical_paths) if prior.typical_paths else "-"),
                 macro=md_escape(macro_summary),
                 se=md_escape(se_summary),
+                screening=md_escape(
+                    format_screening_summary(venue_screening_counts, empty_text=f"无 {year} 条目")
+                ),
                 path_summary=md_escape(path_summary),
+                venue_page=md_escape(files["venue_page"]),
                 meta=md_escape(files["metadata"]),
                 note=md_escape(note),
             )
         )
     lines.append("")
-    lines.append("## 4. Venue Sections")
+    lines.append("## 5. Venue 导航")
     lines.append("")
 
     for payload in payloads:
@@ -2033,26 +2091,33 @@ def render_year_readme(
         key_pages = payload["key_pages"]
         files = payload["files"]
         display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
+        prior = priors[(venue.abbr, venue.rank, venue.kind)]
+        screening_counts_local = Counter(
+            screening_priority_for_paper(paper) for paper in payload["papers"]
+        )
         lines.append("---")
         lines.append("")
-        lines.append(f"## `{display_abbr}`")
+        lines.append(f"### `{display_abbr}`")
         lines.append("")
-        lines.append("### 4.1 基本信息")
-        lines.append("")
+        lines.append("- 基本信息：")
         lines.append(f"- 全称：{venue.full_name}")
         lines.append(f"- `CCF` 等级：`{venue.rank}`")
         lines.append(f"- 类型：`{venue.kind}`")
         lines.append(f"- 年份：`{year}`")
         lines.append(f"- 条目数：`{payload['actual_total']}`")
+        lines.append(f"- `软工归属级别`：`{prior.se_level}`")
+        lines.append(f"- `氛围`：`{prior.atmosphere}`")
+        lines.append(f"- 与本课题的关系：{prior.relation}")
+        lines.append(f"- 初筛分布：{format_screening_summary(screening_counts_local, empty_text=f'无 {year} 条目')}")
+        lines.append(f"- 论文名录页：[venues/{Path(files['venue_page']).name}](./{files['venue_page']})")
         lines.append(f"- 数据文件：[metadata]({files['metadata']})")
         lines.append("")
-        lines.append("### 4.2 关键信息页面")
-        lines.append("")
+        lines.append("- 关键信息页面：")
         if venue.kind == "期刊":
             homepage = key_pages.get("journal_homepage") or "待补"
             lines.append(f"- 期刊主页：{homepage}")
             lines.append(f"- 学术索引页：{venue.index_url}")
-            lines.append("- 2025 年官方 article page：见下表 `官方落地页` 列")
+            lines.append(f"- {year} 年官方 article page：见对应 venue 页中的 `官方落地页` 列")
         else:
             homepage = key_pages.get("homepage") or "待补"
             lines.append(f"- 年主页：{homepage}")
@@ -2067,13 +2132,152 @@ def render_year_readme(
                 lines.append(f"- 说明：{key_pages['note']}")
             lines.append("- `CFP`：待补")
         lines.append("")
-        lines.append("### 4.3 论文名录")
+        lines.append("- 名录说明：对应 [venue 页面](./{0}) 中已按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级完成排序。".format(files["venue_page"]))
         lines.append("")
-        lines.append("- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。")
+        lines.append("- 本 venue 年度观察：")
+        if payload["papers"]:
+            decision_counts = Counter(paper.get("se_inclusion_decision", "待补") for paper in payload["papers"])
+            macro_counts_local = Counter(paper.get("macro_area", "待补") for paper in payload["papers"])
+            review_counts_local = Counter(paper.get("manual_review_status", "未人工复核") for paper in payload["papers"])
+            source_counts_local = Counter(paper.get("classification_source", "启发式初判") for paper in payload["papers"])
+            top_paths_local = Counter(
+                f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
+                for paper in payload["papers"]
+                if paper.get("se_primary_path")
+            )
+            top_tags = Counter(tag for paper in payload["papers"] for tag in paper.get("tags", [])).most_common(5)
+            lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts_local.most_common()))
+            lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in decision_counts.most_common()))
+            lines.append("- 初筛分布：" + format_screening_summary(screening_counts_local, empty_text=f"无 {year} 条目"))
+            lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts_local.most_common()))
+            lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts_local.most_common()))
+            if top_paths_local:
+                lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in top_paths_local.most_common(8)))
+            if top_tags:
+                lines.append("- 主题标签补充：" + " / ".join(f"{name} ({count})" for name, count in top_tags))
+        else:
+            lines.append("- 本年度未检出直接归属该 venue 的主论文条目。")
         lines.append("")
+
+    lines.append("## 6. 本年度总体观察")
+    lines.append("")
+    lines.append("- `软工归属级别` 分布：" + format_counter_summary(se_level_counts, order=SE_LEVEL_DISPLAY_ORDER, empty_text="无"))
+    lines.append("- `氛围` 分布：" + format_counter_summary(atmosphere_counts, order=ATMOSPHERE_DISPLAY_ORDER, empty_text="无"))
+    lines.append("- 初筛分布：" + format_screening_summary(screening_counts, empty_text="无条目"))
+    lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts.most_common()))
+    lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
+    lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts.most_common()))
+    lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts.most_common()))
+    if path_counts:
+        lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(15)))
+    lines.append("- 计数复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
+    lines.append("- 分类终判状态：以 `metadata/*.json` 中的 `classification_source / manual_review_status / manual_review_note` 为准。")
+    lines.append("- 后续若继续扩年份或重跑年度页，建议先运行 `tools/ccf_se_index_builder.py`，再运行 `tools/ccf_se_classifier.py`。")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def write_venue_pages(year: int, payloads: List[Dict[str, Any]]) -> None:
+    priors = parse_venue_priors()
+    abbr_counts = Counter(payload["venue"].abbr for payload in payloads)
+    for payload in payloads:
+        venue_page_path = payload["target_dir"] / payload["files"]["venue_page"]
+        venue_page_path.parent.mkdir(parents=True, exist_ok=True)
+        venue_page_path.write_text(
+            render_venue_readme(year=year, payload=payload, priors=priors, abbr_counts=abbr_counts),
+            encoding="utf-8",
+        )
+
+
+def render_venue_readme(
+    year: int,
+    payload: Dict[str, Any],
+    priors: Dict[Tuple[str, str, str], VenuePrior],
+    abbr_counts: Counter[str],
+) -> str:
+    venue = payload["venue"]
+    key_pages = payload["key_pages"]
+    files = payload["files"]
+    prior = priors[(venue.abbr, venue.rank, venue.kind)]
+    display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
+    sorted_papers = sort_papers_by_screening(payload["papers"])
+    screening_counts = Counter(screening_priority_for_paper(paper) for paper in payload["papers"])
+    macro_counts = Counter(paper.get("macro_area", "待补") for paper in payload["papers"])
+    se_counts = Counter(paper.get("se_inclusion_decision", "待补") for paper in payload["papers"])
+    review_counts = Counter(
+        paper.get("manual_review_status", "未人工复核") for paper in payload["papers"]
+    )
+    source_counts = Counter(
+        paper.get("classification_source", "启发式初判") for paper in payload["papers"]
+    )
+    top_paths = Counter(
+        f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
+        for paper in payload["papers"]
+        if paper.get("se_primary_path")
+    )
+    metadata_link = (Path("..") / files["metadata"]).as_posix()
+
+    lines: List[str] = []
+    lines.append(f"# `{display_abbr}` (`{year}`) 论文名录")
+    lines.append("")
+    lines.append("## 1. 文件导航")
+    lines.append("")
+    lines.append("- 年度总页：[../README.md](../README.md)")
+    lines.append("- 计数复核：[../verification.json](../verification.json)")
+    lines.append(f"- 数据文件：[metadata]({metadata_link})")
+    lines.append("- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。")
+    lines.append("")
+    lines.append("## 2. 基本信息")
+    lines.append("")
+    lines.append(f"- 全称：{venue.full_name}")
+    lines.append(f"- `CCF` 等级：`{venue.rank}`")
+    lines.append(f"- 类型：`{venue.kind}`")
+    lines.append(f"- 年份：`{year}`")
+    lines.append(f"- 条目数：`{payload['actual_total']}`")
+    lines.append(f"- 主体归属：{prior.subject}")
+    lines.append(f"- `软工归属级别`：`{prior.se_level}`")
+    lines.append(f"- `氛围`：`{prior.atmosphere}`")
+    lines.append(f"- 与本课题的关系：{prior.relation}")
+    lines.append("")
+    lines.append("## 3. 关键信息页面")
+    lines.append("")
+    if venue.kind == "期刊":
+        homepage = key_pages.get("journal_homepage") or "待补"
+        lines.append(f"- 期刊主页：{homepage}")
+        lines.append(f"- 学术索引页：{venue.index_url}")
+        lines.append(f"- {year} 年官方 article page：见下表 `官方落地页` 列")
+    else:
+        homepage = key_pages.get("homepage") or "待补"
+        lines.append(f"- 年主页：{homepage}")
+        lines.append(f"- 学术索引页：{venue.index_url}")
+        carrier = key_pages.get("carrier_homepage")
+        if carrier:
+            lines.append(f"- 正式发布载体页：{carrier}")
+        procs = key_pages.get("proceedings_pages") or []
+        if procs:
+            lines.append(f"- 官方论文集页：{' / '.join(procs[:3])}")
+        if key_pages.get("note"):
+            lines.append(f"- 说明：{key_pages['note']}")
+        lines.append("- `CFP`：待补")
+    lines.append("")
+    lines.append("## 4. 本 venue 统计")
+    lines.append("")
+    lines.append("- 初筛分布：" + format_screening_summary(screening_counts, empty_text=f"无 {year} 条目"))
+    lines.append("- 一级总判定分布：" + format_counter_summary(macro_counts, order=MACRO_DISPLAY_ORDER, empty_text=f"无 {year} 条目"))
+    lines.append("- 软工纳入判定分布：" + format_counter_summary(se_counts, order=SE_DECISION_DISPLAY_ORDER, empty_text=f"无 {year} 条目"))
+    lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts.most_common()) if source_counts else "- 判定来源分布：无")
+    lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts.most_common()) if review_counts else "- 人工复核状态分布：无")
+    if top_paths:
+        lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in top_paths.most_common(8)))
+    lines.append("")
+    lines.append("## 5. 论文名录")
+    lines.append("")
+    lines.append("- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。")
+    lines.append("")
+    if sorted_papers:
         lines.append("| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |")
         lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
-        for idx, paper in enumerate(payload["papers"], start=1):
+        for idx, paper in enumerate(sorted_papers, start=1):
             authors = ", ".join(paper["authors"])
             doi_cell = f"[{paper['doi']}](https://doi.org/{paper['doi']})" if paper.get("doi") else ""
             official_cell = f"[link]({paper['official_url']})" if paper.get("official_url") else ""
@@ -2108,45 +2312,24 @@ def render_year_readme(
                     note=md_escape(note),
                 )
             )
-        lines.append("")
-        lines.append("### 4.4 本 venue 年度观察")
-        lines.append("")
-        if payload["papers"]:
-            decision_counts = Counter(paper.get("se_inclusion_decision", "待补") for paper in payload["papers"])
-            macro_counts_local = Counter(paper.get("macro_area", "待补") for paper in payload["papers"])
-            review_counts_local = Counter(paper.get("manual_review_status", "未人工复核") for paper in payload["papers"])
-            source_counts_local = Counter(paper.get("classification_source", "启发式初判") for paper in payload["papers"])
-            top_paths_local = Counter(
-                f"{paper['se_primary_path']} {paper['se_primary_label']}".strip()
-                for paper in payload["papers"]
-                if paper.get("se_primary_path")
-            )
-            top_tags = Counter(tag for paper in payload["papers"] for tag in paper.get("tags", [])).most_common(5)
-            lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts_local.most_common()))
-            lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in decision_counts.most_common()))
-            lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts_local.most_common()))
-            lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts_local.most_common()))
-            if top_paths_local:
-                lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in top_paths_local.most_common(8)))
-            if top_tags:
-                lines.append("- 主题标签补充：" + " / ".join(f"{name} ({count})" for name, count in top_tags))
-        else:
-            lines.append("- 本年度未检出直接归属该 venue 的主论文条目。")
-        lines.append("")
-
-    lines.append("---")
+    else:
+        lines.append(f"- {year} 年未检出直接归属该 venue 的主论文条目。")
     lines.append("")
-    lines.append("## 5. 本年度总体观察")
+    lines.append("## 6. 本 venue 年度观察")
     lines.append("")
-    lines.append("- 一级总判定分布：" + " / ".join(f"{name} ({count})" for name, count in macro_counts.most_common()))
-    lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
-    lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts.most_common()))
-    lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts.most_common()))
-    if path_counts:
-        lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(15)))
-    lines.append("- 计数复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
-    lines.append("- 分类终判状态：以 `metadata/*.json` 中的 `classification_source / manual_review_status / manual_review_note` 为准。")
-    lines.append("- 后续若继续扩年份或重跑年度页，建议先运行 `tools/ccf_se_index_builder.py`，再运行 `tools/ccf_se_classifier.py`。")
+    if sorted_papers:
+        top_tags = Counter(tag for paper in sorted_papers for tag in paper.get("tags", [])).most_common(5)
+        green_titles = [
+            f"`{paper['title']}`"
+            for paper in sorted_papers
+            if screening_priority_for_paper(paper) == "🟢 优先跟进"
+        ][:5]
+        if top_tags:
+            lines.append("- 主题标签补充：" + " / ".join(f"{name} ({count})" for name, count in top_tags))
+        if green_titles:
+            lines.append("- 建议优先获取 `PDF` 的论文：" + "；".join(green_titles))
+    else:
+        lines.append("- 本年度无条目，暂不形成进一步观察。")
     lines.append("")
     return "\n".join(lines)
 
@@ -2201,6 +2384,7 @@ def summarize_data_side_bucket(se_counts: Counter[str], actual_total: int) -> in
 
 
 def compare_prior_and_data_side(
+    year: int,
     expected_total: int,
     actual_total: int,
     prior_score: int,
@@ -2209,12 +2393,12 @@ def compare_prior_and_data_side(
     count_note = "计数一致" if expected_total == actual_total else "计数需复核"
     data_side_score = summarize_data_side_bucket(se_counts, actual_total)
     if data_side_score < 0:
-        return f"{count_note}；2025 无条目，暂以先验为准"
+        return f"{count_note}；{year} 无条目，暂以先验为准"
     if data_side_score == prior_score:
-        return f"{count_note}；2025 与先验一致"
+        return f"{count_note}；{year} 与先验一致"
     if data_side_score > prior_score:
-        return f"{count_note}；2025 比先验更偏软工"
-    return f"{count_note}；2025 比先验更偏非软工"
+        return f"{count_note}；{year} 比先验更偏软工"
+    return f"{count_note}；{year} 比先验更偏非软工"
 
 
 def load_payloads(target_dir: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -2222,7 +2406,12 @@ def load_payloads(target_dir: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any
     verification = json.loads(verification_path.read_text(encoding="utf-8"))
     payloads: List[Dict[str, Any]] = []
     for item in verification["venues"]:
-        metadata_path = target_dir / item["files"]["metadata"]
+        files = dict(item["files"])
+        if "venue_page" not in files:
+            stem = Path(files["metadata"]).stem
+            files["venue_page"] = f"venues/{stem}.md"
+            item["files"] = files
+        metadata_path = target_dir / files["metadata"]
         payload = json.loads(metadata_path.read_text(encoding="utf-8"))
         payloads.append(
             {
@@ -2238,7 +2427,8 @@ def load_payloads(target_dir: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Any
                 "actual_total": len(payload["papers"]),
                 "key_pages": payload["source"]["key_pages"],
                 "papers": payload["papers"],
-                "files": item["files"],
+                "files": files,
+                "target_dir": target_dir,
             }
         )
     return payloads, verification
@@ -2285,8 +2475,11 @@ def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
         payload["papers"] = updated_papers
         payload["actual_total"] = len(updated_papers)
 
+    verification_path = target_dir / "verification.json"
+    verification_path.write_text(json.dumps(verification, ensure_ascii=False, indent=2), encoding="utf-8")
     readme_text = render_year_readme(year, payloads, verification, full_manual_coverage)
     (target_dir / "README.md").write_text(readme_text, encoding="utf-8")
+    write_venue_pages(year, payloads)
     return dict(counters)
 
 

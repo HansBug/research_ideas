@@ -10,6 +10,7 @@ The generated artifacts are:
 1. `README.md`
 2. `verification.json`
 3. `metadata/<venue>.json`
+4. `venues/<venue>.md`
 
 The script is intentionally cache-aware so repeated runs can refine the
 result without re-fetching every remote resource from scratch. The cache
@@ -38,6 +39,48 @@ from lxml import etree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 CCF_MD = ROOT / "frontier_index" / "CCF_SE_A_B_C.md"
+
+
+SCREENING_PRIORITY_ORDER = (
+    "🟢 优先跟进",
+    "🟡 保留观察",
+    "⏳ 待补信息",
+    "⚪ 暂不跟进",
+)
+
+
+SCREENING_TO_PDF_HINT = {
+    "🟢 优先跟进": "🟢 建议获取 PDF",
+    "🟡 保留观察": "🟡 可选获取",
+    "⏳ 待补信息": "⏳ 未判断",
+    "⚪ 暂不跟进": "⚪ 暂不获取",
+}
+
+
+def screening_priority_for_paper(paper: Dict[str, Any]) -> str:
+    screening = str(paper.get("initial_screening") or "").strip()
+    if screening in SCREENING_PRIORITY_ORDER:
+        return screening
+    return "⏳ 待补信息"
+
+
+def sort_papers_by_screening(papers: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    order_index = {screening: idx for idx, screening in enumerate(SCREENING_PRIORITY_ORDER)}
+    return sorted(
+        papers,
+        key=lambda paper: (
+            order_index.get(screening_priority_for_paper(paper), len(order_index)),
+            str(paper.get("title") or "").lower(),
+            str(paper.get("key") or ""),
+        ),
+    )
+
+
+def format_screening_summary(counter: Counter[str], empty_text: str) -> str:
+    total = sum(counter.values())
+    if total <= 0:
+        return empty_text
+    return " / ".join(f"{screening} ({counter.get(screening, 0)})" for screening in SCREENING_PRIORITY_ORDER)
 
 
 JOURNAL_HOMEPAGES: Dict[str, str] = {
@@ -255,6 +298,7 @@ class Builder:
         self.target_dir = target_dir
         self.cache_dir = ROOT / ".cache" / "ccf_se_index" / str(year)
         self.metadata_dir = target_dir / "metadata"
+        self.venues_dir = target_dir / "venues"
 
     @staticmethod
     def new_session() -> requests.Session:
@@ -264,9 +308,11 @@ class Builder:
         return session
 
     def ensure_dirs(self) -> None:
-        for path in [self.target_dir, self.cache_dir, self.metadata_dir]:
+        for path in [self.target_dir, self.cache_dir, self.metadata_dir, self.venues_dir]:
             path.mkdir(parents=True, exist_ok=True)
         for path in self.metadata_dir.glob("*.json"):
+            path.unlink()
+        for path in self.venues_dir.glob("*.md"):
             path.unlink()
 
     def cache_path(self, namespace: str, key: str, suffix: str) -> Path:
@@ -1047,8 +1093,10 @@ class Builder:
         stem = self.venue_stem(venue)
         metadata_path = self.metadata_dir / f"{stem}.json"
         metadata_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        venue_page_path = self.venues_dir / f"{stem}.md"
         return {
             "metadata": metadata_path.relative_to(self.target_dir).as_posix(),
+            "venue_page": venue_page_path.relative_to(self.target_dir).as_posix(),
         }
 
     def build(self) -> Dict[str, Any]:
@@ -1108,6 +1156,7 @@ class Builder:
 
         readme_text = self.render_readme(all_payloads, verification)
         (self.target_dir / "README.md").write_text(readme_text, encoding="utf-8")
+        self.write_venue_pages(all_payloads)
         return verification
 
     def render_readme(self, payloads: List[Dict[str, Any]], verification: Dict[str, Any]) -> str:
@@ -1115,6 +1164,9 @@ class Builder:
         venue_count = len(payloads)
         total_papers = verification["total_actual"]
         abbr_counts = Counter(payload["venue"].abbr for payload in payloads)
+        screening_totals = Counter(
+            screening_priority_for_paper(paper) for payload in payloads for paper in payload["papers"]
+        )
 
         rank_kind_counts: Dict[tuple[str, str], int] = Counter()
         for payload in payloads:
@@ -1130,7 +1182,7 @@ class Builder:
         lines.append(f"- 当前覆盖的 venue 数量：`{venue_count}`")
         lines.append(f"- 当前已入表论文数量：`{total_papers}`")
         lines.append(f"- 更新时间：`{ts}`")
-        lines.append("- 说明：本页由 `tools/ccf_se_index_builder.py` 自动生成，并以逐 venue 计数复核结果为准。")
+        lines.append("- 说明：本页由 `tools/ccf_se_index_builder.py` 自动生成，只保留年度汇总与 venue 导航；逐篇论文名录拆分到 `venues/*.md`。")
         lines.append("")
         lines.append("## 2. 年度汇总统计")
         lines.append("")
@@ -1139,29 +1191,45 @@ class Builder:
                 lines.append(f"- {rank} 类{kind}：`{rank_kind_counts.get((rank, kind), 0)}`")
         lines.append(f"- 期望总条目数：`{verification['total_expected']}`")
         lines.append(f"- 实际总条目数：`{verification['total_actual']}`")
+        for screening in SCREENING_PRIORITY_ORDER:
+            lines.append(
+                f"- `{screening}`：`{screening_totals.get(screening, 0)}` (`{SCREENING_TO_PDF_HINT[screening]}`)"
+            )
         lines.append("")
-        lines.append("## 3. 覆盖 venue 列表")
+        lines.append("## 3. 初筛口径")
         lines.append("")
-        lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | 数据文件 | 备注 |")
-        lines.append("|---|---|---|---|---:|---|---|")
+        for screening in SCREENING_PRIORITY_ORDER:
+            lines.append(
+                f"- `{screening}`：默认对应 `{SCREENING_TO_PDF_HINT[screening]}`。"
+            )
+        lines.append("")
+        lines.append("## 4. 覆盖 venue 列表")
+        lines.append("")
+        lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | 初筛分布 | 论文名录 | 数据文件 | 备注 |")
+        lines.append("|---|---|---|---|---:|---|---|---|---|")
         for payload in payloads:
             venue = payload["venue"]
             files = payload["files"]
             note = "计数一致" if payload["expected_total"] == payload["actual_total"] else "计数需复核"
             display_abbr = self.display_abbr(venue, abbr_counts[venue.abbr] > 1)
+            screening_counts = Counter(screening_priority_for_paper(paper) for paper in payload["papers"])
             lines.append(
-                "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | [metadata]({meta}) | {note} |".format(
+                "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {screening} | [venue]({venue_page}) | [metadata]({meta}) | {note} |".format(
                     abbr=self.md_escape(display_abbr),
                     full=self.md_escape(venue.full_name),
                     rank=venue.rank,
                     kind=venue.kind,
                     count=payload["actual_total"],
+                    screening=self.md_escape(
+                        format_screening_summary(screening_counts, empty_text="无 2025 条目")
+                    ),
+                    venue_page=self.md_escape(files["venue_page"]),
                     meta=self.md_escape(files["metadata"]),
                     note=note,
                 )
             )
         lines.append("")
-        lines.append("## 4. Venue Sections")
+        lines.append("## 5. Venue 导航")
         lines.append("")
 
         for payload in payloads:
@@ -1169,26 +1237,29 @@ class Builder:
             key_pages = payload["key_pages"]
             files = payload["files"]
             display_abbr = self.display_abbr(venue, abbr_counts[venue.abbr] > 1)
-            lines.append("---")
+            screening_counts = Counter(screening_priority_for_paper(paper) for paper in payload["papers"])
+            lines.append(f"### `{display_abbr}`")
             lines.append("")
-            lines.append(f"## `{display_abbr}`")
-            lines.append("")
-            lines.append("### 4.1 基本信息")
-            lines.append("")
+            lines.append("- 基本信息：")
             lines.append(f"- 全称：{venue.full_name}")
             lines.append(f"- `CCF` 等级：`{venue.rank}`")
             lines.append(f"- 类型：`{venue.kind}`")
             lines.append(f"- 年份：`{self.year}`")
             lines.append(f"- 条目数：`{payload['actual_total']}`")
+            lines.append(
+                f"- 初筛分布：{format_screening_summary(screening_counts, empty_text='无 2025 条目')}"
+            )
+            lines.append(
+                f"- 论文名录页：[venues/{Path(files['venue_page']).name}](./{files['venue_page']})"
+            )
             lines.append(f"- 数据文件：[metadata]({files['metadata']})")
             lines.append("")
-            lines.append("### 4.2 关键信息页面")
-            lines.append("")
+            lines.append("- 关键信息页面：")
             if venue.kind == "期刊":
                 homepage = key_pages.get("journal_homepage") or "待补"
                 lines.append(f"- 期刊主页：{homepage}")
                 lines.append(f"- 学术索引页：{venue.index_url}")
-                lines.append("- 2025 年官方 article page：见下表 `官方落地页` 列")
+                lines.append(f"- {self.year} 年官方 article page：见对应 venue 页中的 `官方落地页` 列")
             else:
                 homepage = key_pages.get("homepage") or "待补"
                 lines.append(f"- 年主页：{homepage}")
@@ -1204,13 +1275,116 @@ class Builder:
                     lines.append(f"- 说明：{key_pages['note']}")
                 lines.append("- `CFP`：待补")
             lines.append("")
-            lines.append("### 4.3 论文名录")
+            lines.append("- 名录说明：对应 [venue 页面](./{0}) 中已按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级完成排序。".format(files["venue_page"]))
             lines.append("")
-            lines.append("- 说明：完整摘要、初筛理由与可直接引用的完整 `BibTeX` 已内嵌写入对应 `metadata` 文件。")
+            lines.append("- 本 venue 年度观察：")
+            if payload["papers"]:
+                common_tags = Counter(tag for paper in payload["papers"] for tag in paper["tags"]).most_common(5)
+                tag_text = " / ".join(f"{name} ({count})" for name, count in common_tags)
+                green_titles = [
+                    f"`{paper['title']}`"
+                    for paper in sort_papers_by_screening(payload["papers"])
+                    if screening_priority_for_paper(paper) == "🟢 优先跟进"
+                ][:5]
+                lines.append(f"- 主题倾向：{tag_text}")
+                lines.append("- 与博士研究的相关性：请结合 `一句话说明`、`方向标签` 与伴随 `metadata` 文件中的摘要进一步判断。")
+                if green_titles:
+                    lines.append("- 建议优先获取 `PDF` 的论文：" + "；".join(green_titles))
+            else:
+                lines.append("- 主题倾向：本年度未检出直接归属该 venue 的主论文条目。")
+                lines.append("- 与博士研究的相关性：无。")
             lines.append("")
+
+        lines.append("## 6. 本年度总体观察")
+        lines.append("")
+        top_tags = Counter(tag for payload in payloads for paper in payload["papers"] for tag in paper["tags"]).most_common(12)
+        if top_tags:
+            lines.append("- 高频方向标签：" + " / ".join(f"{tag} ({count})" for tag, count in top_tags))
+        lines.append(
+            "- 初筛分布："
+            + format_screening_summary(screening_totals, empty_text="无 2025 条目")
+        )
+        lines.append("- 复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
+        lines.append("- 后续若需继续扩年份，优先参考 [../README.md](../README.md) 与 `tools/ccf_se_index_builder.py`。")
+        lines.append("")
+        return "\n".join(lines)
+
+    def write_venue_pages(self, payloads: List[Dict[str, Any]]) -> None:
+        abbr_counts = Counter(payload["venue"].abbr for payload in payloads)
+        for payload in payloads:
+            venue_page_path = self.target_dir / payload["files"]["venue_page"]
+            venue_page_path.write_text(
+                self.render_venue_readme(payload, abbr_counts),
+                encoding="utf-8",
+            )
+
+    def render_venue_readme(
+        self,
+        payload: Dict[str, Any],
+        abbr_counts: Counter[str],
+    ) -> str:
+        venue = payload["venue"]
+        key_pages = payload["key_pages"]
+        files = payload["files"]
+        display_abbr = self.display_abbr(venue, abbr_counts[venue.abbr] > 1)
+        screening_counts = Counter(screening_priority_for_paper(paper) for paper in payload["papers"])
+        metadata_link = (Path("..") / files["metadata"]).as_posix()
+        sorted_papers = sort_papers_by_screening(payload["papers"])
+
+        lines: List[str] = []
+        lines.append(f"# `{display_abbr}` (`{self.year}`) 论文名录")
+        lines.append("")
+        lines.append("## 1. 文件导航")
+        lines.append("")
+        lines.append("- 年度总页：[../README.md](../README.md)")
+        lines.append("- 计数复核：[../verification.json](../verification.json)")
+        lines.append(f"- 数据文件：[metadata]({metadata_link})")
+        lines.append("- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。")
+        lines.append("")
+        lines.append("## 2. 基本信息")
+        lines.append("")
+        lines.append(f"- 全称：{venue.full_name}")
+        lines.append(f"- `CCF` 等级：`{venue.rank}`")
+        lines.append(f"- 类型：`{venue.kind}`")
+        lines.append(f"- 年份：`{self.year}`")
+        lines.append(f"- 条目数：`{payload['actual_total']}`")
+        lines.append("")
+        lines.append("## 3. 关键信息页面")
+        lines.append("")
+        if venue.kind == "期刊":
+            homepage = key_pages.get("journal_homepage") or "待补"
+            lines.append(f"- 期刊主页：{homepage}")
+            lines.append(f"- 学术索引页：{venue.index_url}")
+            lines.append(f"- {self.year} 年官方 article page：见下表 `官方落地页` 列")
+        else:
+            homepage = key_pages.get("homepage") or "待补"
+            lines.append(f"- 年主页：{homepage}")
+            lines.append(f"- 学术索引页：{venue.index_url}")
+            carrier = key_pages.get("carrier_homepage")
+            if carrier:
+                lines.append(f"- 正式发布载体页：{carrier}")
+            procs = key_pages.get("proceedings_pages") or []
+            if procs:
+                lines.append(f"- 官方论文集页：{' / '.join(procs[:3])}")
+            if key_pages.get("note"):
+                lines.append(f"- 说明：{key_pages['note']}")
+            lines.append("- `CFP`：待补")
+        lines.append("")
+        lines.append("## 4. 初筛统计")
+        lines.append("")
+        for screening in SCREENING_PRIORITY_ORDER:
+            lines.append(
+                f"- `{screening}`：`{screening_counts.get(screening, 0)}` 篇，对应 `{SCREENING_TO_PDF_HINT[screening]}`。"
+            )
+        lines.append("")
+        lines.append("## 5. 论文名录")
+        lines.append("")
+        lines.append("- 说明：完整摘要、初筛理由与可直接引用的完整 `BibTeX` 已内嵌写入对应 `metadata` 文件。")
+        lines.append("")
+        if sorted_papers:
             lines.append("| 序号 | 标题 | 作者 | 一句话说明 | DOI | 官方落地页 | 方向标签 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |")
             lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
-            for idx, paper in enumerate(payload["papers"], start=1):
+            for idx, paper in enumerate(sorted_papers, start=1):
                 authors = ", ".join(paper["authors"])
                 tags = " / ".join(paper["tags"])
                 doi_cell = f"[{paper['doi']}](https://doi.org/{paper['doi']})" if paper["doi"] else ""
@@ -1230,45 +1404,28 @@ class Builder:
                         note="",
                     )
                 )
-            lines.append("")
-            lines.append("### 4.4 本 venue 年度观察")
-            lines.append("")
-            if payload["papers"]:
-                common_tags = Counter(tag for paper in payload["papers"] for tag in paper["tags"]).most_common(5)
-                tag_text = " / ".join(f"{name} ({count})" for name, count in common_tags)
-                screening_counts = Counter(paper["initial_screening"] for paper in payload["papers"])
-                green_titles = [
-                    f"`{paper['title']}`"
-                    for paper in payload["papers"]
-                    if paper["initial_screening"] == "🟢 优先跟进"
-                ][:5]
-                lines.append(f"- 主题倾向：{tag_text}")
-                lines.append(
-                    "- 初筛分布："
-                    + " / ".join(f"{name} ({count})" for name, count in screening_counts.most_common())
-                )
-                lines.append("- 与博士研究的相关性：请结合 `一句话说明`、`方向标签` 与伴随 `metadata` 文件中的摘要进一步判断。")
-                if green_titles:
-                    lines.append("- 建议优先获取 `PDF` 的论文：" + "；".join(green_titles))
-            else:
-                lines.append("- 主题倾向：本年度未检出直接归属该 venue 的主论文条目。")
-                lines.append("- 与博士研究的相关性：无。")
-            lines.append("")
-
-        lines.append("---")
+        else:
+            lines.append("- 本年度未检出直接归属该 venue 的主论文条目。")
         lines.append("")
-        lines.append("## 5. 本年度总体观察")
+        lines.append("## 6. 本 venue 年度观察")
         lines.append("")
-        top_tags = Counter(tag for payload in payloads for paper in payload["papers"] for tag in paper["tags"]).most_common(12)
-        screening_totals = Counter(
-            paper["initial_screening"] for payload in payloads for paper in payload["papers"]
-        )
-        if top_tags:
-            lines.append("- 高频方向标签：" + " / ".join(f"{tag} ({count})" for tag, count in top_tags))
-        if screening_totals:
-            lines.append("- 初筛分布：" + " / ".join(f"{tag} ({count})" for tag, count in screening_totals.most_common()))
-        lines.append("- 复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
-        lines.append("- 后续若需继续扩年份，优先参考 [../README.md](../README.md) 与 `tools/ccf_se_index_builder.py`。")
+        if sorted_papers:
+            common_tags = Counter(tag for paper in sorted_papers for tag in paper["tags"]).most_common(5)
+            tag_text = " / ".join(f"{name} ({count})" for name, count in common_tags)
+            a_titles = [
+                f"`{paper['title']}`"
+                for paper in sorted_papers
+                if screening_priority_for_paper(paper) == "🟢 优先跟进"
+            ][:5]
+            lines.append(f"- 主题倾向：{tag_text}")
+            lines.append(
+                f"- 初筛分布：{format_screening_summary(screening_counts, empty_text='无 2025 条目')}"
+            )
+            lines.append("- 与博士研究的相关性：请结合 `一句话说明`、`方向标签` 与伴随 `metadata` 文件中的摘要进一步判断。")
+            if a_titles:
+                lines.append("- 建议优先获取 `PDF` 的论文：" + "；".join(a_titles))
+        else:
+            lines.append("- 本年度无条目，暂不形成进一步观察。")
         lines.append("")
         return "\n".join(lines)
 

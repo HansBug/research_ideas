@@ -4,7 +4,7 @@
 
 `frontier_index/` 是本仓库面向“前沿论文信息”的顶层索引入口。它当前不承担“正式全文文库”的职责，而是先承担一个更前置、更轻量的职责：
 
-1. 维护从 `CCF` 软件工程/系统软件/程序设计语言方向中筛选后保留的、与软件工程高度相关且值得持续跟踪的 `A/B/C` venue 往年论文索引入口。
+1. 维护从 `CCF` 软件工程/系统软件/程序设计语言方向中筛选后保留的、与软件工程高度相关且值得持续跟踪的 venue 往年论文索引入口。
 2. 维护近期 `arXiv` 上软件工程方向论文的滚动索引入口。
 3. 先积累论文元数据、`BibTeX`、`DOI`、学术站落地页链接和初步判断结果，再决定哪些论文值得进一步获取 `PDF` 做深读。
 
@@ -36,10 +36,12 @@
 
 本路径当前优先覆盖两类来源：
 
-1. `CCF_SE_A_B_C.md` 当前保留的 `CCF` 软件工程高相关 `A/B/C` venue 往年论文。
+1. `CCF_SE_A_B_C.md` 当前保留的 `CCF` 软件工程高相关 venue 往年论文。
 2. `arXiv` 上近期的软件工程方向论文，优先关注 `cs.SE`，并视需要补充和软件工程高度相关的交叉方向。
 
 这里的“收录”当前默认指“收录索引信息”，不是“收录完整论文全文材料”。
+
+对 `CCF` 来源，venue 级保留范围与跟踪优先级默认统一按 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 中的 `软工归属级别 + 氛围（A 🔥 / B 🟢 / C 🟡）` 表达，不再另造独立的 `A/B/C/D` 跟踪等级。
 
 ### 3.1 当前优先关注的信息
 
@@ -108,7 +110,7 @@
    - 该树默认允许按覆盖需要继续扩叶，不以固定 `4` 叉结构为约束。
    - 后续扫论文时，如果发现某类软工论文没有自然落点，应先扩树再分类，禁止为了维持旧结构把论文硬塞进现有叶子。
 6. [ccf_history/README.md](./ccf_history/README.md)
-   - 规定后续 `CCF` 往年论文索引如何按“年份主目录”组织，并在每年内按 venue 分 section 汇总。
+   - 规定后续 `CCF` 往年论文索引如何按“年份主目录”组织，并拆分为“年度总页 `README.md` + 单 venue 页 `venues/*.md`”。
 7. [arxiv_recent/README.md](./arxiv_recent/README.md)
    - 规定后续近期 `arXiv` 论文索引如何按时间窗口组织。
 8. [templates/metadata_index_template.md](./templates/metadata_index_template.md)
@@ -181,9 +183,10 @@ python -m tools.ccf_se_classifier --year 2025
 3. 若任务涉及 `CCF` 方向 venue 范围判断，优先参考 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)。
 4. 若任务涉及“什么算软件工程”“非软工论文如何判出”“跨域论文怎么处理”“软工论文如何落到 `x.x.x` 路径”，优先参考 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
 5. 方向归类时，先看 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 的 venue 级先验，再做一级总判定和单篇终判。
-6. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 软工判定依据（X1/D1-D4）`。
-7. 若批量扫论文时发现现有 `x.x.x` 没有自然覆盖某一稳定题型，应先更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 及相关说明，再回填分类，不要把论文硬塞到“最接近”的旧路径。
-8. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
-9. 若任务是构建某一年的 `CCF` 保留子集索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再用 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 回填软工判定与 `x.x.x` 路径，最后按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 做复核。
-10. 若任务要求“逐篇人工终判”，默认把终判字段直接写回 `metadata/*.json`，并把对应条目标成 `classification_source=人工复核 / manual_review_status=已人工复核`；未写回的条目只能视为启发式初判。
-11. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。
+6. 若任务涉及 venue 跟踪优先级，直接使用 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 中的 `氛围 A 🔥 / B 🟢 / C 🟡`；同档再参考 `完全属于软工 / 大部分属于软工 / 部分属于软工`，不要另造第二套 venue 等级。
+7. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 软工判定依据（X1/D1-D4）`。
+8. 若批量扫论文时发现现有 `x.x.x` 没有自然覆盖某一稳定题型，应先更新 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md) 及相关说明，再回填分类，不要把论文硬塞到“最接近”的旧路径。
+9. 若任务涉及批量索引新增，先读 [GUIDE.md](./GUIDE.md) 和 [SUMMARY.md](./SUMMARY.md)。
+10. 若任务是构建某一年的 `CCF` 保留子集索引，先用 [../tools/ccf_se_index_builder.py](../tools/ccf_se_index_builder.py) 生成基础元数据，再用 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 回填软工判定与 `x.x.x` 路径，最后按 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 做复核。
+11. 若任务要求“逐篇人工终判”，默认把终判字段直接写回 `metadata/*.json`，并把对应条目标成 `classification_source=人工复核 / manual_review_status=已人工复核`；未写回的条目只能视为启发式初判。
+12. 若后续某批论文已经明确要深读，再转入其他正式论文集路径，不要把全文阅读工作反压到本路径中。

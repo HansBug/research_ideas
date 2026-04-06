@@ -15,11 +15,13 @@
 
 1. 年度总页：
    - [ccf_history/2025/README.md](./ccf_history/2025/README.md)
-2. 逐 venue 复核文件：
+2. 逐 venue 名录目录：
+   - [ccf_history/2025/venues/](./ccf_history/2025/venues)
+3. 逐 venue 复核文件：
    - [ccf_history/2025/verification.json](./ccf_history/2025/verification.json)
-3. 结构化元数据目录：
+4. 结构化元数据目录：
    - [ccf_history/2025/metadata/](./ccf_history/2025/metadata)
-4. `BibTeX` 与终判字段存储方式：
+5. `BibTeX` 与终判字段存储方式：
    - 已直接内嵌到 [ccf_history/2025/metadata/](./ccf_history/2025/metadata) 中，不再单独维护 `bib/` 或 `manual_review/` 目录
 
 当前状态：
@@ -106,6 +108,7 @@
 2. 默认用途：
    - 先判断一个 venue 默认更像 `软件工程`、`系统软件` 还是 `程序设计语言与形式化基础`。
    - 先判断一个 venue 是 `完全属于软工`、`大部分属于软工` 还是 `部分属于软工`。
+   - 若需要表达跟踪优先级，直接使用 `氛围 A 🔥 / B 🟢 / C 🟡`，同档再结合 `软工归属级别`。
    - 明确这个 venue 的“主要方向与边界”分别在哪里，避免把非软工部分机械塞进软工树。
 
 ## 4. 当前已明确的工作原则
@@ -115,14 +118,15 @@
 3. 若发现 venue 边界、重名冲突、官方页回退等问题，应优先修脚本重跑，不手工补半成品。
 4. 后续默认先整理元数据、`BibTeX`、`DOI`、摘要和学术落地页。
 5. 后续若做方向归类，默认先看 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 的 venue 级先验，再做单篇终判。
-6. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才进入 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
-7. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 判定依据（X1/D1-D4）`。
-8. 若后续扫论文时发现现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，不要把论文硬塞进最接近的旧节点。
-9. `ccf_se_index_builder.py` 当前负责生成基础元数据层；`ccf_se_classifier.py` 负责启发式初判、保留已写回终判并重渲染年度页。
-10. 若任务要求“逐篇真正所属类型”的终判，默认直接把终判字段写回 `metadata/*.json`，并保留 `classification_source / manual_review_status / manual_review_note` 作为可追溯证据。
-11. 先做初筛，再决定哪些论文值得获取 `PDF`。
-12. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
-13. 当前 `CCF` 文库已收缩为“软件工程高相关且值得持续跟踪”的保留子集，不再在本路径中保留被筛出的 venue 与其年度数据。
+6. venue 跟踪优先级统一直接复用 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 中的 `氛围 A 🔥 / B 🟢 / C 🟡`；同档再参考 `完全属于软工 / 大部分属于软工 / 部分属于软工`，不再另造 `A/B/C/D`。
+7. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才进入 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)。
+8. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 判定依据（X1/D1-D4）`。
+9. 若后续扫论文时发现现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，不要把论文硬塞进最接近的旧节点。
+10. `ccf_se_index_builder.py` 当前负责生成基础元数据层；`ccf_se_classifier.py` 负责启发式初判、保留已写回终判并重渲染年度页。
+11. 若任务要求“逐篇真正所属类型”的终判，默认直接把终判字段写回 `metadata/*.json`，并保留 `classification_source / manual_review_status / manual_review_note` 作为可追溯证据。
+12. 先做初筛，再决定哪些论文值得获取 `PDF`。
+13. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
+14. 当前 `CCF` 文库已收缩为“软件工程高相关且值得持续跟踪”的保留子集，不再在本路径中保留被筛出的 venue 与其年度数据。
 
 ## 5. 下一步建议
 
@@ -140,6 +144,11 @@ python -m tools.ccf_se_index_builder --year 2024
 7. `2025` 年条目已经完成全量人工终判；若后续扩展到新年份，继续沿用“直接写回 `metadata/*.json` 终判字段并重跑分类器”的流程推进。
 
 ## 6. 更新日志
+
+- `2026-04-06 16:40:38`
+  - 统一 `CCF` 年度索引中的 venue 级归一化口径：以后只使用 `软工归属级别` 与 `氛围 A 🔥 / B 🟢 / C 🟡` 两列，不再保留任何独立 `A/B/C/D` 跟踪等级。
+  - 把 [README.md](./README.md)、[GUIDE.md](./GUIDE.md)、[ccf_history/README.md](./ccf_history/README.md)、[ccf_history/year_template/README.md](./ccf_history/year_template/README.md)、[../tools/README.md](../tools/README.md) 与 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md) 的说明统一到“年度总页 `README.md` + `venues/*.md` 单 venue 页”的结构。
+  - 调整 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 的年度页说明，让生成页显式写清：venue 跟踪优先级直接看 `氛围`，同档再参考 `软工归属级别`；逐篇论文只沿用 `初筛 / PDF` 跟进排序。
 
 - `2026-04-06 13:01:43`
   - 继续按“`2025` 终判依赖 LLM/人工逐篇复核，而不是依赖分类器启发式”的要求做 residual sweep，围绕剩余 false negative / false positive 边界条目补写人工终判字段。
@@ -177,7 +186,7 @@ python -m tools.ccf_se_index_builder --year 2024
 
 - `2026-04-06 00:38:29`
   - 新增 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)，把 `2025` 年度 `6301` 条论文全部回填到 `macro_area / se_inclusion_decision / cross_domain_flag / se_primary_path / se_primary_label / se_secondary_paths / se_decision_basis`。
-  - 重写 [ccf_history/2025/README.md](./ccf_history/2025/README.md)，把逐篇表格升级为“一级总判定 + 软工纳入判定 + `x.x.x` 主路径 + 判定依据”的版本。
+  - 重写 [ccf_history/2025/README.md](./ccf_history/2025/README.md)，先把年度总页升级为“一级总判定 + 软工纳入判定 + `x.x.x` 主路径 + 判定依据”的分类版；后续又进一步拆分为“年度总页 + `venues/*.md` 单 venue 页”。
   - 同步更新 [../tools/README.md](../tools/README.md) 与 [../tools/ccf_se_index_workflow.md](../tools/ccf_se_index_workflow.md)，把标准流程固定为 `builder -> classifier`。
 
 - `2026-04-05 23:42:35`

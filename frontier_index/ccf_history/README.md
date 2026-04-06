@@ -13,14 +13,30 @@
 ```text
 ccf_history/
 ├── 2025/
-│   └── README.md
+│   ├── README.md
+│   ├── verification.json
+│   ├── metadata/
+│   │   └── icse_conf_a.json
+│   └── venues/
+│       └── icse_conf_a.md
 ├── 2024/
-│   └── README.md
+│   ├── README.md
+│   ├── verification.json
+│   ├── metadata/
+│   └── venues/
 └── 2023/
-    └── README.md
+    ├── README.md
+    ├── verification.json
+    ├── metadata/
+    └── venues/
 ```
 
-这样做的目的，是让每个年份目录直接代表“该年所有目标期刊会议的整体信息汇总”，便于从年度视角做横向观察和筛选。
+这样做的目的，是把“年度总览”和“逐 venue 论文名录”拆开：
+
+1. `README.md` 负责年度总览、统计、规范口径和 venue 导航。
+2. `venues/*.md` 负责单个 venue 的逐篇论文名录。
+3. `metadata/*.json` 负责可重建、可回写的结构化保留载体。
+4. `verification.json` 负责逐 venue 计数复核。
 
 当前已建立的示例年份页：
 
@@ -42,13 +58,14 @@ ccf_history/
 每个年份目录默认负责维护该年所有目标 venue 的信息汇总，重点包括：
 
 1. 该年覆盖的期刊/会议清单。
-2. 每个期刊/会议在该年的关键信息页。
-3. 该期刊/会议在该年的论文名录。
-4. 每篇论文的元数据、摘要/方向、`DOI`、官方页面与 `BibTeX`。
-5. 对每篇论文的初步判定结果。
-6. 对每篇论文的人工复核状态与判定来源说明。
-7. 对混合 venue 中“哪些论文最终属于软件工程、哪些不属于”的边界说明。
-8. 对纳入软工语料的论文给出 `x.x.x` 级软工主路径。
+2. 每个期刊/会议在该年的关键信息页与 venue 级先验。
+3. 年度总页中的 venue 导航与链接。
+4. `venues/*.md` 中按初筛优先级排序的逐篇论文名录。
+5. 每篇论文的元数据、摘要/方向、`DOI`、官方页面与 `BibTeX`。
+6. 对每篇论文的初步判定结果。
+7. 对每篇论文的人工复核状态与判定来源说明。
+8. 对混合 venue 中“哪些论文最终属于软件工程、哪些不属于”的边界说明。
+9. 对纳入软工语料的论文给出 `x.x.x` 级软工主路径。
 
 ## 4. 单个年份 `README.md` 的建议结构
 
@@ -56,38 +73,42 @@ ccf_history/
 
 1. 该年说明
 2. 该年汇总统计
-3. 该年覆盖 venue 列表
-4. 每个 venue 一个独立 section
+3. 标准口径说明
+4. 该年覆盖 venue 列表
+5. 每个 venue 一个独立导航 section
 
-每个 venue section 默认应包含：
+每个 venue 导航 section 默认应包含：
 
 1. `venue` 基本信息
    - 缩写
    - 全称
    - `CCF` 等级
    - 类型
+   - `软工归属级别`
+   - `氛围`
 2. 该年的关键信息页面
    - 官方主页
    - `CFP`
    - 程序页 / proceedings / volume / issue 页
-3. 论文名录表
-   - 标题
-   - 作者
-   - 论文做什么的一句话
-   - 一级总判定
-   - 软工纳入判定
-   - 判定来源
-   - 人工复核状态
-   - 软工主路径（`x.x.x`）
-   - 软工次路径/标签
-   - 判定依据（`X1/D1-D4`）
-   - `DOI`
-   - 官方落地页
-   - 摘要或摘要简述
-   - `BibTeX`
-   - 初筛
-   - `PDF` 跟进
-4. 本 venue 在该年的简要观察
+3. 指向对应 `venues/<venue>.md` 的论文名录页链接
+4. 该 venue 在该年的统计概览
+   - 一级总判定分布
+   - 软工纳入判定分布
+   - 初筛分布
+5. 若需要表达 venue 跟踪优先级，直接使用 `氛围 A 🔥 / B 🟢 / C 🟡`；同档再结合 `软工归属级别`
+6. 本 venue 在该年的简要观察
+
+`venues/*.md` 默认负责真正的逐篇论文名录，至少应包含：
+
+1. 文件导航
+   - 年度总页
+   - `verification.json`
+   - 对应 `metadata/*.json`
+2. `venue` 基本信息
+3. 该年的关键信息页面
+4. 该 venue 的年度统计
+5. 逐篇论文名录表
+6. 本 venue 年度观察
 
 ## 5. 关于“官方页面”的要求
 
@@ -138,16 +159,19 @@ ccf_history/
 ## 7. 维护原则
 
 1. 先补齐标题、作者、摘要、`DOI`、`BibTeX`、学术落地页。
-2. 年份目录下默认按 venue 分 section 统一维护，不要把同一年拆成很多零散碎文件。
+2. 年份目录下默认按 `README.md + verification.json + metadata/*.json + venues/*.md` 统一维护，不要再额外拆出其他随意命名的零散文件。
 3. 若需要给论文打 `方向标签`，默认先结合 [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md) 建立 venue 级先验，再做一级总判定。
 4. 再按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的 `X1 + D1-D4` 标准形成最小可追溯的判定依据。
 5. 若论文跨域，则单独判断是否“软工主导”；只有最终落到 `软件工程` 时，才按 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 回填 `x.x.x` 级主路径。
 6. 若扫论文时发现某类软工论文在现有 `x.x.x` 中没有自然落点，应先回到 [../SOFTWARE_ENGINEERING_FIELD_TREE.md](../SOFTWARE_ENGINEERING_FIELD_TREE.md) 扩树并同步说明，不要把论文硬塞进“最接近”的旧叶子。
 7. 不要因为论文来自 `PL / systems / FM` venue 就自动将其视为软件工程论文。
 8. 若任务要求逐篇终判，人工结论应直接写回 `metadata/*.json`；未写回的条目只能视为启发式初判。
-9. 先做轻量筛选，再决定是否值得获取全文。
-10. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
-11. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计。
+9. venue 级先验默认统一使用 [../CCF_SE_A_B_C.md](../CCF_SE_A_B_C.md) 中的 `软工归属级别` 与 `氛围 A 🔥 / B 🟢 / C 🟡`，不要在年度页另造第二套 venue 分级。
+10. 若需要表达 venue 跟踪先后顺序，默认先按 `氛围 A 🔥 / B 🟢 / C 🟡`，同档再参考 `完全属于软工 / 大部分属于软工 / 部分属于软工`，不要另造 `A/B/C/D` 跟踪制。
+11. 逐篇论文层面默认沿用 `初筛 / pdf_followup` 字段，不再额外发明 `A/B/C/D` 第二套论文等级。
+12. 先做轻量筛选，再决定是否值得获取全文。
+13. 可先从近 `3-5` 年开始建立年度页，再逐步回溯。
+14. 每个年份页在正式加入新 venue 时，应同步更新该年的汇总统计与 `venues/*.md`。
 
 ## 8. 标准工作流
 
@@ -176,5 +200,6 @@ python -m tools.ccf_se_classifier --year 2025
 补充约束：
 
 1. `metadata/*.json` 默认既是脚本生成产物，也是最终保留载体。
-2. 构建缓存位于仓库根目录 `.cache/ccf_se_index/<year>/`，不属于年度索引正式内容。
-3. 后续若某些论文被选中进入全文阶段，再转入正式论文集路径处理 `paper.pdf / paper_content.txt / bibtex.bib`。
+2. `venues/*.md` 默认是脚本生成的可重建产物，用于承载单个 venue 的逐篇名录。
+3. 构建缓存位于仓库根目录 `.cache/ccf_se_index/<year>/`，不属于年度索引正式内容。
+4. 后续若某些论文被选中进入全文阶段，再转入正式论文集路径处理 `paper.pdf / paper_content.txt / bibtex.bib`。

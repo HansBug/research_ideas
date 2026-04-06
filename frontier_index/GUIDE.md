@@ -347,7 +347,8 @@ python -m tools.ccf_se_classifier --year 2025
 1. `frontier_index/ccf_history/<year>/README.md`
 2. `frontier_index/ccf_history/<year>/verification.json`
 3. `frontier_index/ccf_history/<year>/metadata/*.json`
-4. 外置临时缓存：`<repo>/.cache/ccf_se_index/<year>/`
+4. `frontier_index/ccf_history/<year>/venues/*.md`
+5. 外置临时缓存：`<repo>/.cache/ccf_se_index/<year>/`
 
 执行要求如下：
 
@@ -356,7 +357,7 @@ python -m tools.ccf_se_classifier --year 2025
 3. 生成后的 `metadata/*.json` 是最终保留载体；若任务涉及逐篇终判，应直接回写这里。
 4. 全量生成完成后，必须复核 `verification.json`，再运行分类器生成全量启发式初判。
 5. 若任务要求逐篇终判，应直接回写 `metadata/*.json` 中的终判字段，再重跑分类器。
-6. 构建器当前负责**基础元数据层**；分类器负责启发式分类补录、保留已写回终判并重写年度 `README.md`。
+6. 构建器当前负责**基础元数据层**并生成年度总页与 venue 名录页骨架；分类器负责启发式分类补录、保留已写回终判并重写年度 `README.md` 与 `venues/*.md`。
 
 若后续某批论文进入全文阶段，再转用 [../tools/pdf_extractor.py](../tools/pdf_extractor.py) 生成 `paper_content.txt`。
 
@@ -378,25 +379,52 @@ python -m tools.ccf_se_classifier --year 2025
 
 ### 8.1 `CCF` 年份索引的固定展开方式
 
-后续每个 `CCF` 年份目录下的 `README.md`，默认应按下面顺序展开：
+后续每个 `CCF` 年份目录默认应按下面结构维护：
+
+1. `README.md`
+   - 年度总览、统计、规范口径、venue 导航。
+2. `verification.json`
+   - 逐 venue 计数复核。
+3. `metadata/*.json`
+   - 可重建的结构化元数据与最终回写字段。
+4. `venues/*.md`
+   - 单个 venue 的逐篇论文名录。
+
+其中 `README.md` 默认应按下面顺序展开：
 
 1. 年份范围说明
-2. 当年覆盖的 venue 清单
-3. 每个 venue 一个独立 section
+2. 年度汇总统计
+3. 标准口径说明
+4. 当年覆盖的 venue 清单
+5. 每个 venue 一个独立导航 section
 
-每个 venue section 默认至少包含：
+每个 venue 导航 section 默认至少包含：
 
 1. venue 基本信息
    - 缩写
    - 全称
    - `CCF` 等级
    - 类型（会议 / 期刊）
+   - `软工归属级别`
+   - `氛围`
 2. 该 venue 在该年的关键信息页
    - 官方主页
    - `CFP` / `Call for Papers`
    - 程序页 / proceedings 页 / volume 页 / issue 页
    - 若有最佳论文、主题说明、重要时间线，也可补充
-3. 论文名录表
+3. 指向 `venues/<venue>.md` 的论文名录页链接
+4. 该 venue 的年度统计
+   - 一级总判定分布
+   - 软工纳入判定分布
+   - 初筛分布
+
+`venues/*.md` 默认承载真正的逐篇论文名录，每页至少包含：
+
+1. 文件导航
+2. venue 基本信息
+3. 该 venue 在该年的关键信息页
+4. 该 venue 的年度统计
+5. 论文名录表
    - 每篇论文都应尽量给出：
      - 标题
      - 作者
@@ -408,10 +436,17 @@ python -m tools.ccf_se_classifier --year 2025
      - 判定依据（`X1/D1-D4`）
      - `DOI`
      - 官方落地页
-     - 摘要或摘要简述
-     - `BibTeX`
      - 初筛结果
      - `PDF` 跟进建议
+     - `BibTeX` key
+6. 本 venue 年度观察
+
+额外硬约束：
+
+1. venue 级展示统一使用 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 中的 `软工归属级别` 与 `氛围 A 🔥 / B 🟢 / C 🟡`。
+2. 若需要表达 venue 的持续跟踪优先级，直接使用 `氛围 A 🔥 / B 🟢 / C 🟡`；同档再参考 `完全属于软工 / 大部分属于软工 / 部分属于软工`，不要再另造四级制。
+3. 逐篇论文层面不要额外发明第二套 `A/B/C/D` 等级；继续沿用 `initial_screening / pdf_followup`。
+4. 论文名录默认按 `🟢 -> 🟡 -> ⏳ -> ⚪` 的初筛优先级排序。
 
 默认要求如下：
 
