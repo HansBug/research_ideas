@@ -1,0 +1,741 @@
+--- Page 1 ---
+The mCRL2 Toolset for Analysing
+Concurrent Systems
+Improvements in Expressivity
+and Usability
+Olav Bunte1, Jan Friso Groote1(B), Jeroen J. A. Keiren1,2,
+Maurice Laveaux1, Thomas Neele1,E r i kP .d eV i n k1, Wieger Wesselink1,
+Anton Wijs1, and Tim A. C. Willemse1
+1Eindhoven University of Technology, Eindhoven, The Netherlands
+j.f.groote@tue.nl
+2Open University of the Netherlands, Heerlen, The Netherlands
+Abstract. Reasoning about the correctness of parallel and distributed
+systems requires automated tools. By now, the mCRL2 toolset and lan-
+guage have been developed over a course of more than ﬁfteen years. Inthis paper, we report on the progress and advancements over the past six
+years. Firstly, the mCRL2 language has been extended to support the
+modelling of probabilistic behaviour. Furthermore, the usability has beenimproved with the addition of reﬁnement checking, counterexample gen-
+eration and a user-friendly GUI. Finally, several performance improve-
+ments have been made in the treatment of behavioural equivalences.Besides the changes to the toolset itself, we cover recent applications
+of mCRL2 in software product line engineering and the use of domain
+speciﬁc languages (DSLs).
+1 Introduction
+Parallel programs and distributed systems become increasingly common. This is
+driven by the fact that Dennard’s scaling theory [ 17], stating that every new pro-
+cessor core is expected to provide a performance gain over older cores, does not
+hold any more, and instead performance is to be gained from exploiting multiple
+cores. Consequently, distributed system paradigms such as cloud computing have
+grown popular. However, designing parallel and distributed systems correctly isnotoriously diﬃcult. Unfortunately, it is all too common to observe ﬂaws such
+as data loss and hanging systems. Although these may be acceptable for many
+non-critical applications, the occasional hiccup may be impermissible for criticalapplications, e.g., when giving rise to increased safety risks or ﬁnancial loss.
+The mCRL2 toolset is designed to reason about concurrent and distributed
+systems. Its language [ 27] is based on a rich, ACP-style process algebra and
+has an axiomatic view on processes. The data theory is rooted in the theory of
+abstract data types (ADTs). The toolset consists of over sixty tools supporting
+visualisation, simulation, minimisation and model checking of complex systems.
+c/circlecopyrtThe Author(s) 2019
+T. Vojnar and L. Zhang (Eds.): TACAS 2019, Part II, LNCS 11428, pp. 21–39, 2019.https://doi.org/10.1007/978-3-030-17465-1
+_2
+
+--- Page 2 ---
+22 O. Bunte et al.
+In this paper, we present an overview of the mCRL2 toolset in general,
+focussing on the developments from the past six years. We ﬁrst present a cursoryoverview of the mCRL2 language, and discuss the recent addition of support for
+modelling and analysing probabilistic processes.
+Behavioural equivalences such as strong and branching bisimulation are used
+to reduce and compare state spaces of complex systems. Recently, the complex-
+ity of branching bisimulation has been signiﬁcantly improved from O(mn)t o
+O(m(log|Act|+ log n)), where mis the number of transitions, nthe number
+of states, and Actthe set of actions. This was achieved by implementing the
+new algorithm by Groote et al. [24]. Additionally, support for checking (weak)
+failures reﬁnement and failures divergence reﬁnement has been added.
+Model checking in mCRL2 is based on parameterised boolean equation sys-
+tems (PBES) [ 33] that combine information from a given mCRL2 speciﬁcation
+and a property in the modal μ-calculus. Solving the PBES answers the encoded
+model checking problem. Recent developments include improved static analysis
+of PBESs using liveness analysis, and solving PBESs for inﬁnite-state systemsusing symbolic quotienting algorithms and abstraction. One of the major features
+recently introduced is the ability to generate comprehensive counterexamples in
+the form of a subgraph of the original system.
+To aid novice users of mCRL2, an alternative graphical user-interface (GUI),
+mcrl2ide , has been added, that contains a text editor to create mCRL2 speciﬁca-
+tions, and provides access to the core functionality of mCRL2 without requiringthe user to know the interface of each of the sixty tools. The use of the language
+and tools is illustrated by means of a selection of case studies conducted with
+mCRL2. We focus on the application of the tools as a veriﬁcation back-end fordomain speciﬁc languages (DSLs), and the veriﬁcation of software product lines.
+The mCRL2 toolset can be downloaded from the website www.mcrl2.org .
+This includes binaries as well as source code packages
+1. To promote external
+contributions, the source code of mCRL2 and the corresponding issue tracker
+have been moved to GitHub.2The mCRL2 toolset is open source under the
+permissive Boost license, that allows free use for any purpose. Technical docu-
+mentation and a user manual of the mCRL2 toolset, including a tutorial, can be
+found on the website. An extensive introduction to the mCRL2 language can befound in the textbook Modeling and analysis of communicating systems [27].
+The rest of the paper is structured as follows. Section 2introduces the basics
+of the mCRL2 language and Sect. 3its probabilistic extension. In Sect. 4,w ed i s -
+cuss several new and improved tools for various behavioural relations. Section 5
+gives an overview of novel analysis techniques for PBESs, while Sect. 6introduces
+mCRL2’s improved GUI and Sect. 7discusses a number of applications. Related
+work is discussed in Sects. 8and9presents a conclusion and future plans.
+1The source code is also archived on https://doi.org/10.5281/zenodo.2555054 .
+2https://github.com/mCRL2org/mCRL2 .
+
+--- Page 3 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 23
+2 The mCRL2 Language and Workﬂow
+The behavioural speciﬁcation language mCRL2 [ 27] is the successor of μCRL
+(micro Common Representation Language [ 28]) that was in turn a response to
+a language called CRL (Common Representation Language) that became socomplex that it would not serve a useful purpose.
+sort Content =struct baddata |data 1|data 2;
+actread ,deliver ,get ,put ,pass on:Content ;
+proc Filter =
+/summationtext
+c:Contentget(c)·(c≈baddata →Filter /diamondmathput (c)·Filter );
+Queue (q:List (Content )) =
+/summationtext
+c:Contentread (c)·Queue (c⊿q )+
+q/negationslash≈[]→deliver (rhead (q))·Queue (rtail (q)) ;
+init ∇{get,deliver ,pass on }Γ{put |read →pass on }Filter ||Queue ([ ])/parenrightbig/parenrightbig
+;
+Fig. 1. A ﬁlter process communicating with an inﬁnite queue in mCRL2.
+The languages μCRL and mCRL2 are quite similar combinations of process
+algebra in the style of ACP [ 8] together with equational abstract data types [ 19].
+A typical example illustrating most of the language features of mCRL2 is given
+in Fig. 1, which shows a ﬁlter process ( Filter ) that iteratively reads data via an
+action getand forwards it to a queue using the action putif the data is not
+bad. The queue ( Queue ) is inﬁnitely sized, reading data via the action readand
+delivering data via the action deliver . The processes are put in parallel using the
+parallel operator /bardbl. The actions putand readare forced to synchronise into the
+action pass onusing the communication operator Γ and the allow operator ∇.
+The language mCRL2 only contains a minimal set of primitives to express
+behaviour, but this set is well chosen such that behaviour of communicating sys-
+tems can be easily expressed. Both μCRL and mCRL2 allow to express systems
+with time, using positive real time tags to indicate when an action takes place.
+Recently the possibility has been added to express probabilistic behaviour in
+mCRL2, which will be explained in Sect. 3.
+The diﬀerences between μCRL and mCRL2 are minor but signiﬁcant. In
+mCRL2 the if-then-else is written as c→p/diamondmathq(wasp/triangleleftc⊿q ). mCRL2 allows for
+multi-actions, e.g., a|b|cexpresses that the actions a,bandchappen at the
+same time. mCRL2 does not allow multiple actions with the same time tag
+to happen consecutively ( μCRL does, as do most other process speciﬁcation
+
+--- Page 4 ---
+24 O. Bunte et al.
+formalisms with time). Finally, mCRL2 has built-in standard datatypes, mecha-
+nisms to allow to specify datatypes far more compactly, and it allows for functiondatatypes, including lambda expressions, as well as arbitrary sets and bags.
+The initial purpose of μCRL was to have a mathematical language to model
+realistic protocols and distributed systems of which the correctness could beproven manually using process algebraic axioms and rules, as well as the equa-
+tions for the equational data types. The result of this is that mCRL2 is equipped
+with a nice fundamental theory as well as highly eﬀective proof methods [ 29,30],
+which have been used, for instance, to provide a concise, computer checked proof
+of the correctness of Tanenbaum’s most complex sliding window protocol [ 1].
+When the language μCRL began to be used for specifying actual systems [ 20],
+it became obvious that such behavioural speciﬁcations are too large to analyse by
+hand and tools were required, a toolset was developed. It also became clear that
+speciﬁcations of actual systems are hard to give without ﬂaws, and veriﬁcation
+is needed to eliminate those ﬂaws. In the early days veriﬁcation had the form of
+proving that an implementation and a speciﬁcation were (branching) bisimilar.
+Often it is more convenient to prove properties about aspects of the
+behaviour. For this purpose mCRL2 was extended with a modal logic, in the
+form of the modal μ-calculus with data and time. A typical example of a for-
+mula in modal logic is the following:
+νX(n:N=0 ).∀m:N.[enter(m)]X(n+m)∧
+∀m:N.[extract (m)](m≤n∧X(n−m))
+which says that the amount extracted using actions extract can never exceed
+the cumulative amount entered via the action enter. The modal μ-calculus with
+data is far more expressive than languages such as LTL and CTL*, which canbe mapped into it [ 13].
+mCRL2 LPSLTS yes/no
+μ-calculus formulaPBESyes/no
+(+evidence LPS)linearisation
+mcrl22lpsstate space generation
+lps2ltsltsconvert
+ltscompare
+lps2pbespbessolve
+Fig. 2. The mCRL2 model checking workﬂow
+Veriﬁcation of modal formulae is performed through transformations to lin-
+ear process speciﬁcations (LPSs) and parameterised boolean equation systems
+(PBESs) [ 25,33]. See Fig. 2for the typical model checking workﬂow. An LPS
+is a process in normal form, where all state behaviour is translated into data
+parameters. An LPS essentially consists of a set of condition-action-eﬀect rules
+
+--- Page 5 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 25
+saying which action can be done in which state, and as such is a symbolic rep-
+resentation of a state space. A PBES is constructed using a modal formula anda linear process. It consists of a parameterised sequence of boolean ﬁxed point
+equations. A PBES can be solved to obtain an answer to the question whether the
+mCRL2 speciﬁcation satisﬁes the supplied formula. For more details on PBESsand the generation of evidence, refer to Sect. 5.
+Whereas an LPS is a symbolic description of the behaviour of a system, a
+labelled transition system (LTS), makes this behaviour explicit. An LTS can be
+deﬁned in the context of a set of action labels. The LTS itself consists of a set
+of states, an initial state, and a transition relation between states where each
+transition is labelled by an action. The mCRL2 toolset contains the lps2lts
+tool to obtain the LTS from a given LPS by means of state space exploration.
+The resulting LTS contains all reachable states of this LPS and the transition
+relation deﬁning the possible actions in each state. The mCRL2 toolset provides
+tools for visualising and reducing LTSs and also for comparing LTSs in a pairwise
+manner. For more details on reducing and comparing LTSs, refer to Sect. 4.
+3 Probabilistic Extensions to mCRL2
+A recent addition to the mCRL2 language is the possibility to specify proba-
+bilistic processes using the construct distx:D[dist(x)].p(x) which behaves as
+the process p(x) with probability dist(x). The distribution distmay be discrete
+or continuous. For example, a process describing a light bulb that fails accordingto a negative exponential distribution of rate λis described as
+distr:R.[if(r≥0,λ e
+−λr,0)].fail/arrowhookleftr
+where fail/arrowhookleftris the notation for the action failthat takes place at time r.
+The modelling of probabilistic behaviour with the probabilistic extension of
+mCRL2 can be rather insightful as advocated in [ 32]. There it is illustrated for
+the Monty Hall problem and the so-called “problem of the lost boarding pass”how strong probabilistic bisimulation and reduction modulo probabilistic weak
+trace equivalence can be applied to visualise the probabilistic LTS (PLTS) of the
+underlying probabilistic process as well as to establish the probability of reaching
+a target state (or set of states). We illustrate this by providing the description
+and state space of the Monty Hall problem here.
+In the Monty Hall problem, there are three doors, one of which is hiding a
+prize. A player can select a door. Then one of the remaining doors that does not
+hide the prize is opened. The player can then decide to select the other door.If he does so, he will get the prize with probability
+2
+3. The action prize (true)
+indicates that a prize is won. The action prize (false) is an indication that no
+prize is obtained. A possible model in mCRL2 is given below. In this model theplayer switches doors. So, the prize is won if the initially selected door was not
+the door with the prize.
+
+--- Page 6 ---
+26 O. Bunte et al.
+1
+9
+/check1
+9
+/check1
+9
+/check1
+9
+/check1
+9
+×1
+9
+/check1
+9
+×1
+9
+/check1
+9
+×1
+3
+prize (false )2
+3
+prize (true )
+Fig. 3. The non-reduced and reduced state space of the Monty Hall problem. At the
+left the label /checkabbreviates prize (true)a n d ×stands for prize (false)
+sort Doors =struct door 1|door 2|door 3;
+init dist door with prize:Doors [1/3].
+dist initially selected door:Doors [1/3].
+prize (initially selected door/negationslash≈door with prize)·δ;
+The generated state space for this model is given in Fig. 3at the left. From
+probabilistic mCRL2 processes probabilistic transition systems can be generated,
+which can be reduced modulo strong probabilistic bisimulation [ 26] (see the next
+section). The reduced transition system is provided at the right, and clearlyshows that the prize is won with probability
+2
+3.
+Moreover, modal mu-calculus formulae yielding a probability, i.e.a real num-
+ber, can be evaluated invoking probabilistic counterparts of the central tools inthe toolset. For the Monty Hall model the modal formula /angbracketleftprize (true)/angbracketrighttrue
+will evaluate to the probability
+2
+3. The tool that veriﬁed this modal formula is
+presented in [ 10]. Although the initial results are promising, the semantic and
+axiomatic underpinning of the process theory for probabilities is demanding.
+4 Behavioural Relations
+Given two LTSs, the ltscompare tool can check whether they are related accord-
+ing to one of a number of equivalence and reﬁnement relations. Additionally, the
+ltsconvert tool can reduce a given LTS modulo an equivalence relation. In the
+following subsections the recently added implementations of several equivalenceand reﬁnement relations are described.
+4.1 Equivalences
+The ltscompare tool can check simulation equivalence, and (weak) trace equiv-
+alence between LTSs. In the latest release an algorithm for checking ready sim-
+ulation was implemented and integrated into the toolset [ 23]. Regarding bisimu-
+lations, the tool can furthermore check strong, branching and weak bisimulation
+
+--- Page 7 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 27
+between LTSs. The latter two are sensitive to so-called internal behaviour, rep-
+resented by the action τ.Divergence-preserving variants of these bisimulations
+are supported, which take the ability to perform inﬁnite sequences of internal
+behaviour into account. The above mentioned equivalences can also be used by
+theltsconvert tool.
+Recently, the Groote/Jansen/Keiren/Wijs algorithm (GJKW) for branching
+bisimulation [ 24], with complexity O(m(log|Act|+ log n)), was implemented.
+When tested in practice, it frequently demonstrates performance improvementsby a factor of 10, and occasionally by a factor of 100 over the previous algorithm
+by Groote and Vaandrager [ 31].
+The improved complexity is the result of combining the process the smaller
+halfprinciple [ 35] with the key observations made by Groote and Vaandrager
+regarding internal transitions [ 31]. GJKW uses partition reﬁnement to identify
+all classes of equivalent states. Repeatedly, one class (or block)Bis selected to
+be the so-called splitter , and each block B
+/primeis checked for the reachability of B,
+where internal behaviour should be skipped over. In case Bis reachable from
+some states in B/primebut not from others, B/primeneeds to be split into two subblocks,
+separating the states from which Bcan and cannot be reached. Whenever a
+ﬁxed-point is reached, the obtained partition deﬁnes the equivalence relation.
+GJKW applies process the smaller half in two ways. First of all, it is ensured
+that each time a state sis part of a splitter B, the size of B, in terms of number
+of states, is at most half the size of the previous splitter in which sresided. To do
+this, blocks are partitioned in constellations . A block is selected as splitter iﬀ its
+size is at most half the number of states in the constellation in which it resides.
+When a splitter is selected, it is moved into its own, new, constellation, andwhen a block is split, the resulting subblocks remain in the same constellation.
+Second of all, it has to be ensured that splitting a block B
+/primetakes time pro-
+portional to the smallest resulting subblock. To achieve this, two state selectionprocedures are executed in lockstep, one identifying the states in B
+/primethat can
+reach the splitter, and one detecting the other states. Once one of these proce-
+dures has identiﬁed all its states, those states can be split oﬀ from B/prime.
+Reachability checking is performed eﬃciently by using the notion of bottom
+state[31], which is a state that has no outgoing internal transitions leading to
+a state in the same block. It suﬃces to check whether any bottom state in B/prime
+can reach B. Hence, it is crucial that for each block, the set of bottom states is
+maintained during execution of the algorithm.
+GJKW is very complicated due to the amount of book keeping needed to
+achieve the complexity. Among others, a data structure by Valmari, called reﬁn-
+able partition [46] is used, together with three copies of all transitions, structured
+in diﬀerent ways to allow fast retrieval in the various stages of the algorithm.
+Besides checking for branching bisimulation, GJKW is used as a basis for
+checking strong bisimulation (in which case it corresponds to the Paige-Tarjanalgorithm [ 41]) and as a preprocessing step for checking weak bisimulation.
+For the support of the analysis of probabilistic systems, a number of prelim-
+inary extensions have been made to the mCRL2 toolset. In particular, a new
+
+--- Page 8 ---
+28 O. Bunte et al.
+algorithm has been added to reduce PLTSs – containing both non-deterministic
+and probabilistic choice [ 44] – modulo strong probabilistic bisimulation. This
+new Paige-Tarjan style algorithm, called GRV [ 26] and implemented in the tool
+ltspbisim , improves upon the complexity of the best known algorithm so far
+by Baier et al. [2]. The GRV algorithm was inspired by work on lumping of
+Markov Chains by Valmari and Franceschinis [ 47] to limit the number of times a
+probabilistic transition needs to be sorted. Under the assumption of a bounded
+fan-out for probabilistic states, the time complexity of GRV is O(nplogna) with
+npequal to the number of probabilistic transitions and nabeing the number of
+non-deterministic states in a PLTS.
+4.2 Reﬁnement
+In model checking there is typically a single model on which properties, deﬁned in
+another language, are veriﬁed. An alternative approach that can be employed isreﬁnement checking. Here, the correctness of the model is veriﬁed by establishing
+a reﬁnement relation between an implementation LTS and a speciﬁcation LTS.
+The chosen reﬁnement relation must be strong enough to preserve the desiredproperties of the model, but also weak enough to allow many valid implementa-
+tions.
+For reﬁnement relations the ltscompare tool can check the asymmetric vari-
+ants of simulation, ready simulation and (weak) trace equivalence between LTSs.
+In the latest release, several algorithms have been added to check (weak) trace,
+(weak) failures and failures-divergences reﬁnement relations based on the algo-rithms introduced in [ 48]. We remark that weak failures reﬁnement is known
+as stable failures reﬁnement in the literature. Several improvements have been
+made to the reference algorithms and the resulting implementation has beensuccessfully used in practice, as described in Sect. 7.1.
+The newly introduced algorithms are based on the notion of antichains . These
+algorithms try to ﬁnd a witness to show that no reﬁnement relation exists. The
+antichain data structure keeps track of the explored part of the state space and
+assists in pruning other parts based on an ordering. If no reﬁnement relationexists, the tool provides a counterexample trace to a violating state. To further
+speed up reﬁnement checking, the tool applies divergence-preserving branching
+bisimulation reduction as a preprocessing step.
+5 Model Checking
+Behavioural properties can be speciﬁed in a ﬁrst-order extension of the modalμ-calculus. The problem of deciding whether a μ-calculus property holds for a
+given mCRL2 speciﬁcation is converted to a problem of (partially) solving a
+PBES. Such an equation system consists of a sequence of parameterised ﬁx-point equations of the form ( σX(d
+1:D1,...,d n:Dn)=φ), where σis either a
+least ( μ) or greatest ( ν) ﬁxpoint, Xis an n-ary typed second-order recursion
+
+--- Page 9 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 29
+variable, each diis a parameter of type Diandφis a predicate formula (tech-
+nically, a ﬁrst-order formula with second-order recursion variables). The entiretranslation is syntax-driven, i.e., linear in the size of the linear process speci-
+ﬁcation and the property. We remark that mCRL2 also comes with tools that
+encode decision problems for behavioural equivalences as equation system solv-ing problems; moreover, mCRL2 oﬀers similar translations operating on labelled
+transition systems instead of linear process speciﬁcations.
+5.1 Improved Static Analysis of Equation Systems
+The parameters occurring in an equation system are derived from the parameters
+present in process speciﬁcations and ﬁrst-order variables present in μ-calculus
+formulae. Such parameters typically determine the set of second-order variables
+on which another second-order variable in an equation system depends. Most
+equation system solving techniques rely on explicitly computing these depen-dencies. Obviously, such techniques fail when the set of dependencies is inﬁnite.
+Consider, for instance the equation system depicted below:
+νX(i,k:N)=(i/negationslash=1∨X(1,k+ 1)) ∧∀m:N. Y(2,k+m)
+μY(i,k:N)=(k<10∨i=2 )∧(i/negationslash=2∨Y(1,1))
+Observe that the solution to X(1,1), which is true, depends on the solution to
+X(1,2), but also on the solution to Y(2,1+m) for all m, see Fig. 4. Conse-
+quently, techniques that rely on explicitly computing the dependencies will fail
+to compute the solution to X(1,1).
+X(1,1) X(1,2) X(1,3) X(1,4)
+Y(2,1) Y(2,2) Y(2,3) Y(2,4)
+Y(1,1)
+Fig. 4. Dependencies of second-order recursion variables on other second-order recur-
+sion variables in an equation system.
+Not all parameters are ‘used’ equally in an equation system: some parameters
+may only inﬂuence the truth-value of a second-order variable, whereas others
+may also inﬂuence whether an equation depends on second-order variables. Forinstance, in our example, the parameter iofXdetermines when there is a
+dependency of XonX, and in the equation for Y, parameter idetermines when
+there is a dependency of YonY. The value for parameter k, however, is only of
+interest in the equation for Y, where it immediately determines its solution when
+i/negationslash= 2: it will be truewhen k<10 and falseotherwise. For i= 2, the value of k
+is immaterial. As suggested by the dependency graph in Fig. 4,f o rX(1,1), the
+
+--- Page 10 ---
+30 O. Bunte et al.
+only dependency that is ultimately of consequence is the dependency on Y(1,1),
+i.e.,k= 1; other values for kcannot be reached.
+The techniques implemented in the pbesstategraph tool, and which are
+described in [ 37], perform a liveness analysis for data variables, such as kin
+our example, and reset these values to default values when their actual valueno longer matters. To this end, a static analysis determines a set of control
+ﬂow parameters in an equation system. Intuitively, a control ﬂow parameter
+is a parameter in an equation for which we can statically detect that it canassume only a ﬁnite number of distinct values, and that its values determine
+which occurrences of recursion variables in an equation are relevant. Such control
+ﬂow parameters are subsequently used to approximate the dependencies of anequation system, and compute the set of data variables that are still live.A s
+soon as a data variable switches from live to not live, it can be set to a default,
+pre-determined value.
+In our example, parameter iin equations XandYis a control ﬂow parameter
+that can take on value 1 or 2. Based on a liveness analysis one can conclude thatthe second argument in both occurrences of the recursion variable Xin the
+equation for Xcan be reset, leading to an equation system that has the same
+solution as the original one:
+νX(i,k:N)=(i/negationslash=1∨X(1,1))∧∀m:N. Y(2,1)
+μY(i,k:N)=(k<10∨i=2 )∧(i/negationslash=2∨Y(1,1))
+Observe that there are only a ﬁnite number of dependencies in the above equation
+system, as the universally quantiﬁed variable mno longer induces an inﬁnite
+set of dependencies. Consequently, it can be solved using techniques that rely
+on computing the dependencies in an equation system. The experiments in [ 37]
+show that pbesstategraph in general speeds up solving when it is able to reduce
+the underlying set of dependencies in an equation system, and when it is not
+able to do so, the overhead caused by the analysis is typically small.
+5.2 Inﬁnite-State Model Checking
+Two new experimental tools,
+pbessymbolicbisim [40]a n d pbesabsinthe [16],
+support model checking of inﬁnite-state systems. These are two of the few sym-
+bolic tools in the toolset. Regular PBES solving techniques, such as those imple-
+mented in pbessolve , store each state explicitly, which prohibits the analysis of
+inﬁnite-state systems. In pbessymbolicbisim , (inﬁnite) sets of states are repre-
+sented using ﬁrst-order logic expressions. Instead of straightforward exploration,
+it performs symbolic partition reﬁnement based on the information about theunderlying state space that is contained in the PBES. The approximation of the
+state space is iteratively reﬁned, until it equals the bisimulation quotient of that
+state space. Moreover, since the only goal of this tool is to solve a PBES, i.e.give
+the answer trueorfalse, additional abstraction techniques can be very coarse.
+As a result, the tool often terminates before the bisimulation quotient has been
+fully computed.
+
+--- Page 11 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 31
+The second tool, pbesabsinthe , requires the user to specify an abstraction
+mapping manually. If the abstraction mapping satisﬁes certain criteria, it willbe used to generate a ﬁnite underlying graph structure. By solving the graph
+structure, the tool obtains a solution to the PBES under consideration.
+The theoretical foundations of pbessymbolicbisim and pbesabsinthe are
+similar: pbessymbolicbisim computes an abstraction based on an equiva-
+lence relation and pbesabsinthe works with preorder-based abstractions. Both
+approaches have their own strengths and weaknesses: pbesabsinthe requires
+the user to specify an abstraction manually, whereas pbessymbolicbisim runs
+fully automatically. However, the analysis of pbessymbolicbisim can be very
+costly for larger models. A prime application of pbessymbolicbisim and
+pbesabsinthe is the veriﬁcation of real-time systems.
+5.3 Evidence Extraction
+One of the major new features of the mCRL2 toolset that, until recently, was
+lacking is the ability to generate informative counterexamples (resp. witnesses)
+from a failed (resp. successful) veriﬁcation. The theory of evidence generationthat is implemented is based on that of [ 15], which explains how to extract diag-
+nostic evidence for μ-calculus formulae via the Least Fixed-Point (LFP) logic.
+The diagnostic evidence that is extracted is a subgraph of the original labelledtransition system that permits to reconstruct the same proof of a failing (or suc-
+cessful) veriﬁcation. Note that since the input language for properties can encode
+branching-time and linear-time properties, diagnostic evidence cannot always bepresented in terms of traces or lassos; for linear-time properties, however, the
+theory permits to generate trace- and lasso-shaped evidence.
+A straightforward implementation of the ideas of [ 15] in the setting of equa-
+tion systems is, however, hampered by the fact that the original evidence theory
+builds on a notion of proof graph that is diﬀerent from the one developed in [ 14]
+for equation systems. In [ 49], we show that these diﬀerences can be overcome by
+modifying the translation of the model checking problem as an equation system
+solving problem. This new translation is invoked by passing the ﬂag ‘-c’ to thetool lps2pbes . The new equation system solver pbessolve can be directed to
+extract and store the diagnostic evidence from an equation system by passing
+the linear process speciﬁcation along with this equation system; the resultingevidence, which is stored as a linear process speciﬁcation, can subsequently be
+simulated, minimised or visualised for further inspection.
+Figure 5, taken from [ 49], gives an impression of the shape of diagnostic evi-
+dence that can be generated using the new tooling. The labelled transition sys-
+tem that is depicted presents the counterexample to a formula for the CERN job
+storage management system [ 43] that states that invariantly, each task that is
+terminated is inevitably removed. Note that this counterexample is obtained by
+minimising the original 142-state large evidence produced by our tools modulo
+branching bisimulation.
+
+--- Page 12 ---
+32 O. Bunte et al.
+Fig. 5. Counterexamples for the requirement that each task in a terminating state is
+eventually removed for the Storage Management Systems. We omitted all edge labels,
+and the dashed line indicates a lengthy path through a number of other states (notdepicted), whereas the dotted transitions are 3D artefacts.
+6 User-Friendly GUI
+The techniques explained in this paper may not be easily accessible to users that
+are new to the mCRL2 toolset. This is because the toolset is mostly intended
+for scientiﬁc purposes; at least initially, not much attention had been spent on
+user friendliness. As the toolset started to get used in workshops and academiccourses however, the need for this user friendliness increased. This gave rise to
+the tools mcrl2-gui , a graphical alternative to the command line usage of the
+toolset, and mcrl2xi , an editor for mCRL2 speciﬁcations. However, to use the
+functionality of the toolset it was still required to know about the individual
+tools. For instance, to visualise the state space of an mCRL2 speciﬁcation, one
+needed to manually run the tools mcrl22lps ,lps2lts andltsgraph .
+As an alternative, the tool mcrl2ide has been added to the mCRL2 toolset.
+This tool provides a graphical user interface with a text editor to create and edit
+mCRL2 speciﬁcations and it provides the core functionality of the toolset suchas visualising the (reduced) state space and verifying properties. The tools that
+correspond to this functionality are abstracted away from the user; only one or
+a few button clicks are needed.
+See Fig. 6for an instance of mcrl2ide with an open project, consisting of
+an mCRL2 speciﬁcation and a number of properties. The UI consists of aneditor for mCRL2 speciﬁcations, a toolbar at the top, a dock listing deﬁned
+properties on the right and a dock with console output at the bottom. The
+toolbar contains buttons for creating, opening and saving a project and buttonsfor running tools. The properties dock allows verifying each single property on
+the given mCRL2 speciﬁcation, editing/removing properties and showing the
+witness/counterexample after veriﬁcation.
+7 Applications
+The mCRL2 toolset and its capabilities have not gone unnoticed. Over the yearsnumerous initiatives and collaborations have sprouted to apply its functionality.
+7.1 mCRL2 as a Veriﬁcation Back-End
+The mCRL2 toolset enjoys a sustained application in industry, often in the con-
+text of case studies carried out by MSc or PhD students. Moreover, the mCRL2
+
+--- Page 13 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 33
+Fig. 6. An instance of mcrl2ide in Windows 10 with an mCRL2 speciﬁcation of the
+alternating bit protocol. The properties in the dock on the right are (from top to
+bottom) true,falseand not checked yet.
+toolset is increasingly used as a back-end aiming at veriﬁcation of higher-level
+languages. Some of these applications are built on academic languages; e.g.,
+in [22] the Algebra for Wireless Networks is translated to mCRL2, enabling
+the veriﬁcation of protocols for Mobile Ad hoc Networks and Wireless Mesh
+Networks. Models written in the state-machine based Simple Language of Com-municating Objects (SLCO) are translated to mCRL2 to verify shared-memory
+concurrent systems and reason about the sequential consistency of automatically
+generated multi-threaded software [ 42]. Others are targeting more broadly used
+languages; e.g.,i n[39], Go programs are translated to mCRL2 and the mCRL2
+toolset is used for model checking Go programs.
+The use of mCRL2 in industry is furthermore driven by the current Formal
+Model-Driven Engineering (FMDE) trend. In the FMDE paradigm, programs
+written in a Domain-Speciﬁc Language (DSL) are used to generate both exe-
+cutable code and veriﬁable models. A recent example is the commercial FMDE
+toolset Dezyne developed by Verum, see [ 9], which uses mCRL2 to check for
+livelocks and deadlocks, and which relies on mCRL2’s facilities to check forreﬁnement relations (see Sect. 4.2) to check for interface compliance . Similar
+languages and methodologies are under development at other companies. For
+instance, ASML, one of the world’s leading manufacturers of chip-making equip-
+
+--- Page 14 ---
+34 O. Bunte et al.
+ment, is developing the Alias language, and Oc´ e, a global leading company in
+digital imaging, industrial printing and collaborative business services, is devel-oping the OILlanguage. Both FMDE solutions build on mCRL2.
+We believe the FMDE trend will continue in the coming years and that it
+will inﬂuence the development of the toolset. For example, the use of reﬁnementchecking in the Dezyne back-end has forced us to implement several optimisa-
+tions ( cf.Sect.4.2). Furthermore, machine-generated speciﬁcations are typically
+longer and more verbose than handwritten speciﬁcations. This will require amore eﬃcient implementation of the lineariser – as implemented in mcrl22lps
+– in the coming years.
+7.2 Software Product Lines
+A software product line (SPL) is a collection of systems, individually called prod-
+ucts, sharing a common core. However, at speciﬁc points the products may showslightly diﬀerent behaviour dependent on the presence or absence of so-called
+features. The overall system can be concisely represented as a featured transi-
+tion system (FTS), an LTS with both actions and boolean expressions over a setof features decorating the transitions (see [ 12]). If a product, given its features,
+fulﬁls the boolean expression guarding the transition the transition may be taken
+by the product. Basically, there are two ways to analyse SPLs: product-basedand family-based. In product-based analysis each product is veriﬁed separately;
+in family-based model checking one seeks to verify a property for a group of
+products, referred to as a family, as a whole.
+Traditionally, dedicated model checkers are exploited for the veriﬁcation of
+SPLs. Examples of such SPL model checkers are SNIP and ProVeLines by the
+team of [ 12] that are derived from SPIN. However, the mCRL2 toolset as-is,
+without speciﬁc modiﬁcations, has also been used to compare product-based
+vs. family-based model checking [ 3,5,7]. For this, the extension of the modal
+μ-calculus for the analysis of FTSes proposed in [ 4], that combines actions
+and feature expressions for its modalities, was translated into the ﬁrst-order
+μ-calculus [ 25], the property language of the mCRL2 toolset. As a result, veriﬁ-
+cation of SPLs can be done using the standard workﬂow for mCRL2, achieving
+family-based model checking without a family-based model checker [ 18], with
+running times slightly worse than, but comparable to those of dedicated tools.
+8 Related Work
+Among the many model checkers available, the CADP toolset [ 21] is the clos-
+est related to mCRL2. In CADP, speciﬁcations are written in the Lotos NT
+language, which has been derived from the E-Lotos ISO standard. Similar to
+mCRL2, CADP relies on action-based semantics, i.e., state spaces are stored as
+an LTS. Furthermore, the veriﬁcation engine in CADP takes a μ-calculus formula
+as input and encodes it in a BES or PBES. However, CADP has limited sup-
+port for μ-calculus formulae with ﬁxpoint alternation and, unlike mCRL2, does
+
+--- Page 15 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 35
+not support arbitrary nesting of ﬁxpoints. Whereas the probabilistic analysis
+tools for mCRL2 are still in their infancy, CADP oﬀers more advanced analy-sis techniques for Markovian probabilistic systems. The user-license of CADP
+is restrictive: CADP is not open source and a free license is only available for
+academic use.
+Another toolset that is based on process algebra is Pat[45]. This toolset has
+native support for the veriﬁcation of real-time speciﬁcations and implements on-
+the-ﬂy reduction techniques, in particular partial-order reduction and symmetryreduction. Patcan perform model checking of LTL properties.
+The toolset LTSmin [36] has a unique architecture in the sense that it is
+language-independent. One of the supported input languages is mCRL2. Thus,the state space of an mCRL2 speciﬁcation can also be generated using LTSmin ’s
+high-performance multi-core and symbolic back-ends.
+Well-known tools that have less in common with mCRL2 are SPIN [34],
+NuSMV [11],PRISM [38]a n d UPPAAL [6]. Each of these tools has its own
+strengths. First of all, SPIN is an explicit-state model checker that incorporates
+advanced techniques to reduce the size of the state space (partial-order reduction
+and symmetry reduction) or the amount of memory required (bit hashing). SPIN
+supports the checking of assertions and LTL formulae. Secondly, NuSMV is a
+powerful symbolic model checker that oﬀers model checking algorithms such
+as bounded model checking and counterexample guided abstraction reﬁnement
+(CEGAR). The tools PRISM and UPPAAL focus on quantitative aspects of
+model checking. The main goal of PRISM is to analyse probabilistic systems,
+whereas UPPAAL focusses on systems that involve real-time behaviour.
+9 Conclusion
+In the past six years many additions and changes have been made to the mCRL2
+toolset and language to improve its expressivity, usability and performance.Firstly, the mCRL2 language has been extended to enable modelling of prob-
+abilistic behaviour. Secondly, by adding the ability to check reﬁnement and to
+do inﬁnite-state model checking the mCRL2 toolset has become applicable ina wider range of situations. Also, the introduction of the generation of coun-
+terexamples and witnesses for model checking problems and the introduction of
+an enhanced GUI has improved the experience of users of the mCRL2 toolset.Lastly, reﬁnements to underlying algorithms, such as those for equivalence reduc-
+tions and static analyses of PBESs, have resulted in lowered running times when
+applying the corresponding tools.
+For the future, we aim to further strengthen several basic building blocks of
+the toolset, in particular the term library and the rewriter. The term library isresponsible for storage and retrieval of terms that underlie mCRL2 data expres-
+sions. The rewriter manipulates data expressions based on rewrite rules speci-
+ﬁed by the user. Currently, these two components have evolved over time butare rather limitedly documented. It has proven to be diﬃcult to revitalise the
+current implementation or to make amendments to experiment with new ideas.
+
+--- Page 16 ---
+36 O. Bunte et al.
+For this, one of the aims is to investigate the beneﬁts of multi-core algorithms,
+expecting a subsequent speed-up for many other algorithms in the toolset.
+References
+1. Badban, B., et al.: Veriﬁcation of a sliding window protocol in µCRL and PVS.
+Formal Aspects Comput. 17(3), 342–388 (2005)
+2. Baier, C., Engelen, B., Majster-Cederbaum, M.E.: Deciding bisimilarity and simi-
+larity for probabilistic processes. JCSS 60(1), 187–231 (2000)
+3. ter Beek, M.H., de Vink, E.P.: Using mCRL2 for the analysis of software product
+lines. In: Proceedings of the FormaliSE 2014, pp. 31–37. ACM (2014)
+4. ter Beek, M.H., de Vink, E.P., Willemse, T.A.C.: Towards a feature mu-calculus
+targeting SPL veriﬁcation. In: Proceedings of the FMSPLE 2016, EPTCS, p. 15
+(2016)
+5. ter Beek, M.H., de Vink, E.P., Willemse, T.A.C.: Family-based model checking with
+mCRL2. In: Huisman, M., Rubin, J. (eds.) FASE 2017. LNCS, vol. 10202, pp. 387–
+405. Springer, Heidelberg (2017). https://doi.org/10.1007/978-3-662-54494-5 23
+6. Behrmann, G., David, A., Larsen, K.G.: A tutorial on Uppaal . In: Bernardo,
+M., Corradini, F. (eds.) SFM-RT 2004. LNCS, vol. 3185, pp. 200–236. Springer,
+Heidelberg (2004). https://doi.org/10.1007/978-3-540-30080-9 7
+7. Ben Snaiba, Z., de Vink, E.P., Willemse, T.A.C.: Family-based model checking of
+SPL based on mCRL2. In: Proceedings of the SPLC 2017, vol. B, pp. 13–16. ACM
+(2017)
+8. Bergstra, J.A., Klop, J.W.: The algebra of recursively deﬁned processes and the
+algebra of regular processes. In: Paredaens, J. (ed.) ICALP 1984. LNCS, vol. 172,pp. 82–94. Springer, Heidelberg (1984). https://doi.org/10.1007/3-540-13345-3
+7
+9. van Beusekom, R., et al.: Formalising the Dezyne modelling language in mCRL2.
+In: Petrucci, L., Seceleanu, C., Cavalcanti, A. (eds.) FMICS/AVoCS-2017. LNCS,
+vol. 10471, pp. 217–233. Springer, Cham (2017). https://doi.org/10.1007/978-3-
+319-67113-0 14
+10. Bunte, O.: Quantitative model checking on probabilistic systems using pL µ. Mas-
+ter’s thesis, Eindhoven University of Technology (2017)
+11. Cimatti, A., et al.: NuSMV 2: an opensource tool for symbolic model checking.
+In: Brinksma, E., Larsen, K.G. (eds.) CAV 2002. LNCS, vol. 2404, pp. 359–364.
+Springer, Heidelberg (2002). https://doi.org/10.1007/3-540-45657-0 29
+12. Classen, A., et al.: Model checking lots of systems. In: Proceedings of ICSE 2010,
+pp. 335–344. ACM (2010)
+13. Cranen, S., Groote, J.F., Reniers, M.A.: A linear translation from CTL* to the
+ﬁrst-order modal µ-calculus. Theoret. Comput. Sci. 412, 3129–3139 (2011)
+14. Cranen, S., Luttik, B., Willemse, T.A.C.: Proof graphs for parameterised Boolean
+equation systems. In: D’Argenio, P.R., Melgratti, H. (eds.) CONCUR 2013. LNCS,vol. 8052, pp. 470–484. Springer, Heidelberg (2013). https://doi.org/10.1007/978-
+3-642-40184-8
+33
+15. Cranen, S., Luttik, B., Willemse, T.A.C.: Evidence for ﬁxpoint logic. In: Proceed-
+ings of CSL, LIPIcs, vol. 41, pp. 78–93 (2015)
+16. Cranen, S., et al.: Abstraction in ﬁxpoint logic. ACM Trans. Computat. Logic
+16(4), 29 (2015)
+17. Dennard, R., et al.: Design of ion-implanted MOSFET’s with very small physical
+dimensions. IEEE J. Solid-State Circ. 9(5), 256–268 (1974)
+
+--- Page 17 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 37
+18. Dimovski, A., Al-Sibahi, A.S., Brabrand, C., W/arrowhookleftasowski, A.: Family-based model
+checking without a family-based model checker. In: Fischer, B., Geldenhuys, J.
+(eds.) SPIN 2015. LNCS, vol. 9232, pp. 282–299. Springer, Cham (2015). https://
+doi.org/10.1007/978-3-319-23404-5 18
+19. Ehrig, H., Mahr, B.: Fundamentals of Algebraic Speciﬁcation 1: Equations und
+Initial Semantics. Springer, Heidelberg (1985). https://doi.org/10.1007/978-3-642-
+69962-7
+20. Engel, A.J.P.M., et al.: Speciﬁcation, design and simulation of services and pro-
+tocols for a PDA using the infra red medium. Report RWB-510-re-95012, Philips
+(1995)
+21. Garavel, H., Lang, F., Mateescu, R., Serwe, W.: CADP 2011: a toolbox for the
+construction and analysis of distributed processes. STTT 15(2), 89–107 (2013)
+22. van Glabbeek, R.J., H¨ ofner, P., van der Wal, D.: Analysing AWN-speciﬁcations
+using mCRL2 (Extended Abstract). In: Furia, C.A., Winter, K. (eds.) IFM 2018.
+LNCS, vol. 11023, pp. 398–418. Springer, Cham (2018). https://doi.org/10.1007/
+978-3-319-98938-9 23
+23. Gregorio-Rodr´ ıguez, C., Llana, L., Mart´ ınez-Torres, R.: Extending mCRL2 with
+ready simulation and Iocos input-output conformance simulation. In: SAC 2015,pp. 1781–1788. ACM (2015)
+24. Groote, J.F., Jansen, D.N., Keiren, J.J.A., Wijs, A.J.: An O(mlog n) algorithm
+for computing stuttering equivalence and branching bisimulation. ACM Trans.
+Comput. Logic 18(2), 13:1–13:34 (2017)
+25. Groote, J.F., Mateescu, R.: Veriﬁcation of temporal properties of processes in a
+setting with data. In: Haeberer, A.M. (ed.) AMAST 1999. LNCS, vol. 1548, pp.
+74–90. Springer, Heidelberg (1998). https://doi.org/10.1007/3-540-49253-4
+8
+26. Groote, J.F., Rivera Verduzco, J., de Vink, E.P.: An eﬃcient algorithm to deter-
+mine probabilistic bisimulation. Algorithms 11(9), 131, 1–22 (2018)
+27. Groote, J.F., Mousavi, M.R.: Modeling and Analysis of Communicating Systems.
+The MIT Press, Cambridge (2014)
+28. Groote, J.F., Ponse, A.: The syntax and semantics of mCRL. In: Ponse, A., Verhoef,
+C., van Vlijmen, S.F.M. (eds.) Algebra of Communicating Processes. Workshopsin Computing, pp. 26–62. Springer, London (1994). https://doi.org/10.1007/978-
+1-4471-2120-6
+2
+29. Groote, J.F., Sellink, M.P.A.: Conﬂuence for process veriﬁcation. Theoret. Comput.
+Sci.170(1–2), 47–81 (1996)
+30. Groote, J.F., Springintveld, J.: Focus points and convergent process operators: a
+proof strategy for protocol veriﬁcation. J. Logic Algebraic Program. 49(1–2), 31–60
+(2001)
+31. Groote, J.F., Vaandrager, F.W.: An eﬃcient algorithm for branching bisimulation
+and stuttering equivalence. In: Paterson, M.S. (ed.) ICALP 1990. LNCS, vol. 443,
+pp. 626–638. Springer, Heidelberg (1990). https://doi.org/10.1007/BFb0032063
+32. Groote, J.F., de Vink, E.P.: Problem solving using process algebra considered
+insightful. In: Katoen, J.-P., Langerak, R., Rensink, A. (eds.) ModelEd, TestEd,TrustEd. LNCS, vol. 10500, pp. 48–63. Springer, Cham (2017). https://doi.org/
+10.1007/978-3-319-68270-9
+3
+33. Groote, J.F., Willemse, T.A.C.: Parameterised boolean equation systems. Theoret.
+Comput. Sci. 343(3), 332–369 (2005)
+34. Holzmann, G.J.: The SPIN Model Checker: Primer and Reference Manual.
+Addison-Wesley, Boston (2004)
+35. Hopcroft, J.: An nlog nalgorithm for minimizing states in a ﬁnite automaton. In:
+Proceedings of TMC, pp. 189–196. Academic Press (1971)
+
+--- Page 18 ---
+38 O. Bunte et al.
+36. Kant, G., Laarman, A., Meijer, J., van de Pol, J., Blom, S., van Dijk, T.: LTSmin:
+high-performance language-independent model checking. In: Baier, C., Tinelli, C.
+(eds.) TACAS 2015. LNCS, vol. 9035, pp. 692–707. Springer, Heidelberg (2015).https://doi.org/10.1007/978-3-662-46681-0
+61
+37. Keiren, J.J.A., Wesselink, W., Willemse, T.A.C.: Liveness analysis for parame-
+terised boolean equation systems. In: Cassez, F., Raskin, J.-F. (eds.) ATVA 2014.LNCS, vol. 8837, pp. 219–234. Springer, Cham (2014). https://doi.org/10.1007/
+978-3-319-11936-6
+16
+38. Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: veriﬁcation of probabilistic
+real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.) CAV 2011. LNCS,
+vol. 6806, pp. 585–591. Springer, Heidelberg (2011). https://doi.org/10.1007/978-
+3-642-22110-1 47
+39. Lange, J., et al.: A static veriﬁcation framework for message passing in go using
+behavioural types. In: Proceedings of ICSE, pp. 1137–1148. ACM (2018)
+40. Neele, T., Willemse, T.A.C., Groote, J.F.: Solving parameterised boolean equation
+systems with inﬁnite data through quotienting. In: Bae, K., ¨Olveczky, P.C. (eds.)
+FACS 2018. LNCS, vol. 11222, pp. 216–236. Springer, Cham (2018). https://doi.
+org/10.1007/978-3-030-02146-7 11
+41. Paige, R., Tarjan, R.E.: Three partition reﬁnement algorithms. SIAM J. Comput.
+16(6), 973–989 (1987)
+42. de Putter, S.M.J., Wijs, A.J., Zhang, D.: The SLCO framework for veriﬁed, model-
+driven construction of component software. In: Bae, K., ¨Olveczky, P.C. (eds.) FACS
+2018. LNCS, vol. 11222, pp. 288–296. Springer, Cham (2018). https://doi.org/10.
+1007/978-3-030-02146-7 15
+43. Remenska, D., et al.: Using model checking to analyze the system behavior of the
+LHC production grid. FGCS 29(8), 2239–2251 (2013)
+44. Segala, R.: Modeling and veriﬁcation of randomized distributed real-time systems.
+Ph.D. thesis, MIT (1995)
+45. Sun, J., Liu, Y., Dong, J.S., Pang, J.: PAT: towards ﬂexible veriﬁcation under
+fairness. In: Bouajjani, A., Maler, O. (eds.) CAV 2009. LNCS, vol. 5643, pp. 709–
+714. Springer, Heidelberg (2009). https://doi.org/10.1007/978-3-642-02658-4 59
+46. Valmari, A., Lehtinen, P.: Eﬃcient minimization of DFAs with partial transition
+functions. In: Proceedings of STACS, LIPIcs, vol. 1, pp. 645–656 (2008)
+47. Valmari, A., Franceschinis, G.: Simple O(mlogn) time Markov chain lumping.
+In: Esparza, J., Majumdar, R. (eds.) TACAS 2010. LNCS, vol. 6015, pp. 38–52.Springer, Heidelberg (2010). https://doi.org/10.1007/978-3-642-12002-2
+4
+48. Wang, T., et al.: More anti-chain based reﬁnement checking. In: Aoki, T., Taguchi,
+K. (eds.) ICFEM 2012. LNCS, vol. 7635, pp. 364–380. Springer, Heidelberg (2012).https://doi.org/10.1007/978-3-642-34281-3
+26
+49. Wesselink, W., Willemse, T.A.C.: Evidence extraction from parameterised boolean
+equation systems. In: Proceedings of ARQNL, CEUR 2095, pp. 86–100 (2018)
+
+--- Page 19 ---
+The mCRL2 Toolset for Analysing Concurrent Systems 39
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the chapter’s
+Creative Commons license, unless indicated otherwise in a credit line to the material. If
+material is not included in the chapter’s Creative Commons license and your intended
+use is not permitted by statutory regulation or exceeds the permitted use, you will
+need to obtain permission directly from the copyright holder.
