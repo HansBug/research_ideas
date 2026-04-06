@@ -1,0 +1,721 @@
+--- Page 1 ---
+A Formal Semantics for the Complete Syntax of UML
+State Machines with Communications
+Shuang Liu1, Yang Liu2,´Etienne Andr ´e3, Christine Choppy3, Jun Sun4,
+Bimlesh Wadhwa1and Jin Song Dong1
+1School of Computing, National University of Singapore, Singapore
+2Nanyang Technology University, Singapore
+3LIPN, Universit ´e Paris 13, Sorbonne Paris Cit ´e, France
+4Singapore University of Design and Technology, Singapore
+Abstract. UML is a widely used notation introduced by the Object Management
+Group (OMG), and formalizing its semantics is an important issue. In this work,
+we concentrate on formalizing UML state machines which are used to express
+the dynamic behavior of software systems. We propose a formal operational se-
+mantics covering all features of the latest version (2.4.1) of UML state machine
+speciﬁcation. We use Labeled Transition System (LTS) as the semantic model of
+UML state machines, which is subject to automatic veriﬁcation techniques like
+model checking. Furthermore, our proposed semantics includes synchronous and
+asynchronous communications between state machines. We implement our ap-
+proach in USM2C, a model checker supporting editing, simulation and automatic
+veriﬁcation of UML state machines. Experiments show the effectiveness of our
+approach.
+1 Introduction
+UML diagrams [1] have become the de facto modeling language, and UML state ma-
+chine diagrams are widely used to model the dynamic behavior of an object. Since
+UML speciﬁcation is documented in natural language, inconsistencies and ambigui-
+ties arise, and it is thus important to provide a formal semantics for UML. Indeed, a
+formal UML semantics (1) allows more precise and efﬁcient communication between
+engineers, (2) yields more consistent and rigorous models, and (3) lastly and most im-
+portantly, enables automatic formal veriﬁcation of UML state machine models through
+techniques like model checking, which guarantees important properties of a system in
+the early development stage.
+Some existing works provide formal semantics for a subset of UML state machine
+features, leaving some important issues unaddressed. First, none of the existing formal-
+ization approaches achieve a full coverage of UML state machine features, and only a
+few [5,2] consider UML 2.x speciﬁcations. To the best of our knowledge, only [11] con-
+sidered the non-determinisms in the presence of orthogonal composite states. However,
+the work in [11] supports only a limited set of syntax features, e.g., no pseudostates
+except for initial and history are supported. We believe that all the features provided by
+UML state machine speciﬁcation should be considered, since each of them has its spe-
+ciﬁc usage, especially choice, fork, join pseudostates, completion transitions and event
+deferral, which are commonly used but often left out in existing formalizations.
+1
+
+--- Page 2 ---
+Secondly, in the existing approaches, communications between state machines are
+not formally deﬁned. UML state machines are used to model the behavior of objects,
+which are components of a system. The whole system may include several state ma-
+chines interacting with each other synchronously or asynchronously. The dynamic be-
+havior of those state machines constitute the dynamic behavior of the whole system.
+From the viewpoint of the overall system behavior, especially due to synchronizations
+among different components of the system, the veriﬁcation of the entire system is more
+meaningful than its subparts, which are in turn modeled by respective state machines.
+Lastly, the unclarities (that is, inconsistencies and ambiguities) in the UML state
+machine speciﬁcations are not thoroughly checked and discussed. Fecher et al. [6] dis-
+cussed 29 unclarities in UML 2.0 state machines. But there are still some unclarities,
+such as the granularity of a transition execution sequence and container of a transition
+etc, which are not covered in [6] but will be discussed by our approach (Section 2.2).
+In order to bridge the gaps in the current approaches, we provide a formal opera-
+tional semantics for the complete set of UML state machine features, which includes
+formal deﬁnition of state machine level and orthogonal composite state level non-
+determinism. We also consider the communication mechanisms between different state
+machines. The contributions of this paper are summarized as follows. (1) We provide a
+formal operational semantics for UML 2.4.1 state machines covering the complete set
+of UML state machine features. In particular, our formalization considers state machine
+level and orthogonal composite state level non-determinism as well as synchronous and
+asynchronous communications between state machines. (2) We explicitly discuss the
+event pool mechanisms in UML state machines and consider deferral events as well as
+completion events. (3) We exhibit 6 new unclarities in UML 2.4.1 state machine seman-
+tics speciﬁcations. (4) We develop a self-contained tool USM2C based on the semantics
+we have deﬁned; it is able to model check various properties such as deadlock-freeness
+and linear temporal logic (LTL) properties. We conduct experiments on our tool and
+results show the effectiveness of our tool.
+Related Works Due to limited space, we only discuss the most related works; in particu-
+lar, we do not mention work focusing on the 1.x UML speciﬁcation. Fecher [5] provided
+a formal semantics for a subset of UML state machine features. The remaining subset
+of UML state machine features are informally transformed to the deﬁned subset of fea-
+tures. The semantics deﬁned in [5] blurs the run to completion (RTC) step, which is
+the basic semantic step of UML state machine. Moreover, the informal transformation
+procedure as well as the extra costs it introduces might make it infeasible for auto-
+matic tool developing. Another work [11] by Sch ¨onborn considered non-determinism
+in orthogonal composite states. But in terms of pseudostates, only initial and history
+pseudostates are covered. Moreover, this approach does not deﬁne a complete RTC step
+semantics. A subset of UML state machine features is also covered in works like, e.g.,
+[12] that adopts Labelled Transition System (LTS) as a semantic domain to formal-
+ize UML state machine semantics. But constructs such as junction, choice, fork and
+join pseudostates, submachine state etc. are not supported. Jin et al. [7] use Abstract
+State Machines (ASM) as the semantic domain and do cover more features, but choice
+pseudostate is not considered. Moreover, some of their formalizations, such as deciding
+conﬂicts in the presence of deferred events, do not respect UML2.x speciﬁcations. Re-
+2
+
+--- Page 3 ---
+cently, a few proposals have been made to formalize UML state machine semantics into
+Petri nets [3,2]. These approaches also do not support a number of pseudostates. The
+input languages to model checking tools (Spin, PAT, etc.) are used in other approaches,
+e.g., [9,13]. Due to the limitation of the translated language, only a small subset of UML
+state machine features are supported. It is also hard to link back to the original model
+when a counterexample is detected.
+The rest of this paper is organized as follows. Section 2 provides the preliminaries
+of UML state machines, exhibits new unclarities, and deﬁnes basic assumptions for our
+work. Section 3 deﬁnes the syntax for UML state machines, including the event pool
+formalization. Section 4 deﬁnes the formal semantics for UML state machines with
+communications. Section 5 provides the implementation details and evaluation results.
+Section 6 concludes the paper and discusses future directions of research.
+2 UML Features, Unclarities and Our Assumptions
+In this section, we introduce the preliminary knowledge about UML state machine.
+Then, we exhibit unclarities that we found out in the UML 2.4.1 speciﬁcation. Finally,
+we provide basic assumptions for our approach.
+2.1 Introduction of Basic Features of UML State Machines
+We brieﬂy introduce basic features of UML state machines in this section. We use the
+RailCar system Fig. 1 (a modiﬁed version of the example used in [4]) as a running
+example. The RailCar system is composed of Car state machine and Handler state
+machine. They communicate with each other through synchronous event calls. The
+Handler state machine models a part of a terminal behavior, which is responsible of
+communicating with the Carstate machine when the car is approaching and departing
+the terminal.
+Vertices and Transitions. A vertex is a node, which refers to a state, a pseudostate,
+a ﬁnal state or a connection point reference. A transition is a relation between a source
+vertex and a target vertex. It may have a guard, a trigger and an effect (a sequence
+of actions). The container of a transition is the region which owns the transition. A
+compound transition is composed of a multiple transitions joined via choice, junction,
+fork and join pseudostates.
+Regions. It is container of vertices and transitions, and represents an orthogonal parts
+of a composite state or a state machine. In Fig. 1, the areas [R1] and [R2] are regions.
+States. There are three kinds of states, viz., simple state (e.g., in Fig. 1: Idle), com-
+posite state ( Departure ) and submachine state. An orthogonal composite state ( WaitAr-
+rivalOK ) has more than one region. States can have optional entry/exit/do behaviors.
+A do behavior can be interrupted by an event. A state can also deﬁne a set of deferred
+events. A ﬁnal state ( Final1 ) is a special kind of state which indicates ﬁnishing of its
+enclosing region. It does not have regions, nor entry/exit/do behaviors.
+Pseudostates. Pseudostates are introduced to connect multiple transitions to form
+complex transition paths. There are 10 kinds of pseudostates: initial, join, fork, junc-
+tion, choice, entry point, exit point, shallow history, deep history, terminate. Due to lack
+3
+
+--- Page 4 ---
+ stm RailCar
+Idle
+Initial1Standby
+Operating
+[R0]Departure
+[RD]
+CruisingChoice1Choice2
+WaitArriv alOK
+[R1]
+[R2]
+WaitStopWatch Alarted
+WaitEnter
+WaitDepartDepartSub1
+[R3]
+[R4]WaitExit
+SyncExit
+WaitCruise
+SynchCruisejoin1InitialD1
+InitialD2
+InitialD3InitialA1
+InitialA2
+InitialA3
+Choice3Final1
+Final2
+InitialWaitPlatform
+WaitEnterParked
+WaitExitWaitComplete
+WaitDepartCar State Machine
+Handler State Machinet3
+[TermNum!=0]t0
+[mode==pass]
+/Handler.departReqalert80
+arriveAckt10t8t4
+[TermNum==0]
+t9t6 [mode==stop]
+/TermNum - -;
+t5
+[mode==pass]
+alert100
+/Handler.arriveReq;
+opendprogress
+/Handler.departReqsetDest
+/TermNum++;
+platformAllocateddepartAck
+starteddepartAck
+[mode==stop]
+alertStopopend
+moveCompleted
+/Car.departAckexitAllocateddepartReqmoveCompleted
+/Car.arriveAck
+arriveReq Fig. 1. The RailCar State Machine
+of space, details are given in [10], while some commonly used features are discussed
+below. Join pseudostate ( join1 ) is used to merge transitions from states in orthogonal re-
+gions. Fork pseudostate is used to split transitions targeting states in orthogonal regions.
+Choice pseudostates ( Choice1 ) represent a dynamic branching point. When a choice
+pseudostate is encountered, the transition path emanating from it should be evaluated
+in the environment when the choice pseudostate is reached (and not in the beginning of
+the compound transition). Initial Pseudostate ( Initial1 ) indicates the default initial state
+of a region.
+Connection Point Reference. It is an entry/exit point of a submachine state. It refers
+to the entry/exit pseudostate of the state machine that the submachine state refers to.
+Active State Conﬁguration. It is a set of active states of a state machine when it is in
+a stable status1, e.g.,fIdlegorfOperating, Final2gin Fig. 1.
+Run to Completion Step (RTC). It captures the semantics of processing one event
+occurrence, i.e., executing a set of compound transitions (ﬁred by the dispatched event),
+which may cause the state machine to move to the next active state conﬁguration, to-
+gether with behavior executions. This is the basic semantic step in UML state ma-
+chines. For example in Figure 1, if the current active state conﬁguration is fStandbyg
+and the transition emanating from it is ﬁred, the RTC step will lead the state machine to
+1The state machine is waiting for event occurrences.
+4
+
+--- Page 5 ---
+the next active state conﬁguration, i.e., fOperating, Departure, DepartSub1, WaitExit ,
+WaitCruiseg, accompanied by the behavior execution to call the departReq behavior of
+Handler state machine. The RTC step does not ﬁnish until the call event returns from
+Handler state machine.
+2.2 Unclarities in UML 2.4.1 State Machine Speciﬁcation
+Due to lack of space, we brieﬂy sketch below some new unclarities we found in the
+UML state machine speciﬁcation (detailed discussions can be found in [10]).
+Transition Execution Sequence. Transitions and compound transitions are used inter-
+leavinglly in the descriptions of transition execution sequence, which makes it unclear
+whether some rule is applied to a transition or to a compound transition. The transition
+execution ordering is important since different execution orders may lead to different
+results.
+Basic Interleave Execution Step. If multiple compound transitions in orthogonal re-
+gions are ﬁred by the same event, it is unclear in what granularity should the interleaving
+execution be conducted, either on transition or on compound transition level.
+Order issue of entering orthogonal composite states. When entering orthogonal
+composite states, no interleaving order is speciﬁed.
+There are three other unclarities, viz., the container of a transition, the Least Com-
+mon Ancestor (LCA) of a compound transition and the conﬂict resolutions in the pres-
+ence of choice pseudostates are not clearly deﬁned. We provide the detailed discussions
+in [10] due to space limits.
+2.3 Basic Assumptions on UML State Machine Semantics
+In this section, we try to address the unclarities discussed in Section 2.2, and we provide
+the basic assumptions for our semantics deﬁnition.
+Transition Execution Sequence. Whether the transition execution sequence is deﬁned
+on a single transition or on a compound transition is not clearly stated. We deﬁne the
+transition execution sequence based on a transition instead of compound transitions. In
+this way, we can guarantee that behaviors are executed in a correct order.
+Basic Interleave Execution Step. For interleaving execution of compound transitions
+in orthogonal regions, we decide to regard a compound transition as the interleaving
+execution step since a compound transition is a semantically complete path.
+Order issues of entering orthogonal composite states. On entering an orthogonal
+composite state, all possible interleaving orders among its substates to be entered are
+allowed, as long as the hierarchical order is preserved, i.e., composite states are entered
+before their substates.
+3 Syntax of UML State Machines
+In this section, we provide formal syntax deﬁnitions for UML state machine features
+and abstractions of event pools. We deﬁne a self-contained model which includes mul-
+tiple state machines. Table 1 lists the basic notations of all types deﬁned in the work.
+5
+
+--- Page 6 ---
+Table 1. Type Notations
+Symbol Type Symbol Type Symbol Pseudostate type
+KS active state conﬁguration B boolean SHps deep history
+eT compound transition C constraints Ips initial
+K conﬁgurations Sf ﬁnal state Cps choice
+heTi compound transition list S state Jops join
+V vertex Trig triggers Jups junction
+KV active vertex conﬁguration T transition Tps terminate
+CPR connection point reference E event Enps entry point
+SM state machine R region Fps fork
+B behaviors PS pseudostate SHps shallow history
+hBi behavior list N natural number Exps exit point
+3.1 Syntax Formalization
+We use tuples as syntax domain and refer to [1] as the basis for syntax deﬁnition.
+Deﬁnition 1 (State). A state is deﬁned as a tuple s= (br,dtdef,en,ex,do,cen,cex,
+dcpr,sm,bt)where:
+–brRis the set of regions directly contained in this state.
+–dtdefTrig is the set of deferral triggers associated with this state.
+–en2B,ex2Banddo2Brepresent the entry, exit and do behaviors associ-
+ated with the state respectively.
+–cen2PSandcex2PSare the entry point reference and exit point reference
+associated with the state.
+–dcprCPR is a set of connection point references belonging to a submachine
+state. This ﬁeld is used only when the state is a submachine state.
+–sm2SM is the state machine referenced by this state. This is used only when the
+state is a submachine state.
+–btTis the set of internal transitions deﬁned in the state.
+There are four kinds of state types Ss,Sc,SoandSm, that represent simple state,
+composite state, orthogonal composite state and submachine state, respectively.
+Deﬁnition 2 (Pseudostate). Apseudostate is deﬁned as a tuple ps= (;bh), where
+2Ris the region in which the pseudostate is deﬁned, and bh2Sis an optional ﬁeld
+which is used to record the last active set of states. This latter ﬁeld is only used when
+the pseudostate is a shallow history or deep history pseudostate.
+There are ten kinds of pseudostates deﬁned in UML 2.4.1 state machine speciﬁcations.
+The last column of Table 1 shows the notations of different kinds of pseudostates. We
+usePSto represent all kinds of pseudostates.
+Deﬁnition 3 (Final state). Aﬁnal state is a special kind of state, which is deﬁned as a
+tuple fs= ()where:2So[Scis the composite state which is the direct ancestor of
+the container of the Final State.
+Deﬁnition 4 (Connection Point Reference). AConnection Point Reference is deﬁned
+as a tuple (cen,cex,s)wherecenEnpsandcexExpsare the entry point and exit
+point kind pseudostates corresponding to this connection point, and sis the state in
+which the connection point reference is deﬁned.
+6
+
+--- Page 7 ---
+Vertex V,S[Sf[PS[CPR is an abstraction of all nodes. It is the superclass of
+State, Final state, Pseudostate and Connection Point Reference.
+Deﬁnition 5 (Transition). Atransition is a tuple t= (sv,tv,btg,g,,,btc)where:
+–sv2V,tv2Vare the source and target vertex of the transition respectively.
+–btgTrig ,g2Cand2Bare the set of triggers, the guard and the effect
+behavior associated with the transition respectively.
+–2Ris the container of the transition.
+–btcis a set of tuples of the form segt = (ss;st;st). It represents the special
+situation that a join or fork pseudostate connects multiple transitions to form a
+compound transition. Each tuple represents a segment transition which ends in the
+join (resp. emanates from the fork) pseudostate. ss2Sis the non-fork (resp. non-
+join) end of the segment transition2,st2Bis the behavior associated with the
+segment transition. st2Ris the container of the segment transition.
+We treat exit point pseudostate the same way with join pseudostate and entry point
+pseudostate the same way with fork pseudostate.
+We deﬁne the following functions on transitions for the beneﬁt of a clear notation.
+Function isFork (t)andisJoin (t)decides whether the transition tis a fork transition
+and join transition respectively. We use t:eto represent all possible action execution
+sequences of t. Formal deﬁnition of t:eis in [10].
+Deﬁnition 6 (Region). Aregion is deﬁned as a tuple r,(bv;bt)where:bv(S[PS)
+is the set of vertices directly contained in this region. btTis the set of transitions
+owned by this region.
+Deﬁnition 7 (State Machine). A UML state machine is deﬁned by a tuple sm,(br,
+ccp), where bris top most region which is directly contained by sm, andccpare the
+connection points, i.e., entry/exit point pseudostates deﬁned for this state machine.
+Deﬁnition 8 (Compound Transition). Acompound transition ~tis a “semantically
+complete” path composed of one or multiple transitions connected by pseudostates.
+The set of compound transition eT=f~tj~t2ST^~t:bsv2S^~t:btv2Sg. where
+st2STst2T_9sti;stj2ST:last(sti) =rst(stj)^st=sti_stj.
+The operator _represents the operation of connecting transitions in order. We de-
+ﬁne function len(~t)to compute the total number of segment transitions the compound
+transition is composed of. And seg(~t;i)returns the ith segment speciﬁed by the nat-
+ural number index ( i) of a given compound transition. We use rst(~t)andlast(~t)to
+represent the ﬁrst and last segment of ~t(formal deﬁnitions are in [10]).
+Compositional Operators. The operator “ ;” is used to represent a sequential com-
+position. Interleave operation ( kj) represents a non-determinism in the execution orders
+of all the involved objects. Interleaving composition with synchronous communications
+(kjC) is a special case of interleaving: it requires the state machine to synchronize on
+the speciﬁed event indicated by C. Interruption (r) is used to represent interruption
+of a do activity by some event occurrence. Parallel composition ( k) represents a real
+concurrency, i.e., execute at the same time.
+2The other end is the fork (resp. join) pseudostate.
+7
+
+--- Page 8 ---
+Deﬁnition 9 (System). Asystem is a set of state machines executing interleavingly
+(with synchronous communications). sys,kjC
+i2[1;n]Smiwhere Sm,(sm;EP;GV).
+Fields of Smrepresent state machine ( sm), event pool associated with smand global
+shared variables of smrespectively. nis the number of state machines within sys.
+Event Pool Abstraction. Events of different types, such as change events and sig-
+nal events, are processed differently. Events with same type but appearing in different
+places, such as the trigger of a transition and in the deferred event set of a state, are also
+processed differently. Change events have the highest priority during event dispatching.
+A deferred event should always be checked to decide its status in each active state con-
+ﬁguration. We provide for this purpose three separate event pools, viz., completion event
+pool ( CEP ), deferred event pool ( DEP ), and normal event pool ( NEP ). But the event
+dispatching order in each pool is not speciﬁed. We use EP,(CEP;DEP;NEP )to
+represent the event pool of a state machine and deﬁne the two basic operations on EP.
+Merge (e;P)represents merge event einto the corresponding event pool represented
+byP, and !EPrepresents dispatch an event from EP. (Formal deﬁnitions are in [10].)
+4 A Formal Semantics for UML State Machines
+This section devotes to a self-contained formal semantics for all UML state machine
+features. We have adopted the semantic model of Labeled Transition Systems (LTS).
+The dynamic semantics of a UML state machine is captured by the execution of RTC
+steps, which have two kinds of effects, viz., changing active states and executing behav-
+iors. We formally deﬁne the two kinds of changes separately. Then the semantics of the
+RTC step is deﬁned formally. At last, we deﬁne the semantics of the system. Remind
+that for all the following deﬁnitions, we shall assume the notations in Table 1.
+4.1 Active State Conﬁguration Changes
+An active state conﬁguration KSis a set of states which are in active status at the same
+time. It describes a stable state status of a UML state machine execution, i.e., the status
+when the previous RTC step ﬁnishes. Remind that we deﬁne the transition execution
+sequence based on transitions, which may emanate from or target pseudostates. So we
+use Active Vertex Conﬁguration KVto represent the snapshots of a UML state machine
+during an RTC execution. An active vertex conﬁguration is a set of vertices that are in
+active status at the same time. KSandKVare deﬁned formally in [10].
+Next Active State Conﬁguration. NextK :KSheTi ! KSis a function that
+computes the next active state conﬁguration after executing the list of compound transi-
+tions. Formally: NextK (ks;(~t1;:::;~tn)),NxK (ksn;~tn), where8i2[2;n];ksi=
+NxK (ksi1;~ti1)^ks1=ks. Function NxK :KSeT!KScomputes the next
+active state conﬁguration after executing a compound transition. Formally, we have:
+NxK (ks;~t),NxPK (kvn;seg(~t;n)), where n=len(~t),kv1=ks, and8i2
+[2;n];kvi=NxPK (kvi1;seg(~t;i1)). Function NxPK :KVT!KVcomputes
+the next active vertex conﬁguration after executing a transition. Formally: NxPK (kv;t),
+kvnLeave (kv;t)[Enter (t). Functions Leave andEnter represent the set of states left
+and entered after executing a transition and are formally deﬁned in [10].
+8
+
+--- Page 9 ---
+4.2 Behavior Execution
+Another effect of executing an RTC step is to cause behaviors to be executed. All the
+behaviors should be collected in the correct order. We deﬁne the following functions to
+collect the behavior execution sequence.
+Exit Behavior. ExitBehavior :KVT!hBicollects the ordered exit behaviors of
+states that a given transition leaves in the current vertex conﬁguration. Formally:
+ExitBehavior (kv;t) =ExitV (kv;MainSource (t);t)
+ExitV (kv;v;t),8
+>><
+>>:kjC
+r2v:brExitR (kv;r;t);v:dorv:exifv2So
+ExitR (kv;r;t);v:dorv:ex ifv2Sc
+v:dorv:ex ifv2Ss
+ otherwise
+ExitR (kv;r;t),8
+>>>>>>>>>>>>>>>><
+>>>>>>>>>>>>>>>>:SetSH (h;v);ExitV (kv;v;t)ifr2R^9v2r:bv:v2kv^v2S
+^9h2SHps:h2r:bv
+SetDH (h;v);ExitV (kv;v;t)ifr2R^9v2r:bv:v2kv^v2S
+^9h2DHps:isAncestor (h:;r)
+^isAncestor (t:;h:)
+ExitV (kv;v;t) ifr2R^9v2r:bv:v2kv
+^8s02r:bv;s062SHps
+^@h2DHps:isAncestor (h:;r)
+^isAncestor (t:;h:)
+The exit behaviors of executing a transition are collected recursively starting from
+its main source state (computed by function MainSource (t)). Exit behaviors should be
+collected in an innermost-out order. We deﬁne function ExitV andExitR to recursively
+collect exit behaviors (from vertices and regions respectively). For orthogonal and com-
+posite states, all their orthogonal regions should be exited before it. If the region to be
+exited contains a shallow history or deep history pseudostate, the content of the history
+pseudostate should be set properly (by functions SetSH andSetDH respectively) be-
+fore exiting the region. Exiting simple states means terminates the do behavior (if any)
+and executes the exit behavior, as deﬁned by function exit. Otherwise, a pseudostate
+must be encountered and no behavior is collected (denoted by ).
+Entry Behavior. EntryBehavior :T!hBicollects the ordered entry behaviors of
+states a given transition enters. Formally:
+EntryBehavior (t) =EntryV (MainTarget (t);Enter (t))
+EntryV (v;bV),8
+>>>>>><
+>>>>>>:v:en; (kjC
+r2v:brEntryR (r;bV)kv:do)ifv2So
+v:en; (EntryR (r;bV)kv:do) ifv2Sc
+v:en;v:do ifv2Ss
+GenEvent (v:) ifv2Sf^8r2v::br;
+9s02r:bv:s02kv)s02Sf
+ otherwise
+9
+
+--- Page 10 ---
+EntryR (r;bV),EntryV (s0;bV)where r2R^s02r:bv^s02bV
+Entry behaviors are collected in a similar manner to exit behaviors, except that the or-
+der should be outermost-in. We deﬁne the function EntryV andEntryR to recursively
+collect the entry behaviors of all the vertices in bVin order. All the states entered by
+ﬁring the transition tare computed by function Enter (t). Starting from the main target
+state of a transition, if the state is an orthogonal composite state, then all its orthogonal
+regions are entered interleavingly. Entering each state means executing its entry behav-
+ior followed by its do activities ( s:en;s:do) if any. Do activities of a composite
+state should be executed in parallel ( k) with all the behaviors of its containing states.
+Function GenEvent (s)generates a completion event for state s:(the container state
+of ﬁnal state s) and merges the generated event in the completion event queue (CEQ).
+For orthogonal composite states, we can only generate a completion event when active
+states in all its regions are ﬁnal states .
+Collect Actions. CollectAct :KSeT! hBicollects the ordered sequence of
+behaviors, associated with the execution of the given compound transition. Formally:
+CollectAct (ks;~t),Act(kv1;seg(~t;1));:::;Act(kvi;seg(~t;i));:::;Act(kvn;seg(~t;n))
+Act(kv;t),ExitBehavior (kv;t);t:e;EntryBehavior (t)
+where n=len(~t),kv1=ksandkvi=NxPK (kvi1;~ti1)fori2[2;n].
+4.3 The Run to Completion Semantics
+The effects of an RTC step execution include both active state changes and behavior
+executions which may cause the event pool and global shared variables to be updated.
+We use the term conﬁguration to capture the stable status (including states, event pool
+and global shared variables) of a UML state machine.
+Deﬁnition 10 (Conﬁguration). Aconﬁguration is a tuple k= (ks;EP;GV)where
+ksis the active state conﬁguration, EPis the event pool and GV is the set of global
+shared variables. Conﬁgurations describe the stable status of a UML state machine.
+A conﬁguration can be considered as a (stable) snapshot of the current UML state
+machine. The execution of an RTC step can be depicted as moving from one conﬁgura-
+tion to the next conﬁguration. Based on the above deﬁnition, we provide the following
+(inference) rules to formalize the procedure of an RTC step.
+Wandering Rule. This rule captures the case where a dispatched event eis neither
+consumed nor delayed. As a result, it is discarded, i.e., removed from the event pool
+without causing any other effect.
+e=!EP;EP0=EPnfeg;
+8s2ks;e62s:dtdef;Enable ((ks;EP0;V);e) =?
+[Wandering ]
+(ks;EP;V)e !(ks;EP0;V)
+Event eis dispatched from event pool ( !EP), but no transition is triggered by e(i.e.,
+Enable ((ks;EP0;V);e) =?), and no deferred event in the current conﬁguration
+10
+
+--- Page 11 ---
+matches the event e(i.e.,8s2ks;e62s:dtdef). Event pool EP0is the the event pool
+EPafter dispatching event e. After executing this RTC step, only the event pool of the
+state machine conﬁguration changes.
+Deferral Rule 1. This rule captures the case where a dispatched event is deferred by
+some states in the current active state conﬁguration, but does not trigger any transitions.
+e=!EP;EP0=EPnfeg;
+9s2ks:e2s:dtdef;Enable ((ks;EP0;V);e) =?;
+EP00=Merge (e;EP0:DEP );
+[Deferral 1 ]
+(ks;EP;V)e !(ks;EP00;V)
+Since event eis deferred, it should not be discarded but merged back to the deferred
+event pool ( Merge (e;EP0:DEP )). So after the RTC execution, only the event pool
+EP00is changed.
+Deferral Rule2. This rule captures the case where the dispatched event etriggers some
+transitions and it is also deferred by some states in the current active state conﬁguration.
+But there exists at least one state, which deﬁnes the deferral event, that has higher
+priority than the source states of the enabled transitions.
+e=!EP;EP0=EPnfeg;
+9s2ks:e2s:dtdef;bT=Enable ((ks;EP0;V);e);bT6=?;
+8~t2bT)deferralConict (~t;(ks;EP0;V);e)
+EP00=Merge (e;EP0:DEP )
+[Deferral 2 ]
+(ks;EP;V)e !(ks;EP00;V)
+bTis the set of transitions enabled by the dispatched event e. Event eis also deferred by
+some states in the current active state conﬁguration and the event deferral has higher
+priority over transition ﬁring ( 8~t2bT)deferralConict (~t;(ks;EP0;V);e). Func-
+tiondeferralConict is used to solve deferral conﬂicts and is formally deﬁned in [10].
+As a consequence, only the event pool of the state machine changed.
+To increase the readability of the rules, we use the following brief representations in
+all the following RTC rules. A(~t1;:::; ~tn) =CollectAct (~t1);;:::; ;CollectAct (~tn)
+represents the execution of the behaviors along ~t1;:::; ~tn(i.e., a list of compound
+transitions). Merge (A(h~ti);EP)represents merging the event generated by actions in
+A(h~ti)if any into event pool EP.UpdateV (A(h~ti);GV)represents updating of global
+shared variables GV by actions inA(h~ti).
+Progress Rule. This rule captures the case where a set of compound transitions are
+triggered by a dispatched event e. There is no event deferral or the ﬁred transitions have
+higher priority over event deferral.
+e=!EP;EP0=EPnfeg;
+bT=Firable ((ks;EP0;V);e);jbTj=n;h~ti2Permutation (bT);
+EP00=MergeA (A(h~ti);EP0);V0=UpdateV (A(h~ti);V)
+[Progress ]
+(ks;EP;V)e !(NextK (ks;h~ti);EP00;V0)
+Function Firable ((ks;EP0;V);e)(deﬁned in [10]) returns a set of compound transi-
+tions which is the maximal non-conﬂicting subset of enabled transitions. As a result,
+11
+
+--- Page 12 ---
+the ﬁrable set of transitions will be executed in an order speciﬁed by h~ti, which is an or-
+dered list of compound transitions. Function Permutation (deﬁned in [10]) computes
+all possible total orders on the set of compound transitions bT. This function captures
+the orthogonal composite state level non-determinism, i.e., when multiple compound
+transitions are ﬁred. Behaviors are collected along the transition execution sequence
+following the permutation order (indicated by A(h~ti)). Active state conﬁguration is
+changed as computed by function NextK (ks;h~ti).
+ProgressC Rule. This rule captures the case where choice pseudostates are encoun-
+tered during an RTC execution. Different from the RTC Progress rule, dynamic evalua-
+tion would be conducted at the point where a choice pseudostate is reached.
+e=!EP;EP0=EPnfeg;
+bT=2Firable ((ks;EP0;V);e);jbTj=n;
+~t1
+i2bT;h~ti= (~t1;:::~t1
+i;:::; ~tn)2Permutation (bT)
+V0=UpdateV (A(~t1;:::; ~t1
+i));V);
+EP00=MergeA (A(~t1;:::; ~t1
+i));EP0)
+~t2
+i2Firable ((flast(~t1
+i):tvg;EP00;V0);e);
+EP000=MergeA (A(~t2
+i:::;~tn);EP00);
+V00=UpdateV (A(~t2
+i:::;~tn);V0)
+[ProgressC ]
+(ks;EP;V)e !(NextK (ks;h~ti);EP000;V00)
+The RTC ProgressC rule captures the same situation as the RTC Progress rule ex-
+cept that choice pseudostates are encountered in a compound transition. Compound
+transition tiis splitted by a choice pseudostate into t1
+iandt2
+i. The second half of tiis
+evaluated based on the current environment V0.
+4.4 System Semantics
+A UML state machine models the dynamic behavior of one object within a system.
+But multiple state machines representing different components of a system may inter-
+act with each other synchronously or asynchronously. The interactions between state
+machines together with the dynamic behavior of each single state machine compose the
+dynamic behavior of the whole system. In order to verify the correctness of the overall
+system behaviors, we need to capture the message passing sequences between all state
+machines in the system.
+Deﬁnition 11 (Semantics of a system). Thesemantics of a system is deﬁned as a La-
+beled Transition System (LTS) L,(S;Sinit; ), with:
+–Sis the set of states of L. Each LTS state is a tuple (k1;:::; kn)where kiis the
+conﬁguration of the state machine Smiwithin the system;
+–Sinitis the initial state of L.
+– SSis the transition relation of L;
+The LTS transition relations are deﬁned as follows.
+kjC
+i2[1;n]Smi;kj !k0
+j[LTS1 ]
+(k1;:::; kj;:::; kn) (k1;:::; k0
+j;:::; kn)
+12
+
+--- Page 13 ---
+kjC
+i2[1;n]Smi;kj !k0
+j;e=SendSignal (j;k);Merge (e;EPk)
+[LTS2 ]
+(k1;:::; kk;:::; kj;:::; kn;) (k1;;:::; k0
+k;:::; k0
+j;:::; kn)
+kjC
+i2[1;n]Smi;kj !k0
+j;e=Call(j;k);e2C;kke !k0
+k[LTS3 ]
+(k1;:::; kk;:::; kj;:::; kn) (k1;:::; k0
+k;:::; k0
+j;:::; kn)
+All the state machines in the system are executed non-deterministically. If the event
+pool of one state machine dispatches an event, all the effects caused by the dispatched
+event must be fulﬁlled before the RTC step completes. Specially, if a call action is
+invoked by the effects of the current RTC step, the RTC does not complete until the
+call action returns. Rule LTS1 captures the normal situation that a single state machine
+is executed without communicating with other state machines. Rule LTS2 captures the
+case where asynchronous communication is involved, i.e., the executing state machine
+sends an asynchronous message to another state machine. The state machine receiving
+the message merges the message into its own event pool. Rule LTS3 captures the case
+where synchronous communication is involved. In this case, the callee state machine
+is triggered by the call event. As a consequence, more than two state machines are
+triggered to execute. The caller state machine can not ﬁnish its RTC step until the callee
+has ﬁnished execution. Function SendSignal (j;k)andCall(j;k)represent the jth state
+machine sends an asynchronous and a synchronous message to the kth state machine,
+respectively.
+5 Implementation and Evaluation
+We have implemented the formal semantics deﬁned in Section 4 in a self-contained
+tool USM2C. This tool supports model checking of deadlock-freeness and LTL proper-
+ties, as well as step-wise simulation of state machine executions. Counterexamples are
+reported in terms of state machine execution traces. Due to space limitation, we report
+part of the experiment here. The full set of experiments can be found in [10].
+The ﬁrst experiment is a comparison on the BankATM3state machine provided
+in [8] with the off-the-shelf tool HUGO [8]4. The BankATM system contains Bank state
+machine and ATM state machine, which communicate with each other via both syn-
+chronous and asynchronous events. HUGO translates UML state machine models into
+Promela and uses Spin as the underlying model checker to do the veriﬁcation. Due to its
+comparability problem with Spin, we manually inspect the Promela code generated by
+HUGO, write LTL properties accordingly and invoke Spin. The property we checked
+is(retain!((!cardValid^numIncorrectmaxNumIncorrect )). It guarantees
+that when a card is retained, it must be the case that at least maxNumIncorrect times
+of wrong pin are entered. This property should hold for the BankATM system. Both
+3We did modiﬁcations on the BankATM system to comply with UML 2.4.1 state machine
+speciﬁcations. The modiﬁed BankATM system is available in [10].
+4This is the only tool that model checks UML state machines available to public downloading
+we are aware of. The latest version of HUGO is based on Spin4.3.0, which is currently unavail-
+able, and HUGO has compatibility problems with Spin5.x and Spin6.x.
+13
+
+--- Page 14 ---
+Table 2. Scalability Evaluation Result
+NTime (s) States Transitions Memory (KiB)
+20:06 63 105 8;701
+30:11 598 1;397 10;970
+41:15;560 17;448 26;726
+513:150;737 199 ;513 163 ;947
+6163 447 ;8952;237 ;563 734 ;510
+Spin and USM2C report a valid veriﬁcation result. Spin reported 34.3 MiB memory us-
+age, 61 stored states and 106 transitions verifying the above property on the generated
+Promela code. Our tool USM2C reported 9.8 MiB total memory usage, 28 states and 31
+transitions visited. By manually inspecting the Promela code generated by HUGO, we
+found that an RTC step semantics is implemented as multiple steps in the presence of
+orthogonal regions in their translation. This may lead to redundant copies of variables
+and propositions, which cause more memory usage.
+The second experiment is on the example in Fig. 1, which modiﬁes the example
+provided in [4]5by manually introducing bugs. The example contains transitions which
+emanate and enter orthogonal composite states, such as the transition from Cruising
+state to WaitArrivalOK state, which is not supported by HUGO.
+We checked the LTL property (alert 100!arriveAck ), which depicts the situ-
+ation when a car approaches a terminal and is 100yards from it; the car will ﬁnally
+receive the arriveAck event from the Handler . This property guarantees that the car will
+not wait on the rail forever and it should hold globally in the RailCar system. But it is
+reported to be violated and our tool ﬁnds the loop ( opend!alert100 )*, indicating that
+the event opend caused the problem. The reason is that the opend event is immediately
+available on entering state WaitArrivalOK ; thus it got a chance to be dispatched by the
+event pool in the next RTC step and causes the problem.
+The third experiment is to evaluate the scalability of our tool. We modeled the din-
+ning philosopher problem with UML state machines and conducted model checking
+with our tool. Table 2 shows the result of this experiment.
+The data listed in Table 2 is the result of checking deadlock free property with our
+Shortest Witness Trace using Breadth First Search search engine, which forces breadth
+ﬁrst search. The state space we get is quite close to the real state space generated.
+We can see from the result that our tool can handle large state spaces caused by non-
+determinism. In addition, we can further reduce the state space through techniques like
+partial order reduction. We are considering this as one of our future work.
+We believe that communications between objects are error-prone and hard to ﬁnd
+manually. The experiment results show that our method is effective in ﬁnding design
+errors in the presence of both synchronous and asynchronous communications. Our
+tool is also more efﬁcient and can deal with more features of UML state machines.
+6 Conclusion
+In this paper, we provided a formal semantics for the complete set of UML behavioral
+state machine features. Our semantics considers state machine level and orthogonal
+5We remove the Arrival state and the completion transition emanating from Operating state
+14
+
+--- Page 15 ---
+composite state level non-determinisms as well as the communication aspect between
+UML state machines which bridge the gap of current approaches. To the best of our
+knowledge, this is the ﬁrst attempt of full formalization of the latest UML state ma-
+chines speciﬁcation [1]. We have implemented a self-contained tool for model check-
+ing various properties for UML behavior state machine. The experiments show that our
+tool is effective in ﬁnding bugs with both synchronous and asynchronous communica-
+tions between different state machines. Several issues linked with UML state machines
+remain unaddressed. In future work, we aim at considering the real-time aspects and
+object-oriented issues, such as dynamic invoking and destroying objects.
+References
+1. OMG uniﬁed language superstructure speciﬁcation(formal). version 2.4.1, 2011-08-06.
+http://www.omg.org/spec/UML/2.4.1/Superstructure/PDF/ .
+2.´E. Andr ´e, C. Choppy, and K. Klai. Formalizing non-concurrent UML state machines using
+colored Petri nets. ACM SIGSOFT Software Engineering Notes , 37(4):1–8, 2012.
+3. C. Choppy, K. Klai, and H. Zidani. Formal veriﬁcation of UML state diagrams: a Petri net
+based approach. ACM SIGSOFT Software Engineering Notes , 36(1):1–8, 2011.
+4. D.Harel and E.Gery. Executable object modeling with statecharts. IEEE Computer , 30:31–
+42, 1997.
+5. H. Fecher and J. Sch ¨onborn. UML 2.0 state machines: Complete formal semantics via core
+state machine. Formal Methods: Applications and Technology , pages 244–260, 2007.
+6. H. Fecher, J. Sch ¨onborn, M. Kyas, and W. de Roever. 29 new unclarities in the semantics of
+UML 2.0 state machines. Formal Methods and Software Engineering , pages 52–65, 2005.
+7. Y . Jin, R. Esser, and J. Janneck. A method for describing the syntax and semantics of UML
+statecharts. Software and Systems Modeling , 3(2):150–163, 2004.
+8. A. Knapp and S. Merz. Model checking and code generation for UML state machines and
+collaborations. In Proc. 5th W. Tools System Design & Verif. , volume 11, pages 59–64, 2002.
+9. A. Knapp, S. Merz, and C. Rauh. Model checking - timed UML state machines and collab-
+orations. In FTRTFT’02 , pages 395–416. Springer-Verlag, 2002.
+10. S. Liu, Y . Liu, ´E. Andr ´e, C. Choppy, J. Sun, B. Wadhda, and J. S. Dong. A Formal Se-
+mantics for the Complete Syntax of UML State Machines with Communications (Report).
+Technical report, National University of Singapore, 2013. http://comp.nus.edu.sg/
+˜lius87/uml/techreport/uml_sm_semantics.pdf .
+11. J. Sch ¨onborn. Formal semantics of UML 2.0 behavioral state machines. Technical report,
+Inst. Computer Science and Applied Mathematics, Christian-Albrechts-Univ. of Kiel , 2005.
+12. M. V on Der Beeck. A structured operational semantics for UML-statecharts. Software and
+Systems Modeling , 1(2):130–141, 2002.
+13. S. Zhang and Y . Liu. An automatic approach to model checking UML state machines. In 4th
+Int. Conf. Secure Software Integration & Reliability etc. (SSIRI-C) , pages 1–6. IEEE, 2010.
+15
