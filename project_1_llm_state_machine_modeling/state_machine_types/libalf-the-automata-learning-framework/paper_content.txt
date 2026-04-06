@@ -1,0 +1,193 @@
+--- Page 1 ---
+libalf:the AutomataLearning Framework⋆
+BenediktBollig1, Joost-PieterKatoen2,Carsten Kern2,MartinLeucker3,
+DanielNeider2, andDavidR. Piegdon2
+1LSV,ENSCachan,CNRS,2RWTHAachen University,3TUM¨ unchen
+Abstract. This paper presents libalf, a comprehensive, open-source library
+forlearningformallanguages. libalf coversvariouswell-knownlearningtech-
+niques for ﬁnite automata (e.g. Angluin’s L∗,Biermann ,RPNIetc.) as well as
+novel learning algorithms (such as for NFA and visibly one-c ounter automata).
+libalf is ﬂexible and allows facilely interchanging learning algo rithms and
+combining domain-speciﬁc features in a plug-and-play fash ion. Its modular de-
+sign and C++implementation make it a suitable platform for adding and en gi-
+neeringfurtherlearningalgorithmsfornewtargetmodels( e.g.,B¨ uchiautomata).
+1 Introduction
+The common objective of all learning algorithms is to genera lize knowledge gained
+throughout a learning process. In such a process, the learni ng algorithm is confronted
+with classiﬁed examples. They are utilized to derive some ki nd of hypothesiswhich is
+able to classify new examples in conformance with the exampl es already seen. Typi-
+cally, learning algorithmsare groupedinto onlineandofﬂinealgorithms.Online learn-
+ingtechniquesarecapableofactivelyaskingqueriestosom ekindofteacherwhoisable
+to classify these queries. Ofﬂine algorithms, on the other h and, are passively provided
+witha set ofclassiﬁed examplesfromwhichtheyhavetobuild anappositehypothesis.
+In recent years, learning algorithms have become increasin gly popular for various
+applicationdomainsandhavebeensuccessfullyusedindiff erentﬁeldsofcomputersci-
+ence,reachingfromroboticsoverpatternrecognition(e.g .,inbioinformatics)tonatural
+language recognition. Especially in the area of automatic v eriﬁcation, learning tech-
+niques have proved their great usefulness. They were used fo r minimizing partially
+speciﬁed systems [1], model checking blackboxsystems (e.g ., [2]), and for improving
+regularmodelchecking(e.g.,[3]).To putit bluntly,autom atalearningisenvogue.
+The need for a unifying frameworkcollecting varioustypes o f learning techniques
+is, thus, beyond all questions. In addition, it is desirable to have possibilities of easily
+exchanging or extending the implemented learning algorith ms to compare assets and
+drawbacksforcertainuserapplications.Forusers’conven iencealibraryshouldprovide
+additional features, such as means for statistical evaluat ion or loggers. Unfortunately,
+existinglearningframeworksonlypartlycovertheserequi rements.
+The main objective of this paper is to present a new library ca lled theautomata
+learning framework (libalf for short). libalf uniﬁes different kinds of learning
+techniques into a single ﬂexible and easy-to-extend librar y with a clearly structured
+user interface. We would like libalf to become a comprehensive compendium of
+learning techniques to which everybody has access and can co ntribute in a public do-
+mainfashion.
+⋆This workis partiallysupported bythe DAAD (Procope 2009).
+
+--- Page 2 ---
+2 Related work
+A largenumberoflearningalgorithmscanbe foundin thelite rature.Usually,themost
+important and inﬂuential ones are implemented again and aga in, but often as quick-
+and-dirty implementations, which are only meant to be a proof-of-conc ept of the re-
+searcher’stheoreticalwork.Typically,thisimpliesa lac kofextensibilityandcompara-
+bility as the authors did not have time to bother for a clear, e xtensible design. We are
+only aware of two learning libraries that aim for the objecti ves mentioned above; note
+thatJava PathFinder (cf. [4]) also containsa learningsubmodule(implementing
+Angluin’s L∗algorithm),but thissoftwareseemstobetoorestrictedfor most cases.
+TheLearnLib library [5] allows learning of deterministic ﬁnite-state a utomata.
+It is available as a dedicated, password-protected server l ocated at the University of
+DortmundandcanbeaccessedviatheInternet.The LearnLib implementsAngluin’s
+L∗algorithmforinferringDFAandsomeslightvariantsforder ivingMealymachines.
+TheRich Automata Learning and Testing library [6] ( RALT) has been developed
+inJavayielding a platform independent solution. It also implemen tsL∗and three
+relativesforinferringMealymachines.Regrettably, RALTseemsnotpubliclyavailable.
+However, two requirements that seem to be crucial for many us er application are
+clearlymissing:Firstly,bothlibrariesarelimitedtolea rningMealymachinesinanAn-
+gluin setting, but in many environmentsdifferent learning settings occur. Beyond that,
+awaytoaugmentthelibrarieswithnewlearningalgorithms, inparticularforadditional
+kinds of automata models, is clearly missing. Secondly, as LearnLib can be only
+accessedremotelyand RALTisnotavailable,itseemsimpossibletoassesstheirperfor -
+mance; in fact, we were not able to experimentallyevaluate o r benchmark libalf to
+neither existing library in any appropriatemanner. To the b est of our knowledge libalf
+iscurrentlytheonlyavailableautomatalearninglibraryt hatiscompetitiveandﬂexible
+enoughforrealworldapplications.
+3 A library forlearningautomata: libalf
+Table1.Algorithms available in libalf.
+Onlinealgorithms Ofﬂine algorithms
+Angluin’s L∗(2 variants) Biermann (2 variants)
+NL∗[7] RPNI
+Kearns/Vazirani DeLeTe2
+Visibly1-counterautomata[8]Thelibalf libraryisanactivelydeveloped
+and stable open source library1for learning
+and manipulating formal languages; it puts
+the emphasis on learning deterministic and
+non-deterministic ﬁnite-state machines, but
+can be easily augmentedwith new automata
+classes (for instance, libalf already supports learning of visibly one-counter au-
+tomata).Asoftoday, libalf comprisesatotalofninelearningalgorithms,cf.Table1.
+libalf consistsofacore C++libraryandiscomplementedbytwoadditionalcom-
+ponents: liblangen (alibrarytogeneraterandomregularlanguages)and AMoRE++
+(aC++automata library, among others featuring the antichains al gorithm described in
+[9]). Although written in C++,libalf ﬁts seamlessly into diverse environments: it
+runson MSWindows ,Linux,andMacOS(in32-and64-bit)andfeaturesaplatform
+independent Javainterface (usingthe Java Native Interface JNI).In addition,the so-
+calleddispatcher implementsa network-basedclient-serverarchitecture,w hich allows
+onetorun libalf remotely,e.g.,onahigh-performancemachine.
+1libalf isfreelyavailable on http://libalf.informatik.rwth-aachen.de/ .
+2
+
+--- Page 3 ---
+The key objectives of libalf arehigh ﬂexibility andsimple extensibility . High
+ﬂexibility, on the one hand, means that libalf lets the user easily switch between
+learning algorithms and information sources (often only by changing a single line of
+code2). This allows one to experiment with different learning tec hniques, making it
+possible for the user to choose the algorithm best suited for her setting. Moreover,
+libalf’s visualization and logging facilities enable researcher s to gain a deeper un-
+derstandingofthedifferencesofexistingandnewalgorith ms.
+Simple extensibility, on the other hand, mainly refers to libalf’s structured C++
+class hierarchy, especially the learning algorithms and au tomata models. That allows
+developers to easily enrich libalf with additional features such as new learning al-
+gorithms,advancedautomataclasses, domain-speciﬁcopti mizations,etc.
+Obviously, developinga ﬂexible and easy-to-use library wh ile preserving high ex-
+tensibility was one of the implementation’s most challengi ng tasks. A comparison of
+importantlearninglibrariesto libalf isgivenin Table2.
+Table 2.Overview over the most important learning librariesincomp arison to libalf.
+libalf LearnLib RALT
+Algorithms online/ofﬂine online online
+currently 9 1 ( L∗) 1 ( L∗)
+Hypotheses DFA,NFA,Mealy,visibly one-counter,etc. DFA, Mealy DFA,Mealy
+Opensource yes no n/a
+Availability C++,Java(JNI) C++ Java
+sourcecode,binary, dispatcher via Internet connectionon ly n/a
+Speciﬁcs ﬁlters,normalizers, statistics,visualization ﬁlters, statistics,visualization visualization
+Technical details. Inlibalf words w∈Σ∗(i.e.,queries) are represented as lists
+of symbols, where each symbol is a 32-bit integer. Thus, the m aximal size |Σ|of an
+alphabet Σis232. For hypotheses, on the other hand, libalf provides generic but
+simple interfaces such that new automata classes can easily be added. However, the
+AMoRE++ librarycanbeusedifa morepowerfulautomatalibraryisnee ded.
+libalf’s main components are the learning algorithms and the so-called know-
+ledgebase .Theknowledgebaseisanefﬁcientstorageforlanguageinfo rmationandcol-
+lectsqueriesandclassiﬁcations thereof; in libalf a classiﬁcation can be any C++
+object, but in most algorithms it is a Boolean value. Using an external storage has the
+advantageof being independentof the choice of the learning algorithm.So it becomes
+possibletoquicklyinterchangedifferentlearningalgori thmsorrunthem(evenconcur-
+rently) on the basis of the same knowledgebase (i.e. queries are only conducted once
+andarethenavailabletoanylearningalgorithm).Clearly, thishelpstheuserexperiment
+anddecidewhichalgorithmto usein herspeciﬁc setting.
+Additionally, libalf features two types of domain-speciﬁc optimizations: ﬁlters
+andnormalizers . Filters are a means for reducing the number of queries asked to the
+teacher.Theideaisthatinmanycasestheclassiﬁcationofa querycanbedecidedwith-
+out consulting the teacher just by applying simple domain-s peciﬁc knowledge; take,
+for instance, well-formedness of XML-documents as such a cr iterion. If a query can
+already be answered by a ﬁlter, it is not passed on to the teach er and the number of
+queries actually asked to the teacher is reduced. Moreover, ﬁlters can be composed by
+logicalconnectors( and,or,not).
+2Visitour website for a Javaonline demo onhow toemploy libalf ina user application.
+3
+
+--- Page 4 ---
+Incontrast, normalizers areameanstoreducememoryconsumptionduringthelear-
+ningphase.A normalizerdeﬁnesa domain-speciﬁcequivalen cerelation ∼⊆Σ∗×Σ∗
+overallwordsandonlystoresdataforonerepresentativeof eachequivalenceclass(i.e.
+data for equivalentqueriesis only queriedand stored once) .This does not only reduce
+the consumed memory, but also the number of queries conducte d. By subtyping the
+respectiveinterface,a usercaneasilydeﬁneherowndomain -speciﬁcoptimizations.
+Finally, libalf comprisesauxiliarycomponentsto ease applicationdevelo pment
+and debugging:a logger(an adjustable logging facility an algorithm can write to), ex-
+tensivestatistics and methods to produce GraphViz visualizations. All of libalf’s
+components are designed to be used in a plug-and-play manner and, to this end, no
+knowledgeaboutthelibrariesimplementationisrequired.
+4 Conclusion
+libalf is a new, comprehensive open-source learning framework, wh ich is easy to
+useandextend.Itgathersseveralon-andofﬂinelearningte chniques.Themainfeatures
+ofourlibraryandotherapproachesdescribedpreviouslyar esummarizedin Table2.
+Our learning library is currently used and extended for infe rringCFMs from MSC
+speciﬁcations [10] and for learning attractor sets in inﬁni te games (D. Neider, RWTH
+Aachen).Moreover,therearerequestsforusing libalf forsearchingthroughsource
+code to ﬁnd similar code fragments, so-called clones, (E. J¨ urgen, TU Munich) and for
+learningblackboxsystemsfromlogﬁles.
+Forfuturework,we planto augment libalf with additionallearningalgorithms,
+e.g., learning using homing sequences or Trakhtenbrot’s al gorithm, and to integrate
+learning techniques for other important language classes, such as transducers, B¨ uchi
+automata etc. Anotherongoingwork puts differentlearning algorithmsin comparison.
+Inthisproject,wecomparedifferentonlineandofﬂinelear ningalgorithmsandevaluate
+theiraveragetimecomplexity.Theresultsobtainedsofarl ookverypromising.
+References
+1. Oliveira,A.L.,Silva,J.P.M.: EfﬁcientAlgorithmsfort heInference ofMinimumSizeDFAs.
+Machine Learning 44(1/2) (2001) 93–119
+2. Groce, A.,Peled, D.,Yannakakis, M.: Adaptive model chec king. In: TACAS.Volume 2280
+of LNCS.,Springer (2002) 357–370
+3. Habermehl, P.,Vojnar, T.: Regular Model Checking UsingI nference of Regular Languages.
+ENTCS138(3) (2005) 21–36
+4. Giannakopoulou, D., Pasareanu, C.S.: Interface Generat ion and Compositional Veriﬁcation
+inJava Pathﬁnder. In: FASE.Volume 5503 of LNCS.(2009) 94–1 08
+5. Raffelt, H., Steffen, B., Berg, T., Margaria, T.: LearnLi b: a framework for extrapolating
+behavioral models. STTT 11(5) (2009) 393–407
+6. Shahbaz, M.: Reverse Engineering Enhanced State Models o f Black Box Software Compo-
+nents toSupport Integration Testing. PhD thesis, Laborato ire Informat. de Grenoble (2008)
+7. Bollig,B.,Habermehl,P.,Kern,C.,Leucker,M.: Angluin -StyleLearningofNFA. In:IJCAI
+2009, AAAIPress (2009) 1004–1009
+8. Neider,D.,L¨ oding,C.: LearningVisiblyOne-CounterAu tomatainPolynomialTime. Tech-
+nical Report AIB-2010-02, RWTHAachen (January 2010)
+9. Wulf, M.D., Doyen, L., Henzinger, T.A., Raskin, J.F.: Ant ichains: A new algorithm for
+checking universality of ﬁniteautomata. In:CAV. Volume 41 44 ofLNCS.(2006) 17–30
+10. Bollig, B., Katoen, J.P., Kern, C., Leucker, M.: Learnin g Communicating Automata from
+MSCs. IEEETSEToappear.
+4

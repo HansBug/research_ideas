@@ -1,0 +1,1076 @@
+--- Page 1 ---
+Scalable Tree-based Register Automata Learning
+Abstract. Existing active automata learning (AAL) algorithms have
+demonstrated their potential in capturing the behavior of complex systems
+(e.g., in analyzing network protocol implementations). The most widely
+used AAL algorithms generate finite state machine models, such as Mealy
+machines. For many analysis tasks, however, it is crucial to generate richer
+classes of models that also show how relations between data parameters
+affect system behavior. Such models have shown potential to uncover
+critical bugs, but their learning algorithms do not scale beyond small
+and well curated experiments. In this paper, we present SLλ, an effective
+and scalable register automata (RA) learning algorithm that significantly
+reduces the number of tests required for inferring models. It achieves this
+by combining a tree-based cost-efficient data structure with mechanisms
+for computing short and restricted tests. We have implemented SLλas
+a new algorithm in RALib. We evaluate its performance by comparing
+it against SL∗, the current state-of-the-art RA learning algorithm, in a
+series of experiments, and show superior performance and substantial
+asymptotic improvements in bigger systems.
+Keywords: Active automata learning, Register automata
+1 Introduction
+Model Learning (aka Active Automata Learning (AAL) [ 7,40,50]) infers automata
+models that represent the dynamic behavior of a software or hardware component
+from tests. Models obtained through (active) learning have proven useful for
+many purposes, such as analyzing security protocols [ 18,19,25,41,45], mining
+APIs [ 6], supporting model-based testing [ 26,47,52] and conformance testing [ 5].
+The AAL algorithms employed in these works are efficient and supported by
+various domain-specific optimizations (e.g., [ 31]), but they all generate finite state
+machine (FSM) models, such as Mealy machines.
+For many analysis tasks, however, it is crucial for models to also be able to
+describe data flow , i.e., constraints on data parameters that are passed when
+the component interacts with its environment, as well as the mutual influence
+between dynamic behavior and data flow. For instance, models of protocol
+components must describe how different parameter values in sequence numbers,
+identifiers, etc. influence the behavior, and vice versa. Existing techniques for
+Simon Dierl1(B), Paul Fiterau-Brostean2(B), Falk Howar1(B),
+Bengt Jonsson2(B), Konstantinos Sagonas2,3(B),
+and Fredrik T˚ aquist2(B)
+1Technical University of Dortmund, Dortmund, Germany
+2Uppsala University, Uppsala, Sweden
+3National Technical University of Athens, Athens, Greece
+c/ci clecopy tThe Author(s) 2024
+B. Finkbeiner and L. Kova ´cs (Eds.): TACAS 2024, LNCS 14571, pp. 87–108, 2024.
+https://doi.org/10.1007/978-3-031-57249-4 _5{simon.dierl,falk.howar}@tu-dortmund.de
+fiteraup@yahoo.com, {bengt.jonsson,kostis,fredrik.takvist}@it.uu.se
+
+--- Page 2 ---
+extending AAL to Extended FSM (EFSM) models [ 1,8,10] take several different
+approaches. Some reduce the problem to inferring FSMs by using manually
+supplied abstractions on the data domain [ 1], which requires insight into the
+control/data dependencies of a system under learning (SUL). Others extend AAL
+for finite state models by allowing transitions to contain predicates over rich
+data domains, but cannot generate state variables to model data dependencies
+between consecutive interactions [ 13,35]. Finally, there exist extensions of AAL to
+EFSM models with guards and state variables, such as register automata [2,3,10].
+While their potential has been shown by being able to uncover critical bugs in
+e.g., TCP implementations [ 15,16], their learning algorithms do not scale beyond
+small and well curated experiments.
+We follow the third line of works and address the scalability of register
+automata (RA) learning algorithms in our work. The main challenge when
+scaling AAL algorithms is reducing the number of tests that learners perform on
+a SUL. Generally, these tests are sequences of actions of the form u·v, where u
+is the prefix and vthe suffix of the sequence. Tests u·vandu′·vare then used
+to determine if prefixes uandu′can be distinguished based on the SUL’s output
+triggered by v. When inferring RA models, prefixes are sequences of actions
+with data values, e.g., push(1)push(2), and suffixes are sequences of actions with
+symbolic parameters, e.g., pop(p1)pop(p2), that, when instantiated, can incur
+a number of tests that is exponential in the length of the suffix for identifying
+dependencies between prefix values and suffix parameters, e.g., different test
+outcomes for ( p1= 2∧p2= 1) and ( p1= 2∧p2= 3), and for distinguishing
+prefixes based on suffixes. To make register automata learning scalable, it is
+crucial to reduce the use of suffixes in tests along three dimensions: (i) First, it is
+important to use only few tests . (ii) Second, when using suffixes in tests, shorter
+suffixes should be preferred over longer ones. (iii) Third, it is essential to restrict
+tests to relevant dependencies between prefix values and suffix parameters instead
+of bluntly testing all possible dependencies.
+In this paper, we present the SLλalgorithm for learning register automata
+which achieves scalability by optimizing the use of tests and suffixes in tests in
+the three stated dimensions. SLλuses a classification tree as a data structure,
+constructs a minimal prefix-closed set of prefixes and a suffix-closed set of short
+andrestricted suffixes for identifying and distinguishing locations, transitions,
+and registers. Technically, we adopt the idea of using a classification tree from
+learners for FSMs [ 32,33] where it proved very successful for reducing tests. We
+also adopt the technique of computing short suffixes incrementally in order to
+keep them short [ 7,32]. This has not been studied for RAs before and leads
+to an improved worst case complexity compared to state-of-the-art approaches
+(Theorem 1). Finally, we show how suffixes can be restricted to relevant data
+dependencies, which is essential for achieving scalability (Section 4).
+We have implemented SLλas a new algorithm in the RALib4tool [ 9]. For
+comparison, we have also implemented in RALib the SLCTalgorithm that
+uses a classification tree but relies on suffixes from counterexamples instead of
+4RALib is available at https://github.com/LearnLib/ralib .88 S. Dierl et al.
+
+--- Page 3 ---
+computing short suffixes from inconsistencies. We evaluate the SLλalgorithm by
+comparing its performance against the SL∗[10] and SLCTalgorithms in a series
+of experiments, confirming that: (i) classification trees scale much better than
+observation tables for register automata, (ii) using restricted suffixes leads to a
+dramatic reduction of tests for all compared algorithms, and (iii) computing short
+suffixes from inconsistencies outperforms using suffixes from counterexamples.
+Related Work. For a broad overview of AAL refer to the survey paper of de la
+Higuera [ 27] from 2005 and to a more recent paper by Howar and Steffen [ 28].
+Learning beyond DFAs has been investigated for many models aside from
+register automata. For example, algorithms have been presented for workflow Petri
+nets [ 14], data automata [ 24], generic nondeterministic transition systems [ 51],
+symbolic automata [ 13], one-timer automata [ 48], and systems of procedural
+automata [ 22]. Learning of register automata has been performed by combining a
+FSM learner with the Tomte front-end [ 2,3]. A different approach using bespoke
+RA learning algorithms [ 30,37] has been implemented in RALib. Active learning
+algorithms for nominal automata, which extend FSMs to infinite alphabets and
+infinite sets of states, have also been developed [ 38]. While the expressivity
+of nominal DFAs is equivalent to that of deterministic register automata with
+equality, nominal automata do not represent registers symbolically but through
+permutations on infinite sets, leading to big models (e.g., for storing some data
+value twice) and active learning algorithms with a high query complexity.
+Applications of AAL are diverse. Active learning enables the generation of
+behavioral models for software [ 43,46], e.g. for network protocol implementa-
+tions [ 41,53], enabling security analyses and model checking [ 4,20,21]. It can
+be used in testing [ 36,44] and to enable formal analyses [ 50]. Finally, it can be
+combined with passive learning approaches to support life-long learning [ 23]. More
+theoretical advances include the use of Galois connections to model SUL-oracle
+mappers [ 34] and the introduction of apartness [ 49], to formalize state distinction.
+Outline. We present the key ideas in tree-based learning of RA informally in the
+next section, before providing formal definitions of basic concepts in Section 3.
+Sections 4to6present the SLλalgorithm, its properties, and the experimental
+evaluation of its performance. The paper ends with few concluding remarks.
+2 Main Ideas
+In this section, we introduce the main ideas behind the SLλalgorithm. As
+illustrating example, we will use a stack of capacity two, which stores a sequence
+of natural numbers. The stack supports the operations push and pop, both of
+which take one natural number as a parameter. The operation push(d) succeeds
+if the stack is not full, i.e., contains at most one element; the operation pop(d)
+succeeds if the last pushed and not yet popped element is d. Let a symbol denote
+an operation with data value, such as push(1), and let LStack denote the prefix-
+closed language consisting of the words of symbols representing sequences of
+successful operations. Figure 1shows an acceptor for LStack. The initial locationScalable Tree-based Register Automata Learning 89
+
+--- Page 4 ---
+l0 l1 l2∅ {x1} {x1,x2}push(p)|true
+x1:=p
+pop(p)|p=x1
+−push(p)|true
+x1:=x1,x2:=p
+pop(p)|p=x2
+x1:=x1
+Fig. 1: Register automaton accepting language of stack with capacity two.
+l0corresponds to an empty stack, location l1corresponds to a stack with one
+element, and l2to a location where the stack is full. There is also an implicit
+sink location for each word that is not accepted by LStack, e.g. pushing a third
+element, or popping a non-top element. In each location, registers contain the
+elements in the stack: for i= 0,1,2, location lihasiregisters, where the register
+with the highest index contains the topmost stack element.
+The task of the SLλalgorithm is to learn the acceptor in Fig. 1in a black-box
+scenario, i.e., knowing only the operations ( push and pop) and the relations that
+may be used in guards (here tests for equality), by asking two kinds of queries. A
+membership query asks whether a word wis inL; it can be realized by a simple
+test. An equivalence query asks whether a hypothesis RA accepts L; if so, the
+query is answered by yes, otherwise by a counterexample , which is a word on which
+the hypothesis and Ldisagree; in a black box setting it is typically approximated
+by a conformance testing algorithm. Like other AAL algorithms, SLλiterates a
+cycle in which membership queries are used to construct a hypothesis, which is
+then subject to validation by an equivalence query. If a counterexample is found,
+hypothesis construction is resumed, etc., until a hypothesis agrees with L.
+Classical AAL algorithms that learn DFAs maintain an expanding set of
+words, Sp, called short prefixes , and an expanding set of words, called suffixes ,
+which induce an equivalence relation ≡on prefixes, defined by u≡u′iffuv∈
+L ⇔ u′v∈ L for all suffixes v; this allows equivalence classes of prefixes to
+represent states in a DFA. The SLλalgorithm maintains a set Uof data words
+called prefixes , which is the union of Spand one-symbol extensions of elements
+inSp. Instead of suffixes, SLλmaintains a set Vofsymbolic suffixes , each of
+which is a parameterized word, i.e., a word where data values are replaced by
+parameters p1, . . . , p m. For each prefix u, say push(0), and symbolic suffix v, say
+push(p1)pop(p2), membership in Lof words of form uvdepends on the relation
+between the data values of uand the parameters p1, p2ofv, which in SLλis
+represented by a function L[u,v] with parameters x1(representing the data value
+ofu),p1, and p2. In this case L[u,v](x1, p1, p2) is + iff p2=p1and−otherwise.
+InSLλ, such functions are represented as decision trees of a specific form.
+truep2=p1
+p2̸=p1
+Fig. 2: Decision tree for
+L[u,v](x1, p1, p2).Figure 2shows the decision tree for the just described
+function. Note that it checks constraints for parameters
+one at a time: first the constraint on only p1(which is
+true), and thereafter the constraint on p2(a compar-
+ison with p1). Two prefixes u,u′are then equivalent
+w.r.t.VifL[u,v] andL[u′,v] are “isomorphic modulo
+renaming” for all v∈ V(details in Section 4).90 S. Dierl et al.
+
+--- Page 5 ---
+l0
+sink∅
+∅H0push(p)|true
+−
+pop(p)|true
+−
+push(p)|true
+−
+pop(p)|true
+−l0 l1 l2∅ ∅ ∅
+H1push(p)|true
+−push(p)|true
+−
+l0 l1 l2H2∅ {x1} ∅push(p)|true
+x1:=p
+pop(p)|p=x1
+−push(p)|true
+−
+Fig. 3: Three hypotheses constructed by SLλ:H0(left), H1andH2(right).
+Functions of form L[u,v] are generated by so-called tree queries , which perform
+membership queries for relevant combinations of relations between data values
+inuand parameters in v, and summarize the results in a canonical way. The
+tree query above requires five membership queries. SLλemploys techniques for
+reducing this number by restricting the symbolic suffix; see end of this section.
+Initially, SpandVcontain only the empty sequence ϵ. Since ϵis a short prefix,
+one-symbol extensions, push(0) and pop(0), are entered into U. Tree queries are
+performed for the prefixes in Uand the empty suffix, revealing that push(0) is
+accepted and pop(0) is rejected. Thus, push(0) cannot be distinguished from ϵ,
+but pop(0) can, so it must lead to a new location, hereafter referred to as the
+sink, which is therefore added to Sp. One-symbol extensions of pop(0), in this
+case pop(0)push(1) and pop(0)pop(1), are added to Uand tree queries for them
+and the empty suffix are performed, revealing that they cannot be separated
+from the sink. At this point, we can formulate hypothesis H0in Fig. 3(left) from
+Sp,U,and the computed decision trees.
+This hypothesis is then subject to validation. Assume that it finds the coun-
+terexample push(0)push(1)push(2), which is accepted by H0but rejected by LStack.
+Analysis of this counterexample reveals that ϵand push(0) are inequivalent, since
+they are separated by the suffix push(p1)push(p2) (since the concatenation of
+ϵand push(p1)push(p2) is accepted for all p1, p2but push(0)·push(1)push(2) is
+always rejected for all p1, p2). It could seem natural to add push(p1)push(p2) toV,
+butSLλwill not do that, since it follows the principle (from Lλ[29]) that a
+new prefix in Spmust extend an existing prefix by one symbol, and that a new
+suffix in Vmust prepend one symbol to an existing one. This principle keeps Sp
+prefix-closed and Vsuffix-closed, and aims to avoid inclusion of unnecessarily
+long sequences. Therefore, instead of adding push(p1)push(p2) as a suffix, SLλ
+enters the prefix push(0) into Sp, and adds one-symbol extensions of push(0), in
+this case push(0)push(1) and push(0)pop(1), to U. It notes that push(0)push(1)
+is inequivalent to both ϵand push(0), separated by the suffix push(p1). Again,
+push(0)push(1) is therefore promoted to a short prefix, and its one-symbol ex-
+tensions, push(0)push(1)push(2) and push(0)push(1)pop(2), are entered into U.
+Now, SLλis able to add suffixes to Vthat separate all prefixes in Sp, by two
+operations that achieve consistency.
+1.The push-extensions of ϵand push(0)push(1), (i.e., push(0) and push(0)push(1)-
+push(2)) are separated by the empty suffix, hence these two prefixes areScalable Tree-based Register Automata Learning 91
+
+--- Page 6 ---
+ϵ
+push(p1)
+push(p1)push(p2)pop(0)
+pop(0)push(1)
+pop(0)pop(1)
+push(0)pop(1)
+push(0)push(1)pop(2)
+ϵ push(0)push(0)push(1)true
+true truetrue
+true true
+Fig. 4: Classification tree for hypothesis H1in Fig. 3. Short prefixes are underlined.
+separated by the suffix push(p1), a one-symbol extension of ϵwhich is added
+toV.
+2.The push-extensions of ϵand push(0) (i.e., push(0) and push(0)push(1)) are
+separated by the suffix push(p1), hence ϵand push(0) are separated by
+push(p1)push(p2), formed by prepending a symbol to the just added suffix
+push(p1), which is added to V.
+After adding the suffixes, the closedness and consistency criteria are met, pro-
+ducing hypothesis H1in Fig. 3(right, top). Assume that the validation of H1
+finds counterexample push(0)pop(0), which is in LStack, but rejected by H1.
+This counterexample reveals that after push(0), the two continuations pop(0)
+and pop(1) lead to inequivalent locations (separated by suffix ϵ), suggesting
+to refine the pop(p)-transition after push(0). To this end, Vis extended by a
+suffix formed by prepending pop(p) to the empty suffix, and a tree query is
+invoked for L[push(0),pop(p1)], which is + iff p1=x1and−otherwise. Since
+L[push(0),pop(p1)] makes a test for x1, which represents the data value of push(0),
+we infer that the data parameter of the push(0)-prefix must be remembered in
+a register, and that the pop(p)-transition must be split into two with guards
+(x1̸=p) and ( x1=p). The resulting hypothesis, H2, is shown in Fig. 3(right, bot-
+tom), which is subject to another round of validation; the subsequent hypothesis
+construction reveals the pop-transitions from l2in Fig. 1.
+InSLλ, the sets UandVare maintained in a classification tree CT, a data
+structure that is specially designed to represent how the suffixes in Vpartition U
+into equivalence classes corresponding to locations. This permits an optimization
+that can elide superfluous membership queries. A classification tree is a decision
+tree. Each leaf is labeled by a subset of U. Each inner node is labeled by a
+symbolic suffix vand induces a subtree for each equivalence class w.r.t. v, whose
+leaves contain prefixes in this equivalence class. For example, in Fig. 4, which
+shows a CTcorresponding to hypothesis H1, the nodes are labeled by the suffixes
+ϵ,push(p1) and push(p1)push(p2), which separate the leaves into four equivalence
+classes corresponding to the four locations in Fig. 1. Each edge is labeled by the
+results of the tree queries for a prefix in its equivalence class and the symbolic
+suffix of the source node.
+Each tree query requires a number of membership queries which may grow
+exponentially with the length of the suffix. SLλreduces this number by restricting92 S. Dierl et al.
+
+--- Page 7 ---
+the involved symbolic suffix to induce fewer membership queries, as long as the
+tree query can still make the separation between prefixes or transitions for which
+it was invoked. To illustrate, recall that the analysis of the counterexample
+push(0)push(1)push(2) for H0shows that ϵand push(0) are inequivalent. To
+separate these, we need not na¨ ıvely use the symbolic suffix push(p1)push(p2); but
+we can restrict it by considering only values of p1andp2that are fresh, i.e.,
+different from all other preceding parameters in the prefix and suffix. With this
+restriction, the suffix can still separate ϵand push(0), and the tree query for
+prefix push(0) requires only one membership query instead of five.
+3 Data Languages and Register Automata
+In this section, we review background concepts on data languages and register
+automata. Our definitions are parameterized on a theory , which is a pair ⟨D,R⟩
+where Dis a (typically infinite) domain of data values , andRis a set of relations
+(of arbitrary arity) on D. Examples of theories include: (i) ⟨N,{=}⟩, the theory of
+natural numbers with equality, and (ii) ⟨R,{<}⟩, the theory of real numbers with
+inequality; this theory also allows to express equality between elements. Theories
+can be extended with constants (allowing, e.g., theories of sums with constants).
+Data Languages. We assume a set Σofactions , each with an arity that
+determines how many parameters it takes from the domain D. For simplicity, we
+assume that all actions have arity 1; our techniques can be extended to handle
+actions with arbitrary arities. A data symbol is a term of form α(d), where αis an
+action and d∈ Dis a data value. A data word (or simply word ) is a finite sequence
+of data symbols. The concatenation of two words uandvis denoted uv, often we
+then refer to uas aprefix andvas asuffix . Two words w=α1(d1). . . α n(dn) and
+w′=α1(d′
+1). . . α n(d′
+n) with the same sequences of actions are R-indistinguishable ,
+denoted w≈Rw′, ifR(di1, . . . , dij)⇔R(d′
+i1, . . . , d′
+ij) whenever Ris aj-ary
+relation in Randi1,···, ijare indices among 1 . . . n. Adata language Lis a set
+of data words that respects Rin the sense that w≈Rw′implies w∈ L ⇔ w′∈ L.
+We often represent data languages as mappings from the set of words to {+,−},
+where + stands for accept and−forreject .
+Register Automata. We assume a set of registers x1, x2, . . ., and a set of formal
+parameters p, p1, p2, . . .. Aparameterized symbol is a term of form α(p), where αis
+an action and paformal parameter . Aconstraint is a conjunction of negated and
+unnegated relations (from R) over registers and parameters. An assignment is a
+parallel update of registers with values from registers or the formal parameter p.
+We represent it as a mapping πfrom{xi1, . . . , x im}to{xj1, . . . , x jn} ∪ { p},
+meaning that the value π(xik) is assigned to xik, fork= 1, . . . , m . In multiple-
+assignment notation, this would be written xi1, . . . , x im:=π(xi1), . . . , π (xim).
+Definition 1. Aregister automaton (RA) is a tuple A= (L, l0,X, Γ, λ ), where
+–Lis a finite set of locations , with l0∈Las the initial location ,
+–Xmaps each location l∈Lto a finite set X(l)of registers,Scalable Tree-based Register Automata Learning 93
+
+--- Page 8 ---
+–Γis a finite set of transitions , each of form ⟨l, α(p), g, π, l′⟩, where
+•l∈Lis a source location and l′∈Lis a target location,
+•α(p)is a parameterized symbol,
+•g, the guard , is a constraint over pandX(l), and
+•π(theassignment ) is a mapping from X(l′)toX(l)∪ {p}, and
+–λmaps each l∈Lto{+,−}, where +denotes accept and−reject .
+Astate of a RA A= (L, l0,X, Γ, λ ) is a pair ⟨l, µ⟩where l∈Landµis
+a valuation over X(l), i.e., a mapping from X(l) toD. Astep ofA, denoted
+⟨l, µ⟩α(d)− − − → ⟨ l′, µ′⟩, transfers the state of Afrom⟨l, µ⟩to⟨l′, µ′⟩on input of
+the data symbol α(d) if there is a transition ⟨l, α(p), g, π, l′⟩ ∈Γsuch that
+(i)µ|=g[d/p], i.e., dsatisfies the guard gunder the valuation µ, and (ii) µ′is
+defined by µ′(xi) =µ(xj) ifπ(xi) =xj, otherwise µ′(xi) =difπ(xi) =p. Arun
+ofAover a data word w=α(d1). . . α(dn) is a sequence of steps of A
+⟨l0, µ0⟩α1(d1)− − − − → ⟨ l1, µ1⟩. . .⟨ln−1, µn−1⟩αn(dn)− − − − → ⟨ ln, µn⟩
+for some initial valuation µ0. The run is accepting ifλ(ln) = + and rejecting if
+λ(ln) =−. The word wisaccepted (rejected) by Aunder µ0ifAhas an accepting
+(rejecting) run over wfrom⟨l0, µ0⟩. Define the language L(A) ofAas the set of
+words accepted by A. A language is regular if it is the language of some RA.
+We require a RA to be determinate , meaning that there is no data word
+over which it has both accepting and rejecting runs. A determinate RA can be
+easily transformed into a deterministic one by strengthening its guards, and a
+deterministic RA is by definition also determinate. Our construction of RAs in
+Section 4will generate determinate RAs which are not necessarily deterministic.
+RAs have been extended to Register Mealy Machines (RMM) in several works
+and it has been established how RA learning algorithms can be used to infer
+models of systems with inputs and outputs [ 9], which we do, too.
+4 The SLλLearning Algorithm
+In this section, we present the main building blocks of SLλbefore an overview of
+the main algorithm, followed by techniques for reducing the cost of tree queries
+(page 13) and for analyzing counterexamples (page 14).
+Symbolic Decision Trees. The functions, of form L[u,v], that result from tree
+queries, should represent how the language Lto be learned processes instantiations
+ofvafter the prefix u. Since SLλis intended to construct canonical RAs, it is
+natural to let these functions have the form of a tree-shaped “mini-RA”, which
+we formalize as symbolic decision trees of a certain form.
+For a word u=α1(d1). . . α k(dk) and a symbolic suffix v=α′
+1(p1). . . α′
+m(pm)
+a (u,v)-path τis a sequence g1, . . . , g m, where each giis a constraint over
+x1, . . . , x kandp1, . . . , p i. Define the condition represented by τ, denoted Gτ, as
+g1∧ ··· ∧ gm. A (u,v)-tree Tis a mapping from a set Dom (T) of ( u,v)-paths
+to{+,−}. Write dford1, . . . , dk,d′ford′
+1, . . . , d′
+m,xforx1, . . . , x kandpfor94 S. Dierl et al.
+
+--- Page 9 ---
+p1, . . . , p m. A (u,v)-tree Tcan be seen a function with parameters x,pto{+,−},
+defined by T(x,p) =T(τ) whenever τ∈Dom (T) and Gτ(x,p) holds. That
+is, for data values dand d′and each ( u,v)-path τ, we have T(d,d′) =T(τ)
+whenever Gτ(d,d′) is true. If Lis a data language, then L[u,v] is a ( u,v)-tree
+representing membership in Lin the sense that for any values of p1, . . . , p m
+we have L[u,v](d,p) = + iff uα′
+1(p1). . . α′
+m(pm)∈ L, andL[u,v](d,p) =−iff
+uα′
+1(p1). . . α′
+m(pm)̸∈ L. For example, Fig. 2shows a ( u,v)-tree where u=
+push(d1) and v=push(p1)pop(p2). This tree maps the ( u,v)-path true∧p2=p1
+to + and true∧p2̸=p1to−. From this, we can determine, e.g., that the word
+push(0)push(1)pop(1)∈ L, but push(0)push(1)pop(2)̸∈ L.
+SLλgenerates ( u,v)-trees L[u,v] representing the language Lto be learned
+through so-called tree queries , which perform membership queries for values of
+the data parameters p1, . . . , p mthat cover relevant equivalence classes of ≈R.
+From the results of tree queries, we can extract registers and guards in the
+location reached by a prefix u. Intuitively, the registers must remember the data
+values of uthat occur in some guard in some L[u,v], and the outgoing guards
+from the location reached by ucan be derived from the initial guards in the
+treesL[u,v], since the initial guards represent the constraints that are used when
+processing the first symbol of v. Let mem v(u), the set of memorable parameters ,
+denote the set of registers among {x1, . . . , x k}that occur on some ( u,v)-path
+inDom (L[u,v]). Intuitively, if xiis a memorable parameter, then the ithdata
+value in uwill be remembered in the register xiin the location reached by u.
+For example, for the stack in Fig. 1, in the location reached by push(0) the data
+value d1= 0 is memorable so will be remembered in register x1. Note that a
+(u,v)-tree itself does not have any registers: it only serves to show which registers
+are needed in the location reached by uin the to-be-constructed automaton.
+Define mem V(u) as∪v∈Vmem v(u). For a prefix uand symbolic suffix vwhose
+first action is α, letG{v}(u, α) denote the initial guards in the ( u,v)-treeL[u,v],
+with p1replaced by p. For a set V, letGV(u, α) denote the set of satisfiable
+conjunctions of guards in G{v}(u, α) forv∈ Vwith first action α.
+Two ( u,v)-trees, TandT′, are equivalent denoted T≡T′, ifDom (T) =
+Dom (T′) and T(τ) =T′(τ) for each τ∈Dom (T). For a mapping γon registers,
+we define its extension to ( u,v)-paths in the natural way. For a ( u,v)-tree T, we
+define γ(T) byDom (γ(T)) ={γ(τ) :τ∈Dom (T)}andγ(T)(γ(τ)) =T(τ).
+Letu≡Vu′denote that L[u,v]≡ L[u′,v], for all symbolic suffixes v∈ V.
+Letu≃γ
+Vu′denote that γis a bijection from mem V(u) tomem V(u′) such that
+for all v∈ V we have γ(L[u,v])≡ L[u′,v]. Let u≃Vu′denote that u≃γ
+Vu′
+for some bijection γ. Intuitively, two words uandu′are equivalent if there is
+a bijection γwhich for each v∈ Vtransforms L[u,v] toL[u′,v], Note that in
+general, when u≃Vu′, there can be several such bijections.
+Data Structures. During the construction of a hypothesis, the SLλalgorithm
+maintains: (i) a prefix-closed set Spofshort prefixes , representing locations,
+(ii) and a set of one-symbol extensions of the prefixes in Sp, representing transi-
+tions; we use Uto represent the union of Spand this set, and (iii) a suffix-closed
+setVof symbolic suffixes. Each one-symbol extension of form uα(d)is formed toScalable Tree-based Register Automata Learning 95
+
+--- Page 10 ---
+Algorithm 1: Operations on the Classification Tree.
+Function Sift(u, N)is
+ifNis a leaf thenU ← U [u/mapsto→N]
+else
+Compute L[u,suff(N)]
+ifNhas child N′withu≃V(N)rp(N′)then Sift(u, N′)
+else
+Create new leaf N′as child of Nwith rp(N′) =u
+Sift(u, N′)
+Function Expand( u)is
+Sp←Sp∪ {u}
+forα∈ΣdoSift(uα(dg
+u),root(CT)) for each g∈ GV(u)(u, α)
+Function Refine( N,v)is
+Replace Nby an inner node N′with suff(N′) =v
+foru∈ U−1(N)doSift(u, N′)
+letdsatisfy a specific guard g; we then always choose das arepresentative data
+value , denoted dg
+u, satisfying gafter u.
+The sets UandVare maintained in a classification tree CT, which is designed
+to represent how the suffixes in Vpartition the set Uinto equivalence classes
+corresponding to locations. A classification tree is a rooted tree, consisting of
+nodes connected by edges. Each inner node is labeled by a symbolic suffix, and
+each leaf is labeled by a subset of U. To each node Nis assigned a representative
+prefix rp(N) inU. For a node N, letsuff(N) its suffix and V(N) denote the set
+of symbolic suffixes of Nand all its ancestors in the tree. Each outgoing edge
+from Ncorresponds to an equivalence class of ≃V(N)from which a representative
+member is chosen as the representative prefix of its target node. Each leaf node N
+is labeled by a set of data words, which are all in the same equivalence class of
+≃V(N). Thus, nodes in different leaves are guaranteed to be inequivalent, since
+they are separated by the symbolic suffixes in V(lca(N, N′)), where lca(N, N′)
+is the lowest common ancestor node of NandN′. We let Udenote the mapping,
+which maps each prefix u∈Uto the classification tree leaf where it is contained.
+We also let V(u) denote V(U(u)), the suffixes of all ancestors of U(u). The
+representative prefix, rp(N), of each leaf node Nwill induce a location in the
+RA to be constructed.
+The insertion of a new prefix uinto the classification tree CTis performed by
+function Sift(cf. Algorithm 1). It traverses the CTfrom the root downwards. At
+each internal node N, it checks whether u≃V(N)rp(N′) for any child N′ofN.
+If so, it continues the traversal at N′, otherwise a new child of Nis created as a
+leafNwith rp(N) =u. When reaching a leaf N, the mapping Uis updated to
+reflect that uhas been sifted to N. In the classification tree in Fig. 4, e.g., ϵis the
+representative prefix of inner nodes push(p1) and push(p2)push(p2) as it is the
+first prefix that was sifted down this path. The short prefix push(0) at the second
+leaf from right was sifted from the root to push(p1) and then to push(p1)push(p2)96 S. Dierl et al.
+
+--- Page 11 ---
+Algorithm 2: SLλLearning.
+Initialize CTas inner node root(CT) with suffix ϵandU← ∅,Sp← ∅
+Sift(ϵ,root(CT))
+HYP: repeat
+▷Check closedness
+ifexists leaf Nfor which U−1(N)∩Sp=∅then //location
+Expand (u) for some u∈ U−1(N)
+ifu∈Spandg∈ GV(u)(u, α)butuα(dg
+u)/∈Uthen //transition
+Sift(uα(dg
+u),root(CT))
+ifuα(d)∈Us.t. mem V(uα(d) )(uα(d))̸⊆mem V(u)(u)∪{x|u] + 1}then //register
+Letv∈ V(uα(d)) with mem v(uα(d)))̸⊆(mem V(u)(u)∪ {x|u]+1})
+Refine (U(u),αv)
+▷Check consistency
+ifu, u′∈ U−1(L)∩Spwithu≃γ
+V(N)u′for leaf Nwith
+uα(dg
+u), u′α(dγ(g)
+u′)∈UbutU(uα(dg
+u))̸=U(u′α(dγ(g)
+u′))then //location
+Refine (U(u),αv) with v=suff(lca(uα(dg
+u), u′α(dγ(g)
+u′)))
+ifg∈ GV(u)(u, α)anduα(dg
+u), uα(d)∈Uwith (u,d)⊨gbut
+U(uα(dg
+u))̸=U(uα(d))then //transition(a)
+Refine (U(u),αv) with v=suff(lca(uα(dg
+u), uα(d)))
+ifuα(dg
+u), uα(d)∈Uwithuα(dg
+u)̸≃id
+V(uα(d))uα(d)then //transition(b)
+Refine (U(u),αv) with vs.t.uα(dg
+u)̸≃id
+{v}uα(d)
+ifu, uα∈Uwithu≃γ
+V(u)uand no extension γ′ofγwith
+uα(d)≃γ′
+V(uα(d))uα(d)then //register
+Refine (U(u),αv) with vs.t.uα(d)̸≃γ′
+{v}uα(d) for any γ′
+until closed and consistent
+H ← Hypothesis( CT)
+if∃w∈Σ+s.t.H(w)̸=L(w)then Analyze (w) and goto HYPelse return H
+aspush(0)≃{ϵ}ϵand push(0)≃{ϵ,push(p1)}ϵ. Since, however, push(0)̸≃Vϵfor
+V={ϵ,push(p1),push(p1)push(p2)}, a new leaf was created and push(0) was
+made the representative prefix of the new leaf and a short prefix.
+The SLλAlgorithm. The core of the SLλalgorithm, shown in Algorithm 2,
+initializes the classification tree to consist of one (root) inner node, for the empty
+suffix (which classifies words as accepted or rejected); UandSpare empty. It
+then sifts the empty prefix ϵ, thereby entering it into U. Thereafter, Algorithm 2
+repeats a main loop in which CTis checked for a number of closedness and
+consistency properties. Whenever such a property is not satisfied, a corrective
+update is made by adding information to CT. These corrective updates fall into
+two categories, carried out by the following functions:
+–Expand takes a prefix u∈Uand makes it into a short prefix. Since each
+short prefix must have a set of one-symbol extensions in U, the functionScalable Tree-based Register Automata Learning 97
+
+--- Page 12 ---
+forms one-symbol extensions of form uα(dg
+u), which are entered into the
+classification tree by sifting.
+–Refine takes a leaf node Nand a symbolic suffix v; it sifts the prefixes u
+inN, thereby obtaining L[u,v] from a tree query. This can either split N
+into several equivalence classes, refine the initial guards or extend the set of
+registers in the location represented by N.
+Let us now describe the respective corrective updates in Algorithm 2.
+Location Closedness is satisfied if each leaf contains a short prefix in Sp. Whenever
+a leaf Ndoes not contain a short prefix in Sp, one of its prefixes uis chosen for
+inclusion in Spby calling Expand (u), which adds one-symbol extensions to U.
+Transition Closedness is satisfied if for each short prefix u, action α, and initial
+guard in GV(u)(u, α), the extension uα(dg
+u)is in U. If this is not satisfied, the
+missing uα(dg
+u) is added to Uby sifting into CT.
+Register Closedness is satisfied if for each pair of prefixes uanduα(d) inU, the
+memorable parameters found for ucontain the memorable parameters revealed
+by the suffixes for uα(d), except for x|u]+1, where |u] is the length of u. Register
+closedness guarantees that in a hypothesis H, values of registers in the location of
+uα(d) can all be obtained by assignment from the registers in location uand the
+just received parameter. If it is not satisfied, a suffix vforuα(d) which reveals a
+missing register is prepended by α(p1) and added to the suffixes for u, whereafter
+Refine (U(u),αv) will reveal the missing parameter. Here, and in the following, we
+useαto denote α(p1), and αvto denote the result α(p1)α′
+2(p2). . . α′
+m+1(pm+1) of
+prepending αtov=α′
+1(p1). . . α′
+m(pm). If possible, we try to choose a shortest v,
+and also restrict the parameters of αvto reduce the cost of the tree query for
+L[u,αv].
+Location Consistency. Analogously to consistency in the classic L∗algorithm,
+we split a leaf containing two short prefixes u,u′, in case their correspond-
+ing extensions are not equivalent, i.e., there is a g∈ GV(u)(u, α) such that
+U(uα(dg
+u))̸=U(u′α(dγ(g)
+u′)). The splitting is done by calling Refine (U(u),αv),
+where vis the symbolic suffix labeling the common ancestor of the leaves of
+uα(dg
+u) and u′α(dγ(g)
+u′).
+Transition Consistency is satisfied if all one-symbol extensions uα(d) that satisfy
+some guard ginGV(u)(u, α), are sifted to the same leaf as the extension uα(dg
+u)
+with the representative data value dg
+u. If not, the guard gshould be split by calling
+Refine (U(u),αv), where vis the symbolic suffix labeling the common ancestor
+of the leaves of uα(dg
+u) and uα(d). A similar case ( Transition Consistency(b) )
+occurs when uα(dg
+u) and uα(d) are sifted to the same leaf, but are not equivalent
+under the identity mapping between registers. Also here, the guard gshould
+be split by calling Refine (U(u),αv), where vis a shortest suffix under which
+uα(dg
+u)̸≃id
+{v}uα(d).
+Register Consistency. For some short prefix uwith memorable values mem V(u)(u),
+there may be symmetries in L[u,v] for some v∈ V(u), i.e., for some permutation γ
+onmem V(u)(u) we have u≃γ
+V(u)u. It may be that this symmetry does not exist98 S. Dierl et al.
+
+--- Page 13 ---
+in the SUL, but we did not yet add a suffix that disproves it . Register consistency
+checks for the existence of such suffixes by comparing symmetries in uand its
+continuations uα(d). If a symmetry between data values of udoes not exist in
+uαwhile one or more of the data values are memorable in uα, we can construct
+a suffix that breaks the symmetry also for u.
+Restricted Symbolic Suffixes. To reduce the number of membership queries
+for tree queries of form L[u,v], we impose, when possible, restrictions to the
+parameters of v, meaning that L[u,v] represents acceptance/rejection of uvonly
+for the suffix parameters that satisfy the imposed restrictions . An illustration was
+given at the end of Section 2. A more detailed description appears in the extended
+version [ 12] of this paper. Since a restricted symbolic suffix v′represents fewer
+actual suffixes than an unrestricted one v, it has less separating power, so suffixes
+should only be restricted if their separating power is sufficient. The principles for
+adding restrictions are specific to the theory; we have implemented them for the
+theory ⟨N,{=}⟩. There, we consider two forms of restrictions on suffix parameters
+pi: (i)fresh (pi), meaning that piis different from all other preceding parameters
+in the prefix and suffix, (ii) pi=pj, where j < i , i.e., pjis an earlier parameter in
+the restricted suffix. Let us consider how restricted suffixes arise when prepending
+an action αto an existing suffix v, in a call of form Refine (U(u),αv), in the
+case that u,α, and vare chosen such that mem v(uα(d))) contains a particular
+memorable parameter. Let us denote the parameters of αvbyp1,···, p|v|+1.
+The restriction of suffix αvis then obtained by
+1.letting the parameter of αbe fresh if dis not equal to a previous data value
+inu, and
+2.restricting each parameter piwith i >1 inαvto be (i) fresh whenever pi−1
+is fresh in vor the branch taken in L[uα(d),v] for fresh pi−1reveals the
+sought register, and (ii) equal to a previous value pjinαvif the branch
+taken in L[uα(d),v] for pi−1equal to the corresponding value reveals the
+sought register.
+Hypothesis Construction. We can construct a hypothesis from a closed and
+consistent classification tree. Location closedness ensures that every transition
+has a defined source and target location, transition closedness ensures that
+every transition that is observed by the tree queries we have performed so far,
+is represented by a prefix, and register closedness ensures that registers exist
+for all memorable data values in corresponding locations. Location consistency,
+transition consistency, and register consistency ensure that we can construct a
+unique (up to naming of locations and registers) determinate register automaton
+eventhough there may exist multiple short prefixes for one location and symmetries
+betweeen memorable data values.
+We construct the register automaton A= (L, l0,X, Γ, λ ), where
+–Lis the set of leaves of CT, and l0is the leaf containing the empty prefix ϵ,
+–Xmaps each location l∈Ltomem CT(u), where uis the representative
+short prefix of the leaf corresponding to l, andScalable Tree-based Register Automata Learning 99
+
+--- Page 14 ---
+Algorithm 3: Analyze Counterexample.
+Function Analyze( w)is
+for|w| ≥i >0do
+foru∈As(w1:i−1)do
+Letuα(dg
+u)∈Urepresent the last transition of w1:iinH
+Letv=Acts(wi+1:|w|) (or ϵfori=|w|)
+ifuα(dg
+u)̸≃{v}u′for all u′∈As(w1:i)then //location
+Expand (uα(dg
+u)) and stop analysis of w
+ifinitial guard ginL(u,αv)but no uα(dg
+u)∈Uthen //transition
+Sift(uα(dg
+u),root(CT)) and stop analysis of w
+–λ(l) = + if the leaf lis in the accepting subtree of the root, else λ(l) =−.
+–for every location lwith short prefix u, action α, and guard ginGV(u)(u, α),
+there is a transition ⟨l, α(p), g, π, l′⟩, where
+•l′=U(uα(dg
+u)) is the target location, and
+•π(theassignment ) is defined by γfor which uα(dg
+u)≃γ
+V(uα(dg
+u))rp(uα(dg
+u))
+Analysis of Counterexamples. When an equivalence query returns a coun-
+terexample w, we process the counterexample as is shown in Algorithm 3. From
+right to left, we split the counterexample at every index into a location prefix
+w1:i−1, a transition prefix w1:i, and a suffix wi+1:|w|. We use the location and
+transition prefixes to find corresponding short prefixes uand prefixes uα(dg
+u)by
+tracing w1:i−1andw1:ion the hypothesis. We write As(w1:i) for the short prefix
+corresponding to the location reached by w1:iin a hypothesis and V als (w) for
+the sequence of actions of w. We can then distinguish two cases: (1) The word
+uα(dg
+u)is inequivalent to all corresponding short prefixes for the suffix of the
+counterexample. In this case, we make uα(dg
+u)a short prefix. (2) The tree query
+L(u,αv) shows a new initial guard. In this case, we add the corresponding (new)
+prefix uα(dg
+u)to the set of prefixes. If neither case applies, we continue with the
+next index. Since wis a counterexample, one of the cases will apply for some
+index (cf. Lemma 1).
+5 Correctness and Complexity
+Let us now briefly discuss the correctness and query complexity of SLλ. The
+correctness arguments are analogous to the arguments presented for other active
+learning algorithms. One notable difference to SL∗is that SLλestablishes register
+consistency instead of relying on counterexamples for distinguishing symmetric
+registers. Proofs can be found in the extended version [ 12] of this paper.
+Lemma 1. A counterexample leads to a new short prefix or to a new prefix.
+This is a direct consequence of Algorithm 3. Using a standard construction that
+leverages properties of counterexamples (cf. [ 10,40]), it can be shown that one of
+the two cases in the algorithm will trigger for some index of the counterexample.100 S. Dierl et al.
+
+--- Page 15 ---
+As long as expanding (or sifting) new prefixes does not trigger a refinement, the
+current counterexample can be analyzed again, until a refinement occurs.
+Lemma 1establishes progress towards a finite RA for a language L. Let m
+be the length of the longest counterexample, tthe number of transitions, rthe
+maximal number of registers at any location, and nthe number of locations in
+the final model. ( tdominates both nandr.)
+Theorem 1. SLλinfers a RA for regular data language LwithO(t)equivalence
+queries and O(t2nr+tmn mm)membership queries for sifting words and analyzing
+counterexamples.
+O(t) is an improvement over the worst case estimate of O(tr) equivalence
+queries for SL∗[10].SLλalso improves the worst case estimate for membership
+queries for sifting to O(t2nr) from O(t2r nr) for filling the table in SL∗. For
+analyzing counterexamples, SLλreplaces O(trm mm) with O(tmn mm).
+6 Evaluation
+As mentioned, we have implemented the SLλalgorithm in the publicly available
+RALib tool for learning register automata. RALib already implemented the SL∗
+algorithm [ 10] that uses an observation table as its data structure. In order to
+evaluate the effect of analyzing counterexamples as described in Section 4, we
+have also implemented the SLCTclassification tree learning algorithm that uses
+the same counterexample analysis technique as the SL∗algorithm, i.e., adding
+suffixes from counterexamples to the classification tree directly. We compare the
+performance of the SLλalgorithm against that of SL∗andSLCT. All models,
+the experimental setup, and infrastructure for executing the experiments are
+available on the paper’s artefact at Zenodo [ 42] and updated versions on GitHub5.
+Experimental Setup. We use two series of experiments: (1) A black-box learning
+setup with random walks for finding counterexamples on small models from the
+Automata Wiki [ 39] to establish a baseline comparison with other results and to
+evaluate the impact of using non-minimal counterexamples. In these experiments,
+we verify with a model checker that the inferred model is equivalent to the SUL
+and we stop as soon as the correct model is produced by a learning algorithm.
+(2) A white-box setup with a model checker for finding short counterexamples to
+analyze the scalability of algorithms on (2a) 24 consecutive hypotheses of the
+Mbed TLS 2.26.0 server,6as well as (2b) sets of randomly generated automata.7
+All results were obtained on a MacBook Pro with an Apple M1 Pro CPU and
+32 GB of memory, running macOS version 12 .5.1 and OpenJDK version 17 .0.8.1.
+5https://github.com/LearnLib/ralib-benchmarking
+6We obtained these hypotheses by extending the machinery of DTLS-Fuzzer [17], a
+publicly available tool for learning state machine models of DTLS implementations.
+7We used the algorithm of Champarnaud and Parantho¨ en [ 11] to enumerate seman-
+tically distinct DFAs with a specific alphabet and number of locations. We then
+replaced the alphabet symbols with RA actions of arity one, and finally replaced a
+fraction of the transitions with simple gadgets that store and compare data values.Scalable Tree-based Register Automata Learning 101
+
+--- Page 16 ---
+Table 1: Results on AutomataWiki Systems.
+SUL Resets (Learn) Resets (Total) CounterExs WCT Learn [ms] WCT Test [ms]
+|Q| |Γ| |X| |C|SL∗SLλSLCTSL∗SLλSLCTSL∗SLλSLCTSL∗SLλSLCTSL∗SLλSLCT
+channel-frame 5 8 3 2 11 11 1524 28 32 1 2 2 49 43 36295289 294
+abp-receiver3 6 10 3 2 489 88 466 614249 610 4 4 4 147 74 245256 282 264
+palindrome 6 15 4 0 479358 476 508384 504 5 5 5 73 52 51406 403 402
+login 12 19 4 0 436244 433 509300 512 32 3 86 54 67301 303 310
+abp-output 30 50 1 2 363208 3115904 552 6 151 511 11 142 151 696 260 175 154
+sip 30 72 2 0 487233 3459343 633 2 772 915 16 370 347 353 194149 160
+fifo3 12 16 4 0 29 24 23212202 209 5 5 5 114 106 108547 636 563
+fifo5 18 24 6 0 6655 60435434 468 6 7 7 1 303 1 144 1 451 575 600 584
+fifo7 24 32 8 0 118 96 123738 839 989 7 8 9 317 435 279 888 346 897 589 591 583
+Results. Table 1summarizes the results of the experiments in a black-box learn-
+ing setup. For every SUL, we report its complexity (in number of locations |Q|,
+transitions |Γ|, registers |X|, and constants |C|) and, for each learning algorithm,
+the number of resets (i.e., tests) during the learning phase, total tests (incl. coun-
+terexample search), the number of counterexamples found, and wall clock times
+(WCT) for learning and testing. In Table 1, all numbers are averages from 20
+experiments. It can be seen that the SLλalgorithm consistently outperforms
+the other two algorithms w.r.t. the number of tests during learning. As can be
+expected, the SL∗algorithm requires the fewest counterexamples. Execution
+times do not show a consistent pattern for these small systems or a clear ‘winner’
+between these three RA learning algorithms, but there is a strong correlation
+between the number of learner tests and the time that learning requires. Due to
+this, in most cases, SLλis fastest overall.
+The SULs of the previous set of experiments were all quite small ( |Γ| ≤72),
+and did not show any scalability differences between the three algorithms. Also,
+with the exception of fifo, the benchmarks were not parametric. In the following
+experiments, we scale the SULs which are learned.
+Figure 5shows the results of our experiments with DTLS models. For each
+algorithm, the graphs show the relationship between the number of transitions in
+each hypothesis model and the number of resets with restricted and unrestricted
+suffixes (in the first two graphs), the number of counterexamples (3rdgraph), and
+execution times (4thgraph). It is evident that, with increasing model complexity,
+the number of counterexamples grows linearly for all algorithms at roughly the
+same rate, yet the number of resets grows much more rapidly for SL∗than
+it does for SLCTandSLλ. In terms of time performance, the trend is even
+more pronounced. For SULs with more that 100 transitions, learning times grow
+significantly worse for SL∗than the other two algorithms, and SLλclearly also
+beats SLCTon even bigger systems.
+Finally, Fig. 6shows the results of the experiments with randomly generated
+automata. The graphs show how the number of resets scales with the number of
+locations and actions (left) and the number of registers when using both restricted
+(center) and unrestricted suffixes (right). The number of resets grows much more
+rapidly for SL∗than for the other algorithms. Not restricting suffixes leads to a
+2–4x increase in resets; notice the different scales on the y-axis.
+Overall, the experiments show a clear advantage of SLλover table-based RA
+learning algorithms in terms of the number of resets and execution times for102 S. Dierl et al.
+
+--- Page 17 ---
+050100 150 200 250010k20k
+TransitionsResets (restricted suffixes)SL∗
+SLλ
+SLCT
+050100 150 200 250050k100k150k
+TransitionsResets (unr suffixes)SL∗
+SLλ
+SLCTestricted
+050100 150 200 2500204060
+TransitionsCounterexamplesSL∗
+SLλ
+SLCT
+050100 150 200 250060120180
+TransitionsWCT [s]SL∗
+SLλ
+SLCTFig. 5: Number of resets (two leftmost graphs), counterexamples (3rdgraph), and
+wall clock times (4thgraph) for inferring models of the Mbed TLS 2.26.0 server.
+0 1,000 2,000 3,000 4,000020k40k60k
+Transitions (scaling locations or actions)ResetsSL∗
+SLλ
+SLCT
+2,000 2,200 2,400 2,600020k40k
+Transitions (scaling data operations)Resets (restricted suffixes)SL∗
+SLλ
+SLCT
+2,000 2,200 2,400 2,600020k40k60k80k100k
+Transitions (scaling data operations)Resets (unrestricted suffixes)SL∗
+SLλ
+SLCT
+Fig. 6: Resets for inferring models of generated SULs, scaling the number of
+transitions through locations and actions as well as by increasing the percentage
+of transitions with data operations using restricted and unrestricted suffixes.
+bigger systems. These results confirm the theoretical properties of the algorithms
+and are consistent with the behavior of AAL algorithms for FSMs.
+7 Conclusion
+We have presented SLλ, a scalable tree-based algorithm for register automata
+learning. SLλreduces the membership queries needed for inferring RA models by
+constructing short restricted suffixes incrementally. This enables active learning
+in scenarios not feasible with previous algorithms. We prove a reduction in the
+worst-case number of tests and, via a practical evaluation, show performance
+improvements on both real-world (i.e., on a complex network protocol) and
+synthetic models compared to the state-of-the-art RA learning algorithm.
+Acknowledgements This research was partially funded by the Swedish Re-
+search Council (Vetenskapsr˚ adet), the Swedish Foundation for Strategic Research
+through project aSSIsT , the Knut and Alice Wallenberg Foundation through
+project UPDATE, and the Deutsche Forschungsgemeinschaft (DFG, German Re-
+search Foundation) projects 495857894 (STING) and442146713 (NFDI4Ing) . We
+thank these funding agencies and the TACAS 2024 reviewers for their comments.Scalable Tree-based Register Automata Learning 103
+
+--- Page 18 ---
+References
+1.Aarts, F., Jonsson, B., Uijen, J., Vaandrager, F.: Generating models of infinite-state
+communication protocols using regular inference with abstraction. Formal Methods
+in System Design pp. 1–41 (2015). https://doi.org/10.1007/s10703-014-0216-x
+2.Aarts, F., Fiterau-Brostean, P., Kuppens, H., Vaandrager, F.: Learning register
+automata with fresh value generation. In: Leucker, M., Rueda, C., Valencia, F.D.
+(eds.) Theoretical Aspects of Computing - ICTAC 2015. LNCS, vol. 9399, pp.
+165–183. Springer International Publishing, Cham (2015). https://doi.org/10.1007/
+978-3-319-25150-9 11
+3.Aarts, F., Heidarian, F., Kuppens, H., Olsen, P., Vaandrager, F.: Automata learning
+through counterexample guided abstraction refinement. In: Giannakopoulou, D.,
+M´ ery, D. (eds.) FM 2012: Formal Methods. LNCS, vol. 7436, pp. 10–27. Springer,
+Berlin, Heidelberg (2012). https://doi.org/10.1007/978-3-642-32759-9 4
+4.Aarts, F., Jonsson, B., Uijen, J., Vaandrager, F.: Generating models of infinite-state
+communication protocols using regular inference with abstraction. Formal Methods
+in System Design 46(1), 1–41 (Feb 2015). https://doi.org/10.1007/s10703-014-0216-x
+5.Aarts, F., Kuppens, H., Tretmans, J., Vaandrager, F.W., Verwer, S.: Learning
+and testing the bounded retransmission protocol. In: Proceedings of the Eleventh
+International Conference on Grammatical Inference, ICGI 2012. JMLR Proceedings,
+vol. 21, pp. 4–18. JMLR.org (2012), http://proceedings.mlr.press/v21/aarts12a.html
+6.Ammons, G., Bod´ ık, R., Larus, J.R.: Mining specifications. In: Proc. 29thACM
+Symp. on Principles of Programming Languages. pp. 4–16. ACM (2002). https:
+//doi.org/10.1145/503272.503275
+7.Angluin, D.: Learning regular sets from queries and counterexamples. Information
+and Computation 75(2), 87–106 (1987). https://doi.org/10.1016/0890-5401(87)
+90052-6
+8.Bollig, B., Habermehl, P., Leucker, M., Monmege, B.: A fresh approach to learning
+register automata. In: Developments in Language Theory. LNCS, vol. 7907, pp.
+118–130. Springer Verlag (2013). https://doi.org/10.1007/978-3-642-38771-5 12
+9.Cassel, S., Howar, F., Jonsson, B.: RALib: a LearnLib extension for inferring EFSMs.
+In: Proceedings of the 4th International Workshop on Design and Implementation
+of Formal Tools and Systems (DIFTS). pp. 1–8 (2015), https://www.faculty.ece.vt.
+edu/chaowang/difts2015/papers/paper 5.pdf
+10.Cassel, S., Howar, F., Jonsson, B., Steffen, B.: Active learning for extended finite
+state machines. Formal Asp. Comput. 28(2), 233–263 (2016). https://doi.org/10.
+1007/s00165-016-0355-5
+11.Champarnaud, J.M., Parantho¨ en, T.: Random generation of DFAs. Theoretical
+Computer Science 330(2), 221–235 (Feb 2005). https://doi.org/10.1016/j.tcs.2004.
+03.072
+12.Dierl, S., Fiterau-Brostean, P., Howar, F., Jonsson, B., Sagonas, K., T˚ aquist, F.:
+Scalable tree-based register automata learning. arXiv CoRR (Jan 2024). https:
+//doi.org/10.48550/arXiv.2401.14324 , Extended version of the TACAS 2024 paper.
+13.Drews, S., D’Antoni, L.: Learning symbolic automata. In: Legay, A., Margaria, T.
+(eds.) Tools and Algorithms for the Construction and Analysis of Systems. LNCS,
+vol. 10205, pp. 173–189. Springer, Berlin, Heidelberg (2017). https://doi.org/10.
+1007/978-3-662-54577-5 10
+14.Esparza, J., Leucker, M., Schlund, M.: Learning workflow Petri nets. Fundamenta
+Informaticae 113(3-4), 205–228 (2011). https://doi.org/10.3233/FI-2011-607104 S. Dierl et al.
+
+--- Page 19 ---
+15.Ferreira, T., Brewton, H., D’Antoni, L., Silva, A.: Prognosis: Closed-box analysis
+of network protocol implementations. In: ACM SIGCOMM 2021 Conference. pp.
+762–774. ACM (Aug 2021). https://doi.org/10.1145/3452296.3472938
+16.Fiterau-Brostean, P., Howar, F.: Learning-based testing the sliding window behavior
+of TCP implementations. In: Critical Systems: Formal Methods and Automated
+Verification - Joint 22nd International Workshop on Formal Methods for Industrial
+Critical Systems - and - 17th International Workshop on Automated Verification of
+Critical Systems, FMICS-AVoCS. LNCS, vol. 10471, pp. 185–200. Springer (2017).
+https://doi.org/10.1007/978-3-319-67113-0 12
+17.Fiterau-Brostean, P., Jonsson, B., Sagonas, K., T˚ aquist, F.: DTLS-Fuzzer: A DTLS
+protocol state fuzzer. In: 15th IEEE Conference on Software Testing, Verification
+and Validation. pp. 456–458. ICST 2022, IEEE (Apr 2022). https://doi.org/10.1109/
+ICST53961.2022.00051
+18.Fiterau-Brostean, P., Jonsson, B., Sagonas, K., T˚ aquist, F.: Automata-based au-
+tomated detection of state machine bugs in protocol implementations. In: Net-
+work and Distributed System Security Symposium. NDSS 2023, The Internet
+Society (Feb 2023), https://www.ndss-symposium.org/wp-content/uploads/2023/02/
+ndss2023 s68paper.pdf
+19.Fiter˘ au-Bro¸ stean, P., Jonsson, B., Merget, R., de Ruiter, J., Sagonas, K.,
+Somorovsky, J.: Analysis of DTLS implementations using protocol state
+fuzzing. In: 29th USENIX Security Symposium (USENIX Security 20). pp.
+2523–2540. USENIX Association (Aug 2020), https://www.usenix.org/conference/
+usenixsecurity20/presentation/fiterau-brostean
+20.Fiter˘ au-Bro¸ stean, P., Janssen, R., Vaandrager, F.: Combining model learning and
+model checking to analyze TCP implementations. In: Chaudhuri, S., Farzan, A. (eds.)
+Computer Aided Verification. LNCS, vol. 9780, pp. 454–471. Springer International
+Publishing, Cham (2016). https://doi.org/10.1007/978-3-319-41540-6 25
+21.Fiter˘ au-Bro¸ stean, P., Lenaerts, T., Poll, E., de Ruiter, J., Vaandrager, F., Verleg,
+P.: Model learning and model checking of SSH implementations. In: Proceedings of
+the 24th ACM SIGSOFT International SPIN Symposium on Model Checking of
+Software. pp. 142–151. ACM, New York, NY, USA (Jul 2017). https://doi.org/10.
+1145/3092282.3092289
+22.Frohme, M., Steffen, B.: Compositional learning of mutually recursive procedural
+systems. International Journal on Software Tools for Technology Transfer 23(4),
+521–543 (Aug 2021). https://doi.org/10.1007/s10009-021-00634-y
+23.Frohme, M., Steffen, B.: Never-stop context-free learning. In: Olderog, E.R., Steffen,
+B., Yi, W. (eds.) Model Checking, Synthesis, and Learning, LNCS, vol. 13030, pp.
+164–185. Springer International Publishing, Cham (2021). https://doi.org/10.1007/
+978-3-030-91384-7 9
+24.Garg, P., L¨ oding, C., Madhusudan, P., Neider, D.: Learning universally quantified
+invariants of linear data structures. In: Sharygina, N., Veith, H. (eds.) Computer
+Aided Verification. LNCS, vol. 8044, pp. 813–829. Springer, Berlin, Heidelberg
+(2013). https://doi.org/10.1007/978-3-642-39799-8 57
+25.Groz, R., Irfan, M.N., Oriat, C.: Algorithmic improvements on regular inference of
+software models and perspectives for security testing. In: Proc. ISoLA 2012, Part I.
+LNCS, vol. 7609, pp. 444–457. Springer (2012). https://doi.org/10.1007/978-3-642-
+34026-0 41
+26.Hagerer, A., Hungar, H., Niese, O., Steffen, B.: Model generation by moderated
+regular extrapolation. In: Kutsche, R.D., Weber, H. (eds.) Fundamental Approaches
+to Software Engineering, 5th International Conference, FASE 2002. LNCS, vol. 2306,
+pp. 80–95. Springer Verlag (Apr 2002). https://doi.org/10.1007/3-540-45923-5 6Scalable Tree-based Register Automata Learning 105
+
+--- Page 20 ---
+27.de la Higuera, C.: A bibliographical study of grammatical inference. Pattern Recog-
+nition 38(9), 1332–1348 (Sep 2005). https://doi.org/10.1016/j.patcog.2005.01.003
+28.Howar, F., Steffen, B.: Active automata learning in practice. In: Bennaceur, A.,
+H¨ ahnle, R., Meinke, K. (eds.) Machine Learning for Dynamic Software Analysis:
+Potentials and Limits, LNCS, vol. 11026, pp. 123–148. Springer International
+Publishing, Cham (2018). https://doi.org/10.1007/978-3-319-96562-8 5
+29.Howar, F., Steffen, B.: Active automata learning as black-box search and lazy
+partition refinement. In: Jansen, N., Stoelinga, M., van den Bos, P. (eds.) A Journey
+from Process Algebra via Timed Automata to Model Learning - Essays Dedicated
+to Frits Vaandrager on the Occasion of His 60th Birthday. LNCS, vol. 13560, pp.
+321–338. Springer (2022). https://doi.org/10.1007/978-3-031-15629-8 17
+30.Howar, F., Steffen, B., Jonsson, B., Cassel, S.: Inferring canonical register automata.
+In: Kuncak, V., Rybalchenko, A. (eds.) Verification, Model Checking, and Abstract
+Interpretation. LNCS, vol. 7148, pp. 251–266. Springer, Berlin, Heidelberg (2012).
+https://doi.org/10.1007/978-3-642-27940-9 17
+31.Hungar, H., Niese, O., Steffen, B.: Domain-specific optimization in automata
+learning. In: Computer Aided Verification, 15th International Conference. LNCS,
+vol. 2725, pp. 315–327 (Jul 2003). https://doi.org/10.1007/978-3-540-45069-6 31
+32.Isberner, M., Howar, F., Steffen, B.: The TTT algorithm: A redundancy-free
+approach to active automata learning. In: Runtime Verification: 5th International
+Conference, RV 2014, Proceedings. LNCS, vol. 8734, pp. 307–322. Springer (Sep
+2014). https://doi.org/10.1007/978-3-319-11164-3 26
+33.Kearns, M., Vazirani, U.: An Introduction to Computational Learning Theory. MIT
+Press (1994)
+34.Linard, A., de la Higuera, C., Vaandrager, F.: Learning unions of k-testable lan-
+guages. In: Mart´ ın-Vide, C., Okhotin, A., Shapira, D. (eds.) Language and Automata
+Theory and Applications. LNCS, vol. 11417, pp. 328–339. Springer International
+Publishing, Cham (2019). https://doi.org/10.1007/978-3-030-13435-8 24
+35.Maler, O., Mens, I.E.: Learning regular languages over large alphabets. In: Tools
+and Algorithms for the Construction and Analysis of Systems - 20th International
+Conference,. LNCS, vol. 8413, pp. 485–499. Springer (2014). https://doi.org/10.
+1007/978-3-642-54862-8 41
+36.Margaria, T., Niese, O., Raffelt, H., Steffen, B.: Efficient test-based model generation
+for legacy reactive systems. In: Proceedings of the Ninth IEEE International High-
+Level Design Validation and Test Workshop. pp. 95–100. IEEE, New York, NY,
+USA (Nov 2004). https://doi.org/10.1109/HLDVT.2004.1431246
+37.Merten, M., Howar, F., Steffen, B., Cassel, S., Jonsson, B.: Demonstrating learning
+of register automata. In: Flanagan, C., K¨ onig, B. (eds.) Tools and Algorithms for
+the Construction and Analysis of Systems. LNCS, vol. 7214, pp. 466–471. Springer,
+Berlin, Heidelberg (2012). https://doi.org/10.1007/978-3-642-28756-5 32
+38.Moerman, J., Sammartino, M., Silva, A., Klin, B., Szynwelski, M.: Learning nominal
+automata. In: Proc. 44thACM Symp. on Principles of Programming Languages.
+pp. 613–625. POPL ’17, ACM, New York, NY, USA (Jan 2017). https://doi.org/10.
+1145/3093333.3009879
+39.Neider, D., Smetsers, R., Vaandrager, F.W., Kuppens, H.: Benchmarks for automata
+learning and conformance testing. In: Models, Mindsets, Meta: The What, the
+How, and the Why Not? - Essays Dedicated to Bernhard Steffen on the Occasion
+of His 60th Birthday. LNCS, vol. 11200, pp. 390–416. Springer (2018). https:
+//doi.org/10.1007/978-3-030-22348-9 23106 S. Dierl et al.
+
+--- Page 21 ---
+40.Rivest, R.L., Schapire, R.E.: Inference of finite automata using homing sequences.
+Information and Computation 103(2), 299–347 (1993). https://doi.org/10.1006/
+inco.1993.1021
+41.de Ruiter, J., Poll, E.: Protocol state fuzzing of TLS implementations. In: 24th
+USENIX Security Symposium (USENIX Security 15). pp. 193–206. USENIX Asso-
+ciation (Aug 2015), https://www.usenix.org/conference/usenixsecurity15/technical-
+sessions/presentation/de-ruiter
+42.Sagonas, K., Jonsson, B., Howar, F., Dierl, S., Fiterau-Brostean, P., T˚ aquist, F.:
+Reproduction artifact for TACAS 2024 paper “Scalable tree-based register automata
+learning” (Dec 2023). https://doi.org/10.5281/zenodo.10442556
+43.Schuts, M., Hooman, J., Vaandrager, F.: Refactoring of legacy software using model
+learning and equivalence checking: An industrial experience report. In: ´Abrah´ am,
+E., Huisman, M. (eds.) Integrated Formal Methods. LNCS, vol. 9681, pp. 311–325.
+Springer International Publishing, Cham (2016). https://doi.org/10.1007/978-3-319-
+33693-0 20
+44.Shahbaz, M., Groz, R.: Analysis and testing of black-box component-based systems
+by inferring partial models. Software Testing, Verification and Reliability 24(4),
+253–288 (2014). https://doi.org/10.1002/stvr.1491
+45.Shu, G., Lee, D.: Testing security properties of protocol implementations - a
+machine learning based approach. In: 27th IEEE International Conference on
+Distributed Computing Systems (ICDCS 2007). IEEE Computer Society (2007).
+https://doi.org/10.1109/ICDCS.2007.147
+46.Sun, J., Xiao, H., Liu, Y., Lin, S.W., Qin, S.: TLV: abstraction through testing,
+learning, and validation. In: Proceedings of the 2015 10th Joint Meeting on Foun-
+dations of Software Engineering. pp. 698–709. ACM, New York, NY, USA (Aug
+2015). https://doi.org/10.1145/2786805.2786817
+47.Tappler, M., Aichernig, B.K., Bloem, R.: Model-based testing IoT communication
+via active automata learning. In: IEEE International Conference on Software
+Testing, Verification and Validation. pp. 276–287. IEEE Computer Society (Mar
+2017). https://doi.org/10.1109/ICST.2017.32
+48.Vaandrager, F., Bloem, R., Ebrahimi, M.: Learning Mealy machines with one
+timer. In: Leporati, A., Mart´ ın-Vide, C., Shapira, D., Zandron, C. (eds.) Language
+and Automata Theory and Applications. LNCS, vol. 12638, pp. 157–170. Springer
+International Publishing, Cham (2021). https://doi.org/10.1007/978-3-030-68195-
+113
+49.Vaandrager, F., Garhewal, B., Rot, J., Wißmann, T.: A new approach for active
+automata learning based on apartness. In: Fisman, D., Rosu, G. (eds.) Tools and
+Algorithms for the Construction and Analysis of Systems. LNCS, vol. 13243, pp.
+223–243. Springer International Publishing, Cham (2022). https://doi.org/10.1007/
+978-3-030-99524-9 12
+50.Vaandrager, F.W.: Model learning. Commun. ACM 60(2), 86–95 (Jan 2017). https:
+//doi.org/10.1145/2967606
+51.Volpato, M., Tretmans, J.: Active learning of nondeterministic systems from an
+ioco perspective. In: Margaria, T., Steffen, B. (eds.) Leveraging Applications of
+Formal Methods, Verification and Validation. Technologies for Mastering Change.
+LNCS, vol. 8802, pp. 220–235. Springer, Berlin, Heidelberg (2014). https://doi.org/
+10.1007/978-3-662-45234-9 16
+52.Walkinshaw, N., Bogdanov, K., Derrick, J., Par´ ıs, J.: Increasing functional coverage
+by inductive testing: A case study. In: Testing Software and Systems - 22nd IFIP
+WG 6.1 International Conference, ICTSS 2010. LNCS, vol. 6435, pp. 126–141.
+Springer (2010). https://doi.org/10.1007/978-3-642-16573-3 10Scalable Tree-based Register Automata Learning 107
+
+--- Page 22 ---
+53.Yonesaki, N., Katayama, T.: Functional specification of synchronized processes
+based on modal logic. In: Proceedings of the 6th Int. Conference on Software
+Engineering. pp. 208–217. IEEE Computer Society Press (1982). https://doi.org/10.
+5555/800254.807763
+Open Access This chapter is licensed under the terms of the Creative Comm ons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and r eproduction in any medium
+or format, as long as you give appropriate credit to the origi nal author(s) and the
+source, provide a link to the Creative Commons license and in dicate if changes were
+made.
+The images or other third party material in this chapter are i ncluded in the
+chapter’s Creative Commons license, unless indicated othe rwise in a credit line to the
+material. If material is not included in the chapter’s Creat ive Commons license and
+your intended use is not permitted by statutory regulation o r exceeds the permitted
+use, you will need to obtain permission directly from the cop yright holder.108 S. Dierl et al.
