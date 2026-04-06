@@ -1,0 +1,469 @@
+--- Page 1 ---
+Formal System-level Design Space Exploration
+Daniel Knorreck and Ludovic Apvrille and Renaud Pacalet
+System-on-Chip laboratory (LabSoC), Institut Telecom, Telecom ParisTech, LTCI CNRS
+2229, routes des Cr ˆetes, B.P. 193, F-06904 Sophia-Antipolis Cedex
+Email: {daniel.knorreck, ludovic.apvrille, renaud.pacalet }@telecom-paristech.fr
+Abstract —The paper focuses on the formal aspects of the
+DIPLODOCUS environment. DIPLODOCUS is a UML pro-
+ﬁle intended for the modeling and veriﬁcation of real-timeand embedded applications meant to be executed on complex
+Systems-on-Chip. Application tasks and architectural elements
+(e.g., CPUs, bus, memories) are described with a UML-basedlanguage, using an open-source toolkit named TTool. Those
+descriptions may be automatically transformed into a formal
+hardware and software speciﬁcation. From that speciﬁcation,
+model-checking techniques may be applied to evaluate several
+properties of the system, e.g., safety, schedulability, and perfor-mance properties. The approach is exempliﬁed with an MPEG2
+decoding application.
+I. I NTRODUCTION
+A System-on-Chip (SoC) is a set of functions distributed
+over hardware computation elements (CPUs, hardware accel-erators) interconnected with complex communication elements(e.g., NoC). Designers of SoC have to tackle advanced con-straint issues because applications executed on SoC are moreand more complex, typically like applications running on smartphones. While simulation techniques applied on low-levelsoftware and hardware models are widely used for veriﬁcationpurpose, formal veriﬁcation is the only technique that canoffer strong guarantees because it explores all possible systempaths. Unfortunately, the well-known combinatorial explosionusually limits its use to very small subparts of low-level system(e.g., a bus controller). Additionally, the prohibitive cost oflate SoC re-engineering advocates designs ﬂows with earlyguarantees.Design Space Exploration (DSE) is a major step in systemdesign: it consists in selecting a software / hardware archi-tecture complying to a set of functional and non-functionalconstraints (performance, power consumption, etc.). But, atDesign Space Exploration stage, the complexity may alreadybe non-manageable, and so, we suggest to perform that stageon very abstract models to pave the way for fast performanceestimations. DIPLODOCUS is the environment we proposefor addressing Design Space Exploration. As it relies on theY-Chart approach, architecture and application are representedin an orthogonal fashion. DIPLODOCUS explicitly takes intoaccount the hardware platform on which application tasks are
+meant to be executed. While modeling [1] and simulation [2]
+capabilities of DIPLODOCUS, as well as the toolkit support-ing DIPLODOCUS [3] - TTool [4] - were already describedin previous publications, the semantic support, one of themain strengths of DIPLODOCUS, has not been addressed sofar. More precisely, for formal veriﬁcation purpose, we haveprovided a formal semantics to all DIPLODOCUS diagrams
+(applications, hardware architectures, mapping of applicationsonto hardware architectures). Formal analysis is based on aprocess algebra named LOTOS [5] and on UPPAAL [6]. Thepaper is more particularly focused on abstractions made todescribe tasks and hardware platforms, on how formal analysiscan be done from this abstraction, and on the associated toolkit(TTool) in which all underlying formal techniques are totallymasked to the designer (press-button approach).The paper is organized as follows. Section II reviews re-lated contributions. Section III recalls the DIPLODOCUSenvironment. Section IV focuses on the formal semantics inDIPLODOCUS, and more precisely on the abstractions offeredby DIPLODOCUS to allow formal analysis with limitedcombinatory explosion. Section V presents the implementedsupport toolkit. Section VI illustrates our approach on a real-time multimedia application. Finally, section VII concludes thearticle.
+II. R
+ELATED WORK
+Design Space Exploration (DSE) of system-on-Chip is the
+process of analyzing various functionally equivalent imple-mentation alternatives to select an optimal solution [7]. The
+most suitable design is commonly chosen based on metrics
+such as functionality, performance, cost, power, reliability,and ﬂexibility. At system-level, DSE is challenging becausethe system design space is extremely large and so usualsimulation-based analysis techniques fail to efﬁciently observethe above mentioned metrics. Contributions on DSE environ-
+ments [8]–[15] generally rely on a high-level language to
+describe application functions and architectures. For example,[13]–[15] rely on UML or MARTE diagrams. Functions aresometimes described with only their cost [16]. Unfortunately,in many of these environments, architecture and applicationconcerns are not independent [10], making the study of
+alternative solutions more complex. Second, they propose away to map functions onto hardware execution nodes. Lastly,they introduce simulation techniques to simulate the system
+built from the mapping of functions over hardware nodes.But the level of abstraction being commonly rather low,simulation may also be slow. For example, [8] relies on an
+Instruction Set Simulator which executes the real code ofthe application. In [12], hardware components are considered
+at micro-architecture level, hence leading to long simulationtimes. Otherwise, other environments offer formal exploration,but generally limited to sub-elements of the platform [17].
+-1-978-1-4244-7068-6/10/ $26.00 ©2010 IEEE
+
+--- Page 2 ---
+SymTA/S [18] [19] and Real Time Calculus (RTC) rely on
+formal methods such as the real-time scheduling theory anddeterministic queuing systems to determine characteristics ofdistributed systems. In SymTA/S the behavior of the environ-ment is modeled by means of standard event arrival patternsincluding periodic and sporadic events with jitters or bursts.RTC imposes less restrictions by allowing deterministic eventstreams to be modeled with the aid of arrival curves denotinglower and upper bounds for event occurrences. Event streamsare propagated among resources of distributed systems ina way that each resource may be analyzed separately withclassical algorithms. However, the applicability of schedulingtheories requires the task model to be simplistic and thusit merely reﬂects best case and worst case execution times.Control ﬂow within tasks cannot be considered at all. For thatreason it may be tedious if not impossible to model tasksexhibiting a data dependent or irregular behavior.[20] relies on timed automata to analyze timeliness propertiesof embedded systems. The UPPAAL model checker is used toevaluate the automata which must be created manually. Thereis no automated translation routine from a high level language(UML,...) and thus the creation of the automata turns out tobe error prone.[21] provides means for formal and simulation based eval-uation of UML/SysML models for performance analysis ofSystems On Chip. UML Sequence diagrams constitute thestarting point for the functional description. They are subse-quently transformed into so-called communication dependencygraphs (CDGs) which thus capture the control ﬂow, synchro-nization dependencies and timing information. CDGs are inturn amenable to static analysis in order to determine keyperformance parameters like best case response times, worstcase response times and I/O data rates. A drawback of thisapproach is that data ﬂow independence has to be kept, thuspreventing case distinctions and loops with variable bounds tobe part of the application model.[22] presents a framework for computation and communicationreﬁnement for multiprocessor Soc Design. Stochastic automatanetworks represent the application behavior and the authorsclaim that this formalism allows for fast analytical perfor-mance evaluations. When it comes to mapping an applicationon an architecture, transitions and states have to be addedto the application model. Hence, application and architecturematters and not strictly handled in an orthogonal fashion. Dueto a lack of data abstraction, the modeling of memory elementscan quickly lead to state space explosion problem.The PUMA [23] framework is a uniﬁed approach to softwaremodeling. It provides an interface between high level inputmodels (such as UML diagrams) and performance orientedmodels. For that purpose, input models are ﬁrst translatedinto an intermediate format called CSM so as to ﬁlter outirrelevant information for performance evaluations. In a secondstep, CSM can be converted to Petri Nets, Markov models,etc and the resulting performance ﬁgures and design adviceis fed back to the initial model. However, this frameworkconcentrates on the modeling of software and thus does notyield a mapping where functionality is associated to software
+or hardware elements.DIPLODOCUS offers a very clear separation between applica-tions and architectures, and includes a high level of abstraction.Indeed, DIPLODOCUS is focused on control rather than ondata, i.e., only abstract samples of data can be manipulated in
+the proﬁle. Samples are untyped and carry no value: only theirsize is a relevant attribute. This high level of abstraction greatlyreduces simulation times and makes formal proof techniquesusable. In this paper, we apply these formal proof techniques tosafety, performance and schedulability analysis purpose usingthe LOTOS process algebra. While LOTOS has already beensuccessfully experimented for property proofs on hardware[24], we propose its use to more generic platforms (SoCs).
+III. T
+HEDIPLODOCUS UML P ROFILE
+A UML proﬁle customizes the UML language [25] for a
+given domain of systems. It may extend the UML meta-model,according to semantic variation points , and may provide a
+methodology. The DIPLODOCUS UML proﬁle targets themodeling and Design Space Exploration of system-on-chip ata high level of abstraction [1]. The DIPLODOCUS methodol-
+ogy, depicted in Figure 1, comprises three main steps described
+below.
+A. Application modeling
+At ﬁrst, the application is modeled using UML class and
+activity diagrams. Tasks are modeled as classes interconnectedwith channels ,events ,o r requests to communicate. Data
+abstraction is a key point: channels do not convey values, butonly a number of samples (data abstraction). Events are usedfor synchronization purpose, and requests are used to spawntasks.All tasks have a behavior modeled with UML-DIPLODOCUSactivity diagrams. These diagrams come with usual control op-erators, complexity operators, operators to use communicationmedium (e.g., channels), and time operators.
+B. Architecture modeling
+Second, a candidate architecture is modeled in terms of
+interconnected hardware components (or nodes) using UML
+components placed in UML deployment diagrams. Three kindsof nodes are available in DIPLODOCUS: Execution nodes
+(CPUs), Communication nodes (buses, bridges) and Storage
+nodes (e.g., memories). Each node has its own set of param-
+eters such as pipeline depth ,miss-branching prediction rate ,
+cache-miss rate , etc. Also, all nodes - except buses - may be
+connected to one or several buses using UML links. For the
+time being, DMAs and hardware accelerators are representedby adequately parametrized CPU nodes.
+C. Mapping
+The mapping is meant to study whether a given architecture
+can execute a given application according to constraints.Application tasks and channels may be distributed over hard-ware nodes. A UML deployment diagram is used for that
+-2-
+
+--- Page 3 ---
+purpose. A given task may be mapped only on one execution
+node. Channels may be mapped on paths built upon links,communications nodes, and storage nodes.One of the strengths of DIPLODOCUS relies on its ability toperform simulation and formal veriﬁcation both at applicationand mapping stages. Formal veriﬁcation at mapping stageis further discussed in the next section. Although commonfunctional properties are usually studied at application level,performance properties are investigated after mapping, e.g.,resource sharing, that is, the scheduling on CPUs (can thearchitecture execute tasks on time), bus load (can a bustransmit the required amount of data), and properties relatedto power consumption and silicon area.
+Fig. 1. Methodology for Design Space Exploration
+IV . F ORMAL SEMANTICS AND ABSTRACTIONS
+A. Formal support: LOTOS and UPPAAL
+LOTOS [5] is an ISO-based Formal Description Technique
+for distributed system speciﬁcation and design. A LOTOSspeciﬁcation, being itself a process, is structured into pro-cesses. A LOTOS process is a black box that communicateswith its environment through gates using a multiway ren-dezvous offer. Values can be exchanged at synchronizationtime. That exchange can be mono- or bi-directional. LOTOSspeciﬁcations may be formally veriﬁed with the CADP tool-kit [26] using model-checking or reachability graph analysistechniquesThe semantics of DIPLODOCUS is also deﬁned in UPPAAL,but the latter is out of scope of this paper.
+B. Semantics at application level
+1) Tasks operators: As described in previous section, an
+application is composed of a set of communicating tasks.Operators used to describe task behavior are of four types:
+•Communication operators :read from a channel, write
+a sample to a channel, notify an event, wait for an event,
+know whether an event has been sent ( notiﬁed ),request
+a task.
+•Control operators : usual control operators, such as
+variable modiﬁcations ,loops and tests .
+•Complexity operators : operators to model a number
+of operations on integers ( EXECI ), ﬂoats ( EXECF )o r
+custom ( EXECC ).
+•Temporal operators : operators to model deterministic
+and non-deterministic physical delay .This set of operators makes it possible to describe applications’
+communications and algorithms whilst forcing the modeler toabstract data, thanks to channels that merely account for theamount of transmitted data.The LOTOS semantics of all task operators is further describedin Table I, column “LOTOS Semantics before mapping”.
+2) Communications between tasks: Tasks communicate
+using channels, events and requests. While channels are usedto model data stream between tasks - i.e., channels carry
+unvalued samples -, events and requests are meant to modelsynchronization schemes.Three channel types have been deﬁned: BR-NBW (Blocking
+Read - Non-Blocking Write, i.e., inﬁnite FIFO), BR-BW
+(Blocking Read - Blocking Write, i.e., ﬁnite FIFO), NBR-
+NBW (Non-blocking Read - Non-Blocking Write, i.e., a set
+of elements, that is a memory).The semantics of these channels is quite obvious to describein LOTOS: since channels convey no value, but only a numberof samples, the two ﬁrst channels can easily be translatedinto a simple process (see Figure 2) sharing a natural value(which represents the number of elements in the FIFO)between two processes using two gates: one gate to add asample ( wr
+ch), another one to remove a sample ( rd ch).
+The last channel type (NBR-NBW) is also translated into asimilar LOTOS process apart from the fact that no counter is
+necessary - since its is always possible to read and write -,and so no guards ( []operator) are used before the actions on
+gates wr
+chand rd ch.
+Events are meant to model synchronization between
+tasks . They can carry up to three parameters. Event com-
+munication semantics are the following: inﬁnite FIFO, ﬁ-nite blocking FIFO, and non-blocking FIFO. The two ﬁrst
+semantics have been selected because they reﬂect commonsynchronization schemes of embedded systems. The last one(Non-blocking ﬁnite FIFO) is particularly useful to model sig-nal exchanges between tasks: indeed, software and hardware
+signals usually erase the previous one (e.g., Programmable
+Interrupt Controller, or UNIX signals). A separate LOTOSprocess accounts for each of the three semantics using theQueue
+natalgebraic type. Figure 3 illustrates a non-blocking
+ﬁnite FIFO (the most complex case) for an event carryingonly one natural parameter. Five cases have been taken intoaccount:
+1) The FIFO is not empty, and so, a wait action can be
+performed on the FIFO.
+2) The FIFO is not full, and so, an event can be added to
+the FIFO ( notify ).
+3) The FIFO is full, and so, an event can be added to the
+FIFO ( notify ) after the oldest one has been removed.
+4) The FIFO is not empty, the notiﬁed action returns the
+value 1.
+5) The FIFO is empty, the notiﬁed action returns the value
+0.
+Unlike channels and events which are one-to-one communi-
+cations, requests are many-to-one communications . They
+-3-
+
+--- Page 4 ---
+Type Task operators LOTOS Semantics before mapping LOTOS Semantics after mapping
+ChannelWrite nsamples
+to a channelnWrite operations in FIFO, i.e., ntimes
+action on gate wr ch, see Figure 2ncycles, and a request on a bus.
+Read nsamples
+from a channelnread operations from FIFO, i.e., ntimes
+action on gate rd ch, see Figure 2ncycles and a request on a bus.
+EventNotify an event Adds an event to the corresponding
+FIFO, i.e., performs an action on gate
+notify evt, see Figure 3Same as before mapping.
+Wait for an event Tries to get an event from a FIFO, i.e.,
+performs an action on gate wait evt, see
+Figure 3Same as before mapping.
+Notiﬁed Returns the number of event in a FIFO using
+action notified evt, see Figure 3Same as before mapping.
+Request Send a request
+(operator is
+called “request”)FIFO management is similar to the one used
+for eventsSame as before mapping.
+Control loop, variable
+modiﬁcations,
+testsDirect translation in LOTOS with corre-
+sponding LOTOS operatorsDirect translation. Operators are executed in 0-cycle.
+Complexity EXECx n,m
+i.e., between n
+and m integer
+instructionsNo semantics before mapping, i.e., this op-erator is ignored The task executes between n∗perf and m∗perf cycles
+with perf being a constant value depending on the hardware
+performance on which the task is mapped.
+Temporal Delay
+dmindmax
+unitNo semantics before mapping, i.e., this op-erator is ignored The task is blocked for Between nandmcycles with n=
+dmin ∗frequency andm=dmax ∗frequency .
+TABLE I
+TASK OPERATORS
+process ChannelBRBW ch [ rd ch , wr ch ]( samples : nat ) : exit := (
+[ samples <8]−>(w r ch ; ChannelBRBW ch [ rd ch , wr ch ]( samples + 1))
+[]
+[ samples >0]−>(r d ch ; ChannelBRBW ch [ rd ch , wr ch ]( samples −1)) )
+Fig. 2. Application-level LOTOS semantics for a BR-BW channel
+rely on n-to-one inﬁnite FIFO. The translation of requests is
+similar to the one of FIFO for events, apart from the fact thatnotiﬁcation gates are instantiated n times, e.g., notif y
+iwith
+i∈1...n .
+C. Semantics at mapping level
+A mapping involves an application (i.e., a set of tasks and
+communications between those tasks), an architecture (i.e., aset of hardware nodes), a distribution of tasks onto hardwarenodes (e.g., map the task task1 onto the CPU cpu1 ), and a
+mapping of communication channels onto buses / memories.
+We have therefore deﬁned a transformation function tf()
+that takes as argument all above mentioned elements andgenerates a LOTOS speciﬁcation (see Figure 4).
+1) Mapping issues: The mapping phase is meant to an-
+swer whether a system made of an application executed ona given architecture satisﬁes a set of constraints, or not.More precisely, a mapping shall resolve contentions on sharedresources (typically, a CPU, a bus, etc.) and therefore answerwhether the computational and communication power offeredby the architecture can execute the desired application, i.e.,respect deadlines, etc. The LOTOS semantics is ﬁrst deﬁnedwith those issues in mind. As a consequence, the LOTOSspeciﬁcation of a mapping should take into account:•The access control to shared resources, e.g., for tasks:access to CPUs, and for communication: access to buses.To take into account those accesses, we explicitly takeinto account operating systems’ scheduling policies aswell as arbitration policies of buses.
+•The time taken by tasks to execute operators, and thetime taken by communications, e.g., bus and memorylatencies.
+Fig. 4. General approach
+2) The Mapping-to-LOTOS transformation: All task oper-
+ators and hardware nodes parameters are taken into account
+by the Mapping-to-LOTOS transformation ( tf()). However,
+we still do not take into account most recent proposalson resource sharing in DIPLODOCUS, e.g., we do not yetsupport hierarchical scheduling and virtual nodes [27] but notechnical limitation has been identiﬁed which could hamper
+-4-
+
+--- Page 5 ---
+process Event evt[ notify evt , wait evt , notified evt ]( fifo 1 : Queue nat , fifo val 1 :nat , nb:nat , maxs: nat) : exit :=
+[not (Empty ( fifo 1) ) ] −>wait evt ! First (fifo 1) ;p 0Event evt[ notify evt , wait evt , notified evt ]( Dequeue ( fifo 1),
+fifo val 1, n b −1, maxs )
+[] [n b <maxs ] −>notify evt ?fifo val 1:n a t;p 0Event evt[ notify evt , wait evt , notified evt ](
+Enqueue( fifo val 1 , fifo 1 ) , fifo val 1 , nb+1 , maxs )
+[] [ nb == maxs ] −>notify evt ?fifo val 1:n a t;p 0Event evt[ notify evt , wait evt , notified evt ](
+Enqueue( fifo val 1 , Dequeue ( fifo 1 )) , fifo val 1 , nb , maxs )
+[] [ not ( Empty ( fifo 1) ) ] −>notified evt !1;p 0Event evt[ notify evt , wait evt , notified evt ](
+fifo 1 , fifo val 1 , nb , maxs )
+[] [ Empty ( fifo 1) ]−>notified evt !0;p 0Event evt[ notify evt , wait evt , notified evt ](
+fifo 1 , fifo val 1 , nb , maxs )
+endproc
+Fig. 3. Application-level LOTOS semantics for a Non-blocking Finite FIFO
+their integration.
+Basically, the LOTOS speciﬁcation is built upon four func-tional blocks:
+•The Scheduling manager schedules tasks on each CPU.
+tf()transforms each task into a state machine modeled
+in LOTOS: preemption can occur when a task is blockedin a state, but never when a task performs a transitionfrom one state to another.
+•The Communication manager handles channel-based
+communication between tasks running on the same CPU,or on different CPUs. Events and requests are assumed
+not to take communication resources. Indeed, the amountof data represented by those two synchronization featuresare assumed to be negligible with regards to channel-based communications. Similar assumptions were made
+for the simulation semantics [2] (which is less abstract
+and more tailored to simulation runtime issues).
+•The Task execution manager handles operators to exe-
+cute in each task that is transitions between task states.
+•The Clock manager handles clock cycles on hardware
+nodes, i.e., it activates necessary hardware nodes when anew cycle begins.
+The main process of the LOTOS speciﬁcation works as
+follows:
+1) At ﬁrst, an initialization phase is used to settle various
+data structures, for each CPU (e.g., all tasks of a CPUare put in ”ready” state), and for the communicationmanager: data structures related to channels, queuesrelated to events, and so on.
+2) A main loop on clock cycles is started: The system waits
+for the next tick ( tickis a LOTOS action). Then, each
+CPU plus its operating system are considered one afteranother. Basically, a CPU is meant to interpret DIPLO-DOCUS application-level operators of the selected task:
+a) Depending on its clock rate, the CPU is activated
+or not by the Clock manager.
+b) If it is activated, then a ﬁrst test is performed to
+see whether one task is in running state, or not.
+c) If one task is in running state, then, the running
+state is activated from its former state. The taskexecutes until either (i) it blocks (for example, ittries to receive one given event, and that event isnot available): in that case, the scheduler is called,or (ii) it can perform an instruction consuming cy-
+cles (e.g., writing a sample to a non-full channel).
+d) When the scheduler is called, it ﬁrst checks
+whether at least one task is runnable. If no task isrunnable, the CPU goes idle. Otherwise, a schedul-
+ing algorithm - implemented in LOTOS - is calledto select another task. Then, the state machine ofthat task may be called, and so on.
+3) Once all CPUs have been selected, a communication
+manager resolves all inter-CPUs communication, i.e., allcommunications set-up by tasks in previous cycle (i.e.,allread,write ,notify events , etc.) are really performed
+only when all CPUs have terminated that cycle. Thisensures (i) that a sample written on a CPU during a cyclemay not be read by another CPU in the same cycle, and(ii) that the order of CPU evaluation has no impact onresults.
+The tf()function may also generate debug information in
+the form of LOTOS actions performed at well-chosen points:
+actions to show scheduler data structures (e.g., list of runnableor blocked tasks), actions to monitor tasks states, actions to
+monitor the communication manager, etc.Finally, tf()has been deﬁned with combinatory explosion
+in mind. Hence, tf()tries to precompute possible syn-
+chronization between LOTOS processes: if possible, these
+synchronization are removed, and resulting processes put insequence. Combinatory explosion may also be due to (i) non-deterministic elements: for example random, choice and tem-poral operators of tasks; (ii) Non-determinism in schedulingmodels: for example, in the round-robin scheduling policy,the possible indexes of tasks, in the tasks list. Abstraction is
+a key factor to reduce combinatory explosion. The main idea
+behind abstractions is to remove all software and hardware-related concerns that have no or little impact on evaluatedproperties (e.g., load on CPUs and buses). The next subsectionis dedicated to abstractions.
+D. Abstractions
+1) Task abstraction (see Table I, column “LOTOS Seman-
+tics after mapping”):
+•Communication operators . These operations are given a
+cost (in clock cycles), and are executed by the executionmanager along with the communication manager, to make
+-5-
+
+--- Page 6 ---
+request on related buses. The cost in cycle depends of
+the hardware platform. For example, writing an 8-bytesample on a 32-bit processor takes two cycles. Also, thecommunication manager is involved for storing outputsamples, and for providing data to input operations.Note that these operations may be blocking, and so, thescheduling manager may also be involved.
+•Cost operators are abstracted with a number of cycles
+depending on the hardware platform.
+•Other operators : choice, loop, variable manipulation,
+etc. These operations are executed by the task executionmanager. They take no cycle since there are used forcontrol modeling only, i.e., the execution cost in DIPLO-DOCUS is modeled only with EXECx operations.
+•Temporal operators : They are abstracted with a number
+of cycles.
+2) CPU abstractions:
+•Parameters of CPU : Data size (used for communication
+in channels), size of default integer and ﬂoating pointdata (used for EXEC operations), cost for each EXECxinstructions, pipeline size (used for calculating the penalty
+induced by miss branching), miss branching rate, datacache-miss ratio and penalty, time to enter/leave the idle
+mode, clock ratio.
+•The Operating System is taken into account with
+scheduling algorithms (e.g., Preemptive priority-based,round-robin), switching time, synchronization manage-
+ment (events, requests) and communication delay (buffer-
+ing for handling channels).
+3) Communication abstractions (buses, memories): Buses
+are meant to carry data samples with an arbitration policybetween requests. The time a given transfer takes depends onthe width of the bus. Bus arbitration is done on each cycle.Memory delays are modeled throughout bus latencies andcache-miss rates at CPU level, as proposed for the simulationsemantics [2].
+E. Formal veriﬁcation
+LOTOS speciﬁcations may be derived either from an ap-
+plication modeling, or from a mapping of applications onto agiven architecture (Figure 1).At application level, tasks have a maximum concurrency
+between themselves, concurrency which is reduced when the
+mapping phase occurs: buses and CPUs are shared resources.For example, two tasks mapped on the same CPU do notexecute in parallel any more. An interesting property wouldbe that formal traces obtained after mapping are a subset offormal traces obtained before mapping, that is, a mapping only
+constrains possible application-level traces, without violating
+application-level safety properties (e.g., absence of deadlock).One of our ongoing work is to prove that scheduling andarbitration policies we have deﬁned preserve safety propertiesproved at application level, that is a mapping is always correct-
+by-construction with regards to safety properties.V. T
+OOLKIT
+A. General overview
+TTool [4] is an open-source toolkit initially developed
+for the TURTLE UML proﬁle [28]. It now supports severalother UML proﬁles such as the CTTool proﬁle [29] and
+DIPLODOCUS [1]. TTool includes diagramming facilities,
+code generators (LOTOS, etc.) and graph analysis tools.TTool includes a Graphical User Interface for drawing DIPLO-DOCUS UML diagrams. From those diagrams, simulation orformal analysis (see Figure 5) may be performed. Underlyingsimulation and validation languages (e.g., LOTOS) are totallyhidden to DIPLODOCUS users. From LOTOS speciﬁcation,TTool relies on CADP [26] to generate a reachability graphthan can be analyzed directly in TTool (in particular, to detectdeadlock situations), to minimize it, and to compare it withother graphs (bisimulations). UPPAAL offers simulation andmodel-checking capabilities. Furthermore, TTool has very fastsimulation capabilities [2].
+Fig. 5. TTool for DIPLODOCUS: code generation capabilities
+B. Property analysis with TTool and CADP
+1) At ﬁrst, an application is modeled (e.g., MPEG2 decod-
+ing, see next section). From that modeling a reachabilitygraph is generated (let us call it rga), and model-
+checking techniques are used to prove a set Pof
+properties on the application itself.
+2) A hardware architecture is described in terms of CPUs,
+buses, etc..
+3) From the mapping (tasks onto CPUs, etc.), a LOTOS
+speciﬁcation is generated, and from that speciﬁcation,
+CADP is used to obtain a reachability graph rg. The
+following veriﬁcation features are supported:
+•Minimizing the reachability graph to tick actions.
+From that minimization, the longest path of ticksis calculated, therefore resulting in a performance
+information on the application (e.g., Worst Case
+Execution Time ).
+•Minimizing the reachability graph to tickand trans-
+ferOnBusX . From that minimization, loads on buses
+can be deduced. Similar techniques can be used tocompute CPU loads.
+-6-
+
+--- Page 7 ---
+•Comparing rgand the reachability graph generated
+at application level, i.e., to rga. To do so, a toolkit
+integrated in TTool ﬁrst modiﬁes rgso as to make
+rgaction names compatible with the one of rga,
+then CADP minimizes the resulting graphs: if it isproved that rg⊂rga, then safety properties proved
+at application level are preserved.
+•Of course, other usual model-checking techniques
+can be directly applied to rg(e.g., using CADP).
+VI. C ASE STUDY
+A. MPEG2
+MPEG2 video compression is based on motion estimation
+between pictures, discrete cosine transforms, quantization, andHuffman encoding. The case study initially introduced in [3]focused on the application and architecture modeling of anMPEG decoder. In this paper however, emphasis is put onproofs of functional properties.
+B. Application modeling
+MPEG2 decoding is modeled with 6 tasks correspond-
+ing to the main MPEG2 functional blocks: a main task(MPEG
+Decoder ), a task to decode Huffman codes ( VLC),
+a task to extract blocks ( Zigzag ), a task to perform the inverse
+quantization ( IQuantization ), a task to perform the inverse
+discrete cosine transform ( IDCT ) and ﬁnally a task to perform
+the motion compensation ( Motion Compensation ). Basically,
+MPEG Decoder drives all other tasks. VLC sends its results
+toZigzag which itself forwards its output to IQuantization
+and then to IDCT . Pictures are then rebuilt based on Mo-
+tion Compensation . Channels are used between those tasks
+to exchange samples modeling pictures macroblocks - inMPEG2, images are cut into ﬁxed-size subparts of pictures:those subparts are called macroblocks-, and events / requestsare used between MPEG
+Decoder for control purpose.
+C. Architecture and mapping
+Several candidate architectures are experimented. A ﬁrst
+basic mapping consists of one single CPU on which all tasksare mapped. A second option is to map the MPEG
+Decoder ,
+Zigzag and Motion Compensation tasks on one CPU named
+risc01 , and the others on another CPU named risc02 : (see
+Figure 6: for space reasons, the mapping of channels, events
+and requests is not shown on the ﬁgure). In this secondmapping, subsequent tasks are mapped onto different CPUsthus allowing for overlapping executions. A task can forinstance read a few samples from memory before the previoustask has terminated its computations. This remark is not 100%true for IDCT whose data-dependency constraints are bothblock-level and sample-level.
+D. Property analysis
+The intended system is expected to decode 25 images
+/ seconds. Images are of size 800x600. Thus, one imagedecoding is expected to be performed in less than 40ms. To
+Fig. 6. Using TTool to map tasks onto two CPUs
+ensure that the system is schedulable with that constraint, ourtestbed was the following:
+•We have chosen a maximum frequency for the CPUs (200Mhz). From this, we obtain a maximum number of cyclesfor each macroblock equal to 1066 cycles.
+•Then, from the LOTOS speciﬁcation of each mapping,
+CADP has computed a reachability graph (RG).
+•Then, we have minimized each RG to tickactions: thus,
+we were able to count the maximum number of cyclestaken by the system to decode one picture. To count thatnumber, we have used a TTool feature that searches forthe longest path on the RG.
+–For the mono-processor architecture: maximum path
+= 1486 cycles (i.e., at most 1486 cycles are necessaryto perform the decoding of one macroblock).
+–For the two-processor architecture: maximal path =
+1041 cycles.
+Finally, the system is schedulable with the 2-CPU
+approach, and not with only one CPU.
+VII. C
+ONCLUSIONS AND FUTURE WORK
+The paper presents an environment - named DIPLODOCUS
+- for formal functional and performance analysis of complex
+embedded and distributed systems. A system is described withcommunicating tasks, hardware architectures and a mapping oftasks and channels onto a hardware architecture. A formal se-mantics is provided to tasks, communication between tasks andhardware architectures, making it possible to perform formal
+analysis before and after mapping. Moreover, DIPLODOCUS
+has been implemented in a UML-based open-source toolkit -named TTool. Formal analysis can be performed with abso-lutely no knowledge of formal techniques. The DIPLODOCUSenvironment has been experimented within the scope of severalcase studies, including an MPEG2 application, and industrial
+-7-
+
+--- Page 8 ---
+case studies [27]. As stated in section IV, abstractions are a
+key factor of our models in order to alleviate combinatoryexplosion (and to greatly increase simulation speed [2]):
+•Data abstraction : Only the amount of exchanged data
+between functional entities is taken into account. Datadependent behavior is made explicit within the task modelby means of non-deterministic operators.
+•Control ﬂow abtraction : Symbolic instructions (EXECx)
+stand for operations to be executed on an execution device(like CPUs).
+•Hardware abstractions : Hardware device-dependent be-
+havior is captured by parameters like clock frequenciesand cache miss probabilities.
+Trading off accuracy against model complexity of hardware
+components will remain subject to our research. For example,instruction cache-misses and data cache-misses have been ac-counted for by static probabilities so far. Indeed, as algorithmicdetails are represented by symbolic instructions, the real codeof the application is not available thus making state of the artcache models unsuited. Furthermore, the accuracy of bus andmemory models shall be validated against a real embeddedsystem. A fair comparison with a real implementation shalltherefore reveal whether a set of parameters can be found tolimit the inaccuracy to a reasonable percentage. To simplify themodeling of systems making extensive use of DMA engines,a speciﬁc UML stereotype could be introduced. This way, thedesigner would not have to model DMA transfers explicitlyusing a dedicated execution unit.While being already operational, our environment will beenhanced with two main features. On the one hand, we willdeﬁne a reﬁnement process from the application modelingstep to the after-mapping step, in order to preserve propertiesproved at application level. On the other hand, we intend toassess and adapt post-mapping hardware abstractions - e.g., theones used for memories and buses - by confronting mappingresults with real implementations.
+R
+EFERENCES
+[1] L. Apvrille et al. , “A UML-based environment for system design space
+exploration,” in 13th IEEE International Conference on Electronics,
+Circuits and Systems (ICECS’2006) , Nice, France, Dec 2006.
+[2] D. Knorreck, L. Apvrille, and R. Pacalet, “Fast simulation techniques
+for design space exploration,” in Objects, Components, Models and
+Patterns , ser. Lecture Notes in Business Information Processing, vol. 33.
+Springer Berlin Heidelberg, 2009, pp. 308–327. [Online]. Available:
+http://www.springerlink.com/content/r425w073k44k5441/
+[3] L. Apvrille, “Ttool for diplodocus: An environment for design space ex-
+ploration,” in 8th annual international conference on New Technologies
+of Distributed Systems (NOTERE’2008) , Lyon, France, jun 2008.
+[4] LabSoc, “The TURTLE Toolkit,” in
+http://labsoc.comelec.enst.fr/turtle/ttool.html .
+[5] ISO-LOTOS, “A Formal Description Technique Based on the Temporal
+Ordering of Observational Behaviour,” in Draft International Standard
+8807, International Organization for Standardization - InformationProcessing Systems - Open Systems Interconnection , Geneva, July 1987.
+[6] J. Bengtsson and W. Yi., “Timed automata: Semantics, algorithms and
+tools,” in Lecture Notes on Concurrency and Petri Nets . W. Reisig and
+G. Rozenberg (eds.), LNCS 3098, Springer-Verlag, 2004.
+[7] W. Muhammad et al. , “Abstract application modeling for system design
+space exploration,” in Euromicro Conference on Digital System Design
+(DSD’06) , Dubrovnik, Croatia, August 2006.[8] F. Balarin et al. ,Hardware-Software Co-Design of Embedded Systems,
+The POLIS Approach , 5th ed. KLUWER ACADEMIC PUBLISHERS,
+2003.
+[9] Y . Watanabe, “Metropolis : An integrated environment for electronic
+system design.” Cadence Berkeley labs, 2001.
+[10] P. V . D. Wolf et al. , “A methodology for architecture exploration of
+heterogeneous signal processing systems,” in 1999 IEEE Workshop on
+Signal Processing Systems (SiPS99) , 1999.
+[11] A. Chatelain et al. , “High-level architectural co-simulation using Esterel
+and C,” in Proc. of IEEE/ACM symposium on Hardware/software
+codesign , April 2001.
+[12] I. Assayad and S. Yovine, “A framework for modelling and performance
+analysis of multiprocessor embedded systems: Models and beneﬁts,”
+inProceedings of the 8th conference on Nouvelles Technologies de la
+Distribution (NOTERE’2007) , Marrakech, Marocco, June 2007.
+[13] T. Schattkowsky et al. , “A model-based approach for executable speciﬁ-
+cations on recon ﬁgurable hardware,” in Proc. of the Design, Automation
+and Test in Europe (DATE) , Nov 2005, pp. 692–697.
+[14] P. Kukkala et al. , “Performance Modeling and Reporting for the UML
+2.0 Design of Embedded Systems,” in Proc. of the 2005 International
+Symposium on System-on-Chip) , Nov 2005, pp. 50–53.
+[15] J. Vidal, F. de Lamotte, G. Gogniat, P. Soulard, and J.-P. Diguet, “A co-
+design approach for embedded system modeling and code generation
+with uml and marte,” in Design, Automation and Test in Europe
+Conference and Exhibition, 2009. DATE’09. , April 2009, pp. 226–231.
+[16] B. Ristau, T. Limberg, and G. Fettweis, “A mapping framework for
+guided design space exploration of heterogeneous mp-socs,” Design,
+Automation and Test in Europe, 2008. DATE’08 , pp. 780–783, March
+2008.
+[17] K. Avnit and A. Sowmya, “A formal approach to design space explo-
+ration of protocol converters,” in Design, Automation and Test in Europe
+Conference and Exhibition, 2009. DATE’09 , April 2009, pp. 129–134.
+[18] A. Hamann, M. Jersak, K. Richter, and R. Ernst, “A framework for
+modular analysis and exploration of heterogeneous embedded systems,”Real-Time Syst. , vol. 33, no. 1-3, pp. 101–137, 2006.
+[19] R. Henia, A. Hamann, M. Jersak, R. Racu, K. Richter, and R. Ernst,
+“System level performance analysis - the symta/s approach,” Computers
+and Digital Techniques, IEE Proceedings - , vol. 152, no. 2, pp. 148–166,
+Mar 2005.
+[20] M. Hendriks and M. Verhoef, “Timed automata based analysis of
+embedded system architectures,” in Parallel and Distributed Processing
+Symposium, 2006. IPDPS 2006. 20th International , April 2006, pp. 8
+pp.–.
+[21] A. Viehl, T. Schonwald, O. Bringmann, and W. Rosenstiel, “Formal
+performance analysis and simulation of UML/sysml models for esl
+design,” Design, Automation and Test in Europe, 2006. DATE ’06.
+Proceedings , vol. 1, pp. 1–6, March 2006.
+[22] R. Marculescu, U. Y . Ogras, and N. H. Zamora, “Computation and
+communication reﬁnement for multiprocessor soc design: A system-level
+perspective,” ACM Trans. Des. Autom. Electron. Syst. , vol. 11, no. 3, pp.
+564–592, 2006.
+[23] M. Woodside, D. C. Petriu, D. B. Petriu, H. Shen, T. Israr, and
+J. Merseguer, “Performance by uniﬁed model analysis (puma),” in WOSP
+’05: Proceedings of the 5th international workshop on Software andperformance . New York, NY , USA: ACM, 2005, pp. 1–12.
+[24] P. Wodey, G. Camarroque, F. Baray, R. Hersemeule, and J.-P. Cousin,
+“Lotos code generation for model checking of stbus based soc: the stbus
+interconnection,” This paper appears in: Formal Methods and Models
+for Co-Design, 2003. MEMOCODE ’03. Proceedings. First ACM andIEEE International Conference on , pp. 204–213, June 2003.
+[25] OMG, “UML 2.0 Superstructure Speciﬁcation,” in
+http://www.omg.org/docs/ptc/03-08-02.pdf , Geneva, 2003.
+[26] “The CADP toolkit,” http://www.inrialpes.fr/vasy/cadp.
+[27] C. Jaber, A. Kanstein, L. Apvrille, A. Baghdadi, P. L. Moenner, and
+R. Pacalet, “High-level system modeling for rapid hw/sw architecture
+exploration,” in Proc. of the 20th IEEE/IFIP International Symposium
+on Rapid System Prototyping (RSP’2009) , June 2009.
+[28] L. Apvrille et al. , “TURTLE: A Real-Time UML Proﬁle Supported
+by a Formal Validation Toolkit,” in IEEE transactions on Software
+Engineering , vol. 30, no. 7, Jul 2004, pp. 473–487.
+[29] S. Ahumada et al. , “Specifying Fractal and GCM components with
+UML,” in XXVI International Conference of the Chilean Computer
+Science Society (SCCC’07) , Iquique, Chile, nov 2007.
+-8-

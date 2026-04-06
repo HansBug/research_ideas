@@ -1,0 +1,872 @@
+--- Page 1 ---
+Submitted to:
+MeTRiD 2018cA. Mavridou, J. Sifakis, & J. Sztipanovits
+This work is licensed under the
+Creative Commons Attribution License.DesignBIP: A Design Studio for Modeling and Generating
+Systems with BIP
+Anastasia Mavridou
+Institute for Software Integrated Systems
+Vanderbilt University
+Nashville, TN, USA
+anastasia.mavridou@vanderbilt.eduJoseph Sifakis
+Verimag-B ˆatiment IMAG
+Universit `e Grenoble Alpes
+38401 St Martin d‘H `eres, France
+Joseph.Sifakis@imag.fr
+Janos Sztipanovits
+Institute for Software Integrated Systems
+Vanderbilt University
+Nashville, TN, USA
+janos.sztipanovits@vanderbilt.edu
+Published in the proceedings of 1st International Workshop on
+Methods and Tools for Rigorous System Design (MeTRiD).
+The Behavior-Interaction-Priority (BIP) framework — rooted in rigorous semantics — allows the
+construction of systems that are correct-by-design. BIP has been effectively used for the construction
+and analysis of large systems such as robot controllers and satellite on-board software. Nevertheless,
+the speciﬁcation of BIP models is done in a purely textual manner without any code editor support.
+To facilitate the speciﬁcation of BIP models, we present DesignBIP, a web-based, collaborative,
+version-controlled design studio. To promote model scaling and reusability of BIP models, we use
+a graphical language for modeling parameterized BIP models with rigorous semantics. We present
+the various services provided by the design studio, including model editors, code editors, consistency
+checking mechanisms, code generators, and integration with the JavaBIP tool-set.
+1 Introduction
+Modeling languages are often used for designing complex systems. Using dedicated design studios
+allows increasing the understandability and usability of modeling languages, as well as decreasing de-
+velopment costs by eliminating errors at design time. Design studio components can be organized in
+the following three categories: 1) semantic integration , 2)service integration , and 3) tool integration .
+Semantic integration components comprise the domain of the modeling language, i.e., its metamodel
+that explicitly speciﬁes the building blocks of the language and their relations. Service integration com-
+ponents include dedicated model editors, code editors, and GUI/Visualization components for modeling
+and simulating results. Additionally, service integration components include model transformation and
+code generation services, model repositories, and version control services. Finally, tool integration com-
+ponents consist in integrated tools such as run-times and veriﬁcation tools.
+Figure 1 shows the main steps of the workﬂow of a design studio. Initially, models are designed
+using dedicated model editors. Optionally, design patterns stored in model repositories may be used to
+simplify the modeling process. Next, the checking loop starts (step 1), where the models are checked
+for conformance. If the required conformance conditions are not satisﬁed by the model, the checking
+mechanism must point back to the problematic nodes of the model in the model editor and inform the
+developer of the inconsistency causes to facilitate model reﬁnement. Finally, when the conformancearXiv:1805.09919v2  [cs.SE]  31 May 2018
+
+--- Page 2 ---
+2 DesignBIP
+BIP Design Studio
+13Design StudioMetamodel
+Model/Code Editors, Visualizations
+Consistency, Conformance Checking
+Model Transformation, Code Generation
+Integrated Tools
+Model repositories1234
+Figure 1: Main design studio components and work-ﬂow
+conditions are satisﬁed (step 2), the reﬁned models may be analyzed and/or executed (step 3) by using
+integrated, into the design studio, third party tools. The output of the tools is then collected and sent back
+to the model editors (step 4) for visualization of analysis or execution results.
+We present the DesignBIP studio for modeling and generating systems with the BIP [2] framework.
+BIP comprises a language with rigorous operational semantics and a dedicated tool-set including code
+generators, run-time support tools, i.e., BIP engines, and veriﬁcation tools [5,7]. Depending on the
+application domain, BIP offers several compilation chains, targeting different execution platforms and
+programming languages such as C++ [2] Java [8] Haskell, and Scala [14].
+The speciﬁcation of models in the BIP framework is done by using the BIP language in a textual
+manner [1] without offering any dedicated code editors. Thus, developing large systems with the BIP
+toolset can be challenging and error prone. In DesignBIP we have opted for a graphical language to
+enhance readability and easiness of expression. DesignBIP offers a complete modeling solution, in which
+we have integrated the tools offered by JavaBIP, the Java-based implementation of BIP [8]. Relying on
+the observation that systems are usually built from multiple instances of the same component type, we
+propose a parameterized graphical language for BIP that enhances scalability and reduces the model size.
+DesignBIP is a web-based, collaborative, version controlled design studio based on WebGME [21].
+DesignBIP allows real-time collaboration between multiple developers. Project changes are committed
+and versioned, which enables branching, merging and viewing the history of a project. DesignBIP1is
+easily accessed through a web interface and is open source2. Our contributions are as follows:
+We extend architecture diagrams [22], a graphical parameterized language, to accommodate the
+speciﬁcation of BIP parameterized models.
+We prove a set of necessary and sufﬁcient conditions for checking the encodability of parameter-
+ized BIP graphical models into logical formulas.
+We study the model transformation from graphical models to logical formulas and develop code
+generation plugins.
+We develop dedicated BIP model editors, code editors, and model repositories.
+We integrate the JavaBIP engine and provide visualization of its output.
+Paper organization: Section 2 describes the BIP language. Section 3 describes the parameterized
+graphical language of DesignBIP. Section 4 describes service integration components, i.e., model and
+1https://cps-vo.org/group/BIP
+2https://github.com/anmavrid/DesignBIP
+
+--- Page 3 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 3
+synchron trigger
+(a) Port attributessr1r2
+fsr1r2g
+(b) Rendezvoussr1r2
+fs;sr1;sr2;sr1r2g
+(c) Broadcast
+r1 r2 s
+fr1r2;sr1r2gr1 r2 s
+fs;sr1r2gr1 r2 s
+fs;sr1;sr1r2g
+(d) Hierarchical connectors
+Figure 2: BIP connectors and their associated interaction sets
+code editors, model repositories, and code generators. Section 5 describes the integration with the Jav-
+aBIP engine. Section 6 discusses related work. Section 7 discusses concluding remarks and future work.
+2 The BIP Language
+Component behavior in BIP is described by Labeled Transition Systems (LTS). LTS transitions are of
+three types: enforceable ,spontaneous , and internal3. Enforceable transitions are handled by the BIP-
+engine and are labeled with ports . Ports form the interface of a component and are used to deﬁne inter-
+actions with other components. Spontaneous transitions take into account changes in the environment
+and, thus, they are not handled by the BIP-engine but rather executed after detection of external events.
+Finally, internal transitions allow a component to update its state based on internal information.
+Aninteraction in BIP is a non-empty set of ports that deﬁnes allowed synchronization of actions
+among components. BIP interactions represent a clean, abstract concept of architecture which is sepa-
+rated from component behavior. Interaction models can be represented in many equivalent ways. Among
+these are connectors [9] and Boolean formulas [10] on variables representing port participation in inter-
+actions. Connectors are most appropriate for graphical design and interaction representation, whereas
+Boolean formulas are most appropriate for efﬁcient encoding and manipulation by the BIP-engine.
+BIP connectors contain ports, which form their interface. Each port of a connector has an attribute
+trigger (represented by a triangle, Figure 2a) or synchron (represented by a bullet, Figure 2a). Given
+a connector involving a set of ports fp1;:::;png, the set of its interactions is deﬁned as follows: an
+interaction is any non-empty subset of fp1;:::;pngwhich contains some port that is a trigger (Figure 2c);
+otherwise, (if all ports are synchrons) the only possible interaction is the maximal one that is, fp1;:::;png
+(Figure 2b). The same principle is recursively extended to hierarchical connectors, where one interaction
+from each subconnector is used to form an allowed interaction according to the synchron/trigger typing
+of the connector nodes (Figure 2d).
+Alternatively, interaction logic can be used to deﬁne interaction models. The propositional interac-
+tion logic (PIL) is deﬁned by the grammar:
+f::=truejpjfjf_f;
+3JavaBIP includes all three, whereas BIP1 and BIP2 include the enforceable and internal types.
+
+--- Page 4 ---
+4 DesignBIP
+Figure 3: A Star architecture
+with any p2P, where Pis the set of ports of a BIP system. Conjunction is deﬁned as follows: f1^
+f2de f=(f1_f2). To simplify notation, we omit conjunction in monomials, e.g., writing sr1r2instead of
+s^r1^r2. Let gbe a non-empty set of interactions. The meaning of a PIL formula fis deﬁned by the
+satisfaction relation: gj=fiff for all a2g,fevaluates to truefor the valuation induced by a:p=true,
+for all p2aandp=false , for all p62a.
+Consider the Star architecture shown in Figure 3, where a single component Cacts as the center, and
+three other components S1;S2;S3communicate with the center through binary rendezvous connectors.
+Component Chas a single port pand all other components have a single port qi(i=1;2;3). The
+corresponding PIL formula is: pq1q2q3_pq1q2q3_pq1q2q3.
+To deﬁne interactions independently from the number of component instances, PIL can be extended
+with quantiﬁcation over components [11]. This extension is particularly useful because, in practice,
+systems are built from multiple component instances of the same component type. Similarly to [11],
+JavaBIP uses a macro-notation based on FOIL that includes two macros.
+TheRequire macro deﬁnes ports required for interaction. Let T1;T22Tbe two component types.
+For instance:
+T1:pRequire T2:q T2:q;T2:r;
+means that, to participate in an interaction, each of the ports pof component instances of type T1requires
+either the participation of precisely two of the ports qof component instances of type T2or one instance
+ofr. Notice the semicolon in the macro that separates the two options.
+TheAccept macro deﬁnes optional ports for participation, i.e., it deﬁnes the boundary of interactions.
+This is expressed by explicitly excluding from interactions all the ports that are not optional. For instance,
+ifp;q;ris the set of port types of component types T1;T22Tthen:
+T1:pAccept T2:q;
+means that instances of rare excluded from interaction with instances of p. To illustrate the use of the
+macros, let us deﬁne the Star architecture style with Require/Accept:
+S:qRequire C:p S :qAccept C:p
+C:pRequire S:q C :pAccept S:q
+The syntax and semantics of ﬁrst-order interaction logic (FOIL) as well as the Require/Accept
+macronotation are presented in greater detail in Appendix A.
+
+--- Page 5 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 5
+Figure 4: A BIP architecture diagram
+Figure 5: A conforming architecture to the diagram in Figure 4
+3 Semantic Integration Components
+We present the BIP parameterized graphical language that was integrated in DesignBIP. The DesignBIP
+metamodel can be found in Appendix B.
+3.1 Architecture Diagrams for BIP
+Architecture diagrams [22] is a parameterized graphical language for the description of the structure
+of a system by showing the system’s component types and their attributes for coordination.We extend
+the deﬁnition of architecture diagrams with triggers and synchrons to deﬁne BIP connectors. A BIP
+architecture diagram consists of a set of component types and a set of connector motifs . Each component
+type Tis characterized by a set of port types T :Pand a cardinality parameter n, which speciﬁes the
+number of instances of T. Figure 4 shows an architecture diagram consisting of two component types T1
+andT2with n1andn2instances and port types pandq, respectively. Instantiated components have port
+instances pi,qjfori;jbelonging to the intervals [1;n1],[1;n2], respectively.
+Connector motifs are non-empty sets of port types. Each port type pin a connector motif has two
+constraints represented as a pair m:d. Multiplicity mof a port type constrains the number of port
+instances of this type that are involved in each connector deﬁned by the connector motif. Degree dof a
+port type constrains the number of connectors attached to every port instance of this type. Additionally,
+each port type has a typing (attribute) represented by tp, which can be either trigger (represented by a
+triangle) or synchron (represented by a bullet) (see BIP connectors in Section 2). A connector motif
+deﬁnes a set of possible conﬁgurations, where a conﬁguration is a non-empty set of connectors. The
+meaning of a diagram is the union of all conﬁgurations corresponding to each connector motif of the
+diagram. Let us present the semantics of connector motifs through the example of Figure 4, which has a
+single connector motif involving port types pandq.
+Figure 5 shows the unique conﬁguration obtained from the diagram of Figure 4 by taking n1=1,
+mp=1,dp=1;n2=2,mq=2 and dq=1. This is the result of composition of constraints for port
+types pandq. For instance, since the multiplicity of qis 2, then both q1andq2must be involved in the
+
+--- Page 6 ---
+6 DesignBIP
+4/21/2017BIP
+http://localhost:8888/?project=guest%2BBIP&branch=master&node=%2Ff%2Fv&visualizer=BIPEditor&tab=1&layout=DefaultLayout&selection=1/1Cp1
+T1p2T2q2Sqn1:1
+1:21:21:nT1p2T2q21:11:1T2q2T1p22:12:1
+Figure 6: An architecture diagram that cannot be encoded into FOIL
+the same connector. The degrees of pandqare equal to 1, thus there is exactly one connector attached
+to their port instances. Port instances retain the typing of their corresponding port types. The set of
+interactions deﬁned by the connector in Figure 5 is the following: fq1;q2;q1q2;q1p;q2p;q1q2pg.
+Formally, a BIP architecture diagram D=hT;Ciconsists of:
+a set of component types T=fT1;:::; Tkgof the form T= (T:P;n), where T:P6=/ 0 is the set of
+port types of component type Tandn2Nis the cardinality parameter associated to component
+type T
+a set of connector motifs C=fG1;:::;Glgof the form G= (a;fmp:dp;tpgp2a), where
+–/ 06=aSk
+i=1Ti:Pis a set of port types
+–mp;dp2N(with mp>0) are the multiplicity anddegree associated to port type p2a
+–tp2fsynchron ;triggergis the typing of port type p2a
+For a component c2Band a component type T, we say that c is of type T if the ports of care in a
+bijective correspondence with the port types in T.
+An architecturehB;giconforms to a diagramhT;Ciif, for each i2[1;k], the number of components
+of type TiinBis equal to niand gcan be partitioned into disjoint sets g1;:::; gl, such that, for each
+connector motif Gi= (a;fmp:dp;tpgp2a)2Cand each p2a,
+1. in each connector in githere are exactly mpinstances of ptyped as tp,
+2. each instance of pis involved in exactly dpconnectors in gi
+The meaning of a BIP architecture diagram is the set of all architectures that conform to it.
+3.1.1 Conformance Conditions
+DesignBIP encodes connector motifs in the Require/Accept macronotation (Section 2) in order to give
+the latter as input to the integrated JavaBIP-engine. Nevertheless, the semantic domains of BIP archi-
+tecture diagrams and interaction logic (Section 2) do not coincide. An architecture diagram deﬁnes a set
+of conﬁgurations, whereas, an interaction logic formula deﬁnes exactly one conﬁguration. Consider the
+architecture diagram shown in Figure 6 with a single connector motif, which deﬁnes two conﬁgurations:
+g1=fp1q1;p2q2gand g2=fp1q2;p2q1g, and thus, cannot be encoded into interaction logic. Let us
+now consider the architecture diagram shown in Figure 7, which is a variation of the diagram shown in
+Figure 6 with degrees set to dp=dq=2. This diagram deﬁnes exactly one conﬁguration and thus, can
+be encoded into interaction logic. In particular, it deﬁnes the conﬁguration g=fp1q1;p2q2;p1q2;p2q1g.
+This shows that we can restrict an architecture diagram to deﬁne exactly one conﬁguration by constrain-
+ing its multiplicities or degrees.
+We denote sp=npdp=mp2Nthematching factor of a port type p, where npis the cardinality
+of the component type that contains p. The matching factors of all port types participating in the same
+connector motif must be equal integers, in which case they represent the number of connectors deﬁned
+
+--- Page 7 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 7
+4/21/2017BIP
+http://localhost:8888/?project=guest%2BBIP&branch=master&node=%2Ff%2Fv&visualizer=BIPEditor&tab=1&layout=DefaultLayout&selection=1/1Cp1
+T1p2T2q2Sqn1:1
+1:21:21:nT1p2T2q21:11:1T2q2T1p22:12:1
+Figure 7: An architecture diagram that can be encoded into FOIL
+by the connector motif. The maximum number of distinct connectors deﬁned by a connector motif
+G= (a;fmp:dp;tpgp2a)is equal to Õq2a nq
+mq
+. Consider the connector motif shown in Figure 6. The
+matching factors of its port types are sp=sq=2 and are not equal to 2
+1
+ 2
+1
+, which represents the
+maximum number of connectors that can be deﬁned by this connector motif. The matching factors of the
+connector motif shown in Figure 7 is 4.
+Proposition 3.1 provides the necessary and sufﬁcient conditions for a BIP diagram to deﬁne exactly
+one conforming architecture for each evaluation of its cardinality parameters. If these conditions hold,
+then the diagram can be encoded into FOIL. The encoding conditions are as follows: 1) the multiplicity
+of a port type must be less than or equal to the number of component instances that contain this port and
+2) the matching factors of all port types participating in the same connector motif must be equal to the
+maximum number of connectors that the connector motif deﬁnes. Since, by the semantics of diagrams,
+connector motifs correspond to disjoint sets of connectors, these conditions are applied separately to
+each connector motif. The proof of Proposition 3.1 can be found in Appendix C. Corollary 3.2 follows
+directly from Proposition 3.1.
+Proposition 3.1. A BIP architecture diagram has exactly one conforming architecture iff, for each con-
+nector motif G= (a;fmp:dp;tpgp2a)and each p2a, we have 1) m pnpand 2) s p=Õq2a nq
+mq
+.
+Corollary 3.2. A BIP architecture diagram can be speciﬁed in FOIL using the Require/Accept macro-
+notation iff, for each connector motif G= (a;fmp:dp;tpgp2a)and each p2a, we have 1) m pnpand
+2) s p=Õq2a nq
+mq
+.
+4 Service Integration Components
+We present the model and code editors, the code generators, and the model repositories of DesignBIP.
+4.1 Model and Code editors
+A developer provides the system speciﬁcation by using the dedicated model and Java code editors of
+DesignBIP. In particular, the developer must specify 1) component behavior in the form of BIP LTS,
+2) component interaction in the form of BIP architecture diagrams and 3) the actions associated with
+transitions and guards, as well as variable declarations directly in Java. Figures 8 and 9 present the
+DesignBIP LTS and BIP diagram model editors, as well as the Java code editor. In the code editor, the
+darker parts represent code that was automatically generated by the input given in the model editors,
+while the bright code parts represent input given directly in the code editor. In the LTS model editor,
+enforceable and internal transitions are illustrated with solid arrows, while spontaneous transitions are
+illustrated with dashed arrows. The code and model editors are tightly synchronized, i.e., changes are
+instantaneously propagated.
+
+--- Page 8 ---
+8 DesignBIP
+Figure 8: DesignBIP LTS model editor and Java code editor
+Figure 9: DesignBIP architecture diagrams model editor
+4.2 Behavior generation plugin: LTS to Java code
+As explained earlier, a developer graphically speciﬁes the LTS that represents component behavior. De-
+signBIP generates the Java code that describes the LTS speciﬁed by the developer. In particular, Design-
+BIP generates code in the form of Java annotations that describes the ports, component types, transitions,
+and guards of each LTS. For instance, Java annotations describing the ports of the Route component
+type (Figure 9) are shown in the right-hand side of Figure 8.
+Firstly, before the plugin generates the Java code, it checks the correct instantiation of each speciﬁed
+LTS according to the constraints deﬁned in the DesignBIP metamodel (Appendix B). For instance, the
+plugin checks whether each LTS has exactly one initial state. If errors exist, DesignBIP returns to the
+developer a message explaining the error and pointers (displayed as Show node ) to the incorrect nodes
+of the speciﬁed model as shown in Figure 10. In the case of a correct behavioral model, DesignBIP
+returns a set of Java ﬁles, i.e., one Java ﬁle for each speciﬁed component type. The complete generated
+Java annotations for the Route component type are presented in Appendix D.
+4.3 Interaction generation plugin: BIP architecture diagrams to XML code
+We propose Algorithm 1, with polynomial-time complexity for the encoding of a BIP architecture dia-
+gram into Require/Accept macros (Section 2). For each port type, we instantiate two sets of variables:
+
+--- Page 9 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 9
+Figure 10: Behavioral errors as returned by DesignBIP
+require andaccept . For the sake of simplicity, we write pinstead of T:p.
+Theaccept set of pcontains the right hand side of Accept and is constructed as follows. For each
+connector motif attached to p, if its size is: 1) equal to 1, i.e., singleton connector motif, then we add - in
+accept4; 2) greater than 1 and the multiplicity of pis greater than 1, we add in accept all port types of
+the connector motif including p; 3) greater than 1 and the multiplicity of pis equal to 1, we add all port
+types of the connector motif except for ptoaccept .
+Therequire set of pcontains the right hand side of Require and is constructed as follows. For
+each connector motif attached to p, if its size is: 1) equal to 1 or pis typed as trigger then we add - to
+require5; 2) greater than 1 and there exists at least one trigger, we add to require as many options
+as the number of triggers. In each option we add a trigger; 3) greater than 1 and there are no triggers,
+we add to require all port types of the connector motif except for pas many times as their associated
+multiplicity and mp 1 times the port type p, to form a single option.
+Before generating the XML code, DesignBIP checks the conformance conditions presented in Sec-
+tion ref:conformance. Additionally, DesignBIP checks the correct instantiation of the multiplicity and
+degree constraints of each connector motif. If errors exist, DesignBIP returns to the developer messages
+explaining the errors and pointers to the incorrect nodes of the model. In the case of a correct interaction
+model, DesignBIP returns an XML ﬁle with the generated code. In Appendix E, we present part of the
+generated XML code for the Switchable Routes example (Figure 9).
+4.4 Model repositories
+To promote reusability in DesignBIP, each project is accompanied by component type and coordination
+pattern [23] repositories. For instance, let us consider the mutual exclusion coordination pattern shown
+in Figure 11 that enforces the no two processes can use the shared resource simultaneously coordination
+property. The shared resource is managed by the unique —due to the cardinality being 1 — Mutex
+Manager component type. The multiplicities of all port types are 1 and therefore, all connectors are
+binary. The degree constraints require that each port instance of a component of type Process be
+attached to a single connector and each port instance of the Mutex Manager be attached to nconnectors.
+The behaviors of the two component types enforce that once the resource is acquired by a component of
+type Process , it can only be released by the same component.
+To use a coordination pattern, a developer needs to create an instance of the pattern in the model and
+evaluate its cardinality parameters. For instance, if the developer wants to enforce mutual exclusion on
+two instances of Process then nmust be set equal to 2.
+4The dash - indicates that pmust not synchronize with any other port.
+5The dash - indicates that pdoes not require any other port for synchronization.
+
+--- Page 10 ---
+10 DesignBIP
+Algorithm 1: Encoding a BIP Diagram into Require/Accept Macros
+Data: Diagram D=hT;Ci, where C=fG1;:::;GngandG= (a;fmp:dp;tpgp2a)
+Result: Returns the macros for each port type in D
+require  fg ;accept  fg ;
+/* for each port type p in the diagram */
+forp2T:Pdo
+require [p] =new Set ();accept [p] =new Set ();
+/* for all connector motifs attached to p */
+forG2p:connectorMoti f s do
+/* if the connector motif is singleton */
+ifjaj==1then
+require [p]:add( );accept [p]:add( );
+else
+/* if the multiplicity of end attached to pis not 1, add all ports of the connector motif */
+ifmp>1then
+accept [p]:add(a);
+/* otherwise add all ports excluding p*/
+else
+accept [p]:add(anfpg);
+/* if the end attached to pis trigger */
+iftp==trigger then
+require [p]:add( );
+/* else if there exists at least one trigger */
+else if9p2a:tp==trigger then
+forq2a^tq== trigger do
+/* for each trigger add an option */
+require [p].add(p);
+/* else add all ports as many times as their multiplicity */
+else
+optionRequire [p] =newList ();
+forq2anfpgdo
+optionRequire [p]:add(qq:::q|{z}
+mq);
+optionRequire [p]:add(pp:::p|{z}
+mp 1);
+require [p].add(optionRequire [p]);
+return require andaccept ;
+7/7/2017BIP
+http://localhost:8888/?project=guest%2BBIP&branch=master&node=%2Ff%2F9%2FO%2FG&visualizer=BIPEditor&tab=6&layout=DefaultLayout&selection=1/1ProcessﬁnishbeginnMutex Managerreleasetake1Mutual Exclusion StyleThe Mutual exclusion architecture style enforces mutual exclusionon a shared resource. The unique —due to the cardinality being 1—coordinator component, Mutex manager, manages the sharedresource, while n operand components of type Process canaccess it. The multiplicities of all port types are 1 and therefore, allconnectors are binary. The degree constraints require that each portinstance of a component of type Process be attached to a singleconnector and each port instance of the coordinator be attached ton connectors. The behaviors of the two component types enforcethat once the resource is acquired by a component of type Process,it can only be released by the same component. We call criticalsection the work state of each operand component. Thecharacteristic property of the style is no two components are intheir critical section simultaneously. The assumed property ofoperands is a component exits its critical section after ﬁnish andcannot enter it again until begin.1:n1:11:11:n
+Figure 11: The mutual exclusion pattern
+
+--- Page 11 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 11
+Figure 12: Visualization of the execution of the Switchable Routes example
+5 JavaBIP-engine Execution and Visualization
+After generating the system speciﬁcation, the developer may use the integrated JavaBIP-engine to ex-
+ecute it. The JavaBIP-engine is offered through a dedicated plugin in DesignBIP. If the cardinality
+parameters of the component types have not been evaluated, the plugin asks the developer to provide
+the number of instances of each component type. It then instantiates the components and passes their
+reference to the JavaBIP-engine alongside with the generated Java and XML code. The plugin starts the
+JavaBIP-engine that runs the following three-step protocol in a cyclic manner: 1) upon reaching a state,
+each component notiﬁes the JavaBIP-engine about possible outgoing transitions, 2) the JavaBIP-engine
+computes the possible interactions of the system, picks one, and notiﬁes the involved components, 3) the
+notiﬁed components execute the functions associated with the corresponding transitions.
+The output of the JavaBIP-engine (which transitions are picked at each execution cycle) is stored as
+a JSON object. When the plugin stops the execution of the engine (the execution time is deﬁned by the
+developer), the output is sent back to the model editors of DesignBIP for simulation (see Figure 12).
+Initially, the developer picks the subset of components whose execution wants to simulate. Starting by
+highlighting the initial states of these components, the visualizer shows which transitions are executed in
+each execution cycle by ﬁrstly highlighting the ﬁred transitions and ﬁnally their destination states.
+6 Related Work
+Model-driven component-based software engineering and development [6,16,28] has become an ac-
+cepted practice for tackling software complexity in large-scale systems. It provides mechanisms to sup-
+port design at the right level of abstraction, error detection, tool integration, veriﬁcation and maintenance.
+Systems are built by composing and reusing small, tested building blocks called components.
+The Generic Modeling Environment (GME) and its successor WebGME are open source Model
+Integrated Computing (MIC) tools developed for creating domain speciﬁc modeling environments and
+has been effectively applied to a number of domains [3,25,27,29].
+
+--- Page 12 ---
+12 DesignBIP
+Close to our approach is the ROSMOD design studio [19] that also relies on WebGME for collabora-
+tive code development and model editing features. The basic building blocks of ROSMOD are speciﬁed
+in its metamodel which is described in UML class diagrams [4]. The code development and compilation
+process have been integrated in the graphical user interface to keep the framework self-sufﬁcient. ROS-
+MOD integrates code development, code generation, compilation, run-time monitoring, and execution
+time plot generation. Nevertheless, in ROSMOD component behavior is deﬁned directly with code and
+thus connection to veriﬁcation tools is not supported.
+A plethora of approaches exists for architecture speciﬁcation. Patterns [13,17] are commonly used
+for specifying architectures in practical applications. The speciﬁcation of architectures is usually done
+in a graphical way using general purpose graphical tools. Such speciﬁcations are easy to produce but
+their meaning may not be clear since the graphical conventions lack formal semantics and thus are not
+amenable to formal analysis. Signiﬁcant work has been done by the Architecture Description Lan-
+guages (ADLs) community. Many ADLs have been developed for architecture speciﬁcation [24,26]
+with rigorous semantics that facilitate communication of system properties and allow system analysis.
+Nevertheless, according to [20], architectural languages used in practice mostly originate from indus-
+trial development (e.g., UML) instead of academic research (e.g., ADLs). Scientiﬁc questions remain
+about UML’s formal properties [15]. The use of UML has been demonstrated in [12,18] for representing
+architectural concepts with a focus on the component and connector view. However, exploiting these
+constructors to express architecture views may result in a proliferation of models and stereotypes, which
+can be difﬁcult to integrate into a well-structured code generation process. On the other hand, ADLs with
+formal semantics require the use of formal languages which are considered as challenging for practition-
+ers to master [20]. We chose architecture diagrams, which rely on a small set of notions and combine the
+beneﬁts of graphical languages and rigorous formal semantics.
+7 Conclusion
+We presented DesignBIP6, which is a web-based, open source design studio7for modeling and gener-
+ating BIP systems. To deﬁne system coordination aspects, we used a parameterized graphical language
+with formal semantics called architecture diagrams, which we extended with BIP coordination primi-
+tives. Designing and reusing models that are based on types and not on instances allowed us to cope
+with the issues of modeling complexity and size. We have implemented dedicated model/code editors,
+visualizers, as well as integrated the JavaBIP-engine. Additionally, we studied model transformations
+and implemented dedicated code generation plugins. We have opted for generating code from high-level
+graphical structures to avoid tedious and error-prone development of Boolean formulas. Rooting the
+whole modeling and execution process in rigorous semantics allows the connection to checkers and anal-
+ysis tools. In the future, we are going to integrate data transfer information on connector motifs. We are
+also going to develop code generators for the BIP1 and BIP2 languages and integrate veriﬁcation tools.
+Acknowledgements
+This research is supported by the National Science Foundation under award # CNS-1521617. The authors
+would like to thank Hoang-Dung Tran and Venkataramana Nagarajan for helping with the implementa-
+tion of DesignBIP.
+6https://cps-vo.org/group/BIP
+7https://github.com/anmavrid/DesignBIP
+
+--- Page 13 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 13
+References
+[1]BIP Grammar . http://www-verimag.imag.fr/TOOLS/DCS/bip/doc/latest/html/
+Bip2-simplified.html . Accessed: 2018-05-20.
+[2] Ananda Basu, Saddek Bensalem, Marius Bozga, Jacques Combaz, Mohamad Jaber, Thanh-Hung Nguyen
+& Joseph Sifakis (2011): Rigorous Component-Based System Design Using the BIP Framework .Software,
+IEEE 28(3), pp. 41–48, doi:10.1109/MS.2011.27.
+[3] Marco Beccani, Hakan Tunc, Addisu Taddese, Ekawahyu Susilo, P ´eter V ¨olgyesi, Akos L ´edeczi & Pietro
+Valdastri (2015): Systematic design of medical capsule robots .IEEE Design & Test 32(5), pp. 98–108.
+[4] Donald Bell (2003): UML basics: An introduction to the Uniﬁed Modeling Language .The Rational Edge .
+[5] Saddek Bensalem, Marius Bozga, Thanh-Hung Nguyen & Joseph Sifakis (2009): D-Finder: A Tool for
+Compositional Deadlock Detection and Veriﬁcation . In Ahmed Bouajjani & Oded Maler, editors: Computer
+Aided Veriﬁcation , Springer Berlin Heidelberg, Berlin, Heidelberg, pp. 614–619.
+[6] Sami Beydeda, Matthias Book, V olker Gruhn et al. (2005): Model-driven software development . 15, Springer.
+[7] Simon Bliudze, Alessandro Cimatti, Mohamad Jaber, Sergio Mover, Marco Roveri, Wajeb Saab & Qiang
+Wang (2015): Formal Veriﬁcation of Inﬁnite-State BIP Models . In Bernd Finkbeiner, Geguang Pu & Lijun
+Zhang, editors: Automated Technology for Veriﬁcation and Analysis , Springer International Publishing,
+Cham, pp. 326–343.
+[8] Simon Bliudze, Anastasia Mavridou, Radoslaw Szymanek & Alina Zolotukhina (2017): Exogenous coordi-
+nation of concurrent software components with JavaBIP .Software: Practice and Experience , pp. n/a–n/a,
+doi:10.1002/spe.2495. Available at http://dx.doi.org/10.1002/spe.2495 . Spe.2495.
+[9] Simon Bliudze & Joseph Sifakis (2007): The Algebra of Connectors — Structuring Interaction in BIP . In:
+Proc. of the EMSOFT’07 , ACM SigBED, pp. 11–20, doi:10.1145/1289927.1289935.
+[10] Simon Bliudze & Joseph Sifakis (2010): Causal semantics for the algebra of connectors .Formal Methods in
+System Design 36(2), pp. 167–194, doi:10.1007/s10703-010-0091-z. Available at https://doi.org/10.
+1007/s10703-010-0091-z .
+[11] Marius Bozga, Mohamad Jaber, Nikolaos Maris & Joseph Sifakis (2012): Modeling Dynamic Architectures
+Using Dy-BIP . In Thomas Gschwind, Flavio Paoli, V olker Gruhn & Matthias Book, editors: Software Com-
+position ,Lecture Notes in Computer Science 7306, Springer Berlin Heidelberg, pp. 1–16, doi:10.1007/978-
+3-642-30564-1 1. Available at http://dx.doi.org/10.1007/978-3-642-30564-1_1 .
+[12] Paul Clements, David Garlan, Len Bass, Judith Stafford, Robert Nord, James Ivers & Reed Little (2002):
+Documenting software architectures: views and beyond . Pearson Education.
+[13] Robert Daigneau (2011): Service design patterns: Fundamental design solutions for SOAP/WSDL and restful
+Web Services . Addison-Wesley.
+[14] Romain Edelmann, Simon Bliudze & Joseph Sifakis (2017): Functional BIP: Embedding connectors in
+functional programming languages .Journal of Logical and Algebraic Methods in Programming 92, pp.
+19 – 44, doi:https://doi.org/10.1016/j.jlamp.2017.06.003. Available at http://www.sciencedirect.com/
+science/article/pii/S235222081630178X .
+[15] David Harel & Bernhard Rumpe (2004): Meaningful modeling: what’s the semantics of “semantics”? Com-
+puter 37(10), pp. 64–72.
+[16] George T Heineman & William T Councill (2001): Component-based software engineering . Springer.
+[17] Gregor Hohpe & Bobby Woolf (2003): Enterprise integration patterns: designing, building, and deploying
+messaging solutions . Addison-Wesley Longman Publishing Co., Inc., Boston, MA, USA.
+[18] James Ivers, Paul Clements, David Garlan, Robert Nord, Bradley Schmerl & Jaime R Silva (2004): Docu-
+menting component and connector views with UML 2.0 . Technical Report, DTIC Document.
+[19] P. S. Kumar, W. Emﬁnger, A. Kulkarni, G. Karsai, D. Watkins, B. Gasser, C. Ridgewell & A. Anilkumar
+(2015): ROSMOD: a toolsuite for modeling, generating, deploying, and managing distributed real-time
+
+--- Page 14 ---
+14 DesignBIP
+component-based software using ROS . In: 2015 International Symposium on Rapid System Prototyping
+(RSP) , pp. 39–45, doi:10.1109/RSP.2015.7416545.
+[20] I. Malavolta, P. Lago, H. Muccini, P. Pelliccione & A. Tang (2013): What Industry Needs from Ar-
+chitectural Languages: A Survey .IEEE Transactions on Software Engineering 39(6), pp. 869–891,
+doi:10.1109/TSE.2012.74.
+[21] Mikl ´os Mar ´oti, Tam ´as Kecsk ´es, R ´obert Keresk ´enyi, Brian Broll, P ´eter V ¨olgyesi, L ´aszl´o Jur ´acz, Tihamer Lev-
+endovszky & ´Akos L ´edeczi (2014): Next Generation (Meta) Modeling: Web-and Cloud-based Collaborative
+Tool Infrastructure. In:MPM@ MoDELS , pp. 41–60.
+[22] Anastasia Mavridou, Eduard Baranov, Simon Bliudze & Joseph Sifakis (2016): Architecture Diagrams: A
+Graphical Language for Architecture Style Speciﬁcation . In: Proceedings 9th Interaction and Concurrency
+Experience, ICE 2016, Heraklion, Greece, 8-9 June 2016. , pp. 83–97, doi:10.4204/EPTCS.223.6. Available
+athttp://dx.doi.org/10.4204/EPTCS.223.6 .
+[23] Anastasia Mavridou, Emmanouela Stachtiari, Simon Bliudze, Anton Ivanov, Panagiotis Katsaros &
+Joseph Sifakis (2017): Architecture-Based Design: A Satellite On-Board Software Case Study . In Olga
+Kouchnarenko & Ramtin Khosravi, editors: Formal Aspects of Component Software , Springer International
+Publishing, Cham, pp. 260–279.
+[24] N. Medvidovic & R. N. Taylor (2000): A classiﬁcation and comparison framework for software
+architecture description languages .IEEE Transactions on Software Engineering 26(1), pp. 70–93,
+doi:10.1109/32.825767.
+[25] H. Neema, J. Sztipanovits, M. Burns & E. Griffor (2016): C2WT-TE: A model-based open platform for
+integrated simulations of transactive smart grids . In: 2016 Workshop on Modeling and Simulation of Cyber-
+Physical Energy Systems (MSCPES) , pp. 1–6, doi:10.1109/MSCPES.2016.7480218.
+[26] Mert Ozkaya & Christos Kloukinas (2013): Are we there yet? Analyzing architecture description lan-
+guages for formal analysis, usability, and realizability . In: Software Engineering and Advanced Applications
+(SEAA), 2013 39th EUROMICRO Conference on , IEEE, pp. 177–184, doi:10.1109/SEAA.2013.34.
+[27] J. A. Stankovic, Ruiqing Zhu, R. Poornalingam, Chenyang Lu, Zhendong Yu, M. Humphrey & B. El-
+lis (2003): VEST: an aspect-based composition tool for real-time systems . In: The 9th IEEE
+Real-Time and Embedded Technology and Applications Symposium, 2003. Proceedings. , pp. 58–69,
+doi:10.1109/RTTAS.2003.1203037.
+[28] Clemens Szyperski (1998): Component Software: Beyond Object-oriented Programming . ACM
+Press/Addison-Wesley Publishing Co., New York, NY , USA.
+[29] K. Thramboulidis (2005): Model-integrated mechatronics - toward a new paradigm in the devel-
+opment of manufacturing systems .IEEE Transactions on Industrial Informatics 1(1), pp. 54–61,
+doi:10.1109/TII.2005.844427.
+A First-order Interaction Logic and Require/Accept Macro-notation
+We assume that a ﬁnite set of component types T=fT1;:::; Tngis given. Instances of a component
+type Thave the same interface and behavior. We write c:Tto denote that a component cis of type T.
+We denote by T:ptheport type p , i.e., a port belonging to the interface of type T. We write T:Pto
+denote the set of port types of all component types. We write c:p, for a component c:T, to denote the
+port instance of type T:p. Let fdenote any formula in PIL. The ﬁrst-order interaction logic (FOIL) is
+deﬁned by the grammar:
+F::=truejfjFjF_Fj9c:T 
+Pr(c)
+:F;
+Variable cranges over component instances and must occur in the scope of a quantiﬁer. Pr(c)is some
+set-theoretic predicate on c(omitted when Pr=true). We deﬁne the usual notation for the universal
+
+--- Page 15 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 15
+quantiﬁer:
+8c:T 
+Pr(c)
+:Fde f=69c:T 
+Pr(c)
+:F:
+The semantics of FOIL is deﬁned for closed formulas, where, for each variable in the formula, there
+is a quantiﬁer over this variable in a higher nesting level. We assume that the ﬁnite set of component types
+T=fT1;:::; Tngis given. An architecture is a pair hB;gi, where Bis a set of component instances of
+types from Tandgis a set of interactions on the set of ports Pof these components. For quantiﬁer-free
+formulas, the semantics is the same as for PIL formulas. For formulas with quantiﬁers, the satisfaction
+relation is deﬁned as follows:
+hB;gij=9c:T 
+Pr(c)
+:F; iffgj=_
+c0:T2B^Pr(c0)F[c0=c],
+where c0:Tranges over all component instances of type T2TandF[c0=c]is obtained by replacing all
+occurrences of cinFbyc0.
+Example A.1. TheStar architecture style , for any number of components of type S, can be expressed in
+FOIL as follows:
+9c:C:8s:S:(c:p s:q)^8s0:S(s6=s0):(s:q s0:q)^
+8c0:C(c=c0):true:
+Two macros are used: 1) the Require macro and 2) the Accept macro to deﬁne synchronization
+constraints in JavaBIP.
+Require deﬁnes ports required for interaction. Let T1;T22Tbe two component types. For instance:
+T1:pRequire T2:q T2:q;T2:r 8 c1:T1:
+9c2;c3:T2:8c4:T2(c26=c36=c4): 
+c1:p)c2:q c3:qc4:q
+_
+9c2:T2:8c3:T2(c26=c3): 
+c1:p)c2:rc3:r
+;
+means that, to participate in an interaction, each of the ports pof component instances of type T1requires
+either the participation of precisely two of the ports qof component instances of type T2or one instance
+ofr. Notice the semicolon in the macro that separates the two options.
+Accept deﬁnes optional ports for participation, i.e., it deﬁnes the boundary of interactions. This is
+expressed by explicitly excluding from interactions all the ports that are not optional. Let T1;T22T.
+For instance:
+T1:pAccept T2:q
+8c1:T1:0
+@^
+T:r2T:PnfT2:qg8c:T:(c1:p)c:r)1
+A:
+B The DesignBIP Metamodel
+Figure 13 shows part of the DesignBIP metamodel as a UML class diagram. For ease of presentation, we
+omitted from Figure 13 composite component types and exported ports. A BIPproject contains com-
+ponent types, connector motifs , as well as formalized design patterns, i.e., architecture styles and compo-
+nent type repositories. A BIPproject has three attributes: 1) a name , 2) a functionality description
+and 3) the engineOutput in the form of a JSON object that can be used for visualization purposes.
+
+--- Page 16 ---
+16 DesignBIP
+Figure 13: Part of the DesignBIP metamodel
+ABIPproject contains a set of Component Type elements that have three attributes: 1) name ,
+2) a cardinality parameter that denotes the number of component instances of this type and 3) a
+definition of variables. The behavior of a Component Type is described, as explained in Section
+2, by an LTS with three types of transitions: Internal Transition ,Spontaneous Transition
+andEnforceable Transition . Enforceable transitions are exported as ports. The State Base and
+Transition Base elements are abstract. A transition is characterized by three attributes: 1) name , 2) a
+guardExpression and 3) a transitionMethod that describes the action performed upon the execu-
+tion of the transition. The guardExpression is a Boolean expression involving the conjunction ‘&’,
+disjunction ‘j’ and negation ‘!’ operators, parenthesis and the names of Guard elements. A Guard is
+evaluated through its guardMethod attribute.
+Additionally, BIPproject contains a set of Connector Motif elements that have two attributes
+1)multiplicity and 2) degree . AConnector Motif contains a non-empty set of Connector Motif End
+elements which can be of two types: Synchron orTrigger . Each Connector Motif Endis associated
+with a single component port, i.e., an Enforceable Transition . More than one Connector Motif End
+can be associated with the same Enforceable Transition .
+C Proof of Proposition 3.1
+Proof of Proposition 3.1. Necessity!: Assume that there exists a single architecture hB;giconforming
+to the diagram. Condition 1 is trivially obtained: np<mpcannot occur as the multiplicity of ports
+cannot be greater than the number of component instances. Notice that Õq2a nq
+mq
+is equal to the number
+of different ways one could connect instances of port types in a, so that port p2ahasnpinstances
+and connector kcontains mk;pports pi2p. Assume that the conforming architecture has sconnectors.
+Then8p2a,sp=s, otherwise there would exist zero connectors. Also, sÕq2a nq
+mq
+otherwise, by
+
+--- Page 17 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 17
+the pigeonhole principle there would exist duplicated connectors. Next, we show that if s<Õq2a nq
+mq
+,
+then the simple architecture diagram has multiple conforming architectures. From s<Õq2a nq
+mq
+, it
+follows that there exists a connector k62g. We are going to show how to construct another conforming
+architecture that contains k. Let k02gbe an arbitrary connector. For each port type psuch that np>1
+andk0andkdo not contain the same set of instances of p, we take the following steps. Consider
+instances pi2k0nkandpj2knk0of port type p. From Lemma C.1, it follows that there exists a
+connector k2gthat contains pjbut not pi. Then, we can transform the architecture by letting kcontain
+piinstead of pj, and letting k0contain pjinstead of pi. Clearly, the architecture still conforms to the
+diagram after this transformation. If k0andkstill do not contain the same set of instances of p, then
+repeat the previous step with another pair of instances pi2k0nkandpj2knk0of type p. If they
+contain the same set of instances, then continue with another port type. After we have ﬁnished with all
+port types, the resulting architecture still conforms to the diagram but now contains k0=k, which implies
+that it cannot be identical to the original architecture. Therefore, we have shown that if s<Õq2a nq
+mq
+,
+then a simple architecture diagram has multiple conforming architectures, which concludes the proof of
+necessity.
+Sufﬁciency : We show that for each connector motif, there exists a unique conﬁguration conform-
+ing to the architecture diagram. Since each connector must contain mqinstances of port type qout of the
+existing nqinstances, the number of possible connectors for a given motif is Õq2a nq
+mq
+. Notice that since
+mpnpfor every port type p, the set of possible connectors is non-empty. A conforming conﬁguration
+must have this many connectors according to our assumption sp=Õq2a nq
+mq
+, which implies that a con-
+forming conﬁguration must contain all possible connectors. Since this set is unique for each connector
+motif, the architecture itself must also be unique.
+Lemma C.1. Let k2gbe a connector of an architecture hB;giconforming to a simple architecture
+diagram that contains instance p ibut not instance p jof port type p. Then, there exists another connector
+k02gthat contains instance p jbut not instance p iof port type p.
+Proof. For the sake of contradiction, suppose that every connector that contains pjalso contains pi.
+Since piis also contained by connector k, this would imply that piis contained by more connectors than
+pj, which contradicts the semantics of simple architecture diagrams. Hence, the claim holds.
+D Generated Java Code for the Route Component Type
+@Ports ({
+@Port ( name = " end ", type = PortType . spontaneous ),
+@Port ( name = "on", type = PortType . enforceable ),
+@Port ( name = " off ", type = PortType . enforceable ),
+@Port ( name = " finished ", type = PortType . enforceable )
+})
+@ComponentType ( initial = " off ", name = " Route ")
+public class Route implements CamelContextAware {
+private CamelContext camelContext ;
+private String routeId ;
+private int deltaMemory = 100;
+public Route ( String routeId , CamelContext camelContext ) {
+this . routeId = routeId ;
+this . camelContext = camelContext ;
+}
+
+--- Page 18 ---
+18 DesignBIP
+@Transition ( name = "on", source = "off", target = "on")
+public void startRoute () throws Exception {
+camelContext . resumeRoute ( routeId );
+}
+@Transition ( name = " off ", source = "on", target = " wait ")
+public void stopRoute () throws Exception {
+camelContext . suspendRoute ( routeId );
+}
+@Transition ( name = " end ", source = " wait ",
+target = " done ", guard = "! finished ")
+public void spontaneousEnd () {}
+@Transition ( name = "", source = " wait ",
+target = " done ", guard = " finished ")
+public void internalEnd () {}
+@Transition ( name = " finished ", source = " done ",
+target = "off")
+public void finishedTransition () {}
+@Guard ( name = " finished ")
+public boolean isFinished () {
+return camelContext . getInflightRepository ().
+size ( camelContext . getRoute ( routeId ).
+getEndpoint ()) == 0;
+}
+}
+E Part of the Generated XML code for the Switchable Routes Example
+1 <require >
+2 <effect id="on" specType =" Route "/>
+3 <causes >
+4 <port id=" add " specType =" Monitor "/>
+5 </ causes >
+6 </ require >
+7 <accept >
+8 <effect id="on" specType =" Route "/>
+9 <causes >
+10 <port id="add" specType =" Monitor "/>
+11 </ causes >
+12 </ accept >
+13 <require >
+14 <effect id=" add" specType =" Monitor "/>
+15 <causes >
+16 <port id="on" specType =" Route "/>
+18 </ causes >
+19 </ require >
+20 <accept >
+21 <effect id=" add " specType =" Monitor "/>
+22 <causes >
+23 <port id="on" specType =" Route "/>
+24 </ causes >
+25 </ accept >
+26 <require >
+27 <effect id=" off" specType =" Route "/>
+28 <causes >
+29 </ causes >
+30 </ require >
+
+--- Page 19 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 19
+31 <accept >
+32 <effect id=" off" specType =" Route "/>
+33 <causes >
+34 </ causes >
+35 </ accept >
+F Demonstration of DesignBIP
+We provide a step-by-step demonstration of the DesignBIP tool. In particular, we demonstrate how
+to model behavior and interaction, generate the Java and XML code and execute the system using the
+JavaBIP-engine.
+F.1 Step 1: Presentation of the DesignBIP Environment
+DesignBIP is a web-based, open-source tool. The initial page of DesignBIP is shown in Figure 14. The
+developer may navigate to the Projects page by double-clicking on the Projects icon.
+Figure 14: Initial page of DesignBIP
+TheProjects page is shown in Figure 15. The center panel is the Canvas. The left side of the screen
+shows the Visualizer Selector options and below them is the Part Browser , which displays the
+concepts than can be instantiated inside the Canvas. For instance, dragging and dropping a Project
+from the Part Browser creates a new project on the Canvas. The top right corner of the user interface
+is the Object Browser , which shows the composition hierarchy of DesignBIP starting at Root. Embed-
+dable documentation can be added at every level of this hierarchy. Below the Object Browser is the
+Property Editor , where attributes, preferences, and other properties of the currently selected project
+can be edited.
+DesignBIP provides a collaborative and versioned environment. Multiple developers can collaborate
+on the same smart contract simultaneously. Changes are immediately broadcasted to all developers and
+everyone sees the same state. This is similar to how Google Docs works, except that the models in
+DesignBIP have a much richer data model, which makes consistency management more challenging.
+Changes in DesignBIP are committed and versioned, which enables branching, merging, and viewing
+the history of a contract. Figure 16 shows the history of the master branch. During the demonstration,
+we are going to show how a developer can create a new branch and merge it into the master branch.
+
+--- Page 20 ---
+20 DesignBIP
+Figure 15: The Projects page
+Figure 16: Versioning in DesignBIP
+
+--- Page 21 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 21
+Figure 17: The DesignBIP language
+F.2 Step 2: Presentation of the DesignBIP Language
+Next, we present some elements of the BIP language, which is deﬁned in DesignBIP as a UML class
+diagram (Figure 17). By double-clicking Meta in the Visualizer Selector shown in Figure 15,
+we navigate to the language-speciﬁcation of DesignBIP. As shown in Figure 17, the behavior of a
+ComponentType is described as an LTS. The State Base element is abstract and it can be instantiated
+by either an InitialState or aState . Each contract must have exactly one InitialState , which
+is enforced by the cardinality of the containment relation. Similarly, the Transition Base element is
+abstract and it can be instantiated by either an EnforceableTransition , anInternalTransition ,
+or an SpontaneousTransition . The developer can see other aspects of the DesignBIP metamodel by
+clicking the Architecture ,Architecture Styles andComponent Types tabs.
+F.3 Step 3: Designing a BIP System
+Next, we present how to design a BIP system using DesignBIP. After creating a new Project on the
+canvas shown in Figure 15 (as described in Step 1), the developer must specify a unique name for this
+project, e.g., SwitchableRoutes , in the name attribute of the Project listed in the Property Editor .
+Then, the developer creates the states of the LTS (Figure 18) by drag-and-dropping states from the
+Part Browser . By clicking on a state, the developer may add a transition to another state or to the
+same state. For each transition, the developer may specify its corresponding attributes, i.e., guardName
+andtransitionMethod at the Property Editor or at the dedicated Java code editor that we have
+developed. The developer may navigate to the code editor by double-clicking BIPCodeEditor in the
+Visualizer Selector .
+Figures 18,19, and 20 show the model/code editors and the representation of the switchable routes
+
+--- Page 22 ---
+22 DesignBIP
+Figure 18: Designing an LTS in DesignBIP
+project. From the LTS shown in the LTS model editor (Figure 18), we generate equivalent Java code,
+which consists in the darker parts of the code shown in the code editor (Figure 19). This part of the
+code is generated automatically from the LTS and cannot be altered by the developer in the code editor.
+The developer can only change the LTS in the model editor. The lighter parts of the code in the code
+editor represent parts of the code that the developer has directly deﬁned in the code editor. For instance,
+the developer may specify variables, transition statements and guards, directly in the code editor. The
+code and model editors are tightly integrated. Once a developer makes a change in the model editor, the
+code editor is updated and vice versa. Figure 20 shows the dedicated model editor for BIP architecture
+diagrams. As mentioned earlier, documentation can be added at every level of DesignBIP.
+F.4 Step 4: Generating Java and XML Code
+To generate Java and XML code a developer must click on the BehaviorCodeGenerator and
+ArchitectureCodeGenerator plugins offered by the drop-down menu in the upper left corner of the
+tool (Figure 21). Then, the widget shown in Figure 22 pops up, and the developer may click on the Save
+& Run button to continue with the code generation.
+If the code generation is successful, i.e., there are no speciﬁcation errors in the given input, then the
+widget shown in Figure 23 pops-up. The developer may then click on the generated artifacts to download
+the generated Java or XML code. If, on the other hand, the code generation is not successful due to
+incorrect input, then, the widget shown in Figure 24 pops-up. As shown in Figure 24, DesignBIP lists
+the errors found in the speciﬁcation of the contract with detailed explanatory messages. Additionally,
+DesignBIP provides links (through Show node ) that redirect the developer to the erroneous nodes of the
+contract.
+F.5 Step 5: Running the Integrated JavaBIP-engine
+If the behavior and interaction code generation has ﬁnished successfully, the developer may execute the
+generated BIP system using the integrated JavaBIP-engine. To do that, the developer must click on the
+
+--- Page 23 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 23
+Figure 19: The DesignBIP code editor
+Figure 20: The BIP model editor
+
+--- Page 24 ---
+24 DesignBIP
+Figure 21: DesignBIP plugins
+Figure 22: Widget for code generation plugins
+Figure 23: Successful code generation
+
+--- Page 25 ---
+A. Mavridou, J. Sifakis, & J. Sztipanovits 25
+Figure 24: Unsuccessful code generation due to incorrect input
+Figure 25: Widget for JavaBIP-engine plugin
+Figure 26: Visualization of the JavaBIP-engine output
+
+--- Page 26 ---
+26 DesignBIP
+JavaBIPEngine plugin in the drop-down menu shown in Figure 21. Then, the developer must instantiate
+any parameters of the model in the widget shown in Figure 25 and also must specify how many transitions
+should be executed by the JavaBIP-engine. Then, the developer may click on the Save & Run button
+to continue with the execution. Once the JavaBIP-engine has ﬁnished its execution, the developer may
+visualize the output of the engine by clicking BIP Engine Execution in the Visualizer Selector
+panel (see Figure 20). Then, the widget shown in Figure 26 appears, where the developer speciﬁes
+the number of instances of each component type to be visualized in the simulated output. Finally, the
+visualization of the output is as described in Section 5.
