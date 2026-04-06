@@ -25,6 +25,12 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from tools.ccf_se_index_builder import CCF_MD, ROOT, Venue
 
 
+@dataclass(frozen=True)
+class PhdVenueFit:
+    grade: str
+    rationale: str
+
+
 TREE_MD = ROOT / "frontier_index" / "SOFTWARE_ENGINEERING_FIELD_TREE.md"
 MANUAL_REVIEW_DIRNAME = "manual_review"
 MANUAL_OVERRIDE_FILENAME = "overrides.json"
@@ -56,6 +62,111 @@ SE_DECISION_DISPLAY_ORDER = (
     "待判定",
     "待补",
 )
+
+
+PHD_GRADE_EMOJI = {
+    "A": "🔥",
+    "B": "🟢",
+    "C": "🟡",
+    "D": "⚪",
+}
+
+
+PHD_GRADE_LABEL = {
+    "A": "强相关",
+    "B": "较相关",
+    "C": "可补链",
+    "D": "低相关",
+}
+
+
+PHD_GRADE_DISPLAY_ORDER = ("A", "B", "C", "D")
+
+
+PHD_VENUE_RELEVANCE: Dict[Tuple[str, str, str], PhdVenueFit] = {
+    ("ASE", "A", "会议"): PhdVenueFit("A", "自动化软件工程 / LLM for SE / 建模-验证-修复主场"),
+    ("FM", "A", "会议"): PhdVenueFit("A", "形式化方法 / timed automata / 工业与控制系统验证邻近"),
+    ("FSE", "A", "会议"): PhdVenueFit("A", "broad SE + LLM/需求建模/测试验证/修复主线"),
+    ("ICSE", "A", "会议"): PhdVenueFit("A", "broad SE 主会，需求-建模-验证-修复全链可见"),
+    ("ISSTA", "A", "会议"): PhdVenueFit("A", "测试分析 / 形式化验证 / 缺陷定位与修复主场"),
+    ("OOPSLA", "A", "会议"): PhdVenueFit("C", "软件结构 / 程序分析 / 重构与验证偶发贴题"),
+    ("OSDI", "A", "会议"): PhdVenueFit("D", "系统实现 / 平台机制为主，仅极少验证个案"),
+    ("PLDI", "A", "会议"): PhdVenueFit("C", "程序分析 / 软件验证 / repair 邻近但需严格筛选"),
+    ("POPL", "A", "会议"): PhdVenueFit("D", "语义 / 类型 / 逻辑证明主场，低概率直接贴题"),
+    ("SOSP", "A", "会议"): PhdVenueFit("D", "操作系统机制主场，低概率直接贴题"),
+    ("TOPLAS", "A", "期刊"): PhdVenueFit("D", "语言 / 语义 / 编译与理论为主"),
+    ("TOSEM", "A", "期刊"): PhdVenueFit("A", "软件工程方法 / 需求建模 / 测试验证 / AI for SE"),
+    ("TSC", "A", "期刊"): PhdVenueFit("C", "服务工作流 / 平台 orchestration 邻近，可补性质工程"),
+    ("TSE", "A", "期刊"): PhdVenueFit("A", "broad SE 主刊 / 建模验证修复与 LLM 子题持续出现"),
+    ("CAiSE", "B", "会议"): PhdVenueFit("B", "信息系统与过程/模型工程，适合补需求-建模-规约链"),
+    ("CC", "B", "会议"): PhdVenueFit("D", "编译构造主场"),
+    ("CP", "B", "会议"): PhdVenueFit("D", "约束求解主场，仅少量可借工具思想"),
+    ("ECOOP", "B", "会议"): PhdVenueFit("C", "OO 程序结构 / 分析与重构邻近"),
+    ("ESEM", "B", "会议"): PhdVenueFit("B", "实证方法 / 评测设计 / LLM-SE 实验口径重要"),
+    ("ETAPS", "B", "会议"): PhdVenueFit("B", "TACAS/FASE 等 formal methods 线对验证与工具很有用"),
+    ("HotOS", "B", "会议"): PhdVenueFit("D", "系统热点想法为主"),
+    ("ICFP", "B", "会议"): PhdVenueFit("D", "函数式语言理论主场"),
+    ("ICPC", "B", "会议"): PhdVenueFit("B", "程序理解 / 缺陷分析 / 修复解释与人因辅助"),
+    ("ICSME", "B", "会议"): PhdVenueFit("B", "维护演化 / 修复 / 回归验证 / 工程闭环邻近"),
+    ("ICSOC", "B", "会议"): PhdVenueFit("C", "服务组合 / 流程 / 性质与治理偶有贴题"),
+    ("ICWS", "B", "会议"): PhdVenueFit("C", "Web services / orchestration / 性质验证偶有贴题"),
+    ("ISSRE", "B", "会议"): PhdVenueFit("A", "可靠性 / assurance / 安全关键验证与缺陷检测很近"),
+    ("LCTES", "B", "会议"): PhdVenueFit("C", "嵌入式 / 实时软件邻近，可补控制系统实现背景"),
+    ("Middleware", "B", "会议"): PhdVenueFit("D", "中间件与平台机制为主"),
+    ("MoDELS", "B", "会议"): PhdVenueFit("A", "模型驱动 / 状态机-SysML / 形式化建模主场"),
+    ("RE", "B", "会议"): PhdVenueFit("A", "需求工程 / 规约抽取 / 性质生成 / 需求到模型"),
+    ("SANER", "B", "会议"): PhdVenueFit("B", "代码分析 / 逆向 / 演化与 reengineering"),
+    ("SAS", "B", "会议"): PhdVenueFit("C", "静态分析与抽象解释对验证/修复有方法借鉴"),
+    ("VMCAI", "B", "会议"): PhdVenueFit("A", "程序验证 / 模型检查 / 抽象解释直接支撑验证框架"),
+    ("ASE", "B", "期刊"): PhdVenueFit("A", "自动化软件工程 / LLM for SE / 建模-验证-修复主场"),
+    ("ESE", "B", "期刊"): PhdVenueFit("B", "实证研究 / 数据集 / benchmark / 人因与评测设计"),
+    ("IETS", "B", "期刊"): PhdVenueFit("C", "broad SE 期刊，可筛少量建模/验证论文"),
+    ("IST", "B", "期刊"): PhdVenueFit("B", "broad SE / 建模测试 / AI4SE 论文较常见"),
+    ("JFP", "B", "期刊"): PhdVenueFit("D", "函数式编程理论主场"),
+    ("JSEP", "B", "期刊"): PhdVenueFit("B", "演化 / 过程 / 迭代闭环与工程实践邻近"),
+    ("JSS", "B", "期刊"): PhdVenueFit("B", "系统与软件工程综合刊，常见建模/验证/CPS 个案"),
+    ("RE", "B", "期刊"): PhdVenueFit("A", "需求工程 / 规约抽取 / 性质生成 / 需求到模型"),
+    ("SCP", "B", "期刊"): PhdVenueFit("B", "软件程序与形式化/验证/程序分析交叉，贴题概率中高"),
+    ("SPE", "B", "期刊"): PhdVenueFit("C", "工程实践 / 系统实现为主，偶有 runtime/verification"),
+    ("STVR", "B", "期刊"): PhdVenueFit("A", "测试 / 验证 / 可靠性与 formal properties 非常贴题"),
+    ("SoSyM", "B", "期刊"): PhdVenueFit("A", "软件与系统建模 / DSL / 状态机与模型分析主场"),
+    ("APLAS", "C", "会议"): PhdVenueFit("D", "程序设计语言理论主场"),
+    ("APSEC", "C", "会议"): PhdVenueFit("B", "broad SE / 亚洲社区，LLM-SE/测试/建模可见"),
+    ("ATVA", "C", "会议"): PhdVenueFit("B", "自动验证与分析 / 模型检查工具链直接邻近"),
+    ("COMPSAC", "C", "会议"): PhdVenueFit("C", "覆盖过宽，需按建模/验证/AI4SE 子题筛选"),
+    ("EASE", "C", "会议"): PhdVenueFit("B", "评测与实验设计 / benchmark / replication 有用"),
+    ("ICECCS", "C", "会议"): PhdVenueFit("B", "复杂系统建模与验证 / safety-critical / CPS 邻近"),
+    ("ICFEM", "C", "会议"): PhdVenueFit("A", "formal engineering / 规约建模 / 验证与证明"),
+    ("ICSR", "C", "会议"): PhdVenueFit("C", "复用 / 组件资产，可补模型资产与可复用工件"),
+    ("ICSSP", "C", "会议"): PhdVenueFit("C", "软件过程 / 团队与流程，对主问题较间接"),
+    ("ICST", "C", "会议"): PhdVenueFit("A", "测试 / 形式化验证 / 缺陷检测与修复直接相关"),
+    ("ICWE", "C", "会议"): PhdVenueFit("D", "Web 工程主场"),
+    ("ISPASS", "C", "会议"): PhdVenueFit("D", "性能分析主场"),
+    ("Internetware", "C", "会议"): PhdVenueFit("C", "平台 / 网络化软件 / 运行治理邻近"),
+    ("LOPSTR", "C", "会议"): PhdVenueFit("D", "逻辑程序综合与变换主场"),
+    ("MEMOCODE", "C", "会议"): PhdVenueFit("B", "协同设计 / 嵌入式与形式化模型，控制/CPS 邻近"),
+    ("MSR", "C", "会议"): PhdVenueFit("B", "仓库挖掘 / benchmark / LLM-SE 证据与数据建设有用"),
+    ("PASTE", "C", "会议"): PhdVenueFit("B", "程序分析与软件工具工程，对验证/修复较近"),
+    ("PEPM", "C", "会议"): PhdVenueFit("D", "部分求值与程序变换主场"),
+    ("QRS", "C", "会议"): PhdVenueFit("A", "质量 / 可靠性 / 安全 / assurance 与验证链很近"),
+    ("REFSQ", "C", "会议"): PhdVenueFit("A", "需求质量 / 需求规约 / 需求到性质非常贴题"),
+    ("RV", "C", "会议"): PhdVenueFit("A", "运行时验证 / 监测 / 时序性质 / 工具链直接邻近"),
+    ("SCAM", "C", "会议"): PhdVenueFit("B", "源码分析与变换 / 缺陷修复 / 程序理解邻近"),
+    ("SEKE", "C", "会议"): PhdVenueFit("C", "SE+知识工程混合，AI/建模偶有贴题"),
+    ("SPIN", "C", "会议"): PhdVenueFit("A", "软件模型检查 / state-based verification / UPPAAL 邻近"),
+    ("SSE", "C", "会议"): PhdVenueFit("C", "软件服务工程混合"),
+    ("TASE", "C", "会议"): PhdVenueFit("B", "软件工程名下的 formal verification / assurance 邻近"),
+    ("WICSA", "C", "会议"): PhdVenueFit("B", "软件架构 / 设计决策 / 模型结构与演化有用"),
+    ("CL", "C", "期刊"): PhdVenueFit("C", "语言/结构与偶发程序分析，可补方法链"),
+    ("IJSEKE", "C", "期刊"): PhdVenueFit("C", "SE+知识工程混合，AI/建模可补链但不稳定"),
+    ("JLAMP", "C", "期刊"): PhdVenueFit("D", "逻辑与代数程序方法理论主场"),
+    ("JWE", "C", "期刊"): PhdVenueFit("D", "Web 工程主刊，与主问题距离较远"),
+    ("PACM PL", "C", "期刊"): PhdVenueFit("C", "PL 主刊，程序验证/分析个案可补链"),
+    ("SOCA", "C", "期刊"): PhdVenueFit("C", "服务计算与应用为主"),
+    ("SQJ", "C", "期刊"): PhdVenueFit("B", "质量 / 度量 / assurance 视角可支撑验证评价"),
+    ("STTT", "C", "期刊"): PhdVenueFit("A", "验证工具 / formal methods tool transfer / UPPAAL 邻近"),
+    ("TPLP", "C", "期刊"): PhdVenueFit("D", "逻辑程序设计理论与实践主场"),
+}
 
 
 GENERIC_TREE_KEYWORDS = {
@@ -2024,6 +2135,12 @@ def render_year_readme(
         for paper in payload["papers"]
         if paper.get("se_primary_path")
     )
+    phd_venue_grade_counts: Counter[str] = Counter()
+    phd_paper_grade_counts: Counter[str] = Counter()
+    for payload in payloads:
+        phd_fit = get_phd_venue_fit(payload["venue"])
+        phd_venue_grade_counts[phd_fit.grade] += 1
+        phd_paper_grade_counts[phd_fit.grade] += payload["actual_total"]
 
     lines: List[str] = []
     lines.append(f"# `{year}` 年度汇总")
@@ -2056,22 +2173,27 @@ def render_year_readme(
     lines.append("- 软工纳入判定分布：" + " / ".join(f"{name} ({count})" for name, count in se_counts.most_common()))
     lines.append("- 判定来源分布：" + " / ".join(f"{name} ({count})" for name, count in source_counts.most_common()))
     lines.append("- 人工复核状态分布：" + " / ".join(f"{name} ({count})" for name, count in review_counts.most_common()))
+    lines.append("- 本博士研究相关性（氛围 A/B/C/D，按 venue 数）：" + format_phd_grade_summary(phd_venue_grade_counts))
+    lines.append("- 本博士研究相关性（氛围 A/B/C/D，按 2025 论文数）：" + format_phd_grade_summary(phd_paper_grade_counts))
     if path_counts:
         lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(12)))
     lines.append("")
     lines.append("## 3. 覆盖 venue 列表")
     lines.append("")
+    lines.append("- 本博士研究相关性口径：综合 [AGENTS.md](../../../AGENTS.md)、[TARGET.md](../../../TARGET.md)、[project_1_llm_state_machine_modeling/README.md](../../../project_1_llm_state_machine_modeling/README.md)、[open_explore/README.md](../../../open_explore/README.md)、[open_explore/uppaal_tech/README.md](../../../open_explore/uppaal_tech/README.md)、[open_explore/uppaal_apps/README.md](../../../open_explore/uppaal_apps/README.md)、开题报告 [sec_2.tex](../../../phd_proposal/phd_proposal_report/content/sec_2.tex) 与文献综述 [sec_1.tex](../../../phd_proposal/phd_proposal_literature_review/content/sec_1.tex) / [sec_3.tex](../../../phd_proposal/phd_proposal_literature_review/content/sec_3.tex) 的研究问题边界。")
+    lines.append("- 分级：`A 🔥` = 高度贴题、值得长期重点跟踪；`B 🟢` = 较高相关、常能补方法链或评测链；`C 🟡` = 间接相关、只建议按子题筛选；`D ⚪` = 低相关、通常只保留极少数特例。")
     lines.append("- 口径：`venue 判定` 按 [CCF_SE_A_B_C.md](../../CCF_SE_A_B_C.md) 的 `软工归属级别` 折叠而来：`完全属于软工 / 大部分属于软工 -> 软工 venue`，`部分属于软工 -> 混合 venue`，`大部分不属于软工 / 完全不属于软工 -> 非软工 venue`。")
     lines.append("- `主体归属` 与 `典型软工路径（先验）` 来自 venue 级先验；`2025 一级总判定`、`2025 软工纳入` 与 `2025 高频软工主路径` 直接按本年度逐篇人工复核结果统计。")
     lines.append("- `典型软工路径（先验）` 与 `2025 高频软工主路径` 使用 [SOFTWARE_ENGINEERING_FIELD_TREE.md](../../SOFTWARE_ENGINEERING_FIELD_TREE.md) 的方向树口径。")
     lines.append("")
-    lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | venue 判定 | 主体归属 | 典型软工路径（先验） | 2025 一级总判定 | 2025 软工纳入 | 2025 高频软工主路径 | 数据文件 | 备注 |")
-    lines.append("|---|---|---|---|---:|---|---|---|---|---|---|---|---|")
+    lines.append("| venue | 全称 | 等级 | 类型 | 论文数 | venue 判定 | 主体归属 | 博士研究相关性（氛围） | 本研究贴题点 | 典型软工路径（先验） | 2025 一级总判定 | 2025 软工纳入 | 2025 高频软工主路径 | 数据文件 | 备注 |")
+    lines.append("|---|---|---|---|---:|---|---|---|---|---|---|---|---|---|---|")
     for payload in payloads:
         venue = payload["venue"]
         files = payload["files"]
         display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
         prior = priors[(venue.abbr, venue.rank, venue.kind)]
+        phd_fit = get_phd_venue_fit(venue)
         venue_bucket, venue_bucket_score = summarize_prior_bucket(prior.se_level)
         venue_judgement = f"{venue_bucket}（{prior.se_level}）"
 
@@ -2107,7 +2229,7 @@ def render_year_readme(
             se_counts=venue_se_counts,
         )
         lines.append(
-            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {judgement} | {subject} | {paths} | {macro} | {se} | {path_summary} | [metadata]({meta}) / [bib]({bib}) | {note} |".format(
+            "| `{abbr}` | {full} | `{rank}` | `{kind}` | {count} | {judgement} | {subject} | {phd_grade} | {phd_rationale} | {paths} | {macro} | {se} | {path_summary} | [metadata]({meta}) / [bib]({bib}) | {note} |".format(
                 abbr=md_escape(display_abbr),
                 full=md_escape(venue.full_name),
                 rank=venue.rank,
@@ -2115,6 +2237,8 @@ def render_year_readme(
                 count=payload["actual_total"],
                 judgement=md_escape(venue_judgement),
                 subject=md_escape(prior.subject),
+                phd_grade=md_escape(format_phd_grade(phd_fit.grade)),
+                phd_rationale=md_escape(phd_fit.rationale),
                 paths=md_escape(" / ".join(prior.typical_paths) if prior.typical_paths else "-"),
                 macro=md_escape(macro_summary),
                 se=md_escape(se_summary),
@@ -2132,6 +2256,7 @@ def render_year_readme(
         venue = payload["venue"]
         key_pages = payload["key_pages"]
         files = payload["files"]
+        phd_fit = get_phd_venue_fit(venue)
         display_abbr = display_abbr_for_venue(venue, abbr_counts[venue.abbr] > 1)
         lines.append("---")
         lines.append("")
@@ -2144,6 +2269,8 @@ def render_year_readme(
         lines.append(f"- 类型：`{venue.kind}`")
         lines.append(f"- 年份：`{year}`")
         lines.append(f"- 条目数：`{payload['actual_total']}`")
+        lines.append(f"- 与本博士研究相关性（氛围）：`{format_phd_grade_with_label(phd_fit.grade)}`")
+        lines.append(f"- 贴题点：{phd_fit.rationale}")
         lines.append(f"- 数据文件：[metadata]({files['metadata']}) / [bib]({files['bib']})")
         lines.append("")
         lines.append("### 4.2 关键信息页面")
@@ -2259,6 +2386,30 @@ def display_abbr_for_venue(venue: Venue, duplicated: bool) -> str:
     if not duplicated:
         return venue.abbr
     return f"{venue.abbr} / {venue.kind} / {venue.rank}"
+
+
+def get_phd_venue_fit(venue: Venue) -> PhdVenueFit:
+    key = (venue.abbr, venue.rank, venue.kind)
+    fit = PHD_VENUE_RELEVANCE.get(key)
+    if fit is None:
+        raise KeyError(f"Missing PhD venue relevance for: {key}")
+    return fit
+
+
+def format_phd_grade(grade: str) -> str:
+    return f"{grade} {PHD_GRADE_EMOJI[grade]}"
+
+
+def format_phd_grade_with_label(grade: str) -> str:
+    return f"{grade} {PHD_GRADE_EMOJI[grade]}（{PHD_GRADE_LABEL[grade]}）"
+
+
+def format_phd_grade_summary(counter: Counter[str]) -> str:
+    return " / ".join(
+        f"{format_phd_grade(grade)} ({counter.get(grade, 0)})"
+        for grade in PHD_GRADE_DISPLAY_ORDER
+        if counter.get(grade, 0)
+    )
 
 
 def summarize_prior_bucket(se_level: str) -> Tuple[str, int]:
