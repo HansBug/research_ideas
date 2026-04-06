@@ -1,0 +1,977 @@
+--- Page 1 ---
+ 
+ 
+  
+ 
+  
+ 
+ 
+Copyright  © 1997, by the author(s).  
+All rights reserved.  
+ 
+Permission to make digital or hard copies of all or part of this work for personal or 
+classroom use is granted without fee provided that copies are not made or distributed 
+for profit or commercial advantage and that copies bear this  notice and the full citation 
+on the first page. To copy otherwise, to republish, to post on servers or to redistribute to 
+lists, requires prior specific permission.  
+
+--- Page 2 ---
+HYTECH: AMODEL CHECKER FORHYBRID
+SYSTEMS
+by
+Thomas A. Henzinger, Pei-Hsin Ho, and HowardWong-Toi
+Memorandum No.UCB/ERL M97/79
+20October 1997
+
+--- Page 3 ---
+HYTECH: AMODEL CHECKER FORHYBRID
+SYSTEMS
+by
+ThomasA.Henzinger, Pei-HsinHo,andHowardWong-Toi
+Memorandum No.UCB/ERL M97/79
+20October 1997
+ELECTRONICS RESEARCH LABORATORY
+CollegeofEngineering
+University ofCalifornia, Berkeley
+94720
+
+--- Page 4 ---
+HyTech: aModelCheckerforHybridSystems*^
+ThomasA. Henzinger Pei-HsinHo HowardWong-Toi
+EECSDepartment StrategicCADLabs Cadence BerkeleyLabs
+Univ.of California, Berkeley Intel Corp., Hillsboro,Oregon Berkeley, California
+tah@eecs.berkeley.edu pho@ichips.intel.com howard@cadence.com
+Abstract
+A hybridsystemis a dynamicalsystem whosebehaviorexhibits both discreteand continuous
+change.Ahybridautomaton isa mathematical modelforhybrid systems,whichcombines, in
+asingleformalism, automatontransitionsforcapturing discretechangewithdifferential equa
+tionsforcapturing continuous change.HyTech is asymbolic modelcheckerfor linear hybrid
+automata^ asubclassofhybrid automata thatcanbeanalyzedautomaticallybycomputingwith
+polyhedralstate sets. A keyfeature of HyTech is its ability to performparametric analysis,
+i.e. to determine the valuesofdesignparameters for whicha linear hybrid automaton satisfies
+atemporal-logic requirement.
+1Introduction
+A hybrid system typically consistsof a collectionofdigital programs thatinteractwith each other
+and with an analog environment. Examplesof hybrid systems includemanufacturing controllers,
+automotiveand flightcontrollers, medicalequipment, micro-electromechanical systems,and robots.
+When these systems occur in mission-critical applications, formal guarantees aboutthe absenceof
+logicaland timingerrorsare desirable. Theformalanalysisofthemixeddigital-analog nature of
+hybridsystems requiresa mathematical model thatincorporates the discrete behaviorofcomputer
+programswith the continuous behaviorofenvironment variables, suchas time, position,and tem
+perature. Thefirst extensionsofdiscrete state-transition modelstoward mixeddiscrete-continuous
+behaviorconcentrated on the singlemostimportant environment parameter—real time. Onesuch
+modelisthe timed automaton—a finiteautomaton augmented with afinite number ofclocks,which
+arereal-valued variableswhosevalueschangecontinuously withthe constantrate 1 [4].Timedau
+tomatahave been used successfully to analyze real-time protocols andasynchronous circuits. For
+modeling moregeneralkindsof hybridsystems,weusethe hybrid automaton—a finite automaton
+with a finite numberof real-valued variables thatchange continuously, as specified by differential
+equations and differential inequalities, in moregeneralwaysthan clocks[3,36,2].
+For analyzing hybrid systems, we build on the model-checking technology, inwhicha formal
+model of the systemis checked, fully automatically, forcorrectness with respect to a requirement
+*Apreliminary version of this paperappeared in the Proceedings of the Ninth International Conference on
+Computer-Aided Verification (CAV97), Lecture Notesin Computer Sdence1254,Springer-Verlag, 1997,pp. 460-
+463.
+^Thisresearch wassupported in part by the ONR YIP award N00014-95-1-0520, by the NSF CAREER award
+CCR-9501708, by the NSFgrant CCR-9504469, bythe AFOSRcontract F49620-93-1-0056, by the ARC MURIgrant
+DAAH-04-96-1-0341, by the ARPA grantNAG2-892, and by the SRC contract 95-DC-324.036.
+
+--- Page 5 ---
+expressed in temporal logic[11,37]. For this purpose, the entire statespace of the system is ex
+plored.Thiscan be done enumeratively, by considering each stateindividually, or symbolically,
+bycomputing withconstraints thatrepresent statesets.Because of itsabilitytodealwithvery
+largestatespaces,symbolic model checking has been proven an effective technique fortheauto
+matic analysis of complexfinite state-transition systems[10].In recent years, the model-checking
+approach has been extended toseveralclassesofinfinitestate-transition systems, including timed
+automata [1].Sinceclockvalues range overthe infinite domain of thenonnegative reals, it is im
+possibletoenumerate allstatesof atimedautomaton, andsymbolic representations ofstatesets
+mustbeemployed. Specifically, thesymbolic model checking of a timedautomaton requires the
+manipulation ofcertainlinearconstraints on clock values, namely, disjunctions ofinequalities of
+the form x b and x — b, for clockvectors x and y, an inequality operator G{<,>},and
+aconstant integer vector b, whosecomponents are bounded for any given automaton [29].Since
+thereare only finitely many of theseconstraints, allcomputations required for model checking are
+guaranteed toterminate.
+Byadmitting more general linear constraints oncontinuous variables, namely, disjunctions of
+inequalities of theformAxc, where A is a constant matrixand c is a constant vector, the
+symbolic model-checking methodfor timed automata can beextended to a more general class of
+hybridautomata called linear hybrid automata [5].In a linear hybrid automaton, thedynamics of
+thecontinuous variables aredefined by lineardifferential inequalities oftheformAxb,wherex
+is the vectoroffirst derivativesofthe variables x.^Sincethe number of possibleconstraints is no
+longer finite, when moving from timed automata to linear hybrid automata, theprice to pay for
+theincreased generality istheloss ofguaranteed termination for model checking. The method is
+still ofpractical interest, however, becausetermination happens naturally in many examples and
+can be enforced in others,say, by considering thebehavior of a system over a bounded interval of
+time.
+Modelcheckingcan be used to provide more thana mere "yes"or "no" answerto the question of
+whether asystemsatisfiesacorrectness requirement. HyTech provides alsodiagnostic information
+thataids in design and debugging. Ifa systemdescription containsdesignparameters, whosevalues
+arenotspecified, thenHyTech computes necessary and sufficient constraints ontheparameter
+valuesthatguarantee correctness. For example, for a railroad crossing, we will compute theexact
+cutoffpoint, in metersfrom the crossing, atwhich a trainhas to signal its approach in order
+for the gate to be closed by the time the trainpassesthroughthe crossing. If a system fails to
+satisfyacorrectness requirement, thenHyTech generates anerrortrajectory, whichillustrates a
+time-stamped sequence ofeventsthatleadstoaviolation oftherequirement.
+Whilelinearhybridautomata areexpressive compared tootherformalisms for which model
+checking is possible, such as finite automata andtimedautomata, manyembedded applications do
+notmeetthelinearity constraints. Insuchcases,weconservatively approximate thesystemusing
+linearhybridautomata sothatiftheapprosdmate automaton satisfies acorrectness requirement,
+thentheoriginalsystemsatisfiestherequirement as well. If, on theotherhand,theapproximate
+systemviolatestherequirement, andthegenerated errortrajectory isnotapossibletrajectory of
+the original system,then the approximation must be refined.
+Thispaperconsistsofthreesections. Section 2 presents themodel of hybridautomata. Sec
+tion 3illustrates theanalysis techniques, and Section 4 briefly describes thetoolHyTech. A
+simplethermostat is used as a runningexample todemonstrate modeling, approximation, safety
+isimportant to realize thatthedefinition oflinearity forhybridautomata differs from thedefinition oflinearity
+commonly used insystemstheory.Inparticiilau', thedifferential inequalities oflinearhybridautomata maynotdepend
+onthevalue ofthevariables, andthusdynamics oftheformx= xareprohibited.
+
+--- Page 6 ---
+a: = 3off
+X — 2
+Figure1:Thermostat automaton
+verification, parametric analysis, and the useofthe tool. For more involvedmodel-checking proce
+duresofgeneraltemporal-logic requirements, aswellasfortheoretical resultson timed automata,
+the interested reader is encouraged to consult other literature [19].
+2HybridAutomata
+2.1Example: asimplethermostat
+Aeuclidean dynamicalsystem prescribes howa set ofrea/-valued variables evolveover time. A
+systemstateis a point in R"(wheren is the number of variables), and a system trajectory is a
+curveinR"(calledaflow).Thedeterministic evolution of realvariablesis naturally prescribed
+byan initial conditionand differential equations; for example, thetemperature x€R ofa heated
+plant may observethe initial condition x= 2 and the differential equation x = —x+ 5. The
+nondeterministic evolution of real-valued variables can be prescribed using differential inequalities,
+such asX€[3,4].
+Bycontrast, a booleandynamical systemprescribes howa set ofboolean-vslued variables evolve
+overtime. A system stateis a point in B*"(wherem is thenumberofvariables), and a system
+trajectory is a sequence of states (eachpair ofconsecutive states iscalleda jump). The non-
+deterministic evolution of boolean variables is naturally prescribed by an initial condition and a
+transition relation, whichindicatesforevery statethe set of possiblesuccessor states.Forexample,
+thestatust/€{on,off} ofa heater may observethe initial condition y=on and the transition
+relation{(on,off)^{off,on)},i.e.theheater maybeturnedonor off.Abooleandynamical system,
+thus,canbe viewed as a finiteautomaton.
+A hybrid dynamical systemhas both real-valued andboolean-valued variables, say n real vari
+ablesand m boolean variables. Asystem state,then,ba point in B*"xR",and a system trajectory
+is asequence offlowsand jumps: during flows,thebooleanpart ofthe statestays constant and
+the real part of the stateevolvesover time; at jumps, the entire statechangesinstantaneously.
+Wedescribehybriddynamicalsystemsusinghybrid automata. Ahybridautomaton annotates the
+controlgraph of a finiteautomaton with conditions onreal-valued variables. Each node of the
+graphrepresents an operating modeofthe system,and is annotated with differential inequalities
+thatprescribe thepossibleevolutions (flows)ofthe real variables whilethe system remainsin the
+givenmode.Eachedgeofthe graph representsa switchinoperatingmode,and isannotated with
+a condition thatprescribes the possible changes (jumps) of the real variables when the system
+executes thegiven mode switch.
+If wecombinethetemperature xER with the heater y E{on,off}, weobtain a thermostat.
+The hybridautomaton ofFigure 1hastwooperating modes:either the heater ison (modeon), or
+the heater is off"(modeoff). Initially,the heater is on and the temperature x is 2 degrees.When
+
+--- Page 7 ---
+the heater is on, the temperature risesatthe rate of -x-f5 degrees per minute; when the heater
+is off,the temperature falls at the rate of —xdegreesper minute. The heater can be turned off
+when the temperature reaches 3degrees, and it can be turned on when the temperature fallsto 1
+degree.This isdue to the edge conditions a:= 3and a:= 1,whichassertwhena modeswitch may
+occur. To force mode switches, such as forcing theheatertobeturnedoffwhen thetemperature
+reaches3degrees,weannotatetheoperating modeswithso-calledinvariant conditions (inaddition
+to theannotation with differential inequalities): the system can remain in a mode only as long as
+the corresponding invariant condition issatisfied. Thus, the invariant conditions 1 < a;< 3 of
+both operating modesprescribe thata modeswitch must occur beforethe temperature leavesthe
+operating interval of [1,3]degrees.
+2.2Formal definition
+A hybrid automaton is a system A = flow,inv^init^E^ jump^Tt^syn) thatconsists of the
+following components [2]:
+Variables A finite ordered set X = {a:i,a;2,.. .,®n}of real-valued variables. For example, the
+thermostat automaton ofFigure1uses the variable x to model theplanttemperature (in this
+case, n = 1).
+Control modes AfinitesetVofcontrolmodes.Forexample, thethermostat automaton hastwo
+controlmodes,onandoff.
+Flowconditions Alabeling function flowthatassigns a flow condition toeachcontrolmode
+t;€V.Theflowcondition flow(v) is a predicate over the variables in A"UX,where X =
+{ii,...,i„}.Thedottedvariablei,-,for 1 <i<n,refers to the first derivative of x,with
+respecttotime,i.e.x,=dxijdt.Whilethecontrolofthehybridautomaton A is in mode v,
+thevariables in X evolve along a differentiable curvesuchthatatallpointsalongthecurve,
+thevalues of thevariables andtheirfirstderivatives satisfytheflowcondition flow{v). For
+example, thecontrolmodeon ofthethermostat automaton hastheflowcondition i=—a;-f5;
+thecontrolmodeoffhastheflowcondition x ——x.
+Invariant conditions Alabelingfunction invthatassigns an invariant condition toeachcontrol
+modeV^V.Theinvariant condition inv{v) is a predicate overthevariables in X.While the
+controlofthehybridautomaton A is inmodev,thevariables in Xmustsatisfytheinvariant
+condition mu(t;).For example, both control modes of the thermostat automaton have the
+invariant condition 1 < a; < 3.
+Initialconditions Alabeling function initthatassigns an initialcondition toeachcontrolmode
+V£V.Theinitial condition init(v)is apredicate overthevariables in X.Thecontrol of the
+hybridautomaton Amaystartinthe control modevwhenthe initial condition init{v)istrue.
+Inthegraphical representation ofautomata, initialconditions appearaslabelson incoming
+arrowswithout sourcemodes,andinitialconditions oftheformfalsearenotdepicted. For
+example, thecontrolmode on of thethermostat automaton hastheinitialcondition x=2;
+thecontrolmodeoffhastheinitialcondition false.
+Control switches Afinite multiset E ofcontrol switches. Each control switch (u,u')isa directed
+edge between a source mode u€Vand atargetmodev'6 V. For example, thethermostat
+automaton has two control switches, (on, off) and (off, on).
+
+--- Page 8 ---
+Jumpconditions A labeling function jumpthatassigns a jumpcondition to each control switch
+eeE. The jump condition jump(e) is a predicate over the variables inXUX',where
+X'={x'l,..The unprimedsymbol a;,-,for 1<t<n,refersto the valueofthe variable
+Xibeforethe controlswitch, and the primedsymbol a:Jrefersto the valueof x,after the control
+switch.Thus,ajumpcondition relates the valuesof thevariables beforea controlswitch to the
+possible values afterthecontrolswitch. In thegraphical representation ofautomata, we use
+guarded assignments to represent jumpconditions; forexample,assuming n= 2, the guarded
+assignment xi=X2->xi:=2x2standsforthejump condition xi=X2AXj=2x2Ax^=X2
+(noticethatbecausethevariable X2is notassignedanewvalue,itsvalueafter the jump is
+equaltoits valuebeforethejump). Inthethermostatautomaton,the controlswitch(on,off)
+has the jump condition x = 3A x'= x; the controlswitch (on,off) has the jump condition
+X = 1 Ax'= X.
+EventsA finite set E of events, and a labeling function syn thatassignsan event in E to each
+control switch e £E.For example, the control switch (on, off) of the thermostat automa
+toncorresponds to the event turn-off\the control switch{off^on)corresponds to the event
+turn.on.Thoughnot usedin the thermostat example,eventspermitthe synchronization of
+jumpsbetweenconcurrent hybridautomata.
+2.3Statesandtrajectories
+Astate ofthe hybridautomaton Aisa pair(u,a)consisting ofacontrolmodeu€Fand a vector
+a =(ffli,...jfln) thatrepresents avaluea,-€Rforeachvariable x,-€ X.Thestate(u,a)ofAis
+admissible ifthepredicate inv{v)is truewheneachvariable XjisreplacedbythevalueCj.The
+state(u,a)isinitialifthepredicateinit{v)istruewheneachx,-isreplacedbya,-.Forexample,the
+state(on,1.5)ofthethermostat automaton isadmissible; thestate(on,0.5)isnot.The thermostat
+automaton has exactly one initial state,(on, 2).
+Considerapair(9,9')oftwoadmissible statesq=(u,a)andq'=(o',a').Thepair{q^q')isa
+jumpofAifthereisacontrolswitcheeEwithsourcemodevandtargetmodev'suchthat the
+predicatejump{e)istruewheneachvariable x,-isreplacedbythevalueo,-,andeachprimedvariable
+xjisreplacedbythevalueaj.Thethermostat automaton hasexactlytwojumps,((on,3),{off^3))
+and{{off,1),(on,1)).Thepair{q,q')isaflowo{A\fv=v'andthereisanonnegative realS€E>o
+(thedurationoftheflow)andadifferentiable functionp:[0,^K"(thecurveoftheflow)such
+thatthefollowing three requirements hold:
+1. Endpoints: p(0)= a andp(5)=a'.
+2. Invariant condition: For all time instants t €(0,5), the state(u,p(£))isadmissible.
+3. Flowcondition: Letp:[0,5]R"be the first time derivativeof p. For all time instants
+t€(0,5),thepredicateflow{v)istruewheneachvariable x,-isreplacedbythei-thcoordinate
+ofthevectorp{t),andeachdottedvariable x,-isreplacedbythei-thcoordinate ofp{t).
+Forexample, ((oj6^,3),{off,2))and{{off,3),{off,2.6)) areflowsofthethermostat automaton. If
+{q,q')isajump,wesaythat q'isa jumpsuccessorofq;if(g,g')isaflow,theng'iscalledaflow
+successorofg(noticethateveryadmissible stateisa flowsuccessorofitself,becausethereisalways
+aflowofduration 0).
+Atrajectory ofthehybridautomaton Aisafinite sequenceqo,qi,•••,qkofadmissible statesqj
+suchthat(1)thefirststategoofthesequenceisaninitialstateofA,and(2)eachpair{qj,qj+1)
+
+--- Page 9 ---
+ss2
+Ay= 0
+A 2 = 0onturn.off
+X=1
+Figure 2: Thermostat automaton augmented forsafety verification
+ofconsecutive statesinthesequence iseitherajumpof>1or a flowof A. A stateof A is reachable
+ifit isthelaststateofsometrajectory of A. While this is notusuallythecase, all admissible states
+ofthethermostat automaton arereachable.
+2,4Safetyrequirements
+Asafetyrequirement assertsthatnothingbad willhappenduringtheevolution of a system.Safety
+requirements canoftenbe specified by describing the"unsafe" valuesandvaluecombinations of
+thesystemvariables. Then,thesystemsatisfiesthesafetyrequirement iff allreachable statesare
+safe.Safetyverification, therefore, amounts tocomputing thesetofreachable states.
+Forhybridautomata, wespecifysafetyrequirements usingstateassertions. Astateassertion tp
+for the hybrid automaton Ais a function thatassigns to each control mode u€V apredicate 93(1;)
+over the variables in X.Wesaythatthestateassertion is true(or false) for a state(v,a) of A if
+the predicate (p{v)istrue(false) when each variable Xiis replaced by the value a,-.Thestatesfor
+which(pistruearecalledthey)-states. Forexample, theinvariant conditions ofAdefineastate
+assertion inv,andthemv-states areprecisely theadmissible states;similarly, theinitialconditions
+define astateassertion initthatistrueprecisely for theinitialstates(flowandjumpconditions
+do not define stateassertions). If unsafe is a stateassertion forthehybridautomaton A, then
+Asatisfies thesafetyrequirement specified by unsafeifthestateassertion unsafeis false for all
+reachable statesofA.
+Sometimes thegivenvariables orcontrolmodesarenotsufficient tospecify a safetyrequirement,
+and the system description needsto be augmented with additional variablesand control modes (or
+with so-called monitor automata, which are executed concurrently withthesystemandreport
+when an unsafe stateisentered;see below). For example, for thethermostat automaton, consider
+therequirement thattheheaterisactivelessthan2/3ofthefirst 60minutes. To specify this
+requirement, weneeda meansof representing (1) the total elapsedtime, say y,and (2) the total
+accumulated timethattheheaterhasbeenactive,sayz. Tothisend,weaddthetwoauxiliary
+variables yandztothethermostat automaton, in a way thatdoesnotalterthebehavior ofthe
+automaton: thevariable y is a clock (i.e.y = 1 for all controlmodes)thatmeasures theelapsed
+time; the variable zis astopwatch (i.e.i= 1 or i = 0) thatmeasures the accumulated time spent
+inthecontrolmodeon.Theaugmented automaton is shown in Figure2. Now we can specify
+theunsafestatesusingthestateassertion unsafethatassigns the predicate y = 60A z>2y/3to
+bothcontrolmodes.We will use HyTech toverifythatthestateassertion unsafeis false for all
+reachable statesoftheaugmented thermostat (noticethatit is no longer thecasethatall admissible
+statesarereachable).
+
+--- Page 10 ---
+3Analysis ofHybridAutomata
+3.1Computing thereachable states
+To check if thehybridautomaton A satisfies thesafetyrequirement specified by thestateassertion
+unsafe^weattempttocompute anotherstateassertion, reach,which istrueexactlyforthereachable
+statesof A. Then we check if thereis anystatefor which bothreach and unsafe are true:if so,
+the safety requirement is violated, and we produce an errortrajectory from an initial stateto an
+unsafestate (thisis usefulfordebugging thesystem);ifnot,thesafety requirement issatisfied. We
+attempt to computethe stateassertion reachasfollows.Fora state assertion letPost((p)be a
+stateassertion thatis truepreciselyfor the jump and flowsuccessors of they>-states, i.e.Post{<p)
+is true for a stateq' iffthere exists a (/>-stateq suchthat(q,q') is either a jump or a flowof A.
+Ifwesucceedin computing the stateassertion (pi=Post{init), then we have characterized all
+statesthatarereachable by trajectories of length 1 (i.e. by a singlejump orflow);if wesucceed
+incomputing the state assertion ip2—Post{(pi), then wehavecharacterized all states thatare
+reachable bytrajectories oflength 2; etc. Finally,ifforsomenatural number k,wefindthat(pk
+and(pk+i=Post((pk)areequivalent (i.e.theyaretrue forthesamestates),then wecanconclude
+that(fikcharacterizes all states thatarereachable by trajectories of any length, and therefore
+reach=<pk(noticethat,becauseeveryadmissible state is a flowsuccessor ofitself,if astateis
+reachable bya trajectoryof lengthfc,then it is alsoreachable bya trajectoryof length A;+1).
+The successofthis computation of reach hingeson two issues. First,for astateassertion (p,we
+needto beabletocomputethe stateassertion Post((p).Thiscan bedone reasonably efficiently fora
+restrictedclassofhybrid automata calledlinearhybrid automata. Second,the iterativecomputation
+ofreachmustconvergewithinafinitenumberof Postapplications. This can be guaranteedfor
+certain restricted classesof linear hybrid automata, such as the class of timed automata, all of
+whosevariables areclocks. While we addressthefirst issue below, thesecond issue is moreof
+theoretical thanpracticalinterest: if a verification attemptdoesnotsucceed,by exhausting all
+availablespaceor timeresources, it is oflittle valuetoknowthatwithunlimited resources the
+computation wouldhaveconverged. Theconvergence issue,therefore, isnotdiscussedfurther,and
+werefer the interested reader to the literature, where decidability results for several subclasses of
+linearhybridautomata can be found[18,17,28,26,34,27].
+3.2Linearhybridautomata
+Thehybridautomaton modelisveryexpressive. Whileconvenient forproviding formaldescriptions
+ofhybridsystems,theverygenerality of themodelprohibitsautomatic analysis. Wetherefore
+considera restricted classofhybrid automata, the linear hybrid automata, forwhichthe function
+Postonstateassertions can becomputed efficiently.
+Anatomiclinearpredicateisaninequality betweena rationalconstant and alinearcombination
+of variables with rationalcoefficients, such as Zxi—X2+7a:5<3/4,A convex linearpredicate is
+afiniteconjunction oflinearinequalities. A linearpredicate isafinitedisjunction ofconvexlinear
+predicates. Thehybridautomaton Ais a linear hybridautomaton ifitsatisfiesthefollowing two
+requirements [5]:
+1.Linearity: Foreverycontrolmode u€V,theflowcondition flow(v),the invariant condition
+mu(t;),andtheinitialconditioninit(v)areconvexlinearpredicates. Foreverycontrolswitch
+e£E, thejumpcondition jump(e)is a convex linear predicate.
+
+--- Page 11 ---
+2.Flowindependence: Foreverycontrolmode u€V,theflowcondition flow{v)isa predicate
+overthevariablesin Xonly(anddoesnot containany variablesfromX).
+Thesecondrequirement ensuresthatthepossibleflowsareindependent fromthevaluesof the
+variables, and depend only on the control mode. While this requirement is quitelimiting,and
+prohibits flowconditionssuchas i=a;,it does permit manykindsof variablesthattypicallyarise
+in real-time computing, such as clocks{x=1), stopwatches (i= 1 ori= 0), and clockswith
+bounded drift (i€[1- 1+c]forsomeconstant c).
+Astateassertion <pfor Ais linearifforeverycontrol mode u€V,the predicate ^(u)islinear.
+For linear hybrid automata, we have the following theorem [5]:ifAis a linear hybrid automaton,
+and isa linear stateassertion forA,then Post{<fi)can becomputed and the result isagaina linear
+stateassertion for A.Thisisbecauseforlinearhybridautomata, everyflowcurvecanbereplaced
+by astraightline betweenthe twoendpoints. The theorem enables the automatic analysis—safety
+verification as wellas more general temporal-logic model checking [5]—oflinear hybrid automata.
+3.3Fromnonlinear tolinearhybridautomata
+Thethermostat automaton ofFigure1is not a linearhybridautomaton, becausetherequirement of
+flowindependence isviolatedinbothcontrolmodes.Since we have no directmeansofautomatically
+verifying nonlinear hybridautomata, we have developed twotechniques forreplacing anonlinear
+hybridautomaton by a linear hybrid automaton [25].The first technique, called clock translation,
+replaces variables thatcausenonlinearity by clocks. Thesecondtechnique, called linear phase-
+portrait approximation, replaces nonlinear predicates bymorerelaxedlinearpredicates.
+Clocktranslation
+Theideabehind clocktranslation isthatsometimes thevalueofavariable canbedetermined from
+apastvalueandthetimethathaselapsedsincethevariable hadthatvalue.Forinstance, the
+variable a;,-ofthehybridautomaton A isclock-translatable ifthefollowing two requirements hold:
+1. Solvability: Ineachflowcondition flow(v),all occurrences of x,-andi,-are within a conjunct
+oftheformXi= where : R^IRis anintegrable function withconstant sign over
+the invariant condition {i.e.for any twoadmissible states(u,a)and(u,b),either both 5,^(0,)
+andQiibi)are positive,or both are negative). Ineach invariant, initial, and jump condition,
+alloccurrences ofXiandx'^are within conjunctsof the form xj=x,-orx,-'n.corxj-~c, for
+inequality operators andrational constants c.
+2.Initialization: For every control mode u,the initial condition init{v) implies x,-= cfor some
+constant c. For everycontrolswitch(u,i;'),eithergl=g\andjump{v^v') impliesxJ=x,-,
+orjump{v^v')impliesxJ= cforsomeconstant c.
+Undertheconditions above,thevalueof x,-isdetermined by (a) the time since it was lastreassigned
+to aconstant, and (b) thevalue ofthatconstant. Therefore, allinvariant, initial, and jump
+conditions ontheclock-translatable variable x,-can betranslated toconditions on a clock tfthat
+isrestarted whenever Xjisreassigned toaconstant. Ifnecessary, controlmodesmay need tobe
+duplicated toaccountforreassignments ofx,-todifferent constants.
+Thevariable xofthethermostat automaton isclock-translatable. Clocktranslation results
+inthehybridautomaton ofFigure3.Thecontrolmodeon issplitintotwocontrolmodes,one
+for each of thetwo values thatx may have when entering themode on. Theinitialvalue of
+
+--- Page 12 ---
+(on,1)
+<In2
+Atx~1tum-off
+(oje^,3)
+tx<ln3
+At'x= 1tx=In2 A=0
+tum-on
+tx=in3 A = 0 <
+tum.off X
+II
+H
+\ln(3/2)
+= 0
+ix= 0<ln(3/2)
+Figure3: Clock translation ofthethermostat automaton
+Xis 2,fromwhichxfollowsthe curve a;(t)=—3e~*+ 5. It takes In(3/2)minutestoreachthe
+threshold temperature of3degrees.Thus the invariantcondition x< 3formodeon is translated to
+tx<In(3/2)atmode(on,2). Thejump condition x = 3Ax'= xofthe switch(on,off)istranslated
+to the jump condition tx= ln(3/2) A = 0for the switch ((on,2), (off^d)).The translated jump
+condition resets the clock tx,since the differential equations prescribing the evolution of x differ
+at the sourceand target modesofthe switch. Whenever the automaton controlreentersthe mode
+on, thevariablex hasthe value1andfollowsthecurvex{t)=—4e~^+5 forIn2minutesbefore
+reaching thevalue 3.
+Linearphase-portrait approximation
+The idea behind linear phase-portrait approximation is to relax nonlinear flow,invariant, initial,
+and jump conditions using weakerlinear conditions: each nonlinear predicate p is replacedby a
+linearpredicate p'suchthatpimpliesp'. Forexample,the linear hybrid automaton ofFigure4 isa
+linearphase-portrait approximation ofthe thermostat automaton. Sincetheinvariant, initial,and
+jump conditionsofthe thermostat are all linear, only the flowconditions needto berelaxed.For
+the control mode on, the invariant condition 1 < x < 3 and the flowcondition x = —x-|-5 imply
+thatthefirstderivative of x isbounded fromaboveby 4 and bounded from below by 2. Hence
+theflowcondition x = —x-|-5 can be relaxed to the linear condition x €[2,4].Similarly, for the
+controlmode off,thenonlinear flowcondition can berelaxedto the linear condition x€[—3,—1].
+While clock translation preserves thetrajectories of asystem,linearphase-portrait approxima
+tion adds trajectories to a system. Hence, if we prove thatthe relaxed system satisfies a safety
+property, wecan besure thatthe originalsystem alsosatisfiesthe property. However, ifthe relaxed
+system violates a safety property, then we must checkif the discovered errortrajectory is a valid
+trajectory of the original system. If not, then the analysis is inconclusive and the approximation
+needstobe refined, perhapsbysplitting controlmodes in ordertogain more accurate overapprox-
+imations ofthepossible flows. For example, thecontrolmode on of thethermostat automaton can
+be split into two control modes, oniand0/12,each with the flowcondition x = —x+ 5, mode oni
+withtheinvariant condition 1<x < 2,modeon2withtheinvariant condition 2 < x < 3, anda
+
+--- Page 13 ---
+X=2i€[-3,-1]
+X = 1 X=1
+Figure4: Linear phase-portrait approximation ofthethermostat automaton
+X = 2
+X = 2onj
+2 <®< 3
+r €[2,3]X —3
+turn-on11
+1
+X= 2off
+l<x<3
+X€[-3,-1]
+oni
+Kx<2
+ie[3,4] X=I
+Figure5:Tighterlinearphase-portrait approximation ofthethermostat automaton
+controlswitchfromoriitoon2labeledx = 2.Relaxation, then,yieldsthelinearflowconditions
+X€[3,4]forofiiand x € [2,3]for on2-The resulting linear hybrid automaton appearsin Figure 5.
+Ithasstrictlymoretrajectories thantheoriginal nonlinear automaton, butstrictlyfewerthanthe
+earlierapproximation fromFigure4. Since tighterlinearapproximations yield more controlmodes,
+analysis becomes moreexpensive.
+3.4Safetyverification ofthethermostat
+Recallthatwe wish to verify thattheheateris active for less than2/3ofthefirst hour of op
+eration. Byaddingtheauxiliary variables y and2,described above, to thelinearphase-portrait
+approximation ofthethermostat automaton, weobtainthelinearhybridautomaton ofFigure6.
+Toensureconvergence of thecomputation ofthereachable states,theconjunct y< 60 has been
+addedtotheinvariant conditions, sothattrajectories aretrackedonlyforthefirst60minutes. As
+above,theunsafestatesarespecified by thelinearstateassertion unsafethatassignsthepredicate
+y= 60 A2>2y/3tobothcontrol modes. Since the linear hybrid automaton ofFigure6 has
+strictlymoretrajectories thantheoriginalnonlinear thermostat fromFigure2, it sufficesto prove
+thesafetyrequirement forthelinearversion.
+Wewrite {(on,pi), {off,p2)] for thestateassertion thatassignsthe predicate pito the control
+modeon,andassignsp2tooff.Thecomputation ofthereachable statesstartsfromthestate
+assertion
+(po= init = {(on,X= 2Ay = 0A 2= 0),(off,false)},
+i.e. allinitialstateshavethecontrolmodeon,andx isinitially2 degrees. We compute thestate
+10
+
+--- Page 14 ---
+ona: = 3off
+l<x<3Ay<60 l<x<3Ay<60
+i€[2,4]Atum-oni e[-3,-1] A
+y = 1Ai = 1X~1y=1 Ai = 0
+®=2
+A y=0
+A z = 0
+Figure6: Linearthermostat automatonforsafety verification
+.^
+on
+(/9o-state
+Figure7:Flowsuccessors ofthe^o-state,ifinv(on)weretrue
+assertion ^p\=Post(<po) intwosteps.First,wefindalljumpsuccessors of(^o-states: thereare
+none,becausethecontrolswitchfromon to off requiresthata;is3degrees.Second,wefindall
+flowsuccessors of</?o"States. Forthispurpose,observethatforastateassertion y?,thepredicate
+Ba;i,...,a;„. 36> 0.3ii,...,a:„. (p(v)Aflow{v)Ax[=Xi+ A...A=x„+
+istrue forthe valuesai,...,a„ofthevariablesii,...,iflF the state (v,a) isa flowsuccessor of
+a state for which(pistrue,assuming theunconstraining invariantcondition = true.From
+linearpredicates, theexistential quantifiers canbeeliminated effectively. Inparticular, for^=<po
+andV=on,weobtainthepredicate
+3a?,y,z. 36 > 0. 3x,y,z.a?=2Ay=0Az= 0
+AiG[2,4]Ay=lAi=lAx' =a?+5a?Ay'=y 6y z' =z 6z
+=(36>Q.2-\-26<x' <2-\-A6^y' =6hz'-6)
+—(2z'•\-2<x'<Az'-\-2t\y'=z'),
+whichcorresponds to theunbounded conein Figure 7. After renaming primedsymbolsto un-
+primedsymbolsandintersecting with the invariant condition of the controlmode on, weobtain
+11
+
+--- Page 15 ---
+<^o-state
+Figure8: Flowsuccessors ofthe9?o-state
+thepredicate
+X<Zt\2z-^2< X<Az-{-2t\y=z,
+whichcorresponds totheshadedregion in Figure8.Thispredicate characterizes thestateswith
+thecontrolmode on thatcanbereachedfrom an initialstateby a single flow. Since thereare
+nostateswiththecontrolmodeojjthatcan be reached from an initialstateby a single flow, we
+conclude
+ipi=Posi((^o)
+={(on,X<Zf\2z-^-2<X<Az+2=z),
+Next, we compute (^2=Post{ipi). Thejumpsuccessors of v?i-states are those statesfor which the
+stateassertion ^
+{{on,false), {off,x=ZA-<z<~Ay =z)}
+istrue.Thisisbecause thecontrolswitchfrom on to off may happenonly when 1=3,and
+thevaluesofx,y,andzarenotchanged bythejump,and2z-\-2<Z<4z-{-2 simplifies to
+1/4< z <1/2.Since(piis already closed under flowsuccessors {i.e.all flowsuccessorsof (^i-states
+are also(^i-states), weconclude
+tp2=Post{(fii)
+={(on,x<3A2^+2<a:<4z +2A3/=2:),{off,x=^ZA^<z<^Ay =z)}.
+Forcomputing ^3=Post{<p2), thereare no new jumpsuccessors and no new flowsuccessors with
+thecontrolmodeon.Theaddition of all flow successors withthecontrolmodeoff yields
+(f3=P0St{<f2)
+_({on,x<3A2z-i-2<X<4z+2Ay=z), 1
+\{offil<a:<3A2+|<y<^ +2A2z<x<4z)J*
+Nowthecontrolswitchfrom off toonaddsnewjumpsuccessors:
+¥54=Post{(p3)
+_{{on,{x<SA2z-\-2<x<4z4-2Ay =z)\/{x=lA\<z<^Az4-^<y<z4- 2)),1
+~1{off,I< X<ZAz4-i <y<z-\-2A2z<x<4z)
+
+--- Page 16 ---
+y= 0 A z = 0
+1
+low X=1.5 mid-range X =2.5 high
+1 <X<1.5 1.5K.XK.2.5 2.5^X^3
+A 0 < y < 60 A 0 < y < 60 A 0 < y < 60
+!/= 1
+A i=0y = l
+A i = 1y = 1
+A i = 0 X =1.5 X =2.5
+Figure9:Monitor automaton
+®=2Ay:=0Az = 0
+i
+{on,low)
+1 < X < 1.5
+A 0 < y < 60
+Xe[2,4]
+A y=1
+A i = 0X =1.5(on,mid-range)
+1.5< X <2.5
+A 0 < y < 60
+X6[2,4]
+A y = 1
+A z = 1X =2.5(on,high)
+2.5< X < 3
+A 0 < y < 60
+X6[2,4]
+A y = 1
+A i = 0X =1.5 X =2.5
+i
+turn-on
+X = 1tum-off
+X = 3
+1
+{off, low)
+1 < X < 1.5
+A 0 < y < 60
+i6[-3,-1]
+A y = 1
+A i = 0X =1.5{off,mid.range)
+1.5< X <2.5
+A 0 < y < 60
+i6[-3,-1]
+A y = 1
+A i = 1X =2.5{off,high)
+2.5< X < 3
+A 0 < y < 60
+X€[-3,-1]
+A y = 1
+A i = 0X =1.5v..
+X=2.5
+Figure10:Parallelcomposition ofthermostat automatonandthe monitorautomaton
+Thefirstdisjunctofthe on part of (^4characterizes thestates thatcan bereachedwithoutjumps;
+the offpart characterizes thestatesthat canbereachedbyflowsandatmostonejump,fromon
+to off;andthe seconddisjunctofthe onpart characterizes thestatesthat canbereachedbyflows
+andat mosttwojumps, fromonto offand fromoffto on. HyTechperformsthesecomputations
+forus,fullyautomatically, untilneithernewjumpsuccessors nornewflowsuccessors canbefound.
+After73iterations,it returnsthe linearstate assertion reachthatistruepreciselyforthereachable
+states.Last,HyTech verifiesthat thevariable-free predicate BX.Vvev('^oc/»(u) Aunsafe(v)) is
+false. Hence thereis nostatefor which bothreach and unsafe are true,which confirms thatthe
+thermostat satisfies thesafetyrequirement.
+3.5Parallel composition andmonitors
+Safetyrequirements cannotalwaysbespecifiedusingstateassertions. In the thermostat example,
+it wasnecessary toembellish theoriginalautomaton fromFigure1with the variablesy and z in
+ordertospecifythedesiredheaterutilization requirement. Sometimes, it isconvenient tobuilda
+separate automaton, calledamonitor, whoseroleis to enter an unsafestateprecisely whenthe
+13
+
+--- Page 17 ---
+originalsystemviolatesarequirement. Themonitormustobservetheoriginalsystemwithout
+changingitsbehavior. Reachability analysisis thenperformed on theparallelcomposition ofthe
+systemwiththemonitor.
+For thethermostat example, consider the task of verifying thatthetemperature lies in the
+midrange [1.5,2.5]at least25%of the first 60 minutesof operation. The monitor automaton of
+Figure 9 usesthe variabley to measurethe total elapsedtime, asbefore,and usesthe variablez
+to measure theaccumulated time thatthetemperature has been in the range [1.5,2.5]. The unsafe
+statesarespecified bythestateassertion thatassignsthe predicate y= 60Az<t//4to allcontrol
+modesofthemonitor automaton.
+Theparallel composition ofthe monitorautomaton andthethermostat automaton ofFigure1is
+depicted inFigure 10. The variableset ofthe compound automaton isthe unionofthe variablesets
+ofbothcomponent automata, andthecontrolgraphofthecompound automaton is thecartesian
+productofthecomponent graphs. Each control mode of the compound automaton corresponds
+tobothacontrolmode from thefirstcomponent automaton and acontrolmodefromthesecond
+component automaton (hencethere are 2x3= 6controlmodesinourexample). Eachcontrolswitch
+ofthecompound automaton corresponds eithertosimultaneous controlswitches (withmatching
+event labels) of both component automata (this cannot happen in the example), or to a control
+switch (with event label not appearing in the event set of the other component) of one of the
+component automata. Thisnotion of parallelcomposition corresponds totheinterleaving model
+ofdiscreteconcurrent computation. HyTech constructs thecompound automaton automatically
+andconfirms thedesiredsafetyrequirement, namely,thatallreachable statesofthecompound
+automaton correspond tosafestatesofthemonitor automaton.
+3.6Parametric analysis
+High-level systemdescriptions often use design parameters—symbolic constants with unknown,
+fixed values. Theparameters arenotassigned values until theimplementation phaseofdesign. The
+goal ofparametric analysisis todetermine necessary andsufficient constraints ontheparameters
+under which safety violations cannotoccur.Thus,ratherthanmerely verifying (or falsifying)
+systemsforcertainvalues of thedesignparameters, quantitative information isextracted, further
+aidingthedesign process. Common uses for parametric analysis includedetermining minimum
+andmaximum boundsonvariables, andfindingcutoffvalues for timersandcutoffpointsforthe
+placement ofsensors.
+In alinearhybridautomaton A, a design parameter acanberepresented as avariable whose
+value never changes, i.e. all flow conditions mustimplyd= 0 and all jumpconditions mustimply
+a'=a.Then,in allstatesof atrajectory ofj4,theparameter ahasthesame value (butthevalue
+ofamay differ from trajectory totrajectory). The value a €Ris called safe forocif whenever
+we addtheconjunct a=atoallinitialconditions of A,thenno unsafe stateisreachable. Thisis
+thecase precisely when thereis notrajectory of A such that(1)thelaststateofthetrajectory is
+unsafe, and (2) the parameter ahas the valuea in all statesof thetrajectory. Since the value of a
+isconstant along each trajectory, requirements (1) and (2) are equivalent to the singlerequirement
+thatthelaststateofthetrajectory isunsafeandassignsthevalueatotheparameter a.Thus,
+thepredicate 3X\{a}.VvGy(»^flcA(u) Aunsafe(v)) is apredicate overthevariableawhichis
+trueprecisely for theunsafe values for en.If reach and unsafe are linearstateassertions, thenthe
+existential quantifier can beeliminated effectively, and we obtain,bynegation, alinearpredicate
+thatcharacterizes exactlythesafe values for theparameter a.Multiple parameters can behandled
+analogously.
+14
+
+--- Page 18 ---
+trainJeaves
+x = 5
+closed openclosing
+0.9< i <1.1
+Figure11:Railroad-gate controller automaton
+d =5000fard:=5000approaching
+d >1000
+-55<d<-45
+trainJeaves
+d =-100
+near
+d >-100
+-50<d<-35tratn^resent
+d -1000
+Figure12:Trainautomaton
+Example: railroad-gate controller
+Weconsidertherailroad-gate controller fromFigures17and 19of [6],Thecontroller, modeledby
+theautomaton ofFigure11,lowersandraisesa gate at a railroadcrossing.Whenever it detects
+thepresenceofanoncoming train,itclosesthegateafter 5timeunits,asmeasured withthelocal
+clockX.Theclockissubject to 10%drift, and thus the gate maybeclosedat anytime between
+4.5time units and 5.5time units after the approaching train is detected. The controller raisesthe
+gatewhenthe trainexitsthevicinityofthecrossing.Thetrain is modeledbytheautomaton of
+Figure12.Itapproaches thecrossingat aspeedbetween45and55 meterspertimeunit. Whenit
+is1000metersfromthecrossing,asensorsignalsitsapproach to thecontroller, and thespeedof
+thetrainis reduced to the range of 35 to 50 metersper time unit.A second sensor, at100meters
+past thecrossing,signalsthe exit ofthe train. The train mayreturn to the crossing,but onlyon
+aroutethatisatleast5100meterslong.
+The complete system is represented by the parallel composition of the controller automaton
+andthetrainautomaton. In this example, event labels are used to synchronize theconcurrent
+execution ofthecontroller andthetrain:thecontrolswitches labeledtrainjpresent mustbe exe
+cutedsimultaneously, thus ensuring thatthe controller receivesthe approach signalfromthe train;
+similarly,the control switches labeled trainJeaves must be executed simultaneously,ensuring that
+the controller receivesthe exitsignalfromthe train (as before,controlswitcheswithout eventlabels
+areexecutedindividually). Theresultingcompound automatonis showninFigure13.Manyof
+15
+
+--- Page 19 ---
+d =5000
+(/or,open)
+trainJeavea
+d=-100;=5000
+(near,closed)
+d>-100
+-50<d<-35^(approaching, open)
+d >1000
+-55<d<-45
+(near,closing)
+d >-100A®< 5
+-50<d<-35
+A X
+Figure13:Parallelcomposition oftrainautomaton andcontroller automaton
+thecontrolmodes of thecompound automaton arenotreachable inthecontrolgraphviaapath
+of directed edges from theinitial mode (/or,open). No statein such a mode can satisfy thestate
+assertion reach^sothesemodes are excluded from thefigure.Thesafetyrequirement ofinterest
+assertsthatwhenever thetrainiswithin10metersofthecrossing, thenthegateis closed. Ac
+cordingly, theunsafestatesarespecified by thestateassertion thatassignsthepredicate falseto
+thecontrolmodesofthecompound automaton whosecontroller component isclosed^andassigns
+—10<d< 10toallothercontrolmodes.HyTech automatically verifiesthisproperty.
+Inthisexample, parametric analysiscan be used todetermine how much advance noticethe
+controller requiresinordertomeetthesafetyrequirement. Forthispurpose, wereplacetheconstant
+1000, which indicates thelocationofthesensorthatdetectsoncoming trains,by aparameter a.
+Then,thecontroller isalertedwhen an approaching trainisametersfromthecrossing. The
+parametric trainautomaton is shown in Figure14.HyTech computes thatforthesamecontroller
+andthesamesafetyrequirement as before, thenecessary andsufficient constraint forcorrectness
+isa>2871.Thusthecontroller willlowerthegateintimeifandonlyifit iswarnedofthe
+approaching trainbeforethetrainis287|metersfromthecrossing.
+Example: heaterutilization
+Forthethermostat example, we can use parametric analysis todetermine anupperboundon
+thetimetheheaterisactiveduringthefirsthourofoperation. Forthispurpose, weintroduce
+aparameter aand specify theunsafestatesbythestateassertion thatassignsthepredicate
+y= 60 A^>atoallcontrolmodes. We thenletHyTech compute thevalues of afor which
+anunsafestateisreachable. Thelargestsuchavalue is an upperboundonthevalue of z after
+60minutesof elapsed time.Forthelinearphase-portrait approximation fromFigure6,HyTech
+returnstheconstraint a< 36,implying thatthethermostat isactivefor nomorethan36minutes
+duringthe first hour. For themoreaccurate approximation fromFigure5,HyTech computes the
+16
+
+--- Page 20 ---
+d=5000far
+d= 0d:=5000approaching
+d > a
+-55<d<-45
+A d = 0
+tratnJeaves
+d =-100
+d >-100
+-50< d <-35tratn.p recent
+d=a
+Figure14:Parametric trainautomaton
+tighter upper bound of 885minutes.
+Inthispaper,we use linear phase-portrait approximations of thethermostat automaton to
+demonstrate safety verification and parametric analysis. However, the clock translation of the
+thermostat automaton, depicted in Figure 8, could also be used. This hybrid automaton is not
+itself a linear hybrid automaton, since its description involves irrational constants such asIn2.
+Linearphase-portrait approximation must be applied beforethe automaton can be analyzed with
+HyTech. Forexample, the valueof In2isapproximately 0.69815,sothe invariant tx<\n2for the
+mode(on,1)maybe replacedbytx< 70/100,andtheconstraint tx=In2inthejump condition for
+theswitch((on,1),(off^Z))maybereplacedby69/100< < 70/100.WhenIn8and ln(8/2) are
+likewiseapproximated to the nearest 1/100, HyTech computes an upper bound of 28.51minutes
+ofheaterutilization.
+4HyTech
+Wegiveonlyaverybriefintroduction toHyTech—a detailedtutorialappearsintheuserguide[24].
+AHyTech inputfileconsists of two parts. The first partcontains the textualdescription of a
+collectionoflinear hybrid automata, whichare automatically composedforthe analysis. The second
+partofthe input contains asequenceofanalysiscommands. The analysislanguageisasimple while-
+programminglanguage thatprovidesas primitivethe datatype"stateassertion" with a varietyof
+operations, including Post,booleanoperators, and existential quantification. This givesthe user
+a flexible framework for writing state-space exploration programs. For added convenience, there
+arebuilt-inmacrosforreachability analysis, parametric analysis, theconservative approximation
+ofstateassertions [22],and the generationoferror trajectories (see below).
+For example, thefollowing command lines are taken from theanalysisscriptfordetermining,
+forthethermostat fromFigure6,theduration athattheheateris active duringthe first hour of
+operation:
+17
+
+--- Page 21 ---
+Time: 0.00
+Location: on
+x=2&y=0&z=0Time: 1.17
+Location: off
+X = 1 ft 6y= 7ft2z=1
+VIA0.50timeunits VIA:tum-on
+Time: 0.50
+Location: on
+x=3&2y=l&2z=lTime: 1.17
+Location: on
+X = 1 ft 6y
+112z=1
+VIA:tum.off VIA0.83timeunits
+Time: 0.50
+Location: off
+x=3&2y=l&2z=lTime: 2.00
+Location: on
+3x= 8 ft y =2 ft3z=4
+VIA0.67timeunits
+Figure15:Errortrajectory
+unsafe:=y=60&z>=alpha; (1)
+reachable := (2)
+reachforward frominitjstates endreach; (3)
+bad-alpha.values :=omitalllocations (4)
+hidenon4>2o:ameters inreachable ftunseifeendhide; (5)
+prints"Spec, violated forparameter values:"; (6)
+printomitalllocations bad^lpha.values; (7)
+good.^lpha-values "bad-alpha.values; (8)
+prints"Spec,satisfied forpsorameter values:"; (9)
+printomitalllocations good-alpha.values; (10)
+In line 1, theunsafestatesarespecified. Thestatesthatarereachable fromtheinitialstatesvia
+iteration ofthePostoperator arecomputed in line 3. Thecommand on lines 4 and5performs
+existential quantification, inordertoobtainapredicate thatcharacterizes theunsafereachable
+statesas aconstraint ontheparameters. Thesymbol"thatappearsin line 8 denotesthenegation
+operation. Thestatements in lines 6, 7, 9, and10producethefollowing output:
+Spec,violated forparameter values:
+alpha<=36
+Spec,satisfied forparameter values:
+alpha>36
+18
+
+--- Page 22 ---
+4.1Diagnostic information
+One ofthemain benefits of state-space exploration tools lies in theirability to generate error
+trajectories whenasystem-failsto satisfya requirement. Thisinformation can then be usedfor
+debugging thesystem.Ifasystemfailstosatisfyasafetyrequirement, then an errortrajectory
+leads from an initial stateto an unsafe state.For example, for the thermostat of Figure 6, the
+heater can be activefor morethan 2/3 ofthe time duringthe first fewminutesofoperation. A
+debugging tracethat demonstrates thisfactis generated bythefollowinginputcommands:
+unssLfe:=y=2&z>=2/3y; (1)
+reachable := (2)
+reachtorvaxd frominit-states endreach; (3)
+ifnotempty(reachable &unsafe) (4)
+thenprinttracetounsafeusingreachable; (5)
+elseprints"Safetyproperty satisfied."; (6)
+endif; (7)
+Duringthereachability analysisinvokedinlines2 and 3, backward pointersaremaintained to
+indicateapredecessor stateforeachreachablestate. This information isutilizedbythecommand
+on line 5, whichconstructs an error trajectory. The HyTech output appears in Figure 15. It
+corresponds tothetrajectory
+(on,2,0,0), (on,3,^,^), (Oj0'^,3,5,5),(ojQ'^,1,Ig,2)5 ^3)'
+where(on,2,0,0)represents the state{on,x= 2,y = 0,2:= 0), etc. Noticethat the HyTech
+output also providesthedurationof flows.Inthegenerated trajectory,the temperaturex increases
+asslowlyaspossibleincontrolmodeon,untilitreaches3degreesafter0.5minutes;then it
+decreases as fast as possibleincontrolmodeoffyuntilitreaches1degreeat1.17minutes;and
+then itincreases asslowlyaspossibleuntil the time limit of2 minutes. Fromthe last stateofthe
+trajectory, weinferthat theheaterhasbeenactiveforexactly2/3ofthe first2minutesofelapsed
+time.
+4.2Applications
+HyTech has been usedin a number ofcase studies—primarily control-based applications—including
+adistri-buted robotcontroller [21],a robotsysteminmanufacturing [21],thePhilipsaudiocontrol
+protocol[33],anactivestructurecontroller [23],ageneralized railroadcontroller [23],anonlinear
+temperature controller [20],apredator-prey ecology[30],anaircraftlanding-gear system[35],a
+steam-boiler controller [31],andanautomotive enginechassis-level controller [38].Corbett[12]has
+verifiedrobotcontrollers writtenin asubsetofAdabyautomatically translating theminto linear
+hybridautomata for analysiswithHyTech. Wearecurrently experimenting with themodeling
+andanalysis oftimedcircuits.
+Toolsare also availablefor the simulation of hybrid automata, such asShift[14],and for the
+abstract interpretation of linear hybridautomata, suchasPolka[16].Abstract-interpretation
+techniques canenforcetheconvergence offlxpointcomputations byrelaxingstateassertions. For
+theverification ofhybridsystemsthatareprimarily discretebutincludeclocks,werecommend the
+useofspecialized toolsforthe restrictedclassoftimed automata. Symbolic modelcheckersfortimed
+automata includeKronos [13],timedCosPAN[7],timedHsis[8],Uppaal[9],andVeriti[15].
+Thesesystemsusealgorithms thatarespecifictoclocks,andthereforearemoreefficientforclock
+systems than the more general algorithms of HyTech. For the analysis of hybrid systems whose
+19
+
+--- Page 23 ---
+complexity is primarily in thecontinuous domain, we recommend theuse ofdynamics theoryand
+numerical tools: in thiscase,theabstractions from nonlinear hybrid automata to linear hybrid
+automata arelikely to be toocrudetoreapthefullbenefitsofautomated analysis. HyTech has
+beenmostsuccessful when applied to systemsthatinvolve an intricate interplay between discrete
+andcontinuous dynamics.
+4.3Availability-
+Early versionsof HyTech werebuilt using Mathematica [21,32],and linear predicates were repre
+sentedandmanipulated assymbolic formulas. Based on theobservation thatalinearpredicate over
+n variablesdefinesa unionof polyhedra inK",thecurrent,moreefficientgeneration of HyTech [23]
+manipulates linear predicates via calls to a library for polyhedral operations [16].HyTech has
+beenportedtothefollowing platforms: Digitalworkstations runningUltrixV4.5 and DigitalUnix
+V3.2D-1, HP 9000 workstations runningHP-UX, Sunworkstations runningSunOS4.xandSolaris
+5.4, and x86 PCsrunningLinux.TheHyTech home page
+http://www.eecs.berkeley.edu/'tah/HyTech
+includes the source code, executables, an online demo, a user guide, a graphical front end (courtesy
+ofmembersofthe Uppaalproject[9]),numerous examples, online versionsofpapers, and pointers
+toadditional literature. Requests may also be senttohytechQeecs.berkeley.edu.
+References
+[1]R.Alur,C.Courcoubetis, and D. Dill. Model checking in dense real time. Information and
+Computation^ 104(l):2-34,1993.
+[2]R. Alur, C. Courcoubetis, N. Halbwachs, T. Henzinger, P.-H. Ho, X. Nicollin, A. Olivero,
+J.Sifakis,andS. Yovine. Thealgorithmic analysis ofhybridsystems. Theoretical Computer
+Science^ 138:3-34,1995.
+[3]R. Alur, C. Courcoubetis, T. Henzinger, and P.-H. Ho. Hybrid automata: analgorithmic
+approach tothespecification andverification ofhybridsystems. In R.Grossman, A.Nerode,
+A.Ravn,and H. Rischel, editors.HybridSystems /,LectureNotesinComputer Science 736,
+pages209-229. Springer-Verlag, 1993.
+[4]R. Alur and D. Dill. A theory oftimed automata. TheoreticalComputer Science^126:183-235,
+1994.
+[5]R. Alur, T. Henzinger, and P.-H. Ho. Automatic symbolic verification of embedded systems.
+IEEETransactions on Software Engineering^ 22(3):181-201,1996.
+[6]R. Alur, T. A. Henzinger, and P. W. Kopke. Real-time system = discrete system -1-clock
+variables. Software Tools forTechnology Transfer^ 1(1), 1997.
+[7]R. Alur and R. P. Kurshan. Timing analysis in Cospan. In R. Alur, T. Henzinger, and
+E.Sontag,editors.HybridSystems III,LectureNotes in Computer Science 1066, pages220-
+231.Springer-Verlag, 1996.
+20
+
+--- Page 24 ---
+[8]F. Balarin and A. L. Sangiovanni-Vincentelli. Iterative algorithms for formal verification of
+embedded real-time systems. In ICCAD94:International Conference on Computer Aided
+Design,pages450-457, 1994.
+[9]J. Bengtsson, K. Larsen, F. Larsson, P. Pettersson, and W. Yi. Uppaal: a tool-suite for
+automatic verification of real-time systems. In R. Alur,T. Henzinger, and E. Sontag, editors,
+HybridSystems III, Lecture Notesin Computer Science1066,pages232-243. Springer-Verlag,
+1996.
+[10]J.Burch,E.Clarke,K.McMillan, D.Dill,andL.Hwang.Symbolic modelchecking: 10^°
+statesand beyond. Information andComputation, 98(2):142-70,1992.
+[11]E. Clarkeand E. Emerson. Designandsynthesisofsynchronization skeletons usingbranching-
+time temporal logic.InWorkshop onLogicof Programs, Lecture Notes in Computer Science
+131.Springer-Verlag, 1981.
+[12]J. C. Corbett. Timinganalysisof Ada tasking programs. IEEETransactions onSoftware
+Engineering, 22(7):461-483,1996.
+[13]C.Daws,A.Olivero,S.Tripakis,and S.Yovine.The toolKronos. In R.Alur,T. Henzinger,
+and E. Sontag, editors.HybridSystems III, Lecture Notes in Computer Science1066,pages
+208-219. Springer-Verlag, 1996.
+[14]A.Deshpande, A.Gollii,and L.Semenzato. TheShiftprogramming language and run-time
+systemfor dynamic networksofhybrid automata. IEEETransactionson Automatic Control,
+1997.Toappear.
+[15]D.Dilland H.Wong-Toi. Verification ofreal-timesystemsbysuccessive over-andunderap-
+proximation. In P. Wolper, editor, CAV95: Computer-aided Verification, Lecture Notes in
+Computer Science 939, pages 409-422. Springer-Verlag, 1995.
+[16]N.Halbwachs, P.Raymond, andY.-E.Proy.Verification oflinearhybridsystemsbymeansof
+convexapproximation. In B. LeCharlier, editor, SAS94:Static Analysis Symposium, Lecture
+Notes in Computer Science864, pages 223-237. Springer-Verlag, 1994.
+[17]M.Henzinger, T.Henzinger, and P.Kopke.Computing simulations onfiniteandinfinite
+graphs. In Proceedings ofthe36rdAnnual Symposium onFoundations ofComputer Science,
+pages 453-462. IEEEComputer Society Press, 1995.
+[18]T.Henzinger. Hybridautomata withfinitebisimulations. In Z.Fiilopand F. Gecseg,editors,
+ICALP95:Automata, Languages, andProgramming, Lecture Notes in Computer Science944,
+pages324-335. Springer-Verlag, 1995.
+[19]T.Henzinger. The theory ofhybrid automata. InProceedings of the11thAnnualSymposium
+onLogicin Computer Science, pages 278-292. IEEE Computer Society Press, 1996. Invited
+tutorial.
+[20]T.Henzinger and P.-H. Ho. Algorithmic analysisof nonlinearhybrid systems. In P. Wolper,
+editor,CAV 95: Computer-aided Verification,Lecture Notes in Computer Science 939, pages
+225-238. Springer-Verlag, 1995.
+21
+
+--- Page 25 ---
+[21]T.Henzinger andP.-H.Ho.HyTech: TheCornellHybridTechnology Tool. InP. Antsaklis,
+A. Nerode, W. Kohn, and S. Sastry,editors,HybridSystems//,LectureNotes in Computer
+Science 999, pages 265-293. Springer-Verlag, 1995.
+[22]T. Henzingerand P.-H. Ho. A note on abstract-interpretation strategies for hybrid automata.
+In P.Antsaklis, A.Nerode,W. Kohn, and S. Sastry,editors,HybridSystems//,LectureNotes
+inComputer Science 999, pages 252-264. Springer-Verlag, 1995.
+[23]T. Henzinger, P.-H. Ho, and H. Wong-Toi. HyTech: the next generation. In Proceedings of
+the16thAnnualReal-time SystemsSymposium, pages 56-65.IEEEComputer SocietyPress,
+1995.
+[24]T. Henzinger, P.-H. Ho, and H. Wong-Toi. A user guide to HyTech. In E. Brinksma,
+W.Cleaveland, K.Larsen,T.Margaria, and B.Steffen,editors,TACAS 95: Tools andAl
+gorithms fortheConstruction andAnalysis ofSystems, LectureNotes in Computer Science
+1019, pages 41-71.Springer-Verlag, 1995.
+[25]T. Henzinger, P.-H. Ho, and H. Wong-Toi. Algorithmic analysis of nonlinear hybrid systems.
+IEEETransactions onAutomatic Control, 1998. To appear.
+[26]T. Henzingerand P. Kopke. Stateequivalencesfor rectangular hybridautomata. In U.Monta-
+nari and V. Sassone, editors,CONCUR 96:Concurrency Theory,LectureNotes in Computer
+Science 1119, pages 530-545. Springer-Verlag, 1996.
+[27]T. Henzinger and P. Kopke. Discrete-time control for rectangular hybridautomata. In
+P.Degano, R.Gorrieri, and A.Marchetti-Spaccamela, editors,ICALP97:Automata, Lan
+guages,andProgramming, LectureNotes in Computer Science 1256, pages 582-593. Springer-
+Verlag,1997.
+[28]T. Henzinger, P. Kopke, A. Puri,and P. Varaiya. What'sdecidable abouthybridautomata?
+InProceedings ofthe 27th AnnualSymposium onTheoryofComputing, pages373-382. ACM
+Press,1995.
+[29]T. Henzinger, X. Nicollin, J. Sifakis, and S. Yovine.Symbolic model checking for real-time
+systems. Information andComputation, lll(2):193-244,1994. Special issue for LICS92.
+[30]T. Henzinger and H. Wong-Toi. Linear phase-portrait approximations for nonlinear hybrid
+systems. In R.Alur,T. Henzinger, and E. Sontag,editors,HybridSystems III,LectureNotes
+inComputer Science 1066, pages 377-388. Springer-Verlag, 1996.
+[31]T. Henzinger and H. Wong-Toi. Using HyTech tosynthesize controlparameters for asteam
+boiler. In J.-R.Abrial,E.Borger,and H.Langmaack, editors. FormalMethods forIndus
+trialApplications: Specifying andProgramming theSteamBoilerControl, Lecture Notesin
+Computer Science 1165, pages 265-282. Springer-Verlag, 1996.
+[32]P.-H. Ho. Automatic Analysis of Hybrid Systems. PhDthesis, Cornell University, 1995.
+[33]P.-H. Ho and H. Wong-Toi. Automated analysis of an audio control protocol. In P. Wolper,
+editor,CAV 95: Computer-aided Verification, LectureNotesinComputer Science 939, pages
+381-394. Springer-Verlag, 1995.
+[34]P. Kopke. The Theoryof Rectangular HybridAutomata. PhD thesis, Cornell University, 1996.
+22
+
+--- Page 26 ---
+[35]S. Nadjm-Tehrani and J.-E. Strdmberg. Proving dynamic properties in an aerospace appli
+cation.InProceedings of the16thAnnualReal-time Systems Symposium, pages 2-10.IEEE
+Computer SocietyPress,1995.
+[36]X.Nicollin,A. Olivero, J. Sifakis, and S. Yovine.An approach to the description and analysis
+of hybrid systems. InR.Grossman, A. Nerode, A. Ravn, and H. Rischel, editors.Hybrid
+Systems /,LectureNotes in Computer Science 736, pages 149-178. Springer-Verlag, 1993.
+[37]J.Queilleand J.Sifakis.Specification andverification of concurrent systems in Cesar.In
+M. Dezani-Ciancaglini and U. Montanari, editors.FifthInternational Symposium on Program
+ming,LectureNotes in Computer Science 137, pages 337-351. Springer-Verlag, 1981.
+[38]T.Stauner,0.Miiller,and M. Fuchs. Using HyTech toverifyanautomotive control system.
+In O.Maler,editor,HART97:International Workshop on Hybrid and Real-Time Systems,
+LectureNotes in Computer Science 1201, pages 139-153. Springer-Verlag, 1997.
+23
