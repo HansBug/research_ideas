@@ -1,0 +1,905 @@
+--- Page 1 ---
+LTL to B uchi Automata Translation:
+Fast and More Deterministic?
+Tom a s Babiak, Mojm r K ret nsk y, Vojt ech Reh ak, and Jan Strej cek
+Faculty of Informatics, Masaryk University
+Botanick a 68a, 60200 Brno, Czech Republic
+fxbabiak, kretinsky, rehak, strejcek g@fi.muni.cz
+Abstract. We introduce improvements in the algorithm by Gastin and
+Oddoux translating LTL formulae into B uchi automata via very weak
+alternating co-B uchi automata and generalized B uchi automata. Sev-
+eral improvements are based on specic properties of any formula where
+each branch of its syntax tree contains at least one eventually opera-
+tor and at least one always operator. These changes usually result in
+faster translations and smaller automata. Other improvements reduce
+non-determinism in the produced automata. In fact, we modied all
+the steps of the original algorithm and its implementation known as
+LTL2BA. Experimental results show that our modications are real im-
+provements. Their implementations within an LTL2BA translation made
+LTL2BA very competitive with the current version of SPOT, sometimes
+outperforming it substantially.
+This is a full version of [1] published at TACAS 2012.
+1 Introduction
+A translation of LTL formulae into equivalent B uchi automata plays an impor-
+tant role in many algorithms for LTL model checking, LTL satisability checking
+etc. For a long time, researchers aimed to nd fast translations producing B uchi
+automata with a small number of states. This goal has led to the developments
+of several translation algorithms and many heuristics and optimizations includ-
+ing input formula reductions and optimizations of produced B uchi automata,
+see e.g. [3,4,9,18,11,12,10,7].
+As the time goes, the translation objectives and their importance are chang-
+ing. In particular, [17] demonstrates that for higher performance of the subse-
+quent steps of the model checking process, it is more important to minimize the
+number of states with nondeterministic choice than the number of all states in
+resulting automata. Note that there are LTL formulae, e.g. FGa, for which no
+equivalent deterministic B uchi automaton exists. Further, model checking prac-
+tice shows that one LTL formula is usually used in many dierent model checking
+?The authors are supported by The Czech Science Foundation, grants
+102/09/H042 (Babiak), 201/09/1389 (K ret nsk y), P202/10/1469 ( Reh ak, Strej cek),
+P202/12/G061 (K ret nsk y, Reh ak, Strej cek), and P202/12/P612 ( Reh ak).arXiv:1201.0682v2  [cs.FL]  29 Mar 2012
+
+--- Page 2 ---
+tasks. Hence, it pays to invest enough computation time to get high quality (more
+deterministic and/or minimal) automata as it may reduce computation time of
+many model checking tasks.
+The new objectives lead to the developments of algorithms focusing on quality
+of produced automata. For example, [5] presents an eective algorithm translat-
+ing LTL formulae of the fragment called obligation (see [14]) into weak deter-
+ministic B uchi automata (WDBA) . Moreover, WDBA can be minimized by the
+algorithm of [13]. There is also a SAT-based algorithm searching for minimal
+(nondeterministic) B uchi automata [8]. The main disadvantage of all the men-
+tioned determinization and minimization algorithms is their long running time
+which limits their use.
+Our research returns to the roots: we focus on a fast translation producing
+a relatively good output. This approach is justied by the following facts:
+{The mentioned algorithms producing high quality automata often need, for
+a given LTL formula, some equivalent automaton as an input.
+{The mentioned algorithms are usually feasible for short formulae only or for
+formulae with a simple structure.
+{Given a fresh LTL formula, it can be useful to run vacuity checks, namely
+satisability of the formula and its negation, to detect bugs in the formula. In
+these checks, time of the LTL to automata translation can be more signicant
+than time needed for subsequent computations (see [16]). Hence, we need a
+fast translator to support an early detection of bugs in formulae.
+Considering the speed of an LTL to B uchi automata translation, LTL2BA [11]
+and SPOT [7] are two leading tools. Based on extensive experiments on LTL
+satisability checking, [16] even states:
+The dierence in performance between SPOT and LTL2BA, on one
+hand, and the rest of explicit tools is quite dramatic.
+Each of the two tools is based on dierent algorithms.
+In LTL2BA, the translation proceeds in three basic steps:
+1. A given LTL formula is translated into a very weak alternating automaton
+(VWAA) with a co-B uchi accepting condition.
+2. The alternating automaton is then translated into a transition-based gener-
+alized B uchi automaton (TGBA) , i.e. a generalized B uchi automaton with
+sets of accepting transitions instead of accepting states.
+3. The generalized automaton is transformed (degeneralized) into a B uchi au-
+tomaton (BA).
+Each of the three automata is simplied during the translation.
+SPOT translates a given LTL formula to a TGBA using a tableau method
+presented in [3]. The TGBA is then translated to a BA. Note that the model
+checking algorithm natively implemented in SPOT works directly with TGBAs.
+Prior to a translation, both LTL2BA and SPOT try to decrease the number of
+temporal operators in a given input formula by applications of reduction rules.
+
+--- Page 3 ---
+While the LTL to automata translation in SPOT is under the gradual devel-
+opment following the current trends (see [6] for improvements made in the last
+four years), LTL2BA underwent only one minor update in 2007 since its creation
+in 2001. In particular, SPOT reects the changes in objectives. Therefore, SPOT
+usually produces more deterministic and smaller automata than LTL2BA, while
+LTL2BA is often a bit faster.
+Our contribution. We introduce several modications of LTL2BA on both
+algorithmic and implementation levels. We suggest changes in all the steps of
+the translation algorithm. Our experimental results indicate that each modied
+step has a mostly positive eect on the translation. The new translator, called
+LTL3BA, is usually faster than the original LTL2BA and it produces smaller
+and more deterministic automata. Moreover, comparison of LTL3BA and the
+current version of SPOT (run without WDBA minimization that is very slow)
+shows that the produced automata are of similar quality and LTL3BA is usually
+faster.
+Some modications employ an observation that each LTL formula contain-
+ing at least one always operator and at least one eventually operator on each
+branch of its syntax tree (with possible exceptions of branches going to the left
+subformula of any until orrelease operator) is prex invariant. We call them al-
+ternating formulae. Indeed, validity of each alternating formula on a given word
+udepends purely on a sux of u. In other words, it is not aected by any nite
+prex ofu. We apply this observation to construct new rules for formula reduc-
+tions. Further, the observation justies some changes in constructions of VWAA
+and TGBA. Intuitively, a state of a VWAA corresponds to a subformula that
+has to be satised by the rest of an accepted word. If the corresponding subfor-
+mula is an alternating formula, then the state can be temporarily suspended for
+nitely many steps of the automaton.
+Other changes in a VWAA construction are designed to lower nondetermin-
+ism. This is also a motivation for new simplication rules applied on intermediate
+automata. These rules remove some transitions of the automaton and hence re-
+duce the number of nondeterministic choices in produced automata. The original
+simplication rules can be seen as special cases of the new rules. An eective
+implementation of this simplication required to change representation of tran-
+sitions. Further, we add one ad-hoc modication speeding up the translation of
+selected (sub)formulae. Finally, we modify a simplication rule merging some
+states of resulting BA.
+The rest of the paper is organized as follows. The next section recalls the
+denitions of LTL, VWAA, and TGBA. Section 3 focuses on alternating for-
+mulae and its properties. Sections 4, 5, 6, and 7 present new rules for formula
+reductions, modied translation of LTL to VWAA (including generalized sim-
+plication of VWAA), modied translation of VWAA to TGBA, and modied
+rule for simplication of BA, respectively. Finally, Section 8 is devoted to exper-
+imental results. The last section summarizes the achieved improvements.
+
+--- Page 4 ---
+2 Preliminaries
+In this section, we recall the denition of LTL and denitions of VWAA and
+TGBA as presented in [11].
+Linear Temporal Logic (LTL) The syntax of LTL [15] is dened as follows
+'::= ttjaj :'j'_'j'^'jX'j'U',
+where ttstands for true,aranges over a countable set APofatomic propositions ,
+XandUare temporal operators called next and until, respectively. The logic is
+interpreted over innite words over the alphabet = 2AP0, where AP0APis
+a nite subset. Given a word u=u(0)u(1)u(2):::2!, byuiwe denote the ith
+sux ofu, i.e.ui=u(i)u(i+ 1):::.
+The semantics of LTL formulae is dened inductively as follows:
+uj=tt
+uj=a ia2u(0)
+uj=:' iu6j='
+uj='1_'2iuj='1oruj='2
+uj='1^'2iuj='1anduj='2
+uj=X' iu1j='
+uj='1U'2i9i0:(uij='2and80j <i: ujj='1)
+We say that a word usatises'wheneveruj='. Two formulae '; are
+equivalent , written' , if for each alphabet and eachu2!it holds
+uj='()uj= . Given an alphabet , a formula 'denes the language
+L(') =fu2!juj='g. We often write L(') instead of L2AP(')('), where
+AP(') denotes the set of atomic propositions occurring in the formula '.
+We extend the LTL with derived temporal operators:
+{F'called eventually and equivalent to ttU',
+{G'called always and equivalent to :F:', and
+{'R called release and equivalent to :(:'U: ).
+In the following, temporal formula is a formula where the topmost operator is
+neither conjunction, nor disjunction. A formula without any temporal operator
+is called state formula . Note that aandttare both temporal and state formulae.
+An LTL formula is in positive normal form if no operator occurs in the scope of
+any negation. Each LTL formula can be easily transformed to positive normal
+form using De Morgan's laws for operators _and^, equivalences for derived
+operators, and the following equivalences:
+:('1U'2):'1R:'2:('1R'2):'1U:'2:X'X:'
+
+--- Page 5 ---
+B uchi Automata (BA) A BA is a tupleB= (Q;;;I;F ), where
+{Qis a nite set of states ,
+{is a nite alphabet ,
+{:Q!2Qis a total transition function ,
+{IQis a set of initial states , and
+{FQis a set of accepting states .
+AutomatonBis deterministic if and only if jIj= 1 andj(q;a)j1 for allq2Q
+anda2.
+ArunofBover an innite word w=w(0)w(1)w(2):::2!is a sequence
+=q0q1q2:::, whereq02Iis an initial state and qi+12(qi;w(i)) for all
+i0. The run isaccepting if some accepting state occurs innitely often in
+the sequence q0q1q2:::. An innite word wisaccepted by an automaton Bif
+some run ofBoverwis accepting.
+We denote by L(B) the language accepted by B, i.e. the set of all words
+overaccepted by an automaton B.
+Very Weak Alternating co-B uchi Automata (VWAA) A VWAA is a
+tupleA= (Q;;;I;F ), where
+{Qis a nite set of states , and we let Q0= 2Q,
+{is a nite alphabet , and we let 0= 2,
+{:Q!20Q0is atransition function ,
+{IQ0is a set of initial states ,
+{FQis a set of accepting states , and
+{there exists a partial order on Qsuch that, for each state q2Q, all the
+states occurring in (q) are lower or equal to q.
+Note that the transition function uses0instead of. This enables to merge
+transitions that dier only by action labels. We sometimes use a propositional
+formulaover APto describe the element fa2jasatisesgof0.
+Arunof VWAAAover a word w=w(0)w(1)w(2):::2!is a labelled
+directed acyclic graph ( V;E; ) such that:
+{Vis partitioned into1S
+i=0ViwithE1S
+i=0ViVi+1,
+{:V!Qis a labelling function,
+{f(x)jx2V0g2I, and
+{for eachx2Vi, there exist 20,q2QandO2Q0such thatw(i)2,
+q=(x),O=f(y)j(x;y)2Eg, and (;O)2(q).
+A runisaccepting if each branch in contains only nitely many nodes labelled
+by accepting states (co-B uchi acceptance condition). A word wisaccepted if
+there is an accepting run over w.
+We denote by L(A) the language accepted by A, i.e. the set of all words
+overaccepted by an automaton A.
+
+--- Page 6 ---
+Transition Based Generalized B uchi Automata (TGBA) A TGBA is a
+tupleG= (Q;;;I;F), where
+{Qis a nite set of states ,
+{is a nite alphabet , and we let 0= 2
+{:Q!20Qis a total transition function ,
+{IQis a set of initial states , and
+{T=fT1;T2;:::;TmgwhereTjQ0Qare sets of accepting transitions .
+A runof TGBAGover a word w=w(0)w(1)w(2):::2!is a sequence
+of states=q0q1q2:::;whereq02Iis an initial state and, for each i0, there
+exists20such thatw(i)2and (;qi+1)2(qi). A runisaccepting if for
+each 1jmit uses innitely many transitions from Tj. A wordwisaccepted
+if there is an accepting run over w.
+We denote by L(G) the language accepted by G, i.e. the set of all words
+overaccepted by an automaton G.
+3 Alternating Formulae
+We dene the class of alternating formulae together with the classes of pure
+eventuality and pure universality formulae introduced in [9]. Let 'ranges over
+general LTL formulae. The following abstract syntax equations dene the classes
+pure eventuality formulae,pure universality formulae, and alternating for-
+mulae:
+::=F'j_j^jXj'UjRjG
+::=G'j_j^jXjUj'RjF
+::=GjFj_j^jXj'Uj'RjFjG
+Note that there are alternating formulae, e.g.
+aU(GFb)
+^
+cR(GFd)
+, that are
+neither pure eventuality formulae, nor pure universality formulae. Properties of
+the respective classes of formulae are summarized in the following lemmata.
+Lemma 1. [9] Every pure eventuality formula satises the following:
+8w2!;u2:wj==)uwj=
+Further, every pure universality formula satises the following:
+8w2!;u2:uwj==)wj=
+In other words, pure eventuality formulae dene left-append closed languages
+while pure universality formulae dene sux closed languages.
+Lemma 2. Every alternating formula satises the following:
+8w2!;u2:uwj=()wj=
+
+--- Page 7 ---
+In other words, each alternating formula denes a prex-invariant language.
+Proof. The proof proceeds by induction on the structure of . We assume that
+w2!is an arbitrary innite word and u2is an arbitrary nite word.
+=G{ The semantics of Goperator directly provides one implication, namely
+uwj=G=)wj=G. Asis a pure eventuality formula, Lemma 1 gives
+us8u02:wj==)u0wj=. This implies wj=G=)uwj=G.
+In total, we get wj=G()uwj=G.
+=F{ The semantics of Foperator directly provides one implication, namely
+wj=F=)uwj=F. Asis a pure universality formula, Lemma 1 gives
+us8u02:u0wj==)wj=. This implies uwj=F=)wj=F. In
+total, we get wj=F()uwj=F.
+='U1{ From the induction hypothesis, it follows that F1=)1. Hence,
+'U11holds. Thus, the statement coincides with the induction hypoth-
+esis.
+='R1{ From the induction hypothesis, it follows that 1=)G1and
+thus also1=)'R1. As'R1=)1, we get'R11. Hence, the
+statement coincides with the induction hypothesis.
+=1_2or=1^2or=X1or=F1or=G1{ In all these cases,
+the statement easily follows from the induction hypothesis. u t
+Corollary 1. Every alternating formula satisesX.
+Hence, in order to check whether wsatisesit is possible to skip an arbitrary
+long nite prex of the word w.
+We use this property in new rule for formula reduction. Further, it has
+brought us to the notion of alternating formulae suspension during the transla-
+tion of LTL to B uchi automata. We employ suspension on two dierent levels
+of the translation: the construction of a VWAA from an input LTL formula and
+the transformation of a VWAA into a TGBA.
+4 Improvements in Reduction of LTL Formulae
+Many rules reducing the number of temporal operators in an LTL formula have
+been presented in [18] and [9]. In this section we present some new reduction
+rules. For the rest of this section, '; range over LTL formulae and ranges
+over alternating ones.
+X'R X X('R )'U F X
+X'_X X('_ )'R G
+The following equivalences are valid only on assumption that 'implies .
+ U('U) U '^( ^)('^)
+( R)R'R'  _('_)( _)
+'U(R( U))R( U)
+
+--- Page 8 ---
+Further, we have extended the set of rules deriving implications of the form
+') . The upper formula is a precondition, the lower one is a conclusion.
+G') 
+G')X ')F 
+X')F ') 
+X')X 
+5 Improvements in LTL to VWAA Translation
+First, we recall the original translation of LTL to VWAA according to [11]. The
+translation utilizes two auxiliary operators:
+{Let0= 2, and letQ0= 2Q. GivenJ1;J2220Q0, we dene
+J1
+J2=f(1\2;O1[O2)j(1;O1)2J1and (2;O2)2J2g:
+{Let be an LTL formula in positive normal form. We dene  by:
+ =ff ggif is a temporal formula,
+ 1^ 2=fO1[O2jO12 1andO22 2g,
+ 1_ 2= 1[ 2.
+Let'be an LTL formula in positive normal form. An equivalent VWAA with
+a co-B uchi acceptance condition is constructed as A'= (Q;;;I;F ), whereQ
+is the set of temporal subformulae of ',= 2AP('),I=',Fis the set of all
+U-subformulae of ', i.e formulae of the type  1U 2, andis dened as follows:
+(tt) =f(;;)g
+(p) =f(p;;)gwherep=fa2jp2ag
+(:p) =f(:p;;)gwhere:p=rp
+(X ) =f(;O)jO2 g
+( 1U 2) =( 2)[
+( 1)
+f(;f 1U 2g)g
+( 1R 2) =( 2)
+
+( 1)[f(;f 1R 2g)g
+( ) =( ) if is a temporal formula
+( 1_ 2) =( 1)[( 2)
+( 1^ 2) =( 1)
+( 2)
+Using the partial order \is a subformula of" on states of A', one can easily prove
+thatA'is very weak.
+Improved Translation In order to implement the suspension of alternating
+formulae, we modify the way the transition function handles the binary op-
+erators U,R,_, and^. The original transition function reects the following
+identities:
+'1U'2'2_('1^X('1U'2))
+'1R'2'2^('1_X('1R'2))
+
+--- Page 9 ---
+However, if '1is an alternating formula we apply the relation '1X'1to
+obtain the following identities:
+'1U'2'2_(X'1^X('1U'2))
+'1R'2'2^(X'1_X('1R'2))
+Using these identities, the formula '1is eectively suspended and checked one
+step later. Similarly, in the case of disjunction or conjunction, each disjunct or
+conjunct corresponding to an alternating formula is suspended for one step as
+well. Correctness of these changes clearly follows from properties of alternating
+formulae. Note that is dened over formulae in positive normal form only. The
+translation treats each formula F asttU and each formula G as (:tt)R .
+We introduce further changes to the transition function in order to generate
+automata which exhibits more determinism. In particular, we build a VWAA
+with only one initial state. Similarly, each state corresponding to a formula of
+a type X'generates only one successor corresponding to '. These changes can
+add an extra initial state and an extra state for each X-subformula comparing
+to the original construction. However, this drawback is often suppressed due to
+the consecutive optimizations during the construction of a TGBA.
+Now we present a modied construction of VWAA. Given an input LTL
+formula'in positive normal form, an equivalent VWAA with a co-B uchi accep-
+tance condition is constructed as A'= (Q;;;I;F ), whereQis the set of all
+subformulae of ',andFare dened as in the original construction, I=f'g,
+andis dened as follows:
+(tt) =f(;;)g
+(p) =f(p;;)gwherep=fa2jp2ag
+(:p) =f(:p;;)gwhere:p=np
+(X ) =f(;f g)g
+( 1_ 2) =( 1)[( 2)
+( 1^ 2) =( 1)
+( 2)
+( 1U 2) =( 2)[(f(;f 1g)g
+f (;f 1U 2g)g) if 1is alternating,
+( 2)[(( 1)
+f(;f 1U 2g)g) otherwise.
+( 1R 2) =( 2)
+(f(;f 1g);(;f 1R 2g)g) if 1is alternating,
+( 2)
+(( 1)[f(;f 1R 2g)g) otherwise.
+( ) =(
+f(;f g)gif is a temporal alternating formula,
+( ) if is a temporal formula that is not alternating.
+( 1_ 2) =( 1)[( 2)
+( 1^ 2) =( 1)
+( 2)
+Motivation for our changes in the translation can be found in Figures 1
+and 2. Each gure contains (a) the VWAA constructed by the original translation
+and (b) the VWAA constructed by our translation with suspension. Figure 1
+shows the eect of suspension of alternating subformula GFain computation of
+transitions leading from the initial state. It can be easily proved that whenever
+
+--- Page 10 ---
+(a)
+
+1 : (GFa)Ub
+MM
+tt
+QQ
+a
+b //
+2 :GFa
+aMM
+tt
+QQ
+3 :Fa
+ttCCa//(b)
+
+1 : (GFa)UbMM
+tt
+b //
+2 :GFa
+aMM
+tt
+QQ
+3 :Fa
+ttCCa//(c)
+
+1 : (GFa)UbMM
+:b
+b //
+2 :GFa
+aMM
+:a
+QQ
+3 :Fa
+:aCCa//
+Fig. 1. VWAA for ( GFa)Ubgenerated by (a) the translation of [11], (b) our translation
+with suspension, and (c) our translation with suspension and further determinization.
+(a)
+
+1 :X(a_b)
+tt
+tt
+
+2 :a
+a
+3 :b
+b
+(b)
+
+1 :X(a_b)
+tt
+
+2 :a_b
+a
+~~b
+  (c)
+
+1 :X(a_b)
+tt
+
+2 :a_b
+a_b
+
+Fig. 2. VWAA for X(a_b) generated by (a) the translation of [11], (b) our translation
+with suspension, and (c) the translation with suspension and further determinization.
+one start with a formula reduced according to Section 4, then each suspension
+of an alternating temporal subformula leads just to reduction of transitions in
+the resulting VWAA, i.e., no state is added. On the other hand, if an alternating
+non-temporal subformula  is suspended or the new denition of (X ) is used,
+then the resulting VWAA can contain one more reachable state corresponding to
+the formula  . However, other states may become unreachable and, in particular,
+the automaton can also have more deterministic states as illustrated by Figure 2.
+Optimization of VWAA In the original algorithm, the VWAA is optimized
+before it is translated to a TGBA. In particular, if there are two transitions
+t1= (q; 1;O1) andt2= (q; 2;O2) satisfying 21andO1O2, thent2is
+removed as it is implied by t1.
+We suggest a generalization of this principle: if O1(O2then replace the
+label2int2by2^:1. IfO1=O2, replace both transitions by the transition
+(q; 1_2;O1). Note that if 2)1, i.e.21, then2^:1 : tt
+
+--- Page 11 ---
+and transition t2can be removed as before. Our generalized optimization rule
+increase determinism of the produced VWAA as illustrated by automata (c) of
+Figures 1 and 2.
+6 Improvements in VWAA to TGBA Translation
+First, we recall the translation of VWAA to TGBA introduced in [11]. Let A'=
+(Q;;;I;F ) be a VWAA with a co-B uchi acceptance condition. We dene
+GA= (Q0;;0;I;T) to be a TGBA where:
+{Q0= 2Q, i.e. a state is a set of states of A'and represents their conjunction,
+{00(fq1;q2;:::;qng) =nN
+i=1(qi) is the non-optimized transition function,
+{0is the optimized transition function dened as the set of 4-minimal tran-
+sitions of00where the relation 4is dened by t14t2it1= (O; 1;O1),
+t2= (O; 2;O2),21,O1O2, and8Tf2T,t22Tf)t12Tf, and
+{T=fTfjf2Fgwhere
+Tf=f(O;;O0)jf62O0or9(;O00)2(f);andf62O00O0g.
+Improved Translation Our algorithm for a VWAA to TGBA translation dif-
+fers from the original one only in denition of , where we also integrate the idea
+of suspension of alternating formulae. Recall that each state qiof a VWAA is
+a subformula of an input LTL formula and each state of a TGBA is identied
+with a conjunction of states of a VWAA. Let O=fq1;:::;qngbe a state of a
+TGBA. Then transitions leading from Oin a TGBA correspond to combinations
+of transitions leading from q1;:::;qnin a VWAA. If qiis an alternating formula
+and thus it satises qiXqi, we can eectively decrease the number of transition
+combinations that need to be considered during computation of 0(O) provided
+we suspend a full processing of qito the succeeding states of the TGBA. More
+precisely, for the purpose of computation of 0(O), we set(qi) =f(;fqig)g. To
+construct a TGBA equivalent to the VWAA, we have to ensure that qiwill not
+be suspended forever during any accepting run of the TGBA. Hence, we enable
+suspension only in the states that are not on any accepting cycle in a TGBA.
+LetMbe the minimal set containing all VWAA states of the form  Rand
+all subformulae of their right operands . One can observe each TGBA state
+lying on some accepting cycle is a subset of M. The VWAA states outside M,
+called progress formulae , push TGBA computations towards accepting cycles.
+Suspension is enabled in a TGBA state only if it contains a progress formula.
+However, if all progress formulae in a TGBA state are alternating, their sus-
+pension is not allowed (as suspended progress formulae would not enforce any
+progress).
+Formally, for each TGBA state O=fq1;q2;:::;qngwe dene00(O) as fol-
+lows:
+00(O) =nO
+i=1O(qi), where
+
+--- Page 12 ---
+1 :GFaa
+
+hh
+tt>>3 :Fatt
+
+a$$99
+%%
+2 :Fb
+ttEEb%%
+Fig. 3. A VWAA A corresponding to
+GFa^Fb.//f1;2gtt:;
+b:f2;3g//f1ga:f2;3g
+
+tt:f2gQQ
+Fig. 4. A TGBA G corresponding to
+the VWAA of Figure 3.
+O(qi) =8
+>>>>><
+>>>>>:f(;fqig)gifOcontains a progress non-alternating formula
+andqiis an alternating formula,
+orOcontains a progress formula
+andqiis an alternating non-progress formula,
+(qi) otherwise.
+We have obtained better results when we restrict the denition of progress for-
+mulae to temporal progress formulae.
+Note that the original translation of VWAA to TGBA uses a correct but non-
+intuitive denition of accepting sets Tf. In fact, our modication is correct only
+if we change the denition of these sets to intuitive one: for each accepting state
+fof the VWAA with a co-B uchi acceptance, we compute a set Tfto contain
+all TGBA transitions that do not contain any VWAA transition looping in f.
+Formally,T=fTfjf2Fgwhere
+Tf=f(O;;O0)jf62O0or (9(;O00)2(f);9(;O000)2N
+f02Orffg(f0)
+such thatf62O00,=^, andO0=O00[O000)g:
+Incorrectness of the improved VWAA to TGBA translation in connection
+with the original denition of accepting sets is illustrated by the TGBA G'of
+Figure 5 constructed from the VWAA A'of Figure 6. Thanks to the accepting
+cycle between states f1;2;4gandf1;2;5g, automatonG'accepts the innite
+wordw= (fp1;p2gfp3g)!. Note that w6j=GFqand hence also w6j= ^GFq.
+Thus,wis not accepted by VWAA A'asA'corresponds to the formula '=
+ ^GFq. Figure 7 depicts the TGBA G0
+'automaton produced by the improved
+translation with the new denition of accepting sets. One can easily see that G0
+'
+does not accept w.
+To demonstrate the eect of suspension during the construction of a TGBA,
+consider the VWAA A for the formula  =GFa^Fbdepicted in Figure 3.
+The construction of an equivalent TGBA G starts in the initial state f1;2g
+that corresponds to a conjunction of states 1 and 2 of A . Figure 8 depicts
+the transitions of G leading from the initial state when constructed by (a) the
+
+--- Page 13 ---
+1 :GFqq
+
+hh
+tt;;3 :Fqtt
+
+q
+''99
+%%
+2 : kk
+tt;;p1
+wwCC
+tt
+4 ::p1Up3:p1
+
+p3
+''
+5 :p1Rp2
+p2FFp1^p2''
+Fig. 5. A VWAA A'corresponding to formula '= ^GFq, where = (X((p1Rp2)_
+(:p1Up3)))Up1.
+//f1;2gtt:f3g//
+tt:f3;4g
+##
+p1:f2;3;4g
+f1;2;4g:p1:f3g
+
+p3:f3;4g vvp3:f3;4gQQp1^p3:f2;3;4g
+//f1;2;5gp2:f3;4g
+
+p1^p2:f2;3;4g
+{{ p2:f3g ((p1^p2:f2;3g 66
+f1gtt:f2;4g
+
+q:f2;3;4gQQf1;2;4;5g
+p1^p2^p3:f2;3;4goop2^p3:f3;4ghh
+:p1^p2:f3gQQ
+Fig. 6. A TGBA G'corresponding to the VWAA of Figure 5 constructed using original
+denition of accepting sets.
+//f1;2gtt:f3g//
+tt:f3;4g
+##
+p1:f2;3;4g
+f1;2;4g:p1:f3g
+
+p3:f3;4g vvp3:f3;4gQQp1^p3:f2;3;4g
+//f1;2;5gp2:f3;4g
+
+p1^p2:f2;3;4g
+{{ p2:f3g ((p1^p2:f3g 66
+f1gtt:f2;4g
+
+q:f2;3;4gQQf1;2;4;5g
+p1^p2^p3:f2;3;4goop2^p3:f3;4g hh
+:p1^p2:f3gQQp1^p2^p3:f3;4gSS
+Fig. 7. A correct TGBA G0
+'corresponding to the VWAA of Figure 5 constructed using
+modied denition of accepting sets.
+
+--- Page 14 ---
+(a) //f1;2ga:f3g
+
+tt:;
+b:f2g
+''a^b:f2;3g//f1g
+f1;2;3g f1;3g(b) //f1;2gtt:;
+b:f2;3g//f1g
+Fig. 8. Transitions leading from state f1;2gin the TGBA constructed from the VWAA
+of Figure 3 by (a) the translation of [11] and by (b) our translation with suspension.
+original translation of [11] and by (b) our translation with suspension. Note
+that the state 1 corresponding to the alternating formula GFais suspended in
+the TGBA statef1;2gas the state 2 corresponds to a non-alternating progress
+formula Fb. In both cases, the TGBA has two sets of accepting transitions, T2
+andT3. Each transition in the TGBA is labelled by a propositional formula over
+APand by a subset of f2;3gindicating to which sets of T2;T3the transition
+belongs.
+Comparing to the original VWAA to TGBA translation without any opti-
+mizations, the application of suspension leads to automata with fewer states.
+However, if we enable the optimizations suggested in [11], the original transla-
+tion often constructs automata with the same number of states as our translation
+with suspension. For example, in the TGBA constructed from the VWAA of Fig-
+ure 3, the optimizations merge states f1;2;3gandf1;3gwithf1;2gandf1g,
+respectively. In this particular case, both approaches lead to the same automaton
+G as shown in Figure 4. However, this is not the case in general. Using suspen-
+sion, automata with either more or less states can be constructed. However, the
+translation with suspension is usually slightly faster.
+In addition, we detect that both the original and the improved algorithms
+spend a lot of time when computing transitions of TGBA states equivalent to a
+formula of the form =G0^V
+1inGFiwheren0 and0;1;:::;nare
+formulae without any temporal operator. As such TGBA states are very frequent
+in practice, we use an optimization that detects these TGBA states and directly
+constructs the optimal transitions.
+7 Optimization of BA
+We slightly modify one optimization rule suggested in [11]. It is applied on
+a resulting BA. The rule says that states q1andq2of a BA can be merged if
+(q1) =(q2) andq12F()q22F. This rule typically fails to merge the states
+with a self loop. We suggest to add a new rule where the condition (q1) =(q2)
+is replaced by (q1)[q1=r] =(q2)[q2=r], whereris a fresh articial state and
+(q)[q=r] is a(q) with all occurrences of qas a target node replaced by r.
+
+--- Page 15 ---
+Translator Benchmark1 Benchmark2
+States Trans. Time det. BA States Trans. Time det. BA
+SPOT 1 561 5 729 7.47 55 14 697 95 645 68.46 221
+SPOT+WDBA 1 587 5 880 10.81 88 13 097 77 346 5 916.45 373
+(14 408) (94 248) (5 919.43) (373)
+LTL2BA 2 118 9 000 0.81 25 24 648 232 400 18.57 84
+LTL3BA(1) 1 621 5 865 1.26 27 17 107 129 774 22.25 92
+LTL3BA(1,2) 1 631 6 094 1.41 54 15 936 115 624 9.04 237
+LTL3BA(1,2,3) 1 565 5 615 1.41 54 14 113 91 159 8.53 240
+LTL3BA(1,2,3,4) 1 507 5 348 1.38 54 13 244 85 511 8.30 240
+Table 1. Comparison of translators on two sets of random formulae. Time is in seconds,
+'det. BA' is the number of deterministic automata produced by the translator. Note
+that, using WDBA minimization, SPOT failed to translate 6 formulae of Benchmark2
+within the one hour limit. In order to see the eect of WDBA minimization to other
+formulae, we state in braces the original results increased by the values obtained when
+these 6 formulae were translated withut WDBA minimization.
+8 Implementation and Experimental Result
+We have implemented all the modications suggested in the previous sections
+(and formula reduction rules suggested in [9]) in order to evaluate their eect.
+The implementation is based on LTL2BA and therefore called LTL3BA . Be-
+sides the changed algorithms, we also made some other, implementation related
+changes. In particular, we represent transition labels by BDDs and transitions
+are represented by C++ STL containers.
+In this section, we compare LTL3BA with LTL2BA1(v1.1) and SPOT2
+(v0.7.1)3. For the comparison of results, we use lbtt testbench tool [19] to
+measure, for each translator, the number of states and transitions4of resulting
+automata, and the time of the computation. Further, we extend lbtt to count
+the number of produced deterministic automata. To be able to compare the re-
+sults, we set SPOT (option -N) to output automata in the form of never claim
+for SPIN as that is the output of LTL2BA as well. All experiments were done
+on a server with 8 processors IntelrXeonrX7560, 448 GiB RAM and a 64-
+bit version of GNU/Linux. However, all three translators are single threaded,
+therefore, they can utilize only one CPU core.
+1Available online at http://www.lsv.ens-cachan.fr/ ~gastin/ltl2ba/index.php .
+2Available online at http://spot.lip6.fr/wiki/ .
+3In version version 0.7.1, SPOT contains a small bug in TGBA degeneralization. We
+reported this problem to authors and they provided a corresponding x which we
+have applied. Therefore, the version of SPOT we have actually used diers a bit
+from the current version 0.7.1 that is publicly available.
+4To solve the problem with dierent representation of transitions in automata pro-
+duced by dierent tools, we count all transitions leading from a state qto a stater
+as one.
+
+--- Page 16 ---
+ 0.01 0.1 1 10 100 1000 10000
+ 0  5  10  15  20  25Time in Seconds
+Parameter valueSpot 0.7.1
+LTL2BA
+LTL3BAn=:((GFp1^:::^GFpn)!G(q!Fr))
+Fig. 9. Running times of LTL to BA translators on parametric formula nof [11] (the
+vertical axe is logarithmic and represent time in seconds, while the horizontal axe is
+linear and represent the parameter n).
+First we compare the translators on two sets, Benchmark1 and Benchmark2,
+of random formulae generated by lbtt . Benchmark1 contains 100 formulae of
+the length 15{20 and their negations. Benchmark2 contains 500 formulae of the
+length 15{30 and their negations. The exact lbtt parameters used to generate
+the formulae are in Appendix A. Table 1 presents the cumulative results of trans-
+lations of all formulae in the two sets. The table also illustrates the gradual eect
+of modications of each step of the translation (1,2,3,4 refers to modications
+introduced in Sections 4, 5, 6, and 7 in the respective order; e.g. LTL3BA(1)
+uses the original algorithm with our formula reduction while LTL3BA(1,2,3,4)
+refers to the translation with all the suggested modications). Finally, the ta-
+ble contains the results for SPOT with WDBA minimization, which has the
+longest running time but provides the best results. The automata produced by
+LTL3BA are in sum slightly better than the automata produced by SPOT. Fur-
+ther, LTL3BA seems to be much faster.
+Further, we compare the execution time of translators running on parametric
+formulae from [11] and [16]. We use SPOT with the recommended option -r4,
+i.e. with the input formula reduction as the only optimization. To get a compara-
+ble settings of LTL3BA, we switched o the generalized optimization of VWAA.
+We gradually increase the parameter of the formulae until a translator fails to
+nish the translation in one hour limit. The results are depicted in Figure 9,
+Figure 10 and Figure 11.
+It is worth mentioning that each automaton produced by LTL3BA for n
+has around half the number of states and half the number of transitions than
+
+--- Page 17 ---
+ 0.01 0.1 1 10 100 1000 10000
+ 0 2 4 6 8 10 12 14Spot 0.7.1
+LTL2BA
+LTL3BAU1(n) = (:::(p1Up2)U:::)Upn
+ 0.01 0.1 1 10 100 1000 10000
+ 0 2 4 6 8 10 12Spot 0.7.1
+LTL2BA
+LTL3BA R(n) =Vn
+i=1(GFpi_FGpi+1)
+ 0.001 0.01 0.1 1 10 100 1000
+ 1  10  100  1000Spot 0.7.1
+LTL2BA
+LTL3BA
+U2(n) =p1U(p2U(:::pn1Upn):::)
+ 0.001 0.01 0.1 1 10 100 1000 10000
+ 1 10 100 1000 10000 100000Spot 0.7.1
+LTL2BA
+LTL3BA S(n) =Vn
+i=1Gpi
+Fig. 10. Running times of LTL to BA translators on parametric formulae of [16] (the
+vertical axes are logarithmic and represent time in seconds, while the horizontal axes
+are linear or logarithmic and represent the parameter n).
+the one produced by SPOT. If we use default settings for SPOT, the automata
+are of the same size as from LTL3BA and the maximal formula is 20too. The
+other way round, if we add SCC based automata simplication (option -R3) the
+results are small again but the maximal formula computable in an hour is 18.
+The graphs show that, in general, LTL3BA is slightly slower than LTL2BA
+and faster than SPOT on small formulae. With increasing parameter, LTL3BA
+outperforms LTL2BA (with exception of S(n) where LTL2BA fails before its
+running time reaches the limit), while SPOT sometimes remains slower, but
+sometimes eventually outperform LTL3BA.
+Finally, we compared SPOT and LTL3BA on parametric formulae from [2]:
+n=F(p1^F(p2^:::^Fpn):::)^F(q1^F(q2^:::^Fqn):::)
+n=F(p^X(p^:::^Xp):::)^F(q^X(q^:::^Xq):::)
+0
+n=F(p^Xp^X2p^:::^Xn1p)^F(q^Xq^X2q^:::^Xn1q)
+ n=GFp1^GFp2^:::^GFpn
+n=FGp1_FGp2_:::_FGpn
+
+--- Page 18 ---
+ 0.01 0.1 1 10 100 1000 10000
+ 0 2 4 6 8 10 12 14 16Spot 0.7.1
+LTL2BA
+LTL3BAE(n) =Vn
+i=1Fpi
+ 0.01 0.1 1 10 100 1000 10000
+ 0  5  10  15  20  25Spot 0.7.1
+LTL2BA
+LTL3BA C2(n) =Vn
+i=1GFpi
+ 0.01 0.1 1 10 100 1000 10000
+ 0 2 4 6 8 10 12 14Spot 0.7.1
+LTL2BA
+LTL3BA
+Q(n) =Vn
+i=1(Fpi_Gpi+1)
+ 0.001 0.01 0.1 1 10 100 1000 10000
+ 1 10 100 1000 10000 100000Spot 0.7.1
+LTL2BA
+LTL3BA C1(n) =Wn
+i=1GFpi
+Fig. 11. Running times of LTL to BA translators on another parametric formulae
+of [16] (the vertical axes are logarithmic and represent time in seconds, while the
+horizontal axes are linear or logarithmic and represent the parameter n).
+In 2009, Cicho n et al. [2] introduced the four parametric formulae and shown
+that their BA representations obtained by both LTL2BA and SPOT are far
+away from their minimal representations (or uncomputable even for the param-
+etern20). Two years later in [6], the authors of SPOT announced that they
+are able to compute all the mentioned formulae in minimal form. We have re-
+computed the results for all n20 by SPOT and LTL3BA and realized that
+LTL3BA returns also the minimal automata but 8 times faster. More precisely,
+the overall computation of SPOT took more than 13 minutes (802 seconds),
+while the computation of LTL3BA took less than 2 minutes (95 seconds).
+9 Conclusion
+We have focused on LTL to BA translations with the stress on their speed-
+up while maintaining outputs of a good quality. We have introduced several
+modications of LTL2BA on both algorithmic and implementation levels. Among
+others, we have identied an LTL subclass of \alternating" formulae, validity of
+which does not depends on any nite prex of the word.
+
+--- Page 19 ---
+Our experimental results indicate that our modications have a mostly pos-
+itive eect on each step of the translation. The new translator called LTL3BA
+is usually faster than the original LTL2BA and it produces smaller and more
+deterministic automata. Moreover, comparison of LTL3BA and the current ver-
+sion of SPOT (run without WDBA minimization that is very slow) shows that
+the produced automata are of similar quality and LTL3BA is usually faster.
+LTL3BA has served as an experimental tool to demonstrate that our modi-
+cations are improvements and their applicability to other LTL to BA translations
+is a subject of further research.
+LTL3BA is publicly available under GPL at:
+http://sourceforge.net/projects/ltl3ba/
+Acknowledgments. The authors would like to thank three anonymous refrees and
+Alexandre Duret-Lutz for valuable comments.
+References
+1. T. Babiak, M. K ret nsk y, V. Reh ak, and J. Strej cek. LTL to B uchi Automata
+Translation: Fast and More Deterministic. In TACAS 2012 , volume 7214 of LNCS,
+pages 95{109. Springer-Verlag, 2012.
+2. J. Cicho n, A. Czubak, and A. Jasi nski. Minimal B uchi automata for certain classes
+of LTL formulas. In DEPCOS-RELCOMEX'09 , pages 17{24. IEEE, 2009.
+3. J.-M. Couvreur. On-the y verication of temporal logic. In FM'99 , volume 1708
+ofLNCS , pages 253{271. Springer, 1998.
+4. M. Daniele, F. Giunchiglia, and M. Y. Vardi. Improved automata generation for
+linear temporal logic. In CAV'99 , volume 1633 of LNCS , pages 249{260. Springer,
+1998.
+5. C. Dax, J. Eisinger, and F. Klaedtke. Mechanizing the powerset construction for
+restricted classes of !-automata. In ATVA'07 , volume 4762 of LNCS , pages 223{
+236. Springer, 2007.
+6. A. Duret-Lutz. LTL translation improvements in Spot. In VECoS'11 , eWiC.
+British Computer Society, 2011.
+7. A. Duret-Lutz and D. Poitrenaud. SPOT: An extensible model checking library
+using transition-based generalized B uchi automata. In MASCOTS 2004 , pages
+76{83. IEEE, 2004.
+8. R. Ehlers and B. Finkbeiner. On the virtue of patience: Minimizing B uchi au-
+tomata. In SPIN 2010 , volume 6349 of LNCS , pages 129{145. Springer, 2010.
+9. K. Etessami and G. J. Holzmann. Optimizing B uchi Automata. In CONCUR'00 ,
+volume 1877 of LNCS , pages 153{167. Springer, 2000.
+10. C. Fritz. Constructing B uchi automata from linear temporal logic using simulation
+relations for alternating B uchi automata. In CIAA'03 , volume 2759 of LNCS , pages
+35{48. Springer, 2003.
+11. P. Gastin and D. Oddoux. Fast LTL to B uchi Automata Translation. In CAV'01 ,
+volume 2102 of LNCS , pages 53{65. Springer, 2001.
+12. D. Giannakopoulou and F. Lerda. From States to Transitions: Improving Transla-
+tion of LTL Formulae to B uchi Automata. In FORTE'02 , volume 2529 of LNCS ,
+pages 308{326. Springer, 2002.
+
+--- Page 20 ---
+13. C. L oding. Ecient minimization of deterministic weak omega-automata. Infor-
+mation Processing Letters , 79(3):105{109, 2001.
+14. Z. Manna and A. Pnueli. A hierarchy of temporal properties. In PODC'90 , pages
+377{410. ACM press, 1990.
+15. A. Pnueli. The temporal logic of programs. In FOCS'77 , pages 46{57. IEEE, 1977.
+16. K. Y. Rozier and M. Y. Vardi. LTL Satisability Checking. In SPIN 2007 , volume
+4595 of LNCS , pages 149{167. Springer, 2007.
+17. R. Sebastiani and S. Tonetta. "More Deterministic" vs. "Smaller" B uchi Automata
+for Ecient LTL Model Checking. In CHARME 2003 , volume 2860 of LNCS , pages
+126{140. Springer, 2003.
+18. F. Somenzi and R. Bloem. Ecient B uchi Automata from LTL Formulae. In
+CAV'00 , volume 1855 of LNCS , pages 248{263. Springer, 2000.
+19. H. Tauriainen and K. Heljanko. Testing LTL formula translation into B uchi au-
+tomata. STTT , 4(1):57{70, 2002.
+
+--- Page 21 ---
+A lbtt parametters used for formulae generation
+Here are the precise parameters for lbtt to produce the sets Benchmark1 and
+Benchmark2 of random formulae. Note that we also added negations of these
+formulae to the sets.
+Benchmark1 (100 formulae + their negations):
+Size = 15...20
+Propositions = 8
+AbbreviatedOperators = Yes
+GenerateMode = Normal
+OutputMode = NNF
+PropositionPriority = 50
+TruePriority = 1
+FalsePriority = 1
+AndPriority = 10
+OrPriority = 10
+XorPriority = 0
+EquivalencePriority = 0
+BeforePriority = 0
+StrongReleasePriority = 0
+WeakUntilPriority = 0
+UntilPriority = 30
+DefaultOperatorPriority = 15
+The parameters for Benchmark2 (500 formulae + their negations) are the same
+except the rst one, where set:
+Size = 15...30

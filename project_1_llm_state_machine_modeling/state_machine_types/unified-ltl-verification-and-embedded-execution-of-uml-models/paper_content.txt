@@ -1,0 +1,924 @@
+--- Page 1 ---
+Unified LTL Verificationand
+Embedded Execution ofUML Models
+Valentin Besnard
+ERIS,ESEO-TECH
+Angers, France
+valentin.besnard@eseo.frMatthias Brun
+ERIS,ESEO-TECH
+Angers, France
+matthias.brun@eseo.frFrédéricJouault
+ERIS,ESEO-TECH
+Angers, France
+frederic.jouault@eseo.fr
+CiprianTeodorov
+Lab-STICC UMRCNRS 6285,
+ENSTA Bretagne
+Brest,France
+ciprian.teodorov@ensta-bretagne.frPhilippe Dhaussy
+Lab-STICC UMRCNRS 6285,
+ENSTA Bretagne
+Brest,France
+philippe.dhaussy@ensta-bretagne.fr
+ABSTRACT
+The increasing complexity of embedded systems leads to uncertain
+behaviors, securityflaws, and design mistakes. Withmodel-based
+engineering, early diagnosis of such issues is made possible by ver-
+ification tools working on design models. However, three severe
+drawbacks remain to be fixed. First, transforming design models
+intoexecutablecodecreatesasemanticgapbetweenmodelsand
+code.Furthermore,forformalverification,asecondtransformation
+(towardsaformallanguage)isgenerallyrequired,whichcompli-
+catesthediagnosisprocess.Finally,anequivalencerelationbetween
+verifiedformalmodelsand deployedcodeshouldbe built,proven,
+andmaintained.Totacklethese issues,weintroduceaUMLinter-
+preterthatfulfillsmultiplepurposes:simulation,formalverification,
+andexecutiononbothdesktopcomputerandbare-metalembedded
+target. Using a single interpreter for all these activities ensures
+operationalsemanticsconsistency.Weillustrateourapproachon
+a level crossing example, showing verification of LTL properties
+on a desktop computer, as well as execution on a stm32 embedded
+target.
+CCS CONCEPTS
+·Software and its engineering →Formal software verification ;
+·Computersystemsorganization →Embedded software ;
+KEYWORDS
+UMLExecution,ModelInterpretation,LTLModel-Checking,Em-
+beddedSystems
+ACMReference Format:
+Valentin Besnard, Matthias Brun, Frédéric Jouault, Ciprian Teodorov,
+and Philippe Dhaussy. 2018. Unified LTL Verification and Embedded Ex-
+ecution of UML Models. In ACM/IEEE 21th International Conference on
+Model Driven Engineering Languages and Systems (MODELS ’18), October
+Permissionto make digitalor hard copies of allorpart ofthis work for personalor
+classroom use is granted without fee provided that copies are not made or distributed
+forprofitorcommercialadvantageandthatcopiesbearthisnoticeandthefullcitation
+onthefirstpage.Copyrights forcomponentsofthisworkownedbyothersthanthe
+author(s)mustbehonored.Abstractingwithcreditispermitted.Tocopyotherwise,or
+republish,topostonserversortoredistributetolists,requirespriorspecificpermission
+and/or a fee. Request permissions from permissions@acm.org.
+MODELS’18, October 14ś19,2018, Copenhagen, Denmark
+©2018 Copyright heldby the owner/author(s). Publicationrightslicensed to ACM.
+ACM ISBN 978-1-4503-4949-9/18/10...$15.00
+https://doi.org/10.1145/3239372.323939514ś19, 2018, Copenhagen, Denmark. ACM, New York, NY, USA, 11 pages.
+https://doi.org/10.1145/3239372.3239395
+1 INTRODUCTION
+Embedded systems and cyber-physical systems tend to become
+moreandmorecomplexduetotheemergenceofnewneedsand
+applications (e.g., Internet of Things, robotics, smart cities). Not
+onlyarethesedevicesmoredifficulttomakesafeandsecure,but
+these software intensive systems are also more exposed to both
+design and programming mistakes. Therefore, the implementation
+of embedded applications becomes a tedious and error-prone task.
+With model-based engineering, dedicated design methods have
+appearedtosimulate,explore, andvalidate modelsatearlydesign
+stages.Nowadays,theindustrystandardforusingmodelsinem-
+bedded systems is code generation that involves the use of two
+transformations. The first one provides a formal model required
+for verification at early design stages. The second one produces
+actual application code, and may be automatic, semi-automatic, or
+entirelymanual.
+While this classical approach enables users to both verify the
+models and execute the systems resulting from these models, three
+severe drawbacks remain. The first one is the semantic gap created
+by code generation, between models and their corresponding code.
+This gap makes it more difficult to link code fragments to concepts
+of the design model. The second issue is caused by transforma-
+tions into formal models. These transformations complicate the
+understanding of diagnosis results because these results are not
+directly expressed in terms of design concepts. The last problem is
+theuse ofmultiple separate definitions (i.e.,atdesign modellevel,
+in formal model generator, and in executable code generator) of
+themodelinglanguagesemanticsthataregenerallynot provento
+beequivalent.Infact,alloftheseissuesaredirectlylinkedtothe
+existenceofmultipleimplementationsofthelanguagesemantics.
+This isaresult ofusing transformations intodifferentlanguages.
+To tackletheseproblems, weavoidhavingmultipledefinitions
+of the modeling language semantics. Instead, we rely ona single
+semanticsdefinitionthatwespecificallybuildtosupportallthree
+activities:simulation,formalverification, and execution. In prac-
+tice, this single definition takes the form of a model interpreter for
+UML (or a subset of UML). This interpreter can be remotely con-
+trolledbydiagnosistoolstoverifyandvalidatethedesignmodel.
+
+--- Page 2 ---
+MODELS’18,October14–19,2018,Copenhagen, Denmark V.Besnardet al.
+Therewith,itprovidesanexecutionplatformrunningeitherwith
+OSsupportondesktopcomputersorwithoutOS(bare-metal)on
+resourceconstrainedembeddedtargets.Thisapproachimprovesdi-
+agnosis understandability and verification reliability because what
+isexecutedisreally what has been checked.
+To show the versatility of our approach, we have connected our
+interpretertoanextensionoftheOBPmodel-checker[ 36,37](https:
+//plug-obp.github.io/) to enable formal property verification. Using
+thissetuponalevelcrossingcontrollermodel,wehavesuccessfully
+verifiedasetofpropertiesexpressedwithLinearTemporalLogic
+(LTL).
+Theremainderofthispaperisstructuredasfollows.Section2
+introducesourillustratingexample.Section3showsanoverviewof
+theprojectbefore we describe thedesign ofthemodelinterpreter
+in Section 4. Then, we discuss the communication architecture
+usedtocontrolmodelexecution,aswellasitsextensiontosupport
+formalverificationinSection 5. In Section 6, we present the results
+ofapplyingtheapproachtoourexample.Section7reviewssome
+relatedwork, andwe conclude inSection 8.
+Figure 1:Overview ofthelevelcrossing system.
+Figure 2: Composite structure diagram of the level crossing
+model.
+2 ILLUSTRATING EXAMPLE
+To illustrate our approach, we use amodel of a level crossing con-
+troller as example (Figure 1). Level crossing protection systems are
+used at intersections of railways and roads to warn and protect
+road users from train traffic. These systems are typically equipped
+withsensors,thatwewillcall EntranceTC andExitTC(TCmeans
+Track Circuit),to detect trains, aswell as actuatorssuch as a Gate
+orflashinglights, that we willcall RoadSign andRailwaySign .
+AUMLmodelofalevelcrossingcontrollerhasbeendesigned
+using active objects with state machine behaviors [ 29] (Figure 2Figure 3:State machines ofthe level crossing model.
+andFigure3).Guardsandeffectsofthestatemachinetransitions
+are expressedusing anaction languageallowing arithmeticaland
+logical operations, as well as sending and receiving events to other
+active objects.
+TheController coordinates the movement of the Gateas well
+as the activation of both RoadSign andRailwaySign according to
+signalsreceivedfrom EntranceTC andExitTC.Theentrancesensors
+warn the system of train arrivals by sending the entrancesignal to
+thecontroller. In a same way, the exitsensornotifies the controller
+when the train leaves the level crossingby sending the exitsignal.
+Toprocessthesesignals,the Controller statemachinehastwoloops.
+The first one is dedicated to closing the Gateand switching on the
+RoadSign beforethetrainpassage.Theauthorizationisgiventothe
+train to pass by switching off the railwaySign . The second one is
+responsible for opening the Gateand switching off the RoadSign
+when nomore trainsare engaged.
+
+--- Page 3 ---
+UnifiedLTLVerification andEmbeddedExecution ofUMLModels MODELS’18,October14–19,2018,Copenhagen, Denmark
+In addition to simulation and state-space exploration on this
+model(asdepictedin[ 5]),ourgoalinthispaperistoillustratethat
+wecanformallyverifypropertiesthroughmodel-checking.Forthis
+example,wehaveselectedfourpropertiestocheckthereliability
+ofthe system:
+(1) TheGateisclosedwhen the Trainisonthe level crossing.
+(2)The light of the RoadSign is active when the Trainis on the
+level crossing.
+(3) TheGatefinally opensafter being closed.
+(4)The light of the RoadSign finally shuts down after being
+activated.
+3 OVERVIEW
+To better understand the scope of this work, Figure 4 gives an
+overviewofthe UMLinterpreter project.
+First, an executable UML Model (XMI) of the system under study
+must be designed and saved under a dedicated formalism (here
+XMI). This model is typically produced during the design phase
+of the system development. It can then be serialized into C pro-
+gramming language for being loaded at compile-time in the model
+interpreter. The serialization generates only data needed for model
+interpretation ( UML Model (C) ) and data types used to access in-
+stancesoftheUMLmodelinouractionlanguage( DataTypesfor
+Action Language ). Contrary to code generation, no functions are
+generated by this serializer for model execution (except for transi-
+tionsguardsandeffects).Infact,theexecutionsemanticsisgiven
+explicitly by the Interpreter Source Code . The UML model and data
+types (data) as well as source code of the interpreter (program) are
+compiled and linked together to give the executable code of the
+Interpreter .
+Figure 4:Overview oftheUML interpreterproject.This executable code is composed of four important modules.
+TheRuntime Model is the model used for execution. It consists
+of the static part of the model produced by the serializer and of
+its associated dynamic part used to store values of dynamic data
+(e.g., values of attributes, values of current state of state machines).
+TheInterpreter module is in chargeof themodelinterpretationof
+theRuntimeModel .Itmustexecutethesysteminconformanceto
+the behavior described in this model with the execution semantics
+provided by this Interpreter . It is also possible to connect a Diag-
+nosisTool to this model interpreterusing the Pilotmodule and the
+Converter softwarethatconvertsTCPintotheappropriateproto-
+col used by the target. In case of model-checking, the Pilotuses
+services of the Checkerto evaluate some boolean expressions of
+formal properties. This approach ensures that the same semantics
+definitionisusedforformalverificationofthesystemandforits
+executiononthe real embeddedtarget.
+The executed system can also interact with its Environment
+through inputs and outputs of the target, which can be a desk-
+topcomputeroranembeddedbare-metaltarget.Tosumup,this
+project offersasolution formodel execution andmodel diagnosis
+ofUMLmodelsusingasinglesemanticsdefinitionforvariousac-
+tivities (e.g., simulation, model-checking,execution) typicalof the
+embeddedsystemsdevelopmentprocess.
+4 INTERPRETERDESIGN AND
+IMPLEMENTATION DETAILS
+The design of the UML Interpreter is guided by the trade-off be-
+tween the embedded system memory and performance constraints,
+and the need to provide powerful diagnosis facilities. To reach this
+goal, we present the process employed to generate the model used
+atruntime,theactionlanguageusedtoexpressthesystembehavior,
+as well as the implementedexecutionmechanism.
+4.1 Generation oftheRuntime Model
+To deal with embedded constraints, a key point of our approach is
+thegenerationprocess oftheUML model, usedby theinterpreter
+at runtime (Figure 6). First, a model of the system under study
+must be designed. This design model can be defined using either a
+Figure 5:SerializationofaUML class into C language.
+
+--- Page 4 ---
+MODELS’18,October14–19,2018,Copenhagen, Denmark V.Besnardet al.
+Figure 6:Process used forruntime modelgeneration.
+textual editor (Figure 5.A) [ 20], or a graphical editor (Figure 5.B)
+[21],andisgenerallysavedundertheXMLmetadatainterchange
+(XMI)format.However,thisformatiscumbersomeandnotsuitable
+for being loaded on an embedded microcontroller. To reduce the
+memory footprint and ease model execution, the UML model in
+XMI is serialized into C language, the implementation language
+of our interpreter. This serialization can be seen as the way to
+load the model into the interpreter. In practice, any element of
+themodelisconvertedintoastructinitializerinClanguage.For
+example,theinstanceofthe Controller classofthelevelcrossing
+systemisserializedasdepictedinFigure5.C.Unlikecodegeneration
+approachesthatgeneratebothdataandprogramrequiredtoexecute
+thesystem,hereonlydatarepresentingthestaticpartofthemodel
+are generated. The whole program required to execute the system
+isprovidedbythe interpreter sourcecode (Figure 6).
+Moreover,thisUMLtoCserializeralsogeneratesmodel-specific
+data types used by the action language to access UML instances
+at runtime. At this point, all the source code is available and can
+be compiled with a C compiler to produce the executable code
+of the system (Figure 6). This executable artifact contains both
+the executable code of theinterpreter and the runtime modelthat
+willbethereferenceformodelexecutionanddiagnosis.Hence,the
+UMLmodelinXMIformatmaybeconsideredaviewoftheruntime
+model.
+4.2 Interpreter Design
+Tobetterunderstandthedesignofthemodelinterpreter,Figure7
+introduces a simplified class diagram of its internal architecture.
+ThedifferentCmodulesoftheinterpreterarerepresentedbyclassesFigure 7:Classdiagram ofthe interpreterdesign.
+intheclassdiagram.The Metamodel packageprovidestheUML
+metamodelsupplyingclass,compositestructure,andstatemachine
+concepts. In practice, each class of the metamodel is defined into C
+languageasastructuredtypeandeachattributeisrepresentedasa
+field of that structure. The Modelpackage contains the model and
+datatypesgeneratedbytheUMLtoCserializer.TheUMLmodel
+is encapsulated in the Modelclass and represents the static part of
+this model. Data type classes are used by the action language to
+access data of the model in a straightforward way. The Storeclass
+representsthedynamicpartofthemodelcomposedofcurrentstate
+ofstatemachines,eventpools,andvaluesofattributes.The Peers
+classprovideslinksbetweenactiveobjectsformodelinterpretation.
+To interpret a model according to its execution semantics, an
+executioncoreisrequired.Thisisthepurposeofthe Interpreter
+package.The Interpreter classistherootclassformodelinterpre-
+tation with the interpret() method as entry point. Its goal is to
+
+--- Page 5 ---
+UnifiedLTLVerification andEmbeddedExecution ofUMLModels MODELS’18,October14–19,2018,Copenhagen, Denmark
+coordinatetheexecutionoftheactiveobjects.Anactiveobjectis
+defined for each part of the composite structure diagram with a
+UMLstatemachinethatdescribesitsbehavior(e.g.,Figure2and
+Figure3inourexample).Anactiveobjectalsomakesthelinkbe-
+tween the static and the dynamic part of the model (e.g., to link an
+attribute withamemory area where its valuecan be stored).
+The active object state machine is executed according to the
+eventsreceivedbyitseventpool,eventsthattriggerthestatema-
+chinetransitions.Aneventpooliscomposedofadynamicpartthat
+storesreceived events,andthe metainformationthatcontainsits
+characteristics(e.g.,size,priority management).Eventsareadded
+inandconsumedbythe eventpoolduringmodelexecution.
+We can notice that the order of event dispatching and the in-
+terpretation ofthereceptionofanevent occurrencethat doesnot
+matchavalidtriggerareleftundefinedbytheUMLstandard.For
+these semantic variation points, we have implemented two algo-
+rithms that both dispatch events following their arrival order. The
+firstoneprovidesafirst-in-first-out(FIFO)algorithmandignores
+events that do not match a valid trigger (from a current state). The
+secondonedefersthesekindsofeventsforbeingprocessedlater.
+In practice, the abstract EventPool is provided by a C header file.
+Thechoiceoftheconcreteeventpool( FifoEventPool orOrderedList-
+DeferredEventPool C module) used by the interpreter is done at
+compilation time.
+Theexecutionofthestatemachinealsoneedstoevaluateguards
+andtoexecuteeffectsassociatedtothestatemachinetransitions.
+The classes GuardEvaluator andEffectInterpreter provide required
+mechanisms for these evaluations and executions through opaque
+expressionsandopaquebehaviors,using an action language.
+4.3 ActionLanguage
+Modeling languages often require action languages to ease the de-
+scription of model behaviors (e.g., for UML: Alf [ 27], OAL [18],
+ASL[16],UAL[26]).Asmentionedpreviously,inourdesignmodel,
+an action language is employed to specify guards through UML
+opaque expressions and to describe effects of state machine transi-
+tionsthroughUMLopaquebehaviors (Figure3).Toexecutethese
+actionlanguageexpressions, severalsolutionsmaybeconsidered:
+AST interpretation, bytecode interpretation, or native code exe-
+cution. For a performance purpose, we have chosen to base our
+approachonCnativecodeexecution,thenativelanguageofour
+interpreter.Wehavethendefinedanactionlanguagethatreusesthe
+syntaxof theC programminglanguage forarithmeticandlogical
+operations as well as conditions andloopsexpressions.
+However,usingCcode,itremainsdifficultforuserstoexpress
+domain-specificbehaviorsthatarerelatedtoimplementation-specific
+concepts of the interpreter. To address this issue, our action lan-
+guage based on C has been enhanced with a syntactic sugar for
+sendingevents,formanipulatingtheeventpools,andforaccessing
+the model elements such as attributes, states, and event identifiers.
+AlltheseexpressionsusedintheUMLdesignmodelaresyntacti-
+callytransformedintoCfunctionsduringthemodelserialization.
+These C functions are used at runtime to evaluate guards and exe-
+cute effects (using GuardEvaluator andEffectInterpreter previously
+introduced, Figure 7). Figure 8 shows an example of an opaque be-
+haviorexpressedinthedesignmodel,anditsequivalentCfunctionFigure 8:Serializationofactionlanguage expressions.
+generated during the model serialization. This opaque behavior,
+extracted from the illustrating example, performs the sending of a
+closeeventto the gateactive object.
+4.4 Interpreter Execution
+OncetheUMLmodelhasbeensetupon theembeddedtarget,its
+executioncanbelaunchedthroughaninitializationstepfollowed
+byasequenceofinterpretationsteps.
+At startup, all active objects are initialized to fire the initial
+transitionoftheirstatemachinefromtheinitialpseudo-statetothe
+firststate. Whenthis initialization has beenperformed, themodel
+executionisdividedintointerpretationstepsinchargeoffiringthe
+state machine transitions.
+Each interpretation step begins by computing the set of fireable
+transitions(i.e.,transitionsthathave theirtrigger andtheir guard
+satisfied).Thestependsbyfiringthefirstfireabletransitionofeach
+active object. Note that if the model is deterministic at most one
+transitionisfireableat eachexecutionpoint.
+As a result, for each fired transition, the event matching the
+trigger is consumed, the current state of the corresponding state
+machine is updated, and the effect associated to the transition is
+carriedout.
+5 CONTROLMODEL EXECUTION FOR
+DIAGNOSIS PURPOSE
+In order to ease the integration with diagnosis tools, our UML
+interpreterprovidesadedicatedinterfacetoconnectthemandto
+controlmodelexecution.Thissectiondescribesthisinterface,the
+technique used to verify a set of propositions using the interpreter,
+
+--- Page 6 ---
+MODELS’18,October14–19,2018,Copenhagen, Denmark V.Besnardet al.
+Figure9:Classdiagramofcomponentsallowingthecontrol
+ofmodelexecution.
+and explains how a model-checker can take advantage of these
+mechanismsto verifyLTLpropertiesonthe runtimemodel.
+5.1 Design oftheDiagnosisPart
+Toperformmodeldiagnosis(e.g.,simulationorverification)directly
+ontheexecutablecode,ourinterpretermustbecontrolledremotely
+by diagnosis tools. The class diagram in Figure 9 focuses on the
+componentsneededfor the diagnosisinterface.
+ThePilotclass is the centralelement of this architecture. It coor-
+dinatesthe Interpreter executionwithrequestssentbythediagnosis
+tools through the communication stream. The target-specific Con-
+nectionisresponsibleforconnectingthemodelinterpretertothe
+chosen diagnosis tool and the Communication class offers facilities
+to thePilotfor readingandwritingondatastreams. Furthermore,
+thePilotcan also use services provided by the Checkerto evaluate
+arbitrary boolean-valuedexpressionsonthe runtimeexecution.
+Using this architecture, every diagnosis may be performed on
+both desktop computer and embedded target. For instance, for a
+hardware-in-the-loop simulation the diagnosis tools can be con-
+nected to the embedded target, while for model-checking the desk-
+top computer isusually more suitable.
+5.2 Connecting theDiagnosis Tools
+To facilitate the connection of diagnosis tools to multiple kinds
+ofembeddedtargetsordesktopcomputers,wehaveintroducedaFigure 10:Architecture used to connect diagnosis tools.
+converter (Figure 10). The role of the converter is to translate TCP
+frames into the appropriate protocol available on the target (i.e.,
+serialonembeddedtargets orTCP ondesktop computers).
+To connect to our model interpreter, diagnosis tools need to
+implementa TCP client andtheapplication layer protocol used to
+exchange communicationmessageswiththe Pilot.
+Thisprotocoldefinesfiverequestsforcontrollingmodelinter-
+pretation:
+Get configuration collects the current memory state of the
+interpreter(i.e.,the store)whichisthedynamicpartofthe
+model.Theconfigurationistypicallycomposedofthecur-
+rent state of all active objects, values of their attributes, and
+the contentoftheir eventpools.
+Setconfiguration loadsaconfigurationasthecurrent mem-
+ory state of the interpreter. This request enables to set each
+activeobjectinadesiredstate,tosetvaluesoftheirattributes,
+andto injecteventsintheir eventpools.
+Get fireabletransitions collects transitions that have their
+triggerandtheirguardsatisfiedinthecurrentconfiguration.
+Thesetransitionscouldbefiredonthenextinterpretation
+step.
+Fire transition fires a single transition of a given state ma-
+chineactiveobject.Onlyfireabletransitionsofthecurrent
+configuration can be fired using this request. Events that
+may trigger the fired transition are consumed and the effect
+associatedto this transitionisexecuted.
+Resetinterpreter restartstheinterpreterfromtheinitialstate
+of the model. This resets all active objects in their initial
+states,resetsattributestotheirdefaultvalues,andempties
+eventpools.
+This protocol is sufficient to control any step-by-step model exe-
+cution with backward navigation facilities (as omniscient debug-
+ging[6]).Ithasbeensuccessfullyusedtoperformstate-spaceex-
+plorationofmodelsondesktopcomputersandembeddedtargets
+[5].In thisstudy, state-spaceexplorationhasbeenenhancedwith
+propertiesverification for model-checking.
+5.3 Verification ofFormal Properties
+During state-spaceexplorations,model-checkingtools aim atver-
+ifying formal properties. A formal property consists of multiple
+expressions,calledatomicpropositions,linkedtogetherwithlogical
+operators.
+Thesepropositionsareexpressedintermsofthemodelconcepts.
+However,theknowledgeoftheconfigurationisnotsufficientfor
+theirevaluationthat also dependson themodelsemantics, which
+is implemented into the interpreter. Therefore, the model-checker
+must involve the interpreter in the verification process for the
+evaluation ofthesepropositions.
+
+--- Page 7 ---
+UnifiedLTLVerification andEmbeddedExecution ofUMLModels MODELS’18,October14–19,2018,Copenhagen, Denmark
+Forthispurpose,thecommunicationprotocolhasbeenextended
+withone request to submitatomicpropositions to the interpreter:
+Evaluateatomic propositions sendsasetofatomicproposi-
+tionsandreturnsresultsoftheirevaluations.Theinterpreter
+performs these evaluations on the runtime model using ser-
+vices providedbythe Checker(Figure 9).
+:DiagnosisTool :Converter :Interpreter
+evaluatePropositions(
+stringProps)
+loop [for each stringProp in stringProps]
+retNew = isNew(stringProp)
+alt [retNew == TRUE]
+binProp = compile(stringProp)
+loop [for each stringProp in stringProps]
+retLoaded = isLoaded(stringProp)
+alt [retLoaded == TRUE]
+loadIndex = getLoadIndex(stringProp)
+loadIndex = getNewLoadIndex(stringProp)
+loadProposition(binProp, loadIndex)
+evaluatePropositions(loadIndexes)
+results
+results
+Figure 11: Sequence diagram for the evaluation of a set of
+atomic propositions.
+The atomic propositions are expressed in the same action lan-
+guageasthedesignmodel(cf.Section4.3).Theseexpressionsare
+side-effect free and are evaluated directly on the target platform
+in the same way as the guards of the model. However, contrary
+to guards that are compiled at the same time as the model, atomic
+propositionsarenotknownatcompilationtime.Theyrequiretobe
+compiled and loaded on the interpreter afterwards. To achieve this,
+the converter (Figure 10) is involved in the process: ( i) to generate
+the C code corresponding to atomic propositions, ( ii) to compile it,
+and (iii) to transmit the executable code to the checker of the inter-
+preter. Figure 11 details this process for the evaluation of atomic
+propositions withthe interpreter.
+Firstly,thediagnosistoolsendsthesetofatomicpropositions,
+as strings ( stringProp ), to the converter. For each proposition en-
+countered, the converter generates and compiles the C function in
+chargeofits evaluation onthe runtimemodel.
+Foradesktop computer usage,theresultingexecutablecode
+(binProp)isadynamiclibrary,thatcanbeloadeddynamicallybythe
+hostoperatingsystem.Forperformancepurpose,generationand
+compilation steps are ignored if the atomic proposition has already
+beencompiled.Then,theconverterrequeststheinterpretertoload
+the executable code of atomic propositions if it is not currently
+available in its memory space. This operation uses a loadIndexto identify each proposition on the interpreter. The interpreter
+performs propositions loading using the services of the Checker.
+When the checker receives the atomic propositions, it opens the
+correspondingClibraries,loadstheappropriateCfunctions,and
+computesthefunctionpointers needed to calltherespective func-
+tions. Finally, these function calls will be performedby the checker
+whentheconverterrequeststoevaluatethesepropositionsatthe
+end ofthe process.
+For thebare-metal targets , the dynamic libraries cannot be
+usedforloadingdynamicallyexecutablecodeduetotheabsence
+of operating system. However, through the same process, the exe-
+cutable code of atomic propositions can be compiled into binary
+code and transmitted by the converter to the interpreter. When
+receivedbytheinterpreter,thisbinarycodeisstoredintovolatile
+memory (RAM) and the function calls proceed, in the same way,
+using function pointers.
+5.4 Applicationto Model-Checking
+To show the versatility of our diagnosis module, we present in this
+section how our interpreter can be coupled with a model-checking
+engine, which provides native formal property verification. In our
+experiments,wehaveusedanextensionoftheOBPmodel-checking
+engine [36,37] but the integration process is general and can be
+usedwithothermodel-checking tools.
+Figure12describesthearchitectureusedforthispurpose.Fol-
+lowing the principle presented in Section 5.2 and Section 5.3, a
+dedicated execution runtime ( ProxyRuntime ) implements a TCP
+clienttoconnecttotheinterpreterandtheapplicationlayerpro-
+tocol to remotely control model execution and evaluate atomic
+propositions.
+The properties to be verified are expressed using the linear tem-
+poral logic (LTL) language, which binds the atomic propositions,
+expressedusingouractionlanguage,tobooleanvaluedfunctions.
+Figure 12: Architecture used for formal verification with a
+model-checker.
+
+--- Page 8 ---
+MODELS’18,October14–19,2018,Copenhagen, Denmark V.Besnardet al.
+Thisdecouplesthetemporallogicoperatorsfromtheatomicpropo-
+sitions, enabling the use of standard model-checking algorithms
+for the verification. In practice the LTL property is converted to
+a Büchi automaton using the LTL3BA library [ 2]. The semantics
+oftheBüchiautomaton isobtaineddynamically throughthededi-
+catedBARuntime .TheresultingBüchiautomatonissynchronously
+composed with the Büchi interpretation of the model semantics.
+Theverificationalgorithm,usedinourprototype,isbasedonthe
+"nested DFS" Büchi emptiness checking algorithm proposed by
+Gaiserand Schwoonin[ 14].Duringtheverification,thesynchro-
+nizationbetween theBüchiautomatonrepresentingtheproperty
+and the Büchi interpretation of the model semantics is based on
+thevaluationoftheatomicpropositions.Thisvaluationisobtained
+by evaluating the propositional atoms with the Checkermodule in
+theconfigurationsexposedbyourinterpreter.Thecouplingwith
+the model-checking algorithm is realizedthrough a ProxyRuntime ,
+which acts as a wrapper translating the requests of the model-
+checking algorithm to network API calls onour UMLinterpreter.
+Themodel-checkersetsthecurrentconfigurationoftheinter-
+preter using a Set configuration request. From this configuration,
+themodel-checkingalgorithmrequeststhelistofallfireabletransi-
+tionsfromtheruntimemodelusinga Getfireabletransitions request.
+Each fireable transition is then fired, using a Fire transition request,
+and theresulting configuration is collected, using a Get configura-
+tionrequest. All atomic propositions are evaluated in this target
+configuration,usingthe Evaluateatomicpropositions request.Based
+on the resulting valuation the model-checker computes the syn-
+chronized transitions allowed by the Büchi property automaton.
+Thesesynchronizedtransitionsarefired,andtheresultingcompos-
+iteconfigurations(consistingofthetargetmodelconfigurationand
+the target Büchi automaton configuration) are matched with the
+knownsetofconfigurations.Ifthenewconfigurationisnotalready
+presentintheknowset,theconfigurationisadded.Thisprocess
+continuesuntileitherafixpointontheknownsetisreachedora
+Büchiacceptancecycle,representingacounter-example,isdetected.
+Theinterestedreadershouldrefertothe"nestedDFS"algorithm,
+in[14], for adetailedpresentation ofthis verification algorithm.
+6 EXPERIMENTS AND RESULTS
+Our approach has been applied to the level crossing example intro-
+ducedinSection2.Tocheckthesystemreliability,weverifyformal
+LTLpropertiesontheruntimemodelthroughmodel-checking,as
+describedinthe previous section.
+Ourvalidationstrategyinvolvesanabstractionoftheenviron-
+ment as shown in Figure 13. For this purpose, we integrate into
+the design model a Trainactive object that models the behavior of
+atrainloopingonthelevelcrossing.Wealsointroduceanautho-
+rization signal to synchronize the Trainwith theRailwaySign . The
+traintakesintoaccounttherailwaysignthroughthereceptionof
+this signal before passingonthe level crossing.
+The four properties that we want to verify on the system (intro-
+duced in Section 2) have been expressed into LTL formalism, using
+operators not ( !), or (||), and (&&), globally ( []), eventually ( <>),
+andimplies ( ->) :
+(1)"[] !(trainIsPassing && gateIsOpen)"
+(2)"[] !(trainIsPassing && roadSignIsOff)"(3)"[] (gateIsClosed -> <> gateIsOpen)"
+(4)"[] (roadSignIsOn -> <> roadSignIsOff)"
+These expressions involve the following atomic propositions
+written inour action language:
+•trainIsPassing = |train.state == PASSING|
+•gateIsClosed = |gate.state == CLOSED|
+•gateIsOpen = |gate.state == OPEN|
+•roadSignIsOn = |roadSign.state == ACTIVE|
+•roadSignIsOff = |roadSign.state == INACTIVE|
+Model-checkingofthesefourpropertieshavebeenperformed
+onbothvariantsoftheeventpool: FifoEventPool andOrderedList-
+DeferredEventPool ,introducedinSection 4.2.
+TheFifoEventPool implementation ignores events that do not
+match a valid trigger from a current state. With that event pool,
+verification of the fourth property results in failure: road sign can
+stayonwithoutswitchingoff.
+The message sequence chart (MSC) in Figure 14 helps us to
+understand the problem. This MSC has been generated using an
+executiontracefacilityofourinterpreter,basedonthePlantUML
+formalism (http://plantuml.com/). The diagram reveals that the
+execution stops suddenly just before the second passage of the
+trainonthelevelcrossing.Duringthatsecondloop,thetrainsends
+activation signalsto tcFarandtcClosethat are then transmitted to
+thecontrolleras entranceDetection signals.Wecannoticethatthese
+Figure 13:Environment used formodel-checking.
+
+--- Page 9 ---
+UnifiedLTLVerification andEmbeddedExecution ofUMLModels MODELS’18,October14–19,2018,Copenhagen, Denmark
+train:Train
+train:TraintcFar:EntranceTC
+tcFar:EntranceTCtcClose:EntranceTC
+tcClose:EntranceTCtcExit:ExitTC
+tcExit:ExitTCcontroller:Controller
+controller:ControllerrailwaySign:RailwaySign
+railwaySign:RailwaySignroadSign:RoadSign
+roadSign:RoadSigngate:eate
+gate:eatePassing Detection Detection Detection Idle Inactive Active Closed
+activation
+Idle
+exitDetection
+Detection
+switchOn
+WaitRailwaySignOn
+railwaySignOn
+Active
+activation
+Far
+entranceDetection
+Detection
+open
+WaiteateOpen
+gateOpen
+Open
+activation
+Close
+entranceDetection
+Detection
+switchOff
+WaitRoadSignOff
+roadSignOff
+Inactive Idle
+Figure 14:Message sequencechart ofan execution trace ofthelevelcrossing system using FifoEventPool .
+two signals are received by the controller while it has not finished
+processingallevents of thefirst train passage. Inaccordance with
+our event pool semantics, these two signals are ignored by the
+controllerthat iscurrentlyopening the gateand switching off the
+roadSign. This results in a deadlock when the controller finally
+reached its Idlestate (its event pool is empty and no other active
+object can evolve). This observation has been confirmed by the
+model-checker that detects2deadlocksonthe model.
+Thesecondeventpoolimplementation( OrderedListDeferredE-
+ventPool)doesnotignoreevents,butmaydeferthemforbeingpro-
+cessed later.With that event pool,the verification ofthe four LTL
+properties is successful. With this event pool semantics, even if en-
+tranceDetection signalsarereceivedtooearlybythecontroller,these
+events are deferred to be processed when the controller reaches
+itsIdlestate. This execution semantics avoids previously observed
+deadlocksandenables to satisfy the expectedproperties.Thestate-spaceexploredbythemodel-checkercontains173con-
+figurations and 276 transitions with the first event pool implemen-
+tation(FifoEventPool ),and122configurationsand209transitions
+withthesecondone( OrderedListDeferredEventPool ).Intermsofper-
+formance,theformalverificationofthefourpropertiesonadesktop
+computer(Intel ®Core™i7-8550UCPUat1.80GHzwith 4cores, 8
+threads at4GHz maximum frequency, 16GB DDR42400MHz RAM)
+takes,onaverage,1.71secondsforthefirsttrialand0.96seconds
+for consecutive ones. The first trial is less efficient because the
+executable code associated to each atomic proposition has to be
+generatedandcompiledwhereasconsecutivetrialsignorethisstep
+(as mentionedinSection 5.3).
+Following the verification of the level crossing system, the in-
+terpreter and the runtime model have been deployed on an stm32
+bare-metal embedded target (1 CPU core at 168MHz, 192kB RAM).
+The resource overhead of the interpreter has not been evaluated
+yet. A complete study needs to be carried out to determine how
+
+--- Page 10 ---
+MODELS’18,October14–19,2018,Copenhagen, Denmark V.Besnardet al.
+muchextramemoryandexecutionresourcesarerequiredbythe
+interpreter infrastructure comparedto otherapproaches.
+7 RELATED WORK
+Theworkpresentedinthispaperfocusesonmodelverificationand
+executioninthe contextofembeddedsystems.
+Several other works aim at verifying and executing models such
+asthemodelingtoolsRationalSoftwareArchitect[ 22]andRhap-
+sody[15],themodelcompilersGUML[ 9]andUniComp[ 11],the
+language and modeling workbench GEMOC Studio [ 7], as well
+as the model interpreters Moliz [ 24] and Moka [ 33] usable with
+Papyrus [ 21]. A more complete review of tools based on execution
+ofUMLmodels can be foundin[12].
+RationalSoftwareArchitectandRhapsodymodelingtoolsenable
+UML model execution, simulation, and debugging through code
+generationcapabilities,butprovideneithermodelinterpretation
+normodel-checking facilities.
+GUML and UniComp are two model compilers that can directly
+compile UML models, into efficient executable code without trans-
+lation into intermediate programming languages. UniComp is also
+part of an automated round-trip approach [ 10,11] using back-
+propagation facilities to inject monitoring results in the design
+model.Ifbothcompilersenhancepredictabilityofgeneratedexe-
+cutables, they are not designed to apply model-checking on design
+models using the semantics they implement.
+GEMOC Studio enables the design of a generic environment
+withexecution engines [ 13,25,38]anddomain-specific tools(e.g.,
+graphical animator, trace execution manager, omniscient debug-
+ger). Moka and Moliz provides standalone UML model interpreters
+conformanttothefUML[ 28]standard,thatmaybeintegratedwith
+modelingtools(e.g.,Papyrus)forexecution,simulation,debugging,
+andtestingpurposes.However,modelinterpretersofthesetoolsdo
+not fit embedded requirements for model execution and may result
+in a lack of performance on such systems. Moreover, these tools
+do not currently address model-checking based on the operational
+semantics implementedintheirinterpreters.
+Using an approach more suited for embedded systems, some
+works suggest to transform UML design models into an interme-
+diateformalismbasedonstatemachines(e.g.,EHA[ 30,31],ESM
+[34]). Even if the resulting models can be used for diagnosis and
+verification,theyarenotabletoexecutethemonembeddedtargets.
+Instead, these works involve code generation from these models.
+Anothersimilarworkfordesigningembeddedsystemsismbeddr
+[39]. The design modelofthe systemis transformedintoaformal
+modelforbeinganalyzedbytheSMVmodel-checker,andintoC
+code for being executed on an embedded target. However, all these
+approachesrelyonseparatetransformationsforverificationand
+execution without proving the equivalence between the verified
+modelandtheexecutablecode.Furthermore,themodeldesigner
+may be exposed tothesemanticgapintroduced by these transfor-
+mations, whichimplies the use oflow-level tools(e.g.,GDB).
+Othertoolsprovidesupporttoanalyzeexecutionofembedded
+systems at model-level. The debugger introduced in [ 19] uses an
+embeddedmonitortoproducebackannotatedtracesandbuildUML
+sequenceandtimingdiagramsinreal-timeforvisualizingthetarget
+behavior. MDebugger [ 3] uses a model-to-model transformation toinstrument the design model before code generation. A debugging
+interfaceisthenusedtoremotelycontrolandanalyzemodelexe-
+cution.Hence,bothtoolstacklethesemanticgapbetweendesign
+models and code for debugging real-time embedded systems but
+do not dealwithverification throughmodel-checking.
+Focused on the issue related to embedded system execution,
+Squawk [ 35] and HaLVM [ 17] offer embedded virtual machines for
+JavaorHaskelllanguagesrespectively.Squawkprovidesacompact
+and position independent bytecode for efficient execution on wire-
+less sensor devices. HaLVM enables quickly prototyping operating
+system components on top of the Xen hypervisor. Other execution
+engines dedicated to sensor networks (e.g., Mote Runner [ 8], Maté
+[23]) or real-time virtual machines (e.g., Ovm [ 4], the IBM Java vir-
+tual machine [ 1], and the Esterel virtual machine [ 32]) face similar
+issues like our UML interpreter to optimize execution performance
+andcommunicationspeed.However,ourexecutionengineoperates
+onthe modellevelwhereas alltheseexecutionenginesactonthe
+code level withoutlinkswiththe designmodelof the system.
+8 CONCLUSION
+Model-basedengineeringfacilitatesthedevelopmentofcomplex
+embeddedsystemsthroughmodelverificationandmodelexecution
+techniques. This paper has presented an approach that unified
+model verification and model execution using a single operational
+semantics implementedinaUMLmodelinterpreter.
+ThisUMLmodelinterpreterisdesignedforbeingexecutedon
+bothdesktopcomputersandembeddedbare-metaltargets.Itcanbe
+remotelycontrolledthroughanapplicationlayerprotocol(ontop
+of TCP) to perform simulation and model-checking. The approach
+has been experimented on a level crossing controller, which has
+been verified by LTL model-checking before its deployment on the
+embeddedtarget executingthe same interpretationsemantics.
+That approach improves the continuum from design to runtime
+by applying simulation, model-checking, and execution on a single
+design model either on desktop computers or embedded micro-
+controllers.Usingasinglemodelandasingleoperationalsemantics
+implementedinasingleinterpreteravoidspotentialsemanticsgaps
+introduced by model transformations. Moreover, this approach
+avoids the equivalence problem between formal models used for
+verificationandexecutablecode: whatischeckediswhatisexecuted .
+Diagnosis results are also expressed in terms of design concepts,
+whicheasestheirunderstanding duringthe developmentprocess.
+To improve this execution engine, we further plan to improve
+UML coverage by supporting more UML concepts, and to study
+the impact of UML semantics variation points on model execution
+throughmodel-checking. To betteralign withindustrialpractices,
+wealsoconsiderimprovingouractionlanguagesupport,notably
+bymakingitpossibletoplugseveralactionlanguages.Moreover,a
+dedicatedstudyalsoneedstobeperformedtoevaluatetheresource
+overheadofthismodelinterpreterincomparisonwithotherrelated
+executionengines.
+ACKNOWLEDGMENTS
+This work is partially funded by Davidson Consulting. The au-
+thorsespeciallythankDavidOlivierforhisadviceandindustrial
+feedback.
+
+--- Page 11 ---
+UnifiedLTLVerification andEmbeddedExecution ofUMLModels MODELS’18,October14–19,2018,Copenhagen, Denmark
+REFERENCES
+[1]JoshuaAuerbach,DavidF.Bacon,BobBlainey,PerryCheng,MichaelDawson,
+MikeFulton,DavidGrove,DarrenHart,andMarkStoodley.2007. DesignandIm-
+plementationofaComprehensiveReal-timeJavaVirtualMachine.In Proceedings
+of the 7th ACM & IEEE International Conference on Embedded Software (EMSOFT
+’07).ACM,NewYork,NY,USA,249ś258. https://doi.org/10.1145/1289927.1289967
+[2]Tomáš Babiak, Mojmír Křetínský, Vojtěch Řehák, and Jan Strejček. 2012. LTL to
+BüchiAutomataTranslation:FastandMoreDeterministic.In ToolsandAlgorithms
+fortheConstructionandAnalysisofSystems ,CormacFlanaganandBarbaraKönig
+(Eds.).SpringerBerlin Heidelberg, Berlin, Heidelberg, 95ś109.
+[3]Mojtaba Bagherzadeh, Nicolas Hili, and Juergen Dingel. 2017. Model-level,
+Platform-independent Debugging in the Context of the Model-driven Devel-
+opment of Real-time Systems. In Proceedings of the 2017 11th Joint Meeting on
+Foundations of Software Engineering (ESEC/FSE 2017) . ACM, New York, NY, USA,
+419ś430. https://doi.org/10.1145/3106237.3106278
+[4]JasonBaker,AntonioCunei,ChapmanFlack,FilipPizlo,MarekProchazka,Jan
+Vitek, Austin Armbruster, Edward Pla, and David Holmes. 2006. A Real-time
+Java Virtual Machine for Avionics - An Experience Report. In Proceedings of
+the12thIEEEReal-TimeandEmbeddedTechnologyandApplicationsSymposium
+(RTAS ’06) . IEEE Computer Society, Washington, DC, USA, 384ś396. https:
+//doi.org/10.1109/RTAS.2006.7
+[5]Valentin Besnard, Matthias Brun, Philippe Dhaussy, Frédéric Jouault, David
+Olivier, and Ciprian Teodorov. 2017. Towards one Model Interpreter for Both
+DesignandDeployment.In 3rdInternationalWorkshoponExecutableModeling
+(EXE2017) . Austin,United States.
+[6]ErwanBousse,JonathanCorley,BenoitCombemale,JeffGray,andBenoitBaudry.
+2015. Supporting Efficientand Advanced OmniscientDebuggingforxDSMLs.
+InProceedings of the 2015 ACM SIGPLAN International Conference on Software
+Language Engineering (SLE 2015) . ACM, New York, NY, USA, 137ś148. https:
+//doi.org/10.1145/2814251.2814262
+[7]ErwanBousse,ThomasDegueule,DidierVojtisek,TanjaMayerhofer,JulienDean-
+toni, and Benoit Combemale. 2016. Execution Framework of the GEMOC Studio
+(ToolDemo).In Proceedingsofthe2016ACMSIGPLANInternationalConference
+on Software Language Engineering (SLE 2016) . ACM, New York, NY, USA, 84ś89.
+https://doi.org/10.1145/2997364.2997384
+[8]A.Caracas,T.Kramp,M.Baentsch,M.Oestreicher,T.Eirich,andI.Romanov.2009.
+MoteRunner:AMulti-languageVirtualMachineforSmallEmbeddedDevices.
+InProceedingsofthe2009ThirdInternationalConferenceonSensorTechnologies
+and Applications (SENSORCOMM ’09) . IEEE Computer Society, Washington, DC,
+USA,117ś125. https://doi.org/10.1109/SENSORCOMM.2009.27
+[9]AsmaCharfiSmaoui,ChokriMraidha,andPierreBoulet.2012. AnOptimized
+Compilation of UML State Machines. In ISORC - 15th IEEE International Sym-
+posiumon Object/Component/Service-Oriented Real-Time Distributed Computing .
+Shenzhen,China.
+[10]FedericoCiccozzi.2014. FromModelstoCodeandBack:ARound-tripApproachfor
+Model-drivenEngineeringof EmbeddedSystems . Ph.D. Dissertation.Mälardalen
+University, Embedded Systems.
+[11]Federico Ciccozzi. 2018. Unicomp: A Semantics-aware Model Compiler for
+OptimisedPredictableSoftware.In Proceedingsofthe40thInternationalConference
+onSoftwareEngineering:NewIdeasandEmergingResults (ICSE-NIER’18) .ACM,
+NewYork, NY, USA,41ś44. https://doi.org/10.1145/3183399.3183406
+[12]Federico Ciccozzi, Ivano Malavolta, and Bran Selic. 2018. Execution of UML
+models:asystematicreviewofresearchandpractice. Software&SystemsModeling
+(10 Apr 2018). https://doi.org/10.1007/s10270-018-0675-4
+[13]JulienDeantoni,PapaIssaDiallo,JoëlChampeau,BenoitCombemale,andCiprian
+Teodorov. 2014. Operational Semantics of the Model of Concurrency and Commu-
+nicationLanguage . ResearchReport RR-8584. INRIA.23pages.
+[14]AndreasGaiserandStefanSchwoon.2009. ComparisonofAlgorithmsforCheck-
+ingEmptinessonBüchiAutomata.In AnnualDoctoralWorkshoponMathematical
+and Engineering Methods in Computer Science (MEMICS’09) (OpenAccess Series
+inInformatics(OASIcs)) ,PetrHlinený,VáclavMatyáš,andTomášVojnar(Eds.),
+Vol. 13. Schloss DagstuhlśLeibniz-Zentrum fuer Informatik, Dagstuhl, Germany,
+18ś26. https://doi.org/10.4230/DROPS.MEMICS.2009.2349
+[15]Eran Gery, David Harel, and Eldad Palachi. 2002. Rhapsody: A Complete Life-
+Cycle Model-Based Development System. In Integrated Formal Methods , Michael
+Butler, Luigia Petre, and Kaisa Sere (Eds.). Springer Berlin Heidelberg, Berlin,
+Heidelberg, 1ś10.
+[16]Ian Wilkie, Adrian King, Mike Clarke, Chas Weaver, Chris Raistrick, and Paul
+Francis.2003. UMLASLReferenceGuide. http://www.ooatool.com/docs/ASL03.
+pdf KennedyCarter.
+[17]Galois Inc. [n. d.]. The Haskell Lightweight Virtual Machine (HaLVM): GHC
+running onXen. https://github.com/GaloisInc/HaLVM
+[18]Project Technology Inc. 2008. Object Action Language Reference Manual. http:
+//www.ooatool.com/docs/OAL08.pdf
+[19]PadmaIyenghar,ElkePulvermueller,ClemensWesterkamp,JuergenWuebbel-
+mann,andMichaelUelschen.2017. Model-BasedDebuggingofEmbeddedSoftware
+Systems. SpringerNewYork,NewYork,NY,107ś132. https://doi.org/10.1007/978-1-4614-2266-2_5
+[20]FrédéricJouault,CiprianTeodorov,JérômeDelatour,LukaLeRoux,andPhilippe
+Dhaussy. 2014. Transformation de modèles UML vers Fiacre, via les langages
+intermédiairestUMLetABCD. Génie logiciel 109(June2014).
+[21]Agnes Lanusse, Yann Tanguy, Huascar Espinoza, Chokri Mraidha, Sebastien
+Gerard, Patrick Tessier, Remi Schnekenburger, Hubert Dubois, and François
+Terrier. 2009. Papyrus UML: an open source toolset for MDA. In Proceedings
+oftheFifthEuropeanConferenceonModel-DrivenArchitectureFoundationsand
+Applications(ECMDA-FA2009) . 1ś4.
+[22]Daniel Leroux, Martin Nally, and Kenneth Hussey. 2006. Rational Software
+Architect: A tool for domain-specific modeling. IBM systems journal 45, 3 (2006),
+555ś568.
+[23]Philip Levis and David Culler. 2002. Maté: A Tiny Virtual Machine for Sensor
+Networks. SIGPLAN Not. 37, 10 (Oct. 2002), 85ś95. https://doi.org/10.1145/
+605432.605407
+[24]TanjaMayerhoferandPhilipLanger.2012. Moliz:AModelExecutionFramework
+forUMLModels.In Proceedingsofthe2ndInternationalMasterClassonModel-
+Driven Engineering: Modeling Wizards (MW ’12) . ACM, New York, NY, USA,
+Article3,2 pages. https://doi.org/10.1145/2448076.2448079
+[25]TanjaMayerhofer,PhilipLanger,ManuelWimmer,andGertiKappel.2013. xMOF:
+ExecutableDSMLsBasedonfUML.In SoftwareLanguageEngineering ,MartinEr-
+wig,RichardF.Paige,andEricVanWyk(Eds.).SpringerInternationalPublishing,
+Cham,56ś75.
+[26]MMohlin.2011. UsingtheUMLActionLanguageinRationalSoftwareArchitect.
+[27]OMG. 2017. Action Language for Foundational UML (Alf). www.omg.org/spec/
+ALF/1.1/PDF
+[28]OMG. 2017. Semantics of a Foundational Subset for Executable UML Models.
+https://www.omg.org/spec/FUML/1.3/PDF
+[29]OMG. 2017. UnifiedModeling Language. https://www.omg.org/spec/UML/2.5.
+1/PDF
+[30]GergelyPintérandIstvánMajzik.2003. AutomaticCodeGenerationBasedon
+Formally Analyzed UML Statechart Models. In Formal Methods for Railway Oper-
+ation and Control Systems (Proceedings of the FORMS-2003 Conference) , G. Tarnai
+and E. Schnieder(Eds.).L’Harmattan,Budapest,Hungary, 45ś52.
+[31]GergelyPintérandIstvánMajzik.2003. ProgramCodeGenerationbasedonUML
+Statechart Models. Periodica Polytechnica 47,3ś4 (2003), 187ś204.
+[32]BeckyPlummer,MukulKhajanchi,andStephenA.Edwards.2006. AnEsterel
+VirtualMachineforEmbeddedSystems.In ProceedingsofSynchronousLanguages,
+Applications, and Programming (SLAP) , International Workshop on Synchronous
+Languages, Applications, and Programming (SLAP’06) (Ed.), Vol. 126. Vienna,
+Austria,912ś917.
+[33]Sebastien Revol, Géry Delog, Arnaud Cuccurru, and Jérémie Tatibouët. 2018.
+Papyrus: Moka Overview. https://wiki.eclipse.org/Papyrus/UserGuide/
+ModelExecution
+[34]Tim Schattkowsky and Wolfgang Muller. 2005. Transformation of UML State
+Machines for Direct Execution. In Proceedings of the 2005 IEEE Symposium on
+VisualLanguagesandHuman-CentricComputing (VLHCC’05) .IEEEComputer
+Society,Washington,DC,USA,117ś124. https://doi.org/10.1109/VLHCC.2005.64
+[35]DougSimonandCristinaCifuentes.2005. TheSquawkVirtualMachine:Java ™on
+theBareMetal.In Companiontothe20thAnnualACMSIGPLANConferenceon
+Object-orientedProgramming,Systems,Languages,andApplications (OOPSLA’05) .
+ACM,NewYork, NY, USA,150ś151. https://doi.org/10.1145/1094855.1094908
+[36]Ciprian Teodorov, Philippe Dhaussy, and Luka Le Roux. 2017. Environment-
+driven reachability for timed systems. International Journal on Software Tools
+for Technology Transfer 19, 2 (01 Apr 2017), 229ś245. https://doi.org/10.1007/
+s10009-015-0401-2
+[37]Ciprian Teodorov, Luka Le Roux, Zoé Drey, and Philippe Dhaussy. 2016. Past-
+Free[ze] Reachability Analysis: Reaching further with DAG-directed exhaustive
+state-space analysis. Software Testing, Verification and Reliability 26, 7 (2016),
+516ś542. https://doi.org/10.1002/stvr.1611 stvr.1611.
+[38]Matias Ezequiel Vara Larsen, Julien Deantoni, Benoit Combemale,andFrédéric
+Mallet.2015. ABehavioralCoordinationOperatorLanguage(BCOoL).In Interna-
+tionalConferenceonModelDrivenEngineeringLanguagesandSystems(MODELS) ,
+Timothy Lethbridge, Jordi Cabot, and Alexander Egyed (Eds.). ACM, Ottawa,
+Canada,462.
+[39]Markus Voelter, Daniel Ratiu, Bernhard Schaetz, and Bernd Kolb. 2012. Mbeddr:
+An Extensible C-based Programming Language and IDE for Embedded Systems.
+InProceedings of the 3rd Annual Conference on Systems, Programming, and Appli-
+cations:SoftwareforHumanity (SPLASH’12) .ACM,NewYork,NY,USA,121ś140.
+https://doi.org/10.1145/2384716.2384767
