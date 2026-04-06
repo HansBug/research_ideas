@@ -15,7 +15,7 @@
    - 批量生成 `CCF` 软件工程/系统软件/程序设计语言方向年度索引。
    - 输出年度 `README.md`、`verification.json`、`metadata/*.json`、`bib/*.bib`。
 3. [ccf_se_classifier.py](./ccf_se_classifier.py)
-   - 在已有年度元数据之上，先做启发式初判，再加载 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 中的逐篇人工复核覆盖。
+   - 在已有年度元数据之上，先做启发式初判，再加载 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 与 `frontier_index/ccf_history/<year>/manual_review/batches/*.json` 中的逐篇人工复核覆盖。
    - 批量回填 `macro_area / se_inclusion_decision / se_primary_path / se_primary_label / se_secondary_paths / se_decision_basis / classification_source / manual_review_status`。
    - 同时重写年度 `README.md`，把逐篇表格升级为“一级总判定 + 是否为软工 + `x.x.x` 路径 + 判定来源/人工复核状态”的版本。
 4. [ccf_se_index_workflow.md](./ccf_se_index_workflow.md)
@@ -54,7 +54,7 @@ python -m tools.ccf_se_classifier --year 2025
 ```
 
 4. 若发现 venue 边界、重名覆盖、字段缺失或分类规则问题，优先改脚本并重跑，不手工补半成品。
-5. 若需要把分类结果提升为可接受的终判，必须逐篇把人工复核结果写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json`，再重跑分类器。
+5. 若需要把分类结果提升为可接受的终判，必须逐篇把人工复核结果写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 或 `frontier_index/ccf_history/<year>/manual_review/batches/*.json`，再重跑分类器。
 6. 最后再回写 `frontier_index/` 入口文档中的统计和说明。
 
 ### 3.2 提取单篇论文全文
@@ -76,5 +76,6 @@ python -m tools.pdf_extractor -i path/to/paper.pdf -o path/to/paper_content.txt 
 1. `ccf_se_index_builder.py` 的 `_cache/` 不应随意删除，否则重跑会显著变慢。
 2. 年度索引默认应视为“可重建产物”，发现规则问题时优先修脚本；若是逐篇边界裁决，则优先写入人工复核覆盖文件，而不是直接散改生成结果。
 3. 当前 `ccf_se_index_builder.py` 的职责是生成**基础元数据层**；`ccf_se_classifier.py` 的职责是“启发式初判 + 人工复核覆盖 + 年度页重渲染”。
-4. 仅靠规则脚本不能保证“绝对正确”；逐篇人工复核完成前，未进入覆盖文件的条目都只能视为初判。
-5. `pdf_extractor.py` 主要服务正式论文集路径，不应把 `frontier_index/` 直接当全文文库来批量提取。
+4. 若某个年份的 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 已覆盖该年全部论文，则 `ccf_se_classifier.py` 会直接读取人工终判结果回填与渲染，不再依赖启发式分类输出。
+5. 仅靠规则脚本不能保证“绝对正确”；逐篇人工复核完成前，未进入任一覆盖文件的条目都只能视为初判。
+6. `pdf_extractor.py` 主要服务正式论文集路径，不应把 `frontier_index/` 直接当全文文库来批量提取。

@@ -327,7 +327,8 @@ Software Engineering
 |   |   |-- 6.3.1 实验、案例研究与调查（experiment、case study、survey）
 |   |   |-- 6.3.2 定性、混合方法与人类研究（qualitative coding、mixed methods、human study）
 |   |   |-- 6.3.3 系统综述、mapping 与 meta-analysis（SLR、SMS、meta-analysis）
-|   |   `-- 6.3.4 replication、benchmark 与开放科学（replication package、benchmarking、open science）
+|   |   |-- 6.3.4 replication、benchmark 与开放科学（replication package、benchmarking、open science）
+|   |   `-- 6.3.5 路线图、研究议程与领域回顾（roadmap、research agenda、retrospective）
 |   |-- 6.4 挖掘软件仓库与软件分析学
 |   |   |-- 6.4.1 代码、提交、issue 与 PR 挖掘（commit mining、issue mining、PR analytics）
 |   |   |-- 6.4.2 团队、社区、评审与 CI 分析（code review analytics、team analytics、CI mining）
@@ -435,7 +436,7 @@ Software Engineering
 |---|---|
 | `6.1 软件过程与方法学` | `6.1.1` 研究敏捷、精益、DevOps 与持续改进方法；`6.1.2` 做过程挖掘、过程符合性和流程改进；`6.1.3` 关注治理、审计、过程追踪与合规留痕；`6.1.4` 研究社会技术协调、handoff 与 workflow design |
 | `6.2 项目管理与工程经济` | `6.2.1` 研究工作量估算、计划编制、排程与进度预测；`6.2.2` 做风险管理、价值驱动工程和需求优先级；`6.2.3` 关注成本模型、`ROI`、生产率与工程经济；`6.2.4` 研究组合治理、资源配置和决策支持分析 |
-| `6.3 经验软件工程与证据综合` | `6.3.1` 做控制实验、案例研究、问卷和实地研究；`6.3.2` 做定性编码、混合方法与人类研究；`6.3.3` 进行系统综述、systematic mapping 与 meta-analysis；`6.3.4` 关注 replication、benchmark、artifact package 与开放科学 |
+| `6.3 经验软件工程与证据综合` | `6.3.1` 做控制实验、案例研究、问卷和实地研究；`6.3.2` 做定性编码、混合方法与人类研究；`6.3.3` 进行系统综述、systematic mapping 与 meta-analysis；`6.3.4` 关注 replication、benchmark、artifact package、dataset/corpus 与开放科学；`6.3.5` 关注 roadmap、research agenda、retrospective、position/vision 类领域综合论文 |
 | `6.4 挖掘软件仓库与软件分析学` | `6.4.1` 挖掘代码、提交、issue、PR 与 issue-resolution 链；`6.4.2` 研究代码评审、团队协作、CI 日志与社区行为；`6.4.3` 建立 defect prediction、风险模型和软件度量；`6.4.4` 研究生态演化、开源依赖、registry 与包生态分析 |
 | `6.5 人因、协作、社区与教育` | `6.5.1` 研究开发者认知、生产力、压力、福祉与神经多样性；`6.5.2` 研究协作、评审、知识共享和沟通机制；`6.5.3` 研究开源社区治理、多样性、社区健康；`6.5.4` 研究软件工程教育、培训、onboarding 与 curriculum |
 

@@ -65,7 +65,9 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 6. 后续分类补录字段
    - 例如 `macro_area`、`se_inclusion_decision`、`se_primary_path`、`se_secondary_paths`、`se_decision_basis`、`classification_source`、`manual_review_status`。
 7. `manual_review/overrides.json`
-   - 保存逐篇人工复核覆盖结果。
+   - 保存集中式人工复核覆盖结果。
+8. `manual_review/batches/*.json`
+   - 保存按批次或按 venue 拆分的逐篇人工终判结果。
 
 分类器运行完成后，`metadata/*.json` 里的每篇论文都应补齐：
 
@@ -85,9 +87,9 @@ python -m tools.ccf_se_index_builder --year 2025 --target-dir frontier_index/ccf
 
 1. 先运行构建器生成当年的全量结果。
 2. 检查 `verification.json` 是否全部为 `ok`。
-3. 第一次运行分类器，先获得全量启发式初判结果。
-4. 逐篇人工复核时，不要直接手改 `metadata/*.json`；应把最终裁决写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json`。
-5. 重新运行分类器，让人工复核覆盖脚本结果，并重渲染年度页。
+3. 若该年份还没有全量人工终判，第一次运行分类器，先获得全量启发式初判结果。
+4. 逐篇人工复核时，不要直接手改 `metadata/*.json`；应把最终裁决写入 `frontier_index/ccf_history/<year>/manual_review/overrides.json` 或 `frontier_index/ccf_history/<year>/manual_review/batches/*.json`。
+5. 重新运行分类器，让人工复核覆盖脚本结果，并重渲染年度页；如果该年已经实现全量人工覆盖，则分类器会直接按人工终判结果回填与渲染。
 6. 若某类论文没有自然 `x.x.x` 落点，应先扩 `frontier_index/SOFTWARE_ENGINEERING_FIELD_TREE.md`，再更新分类器规则并重跑，不要把论文硬塞进旧路径。
 7. 若某些 venue 仍有边界或来源异常，再回到构建器中的特殊配置补规则。
 8. 最后再人工抽查关键 venue 的 `README.md`、`metadata`、`bib`、`classification_source` 与 `manual_review_status` 是否一致。

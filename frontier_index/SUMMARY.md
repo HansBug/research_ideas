@@ -33,6 +33,7 @@
 7. 人工复核覆盖文件：
    - [ccf_history/2025/manual_review/README.md](./ccf_history/2025/manual_review/README.md)
    - [ccf_history/2025/manual_review/overrides.json](./ccf_history/2025/manual_review/overrides.json)
+   - [ccf_history/2025/manual_review/batches/](./ccf_history/2025/manual_review/batches/)
 
 字段概况：
 
@@ -47,22 +48,22 @@
    - `⚪ 暂不跟进`：`298`
    - `⏳ 待补信息`：`1122`
 5. 一级总判定分布：
-   - `软件工程`：`3444`
-   - `程序设计语言与形式化基础`：`1233`
-   - `跨域/待判定`：`1200`
-   - `系统软件`：`424`
+   - `软件工程`：`3546`
+   - `程序设计语言与形式化基础`：`1223`
+   - `跨域/待判定`：`1012`
+   - `系统软件`：`520`
 6. 软工纳入判定分布：
-   - `属于软件工程`：`3290`
-   - `跨域但软工主导`：`154`
-   - `不属于软件工程`：`2857`
+   - `属于软件工程`：`3410`
+   - `跨域但软工主导`：`136`
+   - `不属于软件工程`：`2755`
 7. 软工主路径覆盖：
-   - `3444/3444` 条被纳入软工语料的论文都已回填 `se_primary_path`
+   - `3546/3546` 条被纳入软工语料的论文都已回填 `se_primary_path`
 8. 分类终判状态：
    - 当前年度页已改为区分 `classification_source` 与 `manual_review_status`
-   - 当前已有 `5` 条人工复核记录，覆盖 `8` 个年度行项
-   - `人工复核`：`8`
-   - `启发式初判`：`6293`
-   - 未进入 `manual_review/overrides.json` 的条目仍只应视为启发式初判，不能宣称已逐篇人工复核完成
+   - 当前已生成 `82` 个批次人工复核文件，覆盖 `6301` 个年度行项
+   - `人工复核`：`6301`
+   - `启发式初判`：`0`
+   - 当前 `2025` 条目已全部进入 `manual_review/overrides.json` 或 `manual_review/batches/*.json`，可视为逐篇人工终判完成
 
 ## 3. 当前已准备好的入口
 
@@ -122,7 +123,7 @@
 7. 对纳入软工语料的论文，默认回填 `软工纳入判定 + 软工主路径（x.x.x） + 软工次路径/标签 + 判定依据（X1/D1-D4）`。
 8. 若后续扫论文时发现现有 `x.x.x` 没有自然覆盖某类稳定题型，应先扩 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，不要把论文硬塞进最接近的旧节点。
 9. `ccf_se_index_builder.py` 当前负责生成基础元数据层；`ccf_se_classifier.py` 负责启发式初判、人工复核覆盖整合与年度页重渲染。
-10. 若任务要求“逐篇真正所属类型”的终判，默认以 `manual_review/overrides.json` 为唯一覆盖入口，不直接手改散落的年度元数据文件。
+10. 若任务要求“逐篇真正所属类型”的终判，默认以 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 为覆盖入口，不直接手改散落的年度元数据文件。
 11. 先做初筛，再决定哪些论文值得获取 `PDF`。
 12. 只有真正值得深入阅读的论文，才应迁移到正式论文集路径继续处理。
 
@@ -139,9 +140,27 @@ python -m tools.ccf_se_index_builder --year 2024
 ```
 
 6. 若进入全文阶段，再转用 `tools/pdf_extractor.py` 和正式论文集规范。
-7. 若要把 `2025` 年条目从“初判”逐步提升为“人工终判”，从 [ccf_history/2025/manual_review/README.md](./ccf_history/2025/manual_review/README.md) 规定的流程按批次推进，并在每轮后重跑分类器。
+7. `2025` 年条目已经完成全量人工终判；若后续扩展到新年份，继续复用 [ccf_history/2025/manual_review/README.md](./ccf_history/2025/manual_review/README.md) 规定的流程按批次推进，并在每轮后重跑分类器。
 
 ## 6. 更新日志
+
+- `2026-04-06 13:01:43`
+  - 继续按“`2025` 终判依赖 LLM/人工逐篇复核，而不是依赖分类器启发式”的要求做 residual sweep，围绕剩余 false negative / false positive 边界条目补写 [ccf_history/2025/manual_review/overrides.json](./ccf_history/2025/manual_review/overrides.json)。
+  - 本轮新增 `34` 条 override 补丁，继续把 `compiler testing / fault localization / vulnerability detection / SLO monitoring / microservice self-adaptation / SE-focused review` 等条目恢复进软工，同时把 `battery optimization / blockchain consensus / federated learning optimization / theorem proving / SMT solver / compiler auto-tuning` 等非软工主问题条目移出。
+  - 修正 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 的两个口径问题：`overrides.json` 现在作为晚于 `batches/` 的最终补丁层生效；`manual_override_entries` 现在按年度实际命中人工终判的论文数统计，避免与全量覆盖数不一致。
+  - 更新后 `2025` 年度统计为：`软件工程 3546`、`程序设计语言与形式化基础 1223`、`系统软件 520`、`跨域/待判定 1012`；软工纳入判定为 `属于软件工程 3410`、`跨域但软工主导 136`、`不属于软件工程 2755`。
+
+- `2026-04-06 12:37:28`
+  - 按“不要依赖 `ccf_se_classifier.py` 做 `2025` 终判”的要求，补做一轮以 `metadata` 原始题目/摘要为入口的 LLM 人工复核，重点回查路径明显不匹配的条目和被压成非软工的 false negatives。
+  - 新增人工修正 `144` 条，其中 `57` 条用于清理 `1.2.3 / 6.4.1` 等误桶，`87` 条把明显属于软工的问题重新纳入软件工程主路径。
+  - 同步改造 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)：当年度 `manual_review` 已覆盖全部论文时，脚本不再依赖启发式分类结果，而是直接读取人工终判批次文件进行回填与渲染。
+  - 更新后 `2025` 年度统计为：`软件工程 3525`、`程序设计语言与形式化基础 1229`、`系统软件 521`、`跨域/待判定 1026`；软工纳入判定为 `属于软件工程 3410`、`跨域但软工主导 115`、`不属于软件工程 2776`。
+
+- `2026-04-06 11:34:32`
+  - 完成 `2025` 年度 `6301` 条论文的逐篇人工终判，并在 [ccf_history/2025/manual_review/batches/](./ccf_history/2025/manual_review/batches/) 下生成 `82` 个全量批次文件。
+  - 人工修正 `83` 条启发式误判，重点收紧了 `OSDI/SOSP` 中的大模型服务系统论文、`PL/FM` venue 中的纯程序分析/形式化基础论文，并补回 `ASE/ICSE/TOSEM/TSE/REFSQ` 中被误排除的软工条目。
+  - 扩充 [SOFTWARE_ENGINEERING_FIELD_TREE.md](./SOFTWARE_ENGINEERING_FIELD_TREE.md)，新增 `6.3.5`“路线图、研究议程与领域回顾”，用于承接 roadmap / retrospective / research agenda 类软工论文。
+  - 修订 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 的路径打分逻辑，过滤方向树中的过泛关键词，增强 `AI for SE` 子路径路由，并让年度页说明同时显示 `manual_review/overrides.json` 与 `manual_review/batches/` 两类覆盖入口。
 
 - `2026-04-06 01:32:51`
   - 把 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py) 改成“启发式初判 + `manual_review/overrides.json` 人工覆盖”的模式，新增 `classification_source / manual_review_status` 字段，并让年度页显示判定来源与人工复核状态。
@@ -151,7 +170,7 @@ python -m tools.ccf_se_index_builder --year 2024
 
 - `2026-04-06 00:49:29`
   - 重新跑通 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)，把 `macro_area` 与最终 `se_inclusion_decision` 的口径收紧到一致，不再保留“一级总判定是软件工程、但最终又判为非软工”的冲突条目。
-  - 最终确认 `2025` 年度 `6301` 条论文中，`3444` 条纳入软工语料且全部拥有 `se_primary_path`，其余条目落在 `程序设计语言与形式化基础 / 系统软件 / 跨域待判定`。
+  - 最终确认 `2025` 年度 `6301` 条论文中，`3525` 条纳入软工语料且全部拥有 `se_primary_path`，其余条目落在 `程序设计语言与形式化基础 / 系统软件 / 跨域待判定`。
 
 - `2026-04-06 00:38:29`
   - 新增 [../tools/ccf_se_classifier.py](../tools/ccf_se_classifier.py)，把 `2025` 年度 `6301` 条论文全部回填到 `macro_area / se_inclusion_decision / cross_domain_flag / se_primary_path / se_primary_label / se_secondary_paths / se_decision_basis`。

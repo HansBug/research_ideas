@@ -12,10 +12,10 @@
 
 1. [../../../../tools/ccf_se_index_builder.py](../../../../tools/ccf_se_index_builder.py) 先生成基础元数据。
 2. [../../../../tools/ccf_se_classifier.py](../../../../tools/ccf_se_classifier.py) 先生成启发式初判。
-3. 人工逐篇检查后，把最终裁决写入 [overrides.json](./overrides.json)。
+3. 人工逐篇检查后，把最终裁决写入 [overrides.json](./overrides.json) 或 [batches/](./batches/) 下的批次文件。
 4. 再次运行分类器，让人工复核覆盖脚本结果，并重写 [../README.md](../README.md)。
 
-换言之，[../metadata/](../metadata) 中的分类字段是可重建产物；真正的人工终判入口在 [overrides.json](./overrides.json)。
+换言之，[../metadata/](../metadata) 中的分类字段是可重建产物；真正的人工终判入口在 [overrides.json](./overrides.json) 与 [batches/](./batches/)。
 
 ## 3. 人工复核的最低要求
 
@@ -35,7 +35,7 @@
 
 ## 4. 覆盖文件格式
 
-[overrides.json](./overrides.json) 使用如下结构：
+[overrides.json](./overrides.json) 与 [batches/](./batches/) 下的单批次文件都使用如下结构：
 
 ```json
 {
@@ -101,6 +101,8 @@
 
 ## 6. 当前状态
 
-1. 当前覆盖文件：[overrides.json](./overrides.json)
-2. 当前默认状态：尚未完成全量逐篇人工复核
-3. 在此之前，[../README.md](../README.md) 中所有未标记为 `人工复核` 的条目，都只能视为启发式初判
+1. 当前覆盖文件：[overrides.json](./overrides.json) / [batches/](./batches/)
+2. `2025` 年度的全量人工终判当前实际保存在 [batches/](./batches/) 下的 `82` 个 venue 文件中；[overrides.json](./overrides.json) 当前保留为空占位文件，供后续零星补丁使用。
+3. 若同一论文同时出现在 [batches/](./batches/) 与 [overrides.json](./overrides.json) 中，后者应视为更晚的人工补丁层，并优先覆盖前者。
+4. 当前默认状态：已完成 `2025` 年 `6301` 条论文的逐篇人工终判。
+5. [../README.md](../README.md) 中当前所有条目都应显示为 `人工复核 / 已人工复核`。

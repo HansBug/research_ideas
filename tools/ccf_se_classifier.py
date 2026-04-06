@@ -28,6 +28,7 @@ from tools.ccf_se_index_builder import CCF_MD, ROOT, Venue
 TREE_MD = ROOT / "frontier_index" / "SOFTWARE_ENGINEERING_FIELD_TREE.md"
 MANUAL_REVIEW_DIRNAME = "manual_review"
 MANUAL_OVERRIDE_FILENAME = "overrides.json"
+MANUAL_BATCH_DIRNAME = "batches"
 
 
 SE_LEVEL_PRIOR = {
@@ -36,6 +37,88 @@ SE_LEVEL_PRIOR = {
     "部分属于软工": 0,
     "大部分不属于软工": -2,
     "完全不属于软工": -3,
+}
+
+
+GENERIC_TREE_KEYWORDS = {
+    "testing",
+    "contracts",
+    "benchmarking",
+    "planning",
+    "architecture",
+}
+
+
+EDITORIAL_LIKE_PATTERNS = [
+    "editorial",
+    "guest editorial",
+    "corrigendum",
+    "state of the journal",
+    "former editor-in-chief",
+]
+
+
+SYNTHESIS_LIKE_PATTERNS = [
+    "roadmap",
+    "research agenda",
+    "retrospective",
+    "reflection",
+    "vision and roadmap",
+]
+
+
+DATASET_LIKE_PATTERNS = [
+    "dataset",
+    "benchmark dataset",
+    "benchmark suite",
+    "corpus",
+    "artifact package",
+]
+
+
+AI_FOR_SE_PREFIX_HINTS: Dict[str, List[str]] = {
+    "7.1.1": [
+        "code generation",
+        "code completion",
+        "code translation",
+        "program synthesis",
+        "code transformation",
+        "code review comment generation",
+    ],
+    "7.1.2": [
+        "testing",
+        "test generation",
+        "fuzzing",
+        "bug detection",
+        "fault localization",
+        "program repair",
+        "repair",
+        "static analysis",
+        "dynamic analysis",
+        "vulnerability detection",
+    ],
+    "7.1.3": [
+        "requirements",
+        "traceability",
+        "summarization",
+        "documentation",
+        "comment generation",
+        "domain model",
+    ],
+    "7.1.4": [
+        "architecture",
+        "design",
+        "decision support",
+        "planning",
+    ],
+    "7.1.5": [
+        "human-ai workflow",
+        "trust",
+        "calibration",
+        "developer study",
+        "user study",
+        "copilot workflow",
+    ],
 }
 
 
@@ -264,6 +347,10 @@ MANUAL_LEAF_KEYWORDS: Dict[str, List[str]] = {
     ],
     "3.1.3": [
         "fuzzing",
+        "fuzzer",
+        "fuzz test",
+        "differential fuzzing",
+        "differential testing",
         "search-based testing",
         "mutation testing",
         "metamorphic testing",
@@ -287,6 +374,10 @@ MANUAL_LEAF_KEYWORDS: Dict[str, List[str]] = {
         "abstract interpretation",
         "dataflow analysis",
         "taint analysis",
+        "symbolic execution",
+        "pointer analysis",
+        "alias analysis",
+        "bytecode analysis",
     ],
     "3.2.2": [
         "dynamic analysis",
@@ -311,6 +402,8 @@ MANUAL_LEAF_KEYWORDS: Dict[str, List[str]] = {
         "model checking",
         "theorem proving",
         "smt-based verification",
+        "bounded model checking",
+        "deductive verification",
     ],
     "3.3.2": [
         "runtime verification",
@@ -389,6 +482,8 @@ MANUAL_LEAF_KEYWORDS: Dict[str, List[str]] = {
         "code search",
         "code navigation",
         "code summarization",
+        "binary code summarization",
+        "method name",
         "program summarization",
     ],
     "4.2.2": [
@@ -629,6 +724,17 @@ MANUAL_LEAF_KEYWORDS: Dict[str, List[str]] = {
         "open science",
         "artifact package",
         "reproducibility package",
+        "dataset",
+        "benchmark dataset",
+        "corpus",
+    ],
+    "6.3.5": [
+        "research roadmap",
+        "roadmap",
+        "research agenda",
+        "retrospective",
+        "reflection on",
+        "vision and roadmap",
     ],
     "6.4.1": [
         "repository mining",
@@ -692,6 +798,10 @@ MANUAL_LEAF_KEYWORDS: Dict[str, List[str]] = {
         "bug detection",
         "apr",
         "ai-based repair",
+        "llm-assisted testing",
+        "llm-assisted analysis",
+        "llm-based program repair",
+        "llm-guided fuzzing",
     ],
     "7.1.3": [
         "requirements summarization",
@@ -1102,6 +1212,14 @@ ARTIFACT_GROUPS: Dict[str, List[str]] = {
         "repository",
         "test suite",
         "test case",
+        "source code",
+        "binary code",
+        "bytecode",
+        "smart contract",
+        "compilation error",
+        "code summarization",
+        "comment generation",
+        "method name",
         "bug",
         "patch",
         "commit",
@@ -1210,6 +1328,14 @@ NON_SE_SYSTEM_PATTERNS = [
     "cryptographic",
     "homomorphic encryption",
     "data structure",
+    "model serving",
+    "llm serving",
+    "inference",
+    "quantization",
+    "parallelism",
+    "hypervisor",
+    "serverless",
+    "dbms",
 ]
 
 
@@ -1330,11 +1456,12 @@ def parse_leaf_defs() -> Dict[str, LeafDef]:
         code, label, example_text = match.groups()
         if code in leaf_defs:
             continue
-        keywords: List[str] = []
+        parsed_keywords: List[str] = []
         for part in re.split(r"[、，,;/]", example_text):
             part = normalize_text(part)
-            if re.search(r"[a-z]", part) and len(part) >= 3:
-                keywords.append(part)
+            if re.search(r"[a-z]", part) and len(part) >= 3 and part not in GENERIC_TREE_KEYWORDS:
+                parsed_keywords.append(part)
+        keywords: List[str] = list(parsed_keywords)
         keywords.extend(MANUAL_LEAF_KEYWORDS.get(code, []))
         deduped: List[str] = []
         for keyword in keywords:
@@ -1358,35 +1485,55 @@ def manual_override_path(target_dir: Path) -> Path:
     return target_dir / MANUAL_REVIEW_DIRNAME / MANUAL_OVERRIDE_FILENAME
 
 
+def manual_override_candidate_paths(target_dir: Path) -> List[Path]:
+    candidates: List[Path] = []
+    batch_dir = target_dir / MANUAL_REVIEW_DIRNAME / MANUAL_BATCH_DIRNAME
+    if batch_dir.exists():
+        candidates.extend(sorted(path for path in batch_dir.rglob("*.json") if path.is_file()))
+
+    root_override = manual_override_path(target_dir)
+    if root_override.exists():
+        candidates.append(root_override)
+
+    return candidates
+
+
 def load_manual_override_index(target_dir: Path) -> ManualOverrideIndex:
-    path = manual_override_path(target_dir)
-    if not path.exists():
+    paths = manual_override_candidate_paths(target_dir)
+    if not paths:
         return ManualOverrideIndex(by_key={}, by_doi={}, by_title={}, entry_count=0)
 
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    entries = payload.get("entries", [])
     by_key: Dict[str, Dict[str, Any]] = {}
     by_doi: Dict[str, Dict[str, Any]] = {}
     by_title: Dict[str, Dict[str, Any]] = {}
+    unique_entries: Set[str] = set()
 
-    for entry in entries:
-        if not isinstance(entry, dict):
+    for path in paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        entries = payload.get("entries", [])
+        if not isinstance(entries, list):
             continue
-        paper_key = str(entry.get("paper_key") or "").strip()
-        doi = normalize_text(str(entry.get("doi") or ""))
-        title = normalize_text(str(entry.get("title") or ""))
-        if paper_key:
-            by_key[paper_key] = entry
-        if doi:
-            by_doi[doi] = entry
-        if title:
-            by_title[title] = entry
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            paper_key = str(entry.get("paper_key") or "").strip()
+            doi = normalize_text(str(entry.get("doi") or ""))
+            title = normalize_text(str(entry.get("title") or ""))
+            if paper_key:
+                by_key[paper_key] = entry
+            if doi:
+                by_doi[doi] = entry
+            if title:
+                by_title[title] = entry
+            unique_marker = paper_key or doi or title
+            if unique_marker:
+                unique_entries.add(unique_marker)
 
     return ManualOverrideIndex(
         by_key=by_key,
         by_doi=by_doi,
         by_title=by_title,
-        entry_count=len(entries),
+        entry_count=len(unique_entries),
     )
 
 
@@ -1503,8 +1650,15 @@ def choose_primary_path(
 ) -> Tuple[str, List[str]]:
     tags = [str(tag) for tag in paper.get("tags", [])]
     leaf_scores: Dict[str, int] = {}
+    direct_scores: Dict[str, int] = {}
+    direct_hit_counts: Dict[str, int] = {}
+    tag_boosts: Dict[str, int] = {}
+    prior_boosts: Dict[str, int] = {}
+    theme_boosts: Dict[str, int] = {}
     for code, leaf in leaf_defs.items():
-        score, _ = score_keywords(title_text, body_text, leaf.keywords)
+        score, hits = score_keywords(title_text, body_text, leaf.keywords)
+        direct_scores[code] = score
+        direct_hit_counts[code] = len(hits)
         if score:
             leaf_scores[code] = score
 
@@ -1512,18 +1666,41 @@ def choose_primary_path(
         for prefix in TAG_PREFIX_BOOSTS.get(tag, []):
             for code in leaf_defs:
                 if path_matches_prefix(code, prefix):
+                    tag_boosts[code] = tag_boosts.get(code, 0) + 1
                     leaf_scores[code] = leaf_scores.get(code, 0) + 1
 
     for prefix in prior.typical_paths:
         for code in leaf_defs:
             if path_matches_prefix(code, prefix):
-                leaf_scores[code] = leaf_scores.get(code, 0) + (2 if "x" not in prefix else 1)
+                boost = 2 if "x" not in prefix else 1
+                prior_boosts[code] = prior_boosts.get(code, 0) + boost
+                leaf_scores[code] = leaf_scores.get(code, 0) + boost
 
     dominant_theme = top_theme(theme_scores)
     for prefix in THEME_PREFIXES.get(dominant_theme, []):
         for code in leaf_defs:
             if path_matches_prefix(code, prefix):
+                theme_boosts[code] = theme_boosts.get(code, 0) + 1
                 leaf_scores[code] = leaf_scores.get(code, 0) + 1
+
+    if dominant_theme == "ai_for_se":
+        for prefix, hints in AI_FOR_SE_PREFIX_HINTS.items():
+            if not any(has_keyword(body_text, hint) for hint in hints):
+                continue
+            for code in leaf_defs:
+                if path_matches_prefix(code, prefix):
+                    theme_boosts[code] = theme_boosts.get(code, 0) + 2
+                    leaf_scores[code] = leaf_scores.get(code, 0) + 2
+
+    if "6.3.4" in leaf_defs and any(has_keyword(body_text, keyword) for keyword in DATASET_LIKE_PATTERNS):
+        direct_scores["6.3.4"] = direct_scores.get("6.3.4", 0) + 2
+        direct_hit_counts["6.3.4"] = direct_hit_counts.get("6.3.4", 0) + 1
+        leaf_scores["6.3.4"] = leaf_scores.get("6.3.4", 0) + 2
+
+    if "6.3.5" in leaf_defs and any(has_keyword(body_text, keyword) for keyword in SYNTHESIS_LIKE_PATTERNS):
+        direct_scores["6.3.5"] = direct_scores.get("6.3.5", 0) + 2
+        direct_hit_counts["6.3.5"] = direct_hit_counts.get("6.3.5", 0) + 1
+        leaf_scores["6.3.5"] = leaf_scores.get("6.3.5", 0) + 2
 
     if not leaf_scores:
         fallback = first_matching_default(tags, leaf_defs)
@@ -1542,7 +1719,18 @@ def choose_primary_path(
                         break
         return fallback, []
 
-    ranked = sorted(leaf_scores.items(), key=lambda item: (-item[1], item[0]))
+    ranked = sorted(
+        leaf_scores.items(),
+        key=lambda item: (
+            -item[1],
+            -direct_scores.get(item[0], 0),
+            -theme_boosts.get(item[0], 0),
+            -tag_boosts.get(item[0], 0),
+            -prior_boosts.get(item[0], 0),
+            -direct_hit_counts.get(item[0], 0),
+            item[0],
+        ),
+    )
     primary = ranked[0][0]
     primary_score = ranked[0][1]
     if primary.startswith("8."):
@@ -1631,6 +1819,23 @@ def classify_paper(
     title_text = normalize_text(title)
     body_text = normalize_text(" ".join([title, abstract, summary, " ".join(tags)]))
 
+    if any(has_keyword(title_text, keyword) for keyword in EDITORIAL_LIKE_PATTERNS):
+        updated = dict(paper)
+        subject_macro = subject_to_macro(prior.subject)
+        updated["macro_area"] = "跨域/待判定" if subject_macro == "软件工程" else subject_macro
+        updated["se_inclusion_decision"] = "不属于软件工程"
+        updated["cross_domain_flag"] = "是" if "交叉" in prior.subject else "否"
+        updated["se_primary_path"] = ""
+        updated["se_primary_label"] = ""
+        updated["se_secondary_paths"] = []
+        updated["se_decision_basis"] = "X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like"
+        updated["manual_review_status"] = "未人工复核"
+        updated["classification_source"] = "启发式初判"
+        updated["manual_review_note"] = ""
+        updated["manual_review_reviewer"] = ""
+        updated["manual_review_updated_at"] = ""
+        return updated
+
     theme_scores: Dict[str, int] = {}
     for theme, keywords in THEME_PATTERNS.items():
         score, _ = score_keywords(title_text, body_text, keywords)
@@ -1687,6 +1892,8 @@ def classify_paper(
         and dominant_theme not in {"requirements", "maintenance", "process", "empirical", "ai_for_se", "se_for_ai"}
     )
     if any(has_keyword(body_text, override) for override in SPECIAL_NON_SE_OVERRIDES) and d2 == 0:
+        x1 = True
+    if prior_bias <= -2 and sys_hits >= 2 and artifact_groups == 0 and dominant_theme not in {"testing", "analysis", "verification"}:
         x1 = True
 
     weighted_total = d1 * 3 + d2 * 2 + d3 * 2 + d4 + max(prior_bias, 0)
@@ -1765,7 +1972,12 @@ def classify_paper(
     return updated
 
 
-def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: Dict[str, Any]) -> str:
+def render_year_readme(
+    year: int,
+    payloads: List[Dict[str, Any]],
+    verification: Dict[str, Any],
+    full_manual_coverage: bool,
+) -> str:
     ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     venue_count = len(payloads)
     total_papers = verification["total_actual"]
@@ -1806,9 +2018,13 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
     lines.append(f"- 更新时间：`{ts}`")
     lines.append(
         f"- 人工复核覆盖文件：[manual_review/README.md]({MANUAL_REVIEW_DIRNAME}/README.md) / "
-        f"[manual_review/{MANUAL_OVERRIDE_FILENAME}]({MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME})"
+        f"[manual_review/{MANUAL_OVERRIDE_FILENAME}]({MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}) / "
+        f"[manual_review/{MANUAL_BATCH_DIRNAME}/]({MANUAL_REVIEW_DIRNAME}/{MANUAL_BATCH_DIRNAME})"
     )
-    lines.append("- 说明：本页先由 `tools/ccf_se_index_builder.py` 生成基础元数据，再由 `tools/ccf_se_classifier.py` 做启发式初判；若 `manual_review/overrides.json` 中存在逐篇人工复核结果，则人工复核优先覆盖脚本结果。")
+    if full_manual_coverage:
+        lines.append("- 说明：本年度条目已实现全量人工复核；本页由 `tools/ccf_se_index_builder.py` 提供基础元数据，再由 `tools/ccf_se_classifier.py` 直接读取 `manual_review/overrides.json` 与 `manual_review/batches/*.json` 中的人工终判结果进行回填与渲染，不再依赖启发式分类结果。")
+    else:
+        lines.append("- 说明：本页先由 `tools/ccf_se_index_builder.py` 生成基础元数据，再由 `tools/ccf_se_classifier.py` 做启发式初判；若 `manual_review/overrides.json` 或 `manual_review/batches/*.json` 中存在逐篇人工复核结果，则人工复核优先覆盖脚本结果。")
     lines.append("")
     lines.append("## 2. 年度汇总统计")
     lines.append("")
@@ -1966,7 +2182,11 @@ def render_year_readme(year: int, payloads: List[Dict[str, Any]], verification: 
     if path_counts:
         lines.append("- 高频软工主路径：" + " / ".join(f"{name} ({count})" for name, count in path_counts.most_common(15)))
     lines.append("- 计数复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
-    lines.append(f"- 分类终判状态：以 [{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}](./{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}) 为准；未进入覆盖文件的条目仍只是启发式初判。")
+    lines.append(
+        f"- 分类终判状态：以 [./{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}](./{MANUAL_REVIEW_DIRNAME}/{MANUAL_OVERRIDE_FILENAME}) "
+        f"与 [./{MANUAL_REVIEW_DIRNAME}/{MANUAL_BATCH_DIRNAME}/](./{MANUAL_REVIEW_DIRNAME}/{MANUAL_BATCH_DIRNAME}) 为准；"
+        "未进入覆盖文件的条目仍只是启发式初判。"
+    )
     lines.append("- 后续若继续扩年份或重跑年度页，建议先运行 `tools/ccf_se_index_builder.py`，再运行 `tools/ccf_se_classifier.py`。")
     lines.append("")
     return "\n".join(lines)
@@ -2011,8 +2231,15 @@ def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
     override_index = load_manual_override_index(target_dir)
     payloads, verification = load_payloads(target_dir)
 
+    total_manual_hits = 0
+    for payload in payloads:
+        for paper in payload["papers"]:
+            if find_manual_override(paper, override_index) is not None:
+                total_manual_hits += 1
+    full_manual_coverage = total_manual_hits == verification["total_actual"]
+
     counters: Counter[str] = Counter()
-    counters["manual_override_entries"] = override_index.entry_count
+    counters["manual_override_entries"] = total_manual_hits
     for payload in payloads:
         venue = payload["venue"]
         prior = priors[(venue.abbr, venue.rank, venue.kind)]
@@ -2020,15 +2247,22 @@ def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
         original = json.loads(metadata_path.read_text(encoding="utf-8"))
         updated_papers: List[Dict[str, Any]] = []
         for paper in original["papers"]:
-            updated = classify_paper(paper, prior, leaf_defs)
             override = find_manual_override(paper, override_index)
-            if override is not None:
-                updated = apply_manual_override(updated, override, leaf_defs)
+            if full_manual_coverage:
+                if override is None:
+                    raise ValueError(f"Expected full manual coverage but no manual review entry found for: {paper.get('key')}")
+                updated = apply_manual_override(dict(paper), override, leaf_defs)
                 counters["review:已人工复核"] += 1
                 counters["source:人工复核"] += 1
             else:
-                counters["review:未人工复核"] += 1
-                counters["source:启发式初判"] += 1
+                updated = classify_paper(paper, prior, leaf_defs)
+                if override is not None:
+                    updated = apply_manual_override(updated, override, leaf_defs)
+                    counters["review:已人工复核"] += 1
+                    counters["source:人工复核"] += 1
+                else:
+                    counters["review:未人工复核"] += 1
+                    counters["source:启发式初判"] += 1
             updated_papers.append(updated)
             counters["papers"] += 1
             counters[f"macro:{updated['macro_area']}"] += 1
@@ -2040,7 +2274,7 @@ def classify_year(target_dir: Path, year: int) -> Dict[str, int]:
         payload["papers"] = updated_papers
         payload["actual_total"] = len(updated_papers)
 
-    readme_text = render_year_readme(year, payloads, verification)
+    readme_text = render_year_readme(year, payloads, verification, full_manual_coverage)
     (target_dir / "README.md").write_text(readme_text, encoding="utf-8")
     return dict(counters)
 
