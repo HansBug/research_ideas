@@ -1,0 +1,822 @@
+--- Page 1 ---
+FrancHanžiˇ c, KarelJezernik,Slavko Cehner
+MechatronicControl Systemon aFinite-StateMachine
+DOI
+UDK
+IFAC10.7305/automatika.54-1.298
+681.513.2-53; 004.41.021
+3.2; 4.7.6
+Original scientiﬁcpaper
+This paper describes design using state-transition methodology. This state -transition methodology is straight-
+forward, with a simply-perceived relation between the programming and the corresponding sequential function.
+The current operational function of the system is described as the curr ent state of the system using state-transition
+programming. The state transition diagram or table describes the current state and the conditions for transition.
+The operation is transferred to a corresponding destination state when a s et of conditions become valid for leaving
+the current state. Thus, the sequential operation is explicit, and any contin uous conditions scanning (from com-
+mand source and sensors) only include those that are pertinent for lea ving the current state. The methodology is
+highly-structured and efﬁcient, the programming tasks are readily comp rehensible, and fault diagnostics can be
+easily included within the program’s structure. The presented application o f an automatic sliding-door illustrates
+the feasibility of this approach. This paper presents the MFSM (Modular Fin ite-State Machine), the ECA (Event-
+Condition-Action) system, motion generation, motion control with load estimatio n, and an example of a DSP
+(Digital Signal Processor) system. The limitations and attributes of each tec hnique are discussed, and a state-table
+formatis presented withthecapability of representingparallel asynchro nous sequential processes.
+Key words: FSM,Softwaredesign, Adaptive automatic door motion,State ﬂow,DSP
+Mehatroni ˇcki sustav upravljanja na automatu s kona ˇcnim brojem stanja. U ovom radu opisan je dizajn
+koriste´ci metodu prijelaza stanja. Metoda prijelaza stanja je izravna metoda s jednos tavnim odnosom izme /EEu pro-
+gramiranja i odgovaraju ´ce funkcije. Trenutna funkcija sustava opisana je kao trenutno stanje sus tava koriste ´ci
+programiranje s prijelazom stanja. Dijagram ili tablica prijelaza stanja opisuje tr enutno stanje i uvjete prijelaza u
+drugo stanje. Ako su zadovoljeni uvjeti prijelaza sustav prelazi u odgov araju´ce stanje. Dakle, slijed je deﬁniran
+eksplicitno te provjera kontinuiranih stanja sustava (upravlja ˇcki signal ili senzori) obuhva ´ca samo ona stanja koja
+su znaˇcajna za prijelaz u sljede ´ce stanje. Metodologija je dobro strukturirana i u ˇcinkovita, programski zadaci su
+lako razumljivi i prepoznavanje pogreške može se lako uklju ˇciti u strukturu programa. Izvodljivost ovog pristupa
+ilustrirana je na primjeru automatskih kliznih vrata. Ovaj rad prikazuje modu larni automat s kona ˇcnim brojem
+stanja, doga /EEajno uvjetovanu radnju, gibanje, upravljanje gibanjem s estimacijom tereta i p rimjer sustava s digi-
+talnim signalnim procesorom. Komentirana su ograni ˇcenja i zna ˇcajke svake od ovih metoda i prikazana je tablica
+stanja smogu ´cnoš´cu prikazivanja paralelnih asinkronihslijednihprocesa.
+Kljuˇcne rijeˇci:automat s kona ˇcnim brojem stanja, dizajn softvera, adaptivno gibanje automatskih vrata, digitalni
+signalni procesor
+1 INTRODUCTION
+Hybrid systems [1], covering the heterogeneous con-
+tinuous, and discrete event natures of dynamic systems
+are well-known academic approaches. They are charac-
+terized by the interactions between those continuous parts
+governed by differential or difference equations, and the
+discrete-event part, traditionally described by ﬁnite-st ate
+machines[2-3],ifthen-elserules,temporallogicanddis-
+crete components, on-off switches, digital circuitry, sof t-
+ware code, etc [4]. Hybrid systems switch between sev-
+eral operating modes, where each mode is governed byits own characteristic dynamic laws. Mode transitions are
+triggered by variable crossing-speciﬁc thresholds – “stat e
+events”, by the elapses of certain time periods – “time
+events”, or by external inputs – “input events” [5]. The
+typical hybrid systems are embedded systems, composed
+of dynamic components governed by logical/discrete de-
+cision components [6]. Hybrid systems require interdis-
+ciplinary approaches that exploit formal methods in com-
+puter science, control theory, and operational research.
+The motion method theory is used for jerk reduction [7-
+9]. Traditional control engineering practice favors recur -Online ISSN 1848-3380, Print ISSN 0005-1144
+ATKAFF 54(1), 126–138(2013)
+126 AUTOMATIKA 54(2013) 1, 126–138
+
+--- Page 2 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+sive methods for describing motion structures. Recur-
+sive structures are much simpler to design, analyze, evalu-
+ate, and implement on microcontroller-based control plat-
+forms. A promising recursive description for event-driven
+systems [10-11] has been introduced recently. This pa-
+perappliesthisrecently-developedrecursivedescriptio nof
+event-driven systems within the ﬁeld of mechatronic sys-
+tems [12], likeanautomatic slidingdoor.
+The basic theory of FSM is simple with logical inter-
+actions. Such a design is preferred by companies with
+program design backgrounds. The program code must
+be logically written in program code and explained in pa-
+persbecauseofthefrequentchangesofpeopleworkingon
+projects. The disadvantage of such a design is the signiﬁ-
+canteffortrequiredtomaintainorganizedprogramcodeon
+huge complex systems. The culprits for such a disadvan-
+tage are transitions, which can become intertwined within
+undesirable designs. Petri nets are mathematical model-
+ing language for use on huge complex systems where the
+basic theory is more demanding than by FSM. The work
+basesoftheFSMdesignimprovementsaretomaintainor-
+ganized program codes on complex systems without sig-
+niﬁcant effort. The research is divided into modular FSM,
+and FSM with state sub-levels. The ﬁrst technique de-
+scribes a FSM within a modular method. The point of
+such a design is to divide huge processes into multiple
+smaller ones as asynchronous FSM processes. The con-
+nection between FSM modules is only implemented us-
+ing FIFO queue event channels and not with transitions.
+The second technique describes FSM with multiple state
+sub-levels. Such a technique is recommended in systems
+with small complex systems for example a motion gener-
+ator with seven basic states and multiple state sub-levels.
+The point of such a design is ﬁrst to present the simplest
+basic system function, and then gradually expand the sys-
+tem’s functionality indetail.
+The essence of this work was to demonstrate a graph-
+ical software design method using FSM with state sub-
+levels. The point of FSM usage is to lower difﬁcul-
+tieswithinsoftwareprogramming,debugging,andmainte-
+nance. FSM,usingmultiplestatesub-leveldesigns,parses
+the complex working process into small modular working
+processes. Such a program-code can be easier for debug-
+ging and maintenance. The contribution of this work is
+to demonstrate such a technique with multiple sub-states,
+onacustom-mademechatronicapplicationwithDSPcon-
+troller. Such a design was proposed for the rapid software
+improvement of an automatic sliding-door control. Such
+a design technique is recommended for the rapid control
+development of mechatronic systems for robust control,
+without seriousprogram bugs.
+An S-shaped velocity motion generator designed in
+FSM with multiple state sub-levels improved the door’sfunctionality (lower motor current peak, smoother move-
+ment, improved safety, decreased motor heating, etc.).
+Rapid prototyping using the DSP system for the door
+mechanism was included during the application. The ex-
+perimental system was designed for the rapid prototyping
+of control algorithms forautomatic door improvements.
+2 SYSTEM DESCRIPTION
+Thisisasystem(Fig. 1)wherethecontrolsystemcon-
+trols the application of automatic doors. The control sys-
+tem receives certain information (inputs) from the appli-
+cation, and generates actions (outputs) that affect it. The
+control system isrealized usingsimplelogical conditions :
+IF(input conditions) THEN outputs
+The input conditions represent logical expressions for-
+mulated according toBoolean algebra:
+door_open
+door_closed AND person_detected
+command_open ORperson_detected
+Where “AND” and “OR” are the logical operators. All
+input conditions have Boolean values (true, false). The
+outputsrepresentthecontrolsystem’sstates(open,close d,
+lockedetc.). Eachpreviousstateisstoredwithinavariabl e.
+The new state depends on the previous state and the input
+conditions. A switching algorithm between states with in-
+put and state conditions is the core of the FSM. The soft-
+ware design can be implemented with the help of a transi-
+tionmatrixor statemachine diagram.
+Fig. 1. An application usingthe control system
+The door control software designed in FSM is divided
+into continuous and discrete-event spaces (Fig. 2). The
+continuous space contains a continuous data stream both
+from and to the sensors and actuators that are used on theAUTOMATIKA 54(2013) 1, 126–138 127
+
+--- Page 3 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+automaticdoors. ThediscreteeventspaceisbasedonFSM
+withevent interrupts.
+The transition matrix (Fig. 3) is a table with repre-
+sented states, transitions and events of the observed sys-
+tem. The event occurs when a speciﬁc input or function
+condition is met. The transition matrix can cover various
+forms, depending on the person who designed the FSM.
+Illegal transitionsare represented by the redﬁelds.
+Thestatetransitiondiagram(Fig. 4)isagraphicalrep-
+resentation,whichisdescribedwithinthetransitionmatr ix
+(Fig. 3). It consists of circles (states) and connections be -
+tween them (transitions).
+Fig. 2. Door control software
+Fig. 3. Transition matrix
+The door control system consists of a few different
+tasks. Themicrocontrollersdon’tsupportparalleltaskex e-
+cutionlikeFPGAs,soanadditionaloperatingsystemmust
+be implemented within the microcontroller. The operating
+system RTOS (Real Time Operating System) for embed-
+ded applications is used for parallel task execution on the
+microcontrollers. RTOS can also be implemented within
+the FSM design. The door application uses the following
+tasks:
+1. Input reading task (creates various events from the
+sensor’ssignal read);
+2. Control task(door motion and speed control);
+3. Door management task (safety functions, door man-
+agement, hardware control, diagnostics, ﬂash mem-
+orylogging etc.)
+Fig. 4. Statetransition diagram
+4. Communication task(CAN and Serial RS232)
+5. Dooroperatortask(generateseventsfromacommand
+switch or any other operator via CAN communica-
+tion)
+Theimprovedmotioncontrolalgorithm(Fig. 5)isused
+[13] within the door’s system. Feed-back control consists
+ofthreereferenceinputs(acceleration,speed,andpositi on)
+that are given from the motion generator and two actual
+measureinputs(position,speed)thataregivenfromthein-
+cremental encoder. The feed-back control is tuneable with
+two parameters KpandKv). The Kvparameter affects
+the quality of the velocity control, and the Kpparameter
+affects the quality of the positional control. Both param-
+eters affect the system’s control speed performance. The
+feed-back output represents an acceleration reference tha t
+is multiplied by the estimated mechanism’s moving mass
+(ˆm). The multiplication result isthe estimated force of the
+mechanism. The feed-forward control eliminates the er-
+ror of a poorly-speciﬁed estimated mechanism’s moving
+mass, and any frictions in the gears, bearings, and guides.
+The parameter hserves as a low-pass ﬁlter that eliminates
+noiseduringspeedmeasures,sothisparameterhasasmall
+number, depending on the measure quality. The mecha-
+nism starts trembling if the parameter his set too high,
+if set too low the mechanism’s response-time increases.
+Theparameter hisdeﬁnedusingpracticalexperiments,by
+considering the optimal control response. The total refer-
+ence force is the sum of the mechanism’s estimated force
+and the force from the feed-forward control. The motor is
+basedonrotation,sothemotorreferencesaretorquebased.
+Torque is transformed into force and vice-versa because
+themechanismislinear-basedwithgearsandabelt-pulley128 AUTOMATIKA 54(2013) 1, 126–138
+
+--- Page 4 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+(2). The transform calculation depends on the gear ratio
+iand pulley radius r. The motor torque constant Kmis
+given inthe motor datasheet.
+M=F·r
+i(1)
+ThefollowingexplanationaboutFSMdesignispointed
+out in the control task, where the door motion and motion
+control are included. An experiment (Fig. 6, and Fig. 7)
+is included on a DSP system with linear mechanism and a
+brushlessACmotor. ThebrushlessACmotorsarecommu-
+tated with sinusoidal current shapes for less torque ripple .
+The DSP system was designed for control algorithm rapid
+prototyping [15-16]. An improved motion control was in-
+tegrated within the door motion FSM. The experimental
+environmentwasdesignedforthetestpurposesofthecon-
+trolalgorithms. ThePCisusedforcontroldesigning,con-
+trolresponse analysis, and data measures.
+3 DOOR-MOTION
+A trapezoidal speed proﬁle is used in current doors.
+This kind of proﬁle doesn’t have a continuous movement
+between speed-crossings. The door movement’s smooth-
+ness, increases motor heating, and more energy consump-
+tion is created by the trapezoidal proﬁle. The event-based
+Sspeedproﬁlewasdesignedtonegatesuchdisadvantages.
+The idea of an event-based system was to design motion
+control within a graphical-based environment. The point
+of such research was to improve software debugging, ex-
+ecution tracking, monitoring, and documentation, and to
+provide explanations of the control algorithm for the next
+generation of software designers within companies. The
+basics of S speed-proﬁle are known and widely-used in
+motion controllers around theworld.
+Fig. 6. Experiment’s environment
+This means that the algorithm core is known but the
+design has been changed for automatic door control pur-
+poses.
+Thedoorapplicationconsistsofdifferentmultiplepro-
+cesses. One such process consists of a motion generator
+withtheSbasedspeed-proﬁle. TheSspeed-proﬁle(Fig. 8)
+Fig. 7. Experimental test-bed
+was developed based on MFSM for continuous movement
+betweenspeed-crossings. MFSMdevelopmentcontributes
+software development with low based integration within a
+multi-process. The proﬁle has to be adaptable to motion
+length, maximum jerk, acceleration, and speed. The jerk
+controlsthesmoothnesslevelbetweenthespeedcrossings.
+The smoothness level decreases as the jerk increases. The
+trapezoidal proﬁle can be generated by a high-jerk. The
+maximum acceleration and velocity of the door must be
+controllable because of door-safety. The acceleration and
+speed must be lower for heavier doors than lighter ones.
+These rules are implemented because heavier doors are
+more dangerous and can lead to serious injuries for peo-
+ple during collisions. The motion length is initialized at
+thedoor start-up,and depends onthe door type.
+Fig. 8. S speed proﬁle generation
+Whereis:
+jmax–maximum jerk
+amax –maximum acceleration
+vmax –maximum velocityAUTOMATIKA 54(2013) 1, 126–138 129
+
+--- Page 5 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+Fig. 5. Mechanism control algorithm
+sdes –desired position
+TS –jerk-time
+TA – acceleration time
+T0 –timetodeceleration
+The S speed proﬁle is generated with the following
+equations for acceleration (2), velocity (3), and position(4). The equations represent the mathematical models of
+other authors [7-9]. These authors have presented simi-
+lar objectives for developing a motion system for better
+motion properties. The crossing between the positive and
+negative speed proﬁles represents a rotational change by
+rotarymotors and adirectional change by linear-motors.
+a(t)=
+
+jmax·t 0< t≤t1=TS
+amax t1< t≤t2=TA−TS
+−jmax·(t−t2) +amax t2< t≤t3=TA
+0 t3< t≤t4=T0
+−jmax·(t−t4) t4< t≤t5=T0+TS
+−amax t5< t≤t6=T0+TA−TS
+jmax·(t−t6)−amax t6< t≤t7=T0+TA(2)
+v(t)=
+
+1
+2·jmax·t20< t≤t1=TS
+amax·(t−t1) +v(t1) t1< t≤t2=TA−TS
+−1
+2·jmax·(t−t2)2+amax·(t−t2) +v(t2) t2< t≤t3=TA
+v(t3) t3< t≤t4=T0
+−1
+2·jmax·(t−t4)2+v(t4) t4< t≤t5=T0+TS
+−amax·(t−t5) +v(t5) t5< t≤t6=T0+TA−TS
+1
+2·jmax·(t−t6)2−amax·(t−t6) +v(t6) t6< t≤t7=T0+TA(3)
+s(t)=
+
+1
+6·jmax·t30< t≤t1=TS
+1
+2·amax·(t−t1)2+v(t1)·(t−t1) +s(t1) t1< t≤t2=TA−TS
+−1
+6·jmax·(t−t2)3+1
+2·amax·(t−t2)2+v(t2)·(t−t2) +s(t2) t2< t≤t3=TA
+v(t3)·(t−t3) +s(t3) t3< t≤t4=T0
+−1
+6·jmax·(t−t4)3+v(t4)·(t−t4) +s(t4) t4< t≤t5=T0+TS
+−1
+2·amax·(t−t5)2+v(t5)·(t−t5) +s(t5) t5< t≤t6=T0+TA−TS
+1
+6·jmax·(t−t6)3−1
+2·amax·(t−t6)2+v(t6)·(t−t6) +s(t6) t6< t≤t7=T0+TA(4)130 AUTOMATIKA 54(2013) 1, 126–138
+
+--- Page 6 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+where:
+jmax−maximum jerk
+amax−maximum acceleration
+v(tn)−velocity at end of time (n)
+s(tn)−position at end of time (n)
+The time intervals (TS, TA, and T0) are calculated us-
+ing different equations (Table 1, and Table 2) because of
+changeable maximum jerk, acceleration, velocity, and the
+desired position.
+Table 1. Time interval equation conditions 1/2
+Table 2. Time interval equation conditions 2/2
+4 MOTION BASED ON FSM
+The FSM door motion was designed in Mat-
+lab/Simulink–StateFlow. TheFSMrepresentsagraphical
+block withinputs (Fig. 9) and outputs (Fig. 10).
+The FSM motion-generator has 14 different inputs.
+The input PROMACHINE_IN is connected to the door
+management FSM, which gives commands to the FSM
+motion-generator. All other inputs (ACT_POS and
+ACT_VEL are excluded) are connected to the door-
+system’s initialization, which calculates all the paramet ers
+neededfordoorcontrol,includingtheconditionsin(Table
+1, and Table 2).
+TheFSMmotion-generatorwith5outputsrepresents3
+pieces of reference data (acceleration, velocity, and posi -
+tion). The reference data is connected to the control sys-
+tem. The output PROMACHINE_OUT is intended for the
+Fig. 9. FSM motion-generator inputs
+Fig. 10. FSM motion-generator outputs
+FSM motion-generator diagnostic – states toggle informa-
+tion. The status output is connected to the door manage-
+ment FSM for the event transmission of the FSM motion-
+generator’s status.
+The development of FSM in sub-layers contributes to
+program functionality explanations regarding graphic pre -
+sentations. This method explains the program’s function-
+ality as multiple-difﬁculty classes. The simplest process es
+coveronlyafewstatesub-levelsbutthecomplexprocesses
+can cover several state sub-levels. The software devel-
+opment can best be explained as being like lego building
+bricksdividedindifﬁcultylevels. Theproject“newbieem-
+ployee” can easily adapt to the existing work. The transi-
+tion’s knits are reduced and maintain program code trace-
+ability. Any possible code bugs can be more precisely ori-
+ented with state sub-layer identiﬁcation. Such a technique
+is show in the state ﬂow diagram of the motion generator.
+Themainlevelrepresentsthebasicoperation(Table3,and
+Fig. 11). The advantage of such a technique is the inde-
+pendence of the program’s languages.
+The states (init., positive, negative, and stop) have
+two sub-levels. Let’s take the state-positive for example.
+The ﬁrst sub-level contains positive motion proﬁle sector-
+switching (sectors I to VIII – see Fig. 8). The positive
+motion consists of 8 ﬁrst sub-states (Table 4 ,and Fig. 12).
+The states at the ﬁrst sub-level have two numbers (Sxy),
+where x is the state number of the main level and y theAUTOMATIKA 54(2013) 1, 126–138 131
+
+--- Page 7 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+statenumber of ﬁrstsub-level.
+Table 3. FSM motion-generator transition matrix - main
+level
+Fig. 11. FSM motion-generator state ﬂow diagram - main
+level
+The transition table’s blue ﬁelds represent the events
+andactionsfromthemainlevel. Eachstateinthesub-level
+isalsoconditioned from themain level.
+The states at the ﬁrst sub-level have states in the sec-
+ond sub-level. The second sub-level ﬁnally concludes the
+equations for motion calculations (1, 2, and 3). The state
+Table 4. FSM motion-generator transition matrix – ﬁrst
+sub-level
+Fig. 12. FSM motion-generator state ﬂow diagram – ﬁrst
+sub-level
+S20 (Fig. 12) includes the states for the ﬁrst sector motion
+calculation (Table 5, and Fig. 13).
+The door motion FSM was designed with Mat-
+lab/Simulink/StateFlow software. The StateFlow repre-
+sentsgraphical FSM programming.
+The StateFlow in the Simulink is presented as a block
+DoorMotionFSM(Fig. 14). TheFSMgraphicalprogram-
+mingishidden inthe block Door-Motion FSM (Fig. 15).132 AUTOMATIKA 54(2013) 1, 126–138
+
+--- Page 8 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+Fig. 14. Door-motion FSM block inSimulink
+Fig. 13. FSM motion-generator state ﬂow diagram – sec-
+ond sub-level
+5 SELF-TUNNING ALGORITHM FOR MOTION
+GENERATOR
+A main problem in all control systems is the physical
+limits (maximum current, acceleration, speed, etc.). Thedoor-control limits are given within the power of a mo-
+tor, and the door weight. These limits have to be consid-
+ered when designing the control system. The control sys-
+tem is no longer controlled when the limits are achieved.
+As is known, the control system-task is there to reduce
+the margin of error between the actual and reference val-
+ues. It is necessary to change the reference value so that
+the control system doesn’t reach these limits. The door
+motion FSM includes changeable acceleration parameters
+(Fig. 16). Theaccelerationcanbecalculatedwiththehelp
+of Newton’s second law (5). The force is a known param-
+eter froma given motor data.
+Fm−ˆFf= ˆm·amax⇒amax=Fm−ˆFf
+ˆm(5)
+ˆm=ˆFm
+ˆaref=kF·im
+ˆaref(6)
+Linear motors have linear motion and already have the
+givenmotorpowerinforce(Fm). Themaximumaccelera-
+tion can be calculated from motor force (Fm), estimatedAUTOMATIKA 54(2013) 1, 126–138 133
+
+--- Page 9 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+Fig. 15. Door motion FSM graphical programming inStateFlow
+Table5. FSMmotion-generatortransitionmatrix–second
+sub-level
+friction force ( Ff), and estimated door mass ( m). The
+estimated mass (6) can be calculated from the estimated
+force given from the motor ( Fm) and the estimated refer-ence acceleration ( aref) given from the motion-generator.
+The motor estimated force ( Fm) is calculated from the
+measured motor current ( im) and the motor force constant
+(kF). Thiscalculationneedspropermotioncontrolandas-
+surancethatthemotoriswithinthemotionlimits. Thecal-
+culationexecutioniscarriedoutonlywhentheacceleratio n
+reference( aref)isequaltothemaximumconﬁguredaccel-
+eration during initialization. So, this calculation needs the
+additional state called “initialization”. The calculated ap-
+proximated mass ( m) includes friction, so it is important
+that the mechanism is in good condition. The maximum
+accelerationlimit( amax)canbecalculated(7)withoutthe
+estimated friction forces ( Ff) because these frictions are
+already included withinthe approximated door mass ( m).
+amax=Fm
+ˆm(7)
+Rotary motors have rotary motion, and motor power is
+giventhroughtorque. Atypicaldoorapplicationisarotary
+motor with gears, a belt, and two belt-pulleys. The motor
+force Fm has to be calculated in this case. The calculated
+motorforce(8)dependsonthegearratio( i),motortorque
+(τm)and belt pulley radius ( r).
+τm=r·Fm
+i⇒Fm=τm·i
+r(8)134 AUTOMATIKA 54(2013) 1, 126–138
+
+--- Page 10 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+Fig. 16. Automatic parameters’ calculation for FSM mo-
+tiongenerator
+We already know the motor force Fmparameter for
+both types of motors. An estimated mass ( m) is the sec-
+ond parameter that is needed for acceleration calculation.
+The mass can be calculated from a motor measured cur-
+rent. The doors have an initiation cycle at the beginning
+(poweron). Thedoorsgointoend-positionsearchatacon-
+stantslow speed. The measured motor current increases at
+the beginning of the door’s motion. The maximum motor
+current value is saved in the memory as the door-opening
+interval. The motor’s maximum current increases when
+thedoor’sweightisincreased. Themasscanbecalculated
+from the measured maximum motor current and the mass
+constant. The mass constant is achieved using experimen-
+talmeasuresontheslidingdoorapplication. Theaccelera-
+tioncanbecalculatednowthatbothparametersareknown.
+The door-motion FSM will generate reference motion val-
+ues within the motor-capacity using a given door weight.
+The control system cannot achieve the limits using these
+types of door motion FSM.
+The door during normal operation goes into blockade
+detectionwhenthemotionisforcefullyinterrupted(obsta -
+cle collision or any other movement prevention). In this
+case the door changes movement direction or stops with
+an errorindicator after three subsequent attempts.
+6 EXPERIMENTS
+The experiment was executed using two methods. The
+ﬁrst method represents the linear mechanism in a vertical
+position. This method includes the gravity inﬂuence on
+the load that increases the control complexity of the lin-
+ear mechanism. The second method represents the linear
+mechanism in a horizontal position. The gravity inﬂuence
+on the load was excluded in this case. The control com-
+plexity is smaller than that by the vertical position of the
+linear mechanism. The control system was composed of
+the control loop with a PI estimator (load estimation), an
+S-shaped velocity generator, and the functionality-contr ol
+algorithm. The motion was executed via an external push-
+button. The process measures and settings were processedvia a DSP terminal on the PC, connected to the DSP sys-
+tem viathe USB cable.
+The ﬁrst part of the experiment was executed with
+lower jerk ( 2m3/s) and acceleration ( 2m2/s). The posi-
+tion ( 0.3m) and velocity ( 0.3m/s) were constant. The
+motion generator calculated the motion limits using the
+given parameters of jerk, acceleration, velocity, and posi -
+tion. The MFSM motion generator started calculating the
+motion proﬁle by a given event from the control manage-
+ment MFSM (Fig. 2).
+The control-loop was designed with feed-back and
+feed-forward loops. The overall force (current reference)
+was the sum of the results from both loops. The feed-back
+loop eliminated disturbances by fast changes in motion by
+the given estimated load mass on the linear mechanism
+(by motion starts and ends, sudden external disturbances
+etc.). The feed-forward loop friction force (feed-forward
+current) was needed to overcome the mechanism friction
+and gravity effect. The linear mechanism was positioned
+intwowaysasmentioned. Thedifferencebetweentwopo-
+sitionswasvisiblefromtheforcemeasures. Thevertically -
+positioned mechanism (Fig. 18) had a lower friction force
+whentheloadmoveddownwardsbecauseofthegravityef-
+fect on the load. The friction force was much larger when
+theloadmovedupwardsbecausethemotorneededtoover-
+come the gravity effect and mechanism friction. The fric-
+tion force was balanced in both motion directions by the
+horizontal position of the mechanism. A small force dif-
+ference appeared between directions because the frictions
+weredifferent inbothmotion directions (Fig. 17).
+1 2 3 4 5 6 7 8 9 10−0.4−0.200.20.4JERK: 2m/s3, ACCELERATION: 2m/s2, VELOCITY: 0.3m/s, POSITION: 0.3m, HORIZONTAL
+Time [s]Velocity [m/s]
+  
+0 1 2 3 4 5 6 7 8 9 10−0.3−0.2−0.100.1Position [m]
+  
+0 1 2 3 4 5 6 7 8 9 10−20−1001020Force [N]
+  Vel meas
+Vel ref
+Pos ref
+Pos meas
+Mechanism force
+Friction force
+Overall Force (friction + mechanism)
+Fig. 17. Motion of the linear mechanism with given set-
+tings byhorizontal position
+The next experiment was executed with an increased
+jerk parameter of 10m3/s (Fig. 19, Fig. 20). The re-
+sults from the measures showed that the force peaks wereAUTOMATIKA 54(2013) 1, 126–138 135
+
+--- Page 11 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+0 1 2 3 4 5 6 7 8 9 10−0.4−0.200.20.4JERK: 2m/s3, ACCELERATION: 2m/s2, VELOCITY: 0.3m/s, POSITION: 0.3m, VERTICAL
+Time [s]Velocity [m/s]
+  
+0 1 2 3 4 5 6 7 8 9 10−0.3−0.2−0.100.1Position [m]
+  
+0 1 2 3 4 5 6 7 8 9 10−20−10010203040Force [N]
+  Vel meas
+Vel ref
+Pos ref
+Pos meas
+Mechanism force
+Overall force (friction + mechanism)
+Friction force
+Fig. 18. Motion of the linear mechanism with given set-
+tings by vertical position
+greater. The increased force peaks were logical because
+the motion dynamics increased with greater jerk or accel-
+eration.
+0 1 2 3 4 5 6 7 8 9 10−0.4−0.200.20.4JERK: 10m/s3, ACCELERATION: 2m/s2, VELOCITY: 0.3m/s, POSITION: 0.3m, HORIZONTAL
+Time [s]Velocity [m/s]
+  
+0 1 2 3 4 5 6 7 8 9 10−0.4−0.3−0.2−0.100.1Position [m]
+  
+0 1 2 3 4 5 6 7 8 9 10−30−20−100102030Force [N]
+  Vel meas
+Vel ref
+Pos ref
+Pos meas
+Overall force (friction + mechanism)
+Friction force
+Mechanism force
+Fig. 19. Motion of the linear mechanism with given set-
+tings by horizontal position
+The last experiment was executed with an increased
+jerk-parameter of 50m3/2, and an acceleration parameter
+of10m2/s (Fig. 21, Fig. 22). The velocity proﬁle was
+similar to the trapezoidal, so the velocity crossings were
+rough. Thejerkparameterwasaminorvariableforcurrent
+peak-deﬁnition. The larger jerk (trapezoidal shapes) had0 1 2 3 4 5 6 7 8 9 10−0.4−0.200.20.4JERK: 10m/s3, ACCELERATION: 2m/s2, VELOCITY: 0.3m/s, POSITION: 0.3m, VERTICAL
+Time [s]Velocity [m/s]
+  
+0 1 2 3 4 5 6 7 8 9 10−0.4−0.3−0.2−0.100.1Position [m]
+  
+0 1 2 3 4 5 6 7 8 9 10−200204060Force [N]
+  Pos ref
+Pos measVel meas
+Vel ref
+Overall force (friction + mechanism)
+Friction force
+Mechanism force
+Fig. 20. Motion of the linear mechanism with given set-
+tingsby vertical position
+thegreatestforce-peaks,sothepowerconsumption,motor
+heating,andmechanismvibrationsweregreaterfromthese
+typesofmotionproﬁleshapes. Itwasveryimportanttoin-
+clude such control systems that can be adjusted with the
+jerk-parameter. The motion dynamics could be adjusted
+withanychangeinloadmassandcurrentﬂuctuationswith
+proper monitoring algorithms, which could be simply in-
+tegrated within FSM. The current response showed all the
+needed information for manipulating motion dynamics for
+thebest motion performance on chosen mechanisms.
+7 CONCLUSION
+Sequential S-shaped motion proﬁle generation strat-
+egy with MFSM was proposed for reducing the motion-
+induced jerk, vibration, and program structure complex-
+ity. The motion shapes are adapted by the user parameter
+(maximum jerk, velocity, and position) and activated by
+event-based input. The MFSM motion generator was de-
+signed in the Matlab/Simulink/Flowchart software, which
+is based on the FSM for rapid prototyping. The motion
+generator was designed with the help of modiﬁed mathe-
+matical models of the velocity S proﬁle. The experiments
+on the DSP system with a door mechanism were executed
+to ensure the functionalities of the proposed techniques.
+Theproposedmotion-generatorimprovedthedoormotion
+control, energy consumption, decreases mechanism vibra-
+tions, etc. The generator reduced jerk at each motion start
+if the previous peak force exceeded the given user limit.
+Such a method eliminated hard vibrations on the mecha-
+nism. The motion reference calculations included devia-
+tion because of the algorithm’s discretization. This devi-136 AUTOMATIKA 54(2013) 1, 126–138
+
+--- Page 12 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+0 1 2 3 4 5 6 7 8 9 10−0.4−0.200.20.4JERK: 50m/s3, ACCELERATION: 10m/s2, VELOCITY: 0.3m/s, POSITION: 0.3m, HORIZONTAL
+Time [s]Velocity [m/s]
+  
+0 1 2 3 4 5 6 7 8 9 10−0.3−0.2−0.100.1Position [m]
+  
+0 1 2 3 4 5 6 7 8 9 10−50050Force [N]
+  Vel ref
+Vel meas
+Pos ref
+Pos meas
+Overall force (friction + mechanism)
+Mechanism force
+Friction force
+Fig. 21. Motion of the linear mechanism with given set-
+tings by horizontal position
+0 1 2 3 4 5 6 7 8 9 10−0.4−0.200.20.4JERK: 50m/s3, ACCELERATION: 10m/s2, VELOCITY: 0.3m/s, POSITION: 0.3m, VERTICAL
+Time [s]Velocity [m/s]
+  
+0 1 2 3 4 5 6 7 8 9 10−0.3−0.2−0.100.1Position [m]
+  
+0 1 2 3 4 5 6 7 8 9 10−40−200204060Force [N]
+  Vel ref
+Vel meas
+Pos ref
+Pos meas
+Overall force (friction + mechanism)
+Mechanism force
+Friction force
+Fig. 22. Motion of the linear mechanism with given set-
+tings by vertical position
+ation can be reduced with smaller time-steps during algo-
+rithm execution. These deviations didn’t affect the door-
+motion too much because the application had imprecise
+control. The deviations of the motion references in the ex-
+perimentwere2e-4m/sforthevelocityreferenceand4e-4
+m for the positional reference with an algorithm step-time
+of200e-6. Thevariationsinthemotionreferencescouldbe
+reducedwithadditionalimprovementsinthemotioncalcu-
+lations.Speed-control was only included within the current
+door application. The motor current ﬂuctuated, so a
+current-control was needed for control optimization that
+would reduce motor heating, energy consumption, and
+maintenance.
+The motion vibration performance was based on jerk
+step decrease only. The future plan is to increase the per-
+formance on multiple parameters’ tuning using a genetic
+algorithm and aﬁtness function [17].
+ACKNOWLEDGMENT
+Operation part ﬁnanced by the European Union, Euro-
+pean Social Fund. Operation implemented in the frame-
+workoftheOperationalProgrammeforHumanResources
+Development for the Period 2007-2013, Priority axis 1:
+Promotingentrepreneurshipandadaptability,Maintypeof
+activity 1.1.: Experts and researchers for competitive en-
+terprises.
+REFERENCES
+[1] K. Jezernik, A. Hace, Hybrid system for event-based plan-
+ning and control of robot operation , Robotics in Alpe-
+Adria-Danube Region (RAAD), ISBN: 978-1-4244-6885-
+0,2010.
+[2] Ferdinand, W. et al., Modeling Software with Finite State
+Machines – A Practical Approach , Auerbach Publications,
+2006 [5]
+[3] Richard, F. T. , Asynchronous Sequential Machine Design
+and Analysis: A Comprehensive Development of the De-
+signandAnalysisofClock-IndependedStateMachinesand
+Systems,Morgan&Claypool Publishers,2009
+[4] C.G. Cassandras and S. Lafortune, Introduction to Discrete
+Event Systems ,2nded. Springer,2008.
+[5] P. J. Ramadge, W. M. Wonham, Supervisory Control of a
+ClassofDiscreteEventProcess ,SIAMJ.ControlandOpti-
+mization, vol.25, no.1,pp. 206-230, 1987.
+[6] M.D.Natale,H. Zeng,Taskimplementationofsynchronous
+ﬁnite state machines, Design, Automation & Test in Eu-
+rope Conference & Exhibition, ISBN: 978-1-4577-2145-8,
+2012.
+[7] Kim,D.N.Etal., Planningalgorithmsfors-curvetrajecto-
+ries,Advanced intelligent mechatronics, IEE/ASME inter-
+national conference, ISBN978-1-4244-1263-1, 2007.
+[8] S. Macfarlane, E. Croft, A Jerk-Bounded Manipulator Tra-
+jectoryPlanning: DesignforReal-TimeApplications. IEEE
+Transactions on Robotics and Automation, vol. 19, no.1,
+pp.42-52, 2003.
+[9] H. Z. Li, et al., A New Motion Control Approach for Jerk
+andTransientVibrationSuppression, 2007.
+[10] A. Poli ˇc, K. Jezernik, Event-driven Control strategy for a
+Three Phase Inverter , Industrial Electronics, IEEE Interna-
+tional Symposium,vol.2,pp. 1442– 1447,2006.AUTOMATIKA 54(2013) 1, 126–138 137
+
+--- Page 13 ---
+Mechatronic ControlSystem ona Finite-State Machine F. Hanžiˇc, K. Jezernik, S. Cehner
+[11] J. Kopjak, J. Kovacs, Event-driven control program models
+running on embedded systems , Applied Computational In-
+telligence and Informatics (SACI), 6th IEEE International
+Symposium, ISBN:978-1-4244-9108-7, 2011.
+[12] E. G. Bryan, Control Logic Requirements for Complex
+Manufacturing Systems , NSF Workshop on Logic Control
+for Manufacturing systems,2000.
+[13] Hercog, D., Curkovic, M., Edelbaher, G., Urlep, E. , Pro-
+grammingoftheDSP2boardwiththeMatlab/Simulink, In-
+dustrialTechnology,IEEEInternationalConference,ISBN:
+0-7803-7852-0, 2003.
+[14] A. Rojko, K. Jezernik, Disturbance rejection by PI es-
+timator in position robot control , Industrial Electronics,
+Proceedings of the IEEE International Symposium, vol.3,
+pp.1056 – 1061,1999.
+[15] D.Hercog,M.Curkovic,K.Jezernik, DSPbasedrapidcon-
+trol prototyping systems for engineering education and re-
+search,Computer Aided Control System Design, IEEE In-
+ternational Conference, ISBN:0-7803-9797-5, 2006.
+[16] G. H. Wang, et. al., Research on pressure stabilized con-
+troller of hydraulic shaking table based on rapid proto-
+typing of DSP algorithms using SIMULINK , ISBN: 978-1-
+4244-8737-0, 2011.
+[17] H. Zhang, Y. Cai, Y. Chen, Parameter optimisation of PID
+controllers based on genetic algorithm, International Con-
+ference on E-Health Networking, Digital Ecosystems and
+Technologies (EDT),vol.1, pp.47-49,2010.
+Franc Hanži ˇcreceived the B.S. degree in elec-
+trical engineering from the Faculty of Electrical
+Engineering and Computer Science, University
+of Maribor, Maribor, Slovenia, in 2008. He is
+currentlyastudentofPh.Ddegreeasayoungre-
+searcher in the Faculty of Electrical Engineering
+and Computer Science, University of Maribor,
+Maribor, Slovenia. His research interests include
+mechatronic systems, intelligent motion control,
+software design andARMCortexmicrocontrollers.
+Karel Jezernik received the B.S., M.S., and
+Ph.D. degrees in electrical engineering from the
+University of Ljubljana, Ljubljana, Slovenia, in
+1968, 1974, and 1976, respectively. He was a
+Visiting Research Fellow at the Institute of Con-
+trol, TU Braunschweig, during 1974-1975. In
+1976, he joined the University of Maribor, Mari-
+bor, Slovenia, where, since 1985, he has been
+a Full Professor and Head of the Institute of
+Robotics. His research and teaching interests
+include automatic control, robotics, power elec-
+tronics, mechatronics, and electrical drives. Prof. Jezern ik is Vice Presi-
+dentforWorkshopActivities ofthe IEEEIndustrial Electro nics Society.
+Slavko Cehner received the B.S. degree in elec-
+trical engineering from the Faculty of Electrical
+Engineering and Computer Science, University
+ofMaribor,Maribor,Slovenia,in1988. Forsome
+years he was working in development of ISKRA
+TENELandISKRATELSlovenia,mainlyonau-
+tomatic control, motor drive control and parallel
+processinginautomation. Heiscurrentlyleading
+a development as a general manager of company
+Doorsond.o.o., Maribor,Slovenia.
+AUTHORS’ ADDRESSES
+Franc Hanži ˇc,B.S.
+Doorson d.o.o.
+Milenkova ulica 9,SI-2000Maribor, Slovenia
+email: franc.hanzic@doorson.si
+Prof. Karel Jezernik, Ph.D.
+InstituteforRobotics,
+Facultyof Electrical Engineeringand Computer Science,
+University ofMaribor,
+Smetanova ulica17,SI-2000Maribor, Slovenia
+email: karel.jezernik@uni-mb.si
+SlavkoCehner, B.S.
+Doorson d.o.o.
+Milenkova ulica 9,SI-2000Maribor, Slovenia
+email: slavko.cehner@doorson.si
+Received: 2012-06-18
+Accepted: 2012-10-15138 AUTOMATIKA 54(2013) 1, 126–138
