@@ -1,0 +1,2028 @@
+--- Page 1 ---
+IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY 1
+The Amazing RaceTM: Robot Edition
+Jared Sigurd Johansen, Graduate Student Member, IEEE, Thomas Victor Ilyevsky, Graduate Student
+Member, IEEE, and Jeffrey Mark Siskind, Senior Member, IEEE
+Abstract —State-of-the-art natural-language-driven
+autonomous-navigation systems generally lack the ability
+to operate in real unknown environments without crutches, such
+as having a map of the environment in advance or requiring
+a strict syntactic structure for natural-language commands.
+Practical artiﬁcial-intelligent systems should not have to depend
+on such prior knowledge. To encourage effort towards this
+goal, we propose The Amazing RaceTM: Robot Edition, a
+new task of ﬁnding a room in an unknown and unmodiﬁed
+ofﬁce environment by following instructions obtained in spoken
+dialog from an untrained person. We present a solution that
+treats this challenge as a series of sub-tasks: natural-language
+interpretation, autonomous navigation, and semantic mapping.
+The solution consists of a ﬁnite-state-machine system design
+whose states solve these sub-tasks to complete The Amazing
+RaceTM. Our design is deployed on a real robot and its
+performance is demonstrated in 52 trials on 4 ﬂoors of each
+of 3 different previously unseen buildings with 13 untrained
+volunteers.
+Index Terms —Behavior-Based Systems, Autonomous Agents,
+Cognitive Human-Robot Interaction, Autonomous Navigation
+I. I NTRODUCTION
+THE Amazing RaceTMis a popular reality television show
+in which two-person teams race to some designated loca-
+tion. They typically have to ﬁgure out where they are, navigate
+through foreign areas, and ask people for directions to their
+destination. State-of-the-art artiﬁcial-intelligence and human-
+robot-interaction research enables robots to solve such natural-
+language-driven navigation tasks [3, 5, 15, 16, 19, 21, 22, 22,
+30]. However, these systems suffer from certain limitations
+such as requiring a speciﬁc syntactic structure for natural-
+language commands or requiring a map of the environment. A
+system design without these crutches is crucial for operating
+autonomously in new, unknown environments. Additionally, it
+is important for these systems to have productive interaction
+with humans for the purpose of receiving instructions to
+execute or to learn new information. However, it is impractical
+and inconvenient for every person to know the precise details
+of a robotic system in order to interact with it. Therefore,
+robotic system designs should be based on and thereby exhibit
+human-like behavior to enable natural and useful interaction
+with humans.
+Manuscript received MM dd, YYYY ; revised MM dd, YYYY . This work
+was supported, in part, by the US National Science Foundation under Grants
+1522954-IIS and 1734938-IIS, and by the Intelligence Advanced Research
+Projects Activity (IARPA) via Department of Interior/Interior Business Cen-
+ter (DOI/IBC) contract number D17PC00341. (Jared Sigurd Johansen and
+Thomas Victor Ilyevsky contributed equally to this work.) (Corresponding
+author: Jared Sigurd Johansen.)
+All authors were with the School of Electrical and Computer Engineering,
+465 Northwestern Avenue, Purdue University, West Lafayette, IN, 47907 USA
+e-mail: fjjohanse,tilyevsk,qobi g@purdue.edu .To drive research towards this outcome, we propose a
+novel challenge problem to the AI community: The Amazing
+RaceTM. The task is this: we place the robot in an unknown
+environment, without a map, and give it the name of a person,
+room, or building to ﬁnd. For the purpose of constructing an
+initial solution to this task, we restrict the goal to ﬁnding a
+door with a speciﬁed number on a single ﬂoor of a building.
+Because the robot has no prior knowledge about the goal
+location nor the structure of the environment, it must seek a
+person for assistance. Once a person is found, the robot must
+engage them in a dialogue to obtain directions to the goal. It
+has to follow these directions to reach the hallway that the
+room is in, at which point it would have to systematically
+search for doors and read their door tags to locate the correct
+one. We present a novel ﬁnite-state-machine (FSM) system
+design that makes these logical steps to accomplish this task.
+Our hypothesis is that this problem requires a speciﬁc set
+of abilities that are invoked in a particular order, equivalent
+to an FSM. We carefully chose a sequence of speciﬁc states
+for our FSM design that reﬂects the steps a typical person
+would take to efﬁciently ﬁnd a room in an unknown ofﬁce
+environment. Initially knowing nothing about the environment,
+many people would ask the ﬁrst person they see for directions.
+After receiving these directions and potentially asking for
+clariﬁcation, they would follow them to the approximate
+location of the room and begin looking for the speciﬁc number.
+Our FSM design mimics this human behavior, which can result
+in a shorter and more efﬁcient path to the goal as opposed
+to a simple exhaustive search of the environment. Although
+an exhaustive search would eventually succeed, it would not
+necessarily take the most efﬁcient path, would ignore people
+who may have a rich understanding of the environment and
+a willingness to help, and would not push the envelope on
+robot cognition. Additionally, an exhaustive search becomes
+unsuitable as the size of the environment increases.
+In order to enable such human-like reasoning, we abstract
+low-level sensor data such as audio, video, and LiDAR into
+information that a human would have readily available such as
+navigation directions and potential goal locations. The states
+in our FSM design, as shown in Figure 1, also referred to
+asbehaviors , make use of this information to handle new
+and/or complex situations. They also incorporate methods to
+handle complete, partial, or erroneous information similar to
+how a human would when encountering such in conversation
+or navigation. We believe this design mimics high-level aspects
+of human behavior on the same task. Additionally, to the
+best of our knowledge, this paper makes the following novel
+contributions:
+It is the ﬁrst to propose a method for constructing a
+navigation plan by extracting directions and intersectionsarXiv:2010.15033v1  [cs.RO]  28 Oct 2020
+
+--- Page 2 ---
+2 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+Fig. 1: Finite-state-machine view of the system architecture.
+from spoken natural-language dialogue with a person.
+This navigation plan is executed by the robot using novel
+autonomous methods that ground directions and intersec-
+tions in the map constructed by a SLAM algorithm.
+It is the ﬁrst to propose a method for detecting, localizing,
+and inspecting doors to ﬁnd the desired goal. It employs
+novel common-sense reasoning to efﬁciently search the
+environment for the correct door.
+In order to evaluate the performance of our system, we
+conducted 52 trials across 4 ﬂoors of each of 3 buildings
+previously unseen by the robot. We recruited 13 untrained
+volunteers to provide the robot with directions to the speciﬁed
+goal room number in each trial. Due to our system’s ability
+to recover from individual behavior failures, we demonstrate
+a high success rate of 76.9%. Additionally, we document
+observations made during the trials as opportunities for further
+research into this task.
+II. S YSTEM OVERVIEW
+In this section, we provide a high-level overview of our
+system’s hardware, software, and architecture as well as the
+method used to construct a qualitative map from the quantita-
+tive map produced by SLAM. We provide detailed descriptions
+of our system’s components in the next section.
+A. Hardware and Software
+Our robotic platform consists of a Clearpath Husky A200TM
+UGV equipped with an Open IMU UM7, Velodyne VLP-
+16 3D LiDAR, Axis M5525-E PTZ Camera, Blue Yeti mi-
+crophone, and a System76 Laptop with two Nvidia GeForce
+GTX 1080 GPUs. Each of these is a commercial, off-the-shelf
+product. Clearpath integrated the IMU, LiDAR, PTZ Camera,
+and laptop onto the Husky A200TMUGV.
+Our software1is implemented in a combination of C++ and
+Python, using ROS Kinetic as the communication framework
+between different components of the system. We use Google
+Cartographer [17] to perform simultaneous localization and
+mapping (SLAM) from data from the IMU and 3D LiDAR.
+We record speech with the Blue Yeti microphone and convert
+it into text using the Google Speech-to-Text [12] API. We
+use the Stanford Parser [9] to parse the text. We use Python’s
+pyttsx3 library [7] to synthesize speech through the laptop
+speaker. We use YOLO V3 [25] to detect people in images
+taken from the Axis camera. We use LSD (Line Segment
+Detector) [14] on images from the Axis camera as part of
+our method for detecting doors. We extract text from images
+1All software used to produce the results in this manuscript is available at
+https://github.com/qobi/amazing-race.of door tags taken with the Axis camera with Google’s Optical
+Character Recognition [13] API. We use a LiDAR-camera
+calibration software package [1] to compute a calibration
+matrix between the 3D LiDAR and the Axis camera. This
+matrix lets the system compute 3D locations for detected
+people and doors in the environment.
+B. Architecture
+Our architecture is a ﬁnite-state machine illustrated in
+Figure 1. This design makes logical steps towards reaching
+the goal and recovers from failure at any of those steps. Each
+state has a success condition that leads to the next state in the
+pipeline as well as failure conditions which result in a transi-
+tion to the initial state of the system. Given a goal description,
+the initial state is W ANDER , as the robot needs to ﬁnd a person
+to get directions to the goal. This state allows the robot to
+explore the environment while simultaneously attempting to
+detect and track people. Once a person is found, the robot en-
+ters the A PPROACH PERSON state, in which it drives towards
+the person and synthesizes speech to grab their attention. If the
+robot successfully reaches the person, it initiates a conversation
+with them in the H OLD CONVERSATION state. The robot uses
+speech synthesis and speech recognition to request directions
+to the desired goal and interpret the person’s response, re-
+spectively. It can ask an appropriate clariﬁcation question if
+the interpreted directions are incomplete. Once a complete
+set of directions are determined through dialogue with the
+person, a transition to the F OLLOW DIRECTIONS state is
+made. F OLLOW DIRECTIONS executes each direction in order
+by continuously mapping the environment to determine when
+to continue to the next instruction, such as turning left
+when a leftturn becomes available. Successful completion
+of the directions implies that the robot is in the hallway that
+contains the goal. The robot then enters the N AVIGATE DOOR
+state which involves detecting doors and driving up to them
+to inspect their door tags. This will let the robot ultimately
+conﬁrm arrival at the desired goal.
+C. Navigation Process
+The physical environment has intersections connected by
+hallways. Humans give navigation instructions by describ-
+ing paths through hallways between intersections. They use
+informal terms to classify intersections into various types
+(e.g., elbow ,three-way , and four-way ) and to distinguish
+between different hallways emanating from intersections by
+their heading (e.g., forward ,left, and right ). To facilitate the
+interpretation of these informal navigation instructions, our
+robot constructs and maintains two maps of the environment,
+
+--- Page 3 ---
+THE AMAZING RACETM: ROBOT EDITION 3
+(a) (b) (c) (d)
+Fig. 2: (a) Qualitative direction categories and their heading relative to robot orientation. (b) An example of trajectory generation
+with trajectory distance limited to 3.6 m. The black lines represent obstacles (i.e., walls). Target points of potential trajectories
+for 24 headings are shown as small points. The gray target points are ﬁltered out as either unknown space or too near an
+obstacle. The pink target points represent drivable trajectories. The dark pink lines are headings associated with maximal
+drivable trajectories of distance 3.6 m. The dark green circles represent qualitative drivable trajectories with the qualitative
+direction labels forward ,left, and back-left . (c) An example of how intersection detection and classiﬁcation ignores large
+traversable areas that arise from alcoves and other large open spaces. A single scale, namely a distance of 3.6 m, is depicted.
+The gray traversable area is much wider than a hallway so the drivable trajectories in that traversable area are discarded. Only
+the drivable trajectories in the blue traversable area are taken as hallway trajectories. (d) An example of how intersection
+detection and classiﬁcation, at a single scale of 3.6 m, forms candidate intersections as tuples of hallway trajectories at a
+given scale and selects at most one of these as the single detected and classiﬁed intersection. The target points of the hallway
+trajectories in Pair 2 are furthest from obstacles, so it will be selected.
+one quantitative and one qualitative. The quantitative map is
+an occupancy grid constructed by SLAM. It is a 2D matrix
+of cells, where each cell corresponds to a 5 cm square of
+the ground that takes one of three possible classiﬁcations:
+free,obstacle , or unknown . Generally, in an indoor ofﬁce
+environment, free cells would be rooms or hallways, obstacle
+cells would be walls or objects, and unknown cells would
+be unexplored areas of the building or anything outside of the
+walls. The qualitative map is a graph whose vertices represent
+detected intersections labeled with intersection type and whose
+edges denote detected hallway paths. We refer to these as
+registered intersections and hallway paths since the process of
+constructing and maintaining the qualitative map can add, re-
+move, merge, and update registered intersections and hallway
+paths when detecting new ones. The quantitative map, along
+with the robot’s current pose (position and orientation) in that
+map, is continually maintained and updated by a background
+process running SLAM. The qualitative map is constructed
+and updated from the quantitative map and robot pose by a
+background process continually running at 1 Hz. We refer to
+the latter background process as the navigation process . The
+qualitative map produced by the navigation process is used by
+several of our robot behaviors.
+1) Trajectory Generation: The ﬁrst step of the navigation
+process is to construct various sets of trajectories, short paths
+that the robot can drive from its current pose. A trajectory is
+a target point in world coordinates at a speciﬁed distance and
+heading from the current pose. Low-level robot navigation uses
+trajectory target points as driving instructions. We nominally
+consider all distances that are integral multiples of 1.2 m
+from 1.2 m to 7.2 m, combined with all headings that are
+integral multiples of360
+64, as potential trajectories . Theseare ﬁltered as follows. We ﬁrst remove all trajectories which
+require traversing a point that is within 0.6 m of an obstacle
+or unknown space to reach the target point. This yields a set
+ofdrivable trajectories . The 0.6 m threshold was chosen as
+it is our robot’s circumscribed radius; it would not ﬁt through
+passageways smaller than this. Since we need to search each
+trajectory for obstacles, the 1.2 m quantization was chosen to
+reduce the number of potential trajectories considered while
+still considering sufﬁciently many to successfully interpret
+and execute human navigation instructions. We then ﬁlter the
+set of drivable trajectories, keeping only the ones with the
+largest distance for each heading. This yields a set of maximal
+drivable trajectories . Finally, we label each maximal drivable
+trajectory with one of eight qualitative directions based on
+its heading (Figure 2a). We then ﬁlter the set of maximal
+drivable trajectories, keeping at most a single trajectory for
+each qualitative direction, the one with the median heading.
+This yields a set of qualitative drivable trajectories , there
+being at most eight of these, each labeled with a distinct
+qualitative direction. Figure 2(b) illustrates the process of
+trajectory generation.2
+2) Intersection Detection and Classiﬁcation: The next step
+in the navigation process is to determine whether the robot
+is in an intersection, and if so, to determine the type of that
+intersection (e.g., elbow ,three-way , orfour-way ). It does this
+at multiple scales, with each distinct trajectory distance taken
+as a scale, to tolerate different building designs with different
+hallway lengths and widths (Figure 3).
+2While we classify eight distinct qualitative directions and qualitative
+driving directions, the remainder of the manuscript only considers the four
+primary ones.
+
+--- Page 4 ---
+4 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+(a) (b)
+Fig. 3: (a) These intersections, with very short hallways, can
+only be detected with a distance 2.4 m. (b) This corner, with
+a decorative front to a lab space, can only be detected with a
+distance4.8 m. All intersections are correctly detected and
+classiﬁed by considering multiple distances.
+At each scale, this process starts with all drivable trajectories
+at that scale. The ﬁrst step is to eliminate drivable trajectories
+that would not be considered as driving through hallways. This
+is done by grouping all adjacent drivable trajectories (with
+headings differing by360
+64) to represent a traversable area
+(Figure 2c). The width of a traversable area is determined as
+the maximal Euclidean distance between any two target points
+of drivable trajectories in the traversable area. If a traversable
+area is wider than the speciﬁed width of a hallway for that
+building, all trajectories associated with that traversable area
+are discarded. This allows the robot to ignore alcoves and
+similar open spaces, and yields a set of hallway trajectories .
+The hallway trajectories are grouped into pairs, triples, and
+quadruples whose headings are 90apart. These constitute
+potential intersections of type elbow ,three-way , and four-
+way, respectively. Each such tuple constitutes a potential
+intersection . Potential intersections whose elements are not
+separated by obstacles are discarded. This yields a set of
+intersection candidates , each of which has the robot’s position
+as its initial location. Intersection candidates are scored based
+on the sum of the distances of the location and each element’s
+target point from the nearest obstacle.
+This process may produce multiple intersection candidates,
+e.g., an elbow will always be present when a three-way is also
+present and an intersection candidate produced at a larger scale
+may also be present at a smaller scale. The navigation process
+prioritizes intersection candidates as follows: a) quadruples
+over triples, b) triples over pairs, c) larger scales over smaller
+scales, and d) higher scores over lower scores. This yields at
+most a single detected and classiﬁed intersection at the current
+robot position. For reasons to be discussed later, each detected
+and classiﬁed intersection is given a unique identiﬁer and each
+hallway trajectory in that intersection tuple is also given a
+unique identiﬁer.
+As an example, consider Figure 2(d), which illustrates inter-
+section detection and classiﬁcation at a single scale, namely
+3.6 m. Three pairs of hallway trajectories (green, blue, and
+orange) are shown (out of a possible nine), each hallway
+trajectory associated with the highlighted (green, blue, and
+orange) target point. Each such pair constitutes an intersection
+candidate. Pair 2 (blue) will have the highest score (since itstarget points are furthest from obstacles) and will be kept as
+the single detected and classiﬁed intersection.
+3) Intersection Reﬁnement: Since the navigation process
+performs intersection detection and classiﬁcation repeatedly
+at 1 Hz, it can detect the same intersection multiple times,
+particularly if the robot remains in an intersection for more
+than 1 s. This is akin to how object detectors can place
+multiple but different boxes around an object. We address this
+by performing a kind of nonmaximal suppression (NMS) in
+a fashion analogous to how object detectors deal with this
+problem. Moreover, intersection detection and classiﬁcation
+is performed relative to the robot pose. As this changes, the
+classiﬁed intersection type might change due to noise (e.g.,
+classifying an intersection as an elbow when it is a three-
+way). Further, through a process described below, detected
+and classiﬁed intersections are registered as vertices in the
+qualitative map. Registered intersections are labeled with their
+location, which we wish to be the center of the physical
+intersection. However, detected intersections are registered
+with their location being the robot position at the time of
+detection, which might not be the center of the physical
+intersection.
+To address this, we perform intersection reﬁnement. We sup-
+press detection of new intersections when the robot is within
+2 m of a registered intersection. Further, we continuously
+reﬁne the locations and classiﬁcation labels of registered in-
+tersections in a background process. This process recomputes
+the intersection candidates while imagining the robot to be at
+every point in a 3 3 grid, with 0.4 m spacing, centered on
+the current location of each registered intersection, using the
+current SLAM occupancy grid. The intersection candidates are
+pooled and prioritized as in initial intersection detection and
+classiﬁcation to yield a single redetection and reclassiﬁcation.
+The registered intersection is updated to reﬂect the redetected
+and reclassiﬁed intersection, including its location. We enforce
+a constraint that intersections cannot shift more than 2.4 m
+from their original location. For efﬁciency, this reﬁnement is
+only applied to a registered intersection when the robot is
+within 5 m of that intersection.
+Each detected and registered intersection contains a) its
+location, b) its type, and c) a tuple of hallway trajectories.
+The hallway trajectories represent the hallway paths between
+intersections. During reﬁnement, the redetected intersection
+might contain different hallway trajectories than the current
+registered intersection. This can happen when, for example, a
+group of people stop to talk and block a hallway trajectory
+in the intersection. During intersection reﬁnement, we wish
+to maintain the same unique identiﬁers associated with each
+intersection and hallway trajectory in that intersection. This
+requires constructing a correspondence between the hallway
+trajectories in the registered intersection and those in the
+redetected intersection. The optimal correspondence is found
+with the Hungarian algorithm [20] applied to a bipartite
+graph whose left vertices are the hallway trajectories in the
+registered intersection, whose right vertices are the hallway
+trajectories in the redetected intersection, and whose edges
+are given a cost which is the angular distance between the
+hallway trajectory headings. Edges in this bipartite graph
+
+--- Page 5 ---
+THE AMAZING RACETM: ROBOT EDITION 5
+Fig. 4: Qualitative map produced for a single ﬂoor of a build-
+ing. The red line indicates the path that the robot traveled. Blue
+spheres are registered intersections. Yellow arrows are hallway
+trajectories associated with each registered intersection.
+are only created when the angular distance is <30. This
+correspondence is used to reassign the unique identiﬁers from
+the hallway trajectories in the registered intersection to those
+in the redetected intersection.
+As described previously, a redetected intersection may have
+different type than a registered intersection, and thus may
+have a different number of hallway trajectories. Thus, the
+correspondence as produced above may fail to assign a hallway
+trajectory from the registered intersection to one in the rede-
+tected intersection either because the redetected intersection is
+of a different type with fewer hallway trajectories or because
+of eliminated edges. A hallway trajectory in the registered
+intersection that does not have a corresponding hallway tra-
+jectory in the redetected intersection is maintained, with its
+unique identiﬁer, in the registered intersection in a deactivated
+state, so that it can be reactivated later with the same unique
+identiﬁer.
+4) Intersection Graph: The unique identiﬁers associated
+with registered intersections and their hallway trajectories,
+whose consistency is maintained over time by intersection
+reﬁnement, allow us to construct a graph to represent the
+qualitative map. When the robot comes within 0.5 m of a
+registered intersection, it selects the hallway trajectory whose
+target point is closest to the robot position as the one used to
+enter the intersection. The robot’s path is searched backward
+until it comes within 3 m of a hallway trajectory from the last
+registered intersection it visited. An edge in the qualitative
+map is registered between these two registered intersections
+and represents a hallway path. The weight of this edge is
+taken as the Euclidean distance between the locations of the
+two registered intersections. If the backward search process
+does not produce a hallway trajectory, that hallway trajectory
+is left unconnected, to represent hallways that have not been
+completely explored yet. This graph is continually constructed
+and updated by the navigation process. See Figure 4 for an
+example of the qualitative map produced for a single ﬂoor of
+a building.
+III. S TATES OF THE SYSTEM ARCHITECTURE
+In this section, we describe the the implementation of each
+state in our system.A.WANDER
+WANDER is the initial state of the system and lets the
+robot continuously navigate through the environment, trying to
+detect and track people until it ﬁnds an approachable person.
+The general strategy is to explore the environment in a human-
+like manner, usually moving forward, choosing a direction to
+go when at an intersection, and only turning around when
+reaching a dead end.
+1)WANDER Substates: The W ANDER state
+has ﬁve substates: a) M AKE DECISION , b) R O-
+TATE RECOVERY , c) R OTATE , d) D RIVE FORWARD , and
+e) D RIVE THROUGH INTERSECTION . W ANDER enters the
+MAKE DECISION substate ﬁrst, where it analyzes whether it
+is in a registered intersection and which qualitative directions
+are available. If no qualitative directions are available (e.g.,
+when it is ﬁrst initialized), it enters the R OTATE RECOVERY
+substate, which causes it to spin in place 360. This substate
+helps to update the quantitative and qualitative maps in the
+immediate vicinity, which determine whether any qualitative
+drivable trajectories are available. If none are available, it
+stays in this substate. If qualitative drivable trajectories are
+available, the robot selects the one whose heading is closest to
+its current orientation as the recovery angle . The robot enters
+the R OTATE substate to match its orientation with that of
+the recovery angle and will then enter the D RIVE FORWARD
+state. This series of substates helps it ﬁnd its way out of
+alcoves, entrances, or elevator landings and into hallways.
+When in the D RIVE FORWARD state, the robot continuously
+drives forward while monitoring for registered intersections.
+Thisforward , which we use to indicate when and how a robot
+drives down a hallway, is distinct from the qualitative drivable
+trajectory forward and will be explained in Section III-A2.
+When it enters a registered intersection, the robot enters the
+MAKE DECISION substate to determine what to do. First, it
+determines which hallway trajectory it entered the registered
+intersection from. Hallway trajectories included in registered
+intersections maintain a visitation time as an indication of
+when they were last visited. The visitation time for the hallway
+trajectory used to enter the registered intersection is updated to
+the current time. Then, it temporally orders all active hallway
+trajectories of that registered intersection. If it has visited each
+hallway trajectory, it selects the oldest one and takes it. If there
+are one or more hallway trajectories that it has not taken, it
+randomly selects one and takes it. It then updates the visitation
+time of the selected hallway trajectory with the current time.
+Maintaining visitation times allows the robot to explore the
+environment in a thorough manner, preferring to visit areas in
+the map that it has not seen or that it has seen least recently.
+After selecting the hallway trajectory to take, if the hallway
+trajectory is to the leftorright of the robot’s pose, the robot
+will enter the R OTATE substate to rotate 90to the left or
+right, respectively. Thereafter, or in the case that the robot
+chose to drive straight through the intersection, it enters the
+DRIVE THROUGH INTERSECTION substate to move out of
+the intersection and into the hallway. This substate prevents
+the robot both from immediately recognizing it is in a reg-
+istered intersection and causing it to re-evaluate what to do.
+
+--- Page 6 ---
+6 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+(a) The W ANDER ﬁnite-state machine.
+(b) The F OLLOW DIRECTIONS ﬁnite-state machine. Transition con-
+ditions in Courier represent the next step in the plan. All others
+represent transition conditions derived from sensor data.
+Fig. 5: Finite-state machines internal to the W ANDER and F OLLOW DIRECTIONS states.
+The D RIVE THROUGH INTERSECTION substate has the robot
+drive forward continuously. Once it has traveled more than 2 m
+and the intersection type has changed, the robot returns to the
+DRIVE FORWARD substate.
+If, while driving forward , the robot reaches a dead-end
+(which is determined by there being a back qualitative drivable
+trajectory but no forward ,left, orright qualitative drivable
+trajectories), the robot performs a single 360spin to ensure
+that it truly is at a dead-end (instead of simply having failed
+to detect an adjoining hallway). After performing this spin, it
+will enter the M AKE DECISION substate, which, if it is still
+at a dead-end, will enter the R OTATE RECOVERY substate.
+This substate will see that there is a single qualitative drivable
+trajectory available ( back ), which it uses as its recovery angle.
+The robot would enter the R OTATE substate, rotate 180, and
+then return to the D RIVE FORWARD substate. These substates
+can be modeled as a FSM as shown in Figure 5a.
+2) Forward Driving Goals: When the robot starts driving
+down a hallway, it might not be in the middle of the hallway,
+and its orientation might not match that of the hallway. Despite
+starting in a suboptimal pose, we want the robot to move
+towards and drive down the middle of the hallway. To do so,
+when the robot enters the D RIVE FORWARD substate, we take
+its current orientation as the forward orientation . This forward
+orientation will get reﬁned over time as the robot drives down
+the hallway to more accurately reﬂect the same orientation as
+the hallway.
+While the navigation process provides a set of qualitative
+drivable trajectories, due to the suboptimal starting pose of
+the robot, there may not be a qualitative drivable trajectory
+associated with the forward orientation. Therefore, we pass
+theforward orientation and a cone angle to the navigation
+process, ask it to ﬁnd all maximal drivable trajectories within
+that cone and return the median one as the median drivable
+trajectory . Initially, the cone angle is 15from the forward
+orientation. If no drivable trajectories are found within the
+cone, this process is repeated with a cone angle of 30and
+then45. When drivable trajectories are found within the
+cone, the median drivable trajectory is used as the forward
+driving goal .This gets the robot moving towards the middle of the
+hallway and having its orientation more closely reﬂect that
+of the hallway. As it nears this ﬁrst driving goal, these steps
+are repeated, but only up to a window of 30. After nearing
+its second driving goal, the robot is typically in the middle
+of the hallway and has the same approximate orientation as
+the hallway. For all remaining forward driving goals after
+this point, only a window of 15is used. Decreasing the
+maximum possible window after navigation to the ﬁrst and
+second driving goals is done to avoid forward driving goals
+that lead to undesirable behavior. As the robot drives down
+a hallway, there may be alcoves on the left or right. If a
+wide cone angle is used, drivable trajectories can be within the
+alcove and the median drivable trajectory that is returned from
+the navigation process can cause the robot to veer off from the
+center of the hallway. In the worst case, it can drive into the
+alcove, have no qualitative direction forward , and think it has
+arrived at a dead-end. Alternatively, if instead of there being
+an alcove, there is a hallway, the robot can inadvertently drive
+around a corner (without realizing it) and still think it is driving
+forward . See Figure 6 for an illustration of this entire process.
+Earlier, we stated that the forward orientation is updated
+over time to more accurately reﬂect the same orientation as
+the hallway. At ﬁrst blush, it may seem logical to always
+use the robot’s current orientation as the forward orientation.
+However, this fails under the following scenario. As the robot
+drives down a hallway, obstacles may appear in front of it (e.g.,
+people walking and/or sometimes stopping in front of it—
+whether unintentionally or intentionally—to see how the robot
+will react). Standard local path planners handle these types of
+unexpected obstacles by navigating around them. As the robot
+is driving around such an obstacle, its orientation may change
+signiﬁcantly such that it no longer matches that of the hallway
+and in some cases can be nearly perpendicular to the hallway.
+If, at this moment, the robot needed to update its driving goal,
+and used its current orientation as the forward orientation, the
+navigation process could either determine that there were no
+drivable trajectories or return a drivable trajectory that would
+move the robot in a direction it should not go. Either could
+derail the robot from properly driving down the hallway.
+
+--- Page 7 ---
+THE AMAZING RACETM: ROBOT EDITION 7
+Fig. 6: Example of how the robot determines a forward driving
+goal despite starting with a suboptimal pose. The robot is
+1 m from the wall and its orientation is 45off from that
+of the hallway. The transparent red cone indicates that the
+navigation process was unable to ﬁnd any drivable trajectories
+using a cone angle of 15from the forward orientation. The
+transparent blue cone indicates that the navigation process was
+able to ﬁnd a drivable trajectory using a cone angle of 30
+and thus a cone angle of 45is not required. The median
+drivable trajectory that the navigation process returned is used
+as a forward driving goal (labeled “Driving Goal 1”). Upon
+approaching that driving goal, the robot repeats this process,
+but only up to a cone angle of 30if necessary, and the
+yellow arrow labeled “Driving Goal 2” will be its second
+forward driving goal. This process incrementally moves the
+robot to the center of the hallway and changes its orientation
+to more closely match that of the hallway.
+To handle this case, once the robot has moved 2 m from its
+starting point, we compute the angle from its starting point
+when it began driving down to the hallway to its current
+position and use this as the forward orientation. This gives
+a much more accurate approximation of the orientation of
+the hallway and makes the forward orientation robust to the
+situation described above.
+There is one additional mechanism we employ to help the
+robot drive forward around obstacles but we will postpone
+that discussion until Section III-D3 as it makes more sense in
+that context.
+3) Person Detection and Tracking: The ultimate goal of the
+WANDER state is to locate a person to approach. Therefore,
+while the robot is navigating through the environment, it uses
+the Axis camera and 3D LiDAR to continuously detect and
+track people in that environment.
+YOLO V3, a real time object-detection system, is used to
+detect people. It can detect multiple objects of different classes
+and provide their spatial location via bounding boxes. These
+boxes are used to determine the location of people in the
+quantitative map.
+The camera’s horizontal ﬁeld of view angle and resolution
+are known. Each pixel in the camera can be mapped to a
+particular angle relative to the position of the camera. These
+angles can be used to extract the distance of the detected objectfrom the LiDAR data. Because bounding boxes from object
+detectors are imperfect, and because standard object detectors
+localize detections with boxes even though the shape of most
+natural objects (e.g., humans) is not rectangular, some of the
+LiDAR points will shoot beyond the object and hit a more
+distant object or wall. Instead of taking the average of these
+points, we keep the closest one, which represents the nearest
+part of the detected person. By knowing the pose of the robot,
+camera, and LiDAR, we can determine the precise position of
+that object in the quantitative map.
+These person detections, along with their quantitative map
+coordinates, are fed into a detection-based tracker. Typically,
+a detection-based tracker combines bounding boxes from
+adjacent image frames into tracks if their pixel coordinates
+sufﬁciently overlap. However, in our case, this method is
+unsuitable because the robot is constantly moving. Therefore,
+instead of combining detections that occupy the same spatial
+region in the camera’s ﬁeld of view, we combine detections
+that occupy/overlap the same location in the quantitative map.
+In this way, if the robot moves or rotates, the moving ﬁeld
+of view does not affect the ability of the tracker to accurately
+piece together detections into tracks.
+For all existing tracks, we compute the Euclidean distance
+from the last known location to each new detection. These
+distances constitute the cost to pair the track with the detection.
+We use the Hungarian algorithm to minimize the cost across
+all pairings of tracks with new detections and ﬁnd the optimal
+pairing. We perform a sanity check to make sure that no pair-
+ings are unreasonable. We ﬁrst determine the walking speed of
+the person, by computing how far they have traveled since the
+last detection and dividing that by the amount of time that has
+elapsed since then. If the walking speed is >2.5 m/s, we break
+the track-detection pairing and the detection becomes a new
+track. All pairings that meet this threshold are combined into
+a single track. Because detectors can be noisy and imperfect,
+the tracker employs forward projection on all tracks for up to
+0.5 s to compensate for missed detections. Any tracks that go
+0.5 s without an additional detection are pruned.
+Tracks are classiﬁed based on the length of time they have
+been active and the average walking speed of the person. Once
+a track is1.5 s long, the average walking speed is computed
+over the previous 1.5 s. The person’s walking direction is
+determined by whether the most recent location is closer to the
+robot than the location 1.5 s ago. If the most recent location
+is closer by more than 0.3 m/s, the person is considered
+approaching the robot . If the most recent location is further
+by more than 0.3 m/s, the person is considered walking away .
+Otherwise, the person is considered stationary . Tracks that are
+<1.5 s long are considered as having just begun and are thus
+ignored as part of any decision making on the part of the robot.
+Sample outputs of each of these four situations are shown in
+Figure 7.
+Tracks that are classiﬁed as stationary or approaching the
+robot are considered “approachable.” When such occurs, the
+robot transitions to the A PPROACH PERSON state.
+
+--- Page 8 ---
+8 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+Fig. 7: Approachable person detector output. Tracks that
+have just begun and whose walk rate/polarity are still being
+determined are colored orange. Tracks that are walking away
+are colored blue. Tracks that meet the criteria for being either
+stationary or approaching the robot, are colored green. Near
+the bottom of each bounding box, the person’s distance from
+the robot is displayed on the left and their walking speed is
+displayed on the right. Positive implies approaching the robot;
+negative implies walking away.
+B.APPROACH PERSON
+Once an approachable person is successfully located, the
+system enters the A PPROACH PERSON state to introduce itself
+to the person, drive up to them, and face them just as a human
+would. Using the person’s location in the quantitative map, the
+robot computes a driving goal that is 0.8 m from the person
+(in a direct path from the robot to the person) with a pose that
+is facing the person, and begins driving there. If the person is
+approaching the robot, once they are within 7 m, the robot will
+hail them and ask them for help. When the robot is 2 m from
+the person, it will introduce itself to initiate the conversation.
+Throughout this process, the person’s location in the quanti-
+tative map is being monitored and updated, and new potential
+driving-goal locations are being computed. If any of these are
+0.5 m from the previous driving goal, the robot updates its
+driving goal. This allows the robot to approach the person
+in a closed-loop fashion. If instead of stopping, the person
+chooses to walk up to the robot, once they are within 0.8 m
+of the robot, the robot will immediately stop and consider this
+as having successfully approached the person. It will continue
+the process of monitoring and updating the driving goal until
+it either reaches the person, they leave the ﬁeld of view (e.g.,enter a room), or begin to walk away. If either of the latter
+two scenarios occur, the robot will begin this entire process
+over with the next-closest approachable person. If there are
+none present, it returns to the W ANDER state.
+C.HOLD CONVERSATION
+Once the robot approaches the person, it enters the
+HOLD CONVERSATION state whose objective is to construct
+a plan of how to navigate to a speciﬁc destination by engaging
+in dialogue with the person. This plan is represented as a
+list of navigational actions that can be executed by the robot
+as commands. If the person were to formally communicate
+the plan to the robot, this task would be trivial. What makes
+this nontrivial is that the communication is done informally
+through spoken natural language.
+Inferring a plan from spoken dialogue with a person
+presents several challenges. First, people often ramble and
+speak incoherently. Second, Google’s Speech-to-Text API is
+imperfect and sometimes returns incorrect and/or nonsensical
+results. Third, state-of-the-art parsers, trained on written text
+rather than spoken text, create abnormal parse trees that make
+extracting relevant and accurate information more difﬁcult.
+To overcome these obstacles, we employ the following
+general approach to plan inference, i.e., constructing a plan
+from natural-language dialogue. We maintain a plan that
+consists of a sequence of steps, that are ﬁlled with actions of
+various kinds, including directions, intersections, and goals.
+Steps in the plan may be unﬁlled, denoted by . Initially, the
+plan consists of a single unﬁlled step. The current (partial) plan
+is used at every dialogue turn to generate a query to the person.
+The response is processed in the context of the current (partial)
+plan to ﬁll in unﬁlled steps, potentially add new steps that are
+either ﬁlled or unﬁlled, and potentially change or delete steps.
+This processing takes two forms. One is a sequence of steps
+for ﬁlling in parts of the plan based on the person’s response.
+The other is a set of rewrite rules that update parts of the plan
+based on the local context in the plan. If, after processing,
+the plan contains one or more unﬁlled steps, a new query
+is generated for the person and processing continues. This
+process continues until the plan contains no unﬁlled steps. To
+prevent an indeﬁnitely long conversation, the length of the plan
+is restricted to ten steps. If a plan gets to that length, the robot
+ends the conversation, executes those steps, then searches for
+another person to ask.
+The sequence of plan actions must be coherent. The rewrite
+rules attempt to render plans coherent. For example, if the
+plan indicates that the robot eventually reaches an elbow in
+the hallway, it would be incoherent for it to drive straight at
+theelbow . The robot uses its current knowledge to formulate
+and pose a query about a missing piece of information. The
+person’s response might provide information about one or
+more steps, or change a step that was incorrect. Rewrite rules
+are applied to ﬁll in or modify steps that may not have been
+explicitly given but were implied. This process is repeated
+until a complete plan is constructed.
+1) Spoken Communication: Our robot converses in real
+time, adhering to the norm of taking turns while talking
+
+--- Page 9 ---
+THE AMAZING RACETM: ROBOT EDITION 9
+TABLE I: Various kinds of actions that can ﬁll plan steps as produced by H OLD CONVERSATION .
+Kind Action English description
+dir forward drive forward until a stop condition is encountered
+left rotate 90left
+right rotate 90right
+turn-around rotate 180
+either left orright depending on availability
+int elbow intersection of type elbow
+three-way intersection of type three-way
+four-way intersection of type four-way
+int-L intersection with a lefthallway trajectory
+int-R intersection with a right hallway trajectory
+int-F intersection with a leftand/or right hallway trajectory, as well as a forward hallway trajectory
+end intersection with a leftand/or right hallway trajectory, but no forward hallway trajectory
+goal goal-F goal is somewhere up ahead
+goal-L goal is somewhere up ahead on the left
+goal-R goal is somewhere up ahead on the right
+person our next task is to ﬁnd a person for further directions
+and using common sense to factor in previous utterances
+into subsequent utterances. Speech recognition and speech
+synthesis are mutually exclusive operations so a person’s
+response is only processed when they ﬁnish speaking.
+2) Information Extraction: In the H OLD CONVERSATION
+state, the robot attempts to ﬁll in the steps of a plan with
+actions from a natural-language utterance. Our plans are
+formulated with a certain plan structure that stipulates that
+adjacent steps form pairs that constitute commands to the
+robot. The ﬁrst step in a pair must be a direction action. The
+second step in a pair will be a stop condition and takes the form
+of either an intersection action or a goal action. Only the last
+step in the plan can be a goal action. All other stop conditions
+must be intersection actions. Thus a plan can be though of as
+a sequence of commands, each command being a direction for
+the robot to drive in until the speciﬁed stop condition, with
+the robot ultimately checking that it has reached the goal. The
+various actions that can ﬁll plan steps of various kinds are
+shown in Table I.
+Prior to any dialogue, the plan is initialized with a single
+empty step: []. In order to populate the plan, the robot’s ﬁrst
+question to the person is ‘Can you tell me how to navigate
+tohdestinationi?’ The steps we use to parse the response and
+populate the plan with actions are illustrated in Figure 8. First,
+the utterance is chunked by splitting it at key elements such as
+‘.’ or ‘then.’ Each chunk is fed into the Stanford Parser. This
+results in more accurate parse trees than feeding the whole
+utterance into the Stanford Parser. Then, the parse trees are
+searched for phrases that contain direction keywords (e.g.,
+‘turn around,’ ‘left,’ or ‘right’) to insert the corresponding
+actions into the plan. If no direction keywords are found, the
+utterance is searched for any intersection or goal keywords to
+insert the corresponding actions into the plan.
+Each phrase that contains one of the direction keywords
+is concatenated with its preceding and succeeding phrase to
+provide context for information extraction. Starting with the
+leaf node in the parse tree that corresponds to the direction
+keyword, the tree is searched for the nearest parent with one
+of the following POS tags: ADJP, ADVP, CONJP, FRAG,
+INTJ, LST, NAC, NP, NX, PP, PRN, PRT, QP, RRC, UCP, VP,
+WHADJP, WHA VP, WHNP, or WHPP. The trees correspond-
+ing to the left and right siblings of this parent node are usedas the preceding and succeeding phrases, respectively. The
+preceding phrase is further reﬁned by searching for the ﬁrst
+verb that precedes the direction keyword; if that does not exist,
+we search for the ﬁrst preposition that precedes the direction
+keyword. All words preceding the verb or preposition are
+eliminated from the preceding phrase. If no verb or preposition
+is found, no preceding phrase is used. In the event that the
+direction keyword’s parent has no left or right siblings, we
+use the entire tree from the chunk as the concatenated phrase.
+Each set of concatenated phrases is searched for the pres-
+ence of an intersection keyword, direction and intersection
+determiners (e.g., ‘ﬁrst,’ ‘second,’ or ‘last’), and destination
+verbs (i.e., ‘be,’ ‘ﬁnd,’ ‘see’). If a destination verb is present,
+a goal action is created based on the direction keyword (i.e.,
+‘left’!goal-L , ‘right’!goal-R , otherwise goal-F ).
+Otherwise, the direction keyword, direction determiner, in-
+tersection keyword, and intersection determiner are used to
+populate the plan with corresponding actions. For example,
+in the right chunk in Figure 8, it can be inferred from
+the determiner ‘second’ for the intersection keyword ‘three-
+way’ that the plan should contain two steps, each with a
+three-way intersection action. This also implies that the
+robot should go straight at the ﬁrst one and turn right at the
+second one. If there were no direction keywords found, the
+phrase is searched for intersection or goal keywords that may
+have been missed, adding in the corresponding plan actions.
+The plan actions extracted from each chunk are concatenated
+to create the ﬁnal plan. For a given utterance, this plan must
+be consistent with plan structure as described above to ensure
+proper execution.
+1. The ﬁrst step must be a direction action.
+2. The last step must be a goal action.
+3. A direction action must always follow an intersection
+action.
+4. Two intersection actions cannot be adjacent.
+5. Two direction actions cannot be adjacent (unless the ﬁrst
+one is turn-around).
+These properties of plan structure allow us to formulate
+patterns to describe all minimal invalid action sequences.
+Each such invalid action sequence can be rendered valid by
+appropriately adding, deleting, or modifying plan steps. Such
+plan modiﬁcation is performed by rewrite rules. For example,
+
+--- Page 10 ---
+10 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+Fig. 8: Instruction extraction via parsing steps.
+consider the plan [forward;left ], which implies that the
+robot must arrive at an intersection with a leftturn. This plan
+can be rewritten as [forward;;left ]to indicate that it
+needs to populate a plan step with an action that speciﬁes the
+intersection type at which it will make the leftturn. These
+rewrite rules are repeatedly applied to the plan until it no
+longer contains any invalid action sequences. Table II shows
+the complete list of plan rewrite rules.
+3) Dialogue: The goal of H OLD CONVERSATION is to
+construct a complete plan, with no unﬁlled steps. If the plan
+is not complete, a query is generated and posed to the person
+for the ﬁrst unﬁlled step in the plan. Information is extracted
+from the person’s response to ﬁll the corresponding unﬁlled
+step in the plan. The type of the query depends on the pattern
+in which the unﬁlled step occurs. There are two query types:
+single , which requests a single piece of information, and open-
+ended , which gives the person more freedom in their response.
+Table III illustrates the different queries for each pattern and
+query-type.
+If the query-type is single, H OLD CONVERSATION looks
+for the presence of that particular type of information in the
+response. After ﬁnding it, all words up to it are removed
+and the remaining text is parsed in an open-ended fashion.
+Consider an example:
+Robot: Which direction do I start out going?
+Person: you start left, then turn right at the
+end of the hallway
+Our parsing method extracts ‘left’ as the answer to the query
+and then replaces the corresponding in the plan with left .
+Then it parses ‘then turn right at the end of the hallway’ in
+an open-ended manner and inserts the extracted instructions
+into the plan after left . If the query-type is open-ended, the
+response is parsed in the same way as the response to the
+robot’s ﬁrst question. The robot repeatedly poses questions,TABLE II: Plan rewrite rules. In the following, dirdenotes
+any direction action, ntadir denotes any direction action except
+turn-around ,intdenotes any intersection action, and goal
+denotes any goal action. The ﬁrst matching rule applies when
+multiple rules match.
+goal   goal
+: : :goal  : : :goal
+int-L dir : : : forward int-L dir : : :
+int-R dir : : : forward int-R dir : : :
+intturn-around : : : turn-around : : :
+turn-around int : : : turn-around forward int : : :
+int : : :   int : : :
+: : :forward forward : : : : : :forward : : :
+: : :goal : : :  : : : : : :
+: : :elbow int-L : : : : : :elbow : : :
+: : :elbow int-R : : : : : :elbow : : :
+: : :three-way int-L : : : : : :three-way : : :
+: : :three-way int-R : : : : : :three-way : : :
+: : :four-way int-L : : : : : :four-way : : :
+: : :four-way int-R : : : : : :four-way : : :
+: : :ntadir forward : : : : : :ntadir : : :
+: : :ntadir dir : : : : : :ntadirdir : : :
+: : :int1int2: : :  : : :int1int2: : :
+: : :int goal : : :  : : :intgoal : : :
+: : :dir  : : :dir
+: : :int  : : :int
+: : :elbow forward : : : : : :elbow : : :
+: : :elbow : : : : : :elbow either : : :
+forward : : :  forward : : :
+turn-around : : : turn-around : : :
+processes the respond, and applies rewrite rules until it gener-
+ates a complete plan with no missing information. A complete
+and consistent plan indicates success and results in a transition
+to the F OLLOW DIRECTIONS state.
+If the plan is complete but not consistent, or if no plan could
+be constructed, then the plan [right;person ]is created and
+a transition to the F OLLOW DIRECTIONS state is made. This
+
+--- Page 11 ---
+THE AMAZING RACETM: ROBOT EDITION 11
+TABLE III: Query templates for plan patterns. The notation
+hnthirefers to a direction determiner generated based on
+how many direction actions of the same type appear prior
+todirin the current partial plan. The notation hjthirefers
+to an intersection determiner generated based on how many
+intersection actions of the same type appear prior to intin the
+current partial plan. The ﬁrst matching template applies when
+multiple templates match.
+Pattern Query-type Query
+ open-ended ‘Could you tell me how to navigate to
+hdestination i?’
+int : : : single ‘Which direction do I start out going?’
+goal single ‘Which direction do I start out going?’
+turn-around : : : open-ended ‘What do I do after turning around?’
+dir : : : open-ended ‘What do I do after starting to go dir?’
+turn-around dir : : : open-ended ‘What do I do after turning around and
+going dir?’
+: : :left : : :left : : : open-ended ‘What do I do after I turn left (this being
+thehnthileft I take)?’
+: : :left : : : open-ended ‘What do I do after I turn left?’
+: : :right : : :right : : : open-ended ‘What do I do after I turn right (this being
+thehnthiright I take)?’
+: : :right : : : open-ended ‘What do I do after I turn right?’
+: : :elbow dir : : : open-ended ‘Where do I go after the elbow (this being
+thehjthielbow)?’
+: : :intforward : : : open-ended ‘What do I do after going through the hjthi
+int?’
+: : :int open-ended ‘What do I do after getting to the hjthiint?’
+: : :int1int2: : : single ‘When I am at int1, which direction will I
+go to get to int2?’
+short plan causes the robot to rotate away from the person so
+that they are no longer in the ﬁeld of view and will not be
+redetected as an approachable person. After rotating 90to
+the right, the robot transitions to the W ANDER state and will
+seek out a new person to ask for directions.
+4) Addressing Corner Cases: To help facilitate a more nat-
+ural conversation, we have a small amount of code to address
+a few corner cases that may arise in spoken conversation. If
+a response to a query is not heard within 5 s, the robot states
+this fact and repeats its query. If the robot is not able to extract
+any useful information from a response, it indicates such and
+may provide some information about what it does understand
+(e.g., directions and intersections). If the robot goes two turns
+without the plan changing (e.g., it fails to understand the
+person’s instructions or it hears no response), the robot ends
+the conversation and carries out whatever portion of the plan
+is usable. If the person indicated the robot misunderstood their
+last utterance, the robot backs up one step, using the previous
+iteration of the plan and its corresponding query. If the person
+indicates that they would like to start over, the robot resets the
+plan and asks its original query. Some sample conversations
+from our trials are shown in Table IV.
+D.FOLLOW DIRECTIONS
+With a successfully extracted plan, the robot enters the
+FOLLOW DIRECTIONS state. The plan includes direction, in-
+tersection, and goal actions. Direction and intersection actions
+are grounded in the environment by the navigation process
+described in Section II-C. The goal action is a transition
+condition to F OLLOW DIRECTIONS that it has completed the
+plan provided by the person and should transition to the next
+state.
+1) Plan Preprocessing: In Section III-A1, we described
+the D RIVE THROUGH INTERSECTION substate and its pur-TABLE IV: Sample conversations from our trials.
+Speaker Utterance
+Robot: Could you tell me how to navigate to 345?
+Person: yeah, turn around go to the end of the hall and you’ll take a lot to the
+bathroom.
+Robot: What do I do after getting to the ﬁrst end of the hall?
+Person: you take a left at the bath.
+Robot: What do I do after I turn left?
+Person: app
+Robot: I did not understand that. What do I do after I turn left?
+Person: you go to the end of the hall.
+Robot: What do I do after getting to the second end of the hall?
+Person: turn right.
+Robot: What do I do after I turn right?
+Person: it’ll be the third door on the left.
+Robot: Thanks for your help. Have a great day!
+Plan: [ turn-around ,forward ,end,left ,end,right ,goal-L ]
+Robot: Could you tell me how to navigate to 276?
+Person: yeah, turn around then turn right then your ﬁrst left and then the door will
+be on your left.
+Robot: Thanks for your help. Have a great day!
+Plan: [ turn-around ,forward ,int-R ,right ,int-L ,left ,goal-L ]
+Robot: Could you tell me how to navigate to 1273?
+Person: yes, turn right.
+Robot: What do I do after I turn right?
+Person:
+Robot: I did not hear you. What do I do after I turn right?
+Person: and then turn right.
+Robot: What do I do after I turn right (this being the second right I take)?
+Person: ﬁnd room 1273.
+Robot: Thanks for your help. Have a great day!
+Plan: [ forward ,int-R ,right ,int-R ,right ,goal-F ]
+pose in ensuring the robot exited the registered intersection
+before being able to detect another registered intersection
+and re-evaluate what to do. That behavior is important to
+FOLLOW DIRECTIONS as well for a similar reason: if the
+robot entered a registered intersection, rotated in the direction
+speciﬁed in the plan, and immediately began looking for
+the subsequent intersection, it could mistakenly think it had
+reached it, despite still being in the same registered inter-
+section. We want the robot to completely exit the current
+registered intersection before beginning to look for the subse-
+quent one. To facilitate this behavior, F OLLOW DIRECTIONS
+takes the plan received from H OLD CONVERSATION , searches
+for all but the last instance of the pattern [int;dir], and
+inserts the following two actions after the direction action:
+[forward-through-int ;forward ]. As an example,
+the plan [forward;elbow;left;elbow;left;goal-F ]
+would become
+[forward;elbow;left;forward-through-int ;
+forward;elbow;left;goal-F ]:
+2)FOLLOW DIRECTIONS Substates: The
+FOLLOW DIRECTIONS state has ﬁve substates:
+a) M AKE DECISION , b) D RIVE FORWARD , c) R OTATE ,
+d) D RIVE THROUGH INTERSECTION , and e) C OMPLETE .
+FOLLOW DIRECTIONS maintains a step counter, indicating
+the current step to execute. It enters the M AKE DECISION
+substate ﬁrst, initializing the step counter to the ﬁrst step in
+the plan. When the current action is forward , it will enter
+the D RIVE FORWARD substate wherein it drives forward
+until the subsequent intersection in the plan is found. In
+the example [forward;elbow;left;:::]the robot would
+drive forward until it detects an elbow intersection. As noted
+in Table I, some of the intersection keywords are less speciﬁc
+and only contain an indication of what hallway trajectories
+one would expect to ﬁnd at the speciﬁed intersection. For
+
+--- Page 12 ---
+12 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+example, int-L would specify a registered intersection of
+any type that includes a hallway trajectory labeled with the
+qualitative direction left.
+Once the speciﬁed intersection has been detected, the robot
+will return to the M AKE DECISION substate to determine what
+it needs to do next. It the next step in the plan contains a
+direction action that requires rotation (i.e., left ,right , or
+turn-around ), the robot will enter the R OTATE substate.
+In this substate, the robot will rotate in-place by a speciﬁed
+amount according to the direction speciﬁed in the plan: left
+!90,right!  90, and turn-around!180. After
+rotating, the robot will return to the M AKE DECISION sub-
+state. If the subsequent step is forward-through-int , the
+robot enters the D RIVE THROUGH INTERSECTION substate.
+As before, it requires that the intersection type change and the
+robot travel at least 2 m from where it rotated before it exits
+this substate and returns to the M AKE DECISION substate.
+Before each of the substates D RIVE FORWARD , R O-
+TATE , and D RIVE THROUGH INTERSECTION ﬁnish perform-
+ing their task and return to the M AKE DECISION substate,
+they increment the step counter accordingly. Eventually, the
+step counter will reach the goal action. When this occurs,
+MAKE DECISION transitions to the C OMPLETE substate. This
+is indicative of F OLLOW DIRECTIONS having successfully
+executed the plan and the robot will transition to the next state.
+When the goal action is goal-F ,goal-L , orgoal-R , the
+robot has reached the same hallway as the goal and must look
+for it. Thus the robot will transition to the N AVIGATE DOOR
+state. When the goal action is person , the robot has carried
+out as many steps as the previous person was able to provide
+and must now seek out a new person to ask for instructions.
+Thus the robot will transition to the W ANDER state. A diagram
+of this FSM is shown in Figure 5b.
+3) Forward Driving Goals: When approaching a person,
+the robot may have moved to one side of the hallway and be in
+a suboptimal pose (similar to that described in Section III-A2).
+Additionally, because the conversation will have taken some
+amount of time, the person may have materialized as an
+obstacle in the quantitative map, directly in front of the robot.
+If the ﬁrst action in the plan is forward , the robot may be
+unable to do so, even when using the technique described in
+Section III-A2, where we search with increasingly wider cone
+angles in the hopes of ﬁnding a median drivable trajectory.
+If no drivable trajectories are available from the robot’s pose
+(which is often the case because of the robot’s proximity to
+the person), we repeat the same search for a median drivable
+trajectory, but use positions that are horizontal to the robot’s
+pose. Starting at the robot’s current pose, we incrementally
+search left then right at distances of0.5 m,1 m, and
+1.5 m, with the expectation that at some horizontal position,
+we will be far enough away from the person to ﬁnd a median
+drivable trajectory. We then use this median drivable trajectory
+as our forward driving goal. This helps to move us around
+the person and drive in the direction indicated. Note that this
+mechanism, also present in the W ANDER state, is the one
+we alluded to in Section III-A2. Figure 9 provides a visual
+explanation of this process.
+While in the D RIVE FORWARD substate, the robot will
+Fig. 9: Example of how the robot determines a forward driving
+goal when the person it just conversed with has materialized
+as an obstacle in the quantitative map. The two transparent
+red cones coming from the robot indicate that no drivable
+trajectories are free at a cone angle of either 15or30.
+(To prevent this ﬁgure from becoming too cluttered, we ignore
+the cone angle of 45). The two transparent red cones
+coming from the point that is 0.5 meters to the leftof the
+robot indicate that there are no drivable trajectories at either
+15or30. The blue cone coming from the point that is
+0.5 meters to the right of the robot indicates that a drivable
+trajectory was found and it is used as the forward driving goal.
+continue driving forward until it either detects the intersection
+speciﬁed in the plan or reaches the end of the hallway. If it
+reaches the end of the hallway without detecting the desired
+intersection, the robot will perform a single 360spin to ensure
+that it truly is at a dead-end. If, after performing this spin, it
+has not detected the speciﬁed intersection, it indicates failure
+to carry out the plan and will return to the W ANDER state.
+E.NAVIGATE DOOR
+Once the robot completes execution of the plan with a goal
+other than person , it will be located in the hallway contain-
+ing the desired door and transitions to the N AVIGATE DOOR
+state to conduct a systematic search to ﬁnd the door. The
+search procedure depends on accurate door localization and
+common-sense reasoning. We leverage several key character-
+istics of our environment: doors are all of a similar shape, each
+door has a door tag displaying the room number, and room
+numbers are consecutive odd on one side of the hallway and
+consecutive even on the other. This lets the robot inspect the
+doors in a logical fashion.
+To detect doors, doorways, and elevators, we rely on four
+standard pieces of sensor information from the robot: a) the
+camera image, b) the raw LiDAR data, c) the quantitative
+map, and d) the robot pose. We use the LiDAR data to ﬁrst
+determine regions in the image that can contain doors, then
+search these regions for door proposals, and ultimately assign
+a conﬁdence score to each proposal. Because the LiDAR data
+provides information about obstacle distance relative to the
+robot, we can use the robot’s position in the quantitative map
+to compute absolute locations for the door proposals.
+1) Detecting Walls: We rely on 3D information from the
+LiDAR data to determine the walls. This data is represented as
+a collection of 2D (x;y)coordinates that represent the location
+of obstacles in the environment surrounding the robot. An
+illustration of such data can be seen in Figure 10a. We apply
+
+--- Page 13 ---
+THE AMAZING RACETM: ROBOT EDITION 13
+(a) Raw LiDAR points.
+ (b) Extracted line segments.
+ (c) Merged line segments.
+Fig. 10: Process for extracting walls from LiDAR data.
+the Douglas-Peucker algorithm [11] to reduce the number of
+these points and establish line segments that can correspond to
+walls in the environment. We deﬁne each line segment as the
+4-tuple (x1;y1;x2;y2)where (x1;y1)and(x2;y2)correspond
+to a pair of endpoints. The resulting line segments can be seen
+in Figure 10b. Due to occlusion or recession, this algorithm
+can produce disjoint line segments that correspond to the same
+wall. We employ two stages of clustering to merge these
+disjoint line segments into walls .
+Because line segments that correspond to the same wall
+must share the same orientation, we cluster the line segments
+with hierarchical clustering based on their angles. We refer
+to these clusters as orientation clusters . To disambiguate line
+segments belonging to parallel but distinct walls, we perform
+a second stage of clustering. For each line segment within an
+orientation cluster, we rotate it by the negative of its angle
+so that the resulting line segment is parallel to the x-axis in
+a standard Cartesian coordinate system. The transformation is
+shown in Equation 1.
+x0
+1x0
+2
+y0
+1y0
+2
+=cos  sin 
+sin cos x1x2
+y1y2
+(1)
+Now, for each resulting line segment (x0
+1;y0
+1;x0
+2;y0
+2), its dis-
+tance to the x-axis is equal to y0
+1(=y0
+2). Thus, we cluster
+all of these line segments based on this distance to distinguish
+between parallel walls. At the end of this step, our ﬁnal clusters
+consist of line segments that belong to the same wall. For
+each of these clusters, we merge all of the line segments into
+a single line segment (^x1;^y1;^x2;^y2)by taking the two most
+extreme endpoints of the line segments. Each of these merged
+line segments represents a wall in the robot’s immediate
+environment. The ﬁnal result can be seen in Figure 10c.
+Now that we have the locations of the walls, we can create
+regions in the image that could contain doors. Because most
+doors, doorways, and elevators have a standard height of 2.2 m,
+we desire regions that are bounded above by this height and
+below by the ground level, 0 m. Knowing the camera intrinsics,
+K, and extrinsics, Randt, we can apply the transformation
+in Equation 2 to project the wall line segments onto the image
+Fig. 11: Projected walls with region boundaries. Green lines
+are the tops and bottom of walls projected at heights of 0 m
+and 2.2 m respectively, and the orange lines are the 15 cm
+tolerances for the top.
+at these height levels by setting happropriately.
+2
+4u1u2
+v1v2
+1 13
+5=KR t2
+664^x1^x2
+^y1^y2
+h h
+1 13
+775(2)
+Because we take real data from a moving robot as input,
+this projection might not always result in accurate pixel
+coordinates, which can cause complications when we search
+for edges that correspond to the tops of doors. Therefore,
+we incorporate a vertical distance tolerance of 15 cm for
+the top boundary. A visualization of the boundaries and their
+tolerances can be seen in Figure 11. Each pair of a top and
+bottom boundary is considered as a distinct wall region.
+2) Generating Door Proposals: We use edge detection as a
+basis for generating door proposals, incorporating mechanisms
+that are robust to noisy edge detections which are prevalent in
+images obtained from a moving robot. We employ LSD (Line
+Segment Detector) to detect line segments in the image with-
+out any parameter tuning. Each line segment is represented as
+the 4-tuple (u1;v1;u2;v2). Inspired by Shi and Samarabandu
+[27], we quantize the line segments into several bins depending
+on their orientation. We do this to isolate the line segments
+that can potentially belong to a door, speciﬁcally the two posts
+
+--- Page 14 ---
+14 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+Fig. 12: Line segment detections, color coded by their orien-
+tation. Green lines are horizontal. Vertical lines are teal. Blue
+lines have a downward slope. Red lines have an upward slope.
+and the top. Therefore, we keep any vertical line segments as
+possible door posts. Then, we separate any lines in the top
+half of the image into three bins based on whether the line
+segment has a positive slope, negative slope, or a slope close
+to zero, respectively. An example result is shown in Figure 12.
+Given the detected edges and the projected wall regions,
+we can search for possible doors in the environment. We
+iterate over each wall region to ﬁnd doors in that region. First,
+any line segments, of any orientation, that lie outside of the
+horizontal range deﬁned by the wall region are removed from
+consideration. Then, we iterate over pairs of vertical lines to
+generate door proposals. However, we only consider lines that
+are within a certain distance range of each other, approxi-
+mately equivalent to the width of doors. We approximately
+localize the vertical lines in 3D space by projecting the raw
+LiDAR data to image coordinates, by Equation 2, and then
+computing the closest LiDAR point to each vertical line. That
+LiDAR point’s 3D location is used as the approximate location
+for the corresponding vertical line. Then we cluster the vertical
+lines based on their 3D locations to create a reduced set of
+possible door posts represented as (u0
+1;v0
+1;u0
+2;v0
+2). Because
+u1=u2for vertical lines, we compute the average u1within
+a cluster to compute u0
+1andu0
+2. Then we use u0
+1to ﬁndv0
+1
+andv0
+2by computing the corresponding points on the top and
+bottom boundaries of the wall region, respectively. This creates
+a smaller set of lines that extend from the bottom boundary
+to the top boundary in the wall region on the image. Using
+these 3D locations of the lines in this reduced set, we compute
+a pairwise distance between them and only keep pairs whose
+distance is within the range [0.5 m;1.25 m ].
+3) Scoring proposals: We introduce a metric to determine
+how conﬁdent we are that a given pair of vertical lines
+corresponds to a door or elevator as some proposals could
+correspond to signs, posters, or wall structures. Akin to
+Del Pero et al. [10], we measure how much each proposal
+explains, or covers, the detected line segments in the image
+by computing the coverage of the vertical lines and top bar
+(the segment connecting the top points of the vertical lines)
+of the proposal. Multiple line segments may correspond to the
+same component of the door proposal, but could be disjointand/or overlap due to noise or occlusion. First, we isolate
+the detected line segments that could correspond to the top
+of the door, by only retaining segments whose orientation
+matches the orientation of the top boundary of the wall region
+as well as lie within the top boundary’s vertical tolerance.
+Then, using the same approach as for the vertical lines, we
+compute the approximate 3D location for each endpoint of
+each of the remaining line segments, and only consider line
+segments whose endpoints are within the horizontal range:
+0.15 m left of the left vertical line and 0.15 m right of the
+right vertical line.
+With these remaining segments, we can compute what
+fraction,ctop, they cover of the top horizontal area between
+the two vertical line segments. We take the same approach
+to the vertical line segments themselves. For each of the two
+vertical line segments, we ﬁnd all of the original line segments
+that are within 0.2 m and compute how much they cover those
+line segments vertically, resulting in cleftandcright. These three
+values are aggregated to compute a score for each door as
+indicated in Equation 3.
+score =cleft+cright+ctop
+3(3)
+Rather than have binary decisions about whether or not a
+proposal is a door, a conﬁdence score can allow an online
+system to be adjusted to a desired false-positive rate. In our
+system, we use a conﬁdence score threshold of 0.75, only
+considering detections with a score greater than or equal to
+this.
+4) Localizing detections: Using the 3D locations of the
+door posts, we describe the location of the door as the tuple
+d= (xmin;ymin;xmax;ymax)where min and max correspond
+to the closer and further door posts respectively. This allows
+for driving to both sides of the door as the door tag might
+be on either side. Because this process is performed in an
+online fashion on continuous image frames received from
+the camera, the same door can be detected multiple times at
+different time steps. Therefore, detections from different time
+steps are hierarchically clustered by the Euclidean distances
+between their center locations. For accurate clustering, we rely
+on additional information from the LiDAR data to accurately
+cluster door detections. For each door bounding box, we ﬁnd
+all the 3D points whose corresponding pixel coordinates are
+within its bounds. We then take the median of these 3D
+points as the door detection’s center location. This allows for
+computing accurate door coordinates and ﬁltering out false
+positives for driving-goal generation.
+5) Driving-Goal Generation: For each of the resulting
+clusters, we compute the average locations of the door posts
+to create the ﬁnal driving goals for that door. Only clusters
+whose size is >3 are considered. These clusters are classiﬁed
+as being on the right side of the hallway or the left side
+based on a comparison between the robot’s trajectory down the
+hallway and the door locations (relative to the beginning of the
+hallway). Within these classiﬁcations, the clusters are sorted
+by increasing distance relative to the beginning of the hallway.
+This allows for driving to a speciﬁc door. For example, driving
+to the third door on the left can be achieved by retrieving the
+
+--- Page 15 ---
+THE AMAZING RACETM: ROBOT EDITION 15
+(a) The close side of a door.
+ (b) The far side of a door.
+Fig. 13: Driving-goal positions for a door.
+coordinates of the door whose index is two, by zero-indexing,
+among doors classiﬁed as being on the left side of the hallway.
+The robot uses the coordinates of the door posts to create two
+driving goals so that it can position itself appropriately to read
+the door tag. Figure 13 illustrates the two desired positions.
+The door’s angle = tan 1ymax ymin
+xmax xminis computed and used
+to determine a driving goal that is 1 m perpendicular to the
+door and with a target orientation orientation matching that of
+the door. Upon arrival at this driving goal, the robot pans its
+camera in the direction of the door to read its door tag with
+Google’s Optical Character Recognition API.
+6) Common-Sense Navigation: Generally, the robot will
+drive straight down the center of the hallway, using the
+forward command, and only drive up to a door once it is
+within 3 m. This behavior results in a good view of doors up
+ahead. If the index and/or classiﬁcation of the desired door
+is unknown, common-sense knowledge about room labeling
+in an ofﬁce environment is leveraged to guess what they
+are, based on the ﬁrst door tag that is read. This can enable
+potentially more efﬁcient goal-ﬁnding than exhaustive search
+alone. This common-sense knowledge is based on assumptions
+about doors being labeled in increasing or decreasing order,
+both numerically and alphabetically (in the case of a letter
+sufﬁx), and even and odd doors being on different sides of the
+hallway. Given the door tag of the ﬁrst door the robot inspects,
+it will use parity to determine what side the goal door is on. If
+the goal door is on the same side, it will compute the expected
+index of the goal door and drive down the hallway until it
+detects that door. Otherwise, it will start with the ﬁrst door
+on the other side of the hallway. For example, if the desired
+door is room 335 and the ﬁrst door tag read is 331, then room
+335 will be two doors down on the same side of the hallway.
+Alternatively, if the ﬁrst door tag is 330, only doors on the
+other side of the hallway will be inspected.
+A number of mechanisms are incorporated to allow the
+robot to ﬁnd the goal door in spite of any of these assumptions
+being invalidated. Firstly, at any given point, all the door tags
+read so far are used to determine whether or not the goal door
+was missed. This is done using the range and trend (whether
+they are increasing or decreasing) of the door values to check
+whether the robot should have come across the door in its
+path. If the door has not been missed, the robot will continue to
+inspect doors on the current side of the hallway until it reaches
+the end of the hallway. In both of these cases, the robot returns
+to the start of the hallway and begins an exhaustive search of
+all doors in the hallway to ﬁnd the goal door. If the robot
+still has not found the goal door after this exhaustive search,
+it returns to the W ANDER state.IV. S YSTEM EVALUATION
+Our system design was developed and validated in three
+buildings (EE, MSEE, and PHYS). In order to evaluate the
+generalizability and robustness of our system’s performance,
+we performed 52 trials in 4 distinct ﬂoors in each of three new
+buildings (HAMP, KNOY , and ME) it had not been deployed
+in before. With three exceptions described below, we froze our
+software after development before the evaluation trials. For
+these trials, we recruited 13 volunteers to provide directions
+to the robot.3These volunteers were untrained users who had
+never interacted with the robot before nor were aware of what
+it understood or was capable of. Each volunteer assisted with
+1–6 trials.
+A. Experimental Setup
+For each trial, the robot was placed on a ﬂoor of one of the
+three new buildings and given a random door number as the
+goal. The volunteer was instructed to stand in a location where
+the robot would be allowed to W ANDER for some time before
+seeing them. If the robot re-entered the W ANDER state at any
+point in the trial, the volunteer was instructed to relocate to a
+position that the robot would come across after being allowed
+to wander for some time. A trial was considered a complete
+success if the robot reached the correct goal door and read its
+door tag. A trial was concluded and subsequently declared a
+failure if the robot did not reach the goal after several attempts.
+In some trials, some minor manual intervention was used to
+partially rotate the robot or prevent it from crashing into a
+wall to allow the trial to continue.4
+B. Trial Results
+The number of successful trials is shown in Table Va on a
+per-building basis. Overall, the system was able to successfully
+reach the given goal in 76.9% of the trials. Of the 12 ﬂoor
+plans tested, the robot was able to successfully ﬁnd the goal
+at least twice on every ﬂoor and usually three or more times
+(8/12 ﬂoors). This result highlights the ability of our system
+to generalize to new ﬂoor plans.
+One of the characteristics of our system is its ability to
+recover from individual behavior failures. Of the 52 trials, only
+3 (5.7%) succeeded without any behavior failures. When
+failures do occur, either from shortcomings of the individual
+behaviors or incorrect instructions from volunteers, the robot
+is able to recover and make multiple attempts at its task.
+Table Vb shows the success rate of each behavior. Despite
+there being multiple instances of each behavior due to failure,
+the robot is ultimately able to reach the goal door with the
+subsequent recovery from the individual behavior failures.
+3Our original intent was to not have any volunteers but instead to have
+the W ANDER state ﬁnd people naturally occurring in the environment to
+model real visitors soliciting help in ﬁnding their way from locals. COVID-19
+prevented us from doing this.
+4An online appendix at https://github.com/qobi/amazing-race contains the
+ﬂoor plan of each building and describes each trial in detail, including the
+building, ﬂoor, volunteer, goal, a transcript of the dialog, the plan extracted,
+the map constructed with the route taken, indication of success or failure, and
+a description of the failure reason upon failure. The appendix also includes
+three videos depicting three complete trials, one in each building.
+
+--- Page 16 ---
+16 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+TABLE V: Results.
+(a) Trial results.
+Building Successes Total Success rate
+HAMP 11 17 64.7%
+KNOY 13 16 81.3%
+ME 16 19 84.2%
+all 40 52 76.9%(b) Behavior success rate.
+Behavior Total Instances Average instances per trial Success rate
+WANDER 390 7.5 0.99
+APPROACH PERSON 385 7.4 0.47
+HOLD CONVERSATION 183 3.5 0.86
+FOLLOW DIRECTIONS 182 3.5 0.68
+NAVIGATE DOOR 99 1.9 0.40
+This ability effectively increased the success rate by a factor
+of13:3.
+C. Observations and Improvements
+As the trials were conducted, many observations were made
+about each behavior’s interaction with the complex environ-
+ments in which the robot was evaluated. Although the system
+recovers from most individual behavior failures, reducing the
+number of these would lead to faster and more efﬁcient goal
+ﬁnding. In this section, we discuss these observations and how
+they can potentially be used as points of improvement in future
+work.
+1)APPROACH PERSON :We observed several challenges
+associated with successfully and safely navigating to a per-
+son to ask them for directions. YOLOv3 cannot distinguish
+between people and pictures of people on the walls. In
+some trials, this led to the robot repeatedly driving up to
+walls containing pictures of people and attempting to initi-
+ate H OLD CONVERSATION . Potential solutions include using
+body size as a prior to determine whether the detected person
+has the correct size for the detected distance or incorporating
+body-pose estimation to help make the distinction. Also,
+constraints can be applied to the locations of person detections,
+such as having to touch the ground, to eliminate detections of
+people on posters and signs from consideration.
+Another point of difﬁculty was detecting and localizing
+people that are far away. People that are small in the camera’s
+ﬁeld of view are more difﬁcult to detect. Even if they are
+detected, the bounding boxes are small, thus having fewer
+corresponding 3D LiDAR points, making it difﬁcult to lo-
+calize, track, and classify person tracks accurately. Similarly,
+consistent, accurate localization of people was also difﬁcult
+when they were occluded by objects such as drinking fountains
+or trash cans, or when they were positioned close to a wall.
+These objects would often overlap with the person detections,
+which would affect the localization of the person themselves
+as some 3D LiDAR points overlapping the box would actu-
+ally correspond to the object or wall instead of the person.
+These issues created tracks that would rapidly switch between
+being approachable and not approachable, which caused the
+system to correspondingly switch between W ANDER and A P-
+PROACH PERSON rapidly. This explains the high number of
+instances of W ANDER and A PPROACH PERSON on a per-trial
+basis as well as the low success rate of A PPROACH PERSON .
+The robot would eventually reach the person, but would
+sometimes do so in an inefﬁcient manner.
+2)HOLD CONVERSATION :The most common observation
+made when volunteers were providing instructions to the robotwas their use of terminology and hand gestures that the
+robot did not understand. Some volunteers tried to describe
+directions using gestures, distances, angles, and objects. Future
+work includes developing a more generalizable and robust
+conversation engine that is capable of handling the diversity
+possible in a set of navigation instructions. Additionally, the
+plan structure could also be expanded to include distances,
+angles, objects, landmarks, text, arrows, and signs. Many of
+those have multiple modalities that could also be explored;
+e.g., distances could be measured in feet, meters, steps, or
+time, i.e., ‘walk that way for about 2 minutes.’
+Aside from this, there was one trial where Google’s
+Speech-to-Text API returned a non-ASCII character (), which
+was not supported by our message passing, and caused
+our H OLD CONVERSATION behavior to die. We manually
+restarted the H OLD CONVERSATION behavior and the trial
+continued to success.
+3)FOLLOW DIRECTIONS :Many of the building ﬂoors fea-
+tured complexities not seen during development, such as open
+spaces and variation in both hallway width and turn angles.
+In particular, one building had hallways that branched off at
+45angles. This caused some confusion both in processing
+and executing the navigation instructions provided by the
+person. Some people would indicate that the robot should
+drive ‘straight’ when it got to those intersections while others
+indicated the robot should ‘turn.’ When told to drive ‘straight,’
+FOLLOW DIRECTIONS would detect that it could no longer
+drive forward after reaching the end of the hallway where the
+hallway would veer off at 45and thus indicate failure. When
+told to turn ‘left,’ F OLLOW DIRECTIONS would not detect the
+leftturn and also indicate failure. An area of future research
+includes developing adaptive methods for determining novel
+intersection types in new indoor environments.
+In a different building, the robot could not detect a particular
+narrow hallway opening ( 1.5 m wide when most hallways
+were 2–4 m wide) due to a hyperparameter corresponding
+to the hallway width. We adjusted it accordingly after the
+ﬁrst 4 trials, and left it unchanged for the remainder of the
+trials. Dynamically detecting characteristics like this in novel
+environments is an area of future research.
+Finally, as the robot is driving around, it is building a
+quantitative map in real-time and relies on map updates to
+determine where there are registered intersections. When the
+conjoining hallways are narrow, the robot sometimes does not
+have enough data from its LiDAR to have built a reliable-
+enough quantitative map to detect the intersection correctly.
+Instead of detecting the intersection, the robot drives past it
+unaware. Planned future work includes using a neural network
+
+--- Page 17 ---
+THE AMAZING RACETM: ROBOT EDITION 17
+TABLE VI: System Trials.
+group live trials # of trials success rate
+ours yes 52 76.9%
+Birmingham yes 46 67.4%
+Munich yes 1 100.0%
+UMBC no 14 71.4%
+Cornell yes 46 76.1%
+to improve the detection of intersections and execution of
+the F OLLOW DIRECTIONS behavior in spite of an incomplete
+map.
+4)NAVIGATE DOOR :The N AVIGATE DOOR behavior ex-
+hibited difﬁculty in ﬁnding the goal door in some situations.
+First, many doors were occluded or only partially visible in the
+robot’s ﬁeld of view and the door detection method does not
+support detecting doors in these scenarios. A point for future
+work could be to train a neural-network-based object detector
+to robustly detect doors in spite of occlusion. Additionally,
+the network could be trained to detect other objects as well to
+enable the robot to ﬁnd something beyond a room.
+Another observation is that although the common-sense
+reasoning led the robot to efﬁciently ﬁnd the goal in some
+trials, in many cases, it was disrupted by both missed and
+false-positive door detections. In these scenarios, the N AVI-
+GATE DOOR behavior resorted to exhaustive search to ﬁnd
+the goal door and was typically able to locate it. However,
+on a larger scale, exhaustive search would be impractical so
+a more robust reasoning and navigation system is an area
+of future work. To help remedy missed doors, we adjusted
+the threshold for the hierarchical clustering of door detections
+from 0.25 m to 0.5 m to create fewer but larger clusters. This
+parameter change was done after the ﬁrst 7 trials and kept for
+the remaining trials.
+We also found two issues involving using Google’s Optical
+Character Recognition (OCR) to read door tags. The ﬁrst issue
+involved misreads, which happened twice in our trials. The
+robot drove up to the correct door, but read “goio” instead of
+“g010.” The same thing occurred with “g055” being misread as
+“go55.” A simple string replacement for commonly mistaken
+characters/digits would solve this problem (e.g., o )0, i)1,
+S)5, etc.). The other challenge with OCR was distinguishing
+any text read from text read from the door tags. In one failed
+trial, the robot drove up to a door and read an advertisement
+about an event occurring in a particular room. The room it
+was referring to was our goal room (which happened to be
+about 2 m away, across the hall). In another failed trial, the
+robot failed to detect the goal door, drove up to the subsequent
+door, but still read the goal door’s door tag. In both of these
+cases, the robot erroneously claimed success. Being able to
+distinguish between a door tag and other signage or text, as
+well as being able to assign a single door tag to a single
+door, would alleviate this issue. We counted the two trials with
+OCR misreads as successes (since the robot did successfully
+accomplish all of the behaviors leading up to ﬁnding the
+correct door) and counted the two trials with the advertisement
+and the adjacent door as the mistaken goal as failures.
+Lastly, after the ﬁrst 24 trials, we discovered an issue where
+the robot was not clearing its set of detected door locations inbetween different instances of the N AVIGATE DOOR behavior
+within the same trial. This was ﬁxed for the remaining trials
+as the intention was to only reason about doors in the current
+hallway as that is where the goal should be located. However,
+in future work, retaining and reasoning about all detected doors
+could enable the robot to ﬁnd the goal without directions
+as well as return to rooms it has already visited if given
+instructions to do so.
+V. R ELATED WORK
+Several research groups have constructed a system that
+accomplishes a comprehensive task similar to ours. We ﬁrst
+compare and contrast our system to these other comprehensive
+systems. Then, we compare our individual behaviors to other
+research that has focused on similar behavior-speciﬁc tasks.
+A. Systems
+In Table VI and Table VII, we compare our system to those
+of the following groups: Birmingham [15], whose task is to
+ﬁnd an object within a small ofﬁce environment; Munich [5],
+whose task is to navigate the streets of Munich and reach a
+downtown plaza; UMBC [21], whose task is to follow natural-
+language directions to an ofﬁce on a building ﬂoor; and Cornell
+[22], whose task is to follow a natural-language directive (in
+a speciﬁed grammar) to an outdoor goal location.
+All ﬁve groups perform their task in the real world. Our
+results, along with Birmingham and Cornell, are based on a
+large number of trials, which helps to support the success rate
+reported. Our success rate is comparable to the other groups,
+but, as we will show in the subsequent tables, we also take on
+more challenges.
+Table VIIa describes the test environment and how many
+distinct environments each group tested on. We test in 12 dis-
+tinct environments, which is much larger than any other group.
+Having multiple trials in a large number of distinct environ-
+ments provides some additional support to the generalizability
+of our system. We also stress that our 12 environments are
+distinct from the environments we trained on and developed
+for. Doing so prevents us from “training on (or developing
+for) the test set,” which carries the risk of overﬁtting to a
+particular environment and biasing the generalizability of a
+system’s performance. Like most of the other systems, we
+operate in an unknown environment, without a map.
+Table VIIb compares how the robot interacts with people
+and gets directions. Unlike UMBC and Cornell, which have a
+single set of directions provided to the robot at the beginning
+of the trial, we have to ﬁnd people in our environment that
+we can ask for directions. These people are untrained and
+unfamiliar with what the robot understands or is capable of.
+Along with Birmingham, we allow for open-ended conver-
+sation, which increases the diversity of responses. Finally,
+our conversation takes place via spoken dialogue which no
+other systems do. (Munich uses a GUI to get responses, while
+Birmingham uses text input.) These differences make our task
+considerably harder than those of other systems.
+Finally, in Table VIIc, we point out a few additional ways in
+which our task sets us apart from the other systems. Our robot
+
+--- Page 18 ---
+18 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+TABLE VII: Comparison with Related Work.
+(a) Test environment.
+group # of test environments test environment train/test environments are different map provided
+ours 12 ﬂoor of building yes no
+Birmingham 1 11 m2with hallway, 2 ofﬁces, and 1 conference room unspeciﬁed no
+Munich 1 downtown Munich unspeciﬁed no
+UMBC 1 ﬂoor of building yes yes
+Cornell 1 1 km2outdoor facility with 12 buildings unspeciﬁed no
+(b) People interaction and direction-giving.
+group interacts with live people untrained people multi-turn conversation open-ended conversation spoken dialogue
+ours yes yes yes yes yes
+Birmingham yes unspeciﬁed yes yes no
+Munich yes yes yes no no
+UMBC noayes no no no
+Cornell nobno no no no
+aThis paper takes, as the input to their trial, a single, open-ended text instruction from an untrained user.
+bThis paper takes, as the input to their trial, a single, open-ended text instruction from a predeﬁned grammar called “TBS.”
+(c) Directions, goals, and recovery.
+group follows directions can detect when directions are wrong robot detects goal independently recovers from failure
+ours yes yes yes yes
+Birmingham no no yes yes
+Munich yes no unspeciﬁed yes
+UMBC yes yes unspeciﬁed yes
+Cornell yes no yes no
+has to follow directions, rather than simply exploring until the
+goal is found. Exploring may work when the environment is
+small, but becomes intractable as the environment increases
+in size. When the directions it has are wrong, both our robot
+and UMBC’s are capable of detecting this. In UMBC’s case,
+they backtrack and recompute the next-most-likely path to the
+goal. In our case, we simply revert to W ANDER and seek out
+another person to ask for directions. Our robot is capable of
+discovering and detecting the goal independently, while it is
+unclear whether all systems are capable of that ability. Lastly,
+like most other systems, we are able to recover from individual
+behavior failures and continue working towards the goal.
+B. Behaviors
+As described earlier, our system combines a number of
+behaviors, each of which solve one of the tasks presented
+by The Amazing RaceTMchallenge. The ﬁrst is autonomous
+navigation in an indoor environment. Barrett et al. [3] employ
+a learning mechanism to acquire the semantics for direction
+keywords such as ‘left of,’ ‘right of,’ and ‘behind’ and then
+use these semantics for planning and describing robot paths.
+Because our focus was to design a complete system for nav-
+igation in an unknown environment, we predeﬁned a similar
+set of directions for the W ANDER and F OLLOW DIRECTIONS
+state and used a novel method for determining whether they
+are available.
+The next crucial task is to ﬁnd a person and receive and
+interpret directions from them. The Jackrabbot lab at Stanford
+has developed a robot that complies with social conventions
+such as understanding [26] and predicting [2] human trajectory
+in crowded scenes. When looking for and approaching people,our robot also complies with expected conventions such as
+determining which people are approachable, introducing itself
+as it approaches, and not invading personal space when having
+a conversation.
+Bauer et al. [4, 5, 6] deﬁne a set of heuristic rules and
+a complex ﬁnite-state machine to obtain speciﬁc pieces of
+information from a person through a touch screen inter-
+face on their robot. Our system, however, takes full spoken
+natural-language utterances as input and extracts instructions
+from them. Oh et al. [22] and Boularias et al. [8] require
+a speciﬁc syntactic structure of natural-language commands
+called Tactical Behavior Speciﬁcation to simplify the parsing
+problem. Our parsing method does not depend on such a
+strict grammar because it would be impractical for interacting
+with people unfamiliar with the robot. Kollar et al. [19] train
+a model to extract spatial-description clauses from natural-
+language directions to determine the corresponding path in
+the environment. Our method does not rely on training.
+A single person’s response may have insufﬁcient, vague, or
+incorrect information. Thomason et al. [30] present a dialogue
+system that can compensate for this issue by generating queries
+about missing pieces of information, speciﬁcally the action,
+patient, recipient, or some combination of them. Our dialogue
+system does not predeﬁne what or how much information we
+seek and instead dynamically infers and generates queries for
+what information is missing.
+In order to navigate in the environment, given the natural-
+language directions, the robot needs a semantic map of the
+environment. Hemachandra et al. [16] rely on AprilTag ﬁdu-
+cials to classify regions in the environment for autonomous
+navigation. However, this prevents practical operation in any
+
+--- Page 19 ---
+THE AMAZING RACETM: ROBOT EDITION 19
+unknown environment because it would have to be labeled
+with these ﬁducials. S ¨underhauf et al. [29] explore new
+areas and create a semantic map through the classiﬁcation of
+sequences of image frames as places (e.g., ofﬁce or kitchen).
+Pangercic et al. [24] create semantic object maps in a kitchen
+using a RGBD camera that enables their robot to perform fetch
+and place tasks. We use the occupancy grid, door detection,
+and text recognition to make a semantic map of an unknown
+environment.
+Many approaches, including ours, rely on edge or line
+segment detection as a basis for ﬁnding door posts. Stoeter
+et al. [28] detects door frames by detecting vertical stripes in
+the image, but other objects or parts of the background could
+be responsible for vertical edges. More complex approaches
+look for edges in the image that form an upside-down U-shape
+to create door detections [18, 27]. These methods depend
+on high quality detected edges, which are not necessarily
+possible to obtain especially on images captured from a camera
+on a robot navigating in areas with varying, possibly poor,
+lighting conditions. Our method incorporates noise-tolerance
+mechanisms that simultaneously allow for door detection in
+spite of poor edge detection and measuring the conﬁdence of
+those detections.
+In the case of Shi and Samarabandu [27], only U-shapes
+that intersect the corridor lines are considered doors in order
+to avoid false positives caused by signs or posters. These
+corridor lines are obtained by ﬁnding the vanishing lines that
+have the most intersections with the bottoms of vertical lines.
+Olmschenk and Zhu [23] employ a similar method to ﬁnding
+corridor lines by detecting the vanishing point and vertical
+lines in an image to determine where the wall meets the
+ﬂoor. This approach is impractical for two reasons: a) walls
+orthogonal to the viewpoint are ignored and b) patterns in the
+image, such as ﬂoor tiling, can induce strong edge detections
+that can be confused for corridor lines. We incorporate 3D
+information from LiDAR data to reliably and generally detect
+wall regions and avoid this issue.
+Hanheide et al. [15] employ a knowledge hierarchy that
+enables reasoning over known pieces of information in order
+to perform task planning, execution, and task-failure expla-
+nation. Because our robot has no prior knowledge about the
+environment, we extract information such as driving directions
+and door locations in an online fashion to execute navigation
+instructions and plan paths to potential locations of the goal.
+VI. C ONCLUSION AND FUTURE WORK
+In this manuscript, we proposed The Amazing RaceTM:
+Robot Edition task in which a robot must ﬁnd any designated
+location. We described a system design that solves this task
+with the scope of ﬁnding a speciﬁc room on a single ﬂoor
+of a building. We demonstrated that our system architecture
+lets a robot complete this task by a making a series of
+logical steps akin to those a human would make. Our robot
+autonomously ﬁnds a person in the environment and engages
+them in dialogue for directions. It then follows these directions
+to reach the hallway in which it then searches the doors to ﬁnd
+the designated goal.We demonstrated that our system was successful in 76.9%
+of the trials that we conducted. As discussed, future work
+entails making improvements to each of the behaviors in our
+system to both improve the success rate and increase the scope
+of the task.
+ACKNOWLEDGMENT
+Any opinions, ﬁndings, views, and conclusions or recom-
+mendations expressed in this material are those of the authors
+and do not necessarily reﬂect the views, ofﬁcial policies, or
+endorsements, either expressed or implied, of the sponsors.
+The U.S. Government is authorized to reproduce and distribute
+reprints for Government purposes, notwithstanding any copy-
+right notation herein.
+REFERENCES
+[1] D. Agarwal. LIDAR-camera-calibration in ROS,
+2018. Retrieved June 1, 2018, from https://github.com/
+agarwa65/lidar camera calibration.
+[2] A. Alahi, K. Goel, V . Ramanathan, A. Robicquet, L. Fei-
+Fei, and S. Savarese. Social LSTM: Human trajectory
+prediction in crowded spaces. In Computer Vision and
+Pattern Recognition , pages 961–971, 2016.
+[3] D. P. Barrett, S. A. Bronikowski, H. Yu, and J. M.
+Siskind. Driving under the inﬂuence (of language).
+Transactions on Neural Networks and Learning Systems ,
+29(7):2668–2683, 2018.
+[4] A. Bauer, B. Gonsior, D. Wollherr, and M. Buss. Heuris-
+tic rules for human-robot interaction based on principles
+from linguistics-asking for directions. In New Frontiers
+in Human-Robot Interaction , pages 24–30, 2009.
+[5] A. Bauer, K. Klasing, G. Lidoris, Q. M ¨uhlbauer,
+F. Rohrm ¨uller, S. Sosnowski, T. Xu, K. K ¨uhnlenz,
+D. Wollherr, and M. Buss. The autonomous city explorer:
+Towards natural human-robot interaction in urban envi-
+ronments. International Journal of Social Robotics , 1(2):
+127–140, 2009.
+[6] A. Bauer, D. Wollherr, and M. Buss. Information
+retrieval system for human-robot communication-asking
+for directions. In International Conference on Robotics
+and Automation , pages 4150–4155, 2009.
+[7] N. M. Bhat. Python text to speech library, 2017. Re-
+trieved December 1, 2018 from https://pypi.org/project/
+pyttsx3/.
+[8] A. Boularias, F. Duvallet, J. Oh, and A. Stentz. Ground-
+ing spatial relations for outdoor robot navigation. In
+International Conference on Robotics and Automation ,
+pages 1976–1982, 2015.
+[9] D. Chen and C. Manning. A fast and accurate de-
+pendency parser using neural networks. In Empirical
+Methods in Natural Language Processing , pages 740–
+750, 2014.
+[10] L. Del Pero, J. Bowdish, D. Fried, B. Kermgard, E. Hart-
+ley, and K. Barnard. Bayesian geometric modeling of
+indoor scenes. In Computer Vision and Pattern Recog-
+nition , pages 2719–2726, 2012.
+
+--- Page 20 ---
+20 IEEE TRANSACTIONS ON ROBOTICS, VOL. VV, NO. NN,MM YYYY
+[11] D. H. Douglas and T. K. Peucker. Algorithms for the
+reduction of the number of points required to represent
+a digitized line or its caricature. Cartographica: The
+International Journal for Geographic Information and
+Geovisualization , 10(2):112–122, 1973.
+[12] Google. Cloud speech-to-text, 2019. Retrieved March 1,
+2019 from https://cloud.google.com/speech-to-text.
+[13] Google. Detect text in images, 2019. Retrieved April 1,
+2019 from https://cloud.google.com/vision/docs/ocr.
+[14] R. Grompone V on Gioi, J. Jakubowicz, J. M. Morel, and
+G. Randall. LSD: A fast line segment detector with a
+false detection control. Transactions on Pattern Analysis
+and Machine Intelligence , 32(4):722–732, 2010.
+[15] M. Hanheide, M. G ¨obelbecker, G. S. Horn, A. Pronobis,
+K. Sj ¨o¨o, A. Aydemir, P. Jensfelt, C. Gretton, R. Dearden,
+M. Janicek, et al. Robot task planning and explanation in
+open and uncertain worlds. Artiﬁcial Intelligence , 247:
+119–150, 2017.
+[16] S. Hemachandra, F. Duvallet, T. M. Howard, N. Roy,
+A. Stentz, and M. R. Walter. Learning models for
+following natural language directions in unknown envi-
+ronments. In International Conference on Robotics and
+Automation , pages 5608–5615, 2015.
+[17] W. Hess, D. Kohler, H. Rapp, and D. Andor. Real-time
+loop closure in 2D LIDAR SLAM. In International
+Conference on Robotics and Automation , pages 1271–
+1278, 2016.
+[18] D. Kim and R. Nevatia. Recognition and localization of
+generic objects for indoor navigation using functionality.
+Image and Vision Computing , 16(11):729–743, 1998.
+[19] T. Kollar, S. Tellex, D. Roy, and N. Roy. Toward un-
+derstanding natural language directions. In International
+Conference on Human-Robot Interaction , pages 259–
+266, 2010.
+[20] H. W. Kuhn. The hungarian method for the assignment
+problem. Naval research logistics quarterly , 2(1-2):83–
+97, 1955.
+[21] C. Matuszek, D. Fox, and K. Koscher. Following
+directions using statistical machine translation. In Inter-
+national Conference on Human-Robot Interaction , pages
+251–258, 2010.
+[22] J. H. Oh, A. Supp ´e, F. Duvallet, A. Boularias, L. Navarro-
+Serment, M. Hebert, A. Stentz, J. Vinokurov, O. Romero,
+C. Lebiere, et al. Toward mobile robots reasoning like
+humans. In Conference on Artiﬁcial Intelligence , pages
+1371–1379, 2015.
+[23] G. Olmschenk and Z. Zhu. 3D hallway modeling
+using a single image. In Computer Vision and Pattern
+Recognition Workshops , pages 158–164, 2014.
+[24] D. Pangercic, B. Pitzer, M. Tenorth, and M. Beetz. Se-
+mantic object maps for robotic housework-representation,
+acquisition and use. In International Conference on
+Intelligent Robots and Systems , pages 4644–4651, 2012.
+[25] J. Redmon and A. Farhadi. YOLOv3: An incremental
+improvement. arXiv:1804.02767 , 2018.
+[26] A. Robicquet, A. Sadeghian, A. Alahi, and S. Savarese.
+Learning social etiquette: Human trajectory understand-
+ing in crowded scenes. In European Conference onComputer Vision , pages 549–565, 2016.
+[27] W. Shi and J. Samarabandu. Investigating the per-
+formance of corridor and door detection algorithms in
+different environments. In International Conference on
+Information and Automation , pages 206–211, 2006.
+[28] S. A. Stoeter, F. Le Mauff, and N. P. Papanikolopoulos.
+Real-time door detection in cluttered environments. In
+International Symposium on Intelligent Control , pages
+187–192, 2000.
+[29] N. S ¨underhauf, F. Dayoub, S. McMahon, B. Talbot,
+R. Schulz, P. Corke, G. Wyeth, B. Upcroft, and M. Mil-
+ford. Place categorization and semantic mapping on a
+mobile robot. In International Conference on Robotics
+and Automation , pages 5729–5736, 2016.
+[30] J. Thomason, S. Zhang, R. J. Mooney, and P. Stone.
+Learning to interpret natural language commands through
+human-robot dialog. In International Joint Conference on
+Artiﬁcial Intelligence , pages 1923–1929, 2015.
+Jared S. Johansen received a B.S. in Electrical
+Engineering from Brigham Young University (2010)
+and an M.S. in Electrical Engineering and an MBA
+from the University of Utah (2012). He is currently
+a Ph.D. student in the School of Electrical and
+Computer Engineering at Purdue University. His
+research lies at the intersection of artiﬁcial intelli-
+gence, machine learning, computer vision, natural-
+language processing, and robotics.
+Thomas V . Ilyevsky received his B.S. in Electrical
+and Computer Engineering from Cornell University
+in 2016. He is currently pursuing a Ph.D. in Electri-
+cal and Computer Engineering at Purdue University.
+His research focuses on artiﬁcial intelligence, com-
+puter vision, and natural-language processing in the
+context of human-computer interaction.
+Jeffrey Mark Siskind received the B.A. degree in
+Computer Science from the Technion, Israel Institute
+of Technology in 1979, the S.M. degree in Computer
+Science from MIT in 1989, and the Ph.D. degree
+in Computer Science from MIT in 1992. He did a
+postdoctoral fellowship at the University of Penn-
+sylvania Institute for Research in Cognitive Science
+from 1992 to 1993. He was an assistant professor at
+the University of Toronto Department of Computer
+Science from 1993 to 1995, a senior lecturer at the
+Technion Department of Electrical Engineering in
+1996, a visiting assistant professor at the University of Vermont Department
+of Computer Science and Electrical Engineering from 1996 to 1997, and a
+research scientist at NEC Research Institute, Inc. from 1997 to 2001. He
+joined the Purdue University School of Electrical and Computer Engineering
+in 2002 where he is currently a professor.
