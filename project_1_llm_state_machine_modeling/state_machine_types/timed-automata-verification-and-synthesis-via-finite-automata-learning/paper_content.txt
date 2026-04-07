@@ -1,0 +1,1534 @@
+--- Page 1 ---
+Timed Automata Verification and Synthesis via
+Finite Automata Learning
+Ocan Sankur
+Univ Rennes, Inria, CNRS, Irisa, Campus de Beaulieu, Rennes, 35042,
+France.
+Contributing authors: ocan.sankur@cnrs.fr;
+Abstract
+We present algorithms for model checking and controller synthesis of timed
+automata, seeing a timed automaton model as a parallel composition of a large
+finite-state machine and a relatively smaller timed automaton, and using compo-
+sitional reasoning on this composition. We use automata learning algorithms to
+learn finite automata approximations of the timed automaton component, in order
+to reduce the problem at hand to finite-state model checking or to finite-state
+controller synthesis. We present an experimental evaluation of our approach.
+Keywords: Timed automata, model checking, assume guarantee reasoning, automata
+learning, compositional verification
+1 Introduction
+Timed automata [ 1] are a well-known formalism for modeling and verifying real-time
+systems. They can be used to model systems as finite automata, while using, in addition,
+clocks to impose timing constraints on the transitions. Using clock variables have
+advantages. They allow one to describe models that are expressive thanks to real-valued
+clock values; moreover, the use of specific clock variables enable optimizations such as
+sound and complete abstractions, also known as extrapolation operators [ 2]. Model
+checking algorithms have been developed and implemented in tools such as Uppaal [ 3],
+TChecker [4], PAT [5].
+One approach for model checking timed automata is based on representing the set of
+clock values with zones , which are particular polyhedra, and using explicit enumeration
+on the discrete states. There has been extensive research on sound and complete
+1
+
+--- Page 2 ---
+abstractions on zones, which improved the performance of the model checking tools,
+and made it possible to handle models with more complex time constraints; see [ 6] for
+a survey. However this approach does not scale to models with large discrete spaces
+due to explicit enumeration. Several authors have developed algorithms to remedy
+this issue, and to attempt to adapt efficient model checking techniques finite-state
+systems to timed systems. Extensions of binary decision diagrams (BDD) with clock
+constraints have been considered both for continuous time [ 7–9] and discrete time
+[10,11]. Another approach is to use predicate abstraction on clock variables that enables
+efficient finite-state verification techniques based on BDDs or SAT solvers [12–14].
+Controller synthesis is a related problem in which some transitions of the system
+are controllable and some are uncontrollable, and the objective is to compute a
+control strategy which guarantees that all induced runs of the system satisfy a given
+specification; see e.g.[15]. This problem is formalized using games , and in the case
+of real-time systems, using timed games [ 16,17]. Zone-based algorithms have been
+developed to solve timed games and compute control strategies [ 18], and are available
+in the Uppaal TIGA tool [ 19]. These algorithms suffer from the same limitations as
+the zone-based model checking algorithms. Although they can be efficient on instances
+with small discrete state spaces, they do not scale well to large systems. An attempt
+was made to implement the counter-example guided abstraction refinement scheme to
+handle larger discrete state space in timed games in [ 20]. On the other hand, there are
+several efficient finite-state game solvers, based on BDDs and SAT solvers, which can
+efficiently handle relatively large state spaces [21], but cannot handle real time.
+In this work, we introduce an approach that is applied both to model checking and
+controller synthesis of timed automata with the objective of combining the advantages of
+both timed automata and finite-state model checkers and game solvers. Our suggestion
+is to see the input model, without loss of generality, as a parallel composition between
+a finite-state machine A, and a timed automaton T. We specifically target instances
+where Ais large, and Tis relatively small but nontrivial. Note that this point of
+view was considered before in the verification of synchronous systems within a real-
+time environment [ 22]. As a novelty, for model checking, we apply a compositional
+reasoning rule on the product A∥T by replacing the timed automaton Tby a (small)
+deterministic finite automaton (DFA) Hwhich represents the behaviors of T. To
+automatically select the DFA H, we adapt the algorithm [ 23] to our setting, and use a
+DFA learning algorithm (such as L* [ 24], or TTT [ 25]) to find an appropriate DFA
+either to prove the specification or to reveal a counterexanple.
+Our approach enjoys the principle of separation of concerns in the following sense. A
+timed automaton model checker is used by the learning algorithm to answer membership
+andequivalence queries (see Section 2.3); these are answered without refering to A,
+thus, by avoiding the large discrete state space. Therefore, the timed automaton model
+checker is used in this approach for what it is designed for: handling real-time constraints
+encoded in T, not for dealing with excessive discrete state spaces. Once an appropriate
+DFA His found by the learning algorithm, the system A∥His model-checked using a
+finite-state model checker whose focus is to deal with large discrete state spaces. We
+can thus benefit from the best of the two worlds: a state-of-the-art model checker for
+2
+
+--- Page 3 ---
+timed automata, which is somewhat used here as a theory solver, and any finite-state
+model checker based on BDDs, SAT solvers, or even explicit-state enumeration.
+Note that this approach is limited to checking untimed properties of timed automata.
+This is not much of a loss compared to the literature since most model checking
+tools only support reachability or safety properties, while some (such as Uppaal) do
+offer a limited language to express timed properties. But the latter can be reduced
+to reachability by adding small tester component as described in [ 26]; so by way of
+modeling, it is still possible to check some timed properties with the method presented
+in this paper, though it is not possible to support full logics such as metric temporal
+logic, or timed CTL.
+The application of the learning-based compositional reasoning of [ 23] to controller
+synthesis is more involved. Our objective was to find a way to exploit efficient finite-
+state game solvers [ 21] in the context of timed automata even if this meant having an
+incomplete algorithm. We describe a setting where a one-sided abstraction is applied
+for controller synthesis by replacing the timed automaton component by a learned
+DFA. Contrarily to the model checking algorithm, our controller synthesis algorithm
+is sound but not complete, that is, the algorithm may fail although there exists a
+control strategy, while any control strategy that is output is correct. More precisely,
+we consider timed games in the form G∥T where Gis a finite-state game, and Tis
+a timed automaton. We describe an algorithm that alternates between two phases.
+In the first phase, the goal is to find a DFA Hthat is an overapproximation of T.
+Once this is found, we use a finite-state game solver on G∥H; if there is a control
+strategy, we prove that it can be applied in the original system G∥T. If not, then we
+obtain a counterstrategy S. We then switch to the second phase whose goal is to
+check whether the counterstrategy is spurious or not; and it does so by learning an
+underapproximation DFA HofT, and checking whether Sinduces runs that are all
+inH. Accordingly, we either reject the instance or switch back to the first phase. As
+in the model checking algorithm, the timed automaton model checker is only used
+to answer queries independently from G, and a finite-state game solver and a model
+checker are used to compute and analyze strategies in a discrete state-space.
+To the best of our knowledge, apart from [ 20], we present the first algorithm that
+can solve timed games with large discrete state spaces. Although the algorithm applies
+to a subset of timed games and is not complete, we believe it is of utmost importance
+to make progress on the scalability of timed game solvers in order for these methods to
+be applied in convincing applications. Our paper makes an attempt in this direction.
+We evaluate our algorithms in comparison with state-of-the-art tools and show that
+our approach is competitive with the existing tools, and can allow both model checking
+and synthesis to scale to larger models. The approach offers an alternative treatment
+of timed models, which might be applied in other settings.
+A preliminary version of this paper appeared in [27].
+We present the model checking algorithm in Section 2 which contains formal
+definitions, the description of the algorithm, and the experiments. Section 3 presents
+our contributions on the controller synthesis problem, and includes formal definitions,
+the description of the algorithm, and the experiments. In Section 4, we provide a
+broader discussion on related works, and present our conclusions and perspectives.
+3
+
+--- Page 4 ---
+2 Compositional Model Checking
+2.1 Preliminaries
+Labeled Transition Systems and Finite Automata.
+We denotee labeled transition systems (LTS) as tuples ( Q, q0,Σ∪ {ϵ}, T) where Q
+is the set of states, q0∈Qis the initial state, Σ is a finite alphabet, with ϵa
+distinguished letter labeling silent transitions, T⊆Q×(Σ∪ {ϵ})×Qis the transition
+relation. Because we will consider synchronous products of LTSs, we will use silent
+transitions to define internal transitions not exposed for synchronization. We will always
+make ϵappear explicitly in considered alphabets. A finite automaton is an LTS given
+with a set of accepting states F⊆Q, and is written ( Q, q0,Σ∪ {ϵ}, T, F ). Arunof an
+automaton is a sequence q1e1q2e2. . . q n,ei= (qi, σi, qi+1)∈Tfor some σi∈Σ∪ {ϵ}
+for each 1 ≤i≤n−1. The run is initial ifq1=q0. The trace of the run is the
+sequence σ1σ2. . . σ n−1∈Σ∗. Here, ϵis the neutral element; that is, the trace of a run
+does not contain ϵ. An accepting run starts at q0and ends in F. The language of a
+finite automaton Ais the set of the traces of all accepting runs of A, and is denoted
+byL(A).Deterministic finite automata (DFA) do not have silent transitions and have
+at most one edge for each label from each state.
+We write qσ=⇒q′if there exists a run q1σ1q2σ2. . . σ n−1qnfrom qtoq′where there
+is a unique index j∈ {1,2, . . . , n −1}such that σj=σand∀i̸=j, σj=ϵ.
+Theparallel composition of two LTSs Ai= (Qi, q0
+i,Σ∪ {ϵ}, Ti),i∈ {1,2}, defined
+on the same alphabet, is the LTS A1∥ A2= (Q, q0,Σ∪ {ϵ}, T, F ) with Q=Q1×Q2,
+q0= (q0
+1, q0
+2), and Tcontains (( q1, q2), σ,(q′
+1, q′
+2)) for all ( q1, σ, q′
+1)∈T1, and ( q2, σ, q′
+2)∈
+T2; and (( q1, q2), ϵ,(q′
+1, q2)) for all ( q1, ϵ, q′
+1)∈T1, and q2∈Q2; and symmetrically,
+((q1, q2), ϵ,(q1, q′
+2)) for all ( q2, ϵ, q′
+2)∈T2, and q1∈Q1. The parallel composition of two
+automata Ai= (Qi, q0
+i,Σ∪ {ϵ}, Ti, Fi),i∈ {1,2}, is defined as the above LTS given
+with the accepting states F=F1×F2.
+Finite Automata Learning.
+We use finite automata learning algorithms such as L∗[24,28] and TTT [ 25]. In the
+online learning model, the learning algorithm interacts with a teacher in order to learn
+a deterministic finite automaton recognizing a hidden regular language known to the
+teacher. The algorithm makes two types of queries. A membership query consists in
+asking whether a given word belongs to the language, to which the teacher answers
+by yes or no. An equivalence query consists in creating a hypothesis automaton H,
+and asking the teacher whether Hrecognizes the language. The teacher either answers
+yes, or no and provides a counterexample word which is in the symmetric difference of
+L(H) and of the target language. Learning algorithms typically make a large number
+of membership queries, and a smaller number of equivalence queries.
+Timed Automata.
+We fix a finite set of clocks C.Clock valuations are the elements of RC
+≥0. For R⊆ Cand
+a valuation v,v[R←0]is the valuation defined by v[R←0](x) =v(x)forx∈ C \ R
+andv[R←0](x) = 0 forx∈R. Given d∈R≥0and a valuation v,v+dis defined by
+4
+
+--- Page 5 ---
+(v+d)(x) =v(x) +dfor all x∈ C. We extend these operations to sets of valuations in
+the standard way. We write ⃗0 for the valuation that assigns 0 to every clock.
+We consider a clock named 0 which has the constant value 0, and let C0=C ∪ { 0}.
+Anatomic guard is a formula of the form x ▷ ◁ k , orx−y ▷ ◁ k where x, y∈ C0,k, l∈N,
+and▷ ◁∈ {<,≤, >,≥}. Aguard is a conjunction of atomic guards. A valuation v
+satisfies a guard g, denoted v|=g, if all atomic guards are satisfied when each x∈ Cis
+replaced by v(x). Let Φ Cdenote the set of guards for C.
+Definition 1. Atimed automaton Tis a tuple (L, ℓ0,Σ,Inv,C, E, F ), where Lis a
+finite set of locations, ℓ0∈Lis the initial location, Σis the alphabet, Inv:L→ΦCthe
+invariants, Cis a finite set of clocks, E⊆L×Σ×ΦC×2C×Lis a set of edges. An edge
+e= (ℓ, g, σ, R, ℓ′)is also written as ℓg,σ,R− − − → ℓ′.F⊆Lis the set of accepting locations.
+We restrict to invariants that only contain upper bounds on clocks. Notice that we
+consider timed automata with alphabet without silent transitions. This is without loss
+of generality for our purpose; the reason behind this choice will be clear below when
+we define parallel composition with finite automata.
+ArunofTis a sequence r=q1e1q2e2. . . q nwhere qi∈L×RC
+≥0, and writing
+qi= (ℓ, v) for each 1 ≤i≤n, we have v∈Inv(ℓ); ifi < n , then either ei∈R>0and
+v+ei∈Inv(ℓ), in which case qi+1= (ℓ, v+ei), orei= (ℓ, g, σ, R, ℓ′)∈E, in which case
+v|=gandqi+1= (ℓ′, v[R←0]). The run is initial ifq1= (ℓ0,⃗0). The run is accepting
+if the last location is in F. The trace of the run ris the word σ0σ1. . . σ n∈Σ∗where σi
+is the label of the i-th edge in the run. The untimed language of the timed automaton T
+is the set the initial traces of the accepting runs of T, and is denoted by L(T).
+We define the parallel composition of timed automata as follows. Consider two timed
+automata Ti= (Li, ℓi
+0,Σi,Invi,Ci, Ei, Fi) assuming Ciare disjoint (otherwise we rename
+them). The parallel composition is the timed automaton T1∥T2= (L1×L2,(ℓ1
+0, ℓ2
+0),Σ1∪
+Σ2,Inv,C1∪C2, E, F 1×F2) where Econtains the edge (( ℓ1, ℓ2), g1∧g2, σ, R 1∪R2,(ℓ′
+1, ℓ′
+2))
+whenever σ∈Σ1∩Σ2and each Ticontains an edge ( ℓi, gi, σ, R i, ℓ′
+i); furthermore, for
+each σ∈Σ1\Σ2and edge ( ℓ1, g1, σ, R 1, ℓ′
+1) inT, and all ℓ2, ((ℓ1, ℓ2), g1, σ, R 1,(ℓ′
+1, ℓ2))
+is in E; and symmetrically for σ∈Σ2\Σ1. Last, Inv((ℓ1, ℓ2)) = Inv1(ℓ1)∧Inv2(ℓ2).
+Parallel compositions of timed automata are called also called networks of timed
+automata .
+We give a separate definition of the parallel composition of a finite automaton A=
+(Q, q0,Σ∪ {ϵ}, T, F ) and a timed automaton T= (L, ℓ0,Σ,Inv,C, E, F T) which is a
+new timed automaton denoted by A∥T. Notice that the finite automaton is allowed
+to have ϵ-transitions. Intuitively, an edge labeled by σis obtained by executing, in
+parallel, a σ-labeled edge of Tand a sequence of edges in Aperformingσ=⇒; while
+the guard and the reset of the overall edge are those of the edge of T. Formally, let
+A∥T = (L′, ℓ′
+0,Σ,Inv′,C, E′, F′) with L′=Q×L,Inv′: (q, ℓ)7→Inv(ℓ),ℓ′
+0= (q0, ℓ0),
+andE′contains all edges of the form (( q, ℓ), g, σ, R, (q′, ℓ′)) such that ( ℓ, g, σ, R, ℓ′)∈E,
+andqσ=⇒q′inA. We let F′=F×FT.
+Note that if we allowed Tto have ϵin the alphabet, a natural definition would
+be to define the parallel composition also allowing Tto perform an arbitrary number
+ofϵ-transitions in one step. However, it would not be clear how to define the parallel
+composition as a timed automaton in this case since one cannot easily bound the
+number of ϵ-transitions to be allowed at each step; since clock values are not necessarily
+5
+
+--- Page 6 ---
+repeated along a ϵ-transition cycle. If one does not wish to synchronize some of the
+edges of Twith those of A, one can label these with a fresh label τinT, and add
+self-loops with label τto all states in A.
+When it comes to untimed languages, the parallel composition of a timed automaton
+and that of a finite automaton can be seen as an intersection, as shown by the next
+lemma.
+Lemma 1. Consider a finite automaton A= (Q, q0,Σ∪ {ϵ}, T, F )and a timed
+automaton T= (L, ℓ0,Σ,Inv,C, E, F T). We have L(A∥T) =L(A)∩ L(T).
+Proof. Consider a trace σ1. . . σ n∈ L(A∥T), and an accepting run
+((q1, ℓ1), v1)e1((q2, ℓ2), v2)e2. . . e m−1((qm, ℓm), vm)
+over this trace. First, by definition of the parallel composition, if we filter out delay
+transitions ( ei∈R≥0), then the remaining steps define a sequence qi1σ1= =⇒. . .σn= =⇒qin+1
+with qi1=q1andqin+1=qm, hence Acontains an accepting run over σ1. . . σ n, that
+is,σ1. . . σ n∈ L(A).
+Second, by the hypothesis that the alphabet of Tdoes not contain ϵ,Tmust
+take a delay or an edge at each step in a run of the parallel composition. Thus,
+(ℓ1, v1)e1(ℓ2, v2)e2. . . e m−1(qm, vm) is a run of T, which is obtained projecting the
+states of Aaway. It follows that σ1. . . σ n∈ L(T).
+Conversely, assume that σ1. . . σ n∈ L(A) and σ1. . . σ n∈ L(T). There must exist
+an accepting run q1σ1= =⇒. . .σn= =⇒qn+1inA. Consider also a run in Tover this trace:
+(ℓ1, v1)δ1(ℓ1, v1+δ1)e1(ℓ2, v2)δ2(ℓ2, v2+δ2)e2. . .(ℓn+1, vn+1)
+written by alternating delay transitions δ1, δ2, . . .∈R≥0, and edges eilabeled by σi’s.
+It follows that a run of A∥T can be constructed by combining the two runs above:
+((q1, ℓ1), v1)δ1((q1, ℓ1), v1+δ1)e′
+1((q2, ℓ2), v2)δ2(ℓ2, v2+δ2)e′
+2. . .((qn+1, ℓn+1), vn+1),
+establishing σ1. . . σ n∈ L(A∥T).
+Note that while analogous results are well known for the parallel composition of
+two finite automata, a similar result does not hold for networks of timed automata
+when considering untimed languages. Section 3.5.2 discusses the case where the two
+components are timed automata in which case we do not have equality but only
+inclusion in one direction.
+Target Timed Automata Instances.
+Our main motivation is to consider real-time systems that are modeled naturally as
+A∥T. Typically, Ahas a large (discrete) state space, and Tis a relatively small timed
+automaton, but with potentially complex time constraints involving several clocks.
+An example is given in Figure 1 which shows how a simple scheduling setting
+can be modeled in this way. Here, the finite automaton is simple and only stores the
+mapping from machines to the tasks they are executing. Typically, if the machines or
+6
+
+--- Page 7 ---
+the processes executing tasks have internal states, these could be modeled in Aas well
+without altering the timed automaton.
+Finite automaton A:
+M07→ ⊥
+M17→ ⊥M07→0
+M17→ ⊥M07→0
+M17→1M07→1
+M17→ ⊥M07→1
+M17→0
+M07→ ⊥
+M17→1M07→ ⊥
+M17→0ready[0]
+done[0]ready[1]
+done[1]ready[1]
+done[1]ready[0]
+done[0]
+done[0]
+ready[0]done[1] done[1]
+ready[1]done[0]
+Timed automaton T:
+x0≤10 x0≤30
+ready[0], x0∈[5,10]
+x0:= 0done[0], x0∈[20,30]
+x0:= 0x1≤10 x1≤20
+ready[1], x1∈[2,10]
+x1:= 0done[1], x1∈[10,20]
+x1:= 0
+Fig. 1 : Timed automaton A∥T modeling a simple scheduling policy. The finite automa-
+tonAis given above and models a scheduler which schedules tasks (0 and 1) immediately
+when they become ready (ready[0] and ready[1]) on machines M0andM1, using M0
+first if it is available. The timed automaton Tis below, here, as a network of the timed
+automata, and models interarrival and computation times for each task.
+2.2 Decomposing Timed Automata into A∥T
+In this section, we prove that timed automata can be assumed to be in the form A∥T
+without loss of generality. In other terms, all timed automata can be written in this
+form. Moreover, if the timed automaton Tunder study is not given as a composition,
+we show how to compute a decomposition A∥T′with the same untimed language (up
+to projection). The construction we give here actually extends the alphabet, but as
+we show in Lemma 2, there is a projection of the untimed language of A∥T′to the
+alphabet of Twhich preserves the untimed language of T.
+We will describe here an automatic translation from a “flat” timed automaton into
+the form A∥T. This not only establishes that this form can be assumed without loss of
+generality in this case, but also that it can be computed automatically (in linear time).
+Before proceeding to the details of the translation, we would like to insist that
+we mostly see this translation as a theoretical result (the method can be applied to
+all timed automata without loss of generality) rather than being the first step of the
+algorithm described in this paper. In fact, we would like to advocate that in many
+7
+
+--- Page 8 ---
+situations, the form A∥T is the right way of modeling a real-time system. This clearly
+separates the modeling into two parts: the complex internal state space in Aand
+real-time constraints with a simpler structure in T. In Section 2.4, we designed most
+experiments ourselves while this structure naturally arose: e.g. in real-time distributed
+systems, Amodels the internal variables and control structure of the processes, while
+Tmodels the communication medium. Mixing both would make the model awkward:
+for example, we would be using time intervals modeling communication latencies in
+the same transitions as those actually defining the process’ behavior when receiving a
+message.
+Consider a timed automaton T. For each edge ( ℓ, g, σ, R, ℓ′) inT, we create a fresh
+label α(g∧Inv(ℓ),σ,R), and define the finite alphabet
+GT={α(g∧Inv(ℓ),σ,R)|(ℓ, g, σ, R, ℓ′) is an edge of T }.
+Note that two edges sharing the same guard, invariant, label σ, and reset set yield the
+same label.
+LetAbe a finite automaton over alphabet GTwhose states are the locations of T
+and the edges are derived from those of Tbut labeled with corresponding labels from
+GT; more precisely, the edges are
+{(ℓ, α(g∧Inv(ℓ),σ,R), ℓ′)|(ℓ, g, σ, R, ℓ′) is an edge of T }.
+Now, define the timed automaton T′with a single state with the same clocks as T,
+with one self-loop for each pair α(ϕ,σ,r )∈GT: such an edge is labeled by α(ϕ,σ,r ), has
+guard ϕ, and reset set R. Notice that ghere stands for the conjunction of the guard of
+some edge and the invariant of the corresponding source location.
+Define the following map proj:GT→Σ with f(α(ϕ∧Inv(ℓ),σ,R)) =σ.
+Lemma 2. Consider any timed automaton T. LetA∥T′denote the decomposition
+described above. Then L(T) =proj(L(A∥T′)).
+Proof. Consider the following accepting run in T:
+(ℓ1, v1)δ1(ℓ1, v1+δ1)e1(ℓ2, v2)δ2(ℓ2, v2+δ2)e2. . .(ℓn+1, vn+1)
+where δi≥0 are delay transitions and ei’s are edges. Let us write ei=
+(ℓi, gi, σi, Ri, ℓi+1), and αi=α(gi∧Inv(ℓi),σi,Ri). Let e′
+idenote the edge of Aobtained
+from eiin the above construction. Then,
+ℓ1e′
+1ℓ2e′
+2. . . ℓn+1
+is an accepting run in Aby construction. Note that the trace of this run is α1α2. . . α n.
+Leteαidenote the unique edge of T′labeled by αi. We argue that one can take in
+T′the following sequence of delays and edge labels:
+δ1eα1δ2eα2. . . e αn.
+8
+
+--- Page 9 ---
+In fact, each state ( ℓi, vi+δi) satisfies the guard of eiand the invariant of ℓi, which means
+that the guard of eαi(which is the conjunction of two) is satisfied. Furthermore, eαi
+has the same resets as ei, so the same sequence of clock valuations is generated in both
+runs. This proves that α1. . . α n∈ L(A∥T′), and therefore σ1. . . σ n∈proj(L(A∥T′)).
+Conversely, consider a trace σ1. . . σ n∈proj(L(A∥T′)), and an accepting run of
+A∥T′:
+((q1, ℓ1), v1)δ1((q1, ℓ1), v1+δ1)eα1((q2, ℓ2), v2)δ2(ℓ2, v2+δ2)eα2. . .((qn+1, ℓn+1), vn+1),
+where delay transitions δi≥0 and edge labels αi=αgi∧Inv(ℓi),σi,Rialternate such
+that proj(α1. . . α n) = σ1. . . σ n. By construction, for each i, there exists an edge
+ei= (ℓi, gi, σi, Ri, ℓi+1) inT. It follows that the following run can be built in T:
+(ℓ1, v1)δ1(ℓ1, v1+δ1)e1(ℓ2, v2)δ2(ℓ2, v2+δ2)e2. . .(ℓn+1, vn+1).
+In fact, because each vi+δisatisfies the guard of e′
+i, it satisfies the guard giofei
+andInv(ℓi). Moreover, since invariants only contain upper bounds on clocks, vialso
+satisfies Inv( ℓi). Hence σ1. . . σ n∈ L(T).
+An example of this transformation is given in Fig. 2
+ℓ0 ℓ1
+ℓ2
+x≤2σ2,x≤3σ1,y≥1,x,y:=0
+σ3,y≥100,x:=0 σ3,y≥2,x:=0ℓ0 ℓ1
+ℓ2
+x≤2α1α2
+α3 α4ℓT x≤3,α1y≥1,α2, x,y :=0
+y≥100∧x≤2
+α3,x:=0
+y≥2∧x≤2,α4,x:=0∥
+Fig. 2 : The timed automaton Tgiven on the left is transformed into the composition
+ofA ∥ T′given on the right. All guard, label, and reset triples are mapped to unique
+labels αihere.
+2.3 Learning-Based Compositional Model Checking Algorithm
+We describe our algorithm for model checking the untimed language L(A∥T).
+Although it is known that the untimed language is regular [ 1], the size of the
+corresponding finite automaton can be exponential so a direct computation is not
+efficient. We will be looking for a finite automaton Hwhich is an overapproximation
+ofTi.e.L(T)⊆ L(H).Hstands for hypothesis made by the learning algorithm. We
+will in fact use the following lemma.
+Lemma 3. For all finite automata AandH, and timed automata Ton common
+alphabet Σ, ifL(T)⊆ L(H), then L(A∥T)⊆ L(A ∥H).
+9
+
+--- Page 10 ---
+Proof. This follows from the observation that L(A∥T) =L(A)∩ L(T), and L(A ∥
+H) =L(A)∩ L(H).
+In other terms, by replacing the timed automaton Tby its overapproximation, we
+obtain an overapproximation of the compound system in terms of untimed language.
+So if a linear property can be established on A∥Hfor an appropriate H, then the
+property also holds on the original system.
+Let us present the above property as a verification rule. Assuming that we want to
+establish A∥T ⊆ Spec for some language Spec, we have
+L(T)⊆ L(H)L(A∥H)⊆Spec
+L(A∥T)⊆Spec.Asym(1)
+Here, Hserves as an assumption we make on Twhen verifying A; so as in Lemma 3,
+we can use Hinstead of Tduring model checking. The rule (1)is well known as the
+assume-guarantee verification rule [ 29], and has been used in model checking finite-
+state systems as well as timed automata [ 30]. The assumption Hcan either be provided
+by the user, or automatically computed using automata learning as in [ 23]. Intuitively,
+the model checking algorithm we present in this section is an application of [ 23] to our
+specific case.
+Figure 3 presents the overview of the algorithm. The membership queries of the
+learning algorithm are answered by the membership oracle; the equivalence query with
+conjecture His answered by the inclusion oracle. When the conjecture Hpasses the
+inclusion check, we model-check H∥A. When this is successful, we stop and declare
+that the original system A∥T satisfies the specification. Otherwise, a counterexample
+w∈ L(A∥H)\Spec was found, and we use a realizability check to see whether
+w∈ L(T) (this is actually done by the membership oracle). If the answer is yes, then
+the counterexample is confirmed, and we stop. Otherwise, we inform the learning
+algorithm that wmust be excluded, and continue the learning process.
+Note that this algorithm can be used for any regular language specificaton Spec.
+We focus on safety properties in our experiments, presented next.
+2.4 Experiments
+We built a prototype implementation of our algorithm in Scala, using the TTT
+automata learning algorithm [ 25] from the learnlib library [ 31], and the associated
+automatalib for manipulating finite automata1. We used the TChecker [ 4] model checker
+for implementing membership and inclusion oracles. For the latter, we complement H
+intoHc, and check the emptiness of the parallel composition of Twith Hc. We use
+the NuSMV model checker for finite-state model checking.
+The overall input consists in an SMV file describing A, and of a TChecker timed
+automaton describing T. We use define expressions in SMV to define the labels Σ,
+while TChecker allows us to tag each transition with a label.
+1https://github.com/osankur/compRTMC/releases/tag/tacas23
+10
+
+--- Page 11 ---
+DFA Learning
+AlgorithmMembership Oracle
+w∈ L(T)?
+Inclusion Oracle
+L(T)⊆ L(H)?
+Finite-State Model
+Checking Oracle
+L(A∥H)⊆Spec?
+Realizability Check
+w∈ L(T)?w∈ L(T)?
+yes/no
+conjecture H
+no
+w∈ L(T)\ L(H)yes
+yes
+✓
+no:w∈ L(A∥H)\Spec
+yes×now̸∈ L(T)
+Fig. 3 : The learning-based compositional model checking algorithm. The box on the
+left is a DFA learning algorithm, while the oracles answering the queries of the learning
+algorithm are shown on the right and correspond to the teacher.
+We compare our algorithm on a set of benchmarks with the model checkers
+Uppaal [ 3] and nuXmv which has two algorithms for checking timed automata [ 13],
+both based on variants of ic3 [12, 32].
+The former implements a zone-based enumerative algorithm, while the latter uses
+predicate abstraction through IC3IA.
+Description of Benchmarks
+The leader election protocol is a distributed protocol that can recover from crashes [ 33],
+extended here with periodic activation times and crash durations. The first four rows
+of Table 1 correspond to the case where one of the processes crashes when its internal
+state enters an error state. Internal states are modeled using Boolean circuits from
+from the synthesis competition (SYNTCOMP) benchmarks. The stateless version is
+more abstract: there is no internal state model, and crashes can occur at any time. The
+letters A, B, C, D indicate different timed automaton models. Uppaal was more efficient
+at solving the stateless version but failed in the full version due to the large discrete
+state space. The compositional algorithm was effective in verifying all instances but
+theDcase which required a large finite automaton to be learned. One can notice an
+overhead of the compositional algorithm in the stateless version due to the computation
+of the finite automaton H. This was particularly an issue in the stateless D case where
+Uppaal could find a counterexample trace faster. The deault algorithm of nuXmv was
+not able to solve these instances, whilethe second algorithm could solve two instances
+but slower than our algorithm.
+The flooding time synchronization protocol (FTSP) is a leader election algorithm
+for multi-hop wireless sensor networks used for clock synchronization [ 34], and has been
+the subject of formal verification before [ 35,36]. We consider the abstract model used in
+11
+
+--- Page 12 ---
+Table 1 : Model checking benchmarks. The column #C is the number of clocks; #H
+is the number of hypothesis automata made by the DFA learning algorithm (in other
+terms, the number of conjectures); #M is the number of membership queries; and |H|
+is the size of the final finite automaton learned. The safety specification holds on all
+models but those marked with *. In each cell, — means out of memory (8GB), and -
+means time out (30 minutes). The column nuXmv refers to the default algorithm [ 32]
+in the tool for checking timed automata, and nuXmv -a is the second algorithm based
+on predicate abstraction [12].
+Compositional Uppaal nuXmv nuXmv -a
+#C #H / #M |H| Time Time Time Time
+Lead. Elec. A 3 13 / 232 15 157s — — 18m
+Lead. Elec. B 3 26 / 661 29 198s — — -
+Lead. Elec. C 3 33 / 997 53 149s — - 6m46s
+Lead. Elec. D 3 - — - -
+Lead. Elec. (simple) A 3 13 / 232 15 15s 6s — 13m20s
+Lead. Elec. (simple) B 3 28 / 776 33 44s 8s — 25m13s
+Lead. Elec. (simple) C 3 33 / 997 53 17s 6s - 10m41s
+Lead. Elec. (simple) D* 3 134 / 6965 240 10m7s 6s - -
+FTSP-abstract-2 2 3 / 54 8 2s 2s - 2m13s
+FTSP-abstract-3 3 17 / 340 23 47s 7m8s - -
+FTSP-abstract-4 4 - - - -
+STS-2 5 7s 19s - -
+STS-3 6 - - - -
+Rt-broadcast A 4 49 / 1324 63 59s - 87s 9m3s
+Rt-broadcast B 4 41 / 1100 63 101s - 90s 9m23s
+Rt-broadcast C 4 21 / 590 39 31s - 86s 9m58s
+Rt-broadcast D 4 27 / 901 52 49s - 80s 9m49s
+Priority Sched. 2 A 3 35 / 9859 49 34s 1s 7s 11s
+Priority Sched. 2 B 3 29 / 1162 42 16s — 2s 6s
+Priority Sched. 3 C 4 - — 6s 12s
+Priority Sched. 3 D 4 - — 8s 39s
+Priority Sched. 3 E* 4 - — 11s 16s
+[37] for parameterized verification allowing one to verify the model for a large number
+of topologies. Our algorithm was faster for the model with 3 processes, although none
+of the tools scaled to 4 processes.
+The STS benchmarks are programming logic controller models from [ 38] and are
+part of the TChecker benchmark database. These are known to be difficult to model
+check. The compositional algorithm was faster in STS-2, but none of the tools could
+solve STS-3.
+The real-time broadcast protocol (rt-broadcast) implements a distributed algorithm
+made of n= 3 processes that wake up within a period interval, and stay active within
+a given time interval. If at least m= 2 of them are awake at the same time, they
+perform one step of a computation together and go back to sleep. The specification is
+whether a particular common configuration is reachable within a time bound. Uppaal
+could not solve these benchmarks. nuXmv could solve these although the compositional
+algorithm was often faster.
+12
+
+--- Page 13 ---
+In the priority-based scheduling examples, a priority-based scheduling algorithm
+schedules tasks on a single machine. The interarrival times depend on the internal
+state of the processes which evolve over time. The internal states are modeled again
+by circuits from the SYNTCOMP benchmarks. The first two models have two tasks,
+and the last one has three. nuXmv performed very well on these benchmarks while the
+compositional algorithm failed on instances with three processes.
+We designed ourselves all experiments but the STS. In all these, the form A∥T
+arose naturally. In fact, timed automaton component is used to model activation times
+and communication latencies in the network, while Amodels the internal structure
+of each process. The STS models were the only exception: these were given as “flat”
+timed automata, and we used Lemma 2 to obtain the form A∥T.
+Results
+Overall, the experiments show that our algorithm is competitive with the state of
+the art tools; while it does not improve the performance uniformly on all considered
+benchmarks, it does allow us to solve instances that are not solvable by other tools, and
+sometimes to improve performance both compared to a zone-based approach (Uppaal)
+and SMT-based algorithms (nuXmv).
+Let us comment the ratio between timed automata model checking and finite-state
+model checking times for the compositional algorithm. Because the models have large
+discrete state spaces and small timed automata components, the finite-state model
+checking step took significant time in most benchmarks. To give an example, the ratio
+of execution times spent solving membership queries (with TChecker) versus inclusion
+queries (NuSMV) was, respectively, 1%, 2%, 4% in the leader election benchmarks (first
+three rows), and 10%, 11%, 37% in the simple version. Notice that this difference is
+explained by the fact that the discrete part is much smaller in the simple benchmarks,
+so the ratios are naturally bigger compared to the full models. The ratio was 5% for
+the STS-2 benchmark. The priority scheduling 2 A and B cases had ratios 27% and
+47% respectively, which were the highest. For the rt broadcast benchmarks, the ratio
+ranged from 17% to 29%. This ratio is difficult to predict: it depends on the efficiency
+of BDD-based model checking which we rely on, which is itself difficult to predict.
+The number of membership queries (that is, timed automata queries) varies here from
+several hundreds to several thousands and depends on the size of a minimal automaton
+that represents the untimed language of T; this is also hard to predict.
+While both types of queries had significant weight in the total execution time in
+some cases, there were few finite-state model checking queries and these were slow. In
+fact, Table 1 shows that a relatively small number of such queries (#H) were done
+within the total execution time. In contrast, while a large number of timed automata
+model checking queries were run, these were typically quite fast (often around 10ms
+per query, and never above 100ms).
+13
+
+--- Page 14 ---
+3 Compositional Controller Synthesis
+3.1 Preliminaries
+Games.
+Afinite safety game is a pair ( G,Bad) where Gis an LTS ( QE˙∪QC, q0,Σ, T) with
+the set of states given as a partition QE˙∪QC, namely, Environment states (QE), and
+Controller states (QC), and Bad⊆QE˙∪QCis an objective . The game is played between
+two players, namely, Controller andEnvironment . At each state q∈QC, Controller
+determines the successor by choosing an edge from q, and Environment determines
+the successor from states q∈QE. Astrategy for Controller (resp. Environment) maps
+finite runs of ( QE˙∪QC, q0,Σ, T) ending in QC(resp. QE) to an edge leaving the last
+state. A pair of strategies, one for each player, induces a unique infinite run from the
+initial state. A run is winning for Controller if it does not visit Bad; it is winning
+for Environment otherwise. A winning strategy for Controller is such that for all
+Environment strategies, the run induced by the two strategies is winning for Controller.
+Symmetrically, Environment has a winning strategy if for all Controller strategies, the
+induced run is winning. A strategy is positional (a.k.a. memoryless) if it only depends
+on the last state of the given run.
+The parallel composition of ( G,Bad) and a deterministic finite automaton F=
+(Q′, q′
+0,Σ, T′, F) on alphabet Σ is a new game whose LTS is G∥F in which the Controller
+states are QC×Q′, the Environment states are QE×Q′, and the objective is Bad×F
+(Notice that Controller thus has a safety objective).
+Finite games were extended to the real-time setting as timed games [16,17]. Atimed
+game is a timed automaton T= (LE˙∪LC, ℓ0,Σ,Inv,C, E,Bad) with the exception that
+its edges are labeled by Σ ∪ {ϵ}(and not just by Σ as in the previous section), and
+the locations are partitioned as LE˙∪LCintoEnvironment locations andController
+locations . The semantics is defined by letting Environment choose the delay and the
+edge to be taken at locations LE, while Controller choose these from LC. Formally, a
+strategy for Environment (resp. Controller) is a function which associates a run that
+ends in LE(resp. LC) to a pair of delay and an edge enabled from the state reached
+after the delay. A run is winning for Controller if it does not visit Bad. A Controller
+(resp. Environment) strategy is winning for objective Badif for all Environment (resp.
+Controller) strategies, the induced run from the initial state is winning (resp. not
+winning) for Controller. A run riscompatible with a strategy Sfor Controller (resp.
+Environment) if there exists an Environment (resp. Controller) strategy S′such that
+ris induced by S,S′.
+The parallel composition of a finite safety game ( G,Bad) and a timed automaton T=
+(L, ℓ0,Σ,Inv,C, E, F ) on common alphabet Σ is the timed game G∥T where Controller
+locations are QC×L; Environment locations are QE×L; and the objective is Bad×F.
+Observe that players select edges in the games we consider, and the edge labels are
+only used for synchronizing GandT. Thus, the determinism if G∥T is not an issue.
+Positional strategies exist both for reachability and safety objectives in finite and
+timed games. Both finite and timed games are known to be determined for reachability
+and safety objectives. For instance, if Controller does not have a winning strategy for
+14
+
+--- Page 15 ---
+the safety objective, then Environment has a strategy ensuring the reachability of Bad
+[16, 17].
+Target Timed Game Instances.
+We consider controller synthesis problems described as timed games in the form
+of (G∥T,Bad×F) where ( G,Bad) is a finite safety game, and Tis a timed automaton
+with accepting states F. In addition, we assume that G∥T isController-silent , defined
+as follows.
+Definition 2. The timed game (G∥T,Bad×F)on alphabet Σis Controller-silent if all
+Controller transitions are silent.
+Hence, we again separate the game Gdefined on a possibly large discrete state
+space while real-time constraints are separately given in T.
+Finite game:
+e crobotopen
+close
+obsleft / obs right
+obsup / obs downϵlϵr
+ϵu
+ϵdro
+Timed automaton:
+x≤5 y≤9 z≤10x∈[4,5]
+robot, x:= 0y∈[7,9]
+obsup,y:= 0
+y∈[7,9]
+obsdown,
+y:= 0y∈[7,9]
+obsright
+y:= 0y∈
+[7,9]
+obsleft
+y:= 0z≥2, close, z:= 0
+z= 10, open, z:= 0
+Fig. 4 : The sketch of a timed game G∥T modelling a planning problem. The finite
+game models a robot and an obstacle moving in a grid world as shown on top right.
+The cells randoshow, respectively, the initial positions of the robot and the obstacle.
+The robot cannot cross walls (shown in thick segments), and can only cross the door if
+it is open. Here four silent transitions were marked with ϵr, ϵl, ϵu, ϵdfor readability; in
+reality, these are all labeled by ϵ.
+The intuition behind the semantics is the following: because the game is played
+inG∥T andGis Controller-silent, the timed automaton model Tis only used to
+disallow some of the Environment transitions according to real-time constraints, while
+Controller’s actions are responses to Environment’s actions and thus are unaffected by
+the contraints of T. One can think of the timed automaton as some form of scheduler
+that schedules uncontrollable events in the system, so the order of these is determined
+by Environment. It is useful to think that Controller responds instantaneously to
+Environment (with 0 delay) although it can actually use positive delays. This asymetric
+15
+
+--- Page 16 ---
+view enables a one-sided abstraction framework presented in the next section, where
+Environment transitions are approximated by a DFA.
+An example is given in Figure 4. The finite game drawn here only shows the
+structure of the game. It has, in addition, integer variables robx, rob y, obs x,
+obsyencoding the positions of the robot and of the obstacle, and a Boolean variable
+door to encode the state of the door. The state e belongs to Environment, which
+can move the obstacle in any direction, close or open the door, or let the robot move
+by going to state c. The state c belongs to Controller. All its leaving transitions are
+silent, and correspond to moving the robot in four directions. These transitions have
+preconditions, not shown in the figure, that check whether the moves are possible, and
+have updates that modify the state variables. The timed automaton, given as a network
+of three timed automata, determine the timings of these events. One can notice, for
+example, that the robot is moving faster than the obstacle, and that whenever the
+door is closed, it remains so for 10 time units.
+3.2 One-Sided Abstraction
+Thanks to the assumption we make on considered timed games, we show that by
+replacing Tby a DFA Hthat is an overapproximation, we obtain an abstract game in
+which Controller strategies can be transferred to the original game.
+This is formalized in the next lemma that shows that it is sufficient to look for
+Controller strategies in the abstract game.
+Lemma 4. Consider a Controller-silent timed game (G∥T,Bad×F), and a com-
+plete DFA Hwith accepting states FH, satisfying L(T)⊆ L(H). If Controller wins
+(G∥H,Bad×FH), then it wins (G∥T,Bad×F).
+Proof. Consider a winning strategy Sfor Controller in ( G∥H,Bad×FH).
+Let us define a set Aof runs of G∥T as well as a mapping ffrom Ato the runs of
+G∥H. We will at the same time define a strategy S′onG∥T whose compatible runs
+will be A. We will do so by imitating Susing the mapping f. We define fon the runs
+inductively for increasing lengths.
+•Initially, we let f((qG
+0, qT
+0)) = ( qG
+0, qH
+0) where qT
+0is the initial state of T, and qG
+0
+that of G, and respectively for qH
+0andH.
+•Forn≥0, consider a run ρ= (qG
+0, qT
+0). . .(qG
+n, qT
+n) ofAand assume that f(ρ) =
+(qG
+0, qH
+0). . .(qG
+n, qH
+n) is already defined. We distinguish two cases.
+–If (qG
+n, qT
+n) belongs to Environment, then for all delays δ≥0,
+and edges eenabled from qT
+nafter the selected delay, the suc-
+cessor ( qG
+n+1, qT
+n+1), we add ρ·(qG
+n+1, qT
+n+1) to A. If σdenotes
+the label of the edge e, we further define f(ρ·(qG
+n+1, qT
+n+1)) =
+(qG
+0, qH
+0). . .(qG
+n, qH
+n)(qG
+n+1, qH
+n+1) where qH
+n+1is the unique successor of qH
+nwith
+label σ∈Σ, and qH
+n+1=qH
+nifσ=ϵ. Such a successor exists because His
+complete, and it is unique because His deterministic.
+–Otherwise, ( qG
+n, qT
+n) belongs to Controller, and we consider the move prescribed
+bySat (qG
+0, qH
+0). . .(qG
+n, qH
+n) inG∥H. This consists in a silent edge eofGby
+assumption. Let qG
+n+1be the successor of qG
+nthrough e. We add ρ·(qG
+n+1, qT
+n)
+toA, and define f(ρ·(qG
+n+1, qT
+n)) = ( qG
+0, qH
+0). . .(qG
+n, qH
+n)(qG
+n+1, qH
+n) (recall that
+16
+
+--- Page 17 ---
+Tdoes not change states on a silent transition, nor does H). In this case, we
+letS′choose this move from ρafter a 0 delay (note that because the timed
+automaton location has not changed, the new state still satisfies the invariant).
+Notice that if f(ρ) =π, then these have the same trace and their first components are
+identical.
+Consider any infinite run ρofG∥T compatible with S′. For any finite prefix ρ′
+ofρ,f(ρ′) is a run of G∥Hcompatible with S. By assumption, f(ρ′) does not end
+inBad×FH. This means that either the first component is not in Bad, or the second
+component is not in FH. In the first case, this is also the case for ρ′. In the second
+case, the trace of f(ρ′) is not in L(H). But then the trace of ρ′is not in L(T) by
+L(T)⊆ L(H). Therefore, ρis winning for Controller.
+We do not have the symmetrical property for Environment due to assymetric
+assumption on Tbeing Controller-silent. However, we show that if Environment wins
+the original game G∥T, then it wins the abstract game while generating the same traces:
+Lemma 5. Consider a Controller-silent timed game (G∥T,Bad×F), and a complete
+DFA Hwith accepting states FH, satisfying L(T)⊆ L(H). If Environment wins
+(G∥T,Bad×F), then it wins (G∥H,Bad×FH), and has a strategy in (G∥H,Bad×FH)
+whose all compatible runs have traces in L(T).
+Proof. The first part of the statement follows from the determinacy of the games we
+consider. In fact, if Environment does not win ( G∥H,Bad×FH), then Controller wins
+this game. By Lemma 4, Controller then wins ( G∥T,Bad×F). So by the determinacy
+of timed games, Environment loses ( G∥T,Bad×F). This establishes the first part by
+its contrapositive.
+It remains to show that when Environment wins in ( G∥T,Bad×F) with strategy S,
+then it has a strategy in ( G∥H,Bad×FH) whose all compatible runs have their traces
+inL(T). This can be done by a construction that is similar to the first case. We define
+a set Bof runs of G∥Hand a mapping gfrom Bto the runs of G∥T. We also define
+S′as an Environment strategy in G∥Hwhose compatible runs are exactly B.
+•First, Bcontains the initial state ( qG
+0, qH
+0) and we define g((qG
+0, qH
+0)) = ( qG
+0, qT
+0).
+•Consider a run ρ= (qG
+0, qH
+0). . .(qG
+n, qH
+n) with n≥0 inBon which gis already
+defined.
+–Assume that it ends in an Environment state. We consider the delay and
+edge ( δ, e) prescribed by Stog(ρ). Let ( qG
+n+1, qT
+n+1) be the successor of g(ρ)
+after ( δ, e). Let qH
+n+1be the unique successor of qH
+non the label of e, and qH
+n+1=
+qH
+nif the label is ϵ. We add ρ(qG
+n+1, qH
+n+1) toB, and define g(ρ(qG
+n+1, qH
+n+1)) =
+g(ρ)(qG
+n+1, qT
+n+1). We define S′so that it assigns ( qG
+n+1, qH
+n+1) toρ.
+–Ifρends in a Controller state, then consider any delay δ≥0 and edge e
+whose guard is satisfied after a delay of δfrom g(ρ). Note that ehas label ϵby
+assumption. Consider the state ( qG
+n+1, qT
+n+1) reached from g(ρ) after delay δ
+and edge e. The choice of the same edge from ρleads to some state ( qG
+n+1, qH
+n);
+we add ρ(qG
+n+1, qH
+n) toB, and define g(ρ(qG
+n+1, qH
+n)) =g(ρ)(qG
+n+1, qT
+n).
+It follows that S′is winning for Environment in G∥H; in fact, galways maps to states
+from which Sis winning. As in the proof of Lemma 4, SandS′induce the same traces
+by the mapping g, so we have that all compatible runs under S′are in L(T).
+17
+
+--- Page 18 ---
+Note that in the above lemma, it is crucial that the game is Controller-silent. In
+fact, if Controller could take edges that synchronize with T, then we may not be able
+to apply a strategy in G∥HtoG∥T, since such a strategy may prescribe traces that
+are not accepted in T. We illustrate this in the following example.
+Example 1. Consider the timed game (G∥T,Bad×F)given in Fig. 5. Here, square
+states show Environment states, and circle ones show Controller states. The objective
+of Controller is to avoid the state bad, which means avoiding the edge label d. However
+Environment can ensure reaching bad, as follows. Initially all clocks are 0. We have
+that the delay picked by Controller at the first step is 0 if, and only if z−x= 0; and
+the delay picked by Environment in the second step is 0 if, and only if x−y= 0. The
+edge d is only enabled if Environment has made a 0 delay but not Controller, or vice
+versa. Thus, Environment can ensure that the edge dis enabled, and that the edge c
+is disabled in T, by choosing a zero or a nonzero delay depending on the choice of
+Controller. The resulting runs starts with abdand visits bad.
+Consider now a DFA overapproximation HofTwhich recognizes the language
+(ab(c+d))∗, for instance, obtained from Tby removing all clocks. We do have L(T)⊆
+L(H). But Controller has a winning strategy in G∥Hsince it can ensure (abc)∗.
+3.3 Learning-Based Compositional Controller Synthesis
+We now present our compositional controller synthesis algorithm whose overview
+is given in Figure 6. The algorithm for controller synthesis is more involved than
+the model checking algorithm due to the alternating semantics for two players in
+games. It consists in two phases that alternate: the overapproximation phase, and
+the underapproximation phase. Each phase runs a DFA learning algorithm which is
+interrupted when we switch to the other phase, and continued when we switch back,
+until a decision is made. Together, both phases maintain two approximations, HandH,
+such that L(H)⊆ L(T)⊆ L(H).
+The objective of the overapproximation phase is to attempt to learn a DFA H
+satisfying L(T)⊆H, and such that Controller wins in G∥H. The learning algorithm
+uses membership and inclusion oracles just like in Section 2.3. Once such a candidate
+bad
+aa
+b
+cd
+a,x:= 0 b,y:= 0
+c,z−x=0∧y−x=0,x,y,z :=0
+c,z−x>0∧x−y>0,x,y,z :=0d,z−x=0∧y−x>0,x,y,z :=0
+d,z−x>0∧x−y=0,x,y,z :=0
+Fig. 5 : A timed game ( G∥T,Bad×F) with clocks x, y, z that is not Controller-silent,
+where Gis given on the left, and Ton the right, with Bad={bad}andFcontains all
+states of T. There are two transitions labeled by cinTshown on a single edge; here,
+each line corresponds to the label, guard, and the resets of a transition, and similarly
+for the two transitions labeled by d.
+18
+
+--- Page 19 ---
+DFA
+Learning
+AlgorithmMembership Oracle
+w∈ L(T)?
+Inclusion Oracle
+L(T)⊆ L(H)?
+Containment Oracle
+L(H)⊆ L(T)?
+Synthesis Oracle
+Does Controller
+win in G∥H?Strategy Con-
+tainment Oracle
+L((G∥H)S)⊆ L(H)?
+Switch to Under-
+approximationDFA
+Learning
+Algorithm
+w∈ L(T)?
+Switch to Over-
+approximationw∈ L(T)?
+yes/no
+Conjecture H
+no
+w∈ L(T)\ L(H)w∈ L(T)?
+yes/no
+yes
+yes
+✓
+no: Env. counterstrategy SConjecture H
+no
+w∈ L(H)\ L(T)yes
+yes
+×no
+w∈L((G∥H)S)\L(H)
+no: exclude wfromL(H)yesOverapproximation Phase Underapproximation Phase
+Fig. 6 : The learning-based compositional controller synthesis algorithm for the input
+timed game G∥T, with Ga Controller-silent finite game, and Ta label-deterministic
+timed automaton. Two automata learning algorithms run in parallel to learn under-
+and over-approximations HandHsuch that H⊆ L(T)⊆H.
+DFA His found, the synthesis oracle checks, using finite-state techniques, whether
+Controller has a winning strategy in G∥H. If this is the case, we stop and conclude
+that Controller wins in G∥T by Lemma 4. Otherwise, Environment has a winning
+strategy Sin this game; and we switch to the underapproximation phase.
+The goal of the underapproximation is to check whether the given Environment
+strategy Scan be proved to be spurious. Intuitively, we would like to check whether
+L((G∥H)S)⊆ L(T) and reject if this is the case. In fact, by Lemma 5, we know that a
+winning Environment strategy in G∥T implies that there is such a strategy S. This is
+the source of incompleteness of our algoritithm, since this condition is necessary but
+not sufficient for Environment to win; that is, the condition does not guarantee that
+Environment actually wins in G∥T.
+While L((G∥H)S)⊆ L(T) can be checked with a timed automaton model checker
+(seeChecking Containment below), this would mean exploring the large state space
+due to G. Since we want to avoid using timed automata model checkers on such large
+instances, we rather learn an underapproximation HofL(T) using the membership and
+containment oracles, and use a finite-state model checker to check L((G∥H)S)⊆ L(H).
+Note that although the learning process does require inclusion checks of the form
+L(H)⊆ L(T), this check is feasible with a timed automaton model checker since
+His typically much smaller than G. If the above check passes, then we reject the
+instance, that is, we declare the system not controllable. Otherwise, some trace w
+19
+
+--- Page 20 ---
+appears in L((G∥H)S) but not in L(H). If w∈ L(T), then we require that wbe
+included in H, and continue the learning process. Otherwise, Sis not valid since it
+induces wwhich is not in L(T). So we interrupt the current phase and switch back to
+the overapproximation phase requiring wto be removed from H.
+Membership and inclusion oracles are implemented with a timed automata model
+checker. Here, the synthesis oracle can be any finite game solver; we just need the
+capability of computing the controlled system ( G∥H)S. Such a system is finite-state, so
+the strategy containment oracle can be implemented using a finite-state model checker
+(since His deterministic and can thus be complemented). It remains to explain how
+the containment oracle is implemented.
+Checking Containment L(H)⊆ L(T).
+First, notice that, even with determinism assumptions on T, the untimed language of
+the timed automaton complement of Tis not the complement of L(T). To see this,
+consider a timed automaton with a single state which is both initial and accepting,
+a single clock x, and a self-loop with guard x= 1, labeled by σ. Then, both L(T)
+andL(Tc) are the language σ∗where Tcdenotes the timed automaton complement.
+A timed automaton is label-deterministic if at each location ℓ, for each label σ∈Σ,
+there is at most one transition leaving ℓlabelled by σ; in other terms, the finite
+automaton obtained by removing all clocks is deterministic.
+Assuming the label-determinism of T, this check can be done by a simple adaptation
+of a zone-based exploration algorithm, as follows. Let us assume that accepting states
+are reachable from all states of H, which can be ensured by a preprocessing step. We
+start exploring the timed automaton H∥Tusing a zone-based exploration algorithm [ 39].
+Consider any search node (( qH, qT), Z) encountered during the exploration algorithm,
+reachable by the trace w, where ( qH, qT) is a location of H∥T, and Za zone. The
+exploration algorithm generates all available successors for σ∈Σ. We make the
+following additional check: If there is σ′∈Σ such that qHhas a successor by σ′, but
+notT(either because there is no such edge, or because the guard of the unique edge
+labeled by σ′is not satisfied by Z), then we stop and return the trace wσ′∈ L(H)\L(T)
+as a counterexample to containment. If no such label can be found, the zone-based
+exploration terminates and confirms the containment.
+It is easy to see that this algorithm determines if L(H)⊆ L(T). In fact, if a
+counterexample wσ′is returned, then wcan indeed be read in both automata. Assume
+that the search reaches (( qH, qT), Z) after reading w, through a sequence of edges
+e1e2. . . e n. Because Tis label-deterministic, this is the only edge sequence that can be
+taken in Twhile reading w. Moreover, by the properties of zone-based exploration [ 39],
+Zis the strongest postcondition of this edge sequence, that is, it contains all possible
+clock valuations that can be reached by reading e1e2. . . e n. Because no edge with
+label σ′is feasible from here, this means that wσ′cannot be read in T, while it
+can in H. Because accepting states are reachable from all states of H,wσ′can be
+extended to an accepting word; therefore L(H)̸⊆ L(T). Conversely, if L(H)̸⊆ L(T),
+then let wσ′denote a minimal counterexample where wcan be read in H(but not
+necessarily reaching an accepting state), but not in T. The algorithm will eventually
+20
+
+--- Page 21 ---
+pick the sequence of edges with labels w, and reach some state (( qH, qT), Z), where σ′
+is available in Hbut not T, so a counterexample will be returned.
+As an alternative, one can use testing such as the Wp-method [ 40] to establish the
+containment, as it is customary in DFA learning. In this case, the answer is approximate
+in the sense that the conformance test can fail to detect that containment does not
+hold. However, this does not affect the soundness of the overall algorithm since it can
+only increase false negative for the controller synthesis problem. This is what we use
+in our experiments, presented next.
+3.4 Experiments
+Our tool accepts instances G∥T where Gis given as a Verilog module, and Tas a
+TChecker timed automaton. Some of the inputs of the Verilog module are uncontrollable
+(chosen by Environment), some others are controllable (chosen by Controller). We use
+outputs of the Verilog module to define the synchronization labels Σ; while TChecker
+models tag each transition with such a label.
+Table 2 : The results of the controller synthesis experiments. The columns #C,
+#H, #M respectively show the number of clocks in the model, the numbers of
+conjectures and membership queries made by the compositional algorithm; while
+|H|,|H|show the sizes of the DFAs learned by the two phases.
+Compositional Algorithm TIGA Answer
+#C #H #M |H| |H|Time Time
+Scheduling genbuf A 3 50 2178 114 26s mo yes
+Scheduling genbuf B 3 40 1734 96 15s mo yes
+Scheduling genbuf C 3 45 1503 88 4s mo yes
+Scheduling counter64 D 3 54 2098 108 26s 14s yes
+Scheduling counter64 E 3 37 1454 83 16s 19s yes
+Scheduling counter64 F 3 19 21391 19 19 89s 0s no
+Planning genbuf A 2 2 17 4 6s mo yes
+Planning genbuf B 2 2 24 5 9s mo yes
+Planning genbuf C 2 9 1156 5 5 266s mo no
+Planning stateless D 2 3 50 9 2s 22s yes
+Planning stateless E 2 2 17 4 2s 4s yes
+Planning stateless F 2 8 973 5 5 10s 2s no
+Membership, inclusion, and containment queries are answered by TChecker. For the
+synthesis oracle, we used the game solver Abssynthe [ 41]. Abssynthe’s input format is
+the and-inverter graphs format (AIG). For translating Verilog modules to AIG circuits,
+we use berkeley-abc and yosys. Abssynthe is able to compute the winning strategy S
+for the winning player; it also computes the system controlled by Sin this case as
+an AIG circuit. The strategy containment oracle is implemented using NuSMV; since
+His deterministic, one can complement it, and check whether the intersection with
+(G∥H)Sis empty.
+The tool uses two Java threads to implement both learning phases, which are
+interrupted and continued when switching phases. Note that the very first learning
+21
+
+--- Page 22 ---
+step of HandHcan be parallelized since the first underapproximation conjecture H
+does not depend on S.
+We evaluate our algorithm with two classes of benchmarks. The only tool to which
+we compare is Uppaal-TIGA [ 42] since Synthia [ 20] is not available anymore, and we
+are not aware of any other timed game solver.
+In the scheduling benchmarks, there are two sporadic tasks that arrive nondeter-
+ministically, but constrained by the timed automaton. The controller must schedule
+these using two machines which have internal states, modeled either by a simple 8-
+bit counter, or by a genbuf circuit from the SYNTCOMP database. The scheduling
+duration depends on the internal state: some states require executing two external
+tasks, some others require executing three. The external task has a nondeterministic
+duration constrained by the timed automaton. The internal states change when a task
+is finalized. The controller loses if all machines are busy upon the arrival of a new task,
+or if it schedules a task on a busy machine. Uppaal TIGA was able to solve the counter
+models since they induce a smaller state space, but failed at the genbuf models. The
+compositional algorithm could efficiently handle these models. Uppaal was generally
+able to determine very quickly when the model is not controllable by finding a small
+counterstrategy, while the compositional algorithm had a overhead: it had to learn H
+andHbefore it can find and check the counterexample.
+In the planning benchmarks, a robot and an obstacle is moving in a 6 ×6 grid (or
+9×9 for the stateless case). Each agent can decide to move to an adjacent cell when
+they are scheduled, and the scheduling times are determined by a timed automaton.
+The goal of the robot is to avoid the obstacles. In the genbuf case, there are moreover
+internal states that can cause a glitch and prevent the agents from performing their
+moves, depending on their states. Uppaal TIGA was not able to manage the large state
+space unlike the compositional algorithm in this case, but both were able to solve the
+stateless case.
+3.5 Extensions and Limitations
+3.5.1 Timed Automata Decomposition vs. Extrapolation
+Lemma 2 shows that one can consider timed automata of the form A∥T without loss
+of generality; and gives an effective transformation to obtain this form from any given
+timed automaton. The proof presents a transformation in which T′has a single location.
+While this is a theoretical transformation, it is possible to add more locations in T′to
+make the model more readable. One example is Fig. 1 where the timed automaton is
+given as the product of two timed automata, each with two locations.
+Our setting is defined for “small” timed automata T′on which model checking
+queries must be fast because the compositional algorithm makes a large number of
+such queries (see Table 1); and we saw in Section 2.4 that each such query was indeed
+fast in our experiments (10-100ms).
+Nevertheless, in the future, we would like to target models where T′can also
+be large; this could be possible with improved and faster learning algorithms which
+require less membership queries or use parallelization [ 43]. When T′is large, the way
+T′is modelled might have an impact on the performance of timed automata model
+22
+
+--- Page 23 ---
+checking. In fact, our algorithm uses zone-based model checkers which rely on sound
+and complete abstractions of the state space, the so-called extrapolation operators on
+zones [ 2], including more precise abstraction operators that are location-dependent
+[44]. We briefly sketch here the idea behind these operators, and how transforming a
+given timed automaton as above might impact verification performance.
+Zone-based verification of timed automata ([ 6,45]) relies on the representation of
+sets of clock valuations using particular polyhedra called zones while discrete locations
+are enumerated explicitly. To guarantee termination, one must ensure to have a finite
+number of zones. This is achieved using extrapolation operators whose idea is the
+following: given a zone, any upper bound x < k can be removed if kis larger than the
+largest constant that appears in the timed automaton. In fact, intuitively, once xis
+above the largest constant, then its value does not matter. A similar operation is applied
+to replace each lower bound x > k byx > M where Mis the largest constant, provided
+thatk > M . This ensures that only a finite number of zones is dealt with during state
+space exploration. There have been several improvements over these ideas, including
+distinguishing maximal constants that appear in lower bounds and upper bounds [ 2],
+and location dependent maximal constants [ 44]. In the latter optimization, the maximal
+constant for clock xat a given location ℓis computed among those that are reachable
+from ℓuntil a reset on xis seen. For instance, while 100 is the maximal constant with
+which yis compared in Fig. 2, at ℓ0, only an edge with a y≥1 is reachable; thus the
+local maximal constant is 1. This greatly improves performance in some cases.
+While the transformation of Lemma 2 preserves the possibility of using extrapolation
+w.r.t. maximal constants for each clock, the information on locality disappears, that is,
+we can no longer use smaller maximal constants in some parts of the state space. There
+might be a tradeoff to be found between ensuring having a small number locations
+inT′and having enough structure so that extrapolation is efficient. While a large
+number of locations in T′can render timed automata model checkers, but also finite
+automata learning inefficient, having too few locations might mean that some optimized
+extrapolations will not be used. Tuning such an incremental approach is not obvious:
+the performance of extrapolation is difficult to predict, and adding more locations does
+not automatically accelerate model checking queries (location-based constants do not
+always help improve performance) but it will slow down the learning process.
+We leave the development of such decomposition schemes and their empirical
+evaluations along with new learning algorithms for future work.
+3.5.2 Compositional Verification of Networks of Timed Automata
+This approach could also be applied to networks of timed automata, that is, parallel
+compositions of two timed automata. We indeed have the following lemma.
+Lemma 6. Consider timed automata Ti= (Li, ℓi
+0,Σi,Invi,Ci, Ei, Fi)fori∈ {1,2},
+and two finite automata Hi, each on alphabet Σi, such that L(Ti)⊆ L(Hi). We have
+L(T1∥T2)⊆ L(H1∥H2).
+Proof. Consider a trace w=σ1. . . σ n∈ L(T1∥T2), and an accepting run
+((ℓ1, ℓ′
+1), v1)e1((ℓ2, ℓ′
+2), v2)e2. . . e m−1((ℓm, ℓ′
+m), vm)
+23
+
+--- Page 24 ---
+over this trace. Let wibe the projection of wto Σ i. By definition of the parallel
+composition, if we remove edges with label in Σ i\Σ3−ifrom the above run, this yields
+a run in Tioverwi. ByL(Ti)⊆ L(Hi), there exists an accepting run in Hiover trace
+wi. By combining these runs, one obtains a run in H1∥H2overw.
+As a consequence, one could derive an algorithm as follows. Instantiate two instances
+of a finite automaton learning algorithm. Each one learns an overapproximation Hiof
+L(Ti). Once two hypothesis automata H1, H2are obtained, we model check H1∥H2: if
+the property holds, then we stop and conclude that it also holds in T1∥T2by Lemma 6.
+Otherwise, we check whether the obtained counterexample is realizable in both Ti,
+in which case a counterexample is found. If it is not realizable in some Ti, then we
+provide a negative sample to the learning algorithm for Hi, obtain a new hypothesis
+automaton, and repeat.
+This method is sound but not complete, because we have L(T1∥T2)̸=L(T1)∩L(T2)
+in general. This is shown in the next example.
+ℓ0 ℓ1x=3,a,x:=0 y=1,b,y:=0
+Fig. 7 : A network of timed automata with two components T1(on the left) over
+alphabet {a}, andT2(on the right) over alphabet {b}.
+Example 2. Consider the network of timed automata T1∥T2given in Fig. 7, and
+write Σ ={a, b}. We have aaΣ∗̸∈ L(T1∥T2)since the clocks make sure two a’s
+cannot be repeated. However, any DFA that overapproximate L(T1)must accept the
+language a∗sinceL(T1) =a∗; and any overapproximation of L(T2)accepts b∗. For such
+overapproximations H1, H2, we obtain (a+b)∗=L(H1∥H2), which fails to exclude
+factors aa.
+Despite incompleteness, we believe this method can be useful in practice. We leave
+the identification of useful cases and an empirical evaluation for future work.
+3.5.3 The Chinese Remainders Issue
+On some particular models, building finite automata abstractions for the timed automa-
+ton component Tmay not be a good idea. In fact, clocks can be used to build systems
+that are equivalent to exponentially large finite automata [ 46]. We sketch here one
+such case that appears in [ 46]. Consider the network of timed automaton Tthat is
+the parallel composition of kself-loops, each enforcing a distinct event exactly every
+pitime units, as shown in Fig. 8. Intuitively, by the Chinese remainders theorem, all
+discrete clock valuations reached from time 0 to p1p2. . . p k−1 recognize different lan-
+guages (when seen as initial states). Therefore, any finite automaton that recognizes
+the same language as the network described in Fig. 8 is of size exponential in k.
+Although our algorithm only builds an overapproximation, algorithms such as L∗
+does spend a lot of time before even making the first equivalence query (which is an
+inclusion query in our case). In practice, when such seqeuences of prime numbers and
+24
+
+--- Page 25 ---
+equality constraints are avoided, often smaller finite-state abstractions were obtained. A
+theoretical study of the size of finite automata approximations of such timed automata
+as a function of the constants that appear in the description is the object of future work.
+ℓ1
+x1≤p1ℓ2
+x2≤p2... ℓk
+xk≤pkx1=p1,a1,x1:=0 x2=p2,a2,x2:=0 xk=pk,ak,xk:=0
+Fig. 8 : A network of timed automata with kcomponents, and p1< . . . < p kprime
+numbers.
+4 Conclusion
+Related Works
+Perhaps the most closely related approach to our compositional model checking algo-
+rithm is trace abstraction refinement [ 47]. This was originally applied to program
+verification, and consists in building a network of finite automata that recognizes the
+program’s control flow paths that are infeasible. One refines this language by model
+checking the control flow graph intersected with the complement of the automaton.
+Thus, the semantics of the variables of the program are abstractly represented by the
+finite automaton. This idea was applied to timed automata as well [ 48,49]. However,
+the generalization of the counterexamples which ensures convergence turns out to be
+less effective in timed automata. We attempted at obtaining an implementation, but
+could only confirm the poor performance for model checking timed automata as in [ 49]
+(we do not include these results here). It might be that simpler graph structures such
+as control flow graphs of programs are necessary for this approach to scale; further
+investigation is also necessary to study better generalization methods.
+The learning-based compositional reasoning approach of [ 23] is also related to
+counter-example guided abstraction refinement (CEGAR) [50]. In fact, the automata
+learning algorithm builds an overapproximation of one of the components, and refines
+it as needed, guided by counterexamples. The difference is that, instead of using
+predicates, one uses automata to represent the overapproximation. A discussion can
+also be found in [23].
+Learning algorithms for event-recording automata, a subset of timed automata
+were studied in [ 51]. The algorithm of [ 23] was extended for these automata in [ 30].
+In the context of parameter synthesis with learning, parameterized systems were seen
+as a parallel composition of a non-parameterized component, and a parameterized
+component in [52].
+Other approaches targeting the formal verification of real-time systems with large
+discrete state spaces include encodings of timed automata semantics in Boolean logic
+include [ 53,54]. An extension of and-inverter graphs were used in [ 55] that uses
+predicates to represent the state space of linear hybrid automata.
+25
+
+--- Page 26 ---
+The abstract interpretation of games were studied in [ 56] that presents a theory
+allowing one to define under- and over-approximations. Abstraction-refinement algo-
+rithms based on counterexamples were given in [ 57,58]. These ideas were applied to
+timed games in [ 20]. Several abstraction-refinement and compositional algorithms were
+given in [ 41,59] for solving finite-state games given as Boolean circuits. The synthesis
+competition gathers every year researchers who present their game solvers [21, 60].
+Perspectives
+The algorithm we presented builds finite-state abstractions of real-time constraints,
+that it represents as DFA. The approach is well adapted when the interaction alphabet
+between AandTis small; this is the case, for instance, for distributed systems where
+the time constraints are used to describe the approximate period with which each
+process communicates with its neighbors; so the alphabet contains only a few symbols
+per process. Some of the benchmarks we considered are models of such systems. The
+approach is less convenient for time-intensive systems such as, say, job shop scheduling
+problems where a separate alphabet symbol is needed for each task.
+As future work, we would like to understand when various abstraction schemes are
+efficient among the approach presented here, the predicate-abstraction approach, and
+zone-based state-space exploration. Currently, all algorithms fail in some benchmarks.
+Understanding the strengths of each algorithm might help designing a uniformly better
+solution. Currently, we can only verify linear properties; one might verify branching-
+time properties by learning automata with a stronger notion of equivalence such as
+bisimulation. In fact, an important limitation is due to learning being slow for large
+alphabets. Our setting could be extended to deal with large or symbolic alphabets e.g.
+[61, 62].
+For synthesis, our setting is currently restricted by the abstractions we use since
+when the algorithm rejects the instace, we cannot conclude whether the system is
+controllable or not. Using both the under- and overapproximations within the finite-
+state synthesis, for instance, using the three-valued abstraction approach [ 58] might
+allow us to render the approach complete, and to consider a larger class of timed games
+such as those that allow Controller to select nonzero delays.
+The treatment of ω-regular traces is significantly more difficult and requires different
+assume-guarantee rules; this direction is explored in [63].
+Acknowledgement
+We thank Fr´ ed´ eric Herbreteau who suggested the content of Section 3.5.1. The work
+was partially supported by grants from Agence Nationale de la Recherche (ANR)
+projects ANR-22-CE48-0012 Bisous, and ANR-23-CE48-0005 Pavedys.
+This preprint has not undergone peer review or any post-submission improvements
+or corrections. The Version of Record of this article is published in Journal of Automated
+Reasoning, and is available online at https://doi.org/10.1007/s10817-025-09730-z.
+Data Availability
+Source codes, executables, and benchmark data are available as an artifact [64].
+26
+
+--- Page 27 ---
+References
+[1]Alur, R., Dill, D.L.: A theory of timed automata. Theoretical Computer Science
+126(2), 183–235 (1994)
+[2]Behrmann, G., Bouyer, P., Larsen, K.G., Pelanek, R.: Lower and upper bounds in
+zone-based abstractions of timed automata. Int. J. Softw. Tools Technol. Transf.
+8(3), 204–215 (2006) https://doi.org/10.1007/s10009-005-0190-0
+[3]Behrmann, G., David, A., Larsen, K.G., H˚ akansson, J., Pettersson, P., Yi, W.,
+Hendriks, M.: UPPAAL 4.0. In: Third International Conference on the Quantitative
+Evaluation of Systems (QEST 2006), 11-14 September 2006, Riverside, California,
+USA, pp. 125–126 (2006). https://doi.org/10.1109/QEST.2006.59
+[4]Herbreteau, F., Point, G.: The TChecker tool and librairies. https://github.com/
+ticktac-project/tchecker
+[5]Sun, J., Liu, Y., Dong, J.S., Pang, J.: Pat: Towards flexible verification under
+fairness. In: Proceedings of the 21th International Conference on Computer Aided
+Verification (CAV’09). Lecture Notes in Computer Science, vol. 5643, pp. 709–714.
+Springer, Berlin Heidelberg (2009)
+[6]Bouyer, P., Gastin, P., Herbreteau, F., Sankur, O., Srivathsan, B.: Zone-based
+verification of timed automata: extrapolations, simulations and what next? In:
+20th International Conference on Formal Modeling and Analysis of Timed Systems
+(FORMATS 2022). Springer, Berlin Heidelberg (2022). https://doi.org/10.48550/
+arXiv.2207.07479 . https://doi.org/10.48550/arXiv.2207.07479
+[7]Wang, F.: Symbolic verification of complex real-time systems with clock-restriction
+diagram. In: Proc. 21st International Conference on Formal Techniques for Net-
+worked and Distributed Systems (FORTE’01). IFIP Conference Proceedings, vol.
+197, pp. 235–250. Kluwer, ??? (2001)
+[8]Beyer, D., Lewerentz, C., Noack, A.: Rabbit: A tool for BDD-based verification of
+real-time systems. In: Proc. 15th International Conference on Computer Aided
+Verification (CAV’03). Lecture Notes in Computer Science, vol. 2725, pp. 122–125.
+Springer, ??? (2003)
+[9]Ehlers, R., Fass, D., Gerke, M., Peter, H.-J.: Fully symbolic timed model check-
+ing using constraint matrix diagrams. In: Proc. 31th IEEE Real-Time Systems
+Symposium (RTSS’10), pp. 360–371. IEEE Computer Society Press, ??? (2010).
+https://doi.org/10.1109/RTSS.2010.36
+[10]Nguyen, T.K., Sun, J., Liu, Y., Dong, J.S., Liu, Y.: Improved BDD-based discrete
+analysis of timed systems. In: Proc. 20th International Symposium on Formal
+Methods (FM’12), vol. 7436, pp. 326–340. Springer, ??? (2012)
+27
+
+--- Page 28 ---
+[11]Thierry-Mieg, Y.: Symbolic model-checking using ITS-tools. In: Proc. 21st Inter-
+national Conference on Tools and Algorithms for the Construction and Analysis
+of Systems (TACAS’15), pp. 231–237 (2015). Springer
+[12]Cimatti, A., Griggio, A., Mover, S., Tonetta, S.: IC3 modulo theories via implicit
+predicate abstraction. In: Proc. 20th International Conference on Tools and
+Algorithms for the Construction and Analysis of Systems (TACAS’14). Lecture
+Notes in Computer Science, vol. 8413, pp. 46–61 (2014)
+[13]Cimatti, A., Griggio, A., Magnago, E., Roveri, M., Tonetta, S.: Extending nuxmv
+with timed transition systems and timed temporal properties. In: International
+Conference on Computer Aided Verification, pp. 376–386 (2019). Springer
+[14]Roussanaly, V., Sankur, O., Markey, N.: Abstraction refinement algorithms for
+timed automata. In: Dillig, I., Tasiran, S. (eds.) Computer Aided Verification
+(CAV’19), pp. 22–40. Springer, Cham (2019). https://link.springer.com/chapter/
+10.1007%2F978-3-030-25540-4 2
+[15]Thomas, W.: On the synthesis of strategies in infinite games. In: Mayr, E.W.,
+Puech, C. (eds.) STACS 95, pp. 1–13. Springer, Berlin, Heidelberg (1995)
+[16]Maler, O., Pnueli, A., Sifakis, J.: On the synthesis of discrete controllers for timed
+systems (an extended abstract). In: STACS, pp. 229–242 (1995)
+[17]Asarin, E., Maler, O., Pnueli, A.: Symbolic controller synthesis for discrete and
+timed systems. In: Hybrid Systems II. LNCS, vol. 999, pp. 1–20. Springer, ???
+(1995)
+[18]Cassez, F., David, A., Fleury, E., Larsen, K.G., Lime, D.: Efficient on-the-fly
+algorithms for the analysis of timed games. In: Proc. 16th International Conference
+on Concurrency Theory (CONCUR’05). Lecture Notes in Computer Science, vol.
+3653, pp. 66–80. Springer, ??? (2005)
+[19]Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+UPPAAL-Tiga: Time for playing games! In: Proc. 19th International Conference
+on Computer Aided Verification (CAV’07). Lecture Notes in Computer Science,
+vol. 4590, pp. 121–125. Springer, ??? (2007)
+[20]Peter, H.-J., Ehlers, R., Mattm¨ uller, R.: Synthia: Verification and synthesis for
+timed automata. In: International Conference on Computer Aided Verification,
+pp. 649–655 (2011). Springer
+[21]Jacobs, S., Bloem, R., Brenguier, R., Ehlers, R., Hell, T., K¨ onighofer, R., P´ erez,
+G.A., Raskin, J.-F., Ryzhyk, L., Sankur, O., et al. : The first reactive synthesis
+competition (syntcomp 2014). International journal on software tools for technology
+transfer 19(3), 367–390 (2017)
+28
+
+--- Page 29 ---
+[22]Bertin, V., Closse, E., Poize, M., Pulou, J., Sifakis, J., Venier, P., Weil, D., Yovine,
+S.: Taxys=esterel+kronos. a tool for verifying real-time properties of embedded
+systems. In: Proceedings of the 40th IEEE Conference on Decision and Control
+(Cat. No.01CH37228), vol. 3, pp. 2875–28803 (2001). https://doi.org/10.1109/
+CDC.2001.980712
+[23]P˘ as˘ areanu, C.S., Giannakopoulou, D., Bobaru, M.G., Cobleigh, J.M., Barringer,
+H.: Learning to divide and conquer: applying the L* algorithm to automate
+assume-guarantee reasoning. Formal Methods in System Design 32(3), 175–205
+(2008)
+[24]Angluin, D.: Learning regular sets from queries and counterexamples. Information
+and Computation 75(2), 87–106 (1987) https://doi.org/10.1016/0890-5401(87)
+90052-6
+[25]Isberner, M., Howar, F., Steffen, B.: The ttt algorithm: a redundancy-free approach
+to active automata learning. In: International Conference on Runtime Verification,
+pp. 307–322 (2014). Springer
+[26]Aceto, L., Bouyer, P., Burgue˜ no, A., Larsen, K.G.: The power of reachability
+testing for timed automata. Theoretical Computer Science 300(1), 411–475 (2003)
+https://doi.org/10.1016/S0304-3975(02)00334-1
+[27]Sankur, O.: Timed Automata Verification and Synthesis via Finite Automata
+Learning. In: TACAS 2023 - 29th International Conference on Tools and Algorithms
+for the Construction and Analysis of Systems, Paris, France (2023). https://hal.
+science/hal-03947462
+[28]Rivest, R.L., Schapire, R.E.: Inference of finite automata using homing sequences.
+Information and Computation 103(2), 299–347 (1993) https://doi.org/10.1006/
+inco.1993.1021
+[29]Clarke, E.M., Henzinger, T.A., Veith, H., Bloem, R., et al. : Handbook of Model
+Checking vol. 10. Springer, ??? (2018)
+[30]Lin, S.-W., Andr´ e, ´E., Liu, Y., Sun, J., Dong, J.S.: Learning assumptions for
+compositional verification of timed systems. Transactions on Software Engineering
+40(2), 137–153 (2014) https://doi.org/10.1109/TSE.2013.57
+[31]Isberner, M., Howar, F., Steffen, B.: The open-source learnlib. In: Kroening, D.,
+P˘ as˘ areanu, C.S. (eds.) Computer Aided Verification, pp. 487–495. Springer, Cham
+(2015)
+[32]Cimatti, A., Griggio, A.: Software model checking via ic3. In: Madhusudan, P.,
+Seshia, S.A. (eds.) Computer Aided Verification, pp. 277–293. Springer, Berlin,
+Heidelberg (2012)
+29
+
+--- Page 30 ---
+[33]Delporte-Gallet, C., Devismes, S., Fauconnier, H.: Robust stabilizing leader elec-
+tion. In: Masuzawa, T., Tixeuil, S. (eds.) Stabilization, Safety, and Security of
+Distributed Systems, pp. 219–233. Springer, Berlin, Heidelberg (2007)
+[34]Mar´ oti, M., Kusy, B., Simon, G., L´ edeczi, A.: The flooding time synchronization
+protocol. In: Proceedings of the 2Nd International Conference on Embedded
+Networked Sensor Systems. SenSys ’04, pp. 39–49. ACM, New York, NY, USA
+(2004). https://doi.org/10.1145/1031495.1031501 . http://doi.acm.org/10.1145/
+1031495.1031501
+[35]McInnes, A.I.: Model-checking the flooding time synchronization protocol. In:
+Control and Automation, 2009. ICCA 2009. IEEE International Conference On,
+pp. 422–429 (2009). https://doi.org/10.1109/ICCA.2009.5410508
+[36] Kusy, B., Abdelwahed, S.: Ftsp protocol verification using spin (2006)
+[37]Sankur, O., Talpin, J.: An abstraction technique for parameterized model checking
+of leader election protocols: Application to FTSP. In: Tools and Algorithms for the
+Construction and Analysis of Systems - 23rd International Conference, TACAS
+2017, Held as Part of the European Joint Conferences on Theory and Practice
+of Software, ETAPS 2017, Uppsala, Sweden, April 22-29, 2017, Proceedings,
+Part I, pp. 23–40 (2017). https://doi.org/10.1007/978-3-662-54577-5 2 . https:
+//doi.org/10.1007/978-3-662-54577-5 2
+[38]Dierks, H.: Time, Abstraction and Heuristics - Automatic Verification and Planning
+of Timed Systems Using Abstraction and Heuristics. Berichte aus dem Department
+f¨ ur Informatik / Universit¨ at Oldenburg / Fachbereich Informatik, vol. 01-06 (2006)
+[39]Bengtsson, J., Yi, W.: Timed automata: Semantics, algorithms and tools. In: Desel,
+J., Reisig, W., Rozenberg, G. (eds.) Lectures on Concurrency and Petri Nets.
+Lecture Notes in Computer Science, vol. 2098, pp. 87–124. Springer, ??? (2004)
+[40]Luo, G., Bochmann, G., Petrenko, A.: Test selection based on communicating
+nondeterministic finite-state machines using a generalized wp-method. IEEE
+Transactions on Software Engineering 20(2), 149–162 (1994) https://doi.org/10.
+1109/32.265636
+[41]Brenguier, R., P´ erez, G.A., Raskin, J.-F., Sankur, O.: Abssynthe: abstract synthesis
+from succinct safety specifications. In: Chatterjee, K., Ehlers, R., Jha, S. (eds.)
+Proceedings 3rd Workshop On Synthesis (SYNT’14). Electronic Proceedings in
+Theoretical Computer Science, vol. 157, pp. 100–116. Open Publishing Association,
+??? (2014). https://doi.org/10.4204/EPTCS.157.11 . http://arxiv.org/abs/1407.
+5961v1
+[42]Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+Uppaal-tiga: Time for playing games! In: International Conference on Computer
+Aided Verification, pp. 121–125 (2007). Springer
+30
+
+--- Page 31 ---
+[43]Valizadeh, M., Fijalkow, N., Berger, M.: Ltl learning on gpus. In: International
+Conference on Computer Aided Verification, pp. 209–231 (2024). Springer
+[44]Behrmann, G., Bouyer, P., Fleury, E., Larsen, K.G.: Static guard analysis in
+timed automata verification. In: Garavel, H., Hatcliff, J. (eds.) Proceedings of
+the 9th International Conference on Tools and Algorithms for Construction and
+Analysis of Systems (TACAS’03). Lecture Notes in Computer Science, vol. 2619,
+pp. 254–277. Springer, Warsaw, Poland (2003). http://www.lsv.ens-cachan.fr/
+Publis/PAPERS/PDF/BBFL-tacas-2003.pdf
+[45]Henzinger, T.A., Nicollin, X., Sifakis, J., Yovine, S.: Symbolic model checking for
+real time systems. Information & Computation 111(2), 193–244 (1994)
+[46]Brenguier, R., G¨ oller, S., Sankur, O.: A comparison of succinctly represented
+finite-state systems. In: Koutny, M., Ulidowski, I. (eds.) Proceedings of the 23rd
+International Conference on Concurrency Theory (CONCUR’12). Lecture Notes
+in Computer Science, vol. 7454, pp. 147–161. Springer, Newcastle, UK (2012).
+https://doi.org/10.1007/978-3-642-32940-1 12 . http://www.lsv.ens-cachan.fr/
+Publis/PAPERS/PDF/BGS-concur12.pdf
+[47]Heizmann, M., Hoenicke, J., Podelski, A.: Refinement of trace abstraction. In:
+International Static Analysis Symposium, pp. 69–85 (2009). Springer
+[48]Wang, W., Jiao, L.: Trace abstraction refinement for timed automata. In: Cassez,
+F., Raskin, J.-F. (eds.) Automated Technology for Verification and Analysis, pp.
+396–410. Springer, Cham (2014)
+[49]Cassez, F., Jensen, P.G., Larsen, K.G.: Verification and parameter synthesis for
+real-time programs using refinement of trace abstraction. Fundam. Informaticae
+178(1-2), 31–57 (2021) https://doi.org/10.3233/FI-2021-1997
+[50]Clarke, E., Grumberg, O., Jha, S., Lu, Y., Veith, H.: Counterexample-guided
+abstraction refinement for symbolic model checking. Journal of the ACM (JACM)
+50(5), 752–794 (2003)
+[51]Grinchtein, O., Jonsson, B., Leucker, M.: Learning of event-recording automata.
+Theoretical Computer Science 411(47), 4029–4054 (2010) https://doi.org/10.1016/
+j.tcs.2010.07.008
+[52]Andr´ e, ´E., Lin, S.-W.: Learning-based compositional parameter synthesis for event-
+recording automata. In: Bouajjani, A., Silva, A. (eds.) Formal Techniques for
+Distributed Objects, Components, and Systems, pp. 17–32. Springer, Cham (2017)
+[53]Kindermann, R., Junttila, T., Niemela, I.: Modeling for symbolic analysis of safety
+instrumented systems with clocks. In: Proc. 11th International Conference on
+Application of Concurrency to System Design (ACSD’11), pp. 185–194. IEEE
+Computer Society Press, ??? (2011). https://doi.org/10.1109/ACSD.2011.29
+31
+
+--- Page 32 ---
+[54]Seshia, S.A., Bryant, R.E.: Unbounded, fully symbolic model checking of timed
+automata using boolean methods. In: Hunt, W.A., Somenzi, F. (eds.) Computer
+Aided Verification, pp. 154–166. Springer, Berlin, Heidelberg (2003)
+[55]Damm, W., Dierks, H., Disch, S., Hagemann, W., Pigorsch, F., Scholl, C., Wald-
+mann, U., Wirtz, B.: Exact and fully symbolic verification of linear hybrid
+automata with large discrete state spaces. Science of Computer Programming
+77(10), 1122–1150 (2012) https://doi.org/10.1016/j.scico.2011.07.006
+[56]Henzinger, T.A., Majumdar, R., Mang, F., Raskin, J.-F.: Abstract interpretation
+of game properties. In: Palsberg, J. (ed.) Static Analysis, pp. 220–239. Springer,
+Berlin, Heidelberg (2000)
+[57]Henzinger, T.A., Jhala, R., Majumdar, R.: Counterexample-guided control. In:
+International Colloquium on Automata, Languages, and Programming, pp. 886–902
+(2003). Springer
+[58]de Alfaro, L., Roy, P.: Solving games via three-valued abstraction refinement.
+Information and Computation 208(6), 666–676 (2010) https://doi.org/10.1016/
+j.ic.2009.05.007 . Special Issue: 18th International Conference on Concurrency
+Theory (CONCUR 2007)
+[59]Brenguier, R., P´ erez, G.A., Raskin, J.-F., Sankur, O.: Compositional algorithms
+for succinct safety games. In: ˇCern´ y, P., Kuncak, V., Parthasarathy, M. (eds.)
+Proceedings Fourth Workshop on Synthesis (SYNT’15), San Francisco, CA, USA,
+18th July 2015. Electronic Proceedings in Theoretical Computer Science, vol. 202,
+pp. 98–111. Open Publishing Association, ??? (2016). https://doi.org/10.4204/
+EPTCS.202.7
+[60]Jacobs, S., Perez, G.A., Abraham, R., Bruyere, V., Cadilhac, M., Colange, M.,
+Delfosse, C., Dijk, T., Duret-Lutz, A., Faymonville, P., et al.: The reactive synthesis
+competition (syntcomp): 2018-2021. arXiv preprint arXiv:2206.00251 (2022)
+[61]Maler, O., Mens, I.-E.: Learning regular languages over large alphabets. In:
+´Abrah´ am, E., Havelund, K. (eds.) Tools and Algorithms for the Construction and
+Analysis of Systems, pp. 485–499. Springer, Berlin, Heidelberg (2014)
+[62]Maler, O., Mens, I.-E.: A generic algorithm for learning symbolic automata
+from membership queries. In: Aceto, L., Bacci, G., Bacci, G., Ing´ olfsd´ ottir, A.,
+Legay, A., Mardare, R. (eds.) Models, Algorithms, Logics and Tools: Essays
+Dedicated to Kim Guldstrand Larsen on the Occasion of His 60th Birthday, pp.
+146–169. Springer, Cham (2017). https://doi.org/10.1007/978-3-319-63121-9 8 .
+https://doi.org/10.1007/978-3-319-63121-9 8
+[63]Sankur, O.: Automatic assume-guarantee reasoning for safety andliveness using
+passive learning. Preprint (2024) https://doi.org/10.21203/rs.3.rs-3910982/v1
+32
+
+--- Page 33 ---
+[64]Sankur, O.: Artifact for the paper: Timed Automata Verification and Synthesis
+via Finite Automata Learning. Zenodo (2022). https://doi.org/10.5281/zenodo.
+7487508
+33
