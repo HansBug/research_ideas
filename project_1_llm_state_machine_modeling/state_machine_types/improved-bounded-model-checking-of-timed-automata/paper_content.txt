@@ -1,0 +1,1398 @@
+--- Page 1 ---
+Improved Bounded Model Checking
+of Timed Automata
+Robert L. Smith, Marcello M. Bersani, Matteo Rossiy, Pierluigi San Pietro
+Dipartimento di Elettronica, Informazione e Bioingegneria, Politecnico di Milano. Milano, Italy.
+yDipartimento di Meccanica, Politecnico di Milano. Milano, Italy.
+Email: robert.smith@mail.polimi.it ,
+{marcellomaria.bersani, matteo.rossi, pierluigi.sanpietro }@polimi.it
+Abstract —Timed Automata (TA) are a very popular
+modeling formalism for systems with time-sensitive proper-
+ties. A common task is to verify if a network of TA satisﬁes
+a given property, usually expressed in Linear Temporal
+Logic (LTL), or in a subset of Timed Computation Tree
+Logic (TCTL). In this paper, we build upon the TACK
+bounded model checker for TA, which supports a signal-
+based semantics of TA and the richer Metric Interval
+Temporal Logic (MITL). TACK encodes both the TA
+network and property into a variant of LTL, Constraint
+LTL over clocks (CLTLoc). The produced CLTLoc formula
+can then be solved by tools such as Zot, which transforms
+CLTLoc properties into the input logics of Satisﬁability
+Modulo Theories (SMT) solvers. We present a novel method
+that preserves TACK’s encoding of MITL properties while
+encoding the TA network directly into the SMT solver
+language, making use of both the BitVector logic and
+the logic of real arithmetics. We also introduce several
+optimizations that allow us to signiﬁcantly outperform the
+CLTLoc encoding in many practical scenarios.
+Index Terms —Formal Veriﬁcation, Timed Automata,
+Bounded Model Checking
+I. I NTRODUCTION
+Timed Automata [1] (TA) are a popular tool for
+modeling time-sensitive systems. By combining the tran-
+sition semantics of ﬁnite state automata with real-valued
+clocks, they are of great theoretical and practical interest
+for representing time-bound processes and applications.
+They have found common use in the domain of model
+checking, where system representations are evaluated
+against a given property of interest. Various tools and
+languages exist for a variety of applications and use
+cases. These include the current de facto standard Up-
+paal [2], as well as NuSMV [3].
+Model Checking refers to a veriﬁcation technique
+for solving properties of state transition systems. A
+wide variety of industrial applications, including circuit
+design, control systems, and program veriﬁcation lend
+2021 IEEE. Personal use of this material is permitted. Permis-
+sionfrom IEEE must be obtained for all other uses, in any current
+or futuremedia, including reprinting/republishing this material for
+advertisingor promotional purposes, creating new collective works, for
+resale orredistribution to servers or lists, or reuse of any copyrighted
+componentof this work in other works.themselves to this representation. In the model checking
+process, the system is exhaustively searched to see if
+the given property is valid. TACK is a bounded model
+checker for networks of TA [4]. Properties to be veriﬁed
+are speciﬁed in Metric Interval Temporal Logic (MITL)
+[5], and are converted along with the TA network into
+CLTLoc [6], a variant of Linear Temporal Logic (LTL)
+supporting real-valued clocks.
+This paper presents a novel encoding of the TA
+network which does not use CLTLoc as an interme-
+diate step, instead directly transforming the network
+semantics into a hybrid BitVector representation. This
+approach has the advantage of being tailor-made for
+TA networks, while the previous approach relied on
+the general-purpose CLTLoc converter ae2sbvzot [7].
+However rather than just re-create the existing encoding
+in a new language, we have corrected several deﬁciencies
+in the original TACK encoding, and have introduced
+new features to make TACK more useful for users.
+We have also exploited opportunities to more efﬁciently
+encode TA constructs, noticeably eliminating the need
+for BitVectors to track the active state of the TA, instead
+relying on the active transition to carry this information.
+In this paper, we ﬁrst present the current state-of-
+the-art for bounded model checking, followed by an
+in-depth description of both the required preliminary
+knowledge and the speciﬁc implementation of the TACK
+bounded model checker (Section II). We then introduce
+our novel encoding of TA networks into a form suitable
+for an SMT-based bounded model checker (Section III,
+and we present experimental results comparing the new
+encoding with existing ones (Section IV). Finally, we
+conclude with a discussion of the result and some future
+works (Section V).
+II. P RELIMINARIES
+A. State of the Art
+For many years, model checking was performed us-
+ing Binary Decision Diagrams (BDDs) [8], which of-
+fer many time- and space-complexity advantages over
+explicit state enumeration [9]. However to efﬁcientlyarXiv:2104.12444v1  [cs.LO]  26 Apr 2021
+
+--- Page 2 ---
+handle larger state spaces, bounded model checking
+techniques techniques have been developed. Bounded
+model checking encodes the veriﬁcation problem of the
+state transition system into a propositional satisﬁability
+(SAT) or Satisﬁability Modulo Theories (SMT) problem,
+and then tasks the SAT/SMT solver with ﬁnding a
+valid assignment of states to time positions starting
+from a given initial state such that the desired property
+is violated (counterexample); if no such assignment is
+found, the property holds for the system. Because such
+solvers require ﬁnite state spaces, the number of time
+positions considered is limited by a bound k, hence
+the name bounded model checking. Bounded model
+checking analyzes traces of inﬁnite length that can be
+represented in ﬁnite space. This is accomplished by
+limiting the search to so-called “lasso-shaped” traces.
+These traces begin with an initial ﬁnite sequence of states
+before entering an inﬁnite loop of states. Thus only a
+ﬁnite number of states need to be explicitly represented
+by the bounded model checker, which can search for
+lassos of length up to the given bound.
+Uppaal [2] is a de facto standard for model checking
+systems modeled through TA. Uppaal allows users to ex-
+press properties to be checked using Timed Computation
+Tree Logic (TCTL), an extension of Computation Tree
+Logic (CTL) with real-time properties [10]. However,
+Uppaal and similar implementations restrict themselves
+to only a subset of TCTL, which focuses mostly on
+reachability and invariant properties.
+In addition to the work done with branching-time
+logics, there has been interest in combining TA with
+the expressive power of Metric Temporal Logic (MTL),
+an extension of LTL with interval constraints on the
+‘until’ operator [11]. While powerful, MTL is undecid-
+able in general for inﬁnite traces [12]. MITL [5] is a
+decidable restriction of MTL which can capture more
+complex properties than those supported by the subset
+of TCTL allowed by TA model checkers. In recent years
+bounded model checkers supporting MITL as property
+speciﬁcation language have been developed, in particular
+MITL0;1BMC [13], MightyL [14] and TACK (see [4]
+for a detailed comparison of the tools). In this work we
+improve the encoding of the TA veriﬁcation problem into
+an SMT problem used in TACK.
+B. Timed Automata
+Timed Automata (TA) are a popular formalism for
+modeling interactions that require precise timing mech-
+anisms [1]. In this paper, we consider an extension of
+TA that includes integer variables with ﬁnite ranges and
+mechanisms to synchronize the taking of transitions.
+LetAP be a set of atomic propositions, and let
+Act be a set of synchronization events of the form
+Act fchannelsyncg, where channel is a ﬁniteset of symbols and sync2 f!;?;#;@g. In addition
+we deﬁne a null event .Actis the setAct[fg.
+LetXbe a ﬁnite set of clocks, and Int a ﬁnite set
+of integer-valued variables. (X)is the set of clock
+constraints, where a clock constraint is a relation
+xcj^, wherex2X,2f<;>;;g, and
+c2N.Assign (X)is the set of clock assignments, where
+each assignment has the form x:= 0 , wherex2X.
+Assign (Int)is a set of variable assignments of the form
+y:=exp, where exp:=exp+expjexpexpjnjc,
+n2Intandc2Z.(Int)is the set of integer variable
+constraints, where a variable constraint is deﬁned as
+:=ncjnn0j:j^, wherenandn0are
+integer variables, c2Z, and2f<;=g.
+A TA with variables is deﬁned as the tuple A=
+AP;X;Act ;Int;Q;q0;v0
+var;Inv;L;T
+, whereQis a
+ﬁnite set of locations, q02Qis the initial location,
+v0
+var:Int!Zis a function providing initial values for
+each of the variables, and Inv:Q!(X)is a function
+assigning each location to a (possibly empty) set of clock
+constraints, which are the invariants of the location. The
+labeling function L:Q!}(AP)assigns each location
+to a subset of the atomic propositions. Each transition
+t2Thas the form t=
+QQAct(X)
+(Int)}(Assign (X))}(Assign (Int))
+, consisting
+of a source and destination location, an action, a set of
+clock and variable guards, a set of clocks to be reset
+when the transition ﬁres, and a set of variables to assign
+values to. To refer to the components of a transition we
+will usetandt+to refer to the source and destination
+locations respectively, as well as t;tc;tv;tac;tavto
+refer to the event, clock constraints, variable constraints,
+clock assignments, and variable assignments respec-
+tively. A transition is written as q;;;;!q0, where
+is a constraint of (X),is a constraint of (Int),
+is an element of Act,is a subset of Xandis a
+set of assignments from }(Assign (Int)). LetU()be
+the set of variables that are updated by —that is, that
+appear as the left-hand side in an assignment of —and
+letU(t)indicate the set U()given a transition t.
+We outline the semantics of networks of TA, and we
+illustrate its key features through the simple example
+shown in Figure 1; we then show the formal deﬁnition.
+Transition guards are conditions over either clocks or
+variables that prevent the associated transition from
+being taken when they are not satisﬁed. As an example,
+transitiont2can only be taken when the value of clock x
+is greater than 5. Assignments on the other hand modify
+the value of a clock or variable after the transition has
+been taken. For example, it is valid for transition t2to be
+taken when x= 6, even though the assignment x:= 0
+resets the value of xto0. A transition is said to be
+enabled if the values of clocks and variables satisfy the
+guard, and active at the time when it is ﬁred. The value
+
+--- Page 3 ---
+is updated in the same instant as the transition, however
+the guards only consider the pre-transition values of
+the clocks when determining if the transition is valid.
+Variables can be assigned to any value, while clocks can
+only be reset to 0. When a TA is in a certain location, the
+corresponding invariant (if any) is required to be true.
+The invariant attached to q2requires the TA to leave
+locationq2before clock xreaches a value of 2.
+ 
+x < 2guard : x>5  
+assign : x:=0
+assign : n:=1guard : n<5
+assign : n:=n+1  
+Fig. 1. A Timed Automaton with clock xand variable n.
+Deﬁnition 1. Given a TAA, aconﬁguration ofAis a
+tuple (q;vvar;v)whereqis the current location of A
+andvvar(resp.,v) is a variable (resp., clock) valuation
+Int!Z(resp.,X!R0).
+We adopt a semantics for TA based on so-called
+signals , where each instant of the time domain R0
+comprising all nonnegative real numbers is associated
+with a conﬁguration. The conﬁguration of a TA changes
+when a transition is taken, but it does not change between
+transitions. Hence, we can split the time domain R0
+into intervals during which the conﬁguration of the TA
+remains the same. Figure 2 shows a fragment of an
+execution of the TA of Figure 1. The location is initially
+q0(in conﬁguration c0), then it changes to q2(and
+conﬁguration c1) when transition t1is taken. As Figure
+2 shows, in the instant in which a transition is taken the
+conﬁguration can be the old or the new one, depending
+on whether the edge of the transition is right-closed ( ]()
+or left-closed ( )[). For example, in Figure 2 the switch
+c0 c0
+0c1 c0
+1
+c2 c0
+2c3
+t1 t4t2
+jjjjjj
+j
+p=
+n=
+t=q0q0 q0q0 q2 q2 q2 q0 q0q1
+00 00 0 0 0 1 11
+]] ]t1 ] ] t4 ] t2]
+edge =[ ]c0( )c1[ ]c2
+ ]( )[](
+Fig. 2. Illustration of the semantics of the TA of Fig. 1.from conﬁguration c0toc1occurs in a right-closed
+manner, whereas the one between c1andc2in a left-
+closed one.
+A network of TA is a ﬁnite set of TA N=
+[A1;A2;:::AN]. TA in the same network can refer to
+common clocks, variables, and synchronization channels
+to coordinate their actions. To simplify the notation we
+will use the symbols T,X,Int, andAct=Actto refer
+to the union of the respective sets of each individual TA
+in the network. When necessary to refer to the properties
+of one timed automaton in particular, we will append a
+numerical subscript to the set in question, for example
+Xito refer to the clocks used by the speciﬁc timed
+automatonAi2N .
+Before providing the formal deﬁnition of the transi-
+tion relation for networks of TA, the notion of weak
+satisfaction relation j=wover clock valuations and clock
+constraints is introduced, where 2f<;>;;g.
+vj=wxdiffv(x)dorv(x) =d
+v6j=wx=dfor anyx2X;d2N:
+Naturally,j=wcan be extended to conjunctions of for-
+mulaexd. For instance, the formula x<1^:(y <
+1)^:(y= 1) is both satisﬁed and weakly satisﬁed by the
+clock evaluation such that v(x) = 0:8andv(y) = 1:2,
+but it is only weakly satisﬁed if v(x) = 1 andv(y) = 1 .
+Deﬁnition 2. LetNbe a network of NTAA1;:::;AN.
+Aconﬁguration ofNis a tuple (l;vvar;v)where l
+is a vector [q1;:::;qN]such thatq1;:::;qNare loca-
+tions ofA1;:::;AN, andvvar(resp.,v) is a variable
+(resp., clock) valuation for the set Int(resp.,X) in-
+cluding all integer variables (resp., clocks) appearing in
+A1;:::;AN.
+When a network of TA is considered, it is possible
+that some automata in the network take a transition
+while the remaining others do not ﬁre a transition and
+keep their state unchanged. Firing a transition labeled
+with the null event (i.e., a transition that does not
+synchronize, as explained later) is different from not
+taking a transition at all. Symbol _ indicates that an
+automatonAidoes not perform any transition in Ti.
+The notation l[i]indicates the location of automaton
+Ai—i.e., if l[i] =j, then automatonAiis in location
+qi
+j, assuming that the locations of each automaton are
+numbered, with 0indicating the initial one. The two
+kinds of conﬁguration changes that may occur when an
+automaton in the network performs a transition from a
+locationqtoq0are indicated in Def. 3 with symbols
+ei(excluded-included, or left-closed) and ie(included-
+excluded, or right-closed).
+Deﬁnition 3. LetNbe a network of NTA. Let
+(l;vvar;v),(l0;v0
+var;v0)be two conﬁgurations, let 2
+R>0andbe a tuple of Nsymbols such that [k]2
+
+--- Page 4 ---
+fActfei;iegg[f _gfor every 1iN. Then, a
+conﬁguration change is either a transition (l;vvar;v) !
+(l0;v0
+var;v0)or a transition (l;vvar;v) !(l0;v0
+var;v0)
+deﬁned as follows.
+1)(l;vvar;v) !(l0;v0
+var;v0)occurs if
+a)for each [i] = (;b)there is a transition
+l[i];;;;!l0[i]inAisuch that:
+i)vj=andvvarj=,
+ii)v0(x) = 0 holds for all x2,
+iii)(v0
+var;vvar)j=,
+iv)whenb=eithen:
+vj=wInv(l[i])and
+v0j=Inv(l0[i])
+v)whenb=iethen:
+vj=Inv(l[i])and
+v0j=wInv(l0[i])
+b)for each [i] =_ it holds that:
+i)l0[i] =l[i];
+ii)vj=Inv(l[i])andv0j=Inv(l0[i]).
+c)for each clock x2X(resp., integer vari-
+ablen2Int), ifx(resp.,n) does not
+appear in any (resp., it is not assigned
+by anyA) of one of the transitions taken
+byA1;:::;AN, thenv0(x) =v(x)(resp.,
+v0
+var(n) =vvar(n));
+2)(l;vvar;v) !(l0;v0
+var;v0)occurs if l0=l,
+v0
+var=vvar,v0=v+and for all 1iK,
+v0j=wInv(l[i]).
+A conﬁguration change (l;vvar;v) !(l0;v0
+var;v0),
+for some 2ffActfei;iegg[f _ggK, satisfying
+(1) is called a discrete transition . If it satisﬁes (2) then it
+is called a time transition . For convenience of notation,
+symbols (;ei)and(;ie), for some 2Act,
+are hereinafter denoted, respectively, with )[and](.
+The edge of a transition realized with an action is
+determined by the conditions in 1(a)iv and 1(a)v and
+depend on the invariants of the locations involved in the
+transition, the clock values and the resets applied in the
+conﬁguration change. Cases 1) and 2) are discussed in
+detail in [4].
+The notions of trace and signal are now introduced.
+Deﬁnition 4. LetNbe a network of NTA. A trace of
+Nis an inﬁnite sequence of the form
+(l0;vvar;0;v0);e0;(l1;vvar;1;v1);e1;:::
+such that:
+1)for allh2N,eh= horeh=h;
+2)for allh2Nit holds that (lh;vvar;h;vh)eh!
+(lh+1;vvar;h+1;vh+1);
+3)e0=0, for some02R>0;4)for all 1iN, it holds that l0[i] = 0 ,v0j=
+Inv(l0[i]), for allx2Xit holds that v0(x) =
+0, and for all n2Intit holds that vvar;0(n) =
+v0
+var(n).
+5)discrete transitions must be followed by time tran-
+sitions; that is, if ehis a discrete transition ( eh=
+h), theneh+1is a time transition ( eh=h+1).
+Since by condition 5 there cannot be two consecutive
+discrete transitions, and since any ﬁnite sequence of
+consecutive delays h:::h+k, withk0, is equivalent
+to a single delayPh+k
+j=hj, a trace can always be
+rewritten into a new one such that discrete and time
+transitions strictly alternate. Moreover, by the previous
+property, every time transition hcan be replaced with
+a ﬁnite sequence of mpairs of time and discrete tran-
+sitionsh;0h;0h;1h;2:::h;m1, strictly alternating,
+such that h;j[i] = _ holds for all 0jm1,
+1iN, andh=Pm1
+j=0h;j.
+With a slight abuse of notation, a trace is represented
+in the following way, where the numbering of conﬁgu-
+rations increases only after discrete transitions:
+(l0;vvar;0;v0)0!(l0
+0;v0
+var;0;v0
+0)0!
+(l1;vvar;1;v1)1!:::
+Traces encode executions of TA by means of de-
+numerable sequences of time and discrete transitions.
+However, the evolution of a network of TA is continuous,
+hence it is more naturally represented by means of
+signals . Intuitively, given a trace , the projection over
+the real line of the values of its integer variables and
+atomic propositions associated with locations determines
+a signalM. To be able to consistently associate signals
+with traces of a TA, however, we impose the following
+restriction on traces.
+Deﬁnition 5. LetNbe a network of TA. A trace of
+Nisedge-consistent if, for any conﬁguration change
+(l0
+h;v0
+var;h;v0
+h)h!(lh+1;vvar;h+1;vh+1)there are two
+transitions l0
+h[i];;;;! l0
+h+1[i]andl0
+h[i];;;;!
+l0
+h+1[i], of two distinct TA i;i, which both set the value
+of variable n(in a compatible manner), then the edge
+of the transitions is the same; that is, either they are ](
+and](, or they are )[and)[.
+In the rest of the paper, only traces that are edge-
+consistent are considered.
+Let(l; vvar; v)be a conﬁguration; we denote as
+c(l;vvar;v)the pair ([1iNL(l[i]);vvar)2}(AP)
+ZIntof the atomic propositions and variable assign-
+ments that hold in the conﬁguration (l; vvar; v).
+Letbe an edge-consistent trace (l0;vvar;0;v0)0!
+(l0
+0;v0
+var;0;v0
+0)0!(l1;vvar;1;v1)1!:::; we indicate
+
+--- Page 5 ---
+by(e)the “time” of a symbol e(whereecan be either
+or), deﬁned as follows:
+(0) = 0 ;
+(h) = (h) +hfor allh0;
+(h) = (h1)for allh>0.
+Finally, letw()be the sequence 0112:::.
+Deﬁnition 6. Letbe an edge-consistent trace of a
+networkNofNTA. The signalMassociated with 
+is the function M:R0!}(AP)ZIntsuch that:
+1)M(0) =c(l0;vvar;0;v0);
+2)for allhinw(), for allr2R0such that
+(h)< r < (h) +hthenM(r) =
+c(lh;vvar;h;vh);
+3)for all hinw(),M((h)) = (A;vvar)2
+}(AP)ZIntwhere, for all p2APandn2Int:
+a)p2Aif, for some 2Actand for some
+1iN:
+p2L(lh[i])andh[i]2f_;](gholds,
+or
+p2L(lh+1[i])andh[i] =)[holds
+b)vvar(n) =vvar;h(n)if one of the following
+conditions holds:
+there is no transition l0
+h[i];;;;!
+lh+1[i]compatible with the conﬁguration
+change and such that n2U();
+there is 1iNand a transi-
+tion l0
+h[i];;;;! lh+1[i]—compatible
+with the conﬁguration change—such that
+h[i] =](andn2U().
+c)vvar(n) =vvar;h+1(n)if there is 1i
+Nand a transition l0
+h[i];;;;! lh+1[i]—
+compatible with the conﬁguration change—
+such that h[i] =)[andn2U()hold.
+When networks of TA are considered, the event sym-
+bols labeling the transitions are used to synchronize
+automata. Two (or more) different TA can take their
+transitions at the same time by labeling them with the
+same synchronization channel, and using the actions to
+describe the type of synchronization desired. Every event
+symbol2Act is associated with one communication
+channel, which can be identiﬁed with the event symbol
+itself—i.e., channel . The ﬁrst type of synchronization
+is one-to-one synchronization. A transition labeled with
+one-to-one send !, for some channel , can only be ﬁred
+if at the same moment in time, another TA takes a transi-
+tion labeled with the one-to-one receive ?. The second
+type of synchronization available is termed ‘broadcast’
+synchronization. Like one-to-one synchronization, for a
+given channel there can only be one active transition
+with the broadcast-send #, however the difference is
+that there can be 0, 1, or multiple automata that syncusing broadcast-receive @at once. In addition, each
+automaton is required to perform a broadcast-receive if
+it is able to, meaning that there exists a transition tsuch
+thattis the currently active state, and all guards of the
+transition are satisﬁed. The details of the semantics of
+synchronizations can be found in [4].
+C. Constraint LTL over clocks
+Constraint LTL over clocks (CLTLoc) is an extension
+of LTL where formulas are deﬁned over atomic proposi-
+tions and clocks. A clock is a variable over R0whose
+value changes between positions in a CLTLoc model to
+represent the passage of time. In addition, CLTLoc has
+been extended to support expressions over arithmetical
+variables [15].
+A formula in CLTLoc consists of atomic propositions,
+clock formulas, and formulas over integer variables,
+which are combined using the standard LTL operators of
+X(next) andU(until), as well as the derived operators G
+(globally),F(future), andR(release). A clock formula
+compares the value of the clock to a given natural
+number, for instance x>7. A variable formula, on the
+other hand, can compare not only individual variables but
+also arithmetic combinations of variables. An example
+would be the expression b+c= 7;b;c2Int. CLTLoc
+uses a special version of the Xoperator that can be
+applied to variables in Int. A valid formula is, for
+instance,X(n) =n+ 1.1
+LetXbe a ﬁnite set of clocks and Intbe a ﬁnite
+set of integer variables. CLTLoc formulas are deﬁned as
+follows:
+:=jxcjexp1exp2jX(n)expj
+^j:jXjU
+where2AP,x2X,c2N,n2Int,2f<;=g
+andexp are arithmetic formulas over integer variables
+and integers (deﬁned in Section II-B).
+Like in TA, clocks are special dense variables over
+R0that “progress” between different positions along
+a CLTLoc model: each clock must either increment
+between two adjacent time positions, or it must be reset.
+We introduce :N!R>0, which measures the amount
+of time that elapses between two adjacent time positions.
+For a given clock valuation :NX!R0,
+each clock x2Xmust either obey the equivalence
+(l;x)+(l) =(l+1;x), or is reset, i.e. (l+1;x) = 0
+holds. We also deﬁne variables via the assignment func-
+tion:NInt!Zthat assigns a value to each variable
+n2Intat every time position in N. The arithmetical
+expressions expcan now be evaluated at a time position
+1It is easy to see that TA with variables and CLTLoc as deﬁned
+in Sec. II-B and II-C are undecidable, unless suitable restrictions are
+introduced. In this paper we consider variables with ﬁnite domains.
+
+--- Page 6 ---
+lby replacing every occurrence of an integer variable n
+with(l;n).
+For the sake of space, we do not provide in this paper
+the full formalization of the semantics of CLTLoc and
+we refer the reader to [4], instead.
+D. TACK CLTLoc-based Translation
+The TACK [4] tool allows users to perform the formal
+veriﬁcation of TA against properties expressed in Metric
+Interval Temporal Logic (MITL, [5]). To this end, TACK
+takes as input a TA network Nand a MITL formula
+to be checked, transforms both of them into suitable
+CLTLoc formulas, and uses the Zot tool, which supports
+the formal veriﬁcation of CLTLoc formulas through a
+Bounded Satisﬁability Checking approach [7], to auto-
+matically verify whether property holds forNor not.
+In the rest of this section we provide an overview of the
+TA-to-CLTLoc translation performed by TACK, which is
+the subject of the improvements presented in Section III.
+Notice that, instead, the encoding of MITL properties is
+done following the approach deﬁned in [16], which was
+also applied in [4].
+In [4], the CLTLoc formula constructed from a given
+network of TA represents the evolution of the con-
+ﬁguration (i.e., an execution) of the network over the
+continuous time. As mentioned in Section II-B, we adopt
+a semantics of TA based on signals, and a conﬁguration
+captures the value of all the clocks, variables and current
+locations of the TA in the network in a speciﬁc time
+instant. The key aspect of the encoding described in [4]
+and [16] is that every time position of a model satisfying
+the CLTLoc formula is representative for a nonempty
+interval of R0. In addition, in [4], every CLTLoc model
+satisfying the formula encoding a network Nrepresents
+an execution of the network, i.e., a trace ofN. Hence,
+it is an exact representation of signal M.
+The most relevant part of the CLTLoc formula is the
+encoding of the ﬁring of transitions and the possible syn-
+chronization among them, which precisely capture the
+dynamics of the variables, clocks and location changes
+between any two adjacent time intervals over the signals.
+At every time position of the CLTLoc model, function
+p[i](withi2[1;N]) represents the placing of Ai, i.e.,
+the active location in the corresponding interval of the
+execution of the TA Aiof networkN, and function
+t[i]represents the transition that will be taken at the
+end of the interval (as depicted in Figure 2 for a single
+TA). Each function is syntactic sugar for a ﬁnite set of
+atomic propositions, which encode the value of a single
+variable—e.g., the current location of an automaton—
+belonging to ﬁnite set of values. When a transition is
+taken, proposition edgeRC
+irepresents the edge ( ](or)[)
+with which it is taken—i.e., if the current interval of
+the signal associated with the i-th automaton is left- orright-closed. TA clocks and variables can be represented
+directly as CLTLoc clocks and variables.
+Table I contains a snippet of the formulas used to
+encode executions of networks of TA into CLTLoc. The
+formulas use propositions p[i],t[i]andedgeRC
+iintro-
+duced above. Notice that not every TA needs to transition
+at each time position (for example, at a given point in the
+executionA1might change location, whereas A2does
+not take any transition). Hence, the encoding introduces
+anull transition symbol]to represent the situation in
+which no transition is taken. So, function t[i]is equal
+to either a transition or the symbol ](see Figure 2). If
+transitiontis active in a given position lof an execution
+for automatonAi, then the TA is in location tin
+positionl, and in location t+at the next one (i.e., in
+intervall+ 1).
+Formula'6deﬁnes the semantics for the null tran-
+sition. If TAAiperforms a null transition, the state
+invariant must hold both before and after clock resets
+are applied. Function r1replaces the value of any reset
+clock with 0, thus capturing the post-reset value of any
+clock used in the invariant.
+Formula'7encodes the discrete transitions. Each
+must respect the guards and assignments of the tran-
+sitions, the TA must currently be in the source loca-
+tion of the transition, and must be in the destination
+location in the following position. Formulas 'c,'v,
+'c,'vcapture the guards and assignments associated
+with the transition. 'edge encodes the two possible edge
+conﬁgurations, right- and left-closed, and ensures that
+the invariants are satisﬁed depending on the edge type.
+The encoding includes many other formulas, for exam-
+ple to deﬁne the initial values of variables and clocks, or
+the sufﬁcient conditions for a transition to be taken, but
+they are not shown here for the sake of brevity. For the
+same reason we do not show here the CLTLoc formulas
+capturing the synchronization mechanisms among the
+TA of a network and those related to various liveness
+constraints supported by the TACK tool. Interested read-
+ers can refer to [4] for further details.
+III. I MPROVED ENCODING
+In the TACK tool, the CLTLoc formulas produced
+through the encoding presented in Section II-D are fed to
+the Zot formal veriﬁcation tool, which in turn suitably
+translates them into the input logics (and in particular
+BitVector logic) of Satisﬁability Modulo Theories (SMT)
+solvers. In this section we present a novel method—
+named TA2SMT—for encoding executions of networks
+of TA into the logics supported by SMT solvers. The
+method skips the intermediate CLTLoc representation to
+directly produce formulas of BitVector logic to be fed to
+SMT solvers. This direct translation allows us to make
+several optimizations not possible in CLTLoc. As before,
+
+--- Page 7 ---
+TABLE I
+SNIPPET OF TACK ENCODING OF A TA INCLTL OC
+'6:=V
+i2[1;N]
+q2Qi
+p[i] =q^t[i] =]
+!X
+Inv(q)^r1(Inv(q))
+'7:=V
+i2[1;N]
+t2Tit[i] =t!
+p[i] =t^X(p[i] =t+)^'c^'v^'c^'v^'edge(t;t+;i)
+the MITL property will continue to be converted ﬁrst
+into CLTLoc before being transformed into BitVector
+logic by TACK through Zot. We use a consistent naming
+convention for the atomic propositions to ensure that
+the two BitVector encodings (the one for TA and the
+one for MITL formulas) can be safely combined to
+produce the ﬁnal SMT output. This section ﬁrst describes
+the various terms that make up our TA network, and
+discusses how they are encoded into BitVector logic.
+Then, it overviews of the constraints, deﬁned over the
+terms previously deﬁned, that capture the TA semantics.
+Finally, it provides an argument for the correctness of the
+new encoding, and highlights the improvements made
+over the original encoding. For ease of reading we
+will refer to the old encoding as TA2CLTLOC when
+contrasting it with TA2SMT. For the sake of space,
+this paper does not present the full TA2SMT encoding;
+interested readers can refer to [17] for further details.
+A. BitVector-based representation of terms
+Our novel encoding ( TA2SMT) is based on the idea of
+directly representing the terms of the TA into BitVectors.
+Since we are using a bounded veriﬁcation approach, our
+goal is to represent the terms over a ﬁnite number k+
+2of discrete positions. Using BitVector logic, we can
+group logically connected propositions into a BitVector,
+which results in a more compact encoding and can grant
+signiﬁcant speedups on operations performed over every
+element of the vector.
+1) Transitions: Before describing the BitVector terms
+for the transitions, we must make one key change to our
+set of transitions. For reasons to be discussed we wish
+to represent the null transition (when a TA does not
+transition between time positions) not as the separate
+entity], but rather as a set of jQijtransitions, one for
+each location q2Qi.
+8
+i2[1;N]8
+q2Qitnull q:=<q;q;; ?;?;?;?>
+These null transitions have the same source and desti-
+nation location, and no constraints or assignments. We
+can now refer to the set of all transitions as T, deﬁned
+asTi=S
+q2Qiftnull qg[Tifor each TAAi. As before
+Tis the union of the Tisets. The motivation for thisTransition Alias
+Ti[0] ! tbi;dlog2Tie1&: : :& ! tbi;1& ! tbi;0
+Ti[1] ! tbi;dlog2Tie1&: : :& ! tbi;1& tbi;0
+Ti[2] ! tbi;dlog2Tie1&: : :& tbi;1& ! tbi;0: : :
+: : :
+Ti[jTij] tbi;dlog2Tie1&: : :& ( tbi;1) & ( tbi;0)
+TABLE II
+CONSTRUCTION OF THE TRANSITION ALIASES
+redeﬁnition will become clear when we discuss the
+encoding of the active locations of the TA.
+To encodeTi, we adopt a similar approach as the
+one used in TA2CLTLOC . Rather than store each tran-
+sition as a separate BitVector, since only one transi-
+tion is active at a time in automaton Ai, we store
+the currently active transition as a binary number over
+dlog2jTijebits. Therefore, we create dlog2jTijeBitVec-
+torstbi;0;tbi;1;:::;tbi;dlog2jTije1of lengthk+ 2, each
+one representing a single bit of a numeric identiﬁer that
+encodes the transitions in Ti, i.e., thel-th bit of vector
+tbi;jis thej-th digit (weight 2j) of the binary number
+which indicates the active transition of Aiat the time
+positionl(see [7] for details about the principles behind
+bounded BitVector-based encodings). For the sake of
+convenience, to easily identify the time position in which
+a transition is taken, we associate every transition t2Ti
+with a BitVector, whose l-th bit has the value of 1 if t
+is active at position l(ﬁring occurs at l+ 1). The vector
+is determined using bit-wise logical operations over
+tbi;0;tbi;1;:::;tbi;dlog2jTije1. For example, suppose
+that a transition t2Tiis active at positions 1and3of
+a bounded sequence such that k= 8. That information
+is represented by BitVector 0000001010 of lengthk+2.
+Now, considerdlog2jTije= 6 and a transition t2Ti
+whose identiﬁer is 5. Since the binary representation
+of5is000101 , we express the CNF representation
+(maxterm) for the value 5 with BitVector variables tbi;j
+and construct formula
+! tbi;5& ! tbi;4& ! tbi;3& tbi;2& ! tbi;1& tbi;0:
+that deﬁnes a BitVector of length k+2such that the l-th
+bit is 1 if transition t= 5 is active at time position l
+
+--- Page 8 ---
+We use expression such as the one above to deﬁne
+aliases for thejTijtransitions of TA Ai, as shown in
+Table II, such that each transition is identiﬁed by means
+of a unique alias, i.e., each transition is encoded as a
+unique combination of the tbi;jvectors. We indicate the
+alias for a transition twhose identiﬁer is has tor Ti[h],
+depending on the case. Because the exact value of jTij
+is variable, for the last transition in the table we use the
+symbolto signal that whether or not the BitVector is
+negated depends on the exact value of jTij.
+Consider now transition edges. We introduce a BitVec-
+tor 
+edgeRC
+i; i2[1;N]of lengthk+ 2 for each TA in
+the network. When a bit is set to 1(resp., 0), it signiﬁes
+that the active transition for the TA at that time position
+is right-closed (resp., left-closed).
+2) Location: For every location q2Qi, we introduce
+an alias deﬁning a vector of k+2positions that indicate
+if the current location of automaton Aiisq. Since the
+active location of Aiis the source location tof the
+active transition, we deﬁne location qas the bit-wise
+disjunction of all the transitions whose source is q.
+8
+q2Qi q:=j
+t2Tijt=q t
+This is made possible by our addition of jQijnull
+transitions, one for each location. This was not possible
+in TACK’s CLTLoc encoding because of the use of a
+single null transition per automaton. When the CLTLoc
+null transition is active, it is not possible to determine
+the active locations without referring to variable p[i].
+3) Variables: Unlike location and transitions, the
+possible values of a bounded integer variable are not
+unrelated objects in a set, but their value must respect
+the operations of addition and subtraction. For each
+variablen2Intwe construct a bit representation vbn;j,
+where each BitVector has length k+ 2. The values are
+encoded in twos complement notation, and the number
+of BitVectors is chosen so that the vectors are capable
+of representing the entire range of values for the given
+bounded integer variable. We will deﬁne (n)as the
+number of bits needed for each variable n.
+To refer to the complete value of a variable at a
+particular time position, rather than a particular bit of
+the variable, we make use of the extract and concat
+BitVector logic operators to deﬁne a second set of
+BitVectors varn(l)of(n)bits, deﬁned over the vectors vbn;jthat represents the value of variable nat time
+positionl, with 0lk+ 1.
+4) Clocks: Our encoding of the clocks does not differ
+from TA2CLTLOC . Each clock x2Xis deﬁned as a
+functionx(l)that takes an integer argument lcorre-
+sponding to a time position and returns a real number
+representing the value of xat positionl.5) Complete Encoding of Terms: A valid trace of
+the network consists of assigning values to the terms
+described above. To build valid traces, we deﬁne a
+number of constraints that make use of two helper terms,
+and loop. The ﬁrst one represents the amount of time
+that passes between two adjacent time positions (i.e.,
+the length of the corresponding interval), and must be
+a positive real number. The second, the term loop, has
+a value equal to the index of the ﬁrst time position
+in the loop portion of the trace. From these we can
+represent any valid lasso-shaped trace of the network of
+lengthk+ 2, as typically done in bounded veriﬁcation
+approaches (see also [7]). In particular, a constraint limits
+the position of the loop to be a positive value bounded by
+k. The constants 0 and kare encoded using BitVectors of
+lengthk+ 2. For instance, the value 4over 5 bits would
+be written as 4[5](in this case we use the subscript to
+make the length of the BitVector explicit) and expands
+to00100 . Since BitVector logic supports arithmetic, the
+relation<can be applied to express the bounds for term loop as follows:
+ 0< loop< k:
+In addition, we introduce aliases to more easily refer
+to the transitions and locations individually, and to the
+value of a variable at a particular time position.
+B. Constraints
+The terms introduced in Section III-A allow us to
+describe lasso-shaped traces of networks of TA, but we
+need to introduce suitable restrictions to avoid capturing
+traces that do not respect the signal-based semantics of
+TA. These restrictions take the form of clock guards
+on a transition, location invariants that prevent a TA
+from staying in a location indeﬁnitely, clock progression
+constraints, and so on. We formalize these constraints
+in BitVector logic for the SMT solver to use when
+performing the Bounded Model Checking of TA. For
+brevity, in this paper we dot not present the full set of
+constraints; Table III shows some signiﬁcant formulas,
+which are explained in the rest of this section to illustrate
+how the terms introduced above impact on the new
+TA2SMT encoding. Further details can be found in [17].
+Formula5ensures that the active location of a TA
+correctly reﬂects the transition being taken. It asserts that
+when a transition is taken at position l, the destination lo-
+cation is active at position l+1( t[k:0]indicates that we
+are considering the bits of BitVector tin range [0;k]).
+Because the location BitVectors are just aliases deﬁned
+over the transition BitVectors (see Section III-A2), we do
+not need to explicitly constrain the TA to be in location
+tat time position l, since this is true by deﬁnition.
+
+--- Page 9 ---
+TABLE III
+SNIPPET OF TRANSITION CONSTRAINTS FOR A NETWORK OF TA. T ERMSANDARE BASED ON GRAMMARS PRESENTED IN SEC. II.
+5:=V
+t2T( t[k:0]! t+[k+1:1]) 9:=V
+t2TV
+l2[0;k] t[l]!(l;tc)
+10:=V
+t2TV
+l2[0;k] t[l]!(l;tv) 11:=V
+t2TV
+x2tacV
+l2[0;k] t[l]!x(l+1) = 0
+12:=V
+t2TV
+n;exp2tavV
+l2[0;k] t[l]! varn(l+1) = (l;n;exp)
+13:=V
+i2[1;N]
+t2TiV
+l2[0;k] t[l]!
+(l;Inv(t))^w(l+1;Inv(t+))^( 
+edgeRC
+i[l]= 1 )
+_
+
+w(l;Inv(t))^(l+1;Inv(t+))^( 
+edgeRC
+i[l]= 0 )
+(l;c) :=x(l)cj(l;0
+c)^(l;00
+c) (l;c) :=x(l) +(l)cj(l;0
+c)^(l;00
+c)
+w(l;c) :=x(l)wcjw(l;0
+c)^w(l;00
+c)w(l;c) :=x(l) +(l)wcjw(l;0
+c)^w(l;00
+c)
+(l;v) := varn(l) cj varn(l) varn0(l)j:(l;0
+v)j(l;0
+v)^(l;00
+v)
+(l;n;exp) := varn(l)j cj(l;n;exp0) +(l;n;exp00)j(l;n;exp0)(l;n;exp00)
+Each transition can have multiple guards, which con-
+sist of two types, clock guards and variable guards.
+Formula9asserts that, for every clock guard, its asso-
+ciated transition being active at time position limplies
+that at the instance of transition, the relationship 
+holds between the clock value and the value c. Recall
+that if a transition is active at position l, the transition
+occurs in the instant corresponding to the position l+ 1,
+where clock xdoes not have the value x(l), but rather
+x(l) +(l). Note that we cannot simply use x(l+ 1) as
+the value of the clock in 9, because it is possible that
+the transition can reset xatl+1, withx(l+1) = 0 being
+the post-transition value. The guard only sees the pre-
+transition value of the clock, thus we must explicitly add
+(l)tox(l). The term(l;tc)is the encoding of clock
+constrainttcexpressed at position land considering the
+time delay between position landl+ 1stored in.
+Formula10captures the same semantics for variable
+guards, asserting that an active transition implies that
+the variable guard is true at that time position. Because
+variables, unlike clocks, do not progress with time, it is
+sufﬁcient to simply use the value varn(l)to determine
+if the guard is satisﬁed. The function is used to
+encode the variable constraint grammar. If the form varn(l) varn0(l)is used and (n0)< (n), then varn0(l)is implicitly sign-extended to a length of (n)
+bits (conversely, it is truncated).
+Formula11models clock assignments, that are more
+straightforward than the clock guards. It is enough to
+require that if a transition is taken at time position l,then in the following time position the clock is reset.
+Formula12captures the semantics of variable assign-
+ments. Variable assignments can refer to both constant
+values and the values of other variables, and they may
+combine them using the operators f+;g. To implement
+this in our BitVector logic, we require that if any variable
+n0appears in the assignment expression of variable
+n, then(n0)(n)holds. We can then cast all
+constants and variables to BitVectors of length (n),
+sign-extending shorter values to a length of (n)bits if
+necessary. This allows us to use the standard BitVector
+addition and subtraction operators to compute the ﬁnal
+value, which is assigned to vat time position l+1. The
+term(l;n;exp) encodes the expression exp with the
+values of arithmetical variables at position l.
+Formula13captures the semantics of location in-
+variants. Although invariants are location-speciﬁc, not
+transition-speciﬁc, since locations are deﬁned by the
+active transitions, it is sufﬁcient to ensure that at the
+moment of transition both the source and destination
+invariants are satisﬁed, taking into account the value of 
+edgeRC
+i. Since all invariants are convex, if the invariant
+is satisﬁed at moment the TA enters the location and at
+the moment it leaves, it is satisﬁed at all positions in the
+interval between them. The occurrence of a transition
+at position limplies one of two statements, one for
+each possible value of 
+edgeRC
+i. In both the statements,
+the invariants of the source location are evaluated by
+considering the pre-transition clock values at position
+l+1, i.e.,x(l)+(l), hence using the terms andw,
+
+--- Page 10 ---
+as the clock resets have not happened yet. Conversely,
+the invariants of the destination location are evaluated by
+considering post-transition clock values at position l+1,
+hence using the terms andw. In addition, the invariant
+of the location (either tort+, depending on edgeRC
+i)
+that is not the current location of the automaton at the
+time instant in which a transition occurs, i.e., whose
+signal has an open-ended edge transition, are evaluated
+with the weak satisfaction relation w(the interested
+reader can ﬁnd the deﬁnition in [4]).
+The complete TA2SMT encoding includes, in addition
+to the formulas of Table III (which we can conjoin
+in a single formula, trans ), formulas that govern the
+initialization and progression of the TA ( init), formulas
+that capture the semantics of synchronizations ( sync),
+and formulas that guarantee the correctness of the lasso-
+shaped traces ( loop). Overall, the encoding of the se-
+mantics of a network of TA Nis given by the following
+formula (we refer to [17] for details):
+N:=init^trans^sync^loop
+C. Equivalence and Improvements
+In this section we outline an argument showing that
+the TA2SMT encoding given by formula Nof Section
+III-B is a correct and complete representation of all
+lasso-shaped, non-Zeno runs of length k+ 2of network
+N. More precisely, we brieﬂy compare the TA2SMT and
+TA2CLTLOC encodings and show that they capture the
+same constraints. Hence we conclude that the TA2SMT
+encoding is sound and complete, since TA2CLTLOC has
+been proved to be so in [4]. We also highlight the points
+in which TA2SMT improves on TA2CLTLOC .
+Both the TA2CLTLOC and the TA2SMT encodings
+constrain the clocks, variables, and TA to their respective
+initial values and locations at time position 0. For vari-
+ables and clocks these constraints are identical, as both
+assign the desired value at time position 0. For locations
+TA2SMT uses the qaliases to require that the TA
+begins in the initial location, despite not having location
+BitVectors. Because the location alias is only true when
+one of the transitions whose source is that location is
+true (including the location-speciﬁc null transitions), the
+constraint is valid. Function (l)ensures that all clocks
+progress at the same rate, while clock resets and variable
+assignments are only allowed if one of the corresponding
+transitions are active. As for the transitions, although
+we have broken up '7(see Table I) into several pieces
+(some of which are shown in Table III), the functionality
+remains the same. We ensure that in order for a transition
+to be valid, its destination location must be active in
+the next time position, the clock and variable constraints
+must be satisﬁed, all assignments must be enforced, and
+the invariants of the source and destination location mustbe true at the moment of transition. Like TA2CLTLOC ,
+TA2SMT allows that at the moment of transition, only
+one of the two invariants must be satisﬁed, using the
+concept of weak satisfaction to formalize this relaxation.
+Similarly, the original TA2CLTLOC encoding contains
+three constraints that assert that the values of the active
+locations, as well as the values of the variables and
+clocks, can only be changed if there is an active tran-
+sition that modiﬁes them. For locations, this is accom-
+plished with 5, which requires that the active location
+in the following position be equal to the value of the
+destination location of the active transition. Unlike in
+the original encoding, we have one null transition for
+each position, so we do not need to consider the null
+transitions as a special case. Therefore for the location
+to change, there must be a non-null transition to enable
+the location change. A pair of formulas, 8and7,
+not shown in this paper for brevity, assert that when
+no transition explicitly changes the value of a variable
+or resets a clock, their values remain the same. Our
+new encoding also respects the same loop constraints as
+TA2CLTLOC including the clock constraints necessary to
+represent all possible lasso-shaped traces.
+As shown in Section IV, the new TA2SMT encoding in
+many cases provides signiﬁcant beneﬁts in terms of efﬁ-
+ciency of the veriﬁcation procedure. In addition, TA2SMT
+introduces various improvements over TA2CLTLOC con-
+cerning the range of TA features captured. TA2CLTLOC
+contains a limitation regarding integer variables: because
+they are represented as elements of a set, TA2CLTLOC
+can only test them for equality. This means that con-
+straints of the form ncornn0, where62f =gare
+not supported. TA2SMT correctly represents the values of
+the integer variables using a twos-complement encoding,
+and therefore can support the full grammar of variable
+guards and assignments. The implementation of the
+TA2SMT encoding in the TACK tool has also ﬁxed some
+issues that were present in the old implementation of
+TACK, and it has allowed us to complete the set of
+features supported by the tool. In particular, support for
+broadcast synchronization primitives in the old version
+of the TACK tool was faulty, and it has now been ﬁxed
+in the implementation of TA2SMT, as shown by our
+experimental results. Finally, support for right-closed in-
+tervals, left-closed intervals, and arbitrary combinations
+thereof was not complete in the old implementation of
+TACK (only right-closed intervals were fully supported);
+TA2SMT, instead, fully supports all types of intervals.
+IV. E XPERIMENTAL RESULTS
+In this section we present the results of several ex-
+perimental evaluations of the new TA2SMT encoding
+compared with TA2CLTLOC . These tests cover several
+different benchmarks commonly used to evaluate for-
+
+--- Page 11 ---
+mal veriﬁcation techniques. For both TA2CLTLOC and
+TA2SMT, strong transition liveness (see [4]) was used in
+all of the tests, and all edges were constrained to be right-
+closed. These were the settings used to benchmark the
+original TACK application, and they remain the default
+settings for the tool. In all of the following tests, the
+measured time is the combined time taken by both the
+TACK program to parse the problem and convert it to
+SMT form and for the underlying Z3 solver [18] to
+decide the satisﬁability of the SMT problem. In practice,
+the TACK translation always took less than a second. For
+every test, the evaluation proceeded in several rounds,
+each with a larger length of traces considered by TACK.
+All tests were performed running the Z3 SMT solver
+version 4.8.8 on a server equipped with an AMD EPYC
+7551 CPU (2.5 GHz) with 2 32-core sockets, 500 GB
+of RAM and Debian Linux (version 4.19). Although our
+tests were run on a large server with (at the time of
+writing!) an unusually high amount of both processors
+and RAM, the Z3 solver is a single-threaded applica-
+tion, and typically uses less than a gigabyte of RAM
+while running. Therefore, very similar results could be
+obtained on a machine with more reasonable resources.
+To reduce instabilities in the solver and to present a
+clearer comparison between the encodings, we used Z3’s
+built-in ‘parallel-or’ solution strategy to run two versions
+of each test, each copy with a different random seed. The
+times reported here are the shortest time of two runs, as
+Z3 process terminates when either thread terminates.
+Fischer Mutual Exclusion Protocol: The well known
+Fischer benchmark [19] models a protocol for ensuring
+exclusive access to a shared common resource that can
+be requested by multiple processes. The processes are
+identical in their behavior, aside from a numerical id,
+and are modeled through single TA. The protocol uses
+global variables in guards and assignment statements of
+the TA to control access. Each TA in the network has a
+‘critical state’, and the protocol guarantees that only one
+TA can be in its critical state at a time.
+To measure the scalability of our new encoding, we
+performed multiple test runs while modifying the bound
+kand the number of processes that are attempting to
+execute their critical region. Several MITL properties,
+which are the same as in [4], were veriﬁed. Liveness
+property 1 ( live1 ) requires that once process 1 enters
+stateb, in which it sets shared variable id, it always
+transitions to the ‘waiting’ state c. Property 2 ( live2 )
+is similar, but it contains the additional constraint that
+process 1 must complete the transition to state cin at
+most 3 seconds. Property live3 has a similar time bound,
+but requires that process one move to the critical section
+csrather thancwithin the time bound, which we expect
+to not be universally true (a process can return to state
+bafter moving to state cif another process has reset
+Fig. 3. Results of the comparison between TA2SMT and TA2CLTLOC
+on the Fischer protocol. Each column corresponds to a different number
+of processes involved in the Fischer protocol that share a common
+resource. The numbers appearing as sufﬁxes in the property names
+(e.g., 20inlive1-20 ) indicate the length of the (lasso-shaped) traces
+considered by the solvers.
+the variable id). Properties live4 and live5 are copies
+of properties live2 andlive3 , respectively, with the sole
+difference of inclusion vs. exclusion at the boundaries
+of the interval. Property safe seeks to prove the “safety”
+of the protocol, namely that two distinct processes are
+never in the critical section at the same time.
+Figure 3 shows the results of the comparison between
+TA2SMT and TA2CLTLOC . The table shows the time
+(sec.) that the fastest tool takes to solve the instance.
+The color indicates how this time compares with that of
+TA2SMT. If TA2SMT is the fastest tool of the two, the
+cell is colored green, and the shade of green indicates
+how much faster TA2SMT is compared to TA2CLTLOC
+(dark green means >2xspeedup, light green means
+between 1:05x and2xspeedup). Otherwise, the cell is
+colored orange when TA2SMT is between 1:05x and
+2xslower than TA2CLTLOC , and red when it is more
+than 2xslower (if the difference between TA2SMT and
+TA2CLTLOC is less than 5% either way, the cell is
+left white). Figure 4 shows the speed up/slow down
+
+--- Page 12 ---
+Fig. 4. Speedup/slow down between TA2SMT and TA2CLTLOC on the
+Fischer protocol.
+factor for each experiment with the Fischer protocol.
+Empty cells indicate a timeout for both tools, set at 2
+hours. For property safe,TA2CLTLOC is the fastest tool.
+Indeed, TA2SMT is consistently faster than TA2CLTLOC
+for greater values of the bound kand higher numbers
+of processes, except for property safe. This property is
+peculiar in that the MITL formula grows in size with
+the number of TA in the network. It is possible that at
+larger sizes, the MITL encoding becomes a bottleneck
+that limits the utility of further TA optimizations.
+Gearbox: The Gearbox TA models an automatic
+gearshift which utilizes a gearbox controller [20]. Upon
+receiving a gear change (reverse, neutral, as well as gears
+1-5 are modelled), the controller coordinates changes to
+the state of the engine, gearbox, and clutch to perform
+the desired gear transition. Property 0 asserts that in
+the absence of any errors, the elapsed time required to
+change gears after an input is no greater than 1500 ms.
+Property 1 similarly asserts that for certain speciﬁc gear
+transitions, the absence of errors implies a transition
+time of at most 1000 ms. Property 2 concerns error
+propagation from the clutch and gearbox to the gear
+controller. Depending on the speciﬁc error, the gear
+controller is required to respond accordingly within 200
+Fig. 5. Results of the comparison between TA2SMT and TA2CLTLOC
+on the Gearbox model.
+Fig. 6. Speedup/slow down between TA2SMT and TA2CLTLOC on the
+Gearbox model.
+or 350 milliseconds. Property 3 also concerns error
+states in the controller. It asserts that each error state in
+the controller is active only when the related error has
+occurred in either the clutch or the gearbox. Thus, the
+controller never reports a false error. Property 4 asserts
+that whenever the gearbox is not in neutral and no gear
+shift is occurring, the engine module is supplying torque
+to the rest of the drive system. These properties were
+evaluated over the gearbox model using time bounds
+between 10 and 50 steps. Figure 5 reports, for each
+instance, the time (sec.) taken by the fastest tool of the
+two to solve the model. As for Figure 3, cells colored
+green (resp., red/orange) are those for which TA2SMT
+(resp., TA2CLTLOC ) was fastest (see Figure 6 for the
+speed up/slow down factors).
+Token Ring: The Token Ring protocol [21] models
+a ring of agents that pass a token between themselves,
+along with a process that models the ring itself. The
+token moves in either direction along the ring (the ring
+process controls the token). The agents may choose to
+return the token in either a synchronous or asynchronous
+manner. In both cases, channel-based synchronization
+among TA coordinates ownership of the token. The
+property checked asserts that agents 1 and 2 never
+simultaneously synchronize with the token. Figure 7
+contains the results of the Token Ring tests (time in sec.),
+while Figure 8 shows the speed up factors.
+Philips Audio Protocol: The Philips Audio Protocol
+models the transmission of data over a single shared
+bus between two entities. An interesting property is that
+the message can be decoded by a receiver that can only
+detect rising edges, that is a transition from a low to high
+signal over the bus. This algorithm was translated into
+a TA representation for the Uppal tool by Larsen et al.
+[22]. Property 1 expresses the correctness of the protocol,
+that with a properly functioning sender and receiver the
+
+--- Page 13 ---
+Fig. 7. Results of the comparison between TA2SMT and TA2CLTLOC
+on the Token Ring model
+Fig. 8. Speedup/slow down between TA2SMT and TA2CLTLOC on the
+Token Ring protocol.
+signal will be interpreted correctly. This is represented
+by asserting that the receiving agent never enters an error
+state. Property 2 expresses that the sender will never send
+two rising edges within 400 units of time, regardless of
+the message being sent (required to ensure a 5% timing
+error tolerance). Property 3 expresses that when the
+sender has completed the message, the receiver enters the
+stop state within 900 time units. For this model, the use
+of arithmetic operations on variables made creating the
+model for TA2CLTLOC (which supports such operations
+through a workaround) difﬁcult, so Table IV shows only
+the results obtained with TA2SMT on the veriﬁcation of
+three properties.
+Carrier Sense Multiple Access / Collision Detection:
+The CSMA/CD protocol [23] is a well known protocol
+for allowing multiple agents to share a communication
+channel, and was popularized by its inclusion in the
+Ethernet standard. The protocol includes one process to
+manage a shared communication bus, as well as a num-
+ber of processes that wish to obtain exclusive access to
+the bus in order to send a message. When two processes
+attempt to send at the same time, the bus process detects
+the collision and uses the broadcast synchronization
+primitive to force the processes to wait a randomized
+amount of time before attempting to communicate again.
+k 15 25 35 40 45 50prop.1 5.1 155.3 3071.9 9420.8 27947.4 -
+2 3.8 9.0 29.8 29.8 42.5 65.0
+3 7.8 285.8 6440.4 21426.9 - -
+TABLE IV
+TIME(SEC.)TO CHECK THE PROPERTIES OF THE PHILIPS
+PROTOCOL WITH TA 2SMT (MEANS NO RESULT AFTER 12HOURS ).n 3 5 7 9 10k10 3.5 5.1 5.8 7.8 9.5
+15 31.2 52.7 121.7 275.4 324.0
+20 109.5 721.5 2206.1 5097.3 5068.9
+25 813.7 4772.4   
+30 2882.0   
+TABLE V
+TIME(SEC.)TO CHECK PROPERTY FOR THE CSMA/CD PROTOCOL
+WITH TA 2SMT (MEANS NO RESULT AFTER 2HOURS ).
+The property checked asserts that after process 1 has
+been sending for 52 units of time, process 2 cannot
+begin sending until process 1 has ﬁnished. Table V
+shows the results of the execution of the veriﬁcation runs
+on the CSMA/CD model using TA2SMT. In this case,
+a comparison with the TA2CLTLOC encoding has not
+been carried out, because we modiﬁed the CSMA/CD
+TA model to make it more accurate with respect to
+the real-world behavior of the protocol. This entailed
+using variable comparisons that are not fully supported
+inTA2CLTLOC , so Table V only reports executions times
+obtained through TA2SMT.
+For the Fischer benchmark, in addition to the two-way
+comparison between TA2SMT and TA2CLTLOC discussed
+above and summarized by ﬁgures 3 and 4, we also
+carried out a three-way comparison between the two
+TACK encodings and M ITL0;1BMC (similarly to [4]).
+Figure 9 shows the results of the three-way comparison.
+More precisely, it shows the time taken by the fastest of
+the three tools, and the color of each cell represents how
+TA2SMT compares against the best of the other two tools:
+if the cell is colored green, TA2SMT was the fastest tool,
+otherwise the cell is colored orange/red, with the same
+meaning of the coloring as for ﬁgures 3 and 4. Notice
+that the live3 andlive5 properties do not hold —i.e., a
+counterexample exists, as the model is satisﬁable . In
+these cases, the incremental approach of M ITL0;1BMC,
+which explores the bounds kstarting from 1until it
+determines that the model is satisﬁable, is very efﬁcient,
+since it stops the search as soon as possible. Indeed, the
+portions of Figure 9 corresponding to properties live3
+andlive5 show that the best tool (M ITL0;1BMC) uses
+a constant time to solve the problem, even as the bound
+kincreases (the model is satisﬁable with a bound less
+than 10). For property safe, for higher bounds k, both
+TA2CLTLOC and TA2SMT are faster than M ITL0;1BMC.
+Notice that, in the cases of the Gearbox and Token
+Ring benchmarks, we only compared TA2SMT against
+TA2CLTLOC , since models for the M ITL0;1BMC tool
+were not available (and building new ones was not
+possible, as explained in [4]).
+
+--- Page 14 ---
+Fig. 9. Results of the comparison between TA2SMT,TA2CLTLOC and
+MITL0;1BMC on the Fischer protocol.
+V. D ISCUSSION AND FUTURE WORKS
+Empirical testing has revealed that the novel TA2SMT
+encoding can provide signiﬁcant speedups across several
+benchmarks when compared to TA2CLTLOC . In partic-
+ular, TA2SMT is consistently better than TA2CLTLOC in
+the Token Ring case, and mostly better in the Gearbox
+and Fischer cases, especially for increasing values of the
+bound and of the number of processes. These results
+seem to indicate that the TA2SMT encoding is better
+suited to exploring models with larger bounds, as the
+time needed to solve larger and larger bounds grows
+more slowly compared to TA2CLTLOC .
+In addition, TA2SMT was able to solve models (the
+new, more realistic CSMA/CD and the Philips protocol)
+that were more difﬁcult to tackle in TA2CLTLOC due to
+limitations in the way the old encoding deals with integer
+operations and with synchronizations among TA.
+Future work will focus on two main objectives. Firstly,
+we will seek to achieve a better integration of the two
+translations, which will take the form of a BitVector
+encoding speciﬁc to MITL formulas that does not rely on
+the CLTLoc translation. Secondly, given the considerable
+impact of incremental approaches in veriﬁcation we willattempt to understand how to make the BitVector-based
+encoding incremental.
+REFERENCES
+[1] R. Alur and D. L. Dill, “A theory of timed automata,” Theoretical
+Computer Science , vol. 126, no. 2, pp. 183 – 235, 1994.
+[2] K. G. Larsen, P. Pettersson, and W. Yi, “Uppaal in a nutshell,”
+1997.
+[3] A. Cimatti, E. Clarke, E. Giunchiglia, F. Giunchiglia, M. Pistore,
+M. Roveri, R. Sebastiani, and A. Tacchella, “Nusmv 2: An
+opensource tool for symbolic model checking,” in Computer
+Aided Veriﬁcation , E. Brinksma and K. G. Larsen, Eds. Berlin,
+Heidelberg: Springer Berlin Heidelberg, 2002, pp. 359–364.
+[4] C. Menghi, M. M. Bersani, M. Rossi, and P. San Pietro, “Model
+checking MITL formulae on timed automata: A logic-based
+approach,” ACM Trans. Comput. Logic , vol. 21, no. 3, pp. 1–
+44, 2020.
+[5] R. Alur, T. Feder, and T. A. Henzinger, “The beneﬁts of relaxing
+punctuality,” Journal of the ACM , vol. 43, no. 1, pp. 116–146,
+1996.
+[6] M. M. Bersani, M. Rossi, and P. San Pietro, “A tool for deciding
+the satisﬁability of continuous-time metric temporal logic,” Acta
+Informatica , vol. 53, no. 2, pp. 171–206, 2016.
+[7] M. M. Pourhashem Kallehbasti, M. Rossi, and L. Baresi, “On
+how bit-vector logic can help verify LTL-based speciﬁcations,”
+IEEE Transactions on Software Engineering , pp. 1–15, 2020.
+[8] R. Bryant, “Graph-based algorithms for boolean function manip-
+ulation,” IEEE Transactions on Computers , vol. 35, pp. 677–691,
+1986.
+[9] J. Burch, E. Clarke, K. McMillan, D. Dill, and L. Hwang,
+“Symbolic model checking: 1020 states and beyond,” Information
+and Computation , vol. 98, no. 2, pp. 142 – 170, 1992.
+[10] C. Baier and J.-P. Katoen, Principles of model checking . MIT
+press, 2008.
+[11] C. A. Furia, D. Mandrioli, A. Morzenti, and M. Rossi, Modeling
+Time in Computing , ser. EATCS Mon. in Theoretical Computer
+Science. Springer, 2012.
+[12] P. Bouyer, “Model-checking timed temporal logics,” Electronic
+Notes in Theoretical Computer Science , vol. 231, pp. 323–341,
+mar 2009.
+[13] R. Kindermann, T. Junttila, and I. Niemelä, “Bounded model
+checking of an MITL fragment for timed automata,” Proceedings
+- International Conference on Application of Concurrency to
+System Design, ACSD , 04 2013.
+[14] T. Brihaye, G. Geeraerts, H.-M. Ho, and B. Monmege, “Mightyl:
+A compositional translation from MITL to timed automata,”
+inInternational Conference on Computer Aided Veriﬁcation .
+Springer, 2017, pp. 421–440.
+[15] F. Marconi, M. M. Bersani, M. Erascu, and M. Rossi, “Towards
+the formal veriﬁcation of data-intensive applications through
+metric temporal logic,” in Formal Methods and Software Engi-
+neering , K. Ogata, M. Lawford, and S. Liu, Eds. Cham: Springer
+International Publishing, 2016, pp. 193–209.
+[16] M. M. Bersani, M. Rossi, and P. San Pietro, “An SMT-based
+approach to satisﬁability checking of MITL,” Information and
+Computation , vol. 245, pp. 72 – 97, 2015.
+[17] R. L. Smith, “Improved veriﬁcation of networks of timed au-
+tomata,” Master’s thesis, Politecnico di Milano, 2020.
+[18] L. De Moura and N. Bjørner, “Z3: An efﬁcient SMT solver,”
+inInternational conference on Tools and Algorithms for the
+Construction and Analysis of Systems . Springer, 2008, pp. 337–
+340.
+[19] M. Abadi and L. Lamport, “An old-fashioned recipe for real
+time,” Transactions on Programming Languages and Systems ,
+pp. 1543–1571, 1994.
+[20] M. Lindahl, P. Pettersson, and W. Yi, “Formal design and analysis
+of a gear controller,” International Journal on Software Tools for
+Technology Transfer , vol. 3, pp. 353–368, 08 2001.
+[21] R. Jain, FDDI handbook: high-speed networking using ﬁber and
+other media . Addison-Wesley Longman Publishing Co., Inc.,
+1994.
+
+--- Page 15 ---
+[22] K. G. Larsen, P. Pettersson, and W. Yi, “Model-checking for
+real-time systems,” in Fundamentals of Computation Theory ,
+H. Reichel, Ed. Berlin, Heidelberg: Springer Berlin Heidelberg,
+1995, pp. 62–88.
+[23] “IEEE 802.3 Ethernet Working Group,” http://www.ieee802.org/
+3.

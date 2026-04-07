@@ -1,0 +1,294 @@
+--- Page 1 ---
+OpenNWA: A Nested-Word Automaton Library⋆
+Evan Driscoll1, Aditya Thakur1, and Thomas Reps1,2
+1Computer Sciences Department, University of Wisconsin – Ma dison
+{driscoll,adi,reps }@cs.wisc.edu
+2GrammaTech, Inc., Ithaca, NY
+Abstract. Nested-word automata (NWAs) are a language formalism
+that helps bridge the gap between ﬁnite-state automata and p ush-
+down automata. NWAs can express some context-free properti es, such as
+parenthesis matching, yet retain all the desirable closure characteristics
+of ﬁnite-state automata.
+This paper describes OpenNWA, a C++ library for working with
+NWAs. Thelibraryprovidestheexpectedautomata-theoreti c operations,
+such as intersection, determinization, and complementati on. It is pack-
+aged with WALi—the WeightedAutomaton Library—and interoperates
+closely with the weighted pushdown system portions of WALi.
+1 Introduction
+Many problems in computer science are solved by modeling a componen t as
+an automaton. Traditionally, this means either confronting severa l undecidable
+problemsthatarisewith theuseofpushdownautomataorgivingupe xpressivity,
+and usually precision, by using ﬁnite-state automata. Recently, th e development
+of nested word automata (NWAs) and related formalisms [2,3] has r evealed a
+fertile middle ground between these two extremes. NWAs are power ful enough
+to express some “context-free”-style properties, such as par enthesis matching,
+and yet retain the decidability properties that make it convenient to work with
+regular languages. In particular, NWAs and their languages are clos ed under
+operations such as intersection and complementation. NWAs have b een applied
+in areas such as modeling programs and XML documents. When modelin g pro-
+grams, NWAs can eliminate spurious data ﬂows along paths with mismat ched
+calls and returns. In XML documents, NWAs can model the matching between
+opening and closing tags.
+We have created a C++ implementation of NWAs, called OpenNWA. Open -
+NWA is packaged with the WeightedAutomata Library, WALi [7]. WALi also
+provides implementations for weighted ﬁnite-state automata and w eighted push-
+down systems (WPDSs). The OpenNWA library
+–implements(intheterminologyof[3])linearly-accepting,weakly-hiera rchical
+NWAs, along with standard automata-theoretic operations. (See §3.1.)
+⋆Supported by NSF under grants CCF- {0540955, 0810053, 0904371 }; by ONR under grants
+N00014- {09-1-0510, 10-M-0251 }; by ARL under grant W911NF-09-1-0413; by AFRL under grants
+FA9550-09-1-0279 and FA8650-10-C-7088; and by DARPA under cooperative agreement HR0011-
+12-2-0012. Any opinions, ﬁndings, and conclusions or recom mendations expressed in this material
+are those of the author(s) and do not necessarily reﬂect the v iews of the sponsoring agencies.
+
+--- Page 2 ---
+–is extensible via a mechanism that allows the user to attach arbitrary client
+information to each node in the automaton. (See §3.2.)
+–inter-operates with WALi’s WPDS library and allows the user to issue
+queries about an NWA’s conﬁguration space. (See §3.3.)
+–provides utilities for operating on a textual NWA format [5, §5].
+–provides extensive documentation [5] and a test suite.
+OpenNWA is currently used by three projects [11,4,6]; see §4. OpenNWA is
+available at http://research.cs.wisc.edu/wpis/OpenNWA .
+2 NWAs
+Thissectiondescribesnested-wordautomata[2]andrelatedterm satanintuitive
+level, and gives an example of how they are used in program analysis. F or the
+formal deﬁnitions that we use, see our technical report [5, App. A ].
+A nested word is an ordinary (linear) string of symbols over some alph abet
+Σpaired with a nesting relation . The nesting relation describes a hierarchi-
+cal relation between input positions, for instance between matche d parentheses.
+Graphically,a nested wordcanbe depicted
+a b c d e fgh as illustrated to the right. In this image,
+following just the horizontal arrows illustrates the linear word, while the curved
+edges (“nesting edges ”) indicate positions that are related by the nesting rela-
+tion. For a nesting relation to be valid, nesting edges must only point f orward
+in the word and may not share a position or cross.
+Positions in the word that appear at the left end of a nesting edge ar e called
+call positions , those that appear at the right end are called return positions ,
+and the remaining are internal positions . It is possible to have pendingcalls and
+returns, which are not matched within the word itself. For a given re turn, the
+source of the incoming nesting edge is called that return’s call predecessor .
+Nested-word automata (NWAs) are a generalization of ordinary ﬁnite-state
+automata (FA). An NWA’s transitions are split into three sets—call t ransitions,
+internal transitions, and return transitions. Call and internal tr ansitions are
+deﬁned the same as transitions in ordinary FAs, while return transit ions also
+have a call-predecessor state as an additional element.
+To understand how an NWA works, consider ﬁrst the case of an ord inary
+FAM. We can think of M’s operation as labeling each edge in the input word
+with the state that Mis in after reading the symbol
+a b c d eq0q1q2
+at that edge’s source. For instance, shown to the right
+is a partial run. To ﬁnd the next state, Mlooks for a transition out of q2with
+the symbol c—say with a target of q3—and labels the next edge with q3.
+The operation of an NWA proceeds in a fashion similar to a standard FA ,
+except that the machine also labels the nesting edges. When the NWA reads an
+internal position, it chooses a transition and labels the next linear ed ge the same
+way an FA would. When the NWA reads a call position, it picks a matching call
+transition and labels the next linear edge in the same way, but also labe ls the
+outgoing nestingedge with the state that the NWA is leaving. When the NWA
+reads a return position, it looks not only at the preceeding linear sta te but also
+at the state on the incoming nesting edge. It then chooses a retur n transition
+2
+
+--- Page 3 ---
+1 void main() {
+2 f = factorial(5);
+3 printf("%d\n", f);
+4 }
+5 int factorial(int n) {
+6 if (n == 0)
+7 return 1;
+8 f = factorial(n-1);
+9 return n * f;
+10 }A
+B
+C
+DE
+FG
+H
+K1266
+7
+10 (B)8
+9
+10 (G)31 26 8 6 710 9 10 3GB
+A B E GE F K H K CD
+Fig.1.An example program, corresponding NWA, and accepted word. S tate labels
+are arbitrary; transition symbols give the line number of th e corresponding statement.
+Somenodes are elided.Dottedlines indicate call transitio ns, anddashedlines are return
+transitions. The state in parentheses on a return transitio n is the call predecessor.
+that matches both, and labels the next linear edge with the target s tate. An
+example NWA run is shown in Fig. 1.
+OpenNWAsupports εinternaltransitions,whichoperateinananalogousway
+toεrules in ordinary FAs. It also supports something we call wildtransitions,
+which match any single symbol. Wilds can appear on any transition type .
+Example 1. NWAs can be used to encode the interprocedural control-ﬂow gra ph
+(ICFG) of a program. Intraprocedural ICFG edges become inter nal transitions,
+interprocedural call edges become call transitions, and interpro cedural return
+edges become return transitions. Foran ICFG return edge ( exit-site,return-site ),
+weusethecallsitethatcorrespondsto return-site inthecall-predecessorposition
+of the NWA’s transition. The symbols on a transition depend on the ap plication,
+but frequently are the corresponding statement.
+An example program, the corresponding NWA, and an example word a c-
+cepted by that NWA are shown in Fig. 1. Using an NWA allows us to exclud e
+paths such as 1–2–5–6–7–8–9–... that do not follow a matched path of calls and
+returns. Fewer paths can allow a client analysis to obtain increased p recision.
+3 The OpenNWA library
+OpenNWAprovidesaC++classcalled NWAforrepresentingNWAs.Forinforma-
+tion about constructing NWAs and actual API information, see the OpenNWA
+documentation [5]. In this section, we brieﬂy describe some things a u ser can do
+with an NWA (or NWAs) once it is built.
+3.1 Automata-theoretic operations
+As mentioned in §1, OpenNWA supports most automata-theoretic operations:
+–intersection
+–union
+–Kleene star–reversal
+–concatenation
+–determination–complement
+–emptiness checking
+–example word generation
+For the most part, we use Alur and Madhusudan’s algorithms [2,3]; ho wever we
+note three exceptions. First, we implemented emptiness checking a nd example
+generation using WPDSs, discussed below. Second, we found and co rrected a
+3
+
+--- Page 4 ---
+minor error in Kleene star [5, §6.4]. Third, we expressed Alur and Madhusudan’s
+determinization algorithm using relational operators [5, App. B].
+OpenNWA supports determining whether an NWA’s language is empty, and
+if it is not, OpenNWA can return an arbitrary word from the NWA’s lang uage.
+It is also possible to ask speciﬁcally for a shortest accepted word. T he library
+performs these operations by converting the NWA into a WPDS and r unning a
+post∗query from the set of initial conﬁgurations (see §3.3). To ﬁnd an example
+word,OpenNWAuses awitness-tracingversionofpost∗[10,§3.2.1],and extracts
+the wordfromthe resultingwitness. Forthe shortestword,wesim plyuseweights
+that track the length of the path from the initial state.
+The ability to obtain an example word is important in program analysis. I t
+can show the end user of an analysis tool a program trace that may violate a
+property. Moreover, this feature is fundamental to counterex ample-guided re-
+ﬁnement: in CEGAR-based model checkers, the counterexample is typically an
+example word from the automaton that models the program.
+3.2 Client information
+OpenNWA providesa facility that we call client information . This feature allows
+the user of the library to attach arbitrary information to each sta te in the NWA.
+For instance, as discussed in §4, McVeto uses NWAs internally, and uses client
+information to attach a formula to each state in the NWA.
+The library tracks this information as best as it can through each of the
+operations discussed in the previous section, and supports callbac k functions to
+compute new client information when it does not have the information it needs.
+3.3 Inter-operability with WPDSs
+Weighted pushdown systems (WPDSs) can be used to perform inter procedural
+static analysis of programs [10]. The PDS proper provides a model of the pro-
+gram’s control ﬂow, while the weights on PDS rules express the data ﬂow trans-
+formers. Algorithms exist to query the conﬁguration space of WPD Ss, which
+corresponds to asking a question about the data values that can a rise at a set of
+conﬁgurations in the program’s state space. A conﬁguration cons ists of a control
+location and a list of items on the stack.
+OpenNWA supports converting an NWA into a WALi WPDS. This featur e
+allows an OpenNWA client to issue queries about the conﬁguration spa ce of
+an NWA. The WPDS’s stack corresponds to the states that label th e as-yet-
+unmatched nesting edges in a preﬁx of an input nested word. When v iewed in
+program-analysis terms, the WPDS that results from this convers ion reﬂects
+the same control structure as the original NWA. Answers to WPDS queries
+tend to have a natural interpretation in the NWA world, as well. For N WA
+operations that can be expressed naturally in this way (e.g., emptine ss checking
+and post∗), OpenNWA employs this conversion. Other NWA operations, such
+as determinization, do not have an equivalent WPDS operation.
+NWAs themselves are not weighted, but OpenNWA provides a facility f or
+determining the weightsofthe WPDS rulesduring conversion.The us erprovides
+4
+
+--- Page 5 ---
+an instance of class WeightGen , which acts as a factory function. The function is
+called with the states in question and returns the weight of the resu lting WPDS
+rule. (The weight can depend on the client information of the states .)
+4 Uses of OpenNWA
+I/O compatibility checking. We used OpenNWA as the primary component
+of a tool called the Producer-Consumer Conformance Analyzer (P CCA) [4].
+Given two programs that operate in a producer/consumer relation ship over a
+stream,PCCA’s goalis to determine whether the consumeris prepa redto accept
+allmessagesthatthe producercanemit,andﬁndacounterexamp leifnot.PCCA
+infers a model of the output languageofthe producer,infers a mo del of the input
+language of the consumer, and determines whether the models are compatible.
+PCCA uses NWAs for its models, building them from the ICFG, as discus sed
+in Ex. 1. Edges corresponding to statements that perform I/O ar e labeled with
+the type of the I/O, and all other internal transitions are labeled w ithε. Con-
+ceptually what we want to check is whether the producer’s output la nguage is a
+subset of the consumer’s input language, which is an operation NWAs and our
+library support. In practice, this check is likely to be too strict, and we need an
+additional step, detailed in [4, §2.3 and§3.2].
+Machine-code model checking. McVeto is a machine-code veriﬁcation en-
+gine [11] that, given a binary and description of a bad target state, tries to ﬁnd
+either (i) an input that forces the bad state to be reached, or (ii) a proof that
+the bad state is impossible to reach.
+McVeto uses a model of the program called a proof graph , which is an NWA
+that overapproximates the program’s behavior. States in a proof graph are la-
+beled with formulas; edges are labeled with program statements. Mc Veto starts
+with a very coarse overapproximation, which it then reﬁnes. One re ﬁnement
+technique uses symbolic execution to produce a concrete trace of the program’s
+behavior, performs trace generalization [11,§3.1] to convert the trace into an
+overapproximating NWA (the “folded trace”), and intersects the current proof
+graph with the folded trace to obtain the new proof graph. The for mula on a
+state in the new proof graph is the conjunction of the formulas on t he states
+that are being paired from the current proof graph and the folded trace.
+McVeto’s implementation uses OpenNWA’s client-information feature to
+store the formula for each state. During intersection, the callbac k functions men-
+tioned in §3.2 compute the conjunction of the input formulas, which are then
+used in the new proof graph.
+Todeterminewhetherthetargetstateisnotreachableintheproo fgraph(and
+thus is deﬁnitely not reachable in the actual program), McVeto calls prestar()
+(see§3.3). The result of this call is also used to determine which “frontier” to
+extend next during directed test generation [11, §3.3].
+JavaScript security-policy checking and weaving. The JAM tool [6]
+checks a JavaScript program against a security policy, either verif ying that the
+program is already correct with respect to that policy or inserting d ynamic
+checks into the program to ensure that it will behave correctly. JA M builds two
+5
+
+--- Page 6 ---
+models of the input program, one that overapproximates the cont rol ﬂow of the
+program and one that overapproximates the data ﬂow. The policy is also ex-
+pressed as an NWA of forbidden traces. By intersecting the policy a utomaton
+with both program models, JAM obtains an NWA that expresses trac es that
+possibly violate the policy.
+Once JAM has the combined NWA, it asks OpenNWA for a shortest wor d
+in the language. If the language is empty (i.e., there is no shortest wo rd), the
+program always respects the policy. If OpenNWA returns an examp le wordw,
+JAM checks whether wcorresponds to a valid trace through the program. If wis
+valid, then JAM inserts a dynamic check to halt concrete executions correspond-
+ing towthat would violate the policy. If wis not valid, than JAM can either
+reﬁne the abstraction and repeat, or insert a dynamic check to de tect and halt
+concrete executions corresponding to wfor which the policy would be violated.
+5 Related work
+Alur and Madhusudan each maintain a page giving a signiﬁcant bibliograp hy of
+papersthatpresenttheoreticalresults,practicalapplications ,andtoolsrelatedto
+NWAs and visibly pushdown automata (VPAs) [1,8]. VPAs and their lang uages
+are another formalism which can be seen as an alternative encoding o f NWAs
+and nested-word languages [3].
+VPAlib [9] is a general-purpose library implementing VPAs. However, Op en-
+NWA’s implementation is far more complete. For instance, VPAlib does n ot
+support concatenation, complementation (although it does suppo rt determiniza-
+tion), checking emptiness, or obtaining an example word.
+References
+1. R. Alur. Nested words, 2011. http://www.cis.upenn.edu/ ~alur/nw.html .
+2. R. Alur and P. Madhusudan. Adding nesting structure to wor ds. InDLT, 2006.
+3. R. Alur and P. Madhusudan. Adding nesting structure to wor ds.JACM, 56(3),
+May 2009.
+4. E. Driscoll, A. Burton, and T. Reps. Checking conformance of a producer and a
+consumer. In FSE, 2011.
+5. E. Driscoll, A. Thakur, A. Burton, , and T. Reps. WALi: Nest ed-word automata.
+TR-1675R, Comp. Sci. Dept., Univ. of Wisconsin, Madison, WI , Sept. 2011.
+6. M. Fredrikson, R. Joiner, S. Jha, T. Reps, P. Porras, H. Sa¨ ıdi, and V. Yegneswaran.
+Eﬃcient runtime policy enforcement using counterexample- guided abstraction re-
+ﬁnement. In CAV, 2012.
+7. N. Kidd, A. Lal, and T. Reps. WALi: The Weighted Automaton L ibrary, 2007.
+www.cs.wisc.edu/wpis/wpds/download.php.
+8. P. Madhusudan. Visibly pushdown automata – automata on ne sted words, 2009.
+http://www.cs.uiuc.edu/ ~madhu/vpa/ .
+9. H. Nguyen. Visibly pushdown automata library, 2006. http://www.emn.fr/
+z-info/hnguyen/vpa/ .
+10. T. Reps, S. Schwoon, S. Jha, and D. Melski. Weighted pushd own systems and
+their application to interprocedural dataﬂow analysis. SCP, 58(1–2), Oct. 2005.
+11. A. Thakur, J. Lim, A. Lal, A. Burton, E. Driscoll, M. Elder , T. Andersen, and
+T. Reps. Directed proof generation for machine code. TR 1669 , UW-Madison,
+Apr. 2010. Abridged version published in CAV 2010.
+6
