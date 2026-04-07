@@ -1,0 +1,773 @@
+--- Page 1 ---
+A Statistical Model Checker
+for Nondeterminism and Rare Events
+Carlos E. Budde1, Pedro R. D’Argenio2,3,4, Arnd Hartmanns1(B),
+and Sean Sedwards5
+1University of Twente,
+Enschede, The Netherlands
+{c.e.budde,a.hartmanns }@utwente.nl
+2Universidad Nacional de C´ ordoba,
+C´ordoba, Argentina
+dargenio@famaf.unc.edu.ar
+3CONICET, C´ ordoba, Argentina
+4Saarland University, Saarbr¨ ucken, Germany
+5University of Waterloo, Waterloo, Canada
+sean.sedwards@uwaterloo.ca
+Abstract. Statistical model checking avoids the state space explosion
+problem in veriﬁcation and naturally supports complex non-Markovianformalisms. Yet as a simulation-based approach, its runtime becomes
+excessive in the presence of rare events, and it cannot soundly analyse
+nondeterministic models. In this tool paper, we present modes :as t a -
+tistical model checker that combines fully automated importance split-
+ting to eﬃciently estimate the probabilities of rare events with smartlightweight scheduler sampling to approximate optimal schedulers in non-
+deterministic models. As part of the Modest Toolset , it supports a
+variety of input formalisms natively and via the Janiexchange format.
+A modular software architecture allows its various features to be ﬂexibly
+combined. We highlight its capabilities with an experimental evaluation
+across multi-core and distributed setups on three exemplary case studies.
+1 Introduction
+Statistical model checking (SMC [ 30,49]) is a formal veriﬁcation technique for
+stochastic systems. Using a formal stochastic model, speciﬁed as e.g. a continuous-timeMarkovchain(CTMC)orastochasticPetrinet(SPN),SMCcananswerques-
+tions such as “what is the probability of system failure between two inspections” or
+“what is the expected time to complete a given workload”. It is gaining popularity
+forcomplexapplicationswheretraditionalexhaustiveprobabilisticmodelchecking
+islimitedbythestatespaceexplosionproblemandbyitsinabilitytoeﬃcientlyhan-dle non-Markovian formalisms or complex continuous dynamics. At its core, SMC
+This work is supported by the 3TU.BSR project, ERC grant 695614 ( POWVER ), the
+JST ERATO HASUO Metamathematics for Systems Design project (JPMJER1603),
+the NWO SEQUOIA project, and SeCyT-UNC projects 05/BP12 and 05/B497.
+c/circlecopyrtThe Author(s) 2018
+D. Beyer and M. Huisman (Eds.): TACAS 2018, LNCS 10806, pp. 340–358, 2018.https://doi.org/10.1007/978-3-319-89963-3
+_20
+
+--- Page 2 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 341
+is the integration of classical Monte Carlo simulation with formal models. By only
+sampling concrete traces of the model’s behaviour, its memory usage is eﬀectivelyconstant in the size of the state space, and it is applicable to any behaviour that
+can eﬀectively be simulated.
+The result of an SMC analysis is an estimate ˆqof the actual quantity qtogether
+with a statistical statement on the potential error. A typical guarantee is that, with
+probability δ,a n yˆqwill be within ±/epsilon1ofq. To strengthen such a guarantee, i.e.
+increase δor decrease /epsilon1, more samples (that is, simulation runs) are needed. Com-
+paredtoexhaustivemodelchecking,SMCthustradesmemoryusageforaccuracyor
+runtime. A particular challenge lies in rare events , i.e. behaviours of very low prob-
+ability. Meaningful estimates need a small relative error: for a probability on the
+order of 10
+−19, for example, /epsilon1should reasonably be on the order of 10−20. In a stan-
+dard Monte Carlo approach, this would require infeasibly many simulation runs.
+SMC naturally works for formalisms with non-Markovian behaviour and com-
+plex continuous dynamics, such as generalised semi-Markov processes (GSMP)
+and stochastic hybrid Petri nets with many generally distributed transitions [ 42],
+for which the exact model checking problem is intractable or undecidable. As a
+simulation-based approach, however, SMC is incompatible with nondeterminism.
+Yet (continuous and discrete) nondeterministic choices are desirable in formalmodelling for concurrency, abstraction, and to represent absence of knowledge.
+They occur in many formalisms such as Markov decision processes (MDP) or
+probabilistic timed automata (PTA [ 38]). In the presence of nondeterminism,
+quantities of interest are deﬁned w.r.t. optimal schedulers (also called policies,
+adversaries or strategies) that resolve all nondeterministic choices: the veriﬁca-
+tion result is the maximum orminimum probability or expected value ranging
+overallschedulers. Many SMC tools that appear to support nondeterministic
+models as input, e.g. Prism [37]a n d Uppaal smc [14], implicitly use a single
+hidden scheduler by resolving all choices randomly. Results are thus only guaran-teed to lie somewhere between minimum and maximum. Such implicit resolutions
+are a known problem aﬀecting the trustworthiness of simulation studies [ 36].
+In this paper, we present a statistical model checker, modes , that addresses
+both of the above challenges: It implements importance splitting [45] to eﬃciently
+estimate the probabilities of rare events and lightweight scheduler sampling [39]
+to statistically approximate optimal schedulers. Both methods can be combined
+to perform rare event simulation for nondeterministic models.
+Rare Event Simulation. The key challenge in rare event simulation (RES) is
+to achieve a high degree of automation for a general class of models. Current
+approaches to automatically derive the importance function for importance split-
+ting,whichiscriticalforthemethod’sperformance,aremostlylimitedtorestrictedclasses of models and properties, e.g. [ 7,18].modes combines several importance
+splitting techniques with the compositional importance function construction of
+Budde et al. [ 5] and two diﬀerent methods to derive levels and splitting factors [ 4].
+These method combinations apply to arbitrary stochastic models with a partly
+discrete state space. We have shown them to work well across diﬀerent Marko-
+vianandnon-Markovianautomata-anddataﬂow-basedformalisms[ 4].Wepresent
+details on modes ’ support for RES in Sect. 3. Alongside Plasma lab [40], which
+
+--- Page 3 ---
+342 C. E. Budde et al.
+implements automatic importance sampling [33] and semi-automatic importance
+splitting [ 32,34] for Markov chains (with APIs allowing for extensions to other
+models), modes is one of the most automated tools for RES on formal models today.
+In particular, we are not aware of any other tool that provides fully automated RES
+on general stochastic models.
+Nondeterminism. Sound SMC for nondeterministic models is a hard problem. For
+MDP, Br´ azdil et al. [ 3] proposed a sound machine learning technique to incremen-
+tally improve a partial scheduler. Uppaal Stratego [13] explicitly synthesises
+a “good” scheduler before using it for a standard SMC analysis. Both approaches
+suﬀer from worst-case memory usage linear in the number of states as all schedulerdecisions must be stored explicitly. Classic memory-eﬃcient sampling approaches
+like the one of Kearns et al. [ 35] address discounted models only. modes implements
+the lightweight scheduler sampling (LSS) approach introduced by Legay et al. [ 39].
+It is currently the only technique that applies to reachability probabilities and
+undiscounted expected rewards—as typically considered in formal veriﬁcation—
+that also keeps memory usage eﬀectively constant in the number of states. Its eﬃ-ciency depends only on the likelihood of sampling near-optimal schedulers. modes
+implements the existing LSS approaches for MDP [ 39]a n dP T A[ 10,26] and sup-
+ports unbounded properties on Markov automata (MA [ 16]). We describe modes ’
+LSS implementation in Sect. 4.
+The modes Tool. modes is part of the Modest Toolset [24], which also includes
+the explicit-state model checker mcsta and the model-based tester motest [21].
+It inherits the toolset’s support for a variety of input formalisms, including the
+high-level process algebra-based Modest language [ 22] and xSADF [ 25], an
+extension of scenario-aware dataﬂow. Many other formalisms are supported via
+theJaniinterchange format [ 6]. As simulation is easily and eﬃciently parallelis-
+able, modes fully exploits multi-core systems, but can also be run in a distributed
+fashion across homogeneous or heterogeneous clusters of networked systems. We
+describe the various methods implemented to make modes a correct and scalable
+statistical model checker that supports classes of models ranging from CTMC
+to stochastic hybrid automata in Sect. 2. We focus on its software architecture
+in Sect. 5. Finally, Sect. 6uses three very diﬀerent case studies to highlight the
+varied kinds of models and analyses that modes can handle.
+Previous Publications. modes was ﬁrst described in a tool demonstration paper in
+2012 [ 2]. Its focus was on the use of partial order and conﬂuence reduction-based
+techniques[ 27]todecideon-the-ﬂyifthenondeterminisminamodelisspurious,i.e.
+whether maximum and minimum values are the same and an implicit randomised
+scheduler can safely be used. modes was again mentioned as a part of the Modest
+Toolset in 2014 [ 24]. Since then, modes has been completely redesigned. The
+partial order and conﬂuence-based methods have been replaced by LSS, enabling
+the simulation of non-spurious nondeterminism; automated importance splitting
+has been implemented for rare event simulation; support for MA and a subset of
+stochastic hybrid automata (SHA [ 22]) has been added; and the statistical evalu-
+ation methods have been extended and improved. Concurrently, advances in the
+shared infrastructure of the Modest Toolset , now at version 3, provide access to
+newmodellingfeaturesandformalismsaswellassupportforthe Janispeciﬁcation.
+
+--- Page 4 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 343
+2 Ingredients of a Statistical Model Checker
+A statistical model checker performs a number of tasks to analyse a given formal
+model w.r.t. to a property of interest. In this section, we describe these tasks,
+their challenges, and how modes implements them. All random selections in an
+SMC tool are typically resolved by a pseudo -random number generator (PRNG).
+For brevity, we write “random” to mean “pseudo-random” in this section.
+Simulating Diﬀerent Model Types. The most basic task is simulation : the gen-
+eration of random samples— simulation runs —from the probability distribution
+over behaviours deﬁned by the model. modes contains simulation algorithms
+speciﬁcally optimised for the following types of models:
+– For deterministic MDP (Markov decision processes), i.e. DTMC (discrete-
+time Markov chains), simulation is simple and eﬃcient: Obtain the current
+state’s probability distribution over successors, randomly select one of them
+(using the distribution’s probabilities), and continue from that state.
+– Deterministic MA(Markov automata [ 16]) are CTMC. Here, the situation is
+similar: Obtain the set of enabled outgoing transitions, randomly select a delayfrom the exponential distribution parameterised by the sum of their rates, then
+make a random selection of one transition weighted by the transitions’ rates.
+–PTA (probabilistic timed automata [ 38]) extend MDP with clock variables,
+transition guards and location invariants as in timed automata. Like MA,
+they are a continuous-time model, but explicitly keep a memory of elapsedtimes in the clocks. They admit ﬁnite-state abstractions that preserve reacha-
+bility probabilities and allow them to essentially be simulated as MDP. modes
+implements region graph- and zone-based simulation of PTA as MDP [ 10,26].
+With fewer restrictions, they can also be treated as SHA:
+–SHA extend PTA with general continuous probability distributions and con-
+tinuous variables with dynamics governed by diﬀerential equations and inclu-
+sions. modes supports deterministic SHA where all diﬀerential equations are
+of the form ˙ v=efor a continuous variable vand an expression eoverdiscrete
+variables. This subset can be simulated without the need for approximations;
+it corresponds to deterministic rectangular hybrid automata [ 29]. For each
+transition, the SHA simulator needs to compute the set of time points atwhich it is enabled. These sets can be unions of several disjoint intervals,
+which results in relatively higher computational eﬀort for SHA simulation.
+Properties and Termination. SMC computes a value for the property on every
+simulation run. A run is a ﬁnite trace; consequently, standard SMC only works
+for linear-time properties that can be decided on ﬁnite traces. modes supports
+–transient (reachability ) queries of the form P(¬avoid Ugoal) for the proba-
+bility of reaching a set of states characterised by the state formula goalbefore
+entering the set of states characterised by state formula avoid,a n d
+–expected reward queries of the form E(reward
+|goal) for the expected
+accumulated reward (or cost) over the reward structure reward when reaching
+a location in the set of states characterised by goalfor the ﬁrst time.
+
+--- Page 5 ---
+344 C. E. Budde et al.
+Transient queries may be time- and reward-bounded. A state formula is an
+expression over the (discrete and continuous) variables of the model withoutany temporal operators. A reward structure assigns a rate reward r(s)∈Rto
+every state sand a branch reward r(b)∈Rto every probabilistic branch bof
+every transition. An example transient query is “what is the probability to reacha destination ( goal) within an energy budget (a reward bound) while avoiding
+collisions ( avoid)”. Expected reward queries allow asking for e.g. the expected
+number of retransmissions (the reward) until a message is successfully transmit-ted (goal) in a wireless network protocol. Every query qcan be turned into a
+requirement q∼cby adding a comparison ∼∈ {≤ ,≥}to a constant value c∈R.
+A simulation run ends when the value of a property is decided. For transient
+properties, this is the case when reaching an avoid state or a deadlock (value 0),
+or agoalstate (value 1). To ensure termination, the probability of eventually
+encountering one of these events must be 1. modes additionally implements cycle
+detection: it keeps track of a conﬁgurable number nof previous visited states.
+When a run returns to a previous state without intermediate steps of probability<1, it will loop forever on this cycle and the run has value 0. modes usesn=1b y
+default for good performance while still allowing models built for model checking,
+which avoid deadlocks but often contain terminal states with self-loops, to besimulated. For expected rewards, when entering a goalstate, the property is
+decided with the value being the sum of the rewards along the run.
+Statistical Evaluation of Samples. nsimulation runs provide a sequence of inde-
+pendent values v
+1,...,v nfor the property. ˆ vn=1
+n/summationtextn
+i=1viis an unbiased esti-
+mator of the actual probability or expected reward v. An SMC tool must stop
+generating runs at some point, and quantify the statistical properties of the
+estimate ˆ v=ˆvnreturned to the user. modes implements the following methods:
+– For a given half-width wand conﬁdence δ,t h e CImethod returns a conﬁdence
+interval [ x,y] that contains ˆ v, with y−x=2·w. Its guarantee is that, if the
+SMC analysis is repeated many times, 100 ·δ% of the conﬁdence intervals will
+contain v. For transient properties, where the viare sampled from a Bernoulli
+distribution, modes constructs a binomial proportion conﬁdence interval. For
+expected rewards, the underlying distribution is unknown, and modes uses the
+standard normal (or Gaussian) conﬁdence interval. This relies on the central
+limit theorem for means, assuming a “large enough” n.modes requires n≥50
+as a heuristic. modes requires the user to specify δplus either of wandn.I fn
+is not speciﬁed, the CI method becomes a sequential procedure: generate runs
+until the with of the interval for conﬁdence δis below 2 ·w. The CI method can
+be turned into a hypothesis test for requirements q∼cby checking whether
+ˆv≥yor ˆv≤x, and returning undecided if ˆ vis inside the interval. When n
+is unspeciﬁed, this is the Chow-Robbins sequential test [ 44]. Finally, modes
+can be instructed to interpret the value of was a relative half-width, i.e. the
+ﬁnal interval will have width ˆ v·2·w. This is useful for rare events.
+–T h e APMC [30] method, based on the Okamoto bound [ 41], guarantees for
+error/epsilon1and conﬁdence δthatP(|ˆv−v|>/epsilon1)<δ. It only applies to the Bernoulli-
+distributed samples for transient properties here. modes requires the user to
+
+--- Page 6 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 345
+specify any two of /epsilon1,δandn, out of which the missing value can be computed.
+The APMC method can be used as a hypothesis test for P(·)∼cby checking
+whether ˆ v≥c+/epsilon1or ˆv≤c−/epsilon1, and returning undecided if neither is true.
+–modes also implements Wald’s SPRT , the sequential probability ratio test [ 47].
+As a sequential hypothesis test, it has no predetermined n, but decides on-the-
+ﬂy whether more samples are needed as they come in. It is a test for Bernoulli-
+distributed quantities, i.e. it only applies to transient requirements of the form
+P(·)∼c. For indiﬀerence level /epsilon1and error α, it stops when the collected samples
+so far provide suﬃcient evidence to decide between P(·)≥c+/epsilon1orP(·)≤c−/epsilon1
+with probability ≤αof wrongly accepting either hypothesis.
+For a more detailed description of these and other statistical methods and espe-
+cially hypothesis tests for SMC, we refer the interested reader to [ 44].
+Distributed Sample Generation. Simulation is easily and eﬃciently parallelisable.
+Y e tan a ¨ ıve implementation of the statistical evaluation—processing the values
+from the runs in the order they ﬂow in—risks introducing a bias in a parallel
+setting. Consider estimating the probability of system failure when simulationruns that encounter failure states are shorter than other runs, and thus quicker.
+In parallel simulation, failure runs will tend to arrive earlier and more frequently,
+thus overestimating the probability of failure. To avoid such bias, modes uses the
+adaptive schedule ﬁrst implemented in Ymer [48]. It adapts to diﬀerences in the
+speed of nodes by scheduling to process more future results from fast nodes when
+current results come in quickly. It always commits to a schedule a priori before
+the actual results arrive, ensuring the absence of bias. It is thus well-suited for
+heterogeneous clusters of machines with signiﬁcant performance diﬀerences.
+3 Automated Rare Event Simulation
+With the standard conﬁdence of δ=0.95, we have n≈0.37//epsilon12in the APMC
+method: for every decimal digit of precision, the number of runs increases by afactor of 100. If we attempt to estimate probabilities on the order of 10
+−4, i.e.
+/epsilon1≈10−5, we need billions of runs and days or weeks of simulation time. This
+is the problem tackled by rare event simulation (RES) techniques [ 45].modes
+implements RES for transient properties via importance splitting , which itera-
+tively increases the simulation eﬀort for states “closer” to the goal set. Closeness
+is represented by an importance function fI:S→Nthat maps each state in Sto
+its importance in {0,...,maxfI}. The performance, but not the correctness, of
+all splitting methods hinges on the quality of the importance function.
+Deriving Importance Functions. Traditionally, the importance function is spec-
+iﬁed ad hoc by a RES expert. Striving for usability by domain experts, modes
+implements the compositional importance function generation method of [ 5] that
+is applicable to any compositional stochastic model M=M1/bardbl.../bardblMnwith a
+partly discrete state space. We write s|ifor the projection of state sofMto the
+discrete local variables of component Mi. The method works as follows [ 4]:
+
+--- Page 7 ---
+346 C. E. Budde et al.
+Fig. 1. Illustration of Restart [4]
+ Fig. 2. Illustration of ﬁxed eﬀort [ 4]
+1. Convert the goal set formula goalto negation normal form (NNF) and asso-
+ciate each literal goaljwith the component M(goalj) whose local state variables
+it refers to. Literals must not refer to multiple components.
+2. Explore the discrete part of the state space of each component Mi.F o re a c h
+goaljwith Mi=M(goalj), use reverse breadth-ﬁrst search to compute the local
+minimum distance fj
+i(s|i) of each state s|ito a state satisfying goalj.
+3. In the syntax of the NNF of goal, replace every occurrence of goaljbyfj
+i(s|i)
+withisuch that Mi=M(goalj), and every Boolean operator ∧or∨by +. Use
+the resulting formula as the importance function fI(s).
+The method takes into account both the structure of the goal set formula and
+the structure of the state space. This is in contrast to the approach of J´ egourel et
+al. [32], implemented in a semi-automated fashion in Plasma lab [34,40], that
+only considers the structure of the (more complex linear-time) logical property.
+The memory usage of the compositional method is determined by the number
+of discrete local states (required to be ﬁnite) over all components. Typically,component state spaces are small even when the composed state space explodes.
+Levels and Splitting Factors. We also need to specify when andhow much to
+“split”, i.e. increase the simulation eﬀort. For this purpose, the values of the
+importance function are partitioned into levels and asplitting factor is chosen for
+each level. Splitting too much too often will degrade performance (oversplitting),while splitting too little will cause starvation, i.e. few runs that reach the rare
+event. It is thus critical to choose good levels and splitting factors. Again, to avoid
+the user having to make these choices ad hoc, modes implements two methods
+to compute them automatically. One is based on the sequential Monte Carlo
+splitting technique [ 8], while the other method, named expected success [4], has
+been newly developed for modes . It strives to ﬁnd levels and factors that lead to
+one run moving up from one level to the next in the expectation.
+Importance Splitting Runs. The derivation of importance function, levels and
+splitting factors is a preprocessing step. Importance splitting then replaces the
+simulation algorithm by a variant that takes this information into account to
+
+--- Page 8 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 347
+more often encounter the rare event. modes implements three importance split-
+ting techniques: Restart , ﬁxed eﬀort and ﬁxed success.
+Restart [46] is illustrated in Fig. 1:A ss o o na sa Restart run crosses the
+threshold into a higher level, n/lscript−1 new child runs are started from the ﬁrst state
+in the new level, where n/lscriptis the splitting factor of level /lscript. When a run moves
+below its creation level, it ends. It also ends on reaching an avoid orgoalstate.
+The result of a Restart run—consisting of a main and several child runs—is
+the number of runs that reach goaltimes 1 //producttext
+/lscriptn/lscript, i.e. a rational number ≥0.
+Runs of the ﬁxed eﬀort method [ 17,19], illustrated in Fig. 2, are rather diﬀer-
+ent. They consist of a ﬁxed number of partial runs on each level, each of which
+ends when it crosses into the next higher level or encounters a goaloravoid state.
+When all partial runs for a level have ended, the next round starts from the pre-
+viously encountered initial states of the next higher level. When a ﬁxed eﬀort run
+ends, the fraction of partial runs started in a level that moved up approximates
+the conditional probability of reaching the next level given that the current level
+was reached. If goalstates exist only on the highest level, the overall result is
+the product of all of these fractions, i.e. a rational number in [0 ,1].
+Fixed success [ 1] is a variant of ﬁxed eﬀort that generates partial runs until a
+ﬁxed number of them have reached the next higher level. For all three methods,the average of the result of many runs is again an unbiased estimator for the
+probability of the transient property [ 19]. However, each run is no longer a
+Bernoulli trial. Of the statistical evaluation methods oﬀered by modes , only CI
+with normal conﬁdence intervals is thus applicable. For a deeper discussion of the
+challenges in the statistical evaluation of rare event simulation results, we refer
+the interested reader to [ 43]. To the best of our knowledge, modes is today the
+most automated rare event simulator for general stochastic models. In particular,
+it defaults to the combination of Restart with the expected success method
+for level calculation, which has shown consistently good performance [ 4].
+4 Scheduler Sampling for Nondeterminism
+Resolving nondeterminism in a randomised way leads to estimates that only lie
+somewhere between the desired extremal values. In addition to computing prob-
+abilities or expected rewards, we also need to ﬁnd a (near-)optimal scheduler.
+Lightweight Scheduler Sampling. modes implements the lightweight scheduler
+sampling (LSS) approach for MDP of [ 39] that identiﬁes a scheduler by a sin-
+gle integer (typically of 32 bits). This allows to randomly select a large number
+mof schedulers (i.e. integers), perform standard or rare event simulation for
+each, and report the maximum and minimum estimates over all sampled sched-ulers as approximations of the actual extremal values. We show the core of the
+lightweight approach—performing a simulation run for a given scheduler identi-
+ﬁerσ—for MDP and transient properties as Algorithm 1. An MDP consists of
+a countable set of states S, a transition function Tthat maps each state to a
+ﬁnitesetof probability distributions over successor states, and an initial state
+
+--- Page 9 ---
+348 C. E. Budde et al.
+Input: MDP /angbracketleftS, T, s 0/angbracketright, transient property φ, scheduler id σ∈Z
+1s:=s0,π:=s0
+2while φ(π) = undecided do
+3 Und.initialise( H(σ.s)) // use hash of σandsas seed for Und
+4 ifT(s)=∅then return false // end of run due to deadlock
+5 μ:=⌈U nd·|T(s)|⌉-th element of T(s) // use Undto select transition
+6 s/prime:=μ◦U pr.next() // use Uprto select successor state according to μ
+7 π:=π.s/prime,s:=s/prime// append s/primetoπand continue from s/prime
+8return φ(π)
+Algorithm 1. Simulation for an MDP and a ﬁxed scheduler id [10]
+s0. The algorithm uses two PRNG: Uprto simulate the probabilistic choices (line
+6), and Undto resolve the nondeterministic ones (line 5). We want σto represent
+a deterministic memoryless scheduler: within one simulation run as well as in
+diﬀerent runs for the same value of σ,Undmust always make the same choice for
+the same state s. To achieve this, Undis re-initialised with a seed based on σand
+sin every step (line 3). The overall eﬀectiveness of the lightweight approach only
+depends on the likelihood of selecting a σthat represents a (near-)optimal sched-
+uler. We want to sample “uniformly” from the space of all schedulers to avoidactively biasing against “good” schedulers. Algorithm 1achieves this naturally
+for MDP.
+Beyond MDP. LSS can be adapted to any model and type of property where
+the class of optimal schedulers only uses discrete input to make its decision
+for every state [ 26]. This is obviously the case for discrete-space discrete-time
+models like MDP. It means that LSS can directly be applied to MA and time-
+unbounded properties, too. In addition to MDP and MA, modes also supports
+two LSS methods for PTA, based on a variant of forwards reachability with
+zones [ 10] and the region graph abstraction [ 26], respectively. While the former
+includes zone operations with worst-case runtime exponential in the number ofclocks, the latter implements all operations in linear time. It exploits a novel data
+structure for regions based on representative valuations that performs very well
+in practice [ 26]. Extending LSS to models with general continuous probability
+distributions such as stochastic automata [ 11] is hindered by optimal sched-
+ulers requiring non-discrete information (the values and expiration times of all
+clocks [ 9]).modes currently provides prototypical LSS support for SA encoded in
+a particular form and various restricted classes of schedulers as described in [ 9].
+Bounds and Error Accumulation. The results of an SMC analysis with LSS are
+lower bounds for maximum and upper bounds for minimum values up to the
+speciﬁed statistical error and conﬁdence. They can thus be used to e.g. disprove
+safety (the maximum probability to reach an unsafe state is above a threshold)orprove schedulability (there is a scheduler that makes it likely to complete
+the workload in time), but not the opposite. The accumulation of statistical
+
+--- Page 10 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 349
+error introduced by the repeated simulation experiments over multiple sched-
+ulers must also be accounted for. [ 12] shows how to modify the APMC method
+accordingly and turn the SPRT into a correct sequential test over schedulers .I n
+addition to these, modes allows the CI method to be used with LSS by applying
+the standard ˇSid´ak correction for multiple comparisons. This enables LSS for
+expected rewards and RES. All the adjustments essentially increase the required
+conﬁdence depending on the (maximum) number of schedulers to be sampled.
+Two-Phase and Smart Sampling. If an SMC analysis for ﬁxed statistical param-
+eters would need nruns on a deterministic model, it will need signiﬁcantly more
+thanm·nruns for a nondeterministic model when mschedulers are sampled
+due to the increase in the required conﬁdence. modes implements a two-phase
+approach and smart sampling [ 12] to reduce this overhead. The former’s ﬁrst
+phase consists of performing nsimulation runs for each of the mschedulers. The
+scheduler that resulted in the maximum (or minimum) value is selected, and
+independently evaluated once more with nruns to produce the ﬁnal estimate.
+The ﬁrst phase is a heuristic to ﬁnd a near-optimal scheduler before the secondphase estimates the value under this scheduler according to the required statis-
+tical parameters. Smart sampling generalises this principle to multiple phases,
+dropping only the “worst” halfof the evaluated schedulers between phases. It
+starts with an informed guess of good initial values for nandm. For details,
+see [12]. Smart sampling tends to ﬁnd more extremal schedulers faster while the
+two-phase approach has predictable performance as it always needs ( m+1 )·n
+runs. We thus use the two-phase approach for our experiments in Sect. 6.
+5 Architecture and Implementation
+modes is implemented in C# and works on Linux, Mac OS X and Windows sys-
+tems. It builds on a solid foundation of shared infrastructure with other tools oftheModest Toolset . This includes input language parsers that map Modest ,
+xSADF and Jani input into a common internal metamodel for networks of
+stochastic hybrid automata with rewards and discrete variables. Before simu-lation, every model is compiled to bytecode, making the metamodel executable.
+The same compilation engine is also used by the mcsta and motest tools.
+The architecture of the SMC-speciﬁc part of modes is shown as a class dia-
+gram in Fig. 3. Boxes represent classes, with rounded rectangles for abstract
+classes and invisible boxes for interfaces. Solid lines are inheritance relations.Dotted lines are associations, with double arrows for collection associations. The
+architecture mirrors the three distinct tasks of a statistical model checker: the
+generation of individual simulation runs and per-run evaluation of properties,implemented in modes byRunGenerator andRunEvaluator , respectively; the
+coordination of simulation over multiple threads across CPU cores and networked
+machines, implemented by classes derived from Worker andIWorkerHost ;a n d
+the statistical evaluation of simulation runs, implemented by PropertyEvaluator .
+The central component of modes ’ architecture is the Master . It compiles the
+model, derives the importance function, sends both to the workers (on the same
+
+--- Page 11 ---
+350 C. E. Budde et al.
+Fig. 3. The software architecture of the modes statistical model checker
+or diﬀerent machines), and instantiates a PropertiesJob for every partition of the
+properties to be analysed that can share simulation runs.1EachPropertiesJob
+then posts simulation jobs back to the master in parallel or in sequence. A simu-lation job is a description of how to generate and evaluate runs: which run type
+(i.e.RunGenerator derived class) to use, whether to wrap it in an importance
+1Using the same set of runs for multiple properties is an optimisation at the cost of
+statistical independence. modes can also generate independent runs for each property.
+
+--- Page 12 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 351
+splitting method, whether to simulate for a speciﬁc scheduler id, which compiled
+expressions to evaluate to determine termination and the values of the runs, etc.The master allocates posted jobs to available simulation threads oﬀered by the
+workers, and notiﬁes workers when a job is scheduled for one of their threads.
+As the result for an individual run is handed from the RunEvaluator by the
+RunGenerator via the workers to the master, it is fed into a Sequentialiser that
+implements the adaptive schedule for bias avoidance. Only after that, possibly
+at a later point, is it handed on to the PropertiesJob for statistical evaluation.
+For illustration, consider a PropertiesJob for LSS with 10 schedulers, RES
+with Restart , and the expected success method for level calculation. It is given
+the importance function by the master, and its ﬁrst task is to compute the levels.It posts a simulation job for ﬁxed eﬀort runs with level information collection to
+the master. Depending on the current workload from other PropertiesJob s, the
+master will allocate many threads to this job. Once enough results have come
+in, the PropertiesJob terminates the simulation job, computes the levels and
+splitting factors, and starts with the actual simulations: It selects 10 randomscheduler identiﬁers and concurrently posts for each of them a simulation job for
+Restart runs. The master will try to allocate available threads evenly over these
+jobs. As results come in, the evaluation may ﬁnish early for some schedulers, atwhich point the master will be instructed to stop the corresponding simulation
+job. It can then allocate the newly free threads to other jobs. This scheme results
+in a maximal exploitation of the available parallelism across workers and threads.
+Due to the modularity of this architecture, it is easy to extend modes in
+diﬀerent ways. For example, to support a new type of model (say, non-linear
+hybrid automata) or a new RES method, only a new (I)RunGenerator needs to
+be implemented. Adding another statistical evaluation method from [ 44] means
+adding a new PropertyEvaluator , and so on.
+In distributed simulation, an instance of modes is started on each node with
+the--server parameter. This results in the creation of an instance of the Server
+class instead of a Master , which listens for incoming connections. Once all servers
+are running, a master can be started with a list of hosts to connect to. modes
+comes with a template script to automate this task on slurm -based clusters.
+6 Experiments
+We present three case studies in this section. They have been chosen to highlight
+modes ’ capabilities in terms of the diverse types of models it supports, its ability
+to distribute work across compute clusters, and the new analyses possible with
+RES and LSS. None of them has been studied before with modes or the combi-
+nations of methods that we apply here. Our experiments ran on an Intel Corei7-4790 workstation (3 .6–4.0
+GHz, 4 cores), a homogeneous cluster of 40 AMD
+Opteron 4386 nodes (3 .1–3.8GHz, 8 cores), and an inhomogeneous cluster of 15
+nodes with diﬀerent Intel Xeon processors. All systems run 64-bit Linux. We use1, 2 or 4 simulation threads on the workstation (denoted “1”, “2” and “4” in
+our tables), and nnodes with tsimulation threads each on the clusters (denoted
+
+--- Page 13 ---
+352 C. E. Budde et al.
+Table 1. Performance and scalability on the electric vehicle charging case study
+nfail=2 nfail=3 nfail=4 nfail=5
+MC RES MC RES MC RES MC RES
+conf. interval [6.4e–2,7.8e–2] [5 .2e–3,6.4e–3] [2 .7e–4,3.2e–4] [8 .3e–6,1.0e–5]
+1 2s 4s 30s 19s585 s206 s
+— 2 1s 2s 15s 11s315 s101 s
+4 1s 1s 8s 5s163 s 69s
+5×4 1s 1s 4s 4s 69s 23s2241 s496 s
+5×8 1s 2s 2s 3s 40s 16s1238 s328 s
+40×2 0s 1s 1s 2s 16s 8s483 s135 s
+20×8 0s 2s 1s 2s 10s 6s314 s105 s
+40×8 0s 2s 1s 3s 5s 6s159 s64s
+“n×t”). We used a one-hour timeout, marked “—” in the tables. Note that
+runtimes cannot directly be compared between the workstation and the clusters.
+Electric Vehicle Charging. We ﬁrst consider a model of an electric vehicle charg-
+ing station. It is a Modest model adapted from the “extended” case study
+of [42]: a stochastic hybrid Petri net with general transitions, which in turn is
+based on the work in [ 31]. The scenario we model is of an electric vehicle being
+connected to the charger every evening in order to be recharged the next morn-ing. The charging process may be delayed due to high load on the power grid, and
+the exact time at which the vehicle is needed in the morning follows a normal
+distribution. We consider one week of operation and compute the probabilitythat the desired level of charge is not reached on any n
+fail∈{2,...,5}of the
+seven mornings.
+This model is not amenable to exhaustive model checking due to the non-
+Markovian continuous probability distributions and the hybrid dynamics mod-
+elling the charging process. However, it is deterministic. We thus applied modes
+with standard Monte Carlo simulation (MC) as well as with RES using Restart .
+We performed the same analysis on diﬀerent conﬁgurations of the workstation
+and the homogeneous cluster. To compare MC and RES, we use CI with δ=0.95
+and a relative half-with of 10% for both. All other parameters of modes are set
+to default values, which implies an automatic compositional importance function
+and the expected success method to determine levels and splitting factors. Theresults are shown in Table 1. Row “conf. interval” gives the average conﬁdence
+intervals that we obtained over all experiments.
+RES starts to noticeably pay oﬀ as soon as probabilities are on the order of
+10
+−4. The runtime of Restart is known to heavily depend on the levels and
+splitting factors, and we indeed noticed large variations in runtime for RES over
+several repetitions of the experiments. The runtimes for RES should thus not beused to judge the speedup w.r.t. parallelisation. However, when looking at the
+MC runtimes, we see good speedups as we increase the number of threads per
+node, and near-ideal speedups as we increase the total number of nodes, as longas there is a suﬃcient amount of work.
+
+--- Page 14 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 353
+Table 2. Performance and results for the low-latency wireless network case study
+time P(i<4Ufailed)P(i<4Uoﬄine{1})P(i<4Uoﬄine{2})
+optimal [0.028,0.472] [0 .026,0.269] [0 ,0.424]
+1 100 3523 s
+[0.041,0.363] [0 .030,0.189] [0 .000,0.309] 2 100 2045 s
+4 100 1205 s
+20×8 1000 607 s[0.033,0.383] [0 .028,0.242] [0 .000,0.327]40×8 1000 308 s
+Although this model was not designed with RES in mind and has only mod-
+erately rare events, the fully automated methods of modes could be applied
+directly, and they signiﬁcantly improved performance. For a detailed experimen-
+tal comparison of the RES methods implemented in modes on a larger set of
+examples, including events with probabilities as low as 4 .8·10−23, we refer the
+reader to [ 4].
+Low-latency Wireless Networks. We now turn to the PTA model of a low-latency
+wireless networking protocol being used among three stations, originally pre-
+sented in [ 15]. We take the original model, increase the probability of message
+loss, and make one of the communication links nondeterministically drop mes-
+sages. This allows us to study the inﬂuence of the message loss probabilities and
+the protocol’s robustness to adversarial interference. The model isamenable to
+model checking, as demonstrated in [ 15]. It allows us to show that modes can
+be applied to such models originally built for traditional veriﬁcation, and since
+we can calculate the precise maximum and minimum values of all properties viamodel checking, we have a reference to evaluate the results of LSS.
+We show the results of using modes with LSS on this model in Table 2.R o w
+“optimal” lists the maximum and minimum probabilities computed via modelchecking for three properties: the probability that the protocol fails within four
+iterations, and that either the ﬁrst or the second station goes oﬄine. We used
+the two-phase LSS method with m= 100 schedulers on the workstation, and
+withm= 1000 schedulers on the homogeneous cluster. The intervals are the
+averages of the min. and max. values returned by all analyses. The statistical
+evaluation is APMC with δ=0.95 and /epsilon1=0.0025, which means that 59556
+simulation runs are needed per scheduler.
+Near-optimal schedulers for the minimum probabilities do not appear to be
+rare: we ﬁnd good bounds for the minima even with 100 schedulers. However,
+for maximum probabilities, sampling more schedulers pays oﬀ in terms of better
+approximations. In all cases, the results are conservative approximations of theactual optima (as expected), and they are clearly more useful than the single
+value that would be obtained by other tools via a (hidden) randomised scheduler.
+Performance scales ideally with parallelism on the cluster, and still linearly onthe workstation. For a deeper evaluation of the characteristics of LSS, including
+experiments on models too large for model checking, we refer the reader to the
+description of the original approach [ 12,39] and its extensions to PTA [ 10,26].
+
+--- Page 15 ---
+354 C. E. Budde et al.
+Table 3. Performance and results for the reliable database system case study
+uniform scheduler lightweight scheduler sampling (20)
+RMC RES conf. interval MC RES min. conf. int. max. conf. int.
+2 1s4s[1.5e–2,1.8e–2] 4s31s[1.4e–2,1.7e–2] [1 .5e–2,1.9e–2]
+3 8s3s[1.0e–4,1.3e–4]181 s26s[7.9e–5,9.6e–5] [1 .3e–4,1.6e–4]
+4816 s13s[9.3e–7,1.1e–6]—221 s[6.3e–7,7.6e–7] [1 .3e–6,1.6e–6]
+5— 229 s[1.1e–8,1.3e–8] 3072 s[6.2e–9,7.6e–9] [1 .6e–8,2.0e–8]
+Redundant Database System. The redundant database system [ 20] is a classic
+RES case study. It models a system consisting of six disk clusters of R+2
+disks each plus two types of processors and disk controllers with Rcopies of
+each type. Component lifetimes are exponentially distributed. Components fail
+in one of two modes with equal probability, each mode having a diﬀerent repairrate. The system is operational as long as fewer than Rprocessors of each type,
+Rcontrollers of each type, and Rdisks in each cluster are currently failed. The
+model is a CTMC with a state space too large and a transition matrix too dense
+for it to be amenable to model checking with symbolic tools like Prism [37].
+In the original model, any number of failed components can be repaired in
+parallel. We consider this unrealistic, and extend the model by a repairman
+that can repair a single component at a time. If more than one component fails
+during a repair, then as soon as the current repair is ﬁnished, the repairman hasto decide which to repair next. Instead of enforcing a particular repair policy, we
+leave this decision as nondeterministic. The model thus becomes an MA. We use
+LSS in combination with RES to investigate the impact of the repair policy. Westudy the scenario where one component of each kind (one disk, one processor,
+one controller) is in failed state, and estimate the probability for system failure
+before these components are repaired. The minimum probability is achieved by aperfect repair strategy, while the maximum results from the worst possible one.
+Table 3shows the results of our LSS-plus-RES analysis with modes using
+default RES parameters and sampling m= 20 schedulers. Due to the complexity
+of the model, we ran this experiment on the inhomogeneous cluster only, using 16
+cores on each node for 240 concurrent simulation threads in total. We see that
+RES needs a somewhat rare event to improve performance. We also compare
+LSS to the uniform randomised scheduler (as implemented in many other SMC
+tools). It results in a single conﬁdence interval for the probability of failure.With LSS, we get two intervals. They do not overlap when R≥3, i.e. the repair
+strategy matters: a bad strategy makes failure approximately twice as likely as a
+good strategy! Since the results of LSS are conservative, the diﬀerence betweenthe worst and the best strategy may be even larger.
+Experiment Replication. To enable independent replication of our experimental
+results, we have created a publicly available evaluation artifact [ 23]. It contains
+the version of modes and the model ﬁles used for our experiments, the raw
+experimental results, summarising tabular views of those results (from which we
+derived Tables 1,2and3), and a Linux shell script to automatically replicate a
+
+--- Page 16 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 355
+subset of the experiments. Since the complete experiments take several hours to
+complete and require powerful hardware and computer clusters, we have selecteda subset for the replication script. Using the virtual machine of the TACAS
+2018 Artifact Evaluation [ 28] on typical workstation hardware of 2017, it runs
+to completion in less than one hour while still substantiating our main results.
+7 Conclusion
+We presented modes , the M odest Toolset ’s distributed statistical model
+checker. It provides methods to tackle both of the prominent challenges in simu-
+lation: nondeterminism and rare events. Its modular software architecture allows
+its various features to be easily combined and extended. For the ﬁrst time, weused lightweight scheduler sampling with Markov automata, and combined it
+with rare event simulation to gain insights into a challenging case study that,
+currently, cannot be analysed for the same aspects with any other tool that weare aware of. modes is available for download at www.modestchecker.net .
+Acknowledgments. The authors thank Carina Pilch and Sebastian Junges for their
+support with the vehicle charging andwireless networks case studies.
+Data Availability. The data generated in our experimental evaluation is archived
+and available at DOI 10.4121/uuid:64cd25f4-4192-46d1-a951-9f99b452b48f [23].
+References
+1. Amrein, M., K¨ unsch, H.R.: A variant of importance splitting for rare event esti-
+mation: ﬁxed number of successes. ACM Trans. Model. Comput. Simul. 21(2),
+13:1–13:20 (2011)
+2. Bogdoll, J., Hartmanns, A., Hermanns, H.: Simulation and statistical model check-
+ing for Modestly nondeterministic models. In: Schmitt, J.B. (ed.) MMB&DFT
+2012. LNCS, vol. 7201, pp. 249–252. Springer, Heidelberg (2012). https://doi.org/
+10.1007/978-3-642-28540-0 20
+3. Br´azdil, T., Chatterjee, K., Chmel´ ık, M., Forejt, V., Kˇ ret´ınsk´y, J., Kwiatkowska,
+M., Parker, D., Ujma, M.: Veriﬁcation of Markov decision processes using learningalgorithms. In: Cassez, F., Raskin, J.-F. (eds.) ATVA 2014. LNCS, vol. 8837, pp.
+98–114. Springer, Cham (2014). https://doi.org/10.1007/978-3-319-11936-6
+8
+4. Budde, C.E., D’Argenio, P.R., Hartmanns, A.: Better automated importance split-
+ting for transient rare events. In: Larsen, K.G., Sokolsky, O., Wang, J. (eds.)
+SETTA 2017. LNCS, vol. 10606, pp. 42–58. Springer, Cham (2017). https://doi.
+org/10.1007/978-3-319-69483-2 3
+5. Budde, C.E., D’Argenio, P.R., Monti, R.E.: Compositional construction of impor-
+tance functions in fully automated importance splitting. In: VALUETOOLS. ICST
+(2016)
+6. Budde, C.E., Dehnert, C., Hahn, E.M., Hartmanns, A., Junges, S., Turrini, A.:
+JANI: quantitative model and tool interaction. In: Legay, A., Margaria, T. (eds.)
+TACAS 2017. LNCS, vol. 10206, pp. 151–168. Springer, Heidelberg (2017). https://
+doi.org/10.1007/978-3-662-54580-5 9
+
+--- Page 17 ---
+356 C. E. Budde et al.
+7. C´erou, F., Guyader, A.: Adaptive multilevel splitting for rare event analysis.
+Stochast. Anal. Appl. 25(2), 417–443 (2007)
+8. C´erou, F., Moral, P.D., Furon, T., Guyader, A.: Sequential Monte Carlo for rare
+event estimation. Stat. Comput. 22(3), 795–808 (2012)
+9. D’Argenio, P.R., Gerhold, M., Hartmanns, A., Sedwards, S.: A hierarchy of sched-
+uler classes for stochastic automata. In: FoSSaCS. LNCS, vol. 10803. Springer
+(2018, to appear)
+10. D’Argenio, P.R., Hartmanns, A., Legay, A., Sedwards, S.: Statistical approximation
+of optimal schedulers for probabilistic timed automata. In: ´Abrah´ am, E., Huisman,
+M. (eds.) IFM 2016. LNCS, vol. 9681, pp. 99–114. Springer, Cham (2016). https://
+doi.org/10.1007/978-3-319-33693-0 7
+11. D’Argenio, P.R., Katoen, J.P.: A theory of stochastic systems part I: stochastic
+automata. Inf. Comput. 203(1), 1–38 (2005)
+12. D’Argenio, P.R., Legay, A., Sedwards, S., Traonouez, L.M.: Smart sampling for
+lightweight veriﬁcation of Markov decision processes. STTT 17(4), 469–484 (2015)
+13. David, A., Jensen, P.G., Larsen, K.G., Mikuˇ cionis, M., Taankvist, J.H.: Uppaal
+Stratego . In: Baier, C., Tinelli, C. (eds.) TACAS 2015. LNCS, vol. 9035, pp.
+206–211. Springer, Heidelberg (2015). https://doi.org/10.1007/978-3-662-46681-
+016
+14. David, A., Larsen, K.G., Legay, A., Mikuˇ cionis, M., Wang, Z.: Time for statistical
+model checking of real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.)CAV 2011. LNCS, vol. 6806, pp. 349–355. Springer, Heidelberg (2011). https://
+doi.org/10.1007/978-3-642-22110-1
+27
+15. Dombrowski, C., Junges, S., Katoen, J.P., Gross, J.: Model-checking assisted proto-
+col design for ultra-reliable low-latency wireless networks. In: SRDS, pp. 307–316.IEEE (2016)
+16. Eisentraut, C., Hermanns, H., Zhang, L.: On probabilistic automata in continuous
+time. In: LICS, pp. 342–351. IEEE Computer Society (2010)
+17. Garvels, M.J.J., Kroese, D.P.: A comparison of RESTART implementations. In:
+Winter Simulation Conference, pp. 601–608 (1998)
+18. Garvels, M.J.J., van Ommeren, J.C.W., Kroese, D.P.: On the importance function
+in splitting simulation. Eur. Trans. Telecommun. 13(4), 363–371 (2002)
+19. Garvels, M.J.J.: The splitting method in rare event simulation. Ph.D. thesis, Uni-
+versity of Twente, Enschede, The Netherlands (2000)
+20. Goyal, A., Shahabuddin, P., Heidelberger, P., Nicola, V.F., Glynn, P.W.: A uniﬁed
+framework for simulating Markovian models of highly dependable systems. IEEE
+Trans. Comput. 41(1), 36–51 (1992)
+21. Graf-Brill, A., Hartmanns, A., Hermanns, H., Rose, S.: Modelling and certiﬁcation
+for electric mobility. In: Industrial Informatics (INDIN). IEEE (2017)
+22. Hahn, E.M., Hartmanns, A., Hermanns, H., Katoen, J.: A compositional modelling
+and analysis framework for stochastic hybrid systems. Formal Methods Syst. Des.43(2), 191–232 (2013)
+23. Hartmanns, A.: A Statistical Model Checker for Nondeterminism and Rare Events
+(artifact). 4TU.Centre for Research Data (2018). http://doi.org/10.4121/uuid:
+64cd25f4-4192-46d1-a951-9f99b452b48f
+24. Hartmanns, A., Hermanns, H.: The Modest Toolset: an integrated environment
+for quantitative modelling and veriﬁcation. In: ´Abrah´ am, E., Havelund, K. (eds.)
+TACAS 2014. LNCS, vol. 8413, pp. 593–598. Springer, Heidelberg (2014). https://
+doi.org/10.1007/978-3-642-54862-8
+51
+25. Hartmanns, A., Hermanns, H., Bungert, M.: Flexible support for time and costs
+in scenario-aware dataﬂow. In: EMSOFT. ACM (2016)
+
+--- Page 18 ---
+A Statistical Model Checker for Nondeterminism and Rare Events 357
+26. Hartmanns, A., Sedwards, S., D’Argenio, P.R.: Eﬃcient simulation-based veriﬁca-
+tion of probabilistic timed automata. In: Winter Simulation Conference (2017)
+27. Hartmanns, A., Timmer, M.: Sound statistical model checking for MDP using
+partial order and conﬂuence reduction. STTT 17(4), 429–456 (2015)
+28. Hartmanns, A., Wendler, P.: TACAS 2018 Artifact Evaluation VM. Figshare
+(2018). https://doi.org/10.6084/m9.ﬁgshare.5896615
+29. Henzinger, T.A., Kopke, P.W., Puri, A., Varaiya, P.: What’s decidable about
+hybrid automata? J. Comput. Syst. Sci. 57(1), 94–124 (1998)
+30. H´ erault, T., Lassaigne, R., Magniette, F., Peyronnet, S.: Approximate probabilistic
+model checking. In: Steﬀen, B., Levi, G. (eds.) VMCAI 2004. LNCS, vol. 2937, pp.
+73–84. Springer, Heidelberg (2004). https://doi.org/10.1007/978-3-540-24622-0 8
+31. H¨ uls, J., Remke, A.: Coordinated charging strategies for plug-in electric vehicles
+to ensure a robust charging process. In: VALUETOOLS. ICST (2016)
+32. J´egourel, C., Legay, A., Sedwards, S.: Importance splitting for statistical model
+checking rare properties. In: Sharygina, N., Veith, H. (eds.) CAV 2013. LNCS,vol. 8044, pp. 576–591. Springer, Heidelberg (2013). https://doi.org/10.1007/978-
+3-642-39799-8
+38
+33. J´egourel, C., Legay, A., Sedwards, S.: Command-based importance sampling for
+statistical model checking. Theor. Comput. Sci. 649, 1–24 (2016)
+34. J´egourel, C., Legay, A., Sedwards, S., Traonouez, L.M.: Distributed veriﬁcation of
+rare properties using importance splitting observers. In: ECEASST, vol. 72 (2015)
+35. Kearns, M.J., Mansour, Y., Ng, A.Y.: A sparse sampling algorithm for near-optimal
+planning in large Markov decision processes. Machine Learn. 49(2–3), 193–208
+(2002)
+36. Kurkowski, S., Camp, T., Colagrosso, M.: MANET simulation studies: the incred-
+ibles. Mob. Comput. Commun. Rev. 9(4), 50–61 (2005)
+37. Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: veriﬁcation of probabilistic
+real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.) CAV 2011. LNCS,
+vol. 6806, pp. 585–591. Springer, Heidelberg (2011). https://doi.org/10.1007/978-
+3-642-22110-1 47
+38. Kwiatkowska, M.Z., Norman, G., Segala, R., Sproston, J.: Automatic veriﬁcation
+of real-time systems with discrete probability distributions. Theor. Comput. Sci.
+282(1), 101–150 (2002)
+39. Legay, A., Sedwards, S., Traonouez, L.-M.: Scalable veriﬁcation of Markov decision
+processes. In: Canal, C., Idani, A. (eds.) SEFM 2014. LNCS, vol. 8938, pp. 350–362.
+Springer, Cham (2015). https://doi.org/10.1007/978-3-319-15201-1 23
+40. Legay, A., Sedwards, S., Traonouez, L.-M.: Plasma Lab: a modular statistical model
+checking platform. In: Margaria, T., Steﬀen, B. (eds.) ISoLA 2016. LNCS, vol. 9952,pp. 77–93. Springer, Cham (2016). https://doi.org/10.1007/978-3-319-47166-2
+6
+41. Okamoto, M.: Some inequalities relating to the partial sum of binomial probabili-
+ties. Ann. Inst. Stat. Math. 10(1), 29–35 (1959)
+42. Pilch, C., Remke, A.: Statistical model checking for hybrid Petri nets with multiple
+general transitions. In: DSN, pp. 475–486. IEEE Computer Society (2017)
+43. Reijsbergen, D., de Boer, P.-T., Scheinhardt, W.: Hypothesis testing for rare-event
+simulation: limitations and possibilities. In: Margaria, T., Steﬀen, B. (eds.) ISoLA
+2016. LNCS, vol. 9952, pp. 16–26. Springer, Cham (2016). https://doi.org/10.1007/
+978-3-319-47166-2 2
+44. Reijsbergen, D., de Boer, P., Scheinhardt, W.R.W., Haverkort, B.R.: On hypothesis
+testing for statistical model checking. STTT 17(4), 377–395 (2015)
+45. Rubino, G., Tuﬃn, B. (eds.): Rare Event Simulation Using Monte Carlo Methods.
+Wiley, New York (2009)
+
+--- Page 19 ---
+358 C. E. Budde et al.
+46. Vill´ en-Altamirano, M., Vill´ en-Altamirano, J.: RESTART: a method for accelerat-
+ing rare event simulations. In: Queueing, Performance and Control in ATM (ITC-
+13), pp. 71–76. Elsevier (1991)
+47. Wald, A.: Sequential tests of statistical hypotheses. Ann. Math. Stat. 16(2), 117–
+186 (1945)
+48. Younes, H.L.S.: Ymer: a statistical model checker. In: Etessami, K., Rajamani,
+S.K. (eds.) CAV 2005. LNCS, vol. 3576, pp. 429–433. Springer, Heidelberg (2005).
+https://doi.org/10.1007/11513988 43
+49. Younes, H.L.S., Simmons, R.G.: Probabilistic veriﬁcation of discrete event systems
+using acceptance sampling. In: Brinksma, E., Larsen, K.G. (eds.) CAV 2002. LNCS,
+vol. 2404, pp. 223–235. Springer, Heidelberg (2002). https://doi.org/10.1007/3-
+540-45657-0 17
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License ( http://creativecommons.org/licenses/by/4.0/ ),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the chapter’s
+Creative Commons license, unless indicated otherwise in a credit line to the material. If
+material is not included in the chapter’s Creative Commons license and your intendeduse is not permitted by statutory regulation or exceeds the permitted use, you will
+need to obtain permission directly from the copyright holder.
