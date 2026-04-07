@@ -1,0 +1,176 @@
+--- Page 1 ---
+arXiv:1912.05793v2  [cs.LO]  13 May 2020THEEXTENDED HOA F ORMAT FOR SYNTHESIS
+A P REPRINT
+Guillermo A. Pérez
+Department of Computer Science
+University of Antwerp
+Middelheimlaan 1, Antwerpen 2020, Belgium
+guillermoalberto.perez@uantwerpen.be
+May 14, 2020
+ABSTRACT
+We propose a small extension to the Hanoi Omega-Automata for mat to deﬁne reactive-synthesis
+problems. Namely, we add a “controllable-AP” header item sp ecifying the subset of atomic propo-
+sitions which is controllable. We describe the semantics of the new format and propose an output
+format for synthesized strategies. Finally, we also commen t on tool support meant to encourage fast
+adoption of the extended Hanoi Omega-Automata format for sy nthesis.
+Keywords Temporal synthesis ·Reactive synthesis ·Omega-regular languages ·Omega automata
+1 Introduction
+The ﬁeld of formal veriﬁcation has studied several forms of m odel checking of reactive systems [1, 2]. Model checking
+essentially asks whether a model of a system satisﬁes a speci ﬁcation given in some formal logic, e.g. linear temporal
+logic (LTL). Reactive synthesis, or the automatic synthesi s of a reactive system from its speciﬁcation, goes a step
+further by completely circumventing the design of a system a nd its modelization. The earliest version of the synthesis
+problem was stated by Alonzo Church [3]. Since then, several versions of it arising from different speciﬁcation
+formalisms and implementation restrictions have been stud ied.
+The reactive synthesis competition (SYNTCOMP,1for short) was started in 2014 by R. Bloem and S. Jacobs to coll ect
+benchmarks and provide an objective comparison of the state -of-the-art synthesis tools. Initially, the competition
+consisted of a realizability and a synthesis track for safet y speciﬁcations. The realizability track just asks whether a
+system satisfying a given speciﬁcation exists while the syn thesis track asks for it to be output by the tool if it exists.
+Synthesis from LTL. Since 2016 tracks with LTL (given in the TLSF [4] format) spec iﬁcations were introduced.
+Currently, the synthesis problem for such speciﬁcations is usually done in two steps: First, the LTL speciﬁcation
+is translated into a deterministic inﬁnite-word automaton . Second, a game is played on the automaton between the
+controller and its environment. A strategy for the controll er in such a game corresponds to an implementation which
+satisﬁes the LTL speciﬁcation.
+Synthesis from automata. While the Hanoi Omega-Automata (HOA) format [5] has arguabl y helped LTL-to-
+automata translation tools become objectively comparable , the same has not yet occurred for game-solving tools
+aimed at solving LTL synthesis. Furthermore, when comparin g LTL-synthesis tools, it is not clear at which one of the
+aforementioned steps they excel. This is why in this documen t we propose an extension of the HOA format which
+allows to directly encode games played on automata.
+1Seehttp://www.syntcomp.org/
+
+--- Page 2 ---
+APREPRINT - M AY14, 2020
+2 Input format
+The Hanoi Omega-Automata (HOA) format is a format to describ e ﬁnite-state automata that accept (as their language)
+sets of inﬁnite words. Such an automaton Ais a tuple (Q,q0,P(AP),∆,Acc) where
+•Qis a ﬁnite set of states,
+•q0∈Qis an initial state,
+•APis a ﬁnite set of atomic propositions and the alphabet P(AP) of the automaton consists of their valuations,
+•∆⊆Q×P(AP)×Qis the transition relation, and
+•Acc⊆(Q· P(AP))ωis an acceptance condition, i.e. a set of inﬁnite runs of the a utomaton which are
+considered accepting.
+The language of the automaton is deﬁned as usual: the set of wo rds for which the automaton has an accepting run.
+2.1 Original format
+The original HOA format was described in a CA V’15 paper [5]. M ore information, as well as Java and C++ parsers
+for the format, can also be found in the website http://adl.github.io/hoaf/ .
+Every HOA-format ﬁle is split into a header and the body of the automaton. The body encodes all the transitions ∆
+of the automaton A. The header gives meta-information regarding, amongst oth ers, howAcc is given. Importantly, it
+also holds information about the atomic-proposition set AP.
+Atomic propositions. One of the header items isAP. This item gives the number of atomic propositions followed
+by a space-separated list of unique names for each atomic pro position. These are double-quoted valid C-strings and
+implicitly numbered, starting from 0, from left to right.
+Acceptance condition. In the HOA format, information about the acceptance conditi on is given in two parts. First,
+anacceptance-condition name is given in the form of a string. Second, a Boolean combinatio n of conditions over
+acceptance sets gives the actual acceptance condition. Each transition can belong to several acceptance sets.2Much
+like in Muller automata [6], the acceptance condition then s peciﬁes which runs are considered accepting by indicating
+which combinations of ﬁnitely and inﬁnitely appearing acce ptance sets are “good”. For instance,
+“transitions from the ﬁrst acceptance set can only appear ﬁn itely often and transitions from the
+second acceptance set must appear inﬁnitely often.”
+2.2 Extension for synthesis
+In the context of reactive synthesis it is necessary to make a distinction between controllable and uncontrollable atom ic
+propositions. That is, the propositions whose value is set b y the uncontrollable environment and those whose value
+is set by the controller. We propose a very simple extension o f the HOA format, based on the synthesis extension of
+AIGER [7], to make this distinction explicitly. We shall add a header item with the following speciﬁcation
+header-item ::= "controllable-AP:" INT* | ...
+In other words, the new header item will have a list of space-s eparated integer indices. These indicate which atomic
+propositions from the APheader item are controllable. All other atomic proposition s are implicitly assumed to be
+uncontrollable.
+3 Semantics: Games played on automata
+We now present the formal semantics of the synthesis problem when the input speciﬁcation is given in the form of an
+automaton. For convenience, we assume that we are given a det erministic automaton A= (Q,q0,P(AP),δ). Hence,
+δcan be thought of as a function δ:Q×U ×C → Q, forUandCvaluations of the uncontrollable and controllable
+sets of atomic propositions respectively.
+2For clarity, we are focusing on edge-labelled automata. How ever, the HOA and extended HOA formats support state-labell ed
+automata as well.
+2
+
+--- Page 3 ---
+APREPRINT - M AY14, 2020
+A game. The game we describe is played by a controller and its environ ment for an inﬁnite number of rounds. In
+every round, the game starts from a state q∈Q. The environment chooses a valuation u∈ U, followed by a choice
+of valuation c∈ Cmade by the controller. The round then ends with an update of t he current state from qtoδ(q,u,c).
+The initial state is q0and the play is winning for the controller if and only if an accepting run o fAwas constructed.
+Formally, a strategy of the controller is a function σ: (Q·P(AP))∗·Q×U → C mapping the observed sequence of
+states and atomic-proposition valuations to a valuation of the controllable propositions. The strategy is winning if and
+only if all plays consistent with it yield an accepting run of A.
+Realizability and synthesis. Given an automaton as input, the realizability problem asks whether there exists a
+winning strategy for the controller. The synthesis problem further asks for the winning strategy itself to be output if i t
+exists.
+For a more detailed description of the reactive synthesis pr oblem and the game-theoretical approach to solving it we
+refer the reader to [8, 2].
+3.1 A note on non-determinism
+Note that giving one of the players the power to resolve the no n-determinism does not, in general, yield a correct
+algorithm [9]. Indeed, when the input automaton Ais non-deterministic then the game has to be formalized in a m ore
+general way: The game played between the controller and its e nvironment is actually a Gale-and-Stewart game [10]
+whose winning condition for the controller is the language o fA. The game solver must either determinize the given
+automaton or implement some algorithm that deals with the no n-determinism explicitly.
+4 Output format
+A strategy of the controller can be encoded in the original AI GER format [11]. Allthe uncontrollable atomic propo-
+sitions should become inputs of the encoded sequential circ uit and allthe controllable inputs should become outputs.
+Latches can be used to encode further information such as the states o f the input automaton.
+4.1 Why two formats?
+We could have chosen to encode strategies as automata in the H OA format, just like the input automata. Nevertheless,
+in the spirit of this track representing an intermediate ste p in the LTL-synthesis pipeline, we believe having an output
+format which matches that of the LTL tracks is beneﬁcial for t he competition. It is also easier for people to adopt tools
+participating in this new track and integrate them with an LT L-to-automaton tool to obtain a toolchain comparable to
+tools pariticipating in the LTL-synthesis tracks.
+5 Restrictions for the ﬁrst edition
+In the context of SYNTCOMP 2020, we will restrict the benchma rk set to deterministic and complete parity au-
+tomata only.
+For parity automata in the HOA format, the acceptance condit ion is given via two parameters: m∈ {max,min}and
+p∈ {0,1}. Additionally, the transitions of the automaton are assume d to be labelled by natural numbers. For every
+run, we then consider the set Infof transition labels appearing inﬁnitely often. According to the parity acceptance
+condition, the run is accepting if and only if
+m(Inf)≡p(mod 2),
+e.g. the maximal label appearing inﬁnitely often is even.
+6 What about the PGSolver format?
+The PGSolver collection of solvers and benchmarks provides a useful framework to test and compare parity-game
+algorithms. To streamline the adoption of the extended HOA f ormat for synthesis, we provide a simple transformation
+from it to the PGSolver format.
+3
+
+--- Page 4 ---
+APREPRINT - M AY14, 2020
+Thehoa2pg tool3is a simpliﬁed version of one of the components present in a pr ototype synthesis tool which translates
+linear temporal logic into a parallel composition of severa l parity games [12]. In essence, it translate an extended-HO A
+automaton into a parity game using binary decision diagrams to abstract the atomic-proposition valuations labelling t he
+transitions of the original automaton and by adding interme diate vertices representing the choices of the environment .
+hoa2pg can be directly used to obtain a realizability solver togeth er with a PGSolver-format parity-game solver.
+Synthesis. As the transformation abstracts away the atomic propositio ns, synthesis of strategies in the AIGER format
+is less straightforward and may require modifying hoa2pg to output more information about the translation into the
+PGSolver format.
+Acknowledgements
+We would like to thank Ayrat Khalimov, Salomon Sickert, and S wen Jacobs for their valuable feedback on earlier
+versions of this document.
+References
+[1] Christel Baier and Joost-Pieter Katoen. Principles of model checking . MIT Press, 2008.
+[2] Edmund M Clarke, Thomas A Henzinger, Helmut Veith, and Ro derick Bloem. Handbook of model checking ,
+volume 10. Springer, 2018.
+[3] Alonzo Church. Logic, arithmetic and automata. In Proceedings of the international congress of mathematicia ns,
+volume 1962, pages 23–35, 1962.
+[4] Swen Jacobs, Felix Klein, and Sebastian Schirmer. A high -level LTL synthesis format: TLSF v1.1. In Ruzica
+Piskac and Rayna Dimitrova, editors, Proceedings Fifth Workshop on Synthesis, SYNT@CAV 2016, To ronto,
+Canada, July 17-18, 2016 , volume 229 of EPTCS , pages 112–132, 2016.
+[5] Tomás Babiak, Frantisek Blahoudek, Alexandre Duret-Lu tz, Joachim Klein, Jan Kretínský, David Müller, David
+Parker, and Jan Strejcek. The hanoi omega-automata format. In Daniel Kroening and Corina S. Pasareanu,
+editors, Computer Aided Veriﬁcation - 27th International Conferenc e, CAV 2015, San Francisco, CA, USA, July
+18-24, 2015, Proceedings, Part I , volume 9206 of Lecture Notes in Computer Science , pages 479–486. Springer,
+2015.
+[6] David E Muller. Inﬁnite sequences and ﬁnite machines. In Proceedings of the Fourth Annual Symposium on
+Switching Circuit Theory and Logical Design (swct 1963) , pages 3–16. IEEE, 1963.
+[7] Swen Jacobs. Extended AIGER format for synthesis. CoRR , abs/1405.5793, 2014.
+[8] Krzysztof R Apt and Erich Grädel. Lectures in game theory for computer scientists . Cambridge University Press,
+2011.
+[9] Thomas A. Henzinger and Nir Piterman. Solving games with out determinization. In Zoltán Ésik, editor, Com-
+puter Science Logic, 20th International Workshop, CSL 2006 , 15th Annual Conference of the EACSL, Szeged,
+Hungary, September 25-29, 2006, Proceedings , volume 4207 of Lecture Notes in Computer Science , pages 395–
+410. Springer, 2006.
+[10] David Gale and Frank M Stewart. Inﬁnite games with perfe ct information. Contributions to the Theory of Games ,
+2:245–266, 1953.
+[11] Armin Biere, Keijo Heljanko, and Siert Wieringa. Aiger 1.9 and beyond. Available at fmv. jku.
+at/hwmcc11/beyond1. pdf , 2011.
+[12] Véronique Bruyère, Guillermo A. Pérez, Jean-François Raskin, and Clément Tamines. Partial solvers for gener-
+alized parity games. In Emmanuel Filiot, Raphaël M. Jungers , and Igor Potapov, editors, Reachability Problems -
+13th International Conference, RP 2019, Brussels, Belgium , September 11-13, 2019, Proceedings , volume 11674
+ofLecture Notes in Computer Science , pages 63–78. Springer, 2019.
+3Available from https://github.com/gaperez64/hoa-tools
+4

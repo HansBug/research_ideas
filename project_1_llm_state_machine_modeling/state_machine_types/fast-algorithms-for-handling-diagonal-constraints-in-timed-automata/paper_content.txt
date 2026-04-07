@@ -1,0 +1,1122 @@
+--- Page 1 ---
+arXiv:1904.08590v1  [cs.FL]  18 Apr 2019Fast algorithms for handling diagonal constraints
+in timed automata
+Paul Gastin
+LSV, CNRS, ENS Paris-Saclay, Université Paris–Saclay, Fra nce
+paul.gastin@lsv.fr
+Sayan Mukherjee
+Chennai Mathematical Institute, India
+sayanm@cmi.ac.in
+B Srivathsan
+Chennai Mathematical Institute, India
+sri@cmi.ac.in
+Abstract
+A popular method for solving reachability in timed automata proceeds by enumerating reachable
+sets of valuations represented as zones. A naïve enumeratio n of zones does not terminate. Various
+termination mechanisms have been studied over the years. Co ming up with eﬃcient termination
+mechanisms has been remarkably more challenging when the au tomaton has diagonal constraints
+in guards.
+In this paper, we propose a new termination mechanism for tim ed automata with diagonal
+constraints based on a new simulation relation between zone s. Experiments with an implementation
+of this simulation show signiﬁcant gains over existing meth ods.
+2012 ACM Subject Classiﬁcation Theory of Computation →Models of computation; Models of
+computation →Timed and hybrid systems
+Keywords and phrases Timed Automata, Reachability, Zones, Simulations, Diagon al constraints
+Funding Supported by UMI ReLaX.
+Paul Gastin : Supported by ANR project TickTac (ANR-18-CE40-0015)
+Sayan Mukherjee : Infosys foundation (India) and Tata Consultancy Services - Innovation Labs
+(Pune, India)
+B Srivathsan : Infosys foundation (India) and Tata Consultancy Services - Innovation Labs (Pune,
+India)
+1 Introduction
+Timed automata have emerged as a popular model for systems wi th real-time constraints [2].
+Timed automata are ﬁnite automata extended with real-value d variables called clocks . All
+clocks are assumed to start at 0, and increase at the same rate . Transitions of the automaton
+can make use of these clocks to disallow behaviours which vio late timing constraints. This is
+achieved by making use of guards which are constraints of the form x≤5,x−y≥3,y>7,
+etc wherex,yare clocks. A transition guarded by x≤5 says that it can be ﬁred only when
+the value of clock xis≤5. Another important feature is the reset of clocks in transitions.
+Each transition can specify a subset of clocks whose values b ecome 0 once the transition is
+ﬁred. The combination of guards and resets allows to track ti ming distance between events.
+A basic question that forms the core of timed automata techno logy is reachability : given a
+timed automaton, does there exist an execution from its init ial state to a ﬁnal state. This
+question is known to be decidable [2]. Various algorithms fo r this problem have been studied
+over the years and have been implemented in tools [24, 5, 23, 2 7, 26].
+
+--- Page 2 ---
+2 Fast algorithms for handling diagonal constraints in time d automata
+Since the clocks are real valued variables, the space of conﬁ gurations of a timed auto-
+maton (consisting of a state and a valuation of the clocks) is inﬁnite and an explicit enumer-
+ation is not possible. The earliest solution to reachabilit y was to partition this space into a
+ﬁnite number of regions and build a region graph that provides a ﬁnite abstraction of the
+behaviour of the timed automaton [2]. However, this solutio n was not practical. Subsequent
+works introduced the use of zones [13]. Zones are special sets of clock valuations with eﬃ-
+cient data structures and manipulation algorithms [5]. Wit hin zone based algorithms, there
+is a division: forward analysis versus backward analysis. T he current industry strength tool
+UPPAAL [24] implements a forward analysis approach, as this works better in the presence
+of other discrete data structures used in UPPAAL models [8]. We focus on this forward
+analysis approach using zones in this paper.
+The forward analysis of a timed automaton essentially enume rates sets of reachable con-
+ﬁgurations stored as zones. Some extra care needs to be taken for this enumeration to
+terminate. Traditional development of timed automata made use of extrapolation operators
+over zones to ensure termination. These are functions which map a zone to a bigger zone.
+Importantly, the range of these functions is ﬁnite. The goal was to come up with extra-
+polation operators which are sound: adding these extra valu ations should not lead to new
+behaviours. This is where the role of simulations between conﬁgurations was studied and
+extrapolation operators based on such simulations were dev ised [13]. A certain extrapolation
+operation, which is now known as ExtraM[4] was proposed and reachability using ExtraM
+was implemented in tools [13].
+A seminal paper by Bouyer [8] revealed that ExtraMis not correct in the presence of
+diagonal constraints in guards. These are constraints of the form x−y ⊳ c where⊳is
+either<or≤, andcis an integer. Moreover, it was proved that no such extrapola tion
+operation would be correct when there are diagonal constrai nts present. It was shown that for
+automata without diagonal constraints (henceforth referr ed to as diagonal-free automata),
+the extrapolation works. After this result, developments i n timed automata reachability
+focussed on the class of diagonal-free automata [4, 3, 20, 21 ], and diagonal constraints were
+mostly sidelined. All these developments have led to quite e ﬃcient algorithms for diagonal-
+free timed automata.
+Diagonal constraints are a useful modeling feature and occu r naturally in certain prob-
+lems, especially scheduling [16] and logic-automata trans lations [15, 22]. It is however known
+that they do not add any expressive power: every timed automa ton can be converted into
+a diagonal-free timed automaton [6]. This conversion suﬀer s from an exponential blowup,
+which was later shown to be unavoidable: diagonal constrain ts could potentially give ex-
+ponentially more succinct models [9]. Therefore, a good for ward analysis algorithm that
+works directly on a timed automaton with diagonal constrain ts would be handy. This is the
+subject of this paper.
+Related work. The ﬁrst attempt at such an algorithm was to split the (extrap olated) zones
+with respect to the diagonal constraints present in the auto maton [5]. This gave a correct
+procedure, but since zones are split, an enumeration starts from each small zone leading to
+an exponential blow-up in the number of visited zones. A seco nd attempt was to do a more
+reﬁned conversion into a diagonal free automaton by detecti ng “relevant” diagonals [12, 25]
+in an iterative manner. In order to do this, special data stru ctures storing sets of sets of
+diagonal constraints were utilized. A more recent attempt [ 17] extends the works [4] and
+[20] on diagonal-free automata to the case of diagonal const raints. All the approaches suﬀer
+from either a space or time bottleneck and are incomparable t o the eﬃciency and scalability
+of tools for diagonal-free automata.
+
+--- Page 3 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 3
+Our contributions. The goal of this paper is to come up with fast algorithms for ha ndling
+diagonal constraints. Since the extrapolation based appro ach is a dead end, we work with
+simulation between zones directly, as in [20] and [17]. We pr opose a new simulation relation
+between zones that is correct in the presence of diagonal con straints (Section 3). We give
+an algorithm to test this simulation between zones (Section 4). We have incorporated
+this simulation test in the tool TChecker [18] that checks re achability for timed automata,
+and compared our results with the state-of-the-art tool UPP AAL. Experiments show an
+encouraging gain, both in the number of zones enumerated and in the time taken by the
+algorithm, sometimes upto four orders of magnitude (Sectio n 6). The main advantage of
+our approach is that it does not split zones, and furthermore it leverages the optimizations
+studied for diagonal-free automata.
+From a technical point of view, our presentation does not mak e use of regions and instead
+works with valuations, zones and simulation relations. We t hink that this presentation
+provides a clearer perspective - as a justiﬁcation of this cl aim, we extend our simulation to
+timed automata with general updates of the form x:=candx:=y+din transitions (where
+x,yare clocks and c,dare constants) in a rather natural manner (Section 5). In gen eral,
+reachability for timed automata with updates is undecidabl e [11]. Some decidable cases
+have been proposed for which the algorithms are based on regi ons. For decidable subclasses
+containing diagonal constraints, no zone based approach ha s been studied. Our proposed
+method includes these classes, and also beneﬁts from zones a nd standard optimizations
+studied for diagonal-free automata.
+2 Preliminaries
+LetNbe the set of natural numbers, R≥0the set of non-negative reals and Zthe set of
+integers. Let Xbe a ﬁnite set of variables ranging over R≥0, called clocks . Let Φ(X) denote
+the set of constraints ϕformed using the following grammar: ϕ:=x⊳c|c⊳x|x−y⊳
+d|ϕ∧ϕ, wherex,y∈X,c∈N,d∈Zand⊳∈{<,≤}. Constraints of the form x⊳c and
+c⊳x are called non-diagonal constraints and those of the form x−y⊳c are called diagonal
+constraints . We have adopted a convention that in non-diagonal constrai ntsx⊳c andc⊳x,
+the constant cis restricted to N. Aclock valuation vis a function which maps every clock
+x∈Xto a real number v(x)∈R≥0. A valuation is said to satisfy a guard g, written as
+v|=gif replacing every xingwithv(x) makes the constraint gtrue. Forδ∈R≥0we write
+v+δfor the valuation which maps every xtov(x) +δ. Given a subset of clocks R⊆X, we
+write [R]vfor the valuation which maps each x∈Rto 0 and each x/\e}atio\slash∈Rtov(x).
+Atimed automaton Ais a tuple ( Q,X,q 0,T,F ) whereQis a ﬁnite set of states, Xis
+a ﬁnite set of clocks, q0∈Qis the initial state, F⊆Qis a set of accepting states and
+T∈Q×Φ(X)×2X×Qis a set of transitions. Each transition t∈Tis of the form
+(q,g,R,q′) whereqandq′are respectively the source and target states, gis a constraint
+called the guard , andRis a set of clocks which are reset int. We call a timed automaton
+diagonal-free if guards in transitions do not use diagonal constraints.
+Aconﬁguration ofAis a pair (q,v) whereq∈Qandvis a valuation. The semantics of
+a timed automaton is given by a transition system SAwhose states are the conﬁgurations
+ofA. Transitions inSAare of two kinds: delay transitions are given by ( q,v)δ− →(q,v+δ)
+for allδ≥0, and action transitions are given by ( q,v)t− →(q′,v′) for eacht:= (q,g,R,q′), if
+v|=gandv′= [R]v. We writeδ,t−→for a sequence of delay δfollowed by action t. A run of
+Ais an alternating sequence of delay-action transitions sta rting from the initial state q0and
+the initial valuation 0which maps every clock to 0: ( q0,0)δ0,t0−−−→ (q1,v1)δ1,t1−−−→··· (qn,vn).
+
+--- Page 4 ---
+4 Fast algorithms for handling diagonal constraints in time d automata
+A run of the above form is said to be accepting if the last state qn∈F. The reachability
+problem for timed automata is the following: given an automaton A, decide if there exists
+an accepting run. This problem is known to be PSPACE-complet e [2]. Since the semantics
+SAis inﬁnite, solutions to the reachability problem work with a ﬁnite abstraction of SA
+that is sound and complete. Before we explain one of the popul ar solutions to reachability,
+we state a result which allows to convert every timed automat on into a diagonal-free timed
+automaton.
+◮Theorem 1. [6] For every timed automaton A, there exists a diagonal-free timed auto-
+matonAdfs.t. there is a bijection between runs of AandAdf. The number of states in Adf
+is2d·nwheredis the number of diagonal constraints and nis the number of states of A.
+Proof. (Sketch) We give the construction to remove one diagonal. Th is can be applied
+iteratively to remove all diagonal constraints. Let x−y ⊳c be a diagonal constraint appearing
+inA. Initially, the value of x−yis 0 and hence x−y ⊳c is true iﬀ 0 ⊳c. The value x−y
+does not change by time elapse. It can change only due to reset s. Therefore, the idea is to
+use the states of the automaton to maintain if the constraint is true or false. Let A′be the
+new automaton which does not contain x−y⊳c.
+The states ofA′are of the form Q×{0,1}. For every transition ( q,g,R,q′) ofAwe have
+the following transitions in A′, whereg′=g\{x−y⊳c}, andb= 1 ifgcontainsx−y⊳c,
+andb∈{0,1}otherwise:
+if{x,y}∩R=∅, then (q,b)g′
+−−→
+R(q′,b)
+if{x,y}⊆R, then (q,b)g′
+−−→
+R(q′,b′) whereb′= 1 if 0⊳c, andb′= 0 otherwise
+ifx∈Randy /∈R, there are transitions ( q,b)g′∧−y⊳c−−−−−−−→
+R(q′,1) and (q,b)g′∧−y⊲1c−−−−−−−→
+R
+(q′,0) where⊲1is>if⊳equals≤; and≥otherwise. The guards −y⊳c and−y⊲1ccan
+be suitably removed if they are either trivially true or fals e, and if not, rewritten to the
+formy∼dwhered≥0.
+ifx/\e}atio\slash∈Randy∈R, the construction is similar to the above case.
+The initial state is ( q0,0⊳ c) and the accepting states are F×{0,1}. Note that there
+is a one-one correspondence between runs of AandA′and moreoverA′does not have the
+diagonal constraint x−y⊳c. ◭
+The above theorem allows to solve the reachability of a timed automatonAby ﬁrst
+converting it into the diagonal free automaton Adfand then checking reachability on Adf.
+However, this conversion comes with a systematic exponenti al blowup (in terms of the
+number of diagonal constraints present in A). It was shown in [9] that such a blowup
+is unavoidable in general. We will now recall the general alg orithm for analyzing timed
+automata, and then move into speciﬁc details which depend on whether the automaton has
+diagonal constraints or not.
+Zones and simulations
+Fix a timed automaton Awith clock set Xfor the rest of the discussion in this section. As
+the space of valuations of Ais inﬁnite, algorithms work with sets of valuations called zones .
+A zone is set of clock valuations given by a conjunction of con straints of the form x−y⊳c,
+x⊳c andc⊳x wherec∈Zand⊳∈{<,≤}, for example the solutions of x−y<5∧y≤10
+is a zone. The transition relation over conﬁgurations ( q,v) is extended to ( q,Z) whereZis a
+
+--- Page 5 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 5
+zone. We deﬁne the following operations on zones given a guar dgand a set of clocks R: time
+elapse− →Z={v+δ|v∈Z,δ≥0}; guard intersection Z∧g:={v|v∈Zandv|=g}and reset
+[R]Z:={[R]v|v∈Z}. It can be shown that all these operations result in zones. Zo nes can
+be eﬃciently represented and manipulated using Diﬀerence B ound Matrices (DBMs) [14].
+Thezone graph ZG(A) of timed automaton Ais a transition system whose nodes are of
+the form (q,Z) whereqis a state ofAandZis a zone. For each transition t:= (q,g,R,q′)
+ofA, and each zone ( q,Z) there is a transition ( q,Z)⇒t(q′,Z′) whereZ′=−−−−−−−→[R](Z∧g).
+The initial node is ( q0,Z0) whereq0is the initial state of AandZ0={0+δ|δ≥0}is the
+zone obtained by elapsing an arbitrary delay from the initia l valuation. A path in the zone
+graph is a sequence ( q0,Z0)⇒t0(q1,Z1)⇒t1···⇒tn−1(qn,Zn) starting from the initial
+node. The path is said to be accepting if qnis an accepting state. The zone graph is known
+to be sound and complete for reachability.
+◮Theorem 2. [13]Ahas an accepting run iﬀ ZG(A)has an accepting path.
+This does not yet give an algorithm as the zone graph ZG(A) is still not ﬁnite. Moreover,
+there are examples of automata for which the reachable part o fZG(A) is also inﬁnite: start-
+ing from the initial node, applying the successor computati on leads to inﬁnitely many zones.
+Two diﬀerent approaches have been studied to get ﬁniteness, both of them based on the us-
+age of simulation relations . A (time-abstract) simulation relation /precedesorcurlybetween conﬁgurations
+ofAis a reﬂexive and transitive relation such that ( q,v)/precedesorcurly(q′,v′) impliesq=q′and (1) for
+everyδ≥0, there exists δ′≥0 such that ( q,v+δ)/precedesorcurly(q,v′+δ′) and (2) for every transition
+tofA, if (q,v)t− →(q1,v1) then (q,v′)t− →(q1,v′
+1) such that ( q1,v1)/precedesorcurly(q1,v′
+1). We sayv/precedesorcurlyv′,
+read asvis simulated by v′if (q,v)/precedesorcurly(q,v′) for all states q. The simulation relation can
+be extended to zones: Z/precedesorcurlyZ′if for every v∈Zthere exists v′∈Z′such thatv/precedesorcurlyv′. We
+write↓Zfor{v|∃v′∈Zs.t.v/precedesorcurlyv′}. The simulation relation /precedesorcurlyis said to be ﬁnite if the
+function mapping zones Zto the down sets ↓Zhas ﬁnite range. We now recall a speciﬁc
+simulation relation which was shown to be ﬁnite and correct f or diagonal-free timed auto-
+mata. Current algorithms and tools for diagonal-free autom ata are based on this simulation.
+The conditions required for v/precedesorcurlyLUv′ensure that when all lower bound constraints c ⊳ x
+satisfyc≤L(x) and all upper bound constraints x⊳c satisfyc≤U(x), whenever vsatisﬁes
+a constraint, v′will also satisfy it.
+◮Deﬁnition 3 (LU-bounds and the relation /precedesorcurlyLU[4, 20]) .AnLU-bounds function is a pair
+of functions L:X/mapsto→N∪{−∞} andU:X/mapsto→N∪{−∞} that map each clock to either
+a non-negative constant or −∞. Given an LU-bounds function, we deﬁne v/precedesorcurlyLUv′for
+valuationsv,v′if for every clock x∈X:
+v′(x)<v(x)impliesL(x)<v′(x) andv(x)<v′(x)impliesU(x)<v(x).
+The/precedesorcurlyLUsimulation is extended to zones as mentioned above. Let us wr ite↓LUZfor
+{v|∃v′∈Zwithv/precedesorcurlyLUv′}.
+◮Theorem 4. [4] LetAbe a diagonal-free timed automaton. Let LUbe a bounds function
+such thatc≤L(x)for every (lower-bound) guard c ⊳ x appearing inAandc≤U(x)for
+every (upper-bound) guard x⊳c ofA. Then, the relation /precedesorcurlyLUis a ﬁnite simulation on the
+conﬁgurations of A.
+Reachability in diagonal-free timed automata
+A natural method to get ﬁniteness of the zone graph is to prune the zone graph computation
+through simulations Z/precedesorcurlyLUZ′: do not explore a node ( q,Z) if there is an already visited
+
+--- Page 6 ---
+6 Fast algorithms for handling diagonal constraints in time d automata
+node (q,Z′) such that Z/precedesorcurlyLUZ′. Since these simulation tests need to be done often during
+the zone graph computation, an eﬃcient algorithm for perfor ming this test is crucial. Note
+thatZ/precedesorcurlyLUZ′iﬀZ⊆↓ LUZ′. However, it is known that the set ↓LUZ′is not necessarily a
+zone [4], and hence no simple zone inclusions are applicable . The ﬁrst algorithms for timed
+automata followed a diﬀerent approach, which we call the extrapolation approach. A function
+Extra+
+LU[4] on zones was deﬁned, which had two nice properties - (1) Ex tra+
+LU(Z)⊆↓ LUZ
+and (2) Extra+
+LU(Z) is a zone for all Z. These properties give rise to an algorithm that
+performs only eﬃcient zone operations: successor computat ions and zone inclusions.
+Reachability algorithm using zone extrapolation. The input to the algorithm is a timed
+automatonA. The algorithm maintains two lists, Passed and Waiting. Ini tially, the node
+(q0,Extra+
+LU(Z0)) is added to the Waiting list (recall that ( q0,Z0) is the initial node of the
+zone graph ZG(A)). Wlog. we assume that q0is not accepting. The algorithm repeatedly
+performs the following steps:
+Step 1. If Waiting is empty, then return “ Ahas no accepting run”; else pick (and remove)
+a node (q,Z) from Waiting. Add ( q,Z) to Passed.
+Step 2. For each transition t:= (q,g,R,q 1), compute the successor ( q,Z)⇒t(q1,Z1): if
+Z1/\e}atio\slash=∅perform the following operations - if q1is accepting, return “ Ahas an accepting
+run”; else compute ˆZ1:= Extra+
+LU(Z1) and check if there exists a node ( q1,Z′
+1) in Passed
+or Waiting such that ˆZ1⊆Z′
+1: if yes, ignore the node ( q1,ˆZ1), otherwise add ( q1,ˆZ1) to
+Waiting.
+The correctness of this algorithm follows from Theorem 4 and the fact that Extra+
+LU(Z)⊆
+↓LUZ[4]. Intuitively, the additional valuations on top of Zin Extra+
+LU(Z) belong to↓LUZ,
+and hence are simulated by some valuation in Z. This therefore entails that there are
+no new states visited due to these extra valuations. More rec ently, anO(|X|2) algorithm
+forZ/precedesorcurlyLUZ′was proposed [20]. This algorithm has the same complexity as the test for
+inclusion between zones. Additionally, the /precedesorcurlyLUtest was a simple extension of the zone
+inclusion algorithm, to account for the LUbounds. This gives an algorithm that can avoid
+explicit extrapolations, and also use a better set ↓LUZ′to prune the search.
+Reachability algorithm using simulations. The initial node ( q0,Z0) is added to the Waiting
+list. Wlog. we assume that q0is not accepting. The algorithm repeatedly performs the
+following steps:
+Step 1. If Waiting is empty, then return “ Ahas no accepting run”; else pick (and remove)
+a node (q,Z) from Waiting. Add ( q,Z) to Passed.
+Step 2. For each transition t:= (q,g,R,q 1), compute the successor ( q,Z)⇒t(q1,Z1): if
+Z1/\e}atio\slash=∅perform the following operations - if q1is accepting, return “ Ahas an accepting
+run”; else check if there exists a node ( q1,Z′
+1) in Passed or Waiting such that Z1/precedesorcurlyLUZ′
+1:
+if yes, ignore the node ( q1,Z1), otherwise add ( q1,Z1) to Waiting.
+Reachability in the presence of diagonal constraints
+The/precedesorcurlyLUrelation is no longer a simulation when diagonal constraint s are present. Moreover,
+it was shown in [8] that no extrapolation operator (along the lines of Extra+
+LU) can work in the
+presence of diagonal constraints. The ﬁrst option to deal wi th diagonals is to use Theorem 1
+to get a diagonal free automaton and then apply the methods di scussed previously. One
+problem with this is the systematic exponential blowup intr oduced in the number of states of
+the resulting automaton. Another problem is to get diagnost ic information: counterexamples
+
+--- Page 7 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 7
+need to be translated back to the original automaton [5]. Var ious methods have been studied
+to circumvent the diagonal free conversion and instead work on the automaton with diagonal
+constraints directly. We recall the approach used in the sta te-of-the-art tool UPPAAL below.
+Zone splitting [5]. The paper introducing timed automata gave a notion of equiva lence
+between valuations v≃Mv′parameterized by a function Mmapping each clock xto the
+maximum constant Mamong the guards of the automaton that involve x. This equivalence
+is a ﬁnite simulation for diagonal-free automata. Equivale nce classes of≃Mare called regions.
+This was extended to the diagonal case by [5] as: v≃d
+Mv′ifv≃Mv′and for all diagonal
+constraints gpresent in the automaton, if v|=gthenv′|=g. The≃d
+Mrelation splits the
+regions further, such that each region is either entirely in cluded inside g, or entirely outside
+gfor eachg. The next step is to use this notion of equivalence in zones. T he paper [5]
+follows the extrapolation approach: to each zone Z, an extrapolation operation Extra M(Z)
+is applied; this adds some valuations which are ≃Mequivalent to valuations in Z; then it
+is further split into multiple zones, so that each small zone is either inside gor outsideg
+for each diagonal constraint g. Ifdis the number of diagonal constraints present in the
+automaton, this splitting process can give rise to 2dzones for each zone Z. From each small
+zone, the zone graph computation is started. Essentially, t he exponential blow-up at the
+state level which appeared in the diagonal-free conversion now appears in the zone level.
+Finding relevant diagonal constraints [12]. This approach wants to perform the diagonal-
+free conversion, however restricted to a subset of diagonal constraints. Initially, none of
+the diagonal constraints are removed and the extrapolated z one graph (using Extra M) is
+computed. Since this graph contains more valuations, this i s an over-approximation: if
+there is a path over these extrapolated zones to an accepting state, it might not be an
+actual path over concrete zones. Hence, each time an accepti ng state is reached, a concrete
+zone computation is done to check if it is spurious. If it is in deed spurious, the path was
+disabled in between by some guard. The goal is to now ﬁnd all di agonal constraints along the
+path that were responsible for this disability: the authors propose to do this by maintaining
+for each zone Z, and each pair of clocks x,y, a set of diagonal constraints that were used
+to get the current value of x−yinZ. In order to get smaller sets of diagonal constraints,
+the authors in fact maintain a set-of-sets so that any set in t his set-of-sets can be picked
+as a candidate. Once this candidate set Sis picked, the diagonal free conversion restricted
+toSis done. This is the reﬁnement. Again, an extrapolated zone g raph is computed, and
+the process is continued till there are no false positives. S ince each reﬁnement removes a
+diagonal constraint, in the end the algorithm will compute t he full diagonal-free conversion.
+This method works well when not many diagonal constraints re sult in false positives.
+LUextended to diagonals. Recently, [17] gave an extension of LUsimulation, called /precedesorcurlyd
+LU,
+to the case of diagonals. This was parameterized by two const antsLUassociated to each
+x−yforx,y∈X. An algorithm Z/precedesorcurlyd
+LUZ′was developed. However, the complexity of
+this test is unsatisfactory:it was shown that deciding Z/precedesorcurlyd
+LUZ′is NP-hard. Although this
+results in a tremendous decrease in the number of nodes explo red, the algorithm performs
+bad in terms of timing due to the implementation of the simula tion test.
+In this paper, we propose a new simulation to handle diagonal constraints. This has
+two advantages - using this avoids the blow-up in the number o f nodes arising due to zone
+splitting, and the simulation test between zones has an eﬃci ent implementation and is
+signiﬁcantly quicker than the simulation of [17].
+
+--- Page 8 ---
+8 Fast algorithms for handling diagonal constraints in time d automata
+3 A new simulation relation
+In this section, we start with a deﬁnition of a relation betwe en timed automata conﬁgurations,
+which in some sense “declares” upfront what we need out of a si mulation relation that can
+be utilized in a reachability algorithm. As we proceed, we wi ll make its description more
+concrete and give an eﬀective simulation algorithm between zones, that can be implemented.
+Fix a set of clocks X. This generates constraints Φ( X).
+◮Deﬁnition 5 (the relation⊑G).LetGbe a (ﬁnite or inﬁnite) set of constraints. We say
+v⊑Gv′if for allϕ∈Gand allδ≥0,v+δ|=ϕimpliesv′+δ|=ϕ.
+Our goal is to utilize the above relation in a simulation (as d eﬁned in Page 5) for a timed
+automaton. Directly from the deﬁnition, we get the followin g lemma which shows that the
+⊑Grelation is preserved under time elapse.
+◮Lemma 6. Ifv⊑Gv′, thenv+δ⊑Gv′+δfor allδ≥0.
+The other kind of transformation over valuations is resets. Given sets of guards G1,G
+and a set of clocks R, we want to ﬁnd conditions on G1andGso that ifv⊑G1v′then
+[R]v⊑G[R]v′. To do this, we need to answer this question: what guarantees should we
+ensure forv,v′(viaG1) so that [R]v⊑G[R]v′. This motivates the next deﬁnition.
+◮Deﬁnition 7 (weakest pre-condition of ⊑Gover resets) .For a constraint ϕand a set of
+clocksR, we deﬁne a set of constraints wp(⊑ϕ,R)as follows: when ϕis of the form x ⊳ c
+orc ⊳ x , then wp(⊑ϕ,R)is empty if x∈Rand is{ϕ}otherwise; when ϕis a diagonal
+constraintx−y⊳c, then wp(⊑ϕ,R)is:
+{x−y⊳c}if{x,y}∩R=∅
+{x⊳c}ify∈R,x/\e}atio\slash∈Randc≥0
+{−c⊳y}ifx∈R,y/\e}atio\slash∈Rand−c≥0
+empty, otherwise.
+For a set of guards G, we deﬁne wp(⊑G,R) :=/uniontext
+ϕ∈Gwp(⊑ϕ,R).
+Note that the relation ⊑Gis parameterized by a set of constraints. Additionally, we
+desire this set to be ﬁnite, so that the relation can be used in an algorithm. We need to ﬁrst
+link an automaton Awith such a set of constraints. One way to do it is to take the se t of all
+guards present in the automaton and to close it under weakest pre-conditions with respect
+to all possible subsets of clocks. A better approach is to con sider a set of constraints for each
+state, as in [3] where the parameters for extrapolation (the maximum constants appearing
+in guards) are calculated at each state.
+◮Deﬁnition 8 (State based guards) .LetA= (Q,X,q 0,T,F )be a timed automaton. We
+associate a set of guards G(q)for each state q∈Q, which is the least set of guards (for
+the coordinate-wise subset inclusion order) such that for e very transition (q,g,R,q 1): the
+guardgand the set wp(⊑G(q1),R)are present inG(q). More precisely, {G(q)}q∈Qis the least
+solution to the following set of equations written for each q∈Q:
+G(q) =/uniondisplay
+(q,g,R,q 1)∈T{g}∪wp(⊑G(q1),R)
+All constraints present in the set wp( ⊑G(q1),R) contain constants which are already
+present in⊑G(q1). The least solution to the above set of equations can therefo re be ob-
+tained by a ﬁxed point computation which starts with G(q) set to/uniontext
+(q,g,R,q 1)∈T{g}and then
+
+--- Page 9 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 9
+repeatedly updates the weakest-preconditions. Since no ne w constants are generated in this
+process, the ﬁxed point computation terminates. We now have the ingredients to deﬁne a
+simulation relation over conﬁgurations of a timed automato n with diagonal constraints.
+◮Deﬁnition 9 (A-simulation) .LetA= (Q,X,q 0,T,F )be a timed automaton and let the
+set of guardsG(q)of Deﬁnition 8 be associated to every state q∈Q. We deﬁne a relation
+/precedesorcurlyAbetween conﬁgurations of Aas(q,v)/precedesorcurlyA(q,v′)ifv⊑G(q)v′.
+◮Lemma 10. The relation /precedesorcurlyAis a simulation on the conﬁgurations of timed automaton
+A.
+Proof. Pick two conﬁgurations such that ( q,v)/precedesorcurlyA(q,v′). We need to show the two con-
+ditions required for a simulation as given in Page 5. The ﬁrst condition follows directly
+from Lemma 6. For the second condition, pick a transition t:= (q,g,R,q 1) such that
+(q,v)t− →(q1,v1). Since (q,v)/precedesorcurlyA(q,v′), we have v⊑G(q)v′by deﬁnition. Moreover, the
+guardg∈G(q), by Deﬁnitions 9 and 8. This implies that v′satisﬁes the guard g(tak-
+ingδ= 0 in Deﬁnition 5) thereby giving us a transition ( q,v′)t− →(q1,v′
+1). It remains to
+showv1⊑G(q1)v′
+1. This follows directly from the deﬁnition of the weakest pre condition
+wp(⊑G(q1),R). ◭
+As pointed before, Deﬁnition 5 gives a declarative descript ion of the simulation and it
+is unclear how to work with it algorithmically, even when the set of constraints Gis ﬁnite.
+The main issue is with the ∀δquantiﬁcation, which is not ﬁnite. We will ﬁrst provide a
+characterization that brings out the fact that this ∀δquantiﬁcation is irrelevant for diagonal
+constraints (essentially because value of v(x)−v(y) does not change with time elapse). Given
+a set of constraints G, letG−⊆Gbe the set of non-diagonal constraints in G.
+◮Proposition 11. v⊑Gv′iﬀv⊑G−v′and for all diagonal constraints ϕ∈G, ifv|=ϕ
+thenv′|=ϕ.
+Proof. The left-to-right implication is direct from Deﬁnition 5. F or the right-to-left implic-
+ation, it is suﬃcient to note that v(x)−v(y) is invariant under time elapse, for every pair
+of clocksx,y. ◭
+It now amounts to solving the ∀δproblem for non-diagonals. It turns out that the /precedesorcurlyLU
+simulation achieves this, almost. Since the LUbounds cannot distinguish between guards
+with<and≤comparisons, the /precedesorcurlyLUsimulation does not characterize v⊑G−v′completely
+(converse of Lemma 13 does not hold). Although we are aware of the (rather technical)
+modiﬁcations to /precedesorcurlyLUsimulation that are needed for this characterization, we ch oose to use
+the existing /precedesorcurlyLUdirectly as this has already been implemented in tools. This gives us a
+ﬁner simulation than v⊑G−v′. Let us ﬁrst deﬁne the LUbounds corresponding to a set of
+general constraints G.
+◮Deﬁnition 12 (LU-bounds fromG).LetGbe a ﬁnite set of constraints. We deﬁne LU(G)
+to denote the pair of functions LGandUGdeﬁned as follows:
+LG(x) =/braceleftBigg
+−∞ if there is no guard of the form c⊳x inG
+max{c|c⊳x∈G} otherwise
+UG(x) =/braceleftBigg
+−∞ if there is no guard of the form x⊳c inG
+max{c|x⊳c∈G} otherwise
+◮Lemma 13. For every set of constraints G,v/precedesorcurlyLU(G)v′impliesv⊑G−v′.
+
+--- Page 10 ---
+10 Fast algorithms for handling diagonal constraints in tim ed automata
+Proof. Supposev/precedesorcurlyLU(G)v′. For a clock x, ifv(x) =v′(x), then trivially the conditions of
+v⊑G−v′are true for constraints involving x. Ifv′(x)<v(x), then by Deﬁnition 3, we have
+LG(x)<v′(x). Hencev,v′(and thereby v+δ,v′+δ) satisfy all constraints of the form c⊳x
+fromG, giving the⊑G−condition for c⊳x guards. Analogous reasoning works for the case
+whenv(x)<v′(x), giving the⊑G−condition for the remaining guards. ◭
+The above observations call for the next deﬁnition and subse quent lemmas.
+◮Deﬁnition 14 (approximating⊑G).LetGbe a ﬁnite set of constraints. We deﬁne a relation
+⊑LU
+Gas follows: v⊑LU
+Gv′ifv/precedesorcurlyLU(G)v′and for all diagonal constraints ϕ∈G, ifv|=ϕ
+thenv′|=ϕ. Similarly, deﬁne /precedesorcurlyLU
+Aas(q,v)/precedesorcurlyLU
+A(q,v′)ifv⊑LU
+G(q)v′.
+◮Lemma 15. The relation /precedesorcurlyLU
+Ais a ﬁnite simulation on the conﬁgurations of A.
+Proof. The fact that /precedesorcurlyLU
+Ais a simulation follows from deﬁnitions of /precedesorcurlyLU, the state based
+guards, and the way we have constructed the weakest pre-cond ition over resets. We now
+focus on showing that it is ﬁnite. To do this, we will show that for eachq, the simulation
+⊑LU
+Gis ﬁnite. Recall that a simulation is ﬁnite, if the function m apping zones Zto down
+sets↓Zhas ﬁnite range. From Theorem 4, simulation /precedesorcurlyLU(G)is ﬁnite. Now consider the
+relationv/precedesorcurlyv′if for all diagonal constraints ϕ∈G, ifv|=ϕ, thenv′|=ϕ. We will now
+show that this simulation /precedesorcurlyis also ﬁnite. Let G+⊆Gbe the set of diagonal constraints in
+G; now for each subset S⊆G+consider the set R|X|
+≥0∩/logicalandtext
+ϕ∈Sϕ∩/logicalandtext
+ϕ∈G+\S¬ϕ. These sets
+partition the space of all valuations into atmost 2|G+|classes. The downset ↓Zfor a zone
+with respect to /precedesorcurlywill be the union of these classes that intersect with Z. This shows that
+/precedesorcurlyis also ﬁnite. Since /precedesorcurlyLU(G)and/precedesorcurlyare ﬁnite, it follows that ⊑LU
+Gis also ﬁnite. ◭
+The⊑LU
+Grelation can be extended to an algorithm for simulation betw een zones, which
+we do in the next section. With this, we get the following theo rem.
+◮Theorem 16. Given a timed automaton A, the state based guards of Deﬁnition 8 can be
+computed. Zone graph enumeration using /precedesorcurlyLU
+Asimulation is a sound, complete and termin-
+ating procedure for the reachability problem.
+4 Algorithm for Z⊑GZ′
+Fix a ﬁnite set of guards G. Restating the deﬁnition of ⊑Gextended to zones: Z⊑GZ′
+if for allv∈Zthere exists a v′∈Z′such thatv⊑Gv′. In this section, we will view
+the characterization of ⊑Gas in Proposition 11 and give an algorithm to check Z⊑GZ′
+that uses as an oracle a test Z⊑G−Z′. Using the discussion in the previous section, we
+later approximate Z⊑G−Z′withZ/precedesorcurlyLU(G)Z′in the implementation. We start with an
+observation following from Proposition 11.
+◮Lemma 17. Letϕ:=x−y ⊳c be a diagonal constraint in G. ThenZ⊑GZ′if and only
+ifZ∩ϕ⊑G′Z′∩ϕandZ∩¬ϕ⊑G′Z′whereG′=G\{ϕ}.
+IfGhas no diagonal constraints, Z⊑GZ′if and only if Z⊑G−Z′.
+Proof. SupposeZ⊑GZ′. SinceZ∩¬ϕ⊆ZclearlyZ∩¬ϕ⊑GZ′and hence by deﬁnition,
+we getZ∩¬ϕ⊑G′Z′. For the other part let us choose v∈Zsuch thatv|=ϕ. AsZ⊑GZ′,
+there exists v′∈Z′such thatv⊑Gv′. By deﬁnition, v′|=ϕsinceϕ∈Gandv|=ϕ. Hence,
+Z∩ϕ⊑GZ′∩ϕand thereby Z∩ϕ⊑G′Z′∩ϕ.
+Conversely, let us suppose Z∩ϕ⊑G′Z′∩ϕandZ∩¬ϕ⊑G′Z′. Choose a v∈Z. Either
+v∈Z∩ϕorv∈Z∩¬ϕ. Suppose v∈Z∩ϕ. Then there exists v′∈Z′∩ϕsuch that
+
+--- Page 11 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 11
+v⊑G′v′. Firstly, note that the set of non-diagonals in GandG′are the same, since GandG′
+diﬀer only by the diagonal constraint ϕ. Secondly, note that both v|=ϕandv′|=ϕ. These
+two observations coupled with v⊑G′v′givev⊑Gv′. Supposev∈Z∩¬ϕ. Then, there is
+av′∈Z′such thatv⊑G′v′. Similar to the above case, we already have v⊑G−v′. Sincev
+does not satisfy ϕ, the factv⊑G′v′implies the second requirement for v⊑Gv′. Hence in
+both the cases we get v′∈Z′such thatv⊑Gv′, proving that Z⊑GZ′.
+The last part of the Lemma follows from Proposition 11. ◭
+This leads to the following algorithm consisting of two mutu ally recursive procedures.
+This algorithm is essentially an implementation of the abov e lemma, with two optimizations:
+we start with the non-diagonal check in Line 6 of Algorithm 1 - if this is already violated,
+then the algorithm returns false;
+supposeZ⊑G−Z′, the next task is to perform the checks in the ﬁrst statement o f
+Lemma 17 - this is done by Algorithm 2; note however that when A lgorithm 2 is called,
+we already have Z⊑G−Z′, henceZ∩¬ϕ⊑G−Z′. Therefore we use an optimization
+in Line 7 by calling Algorithm 2 directly (as the check in Line 6 of Algorithm 1 will be
+redundant).
+1checkZ⊑GZ′:
+2 ifZ=∅:
+3 return true
+4 ifZ′=∅:
+5 return false
+6 ifZ/\e}atio\slash⊑G−Z′:
+7 return false
+8 returnZ⊑∗
+GZ′
+Algorithm 11checkZ⊑∗
+GZ′:
+2 ifGdoes not contain any
+diagonal constraints :
+3 return true
+4 pick a diagonal constraint
+ϕ=x−y⊳c fromG
+5G′←−G\{ϕ}
+6 ifZ∩¬ϕ/\e}atio\slash=∅:
+7 ifZ∩¬ϕ/\e}atio\slash⊑∗
+G′Z′:
+8 return false
+9 returnZ∩ϕ⊑G′Z′∩ϕ
+Algorithm 2
+As mentioned before, we approximate Z⊑G−Z′withZ/precedesorcurlyLU(G)Z′. In this case, each
+zone operation inside a call can be done in O(|X|2) [28, 20].
+◮Theorem 18. When using Z/precedesorcurlyLU(G)Z′in the place of Z⊑G−Z′, the algorithm terminates
+inO(2d·|X|2)wheredis the number of diagonal guards in G.
+Proof. The algorithm makes two recursive calls per diagonal constr aint. In each call the
+operations are either Z/precedesorcurlyLU(G)Z′or an intersection of Zwith a single constraint. From [20],
+the checkZ/precedesorcurlyLU(G)Z′can be done inO(|X|2). Intersection with a single constraint can also
+be done inO(|X|2) (similar to approach in [28]). This gives the complexity. ◭
+From a complexity viewpoint, this algorithm is not eﬃcient s ince it makes an exponential
+number of calls in the number of diagonal constraints (in fac t this may not be avoidable
+due to Lemma 22, which follows from the NP-hardness result in [17]). Although the above
+algorithm does involve many calls, the internal operations involved in each call are simple
+zone manipulations. Moreover, the preliminary checks (for instance line 6 of Algorithm
+1) cut short the number of calls. This is visible in our experi ments which are very good,
+
+--- Page 12 ---
+12 Fast algorithms for handling diagonal constraints in tim ed automata
+especially with respect to running time, as compared to othe r methods. A similar hardness
+was shown for a diﬀerent simulation in [17], but the implemen tation there indeed witnessed
+the hardness, as the time taken by their algorithm was unsati sfactory.
+Hardness of checking Z/\e}atio\slash⊑LU
+GZ′
+In this section we prove that the problem of checking Z/\e}atio\slash⊑LU
+GZ′is NP-complete. In order to
+do this, we will give a polynomial time reduction from the pro blem of checking Z/\e}atio\slash/precedesorcurlyd
+LUZ′,
+which was shown to be NP-hard [17], to our problem. Let us ﬁrst recall theLdUdbounds
+function (superscripting with dto distinguish from the diagonal free LUbounds) and the
+simulation relation /precedesorcurlyd
+LUof [17].
+The bounds Ld,Udare functions Ld:X×X→Z∪{∞} ,Ud:X×X→Z∪{−∞}
+that map every ordered pair of clocks x,yeither to an integer or ∞or−∞. It additionally
+satisﬁes that Ld(x−0) =Ud(0−x) = 0 for every clock x. Given two valuations v,v′and
+LdUd, sayv/precedesorcurlyd
+LUv′if for every pair of distinct clocks x,y(including a special clock denoting
+0) the following holds:
+ifv(x)−v(y)<Ld(x−y) thenv′(x)−v′(y)<Ld(x−y)
+ifLd(x−y)≤v(x)−v(y)≤Ud(x−y) thenv′(x)−v′(y)≤v(x)−v(y)
+Z/precedesorcurlyd
+LUZ′is deﬁned in the usual way: Z/precedesorcurlyd
+LUZ′if for every v∈Zthere exists v′∈Z′
+such thatv/precedesorcurlyd
+LUv′. The following two results hold when Z,Z′and theLdUdbounds satisfy
+certain properties.
+◮Lemma 19. [17] Under certain assumptions on Z,Z′andLdUd:
+1.Z/\e}atio\slash/precedesorcurlyd
+LUZ′implies there exists an integral valuation v∈Zsuch that for every v′∈Z′, we
+havev/\e}atio\slash/precedesorcurlyd
+LUv′
+2.Z/\e}atio\slash/precedesorcurlyd
+LUZ′is NP-hard.
+We will use this to show ⊑Gis NP-hard. Given LdUd, we constructGto be the set
+containing: for every x,y∈X∪{0}the constraint x−y < Ld(x−y) and the constraints
+x−y≤cfor everyc∈[Ld(x−y),Ud(x−y)]∩Z.
+◮Lemma 20. GivenLdUd, letGbe constructed as above. Then for all Z,Z′satisfying the
+conditions needed for Lemma 19, Z/\e}atio\slash⊑LU
+GZ′if and only if Z/\e}atio\slash/precedesorcurlyd
+LUZ′.
+Proof. (⇐) AssumeZ/\e}atio\slash/precedesorcurlyd
+LUZ′. Then from Lemma 19 we get that there exists an integral
+valuation that serves as a witness. We choose that integral v aluation and call it v. Then
+there exists some pair of clocks x,y∈X∪{0}such that for every v′∈Z′, one of the
+following two cases holds:
+v′(x)−v′(y)>v(x)−v(y) andLd(x−y)≤v(x)−v(y)≤Ud(x−y). In this case, from
+the construction of G, we get that x−y≤c∈G wherec=v(x)−v(y). Therefore,
+v|=x−y≤cwhereasv′/\e}atio\slash|=x−y≤c.
+v′(x)−v′(y)≥Ld(x−y) andv(x)−v(y)< Ld(x−y). Then,x−y < Ld(x−y)∈G,
+andv|=x−y<Ld(x−y) butv′/\e}atio\slash|=x−y<Ld(x−y).
+This proves that, Z/\e}atio\slash⊑LU
+GZ′.
+(⇒) AssumeZ/\e}atio\slash⊑LU
+GZ′. Then either Z/\e}atio\slash/precedesorcurlyLU(G)Z′or there exists a diagonal constraint
+x−y⊳c∈Gsuch thatv|=x−y⊳c for somev∈Z, but for every v′∈Z′,v′/\e}atio\slash|=x−y⊳c. In
+the second case, from the construction of Gwe get that c∈[Ld(x−y),Ud(x−y)]. Hence for
+allv′∈Z′,v′(x)−v′(y)>v(x)−v(y) butLd(x−y)≤v(x)−v(y)≤Ud(x−y). Therefore
+
+--- Page 13 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 13
+Z/\e}atio\slash/precedesorcurlyd
+LUZ′. On the other hand, if Z/\e}atio\slash/precedesorcurlyLU(G)Z′there isv∈Zsuch that for every v′∈Z′one
+of the following two cases happen:
+v′(x)<v(x) andv′(x)≤L(x). For/precedesorcurlyd
+LUto hold, we require that either both 0 −v′(x) and
+0−v(x) are<Ld(0−x) or both are >Ud(0−x). Latter cannot happen as Ud(0−x) = 0.
+Former cannot happen as L(x) =−Ld(0−x).
+v(x)<v′(x) andv(x)≤U(x). Use similar argument as previous case.
+This completes the proof. ◭
+Before proceeding to prove NP-completeness, we present a ne w characterization of the
+simulation relation ⊑LU
+Gthat will help in proving the upper bound.
+◮Lemma 21. Z/\e}atio\slash⊑LU
+GZ′iﬀ there exists a subset Sof diagonal constraints from Gsuch that
+(Z∩/logicalandtext
+ϕ∈Sϕ)/\e}atio\slash/precedesorcurlyLU(G)(Z′∩/logicalandtext
+ϕ∈Sϕ).
+Proof. SupposeZ/\e}atio\slash⊑LU
+GZ′. There exists v∈Zsuch thatv/\e}atio\slash⊑LU
+Gv′for everyv′∈Z′. LetS
+be the set of diagonal constraints ϕ∈Gsuch thatv|=ϕ. Then,v∈Z∩/logicalandtext
+ϕ∈Sϕand hence
+(Z∩/logicalandtext
+ϕ∈Sϕ)/\e}atio\slash/precedesorcurlyLU(G)(Z′∩/logicalandtext
+ϕ∈Sϕ), as otherwise there is a v′such thatv/precedesorcurlyLU(G)v′andv′
+satisﬁes all diagonal constraints of Gthatvsatisﬁes.
+Suppose there exists Ssuch that ( Z∩/logicalandtext
+ϕ∈Sϕ)/\e}atio\slash/precedesorcurlyLU(G)(Z′∩/logicalandtext
+ϕ∈Sϕ). Then, clearly
+(Z∩/logicalandtext
+ϕ∈Sϕ) is non-empty and for valuations vin this set, there is no v′∈Z′withv⊑LU
+G
+v′. ◭
+◮Theorem 22. Given two zones Z,Z′and a set of constraints G, checkingZ/\e}atio\slash⊑LU
+GZ′is
+NP-complete.
+Proof. From Lemma 21 it follows that a set S(⊆G) of diagonal constraints serves as a
+witness for Z/\e}atio\slash⊑LU
+GZ′. Given this set S, (Z∩/logicalandtext
+ϕ∈Sϕ)/\e}atio\slash/precedesorcurlyLU(G)(Z′∩/logicalandtext
+ϕ∈Sϕ) can be checked
+in quadratic time [20]. Hence the problem of checking Z/\e}atio\slash⊑LU
+GZ′is in NP.
+For the hardness part, we reduce the problem of checking Z/\e}atio\slash/precedesorcurlyd
+LUZ′toZ/\e}atio\slash⊑LU
+GZ′. Given,
+Z,Z′and the bounds Ld,Udwith the required conditions for Lemma 19, we ﬁrst construct
+Gas we have described before. Lemma 20 shows that Z/\e}atio\slash/precedesorcurlyd
+LUZ′can be aswered by checking
+Z/\e}atio\slash⊑LU
+GZ′. Hence, Lemma 19 implies that checking Z/\e}atio\slash⊑LU
+GZ′is NP-hard. ◭
+5 Simulations for updateable timed automata
+In the timed automata considered so far, clocks are allowed t o be reset to 0 along transitions.
+We consider in this section more sophisticated transformat ions to clocks in transitions. These
+are called updates . An update up:R|X|
+≥0/mapsto→R|X|is a function mapping non-negative |X|-
+dimensional reals (valuations) vto general|X|-dimensional reals (which may apriori not
+be valuations as the coordinates may be negative). The synta x of the update function up
+is given by a set of atomic updates upxto eachx∈X, which are of the form x:=cor
+x:=y+dwherec∈N,d∈Zandy∈X(possibly equal to x). Note that we want dto
+be an integer, since we allow for decrementing clocks, and on the other hand c∈Nsince we
+have non-negative clocks. Given a valuation vand an update up, the valuation up(v) is:
+up(v)(x) :=/braceleftBigg
+c ifupxisx:=c
+v(y) +difupxisx:=y+d
+Note that in general, due to the presence of updates x:=y+d, the update up(v) may
+not yield a clock valuation. However, when it does give a valu ation, it can be used as a
+
+--- Page 14 ---
+14 Fast algorithms for handling diagonal constraints in tim ed automata
+transformation in timed automata transitions. We say up(v)≥0 ifup(v)(x)≥0 for all
+clocksx∈X.
+Anupdateable timed automaton A= (Q,X,q 0,T,F ) is an extension of a classic timed
+automaton with transitions of the form ( q,g,up,q′) whereupis an update. Semantics
+extend in the natural way: delay transitions remain the same , and for action transitions
+t:= (q,g,up,q′) we have ( q,v)t− →(q′,v′) ifv|=g,up(v)≥0, andv′=up(v). We allow
+the transition only if the update results in a valuation. The reachability problem for these
+automata is known to be undecidable in general [11]. Various subclasses with decidable
+reachability have been discussed in the same paper. Decidab ility proofs in [11] take the
+following ﬂavour, for a given automaton A: (1) divide the space of all valuations into a ﬁnite
+number of equivalence classes called regions (2) to build the parameters for the equivalence,
+derive a set of diophantine equations from the guards of A; if they have a solution then
+construct the quotient graph of the equivalence (called reg ion graph) parameterized by the
+obtained solution and check reachability on it; if the equat ions have no solution, output that
+reachability forAcannot be answered. Suﬃcient conditions on the nature of the updates
+that give a solution to the diophantine equations have been t abulated in [11]. When the
+automaton is diagonal-free, the “region-equivalence” can be used to build an extrapolation
+operation which in turn can be used in a reachability algorit hm with zones. When the
+automaton contains diagonals, the region-equivalence is u sed to only build a region graph -
+no eﬀective zone based approach has been studied.
+We use a similar idea, but we have two fundamental diﬀerences : (1) we want to obtain
+reachability through the use of simulations on zones, and (2 ) we build equations over sets
+of guards as in Deﬁnition 8. The advantage of this approach is that this allows the use of
+coarser simulations over zones. Even for automata with diag onal constraints and updates,
+we get a zone based algorithm, instead of resorting to region s which are not eﬃcient in
+practice.
+The notion of simulations as in Page 5 remains the same, now us ing the semantics of
+transitions with updates. We will re-use the simulation rel ation⊑G. We need to extend
+Deﬁnition 7 to incorporate updates. We do this below. Here is a notation: for an update
+functionup, we writeup(x) to becifupxisx:=c, andup(x) to bey+cifupxisx:=y+c.
+◮Deﬁnition 23 (weakest pre-condition of ⊑Gover updates) .
+Letupbe an update.
+For a constraint ϕof the form x ⊳ c orc ⊳ x , we deﬁne wp(⊑ϕ,up)to be respectively
+{up(x)⊳c}or{c⊳up (x)}if these constraints are of the form z ⊳d ord⊳z withz∈Xand
+d≥0, otherwise wp(⊑ϕ,up)is empty.
+For a constraint ϕ:x−y ⊳ c , we deﬁne wp(⊑ϕ,up)to be{up(x)−up(y)⊳ c}if this
+constraint is either a diagonal using diﬀerent clocks, or it is of the form z ⊳d ord⊳z with
+d≥0, otherwise wp(⊑ϕ,up)is empty.
+For a set of guards G, we deﬁne wp(⊑G,up) :=/uniontext
+ϕ∈Gwp(⊑ϕ,up).
+Some examples: wp( x≤5,x:=x+ 10) is empty, since up(x) isx+ 10, and the guard
+x+ 10≤5 is not satisﬁable; wp( x≤5,x:=x−10) isx≤15, wp(x≤5,x:=c) is empty,
+wp(x−y≤5,/a\}bracketle{tx:=z1,y:=z2+ 10/a\}bracketri}ht) will bez1−(z2+ 10)≤5, giving the constraint
+z1−z2≤15, wp(x−y≤5,/a\}bracketle{tx:=z+c1,y:=z+c2/a\}bracketri}ht) is empty, wp( x−y≤5,/a\}bracketle{tx:=c1,y:=
+z+c2/a\}bracketri}ht) isc=c1−5−c2≤zifc≥0 and is empty otherwise.
+◮Deﬁnition 24 (State based guards) .LetA= (Q,X,q 0,T,F )be an updateable timed
+automaton. We associate a set of constraints G(q)for each state q∈Q, which is the least set
+of constraints (for the coordinate-wise subset inclusion o rder) such that for every transition
+
+--- Page 15 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 15
+(q,g,up,q 1): the guard gand the set wp(⊑G(q1),up)are present inG(q), and in addition
+constraints that allow the update to happen are also present inG. The last condition is given
+by the weakest precondition of the set of constraints {x≥0|x∈X}. Overall,{G(q)}q∈Qis
+the least solution to the following set of equations, for eac hq∈Q:
+G(q) =/uniondisplay
+(q,g,up,q 1)∈T/parenleftbig
+{g} ∪ wp(⊑{x≥0|x∈X},up)∪wp(⊑G(q1),up)/parenrightbig
+The least solution {G(q)}q∈Qis said to be ﬁnite if each G(q)is a ﬁnite set of constraints.
+In contrast to the simple reset case, the above set of equatio ns may not have a ﬁnite
+solution. Consider a self-looping transition: ( q,x⊳c,x :=x−1,q). We require x⊳c∈G(q).
+Now, wp(x ⊳ c,x :=x−1) isx ⊳ c + 1 which should be in G(q) according to the above
+equation. Continuing this process, we need to add x ⊳ d for every natural number d≥c.
+Indeed this is consistent with the undecidability of reacha bility when subtraction updates
+are allowed. We deal with the subject of ﬁnite solutions to th e above equations later in this
+section. On the other hand, when the above system does have a s olution with ﬁnite G(q) at
+everyq, we can use the Asimulation of Deﬁnition 9 and its approximation /precedesorcurlyLU
+Ato get an
+algorithm.
+◮Proposition 25. LetA= (Q,X,q 0,T,F )be an updateable timed automaton. Let {G(q)}q∈Q
+with be the least solution to the equations given in Deﬁnitio n 24. Then, the relation /precedesorcurlyAis
+a simulation on the conﬁgurations of A.
+Proof. Pick two conﬁgurations such that ( q,v)/precedesorcurlyA(q,v′). We need to show the two
+conditions required for a simulation as given in Page 5. The p roof follows along the
+lines of Lemma 10, except for one change. Consider a transiti ont: (q,g,up,q 1) and let
+(q,v)t− →(q1,v1). This implies that v|=gandup(v) is deﬁned, that is up(v)(x)≥0 for all
+x. Sinceg∈G(q), we get that v′|=g. Moreover, asG(q) contains wp(⊑{x≥0|x∈X},up), and
+v⊑G(q)v′, we get that up(v′) is deﬁned. Now, let ( q,v′)t− →(q1,v′
+1).
+To showv1⊑G(q1)v′
+1, wherev1=up(v) andv′
+1=up(v′). Pick a constraint ϕ∈G(q1)
+such thatv|=ϕ. Suppose ϕis of the form x−y ⊳ c . If bothup(x) andup(y) contain
+the same clock z, then in the diﬀerence x−ythe role ofzgets cancelled, and we get that
+v1(x)−v1(y) equalsv′
+1(x)−v′
+1(y), and furthermore this diﬀerence is invariant over time
+elapse. Hence the ⊑G(q1)property is true for ϕ. The next case is when up(x) andup(y) do
+not contain the same clock. Then, up(x)−up(y)⊳cis a guard (diagonal or non-diagonal)
+which according to Deﬁnition 23 is present in G. Sincev⊑Gv′, we get the⊑G(q1)condition
+forϕ. Similar reasoning follows when ϕis a non-diagonal. One however needs to use the
+fact that since v|=ϕ, ifϕis of the form x⊳c thenup(x)⊳cis a valid guard. ◭
+◮Lemma 26. For an updateable timed automaton A, assume the least solution {G(q)}q∈Q
+to the state-based guards equations is ﬁnite. Then the relat ion/precedesorcurlyLU
+Ais a ﬁnite simulation on
+the conﬁgurations of A.
+Finite solution to the state-based guards equations
+The least solution to the equations of Deﬁnition 24 can be obt ained by a standard Kleene
+iteration for ﬁxed points computation. For each i≥0 and each state q, deﬁne:
+G0(q) =/uniondisplay
+(q,g,up,q′)∈T{g}∪wp(⊑{x≥0|x∈X},up)
+Gi+1(q) =/uniondisplay
+(q,g,up,q′)∈TGi(q)∪wp(⊑Gi(q′),up)
+
+--- Page 16 ---
+16 Fast algorithms for handling diagonal constraints in tim ed automata
+The iteration stabilizes when there exists a ksatisfyingGk+1(q) =Gk(q) for allq. At
+stabilization, the values Gk(q) satisfy the equations of Deﬁnition 24, and give the require d
+G(q). However, as we mentioned earlier, this iteration might no t stabilize at any k. We will
+now develop some observations that will help detect after ﬁn itely many steps if the iteration
+will stabilize or not.
+Suppose we colour the set Gi+1(q) to redif either there exists a diagonal constraint
+x−y⊳c∈Gi+1(q)\Gi(q) (a new diagonal is added) or there exists a non-diagonal con straint
+x ⊳ c orc ⊳ x inGi+1(q)\Gi(q) such that the constant cis strictly bigger than c′for
+respectively every non-diagonal x ⊳ c′orc′⊳ xinGi(q) (a non-diagonal with a bigger
+constant is added). If this condition is not applicable, we c olour the setGi+1(q)green .
+The next observations say that the iteration terminates iﬀ w e reach a stage where all sets
+are green. Intuitively, once we reach green, the only constr aints that can be added are
+non-diagonals having smaller (non-negative) constants an d hence the procedure terminates.
+◮Lemma 27. Leti>0. IfGi(q)is green for all q, thenGi+1(q)is green for all q.
+Proof. Pick ani>0 such thatGi(q) is green for all q. Suppose there is a state psuch that
+Gi+1(p) is red. By deﬁnition, there is a new constraint ϕ∈Gi+1(p)\Gi(p). This means that
+there is a transition ( p,g,up,p 1) and a constraint ψ∈Gi(p1)\Gi−1(p1) (which is new at the
+ithstage) such that ϕis wp(⊑ψ,up).
+Ifϕis a diagonal constraint, then ψis also a diagonal constraint. This contradicts Gi(p1)
+being green and hence ϕcannot be a diagonal constraint. Suppose ϕis a non-diagonal x⊳c.
+Then,ψis of the form z ⊳ d and the update upis of the form z:=x+c1. Therefore ϕis
+x ⊳ d−c1. IfGi−1(p1) had a constraint z ⊳ d′withd′≥d, then a constraint x ⊳ d′−c1
+would have been added to Gi(p). We know that is not the case as Gi+1(p) has been coloured
+red due to ϕ, and hence d−c1> d′−c1. This gives d > d′and henceGi(p1) should be
+coloured red due to the added constraint z ⊳ d . Yet again, this contradicts that Gi(p1) is
+green. The case when ϕis of the form c⊳x is similar. ◭
+◮Lemma 28. LetK= 1 +|Q|·|X|·(|X|+ 1). If there is a state psuch thatGK(p)is red,
+then there is no isuch thatGi(q)is green for all q.
+Proof. Suppose there is a state pKsuch thatGK(pK) is red. This is due to some constraint
+ϕK∈GK(pK)\GK−1(pK). Hence there is a transition tK= (pK,gK,upK,pK−1)∈Tand a
+constraintϕK−1∈GK−1(pK−1)\GK−2(pK−1) such that ϕK∈wp(⊑ϕK−1,upK). We claim
+thatGK−1(pK−1) is red due to ϕK−1. This is clear if ϕK−1is a diagonal constraint. Assume
+ϕK−1=x⊳c. ThenϕK=y⊳d for somed≥0. Assume there is some x⊳c′∈GK−1(pK−1)
+withc′≥c. Then we have y ⊳d′∈wp(⊑x⊳c′,upK)⊆GK(pK) withd′≥d, a contradiction
+with the fact that GK(pK) is red due to ϕK. The proof for the case ϕK−1=c⊳x is similar.
+Iterating this construction we obtain a sequence ( tj= (pj,gj,upj,pj−1))2≤j≤Kof trans-
+itions and a sequence of constraints ( ϕj)1≤j≤Ksuch thatϕj∈wp(⊑ϕj−1,upj) for 2≤j≤K
+andGj(pj) is red due to the addition of ϕjfor 1≤i≤K. SinceK= 1 +|Q|·|X|·(|X|+ 1)
+there exist two indices aandbwithb>a such thatpa=pb=pand bothϕaandϕbhave
+the same “support”, that is, either ϕa:=x−y ⊳c andϕb:=x−y ⊳c′, orϕa:=x⊳c and
+ϕb:=x⊳c′, orϕa:=c⊳x andϕb:=c′⊳x.
+Supposeϕaandϕbare non-diagonals. Since Gb(p) is red due to ϕbandϕa∈Ga(p)⊆
+Gb(p), we deduce that c′>c. Sincepa=pb=p, the weakest pre-condition computations for
+the sequence of updates upa+1,...,upbcan be applied starting from ϕb∈Gb(pb) and results
+in a constraint x ⊳ c′′orc′′⊳ xwithc′′−c′> c′−c >0. This can be iterated inﬁnitely
+often to give red sets at each stage.
+
+--- Page 17 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 17
+Assume now that ϕa:=x−y ⊳ c andϕb:=x−y ⊳ c′. Sinceϕbis a new diagonal
+constraint inGb(p)⊇Ga(p) we getc′/\e}atio\slash=c. As above, the weakest pre-condition computations
+for the sequence of updates upa+1,...,upbcan be applied starting from ϕb∈Gb(pb) and
+results in a constraint x−y ⊳ c′′withc′′−c′=c′−c/\e}atio\slash= 0. This can be iterated inﬁnitely
+often giving inﬁnitely many new diagonal constraints.
+Both cases imply that there can be no iwhere allGi(q) are green. ◭
+◮Proposition 29. The least solution of the local constraint equations for an u pdateable
+timed automaton is ﬁnite iﬀ GK(q)is green for all qand whereK= 1 +|Q|·|X|·(|X|+ 1).
+Proof. IfGK(q) is green for all q, then it is green for all i≥K(from Lemma 27). By
+deﬁnition of green, there cannot be inﬁnitely many new const raints added after stage K.
+Hence the iteration stabilizes, giving a ﬁnite solution.
+IfGK(p) is red for some p, Lemma 28 gives that the iteration does not terminate and
+hence there is no ﬁnite solution. ◭
+◮Theorem 30. LetAbe an updateable timed automaton. It is decidable whether th e equa-
+tions in Deﬁnition 24 have a ﬁnite solution. When these equat ions do have a ﬁnite solution,
+zone graph enumeration using /precedesorcurlyLU
+Ais a sound, complete and terminating procedure for the
+reachability problem.
+All decidable classes of [11] can be shown decidable with our approach, by showing
+stabilization of the G(q) computation.
+◮Lemma 31. Reachability is decidable in updateable timed automata whe re: guards are
+non-diagonals and updates are of the form x:=c,x:=y,x:=y+cwherec≥0or, guards
+include diagonal constraints and updates are of the form x:=c,x:=y.
+Proof. With the above combination of guards and updates, each const raint added in the G(q)
+computation apart from the guards of the automaton is either a diagonal constraint with a
+constant appearing in the guards of the automaton, or is a non -diagonal constraint with a con-
+stantc≤2MwhereM= max{|d||doccurs in a guard or an update of the automaton }.
+Hence theG(q) computation terminates. ◭
+6 Experiments
+We have implemented the reachability algorithm for timed au tomata with diagonal con-
+straints (and only resets as updates) based on the simulatio n approach (Page 6) using the
+/precedesorcurlyLU
+Asimulation (Deﬁnition 14) for pruning zones. The algorithm forZ⊑LU
+GZ′comes from
+Section 4. Our implementation is over a prototype tool TChec ker [18]. The core reachability
+algorithm based on the simulation approach is already imple mented in TChecker for timed
+automata without diagonal constraints. We have added the st ate based guards computation,
+and the⊑LU
+Gsimulation algorithm. In the rest of this section, we explai n the timed automata
+models and the experimental results (Table 1). Experiments are reported in Table 1. We
+take model Cexfrom [7, 25] and Fischer from [25]. We are not aware of any other “standard”
+benchmarks containing diagonal constraints. In addition t o these two models, we introduce
+the following new benchmark.
+
+--- Page 18 ---
+18 Fast algorithms for handling diagonal constraints in tim ed automataA: contains diagonals Ad f: diagonal-free euivalent ofA
+TChecker with ⊑LUGUPPAAL UPPAAL TChecker
+Model #D TimeNodes
+countTimeNodes
+countTimeNodes
+countTimeNodes
+count
+Cex 1 2 0.004 7 0.001 26 0.001 17 0.006 17
+Cex 2 4 0.047 241 0.026 2180 0.005 1039 0.067 1039
+Cex 3 6 7.399 7111 111.168 182394 1.028 60982 40.092 60982
+Cex 4 8 857.662 185209 timeout - 734.543 3447119 timeout -
+Fischer 3 3 0.007 104 0.087 4272 0.001 268 0.013 268
+Fischer 4 4 0.032 452 307.836 357687 0.009 1815 0.100 1815
+Fischer 5 5 0.257 1842 timeout - 0.116 12511 1.856 12511
+Fischer 7 7 15.032 26812 timeout - 174.560 693603 timeout -
+Job Shop 3 12 0.420 278 23.093 31711 0.003 845 0.312 845
+Job Shop 5 20 285.421 10592 timeout - 4.633 179607 150.811 179607
+Job Shop 7 28 timeout - timeout - timeout - timeout -
+Job Shop 3 12 0.019 38 22.435 31607 0.004 839 0.013 29
+Job Shop 5 20 0.279 98 timeout - 4.552 179597 0.012 67
+Job Shop 7 28 1.754 192 timeout - timeout - 0.036 121
+Job Shop 9 36 7.040 318 timeout - timeout - 0.056 191
+Table 1 Experiments: the column # Dgives the number of diagonal constraints. There are four met hods reported in the table. First algorithm (TChecker
+with ⊑LUG) is our implementation of simulation based reachability us ing state based guards and ⊑LUGsimulation; second algorithm (UPPAAL) is the result of
+running the model ( A) with diagonal constraints in UPPAAL; third algorithm (UPP AAL) gives the result of running an equivalent diagonal-fre e automaton
+(Ad f) in UPPAAL and the fourth algorithm (TChecker) gives the res ult of running the same (diagonal-free) model ( Ad f) in TChecker. Experiments were run
+on a MacBook Pro laptop with 2.3 GHz Intel core i5 processor, a nd 8 GB RAM. Time is reported in seconds. We set a timeout of 15 m inutes.
+
+--- Page 19 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 19
+s1T1 s2T2C f
+{x1,z}a1≤x1≤b1
+{y1} {x2}a2≤x2≤b2
+{y2}x1−y1≥c1∧x2−y2≤c2z≤D∧
+x1−y1≤d1∧x2−y2≥d2
+∧z≤D
+Figure 1 UPPAAL model capturing the timing requirements in a schedul ing problem. The state
+marked Cis called a committed location, which is a convenient modeli ng feature in UPPAAL. Time
+is not allowed to elapse in such a state.
+Job-shop scheduling with dependent tasks.
+This is an extension of the job-shop scheduling using (diago nal-free) timed automata [1]. The
+benchmark models the following situation: there are njobsJ1,J2,...,Jnandkmachines
+m1,m2,...,mk. Each job Jiconsists of two tasks given by triples T1
+i:= (m1
+i,a1
+i,b1
+i) and
+T2
+i= (m1
+i,a1
+i,b1
+i) wherem,a,b (with appropriate indices) denote respectively the machin e
+on which the task needs to be executed and [ a,b] is an interval such that the time needed
+to execute the task is in this interval. In addition to this, e ach job has an overall deadline
+Di. The question now is if the tasks can be scheduled so that all j obs ﬁnish within their
+deadline. This problem can be modeled using diagonal-free a utomata. We now add a further
+constraint (excluding the indices for clarity): for a job Jwith tasksT1andT2, lett1and
+t2be the execution times. We know that t1∈[a1,b1] andt2∈[a2,b2]. Now, we have a
+dependency: if t1≥c1, thent2≤c2and ift1≤d1thent2≥d2for suitable constants
+c1,c2,d1,d2. This says that if the ﬁrst task is executed for a longer time, the second task
+needs a shorter time to ﬁnish and vice versa. This kind of a dep endency has a natural
+modeling using diagonal constraints. We illustrate in Figu re 1 a part of the UPPAAL-style
+automaton for a job Jcapturing the timing requirements - we make use of the featur e of
+committed locations in UPPAAL [5]. Time is not allowed to ela pse in this state, and in a
+product the components with committed locations execute ﬁr st. This modeling template
+of the job scheduling problem with dependent tasks can easil y be extended when jobs have
+more tasks and there are similar dependencies between them. In addition to this automaton,
+we model the mutual exclusion between machines (by use of ext ra boolean variables): each
+machine can have atmost one task at a time. We vary the number o f jobs and get diﬀerent
+timed automata with diagonal constraints. Note that althou gh this model is acyclic, there
+are “cross simulations” which help in pruning the search: th e same state qcan be reached
+by multiple paths and simulations help in cutting out new sea rches.
+Each model considered above is a product of a number of ktimed automata. In the table
+we write the name of the model and the number kof automata involved in the product. Along
+with this, we report the number of diagonal constraints in ea ch of them.
+Experimental results. We considered four algorithms as mentioned in the caption of Table 1.
+Under each algorithm, we report on the number of zones enumer ated and the time taken.
+The ﬁrst algorithm gives a huge gain over the second algorith m (upto four orders of mag-
+nitude in the number of nodes, and even better for time) and gi ves a less marked, but still
+signiﬁcant, gain over the third and fourth algorithms. We pr ovide a brief explanation of this
+phenomenon. The performance of the reachability algorithm is dependent on three factors:
+the parameters on which the extrapolation or simulation is b ased on: the maximum
+constant based M-simulations which use the maximum constant appearing in th e guards,
+
+--- Page 20 ---
+20 Fast algorithms for handling diagonal constraints in tim ed automata
+versus theLU-simulations which make a distinction between lower bound g uardsc ⊳ x
+and upper bound guards x ⊳ c (refer to [4] for the exact deﬁnitions of extrapolations
+based on these parameters, and [20] for simulations based on these parameters); LU-
+simulations are superior to M-simulations.
+the way the parameters are computed: global parameters whic h associate a bound to
+each clock versus the more local state based parameters as in Deﬁnition 8 which associate
+a set of bounds functions to each state [3]; local bounds are s uperior to global bounds.
+when diagonal constraints are present, whether zones get sp lit or not: each time a zone
+gets split, new enumerations start from each of the new nodes ; clearly, a no-splitting-of-
+zones approach is superior to zone splitting.
+Algorithm of column 1 uses the superior heuristic in all the t hree optimizations above.
+The no-splitting-of-zones was possible thanks to our simul ation approach, which temporarily
+splits zones for checking Z⊑LU
+GZ′, but never starts a new exploration from any of the split
+nodes. The algorithm of column 2, which is implemented in the current version UPPAAL
+4.1 uses the inferior heuristic in all the three above. In par ticular, it is not clear how the
+extrapolation approach can avoid the zone splitting in an eﬃ cient manner. The superiority
+of our approach gets ampliﬁed (by multiplicative factors) w hen we consider bigger products
+with many more diagonals. In the third algorithm, we give a di agonal free equivalent of
+the original model (c.f. Theorem 1) and use the UPPAAL engine for diagonal free timed
+automata. The UPPAAL diagonal free engine is highly optimiz ed, and makes use of the
+superior heuristics in the ﬁrst two optimizations mentione d above (the third is not applicable
+now as it is a diagonal free automaton). The third algorithm c an be considered as a good
+approximation of the zone splitting approach to diagonal co nstraints using LU-abstractions
+and local guards.
+The second and the third methods are the only possibilities o f verifying timed models
+coming with diagonal constraints in UPPAAL. Both these appr oaches are in principle prone
+to a 2#Dblowup compared to the ﬁrst approach, where Dgives the number of diagonal
+constraints. The table shows that a good extent of this blowu p indeed happens. The
+UPPAAL diagonal free engine uses “minimal constraint syste ms” [5] for representing zones,
+whereas in our implementation we use Diﬀerence Bound Matric es (DBMs) [14]. This explains
+why even with more nodes visited, UPPAAL performs better in t erms of time in some cases.
+We have not included in the table the comparison with two othe r works dealing with the
+same problem: the reﬁned diagonal free conversion [25] and t heLUsimulation extended
+withLUdsimulation for diagonals [17]. However, our results are bet ter than the tables
+reported in these papers.
+7 Conclusion
+We have proposed a new algorithm for handling diagonal const raints in timed automata,
+and extended it to automata with general updates. Our approa ch is based on a simulation
+relation between zones. From our preliminary experiments, we can infer that the use of
+simulations is indispensable in the presence of diagonal co nstraints as zone-splitting can be
+avoided. Moreover, the fact that the simulation approach st ores the actual zones (as opposed
+to abstracted zones in the extrapolation approach) has enab led optimizations for diagonal-
+free automata that work with dynamically changing simulati on parameters ( LU-bounds),
+which are learnt as and when the the zones are expanded [19]. W orking with actual zones is
+also convenient for ﬁnding cost-optimal paths in priced tim ed automata [10]. Investigating
+these in the presence of diagonal constraints is part of futu re work. Currently, we have not
+
+--- Page 21 ---
+P. Gastin, S. Mukherjee, and B. Srivathsan 21
+implemented our approach for updateable timed automata. Th is will also be part of our
+future work.
+Working directly with a model containing diagonal constrai nts could be convenient (both
+during modeling, and during extraction of diagnostic trace s) and can also potentially give
+a smaller automaton to begin with. We believe that our experi ments provide hope that
+diagonal constraints can indeed be used.
+References
+1Yasmina Abdeddaim, Eugene Asarin, and Oded Maler. Scheduli ng with timed automata.
+Theoretical Computer Science , 354(2):272–300, 2006.
+2Rajeev Alur and David L. Dill. A theory of timed automata. Theoretical Computer Science ,
+126(2):183–235, 1994.
+3Gerd Behrmann, Patricia Bouyer, Emmanuel Fleury, and Kim G. Larsen. Static guard ana-
+lysis in timed automata veriﬁcation. In Tools and Algorithms for the Construction and Ana-
+lysis of Systems (TACAS) , volume 2619 of Lecture Notes in Computer Science , pages 254–270.
+Springer, 2003.
+4Gerd Behrmann, Patricia Bouyer, Kim G. Larsen, and Radek Pel ánek. Lower and upper
+bounds in zone-based abstractions of timed automata. International Journal on Software
+Tools for Technology Transfer , 8(3):204–215, 2006.
+5Johan Bengtsson and Wang Yi. Timed automata: Semantics, alg orithms and tools. In
+Lectures on Concurrency and Petri Nets, Advances in Petri Ne ts, volume 3098 of Lecture
+Notes in Computer Science , pages 87–124. Springer, 2004.
+6Béatrice Bérard, Antoine Petit, Volker Diekert, and Paul Ga stin. Characterization of the ex-
+pressive power of silent transitions in timed automata. Fundamenta Informaticae , 36(2,3):145–
+182, 1998.
+7Patricia Bouyer. Untameable timed automata! In Symposium on Theoretical Aspects of
+Computer Science (STACS) , volume 2607 of Lecture Notes in Computer Science , pages 620–
+631. Springer, 2003.
+8Patricia Bouyer. Forward analysis of updatable timed autom ata. Formal Methods in System
+Design , 24(3):281–320, 2004.
+9Patricia Bouyer and Fabrice Chevalier. On conciseness of ex tensions of timed automata.
+Journal of Automata, Languages and Combinatorics , 10(4):393–405, 2005.
+10 Patricia Bouyer, Maximilien Colange, and Nicolas Markey. S ymbolic optimal reachability in
+weighted timed automata. In Computer Aided Veriﬁcation (CAV) , volume 9779 of Lecture
+Notes in Computer Science , pages 513–530. Springer, 2016.
+11 Patricia Bouyer, Catherine Dufourd, Emmanuel Fleury, and A ntoine Petit. Updatable timed
+automata. Theoretical Computer Science , 321(2-3):291–345, 2004.
+12 Patricia Bouyer, François Laroussinie, and Pierre-Alain R eynier. Diagonal constraints in
+timed automata: Forward analysis of timed systems. In Formal Modeling and Analysis of
+Timed Systems (FORMATS) , volume 3829 of Lecture Notes in Computer Science , pages 112–
+126. Springer, 2005.
+13 Conrado Daws and Stavros Tripakis. Model checking of real-t ime reachability properties using
+abstractions. In Tools and Algorithms for the Construction and Analysis of Sy stems (TACAS) ,
+volume 1384 of Lecture Notes in Computer Science , pages 313–329. Springer, 1998.
+14 David L. Dill. Timing assumptions and veriﬁcation of ﬁnite- state concurrent systems. In
+Automatic Veriﬁcation Methods for Finite State Systems , volume 407 of Lecture Notes in
+Computer Science , pages 197–212. Springer, 1989.
+15 Thomas Ferrère. The compound interest in relaxing punctual ity. In Formal Methods (FM) ,
+volume 10951 of Lecture Notes in Computer Science , pages 147–164. Springer, 2018.
+16 Elena Fersman, Paul Pettersson, and Wang Yi. Timed automata with asynchronous processes:
+Schedulability and decidability. In Tools and Algorithms for the Construction and Analysis of
+
+--- Page 22 ---
+22 Fast algorithms for handling diagonal constraints in tim ed automata
+Systems (TACAS) , volume 2280 of Lecture Notes in Computer Science , pages 67–82. Springer,
+2002.
+17 Paul Gastin, Sayan Mukherjee, and B. Srivathsan. Reachabil ity in timed automata with di-
+agonal constraints. In International Conference on Concurrency Theory (CONCUR) , volume
+118 of LIPIcs , pages 28:1–28:17. Schloss Dagstuhl - Leibniz-Zentrum fue r Informatik, 2018.
+18 Frédéric Herbreteau. TChecker. http://www.labri.fr/perso/herbrete/tchecker/index.h tml.
+19 Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Lazy abstractions for timed auto-
+mata. In Computer Aided Veriﬁcation (CAV) , volume 8044 of Lecture Notes in Computer
+Science , pages 990–1005. Springer, 2013.
+20 Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Better abstractions for timed
+automata. Information and Computation , 251:67–90, 2016.
+21 Frédéric Herbreteau and Thanh-Tung Tran. Improving search order for reachability testing in
+timed automata. In Formal Modeling and Analysis of Timed Systems (FORMATS) , volume
+9268 of Lecture Notes in Computer Science , pages 124–139. Springer, 2015.
+22 Hsi-Ming Ho. Revisiting timed logics with automata modalit ies.CoRR , abs/1812.10146, 2018.
+URL: http://arxiv.org/abs/1812.10146 .
+23 Gijs Kant, Alfons Laarman, Jeroen Meijer, Jaco van de Pol, St efan Blom, and Tom van Dijk.
+Ltsmin: High-performance language-independent model che cking. In Tools and Algorithms
+for the Construction and Analysis of Systems (TACAS) , volume 9035 of Lecture Notes in
+Computer Science , pages 692–707. Springer, 2015.
+24 Kim Guldstrand Larsen, Paul Pettersson, and Wang Yi. UPPAAL in a nutshell. International
+Journal on Software Tools for Technology Transfer , 1(1-2):134–152, 1997.
+25 Pierre-Alain Reynier. Diagonal constraints handled eﬃcie ntly in uppaal. In Research report
+LSV-07-02 , Laboratoire Spéciﬁcation et Vériﬁcation. ENS Cachan, Fra nce, 2007.
+26 Farn Wang. Eﬃcient veriﬁcation of timed automata with bdd-l ike data structures. Interna-
+tional Journal on Software Tools for Technology Transfer , 6(1):77–97, 2004.
+27 Sergio Yovine. Kronos: A veriﬁcation tool for real-time sys tems. (Kronos user’s manual release
+2.2). International Journal on Software Tools for Technology Tra nsfer , 1:123–133, 1997.
+28 Jianhua Zhao, Xuandong Li, and Guoliang Zheng. A quadratic- time dbm-based successor
+algorithm for checking timed automata. Information Processing Letters , 96(3):101 – 105,
+2005.
