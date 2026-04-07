@@ -1,0 +1,441 @@
+--- Page 1 ---
+MCMAS-SLK: A Model Checker
+for the Veriﬁcation of Strategy Logic
+Speciﬁcations
+PetrˇCerm´ak1, Alessio Lomuscio1, Fabio Mogavero2, and Aniello Murano2
+1Imperial College London, UK
+2Universit` a degli Studi di Napoli Federico II, Italy
+1 Introduction
+Model checkinghas come of age.A number of techniques are increasinglyused in
+industrial setting to verify hardware and software systems, both against models
+and concrete implementations. While it is generally accepted t hat obstacles still
+remain, notably handling inﬁnite state systems eﬃciently, much of current workinvolvesreﬁningand improvingexistingtechniques such aspredicateabstraction.
+At scientiﬁc level a major avenue of work remains the development of ver-
+iﬁcation techniques against rich and expressive speciﬁcation languages. Overthe years there has been a natural progression from checking reachability only
+to a large number of techniques (BDDs, BMC, abstraction, etc.) catering for
+LTL[28], CTL[10], and CTL
+⋆[12]. More recently, ATLand ATL⋆[3] were
+introduced to analyse systems in which some components, or agents,c a ne n -
+force temporal properties on the system. The paths so identiﬁed correspond toinﬁnite games between a coalition and its complement. ATLis well explored
+theoretically and at least two toolkits now support it [4,19,20].
+It has however been observed that ATL
+⋆suﬀers from a number of limitations
+when one tries to apply it to multi-agent system reasoning and games [1,2,5,15,
+17,21,31]. One of these is the lack of support for binding strategies explicitly
+to various agents or to the same agent in diﬀerent contexts. To overcome this
+and other diﬃculties, Strategy Logic (SL) [27], as well as some useful variants of
+it [8,24–26], has been put forward. Key game-theoretic properties such as Nash
+equilibria , not expressible in ATL⋆, can be captured in SL.
+In this paper we describe the model checker MCMAS-SLK. The tool supports
+the veriﬁcation of systems against speciﬁcations expressed in a variant of SL
+that includes epistemic modalities. The synthesis of agents’ strategies to satisfy
+a given parametric speciﬁcation, as well as basic counterexample generation,
+are also supported. MCMAS-SLK, released as open-source, implements novel
+labelling algorithms for SL, encoded on BDDs, and reuses existing algorithms
+for the veriﬁcation of epistemic speciﬁcations [29].
+2 Epistemic Strategy Logic
+Underlying Framework. Diﬀerently from other treatments of SL, originally
+deﬁned on concurrent game structures, we here deﬁne the logic on interpreted
+A. Biere and R. Bloem (Eds.): CAV 2014, LNCS 8559, pp. 525–532, 2014.
+©Springer International Publishing Switzerland 2014
+
+--- Page 2 ---
+526 P. ˇCerm´ ak et al.
+systems[14]. Doing so enables us to integrate the logic with epistemic concepts.
+Each agent is modelled in terms of its local states (given as a set of variables), aset of actions, a protocol specifying w hat actions may be performed at a given
+local state, and a local evolution function returning a target local state given
+a local state and a joint action for all the agents in the system. Interpretedsystems are attractive for their modularity; they naturally express systems with
+incomplete information, and are amenable to veriﬁcation [16,19].
+Syntax. SLhas been introduced as a powerfu l formalism to reason about var-
+ious equilibria concepts in non-zero sum games and sophisticated cooperation
+concepts in multi-agent systems [8,27]. These are not expressible in previously
+explored logics including those in the ATL
+⋆hierarchy. We here put forward an
+epistemic extension of SLby adding a family of knowledge operators [14].
+Formulas in epistemic strategy logic, or strategy logic with knowledge ( SLK),
+are built by the following grammar over atomic propositions p∈AP, variables
+x∈Vr, and agents a∈Ag (A⊆Ag denotes a set of agents):
+ϕ::=p|¬ϕ|ϕ∧ϕ|Xϕ|ϕUϕ|/angbracketleft /angbracketleftx/angbracketright/angbracketrightϕ|(a,x)ϕ|Kaϕ|DAϕ|CAϕ.
+SLKextends LTL[28] by means of an existential strategy quantiﬁer /angbracketleft/angbracketleftx/angbracketright/angbracketrightand
+agent binding (a,x). It also includes the epistemic operators Ka,DA,a n d CAfor
+individual, distributed, and common knowledge, respectively [14]. Intuitively,
+/angbracketleft/angbracketleftx/angbracketright/angbracketrightϕis read as “there exists a strategy xsuch that ϕholds”,w h e r e a s( a,x)ϕ
+stands for “bind agent ato the strategy associated with the variable xinϕ”.T h e
+epistemic formula Kaϕstands for “agentaknows that ϕ”;DAϕencodes “the
+groupAhas distributed knowledge of ϕ”; while CAϕrepresents “the group A
+has common knowledge of ϕ”. Similarly to ﬁrst-order languages, we use free(ϕ)
+to represent the free agents and variables in a formula ϕ. Formally, free(ϕ)⊆
+Ag∪Vr contains (i)all agents having no binding after the occurrence of a
+temporal operator and (ii)all variables having a binding but no quantiﬁcation.
+For simplicity, we here consider only formulas where the epistemic modalities
+are applied to sentences, i.e., formulas without free agents or variables. Lifting
+this restriction is not problematic. To establish the truth of a formula, the set
+of strategies over which a variable can r ange needs to be determined. For this
+purpose we use the set sharing(ϕ,x) containing all agents bound to a variable x
+within a formula ϕ.
+Semantics. The concepts of path,play,strategy,a n d assignment (for agents
+and variables) can be deﬁned on interpreted systems similarly to the way theyare deﬁned on concurrent game structures. We refer to [23,27] for a detailed
+presentation. Intuitively, a strategy identiﬁes paths in the model on which a
+formula needs to be veriﬁed. Various variants of interpreted systems have been
+studied. We here adopt the memoryless v ersion where the agents’ local states
+do not necessarily include the local history of the run. Consequently, strategiesare also memoryless. Note that this markedly diﬀers from the previous perfect
+recall semantics of SL, which is deﬁned on memoryful strategies. We consider
+this setting because memoryful semantics with incomplete information leads toan undecidable model checking problem [11].
+
+--- Page 3 ---
+A Model Checker for the Veriﬁcation of Strategy Logic Speciﬁcations 527
+Given an interpreted system IhavingGas a set of global states, a state
+g∈G, and an assignment χdeﬁned on free(ϕ), we write I,χ,g|=ϕto indi-
+cate that the SLKformulaϕholds at ginIunderχ. The semantics of SLK
+formulas is inductively deﬁned by using the usual LTLinterpretation for the
+atomic propositions, the Boolean connectives ¬and∧,a sw e l la st h et e m p o -
+ral operators Xand U. The epistemic modalities are interpreted as standard by
+relying on notions of equality on the underlying sets of local states [14]. The in-
+ductive cases for strategy quantiﬁcation /angbracketleft/angbracketleftx/angbracketright/angbracketrightand agent binding ( a,x)a r eg i v e n
+as follows. I,χ,g|=/angbracketleft/angbracketleftx/angbracketright/angbracketrightϕiﬀ there is a memoryless strategy ffor the agents in
+sharing(ϕ,x) such that I,χ[x/mapsto→f],g|=ϕwhereχ[x/mapsto→f] is the assignmentequal
+toχexcept for the variable x, for which it assumes the value f.I,χ,g|=(x,a)ϕ
+iﬀI,χ[a/mapsto→χ(x)],g|=ϕ,w h e r eχ[a/mapsto→χ(x)] denotes the assignment χin which
+agentais bound to the strategy χ(x).
+Model Checking and Strategy Synthesis. Given an interpreted system I,
+aninitialglobalstate g0,anSLKspeciﬁcation ϕ,andanassignment χdeﬁnedon
+free(ϕ), the model checking problem concerns determining whether I,χ,g 0|=ϕ.
+Given an interpreted system I, an initial global state g0,a n da n SLKspeciﬁ-
+cationϕ,t h e strategy synthesis problem involves ﬁnding an assignment χsuch
+thatI,χ,g 0|=ϕ.
+The model checking problem for system s with memoryless strategies and im-
+perfect information against ATLandATL⋆speciﬁcations is in PSpace [7]. The
+algorithmcanbe adapted to showthat the sameresult applies to SLK. It follows
+that SLKspeciﬁcations do not generate a harder model checking problem even
+though they are more expressive.
+3 The Model Checker MCMAS-SLK
+State Labelling Algorithm. The model checking algorithm for SLKextends
+the corresponding ones for temporal logic in two ways. Firstly, it takes as input
+notonlyaformula,but alsoabinding whichassignsagentstovariables.Secondly,it does not merely return sets of states, but sets of pairs /angbracketleftg,χ/angbracketrightconsisting of a
+stategand an assignment of variables to strategies χ.Ap a i r /angbracketleftg,χ/angbracketright∈Ext is
+called an extended state ; intuitively, χrepresents a strategy assignment under
+which the formula holds at state g.
+Given an SLKformula ϕand a binding b∈Bnd/definesAg→Vr, the model
+checking algorithm Sat:SLK×Bnd→2
+Ext, returning a set of extended states,
+is deﬁned as follows, where a∈Ag is an agent, A ⊆Ag a set of agents, and
+x∈Vr a variable:
+–Sat(p,b)/defines{/angbracketleftg,χ/angbracketright:g∈h(p)∧χ∈Asg}, withp∈AP;
+–Sat(¬ϕ,b)/definesneg(Sat(ϕ,b));
+–Sat(ϕ1∧ϕ2,b)/definesSat(ϕ1,b)∩Sat(ϕ2,b);
+–Sat((a,x)ϕ,b)/definesSat(ϕ,b[a/mapsto→x]);
+–Sat(/angbracketleft/angbracketleftx/angbracketright/angbracketrightϕ,b)/defines{/angbracketleftg,χ/angbracketright:∃f∈Str sharing (ϕ,x)./angbracketleftg,χ[x/mapsto→f]/angbracketright∈Sat(ϕ,b)};
+–Sat(Xϕ,b)/definespre(Sat(ϕ,b),b);
+
+--- Page 4 ---
+528 P. ˇCerm´ ak et al.
+–Sat(ϕ1Uϕ2,b)/defineslfpX[Sat(ϕ2,b)∪(Sat(ϕ1,b)∩pre(X,b))];
+–Sat(Kaϕ,b)/definesneg({/angbracketleftg,χ/angbracketright:∃/angbracketleftg/prime,χ/prime/angbracketright∈Sat(¬ϕ,∅).g/prime∼ag});
+–Sat(DAϕ,b)/definesneg({/angbracketleftg,χ/angbracketright:∃/angbracketleftg/prime,χ/prime/angbracketright∈Sat(¬ϕ,∅).g/prime∼D
+Ag});
+–Sat(CAϕ,b)/definesneg({/angbracketleftg,χ/angbracketright:∃/angbracketleftg/prime,χ/prime/angbracketright∈Sat(¬ϕ,∅).g/prime∼C
+Ag}).
+Above we use h(p) to denote the set of global states where atom pis true;
+pre(C,b) is the set of extended sta tes that temporally precede Csubject to
+a binding b;neg(C) stands for the set of extended states /angbracketleftg,χ/angbracketrightsuch that for
+each extended state /angbracketleftg,χ/prime/angbracketright∈C, there is some variable x∈dom(χ)∩dom(χ/prime),
+such that the strategies χ(x)a n dχ/prime(x) disagree on the action to be carried out
+in some global state g/prime∈dom(χ(x))∩dom(χ/prime(x)) (i.e.,χ(x)(g/prime)/negationslash=χ/prime(x)(g/prime));
+Str sharing (ϕ,x)is the set of strategies shared by the agents bound to the variable x
+in the formula ϕ; ﬁnally, ∼a,∼D
+A,a n d∼C
+Arepresent the individual, distributed,
+and common epistemic accessibility relationsfor agent aand agentsAdeﬁned on
+the respective notions of equality of agents’ local states. The set of global states
+of an interpreted system Isatisfying a given formula ϕ∈SLKis calculated
+from the algorithm above by computing /bardblϕ/bardblI/defines{g∈G:/angbracketleftg,∅/angbracketright∈Sat(ϕ,∅)}.
+BDD Translation. Given an interpreted system Iand an SLKformulaϕ,w e
+now summarise the steps required to implement the labelling algorithm above
+using OBDDs [6]. We representglobalstates and joint actionsas Booleanvectors
+vand
+w, respectively [29]. Similarly, an assignment χis representedas a Boolean
+vector
+uwithK=/summationtext
+x∈Vr/summationtext
+S∈G/∼C
+sharing (ϕ,x )/ceilingleftBig
+log2/vextendsingle/vextendsingle/vextendsingle/intersectiontext
+g∈S/intersectiontext
+a∈sharing (ϕ,x)Pa(la(g))/vextendsingle/vextendsingle/vextendsingle/ceilingrightBig
+Boolean variables. Intuitively, for each variable x∈Vr and set of shared local
+statesS∈G/∼C
+sharing (ϕ,x), we store which action should be carried out. An
+extended state /angbracketleftg,χ/angbracketright∈Ext is then represented as a conjunction of the variables
+in
+vgand
+uχ.
+Given a binding b∈Bnd, we encode the protocol P(
+v,
+w), the evolution func-
+tiont(
+v,
+w,
+v/prime), and the strategy restrictions Sb(
+v,
+w,
+u), as in [20]. The temporal
+transition is encoded as Rb
+t(
+v,
+v/prime,
+u)=/logicalortext
+w∈Actt(
+v,
+w,
+v/prime)∧P(
+v,
+w)∧Sb(
+v,
+w,
+u).
+Observe that we quantify over actions, encoded as
+ w, as in [20], but we store the
+variable assignment in the extra parameter
+ u. Quantiﬁcation over the variable
+assignment is performed when a strategy quantiﬁer is encountered.
+Given this, the algorithm Sat(·,·) is translated into operations on BDDs rep-
+resenting the encoded sets of extended states.
+Implementation and Usage. The model checker MCMAS-SLK [22] contains
+an implementation of the procedure des cribed previously. To do this, we took
+MCMAS as baseline [19]. MCMAS is an open-source model checker for the ver-
+iﬁcation of multi-agent systems against ATLand epistemic operators. We used
+MCMAS to parse input and used some of its existing libraries for handling
+counter-examples, which were extended to handle SLKmodalities.
+MCMAS-SLK takes as input a system description given in the form of an
+ISPL ﬁle [19] providing the agents in the system, their possible local states, their
+protocols,and their evolution functions. Upon providing SLKspeciﬁcations, the
+checker calculates the set of reachable extended states, encoded as OBDDs, and
+computes the results by means of the labelling algorithm described previously. If
+
+--- Page 5 ---
+A Model Checker for the Veriﬁcation of Strategy Logic Speciﬁcations 529
+theformulaisnotsatisﬁed,acounterexampleisprovidedintheformofstrategies
+for the universally quantiﬁed variables.
+4 Experimental Results and Conclusions
+Evaluation. To evaluate the proposed approach, we present the experimental
+resultsobtained on the dining cryptographersprotocol[9,19] and a variantofthe
+cake-cutting problem [13]. The experiments were run on an Intel Core i7-2600
+CPU 3.40GHz machine with 8GB RAM running Linux kernel version 3.8.0-34-
+generic. Table 1 reports the results obtained when verifying the dining cryptog-
+raphers protocol against the speciﬁcations φCTLK/definesAGψandφSLK/defines℘Gψ, with
+[[x]]ϕ/defines¬/angbracketleft/angbracketleftx/angbracketright/angbracketright¬ϕ,w h e r e :
+ψ/defines(odd∧¬paid1)→(Kc1(paid2∨···∨paidn))∧(¬Kc1paid2∧···∧¬ Kc1paidn)
+℘/defines[[x1]]···[[xn]][[xenv]] (c1,x1)···(cn,xn)(Environment ,xenv)
+Table 1. Veriﬁcation results for the dining cryptographers protocol
+ncrypts
+ possible states
+ reachable states
+ reachability (s)
+CTLK (s)
+SLK (s)
+10
+ 3.80×1014
+45056
+ 4.41
+ 0.30
+ 2.11
+11
+ 9.13×1015
+98304
+ 1.79
+ 0.04
+ 5.51
+12
+ 2.19×1017
+212992
+ 2.43
+ 0.02
+ 11.78
+13
+ 5.26×1018
+458752
+ 2.17
+ 0.11
+ 32.41
+14
+ 1.26×1020
+983040
+ 2.08
+ 0.09
+ 85.29
+15
+ 3.03×1021
+2.10×106
+22.67
+ 0.33
+ 171.61
+16
+ 7.27×1022
+4.46×106
+7.13
+ 0.09
+ 451.41
+17
+ 1.74×1024
+9.44×106
+9.77
+ 0.13
+ 768.34
+φCTLKis the usual epistemic speciﬁcation for the protocol [19,30] and φSLKis
+its natural extension where strategies are quantiﬁed. The results show that the
+checker can verify reasonably large state spaces. The performance depends on
+the number of Boolean variables required to represent the extended states. In
+the case of SLKspeciﬁcations, the number of Boolean variables is proportional
+to the number of strategies (here equal to the number of agents). The last two
+columns of Table 1 show that the tool’s performance drops considerably faster
+when verifying SLKformulas compared to CTLKones. This is because CTLK
+requires no strategy assignments and extended states collapse to plain states. In
+contrast, the performance for CTLKis dominated by the computation of the
+reachable state space.
+We now evaluate MCMAS-SLK with respect to strategy synthesis and speci-
+ﬁcations expressing Nash equilibria. Speciﬁcally, we consider a variation of the
+model for the classic cake-cutting problem [13] in which a set of nagentstake
+turns to slice a cake of size dand the environment responds by trying to en-
+sure the cake is divided fairly. We assume that at each even round the agents
+concurrently choose how to divide the cake; at each odd round the environment
+
+--- Page 6 ---
+530 P. ˇCerm´ ak et al.
+decides how to cut the cake and how to assign each of the pieces to a subset of
+the agents. Therefore, the problem of cutting a cake of size dbetween nagents
+is suitably divided into several si mpler problems in which pieces of size d/prime<d
+have to be split between n/prime<nagents. The multi-player game terminates once
+each agent receives a slice.
+The model uses as atomic propositions pairs /angbracketlefti,c/angbracketright∈[1,n]×[1,d] indicating
+that agent igets a piece of cake of size c. The existence of a protocol for the
+cake-cutting problem is given by the following SLspeciﬁcation ϕ:
+ϕ/defines/angbracketleft/angbracketleftx/angbracketright/angbracketright(ϕF∧ϕS),where
+–ϕF/defines[[y1]]...[[yn]](ψNE→ψE) ensures that the protocol xis fair, i.e.,a l l
+Nash equilibria ( y1,...,y n) of the agents guarantee equity of the splitting;
+–ϕS/defines/angbracketleft/angbracketlefty1/angbracketright/angbracketright.../angbracketleft/angbracketleftyn/angbracketright/angbracketrightψNEensures that the protocol has a solution, i.e.,t h e r e
+is at least one Nash equilibrium;
+–ψNE/defines/logicalandtextn
+i=1(/logicalandtextd
+v=1(/angbracketleft/angbracketleftz/angbracketright/angbracketright/flatipi(v))→(/logicalortextd
+c=v/flatpi(c))) ensuresthatifagent ihasa
+strategy zallowing him to get from the environment a slice of size vonce the
+strategies of the other agents are ﬁxed, he is already able to obtain a slice of
+sizec≥vby means of his original strategy yi(this can be ensured by taking
+/flat/defines(Environment ,x)(1,y1)...(n,yn),/flati/defines(Environment ,x)(1,y1)···(i,z)···
+(n,yn), andpi(c)/definesF/angbracketlefti,c/angbracketright);
+–ψE/defines/flat/logicalandtextn
+i=1pi(⌊d/n⌋) ensures that each agent iis able to obtain a piece of
+size⌊d/n⌋(/flatandpiare the same as in the item above).
+Wewereabletoverifytheformula ϕdeﬁned aboveonasystemwith n= 2agents
+and a cake of size d= 2. Moreover, we automatically synthesised a strategy x
+for the environment (see [22] for more details). We were not able to verify larger
+examples; for example with n=2,d= 3, there are 29 reachable states; the
+encodingrequired105Booleanvariables (mostofthemrepresenttheassignments
+in the sets of extended states), and the intermediate BDDs were found to be
+in the order of 109nodes. This should not be surprising given the theoretical
+diﬃculty of the cake-cutting problem. Moreover, we are synthesising the entire
+protocol and not just the agents’ optimal behaviour.
+Conclusions. In this paperwepresented MCMAS-SLK,a novelsymbolic model
+checker for the veriﬁcation of systems against speciﬁcations given in SLK.An o -
+table feature of the approach is that it allows for the automatic veriﬁcation of
+sophisticated game concepts such as various forms of equilibria, including Nashequilibria. Since MCMAS-SLK also supports epistemic modalities, this further
+enables us to express speciﬁcations concerning individual and group knowledge
+of cooperation properties; these are co mmonly employed when reasoning about
+multi-agent systems. Other tools supporting epistemic or plain ATLspeciﬁca-
+tions exist [4,16,18,19]. In our experiments we found that the performance ofMCMAS-SLK on the ATLand CTLKfragments was comparable to that of
+MCMAS, one of the leading checkers for multi-agent systems. This is because
+we adopted an approach in which the colouring with strategies is speciﬁcation-
+dependent and is only performed after the set of reachable states is computed.
+
+--- Page 7 ---
+A Model Checker for the Veriﬁcation of Strategy Logic Speciﬁcations 531
+As described, a further notable feature of MCMAS-SLK is the ability to syn-
+thesise behaviours for multi-player games, thereby going beyond the classicalsetting of two-player games.
+We found that the main impediment to better performance of the tool is the
+size of the BDDs required to encode sets of extended states. Future eﬀorts willbe devoted to mitigate this problem as well as to support other fragments of SL.
+Acknowledgements. This research was partly funded by the EPSRC (grant
+EP/I00520X),theRegioneCampania(EmbeddedSystemCupprojectB25B09090
+100007),the EU (FP7 project600958-SHERPA),andthe MIUR (ORCHESTRA
+project).AnielloMuranoacknowledgessupportfromtheDepartmentofComput-ing at ImperialCollegeLondonfor his researchvisit inJuly 2013.
+References
+1.˚Agotnes, T., Goranko, V., Jamroga, W.: Alternating-Time Temporal Logics with
+Irrevocable Strategies. In: Theoretical Aspects of Rationality and Knowledge 2007,pp. 15–24 (2007)
+2.˚Agotnes, T., Walther, D.: A Logic of S trategic Ability Unde r Bounded Memory.
+JLLI 18(1), 55–77 (2009)
+3. Alur, R., Henzinger, T.A., Kupferman, O.: Alternating-Time Temporal Logic. Jour-
+nal of the ACM 49(5), 672–713 (2002)
+4. Alur, R., Henzinger, T.A., Mang, F.Y.C., Qadeer, S., Rajamani, S.K., Tasiran, S.:
+MOCHA: Modularity in Model Checking.. In: Vardi, M.Y. (ed.) CAV 1998. LNCS,
+vol. 1427, pp. 521–525. Springer, Heidelberg (1998)
+5. Brihaye, T., Da Costa, A., Laroussinie, F., Markey, N.: ATL with strategy con-
+texts and bounded memory. In: Artemov, S ., Nerode, A. (eds.) LFCS 2009. LNCS,
+vol. 5407, pp. 92–106. Springer, Heidelberg (2008)
+6. Bryant, R.E.: Graph-Based Algorithms for Boolean Function Manipulation. Trans-
+actions on Computers 35(8), 677–691 (1986)
+7. Bulling, N., Dix, J., Jamroga, W.: Model Checking Logics of Strategic Abil-
+ity: Complexity. In: Speciﬁcation and Veriﬁcation of Multi-Agent Systems,
+pp. 125–159. Springer (2010)
+8. Chatterjee, K., Henzinger, T.A., Piterman, N.: Strategy Logic. Information and
+Computation 208(6), 677–693 (2010)
+9. Chaum, D.: The Dining Cryptographers Problem: Unconditional Sender and Re-
+cipient Untraceability. Journal of Cryptology 1, 65–75 (1988)
+10. Clarke, E.M., Emerson, E.A.: Design and Synthesis of Synchronization Skeletons
+Using Branching-Time Temporal Logic. In: Kozen, D. (ed.) Logic of Programs 1981.
+LNCS, vol. 131, pp. 52–71. Springer, Heidelberg (1982)
+11. Dima, C., Tiplea, F.L.: Model-checking ATL under Imperfect Information and
+Perfect Recall Semantics is Undecidable. Technical report, arXiv (2011)
+12. Emerson, E.A., Halpern, J.Y.: “Sometimes” and “Not Never” Revisited: On
+Branching Versus Linear Time. Journal of the ACM 33(1), 151–178 (1986)
+13. Even, S., Paz, A.: A Note on Cake Cutting. Discrete Applied Mathematics 7,
+285–296 (1984)
+14. Fagin, R., Halpern, J.Y., Moses, Y., Vardi, M.Y.: Reasoning about Knowledge.
+MIT Press (1995)
+
+--- Page 8 ---
+532 P. ˇCerm´ ak et al.
+15. Finkbeiner, B., Schewe, S.: Coordination logic. In: Dawar, A., Veith, H. (eds.) CSL
+2010. LNCS, vol. 6247, pp. 305–319. Springer, Heidelberg (2010)
+16. Gammie, P., van der Meyden, R.: MCK: Model Checking the Logic of Knowledge.
+In: Alur, R., Peled, D.A. (eds.) CAV 2004. LNCS, vol. 3114, pp. 479–483. Springer,
+Heidelberg (2004)
+17. Jamroga, W., Murano, A.: On Module Checking and Strategies. In: Autonomous
+Agents and MultiAgent S ystems 2014, pp.701–708. Intern ational Fo undati on for
+Autonomous Agents and Multiagent Systems (2014)
+18. Kacprzak, M., Nabialek, W., Niewiadomski, A., Penczek, W., P´ olrola, A., Szreter,
+M., Wozna, B., Zbrzezny, A.: VerICS 2007 - a Model Checker for Knowledge and
+Real-Time. F undamenta Informatica e 85(1-4), 313–328 (2008)
+19. Lomuscio, A., Qu, H., Raimondi, F.: MCMAS: A Model Checker for the Veriﬁcation
+of Multi-Agent Systems. In: Bouajjani, A., Maler, O. (eds.) CAV 2009. LNCS,
+vol. 5643, pp. 682–688. Springer, Heidelberg (2009)
+20. Lomuscio, A., Raimondi, F.: Model Checking Knowledge, Strategies, and Games
+in Multi-Agent Systems. In: Autonomous Agents and MultiAgent Systems 2006,
+pp.161–168. Intern ational Founda tion for Autonomous A gents and Multiagent
+Systems (2006)
+21. Lopes, A.D.C., Laroussinie, F., Markey, N.: ATL with Strategy Contexts: Expres-
+siveness and Model Checking. In: Foundations of Software Technology and Theo-
+retical Computer Science 2010. LIPIcs, vol. 8, pp. 120–132. Leibniz-Zentrum fuerInformatik (2010)
+22. MCMAS-SLK - A Model Checker for the Veriﬁcation of Strategy Logic Speciﬁca-
+tions, http://vas.doc.ic.ac.uk/software/tools/
+23. Mogavero, F., Murano, A., Perelli, G., Vardi, M.Y.: Reasoning About Strategies:
+On the Model-Checking Problem. Technical report, arXiv (2011)
+24. Mogavero, F., Murano, A., Perelli, G., Vardi, M.Y.: What Makes Atl* Decidable?
+A Decidable Fragment of Strategy Logic. In: Koutny, M., Ulidowski, I. (eds.) CON-
+CUR 2012. LNCS, vol. 7454, pp. 193–208. Springer, Heidelberg (2012)
+25. Mogavero, F., Murano, A., Sauro, L.: On the Boundary of Behavioral Strategies.
+In: Logic in Computer Science 2013, pp. 263–272. IEEE Computer Society (2013)
+26. Mogavero, F., Murano, A., Sauro, L.: Strategy Games: A Renewed Framework.
+In: Autonomous Agents and MultiAgent Systems 2014, pp. 869–876. InternationalFoundation for Aut onomous Agents and Mu ltiagent Systems (2014)
+27. Mogavero, F., Murano, A., Vardi, M.Y.: Reasoning About Strategies. In: Foun-
+dations of Software Technology and Theoretical Computer Science 2010. LIPIcs,
+vol. 8, pp. 133–144. Leibniz-Zentrum fuer Informatik (2010)
+28. Pnueli, A.: The Temporal Logic of Programs. In: Foundation of Computer Science
+1977, pp. 46–57. IEEE Computer Society (1977)
+29. Raimondi, F., Lomuscio, A.: Automatic Veriﬁcation of Multi-Agent Systems by
+Model Checking via Ordered Binary Decision Diagrams. Journal of Applied
+Logic 5(2), 235–251 (2007)
+30. van der Meyden, R., Su, K.: Symbolic Model Checking the Knowledge of the Dining
+Cryptographers. In: Computer Secu rity Foundations W orkshop 2004, pp. 280–291.
+IEEE Computer Society (2004)
+31. Walther, D., van der Hoek, W., Wooldridge, M.: Alternating-Time Temporal Logic
+with Explicit Strategies. In: Theoretical Aspects of Rationality and Knowledge
+2007, pp. 269–278 (2007)

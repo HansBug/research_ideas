@@ -1,0 +1,1622 @@
+--- Page 1 ---
+DifferenceDecision Diagrams
+
+JesperMøller JakobLichtenber gHenrikReifAndersen HenrikHulgaard
+TechnicalReportIT-TR-1999-023
+Department ofInformation Technology ,Building344
+TechnicalUniversityofDenmark
+DK-2800 Lyngby,Denmark
+E-mail: {jmr,jali,hra,henrik}@it.dtu.dk
+Abstract
+Thispaperdescribes anewdatastructure,differencede-
+cisiondiagrams(DDDs), forrepresentingaBooleanlogic
+overinequalities oftheform 	 and 
+
+wherethevariables areintegerorreal-valued. Wegiveal-
+gorithms formanipulating DDDsandfordetermining func-
+tionalproperties(tautology,satisﬁability ,andequivalence).
+DDDsenableanefﬁcientveriﬁcation oftimedsystemsmod-
+eledas,forexample,timedautomata ortimedPetrinets,
+sinceboththestatesandtheirassociated timinginforma-
+tioncanberepresentedsymbolically ,similartohowROB-
+DDsrepresentBooleanpredicates.
+Keywords:veriﬁcation, real-time systems,symbolic model
+checking, decisiondiagrams.
+1.Introduction
+Modelchecking [12]isusedextensivelytodayforformal
+veriﬁcation ofﬁnitestatesystemssuchasdigitalcircuits
+andembedded software.Thesuccessofthetechnique is
+primarily duetotheuseofROBDDs[8]forrepresenting
+setsofandrelations overBooleanvariablessymbolically ,
+makingitpossibletoverifysystemswithaverylargenum-
+berofstates.However,ifthemodelcontainsnon-Boolean
+(e.g.,real-valued)variables,ROBDDsandothersymbolic
+representations ofBooleanpredicates areinefﬁcient.Asa
+consequence, state-of-the-art techniques foranalyzing sys-
+temswithtime,modeledforexampleastimedautomata, are
+onlycapableofanalyzing systemswithahandfuloftimers
+andafewthousand states.
+InthispaperweconsideraBooleanlogicextendedwith
+differenceconstraints, i.e.,inequalities oftheform 
+and 
+ ,where and areintegerorreal-valuedSupported byagrantfromtheDanishTechnicalResearch Councilvariablesand isaconstant. Differenceconstraints arise
+naturally whenanalyzing systemswithtime,expressing re-
+lationsbetweenthetimersinthemodel,e.g.,thatthedif-
+ferencebetweentwotimersiswithinsomebound.Wecall
+theBooleanlogicoverdifferenceconstraints fordifference
+constraint expressions givenbythefollowinggrammar: "!$#%'&)(+*,#%-.
+%
+-.%0/12%35416798%3541:7;8%3<=
+>%@?A=
+CB(1)
+where 
+BEDFHGI denotevariablesand 
+DJdenotesa
+constant. Inthispaper,thedomain Jofthelogiciseither
+therealnumbers Kortheintegers L.Noticethatthislogic
+subsumes BooleanlogicsinceaBooleanvariable MONcanfor
+instanceberepresented asaconstraint 9N1P9QN
+SRusing
+twovariables9N
+BQN
+DTFHGI.
+Themaincontributionofthispaperisadatastructure,
+calleddifferencedecisiondiagrams (DDDs),forrepresent-
+ingdifferenceconstraint expressions symbolically ,making
+itpossibletorepresent thestatespaceoftimedsystems
+(andothersystemswithnon-Boolean variables)efﬁciently.
+DDDsrepresent differenceconstraint expressions usinga
+decisiontreeinamannersimilartotheROBDDrepresen-
+tationofaBooleanexpression. Consider thefollowingex-
+pression
+over , , UVD7K:TXW-YUZ[
+:\]UZ^_
+6C`^R+ab= (2)
+Figure1shows
+asan
+\
+B"a-plotforU
+Randthecor-
+responding DDD.Eachnon-terminal vertexinaDDDcon-
+tainsatestexpression c(adifferenceconstraint) andhas
+twooutgoing edgescalledthehigh-andlow-branch which
+aredrawnwithsolidanddashedlines,respectively.The
+high-branch isfollowedwhen cevaluatestotrue;thelow-
+branchwhen cevaluatestofalse.
+1
+
+--- Page 2 ---
+d
+efhgSi
+f
+g
+(a)0 1
+jlknmoCp
+jlknq@o
+8
+mrksqrtvu
+m@knq@o
+4
+(b)
+Figure1.TheexpressionwinEq.2as(a)anx
+d9yze|{-plotfor}~,and(b)adifferencedecisiondiagram.
+1.1.RelatedWork
+Oneapproach toanalyzesystemswithtimeorothercon-
+tinuousvariablesistomakethedensedomains discrete.
+Forexample,inatimedmodelitisassumedthattheclocks
+onlycantakeintegerorrationalvalues.Suchadiscretiza-
+tionmakesitpossibletouseROBDDsforrepresenting
+boththestategraphandtheassociated timinginforma-
+tion[2,7,9,10].However,thiswayofrepresenting dense
+domainsisofteninefﬁcient;theROBDDrepresentation is
+verysensitivetothegranularity ofthediscretization andto
+thesizeofthedelayranges.Anotherapproach basedon
+ROBDDsistohaveaBooleanvariablerepresenting each
+constraint, anduseanexternaldecisionprocedure todeter-
+mineimplications amongthesevariables[11].Theseim-
+plications areusedtoprunetherepresentation ofthestate
+space.Theadvantageisthatanykindofdecidable con-
+straintscanbeused.Ourapproach canbeseenasasimpli-
+ﬁedversionofthiswherewetakeadvantageofrestricting
+thetypesofconstraints todifferenceconstraints andper-
+formreductions on-the-ﬂy .
+Severalalgorithms foranalyzing timedautomata have
+beendeveloped.Theunit-cube approach [1]modelstime
+asdensebutrepresents thetiminginformation usingaﬁ-
+nitenumberofequivalenceclasses.Again,thenumberof
+timedstatesisdependent onthesizeofthedelayrangesand
+easilybecomesunmanageable. Severalrecenttiminganaly-
+sismethodsusedifferenceboundmatrices(DBMs)[14]for
+representing thetiminginformation [6,15,17,22](see[23]
+foranextensivedescription ofthedifferentapproaches to
+modelchecking oftimedautomata.) Intheseapproaches, a
+setofDBMsrepresenting thepossibletimerconﬁgurations
+isassociated witheachdiscretestateofthesystem. Al-
+thoughDBMsprovideacompactrepresentation ofaclock
+conﬁguration, thereareseveralseriousproblems withthe
+approaches basedonDBMs:(1)thenumberofDBMs
+forrepresenting thetiminginformation associated witha
+givenstatecanbecomeverylarge,(2)thereisnoshar-
+ingorreuseofDBMsamongthedifferentdiscretestates,
+and(3)eachdiscretestateisrepresented explicitly,thus
+theseapproaches arelimitedbythenumberofreachable
+statesofthesystem.Severalresearchers haveattempted to
+remedytheseshortcomings, forexamplebyusingpartial
+ordermethods [5,18,20]orbyusingapproximate meth-ods[3,4,21].Although theseapproaches doaddressprob-
+lem(1),theyarestillsusceptible toproblems (2)and(3)
+sinceeachstateisrepresented explicitly.UsingDDDsit
+ispossibletocombatallthreeproblems since:(1)unlike
+DBMs,DDDsarenotlimitedtorepresenting thetimingin-
+formation asaunionofconvexsets,(2)DDDsrepresent
+allstatesandtheassociated timinginformation inasingle
+shareddatastructure, and(3)statesandthetiminginfor-
+mationarerepresented symbolically usingdifferencecon-
+straintexpressions.
+Anotherapproach [19]suggestsusingapartitionreﬁne-
+mentalgorithm forefﬁcientmodelchecking. However,the
+reportedrunningtimesarestillexponential.
+Basedontheinitialideasofthispaper,Larsenetal.have
+developedasimilardatastructure[16].
+2.DifferenceDecision Diagrams
+Thedatastructure differencedecisiondiagrams (DDDs)is
+developedtoefﬁcientlyrepresent andmanipulate difference
+constraint expressions. Differencedecisiondiagrams share
+manyproperties withbinarydecisiondiagrams (BDDs):(1)
+theycanbeordered,(2)theycanbereducedmakingitpos-
+sibletocheckfortautology andsatisﬁability inconstant
+time,and(3)manyofthealgorithms andtechniques for
+BDDscanbemodiﬁed toapplytoDDDs.
+Deﬁnition 1(DifferenceDecision Diagram) Adifference
+decisiondiagram(DDD)isadirectedacyclicgraph
+\zrBa.
+Thevertexset
+containstwoterminals 0and1without-
+degreezero,andasetofnon-terminal verticeswithout-
+degreetwoandthefollowingattributes:
+AttributeType Description,
+\a FHGI PositivevariableN
+=bz
+\a FHGI Negativevariable$=
+\a LE
+B
+LEQ Operator or H=,O
+\aJ Constant =
+\a
+High-branch =
+\a
+Low-branch  =
+Theset
+containstheedges
+\9B¡
+\a¢aand
+\9B
+l\a£a,
+where
+D
+isanon-terminal vertex. ¤
+SimilartoROBDDs, thenon-terminal verticesofaDDD
+corresponds totheif-then-else operator cY¥
+54Bpdeﬁned
+byc¥
+b4Bp
+h\c
+:T54a
+6\¦/c
+:§pa
+B(3)
+where cisatestexpression and
+p,
+4aredifferencecon-
+straintexpressions. However,unlikeROBDDs, thetestex-
+pression cisnotaBooleanvariable,butadifferencecon-
+straintoftheform 1nZ¨,wherethesymbol ¨represents
+either or .
+2
+
+--- Page 3 ---
+Eachvertex
+inaDDDdenotesadifferenceconstraint
+expression
+9©.If
+isaterminalvertex,i.e.,either0or1,;©is
+ "!$#or
+&+(+*,#,respectively.Otherwise,
+represents
+theexpression
+9©givenby:
+©;N
+¨E3¥
+bªO«¬£ª|­
+©O®B5¯°¢±l­
+©O®B(4)
+where ;N
+,
+\a, 
+
+9²
+\a, ¨
+
+\a,and 
+"O
+\a.Weusethefollowingnotational shorthands:³´µ
+\adef
+ \,
+\a
+Bbz
+\a£a¶·b¸
+\adef
+ \,
+\a
+B
+\a£a¹O¦µ
+\adef
+ \³´µ
+\a
+B¶·9¸
+\a¢a´¦zµ
+\adef
+ \¹zµ
+\a
+BO)
+\a
+B¡
+\a£ab=
+Addingtwobounds
+\
+4B£º$4aand
+\
+8$B£º8agives
+\
+4+»
+8Bº$4|»º8a,where
+º4
+»Yº8isLEQifboth
+º4and
+º8areLEQandLE
+otherwise. Negatingabound
+\
+Bºagives
+\
+B/lºa,where/
+LEisLEQand
+/
+LEQisLE.
+Weuse
+7¼¾½todenotethatthevertex
+½isreachable
+from
+(i.e.,thereisapathfrom
+to
+½).ThesizeofaDDD,denoted
+% b%,isthenumberofverticesreachable from
+;
+thatis,
+% b%$¿%
+½D
+À¼Á½
+%.
+2.1.Ordering
+TodeﬁneorderedDDDs,weassumegivenatotalorder-
+ingÂofthevariables
+4B=¡=Ã=
+B9Ä,whichfurthermore must
+totallyorderpairsofvariables
+\;N
+B
+a.1Weextendthis
+orderingtoattributes
+OOzµ
+\aofvertices
+inaDDD.Con-
+stants,
+"O
+\a,areorderedasusuallyinJ,andthetwo
+operators,
+
+\a,areorderedasLEÂLEQ.Bounds,\,
+\a
+B
+\a£aandconstraints,
+\³´µ
+\a
+B¶·9¸
+\a£a,are
+orderedlexicographically .Forexample,Å\
+8$B
+4a
+BÃ\R
+B
+LEa£ÆHÂ
+Å\
+8|B
+4a
+BÇ\R
+B
+LEQa¢ÆÈÂÅ\
+8
+B
+4a
+BÇ\ W|B
+LEa¢ÆÈÂ
+Å\
+u
+B
+4a
+BÃ\R
+B
+LEa£Æ1=
+Weassumethatthetwoterminalverticeshaveattributesthat
+aregreaterthanallnon-terminals.
+Deﬁnition 2(OrderedDDD)AnorderedDDD(ODDD)
+isaDDDwhereeachnon-terminal vertex
+satisﬁes:
+1.
+9²
+\a0Â
+"
+\a,
+2.
+³´µ
+\a0Â
+³´µ
+\²)
+\a¢a,
+3.
+³´µ
+\a0Â
+³´µ
+\¢
+\a£aorÅ³´µ
+\a
+³´µ
+\ 
+\a¢aand¶·9¸
+\a0Â
+¶·9¸
+\ 
+\a¢aÆ.¤
+1Pairsofvariablescanforexamplebeorderedreversedlexicographi-
+cally,thatis ÉÊË²ÌzÊ¡Í¡ÎbÏ7ÉÐÊÑË
+ÌÊÑÍ
+Îiff Ê¡Í3ÏVÊÑÍor ÉÊ¡ÍÓÒTÊÑÍÔ
+ÊËbÏ-ÊÑË
+Î.Requirement 1expressesthatthepairofvariables
+³´µ
+\a
+\,
+\a
+Bb²
+\a¢a
+Õ\9N
+B
+aofavertex
+isnormalized ;
+thatis,§ÂN.Thisdoesnotrestrictwhatwecanrepre-
+sentwithDDDs,becausethetwovariablesinavertexcan
+alwaysbeswappedbynegatingtheboundandswappingthe
+low-andhigh-branches. Wefurtherrequireinanordered
+DDD,thateitherthechildrenofavertexhavevariables
+laterintheordering(requirement 2andﬁrstpartof3)or
+thevariablesalongthelow-branch areidentical(secondpart
+of3).Thesecondpartofrequirement 3makesitpossible
+tohavemultipletestsonthesamepairofvariables,which
+isneededbecauseofthedisjunctiveabilitiesofDDDs.The
+lasttworequirements imply
+OOzµ
+\avÂ
+¹O¦µ
+\z
+l\a£aandOOzµ
+\aÂ
+OOzµ
+\¢
+\a£a.TheDDDinFigure1isanex-
+ampleofanorderedDDDwiththeorderingUÂÖ×ÂÖ
+extendedreversedlexicographically topairsofvariables.
+2.2.LocallyReduced DDDs
+SimilartoROBDDs,wedeﬁneasetoflocalreduction rules
+thatreducethesizeoftheDDDrepresentation.
+Deﬁnition 3(Locally Reduced DDD)Alocallyreduced
+DDD(RLDDD)isanODDDsatisfying, forallnon-ter-
+minals
+½and
+:
+1. J
+Limplies
+
+\a
+
+LEQ,
+2.
+´zzµ
+\½a
+´z¦µ
+\aimplies
+½§,
+3. 
+ºØ]\anÙ
+,ÚzÛ
+\a,
+4.
+³´µ
+\a
+³´µ
+\ 
+\a¢aimplies)
+\anÙ
+)
+\ 
+\a¢a.¤
+Requirement 2and3areidenticaltothereduction require-
+mentsforROBDDs. Thus,ifweencodeaBooleanvari-
+able MNas N
+¿QN
+ÜR,anyBoolean expression overM
+4
+BM
+8
+B=¡=¡=
+BMÄisrepresented inacanonical formusinglo-
+callyreducedDDDs.Requirement 4ensuresthatanytwo
+consecuti veverticeswiththesamepairofvariableshave
+differenthigh-branches. Thisrequirement isfulﬁlledusing
+thefollowingequivalencefororderedDDDs:
+V¨
+4
+4¥Ý
+BÃ\
+v¨
+8
+8¥Ý
+B¦a7Þ-v¨
+8
+8¥ß
+B)=
+3.Construction ofDDDs
+Inthissectionwepresentefﬁcientalgorithms formanipu-
+latinglocallyreducedDDDs.Orderedness ensuresthatthe
+basicalgorithm forcomputing theBooleanconnectivesis
+polynomial. However,forexistential quantiﬁcation thesit-
+uationisdifferent.Although thealgorithm inpolynomial
+timecomputes themodiﬁed andadditional constraints, its
+3
+
+--- Page 4 ---
+worst-case runningtimeisexponential sinceitneedstore-
+gainorderedness.
+Thealgorithms areallbasedonafunctionMKforcre-
+atingDDDvertices.ThefunctionMKnormalizes thetwo
+variablesandensuresthatthecreatedvertexislocallyredu-
+ced:MK
+Å\
+B"a
+BÇ\
+Bºa
+B
+BÆreturnstheidentityofavertex,
+equivalenttoavertex
+with
+³´µ
+\a
+À\
+B"a,
+¶·b¸
+\a
+\
+Bºa,
+)
+\a
+,and
+
+\a
+.UsingMKasthe
+onlyfunctionforconstructing aDDDensuresthatitislo-
+callyreduced. AsforBDDs,MKcanbeimplemented with
+anexpectedrunningtimeof à
+\ Wa.WeuseMKQ
+\9BM¹aasa
+shorthand forMK
+\9BM
+B¡á9Bâa,whichreturnsavertexcorre-
+sponding toasinglenormalized differenceconstraint.
+3.1.BooleanCombination ofDDDs
+Thefunction APPLY
+\ºãB¢½B¢aisusedtocombine two
+DDDsrootedat
+½and
+withaBooleanoperator
+ºã.AP-
+PLYisageneralization oftheversionusedforROBDDs,
+whichisbasedonthefactthatanybinaryBooleanoperatordistributesovertheif-then-else operator:\c
+¥Ý
+B¦a
+
+\c
+Q¥Ý
+Q
+B
+Qa`Þc¥
+Å
+
+\c
+Q¥Ý
+Q
+B
+QaÆ
+B
+Å
+
+\c
+Q¥ß
+Q
+B
+QaÆ
+=(5)
+ThisequivalenceprovidesamethodtocombinetwoDDDs
+withaBoolean operator.Reading theequivalencefrom
+lefttoright,weseethatwecanmovetheBooleanopera-
+tordownonelevelintheDDD.Ifwecontinuously doso
+untilbothargumentsof
+are0or1,wecanevaluatethe
+expression andreturntheappropriate result.
+Ifthetwopairsofvariablesareequal,wecansimplify
+Eq.5:\c
+¥Ý
+B¦a
+
+\c
+Q¥Ý
+Q
+B
+Qa`Þäåæåç
+c¥
+\
+Q
+a
+BÇ\
+
+\cQ
+¥ÝQ
+BQ
+a¢aif cÂ.cQ
+Bc¥
+\
+Q
+a
+BÇ\
+Q
+a if c
+cQ
+BcQ
+¥
+\
+Q
+a
+BÇ\¢\c¥Ý
+Bza
+Q
+aifcè.cQ
+=(6)
+Together,Eq.5and6canbeusedtogivethealgorithm
+APPLY:WeuseEq.5when
+\
+B"aVÂ
+\Q
+BQ
+aor
+\
+B"a-è\Q
+BQ
+aandEq.6when
+\
+B"a
+Á\Q
+BQ
+a.UsingMKto
+construct newverticesandapplyingdynamicprogramming,
+theruntimeofAPPLYisthesameastheROBDDversion,
+thatis, à
+\% ½1%Ð% 5%a.NegationofaDDD
+½cantherefore be
+doneintime à
+\% ½1%a.Inthefollowingweuse
+½
+asa
+shorthand forAPPLY
+\
+B£½B£awhen
+½and
+areDDDs.
+3.2.Quantiﬁcations
+Sincethedomainofthevariablesisinﬁnite,quantiﬁcation
+ismorecomplicated thanthebinaryBooleanconnectives.
+Existential quantiﬁcation ofavariable inaDDDrooted
+d
+efhgSi
+f
+g
+(a)
+d
+efhgSi
+f
+g
+(b)0 1
+jlknq@o
+4
+(c)
+Figure2.Existential quantiﬁcation of
+dinEq.2.(a)Anx
+d;yée|{-plotofwfor
+}v~.(b)Anx
+d;y²e|{-plotofê
+d;ëwfor}ì~.(c)TheDDDforê
+d9ëw.
+at
+½isperformed byremovingallverticesreachable from
+½
+containing ,butkeepingallimplicitconstraints inducedbyamongtheothervariables.Forexample,quantifying out 
+intheexpression
+giveninEq.2yields
+<=
+7ì7UZ^
+W,
+seeFigure2.Here,theconstraint CUV^
+Wdoesnotoccur
+explicitlyin
+,butimplicitly becauseof 7S^íR and-YUZ^
+W.
+Tocompute
+<A=
+\9Nl
+¨¿H¥î
+B¦a,weconsidertwo
+cases:Ifisdifferentfromboth;Nand
+,wecanpush
+downthequantiﬁer onelevelintheDDD:<A=
+\;NA
+
+¨¥ß
+Bza
+;N
+
+¨¥
+<A=ï
+B<= if Ù DðÇ;N
+B
+|=(7)
+IfisequaltoNor",werelaxallpathsinandwithN
+TÈ andN
+TÈñ,respectively,andcombinethe
+resultswithdisjunction:<A=
+\;NA
+
+¥ß
+Bza
+<A=RELAX
+\
+B
+BN
+È¡a6
+<A=RELAX
+\
+B
+B"
+N
+ÃaifDðÇN
+B"|=(8)
+Thecasefor
+<=
+\;N
+.0¥ò
+B¦aisanalogous.
+If isequalto 9N,relaxation ofapath
+ãwithaconstraint;NA
+¨consistsofaddinganewconstraint QN
+Y
+¨
+»Qto
+ãforeachconstraint QN
+Y;Nr¨Qin
+ã2.Thecase
+where isequalto 
+issymmetric. Theseobservations
+leadtothefollowingalgorithm:
+1RELAX
+\½B
+B;N
+B
+
+BM¹a
+
+2if
+½D
+0
+B1 thenreturn
+½
+3else
+4 óRELAX
+\z
+l\½a
+B
+B;N
+B
+
+BM¹a
+5 AóRELAX
+\ 
+\½a
+B
+B9N
+B
+
+BM¹a
+6cóMKQ
+\³´µ
+\½a
+BÇ¶·b¸
+\½a¢a
+7if
+bz
+\½a
+;N
+then
+8óß
+:MKQ
+Å\,
+\½a
+B
+a
+BM
+»E¶·b¸
+\½a¢Æ
+9elsif
+"
+\½a
+9N
+then
+10 óô
+:MK Q
+Å\9²
+\½a
+B
+a
+BM'
+¶·9¸
+\½a
+Æ
+2Intermsoftheconstraint graph[13,p.541]deﬁnedbyõ,relaxation
+withÊË,övÊ¡Íì÷
+ø corresponding toanedgefromÊ¡ÍtoÊËcreatesanew
+edgefrom Ê¡Íto ÊÑËwithweight ø5ùøÑforeachedgefrom ÊËto ÊÑËwith
+weight øéÑ(i.e.,theedgefrom Ê¡Íto ÊÑËisnowexplicit,notimplicitvia ÊË).
+4
+
+--- Page 5 ---
+11elsif
+b²
+\½a
+
+
+then
+12óô
+:MKQ
+Å\9N
+B,
+\½a£a
+BMÓ
+¶·9¸
+\½a¢Æ
+13elsif
+,
+\½a
+
+
+then
+14 óÝ
+:MK Q
+Å\;N
+Bb²
+\½a¢a
+BM
+»E¶·9¸
+\½a
+Æ
+15return
+\c
+:9a
+6
+\z/c
+:¦a
+Wecanusedynamicprogramming inbothEXISTSandRE-
+LAX.IntheworstcaseRELAXgenerates
+% ½1%
+8
+newcon-
+straintsinlines8–14.A(pessimistic) boundonthenumber
+ofaddedconstraints isthereforeà
+\% ½1%ua.However,inor-
+dertomaintain orderedness thesenewconstraints cannot
+beaddedwheretheyarediscoveredthroughcallstoMK,
+butneedtobeaddedthroughcallstoAPPLY(lines8–15).
+TherepeatedcallstoAPPLYimplythattherunningtimeof
+EXISTSisworst-case exponential.
+3.3.Assignment
+Theoperations ofassignment andreplacement areoften
+usedinveriﬁcation. Although thesecanbeimplemented
+usingexistential quantiﬁcation, wegivemoreefﬁcientalgo-
+rithmsforgeneralreplacement andaspecialfrequentcase
+ofassignment.
+Afterperforming anassignment
+úTóû
+»ü,whenÙ
+,thevariable isgiventhevalueofanothervariable plus
+aconstant intheexpression
+.Performing anassignment
+corresponds toremovingallexplicitboundson ,andthen
+updating withanewvalue.Theassignment operation
+ASSIGN
+\½B
+B
+B¡acantherefore beperformed as:úTóû
+»Oü
+X\z<A=
+a
+:\
+
+¡a5= (9)
+If isequalto ,anassignment corresponds toincrement-
+ing bythevalue .Inthesecases,theassignment can
+beperformed withouttheexistential quantiﬁcation. Thisis
+donebythealgorithm INCREMENT
+\½B
+BÃaforcomputingúTóû
+»üwithrunningtime à
+\% ½1%a:
+1INCREMENT
+\½B
+B¡a
+
+2if
+½Dð0
+B1 thenreturn
+½
+3else
+4 óINCREMENT
+\z
+\½a
+B
+B¡a
+5AóINCREMENT
+\ 
+\½a
+B
+BÃa
+6if
+,
+\½a
+then
+7 c
+óMK
+Å³´µ
+\½a
+B¶·9¸
+\½a
+»\
+B
+LEQ a
+B
+B
+Æ
+8elsif
+b²
+\½a
+then
+9 c
+óMK
+Å³´µ
+\½a
+B¶·9¸
+\½a1
+\
+B
+LE a
+B
+B
+Æ
+10else
+11 c
+óMK
+Å³´µ
+\½a
+B¶·9¸
+\½a
+B
+B
+Æ
+12returnc
+3.4.Replacement
+Thereplacement operator
+ú
+»Ãý,üsyntactically substi-
+tutesalloccurrences of in
+withanothervariable plusaconstant.Thereplacement operatorcanbeimplemented
+usingconjunction andexistential quantiﬁcation:ú
+»Çý"ü
+E<=
+Åv:
+\-
+¡aÆ
+=(10)
+However,wecanavoidtheexistential quantiﬁcation byper-
+formingthereplacement directly:
+1REPLACE
+\½B
+B
+B¡a
+
+2if
+½D
+0
+B1 thenreturn
+½
+3else
+4 óREPLACE
+\z
+\½a
+B
+B
+B¡a
+5 AóREPLACE
+\¢
+\½a
+B
+B
+B¡a
+6if
+,
+\½a
+then
+7 c
+óMKQ
+Å\
+B9²
+\½a¢a
+BÇ¶·b¸
+\½a
+\
+B
+LE aÆ
+8elsif
+9²
+\½a
+then
+9 c
+óMKQ
+Å\,
+\½a
+B"a
+BÇ¶·b¸
+\½a
+»E\
+B
+LEQ aÆ
+10else
+11 c
+óMKQ
+Å³´µ
+\½a
+B¶·9¸
+\½aÆ
+12return
+\c
+:9a
+6\¦/c
+:za
+Againwecanusedynamicprogramming andonlyalinear
+numberofnewconstraints areconstructed. However,RE-
+PLACEsuffersfromthesameproblemasEXISTS,namely
+thatinordertomaintainorderedness theworst-case running
+timeisexponential.
+4.PathReduced DDDs
+Theprevioussectiongavealgorithms forconstructing lo-
+callyreducedDDDs.However,locallyreducedDDDsare
+notacanonical representation ofdifferenceconstraint ex-
+pressions. Inthissectionweshowhowtoremovesomeof
+theredundant constraints inapath,makingtherepresen-
+tationsemi-canonical. Inasemi-canonical representation,
+thereisexactlyoneDDDforatautology (theterminal1)
+andexactlyoneDDDforanunsatisﬁable expression (the
+terminal0).Thus,withsemi-canonical DDDsitisstraight-
+forwardtotestfortautology,satisﬁability ,andequivalence
+(afterusingAPPLYwithabiimplication).
+4.1.PathsandSemi-canonical DDDs
+ApathinaDDDcorresponds toaconjunction ofdifference
+constraints ornegateddifferenceconstraints (wheneverthe
+pathfollowsalow-branch). Sincethenegationsalwayscan
+beremovedbyswappingthevariables,changing thecom-
+parisonoperator,andnegatingtheconstant, apathcorre-
+spondstoaconjunction ofdifferenceconstraints, alsocalled
+asystemofdifferenceconstraints [13,Sect.25.5].Wede-
+notethesystemofdifferenceconstraints inducedbyapathãby
+ú ãü.Apath
+ãisdeﬁnedtobefeasibleifthecorrespond-
+ingsystemofdifferenceconstraints hasafeasiblesolution.
+Iftheconstraint systemhasnosolution, thepathisinfea-
+sible.
+5
+
+--- Page 6 ---
+Deﬁnition 4(Path-reducedDDD)Apath-reduced DDD
+(RPDDD)isalocallyreducedDDDwhereallpathsarefea-
+sible.¤
+Pathsendingattheterminals 0and1arecalled0-pathsand
+1-paths,respectively.IfaDDDhasnoinfeasible 0-paths
+and1-paths,thenithasnoinfeasible pathsbecauseafea-
+sibleconstraint systemwillstillbefeasibleifweremove
+someofthedifferenceconstraints fromit.Soifall0-paths
+and1-pathsinaDDD
+½arefeasible,then
+½ispathreduced.
+ForRPDDDsitisstraightforw ardtodecidesatisﬁability
+andtautologiness:
+Theorem1(RPDDDsaresemi-canonical) InanRPDDD,
+theterminalvertex
+áistheonlyrepresentation ofatautol-
+ogyandtheterminalvertex
+âistheonlyrepresentation of
+anunsatisﬁable expression.
+Proof:Weshowthatif
+isanon-terminal inapathre-
+ducedDDD,then
+represents neitheratautology noran
+unsatisﬁable expression.
+Because
+ispathreduced,itisalsolocallyreduced,so
+allvertices
+½reachable from
+satisfy
+
+\½a§Ù
+)
+\½a.
+Furthermore, because
+isanon-terminal vertexinan
+(acyclic)orderedDDD,thereexistssomevertex
+½Qreach-
+ablefrom
+thathas
+
+\½Qþa
+0and
+)
+\½Qþa
+1or
+\½Q
+a
+1and
+)
+\½Q
+a
+0.Consequently ,both0and1
+arereachable from
+.Let
+ãbesome0-pathfrom
+.Perdef-
+initionofpathreducedness, weknowthat
+ãisfeasible.This
+impliesthatthereexistsavariableassignment satisfying
+ú ãü,
+meaning thatthereexistsafalsifying variableassignment
+for
+.Thus,
+cannotrepresent atautology.Similarly,be-
+causethereisafeasible1-pathfrom
+,
+issatisﬁable. ÿ
+Theorem 1alsoshowshowtocheckequivalencebetween
+twoRPDDDs:UseAPPLYwiththebiimplication operator
+andobservewhethertheresultisthetautology
+á.
+4.2.Reduce
+Analgorithm formakingaDDDrootedat
+½pathreduced
+is:
+1PATHREDUCE
+\½a
+REDUCE
+\½Ba
+2whereREDUCE
+\;B¦ãa
+
+3if
+/FEASIBLE
+\ ãathenreturn
+4elsif
+D
+0
+B1thenreturn
+
+5else
+6óREDUCE
+\²)
+l\a
+B¦ã\;BO)
+\a¢a£a
+7 AóREDUCE
+\ 
+\a
+B¦ãA\9B¡
+\a¢a
+8if ÓÙ
+
+:Ù
+then
+9returnMK
+\³´µ
+\a
+B¶·9¸
+\a
+B
+Bza
+10elsif YÙ
+thenreturn 
+11elsereturn 0 1
+jlksm3oCp
+jlknq@tCp
+m@knq@oCp
+(a)1
+(b)
+Figure3.TheexpressionwfromEq.11as(a)alocally
+reducedDDD,and(b)apathreducedDDD.
+Theoperator
+denotespathconcatenation and
+denotes
+theemptypath.Thefunction FEASIBLE
+\ãadetermines
+whetherasystemofdifferenceconstraints corresponding
+tothepath
+ãisfeasible.
+Thefunction REDUCE
+\9Bãareturnsifandonlyif
+thepath
+ãisinfeasible. Clearly,if
+ãisinfeasible,
+REDUCE
+\9Bãareturnsinline3.Ontheotherhand,ifãisfeasible,itissimpletoseethateither
+ãÓ\9B
+1\a¢a
+or
+ã	5\9B¡
+\a¢aisfeasible,andthusREDUCE
+\9Bãacannot
+return inline11.Hence,REDUCE
+\;B¦ãa
+ifandonly
+if
+ãisinfeasible.
+Thecorrectness ofPATHREDUCEthenfollowsfromthe
+followingobservation:ifeither 
+or 
+in
+lines6and7,thevertex
+canberemoved.Toseethis,letú ãüdenotethesystemofdifferenceconstraints correspond-
+ingtothepath
+ãandlet c
+OOzµ
+\adenotethediffer-
+enceconstraint ofvertex
+.Assume 
+,i.e.,thepathã
+;\9B¡
+\a¢aisinfeasible, andthus
+ú ãü
+:3/c
+false.Then,ú ãü
+:c
+×\£ú ãü
+:ca
+6\£ú ãü
+:7/ca
+Xú ãü
+:
+\c
+6T/ca
+Xú ãü|=
+Itfollowsfromasymmetric argumentthatthevertex
+can
+beremovedif
+.
+Letusconsiderasmallexample.Figure3showsalo-
+callyreducedDDDfortheexpressionUP^>R
+6§U>R
+6§^>R,= (11)
+TheDDDhasthree1-pathsandone0-path.The0-pathcor-
+responds tothesystemofdifferenceconstraints UV.R ,UCR ,and ZPR ,whichhasnofeasiblesolution
+(i.e.,the0-pathisinfeasible). Thus,ifwecallPATHRE-
+DUCEontherootvertex,theREDUCE-callonthevertex
+containing §.R returns1,andbecauseofthethird
+localreduction requirement, theresultistheterminal1.
+Thereareseveralalgorithms fordetermining whether
+asystemofdifferenceconstraints isfeasible. Two
+well-knownalgorithms areFloyd-Warshall’salgorithm and
+Bellman-F ord’salgorithm [13],whichbothhaveworst-case
+runningtimesà
+\ua,where
+isthenumberofvariables.
+PATHREDUCE
+\½aenumerates allpathsin
+½,andbecause
+thenumberofpathscanbeexponential inthesizeof
+½,the
+complexityofPATHREDUCE
+\½ais à
+\_ 
+ua.
+PATHREDUCEcanbeimprovedbyusingafasteralgo-
+rithmtodetermine feasibility ofapath,andbyreusingthe
+6
+
+--- Page 7 ---
+~
+(a)
+~
+(b)
+Figure4.Disjunctions ofcomplexsetscanreducetosimple
+RPDDDs.
+resultofthefeasibility checkinthetworecursivecalls.
+Theseoptimizations canberealizedbyanincremental ver-
+sionoftheBellman-F ordalgorithm, butalthoughtheseopti-
+mizations inpracticeimprovetheperformance ofPATHRE-
+DUCE,theydonotimproveontheworst-case runtime.
+AsshowninTheorem 1,itisstraightforw ardtodeter-
+minewhetherapathreducedDDDrepresents atautology
+andwhetheritissatisﬁable. However,inpracticeitis
+oftenmoreefﬁcienttosearchforacounterexamplewhen
+checking fortautology orsatisﬁability .Forinstance, when
+checking fortautology,thePATHREDUCEalgorithm canbe
+modiﬁed tostop(andreportfalse)ifafeasible0-pathis
+found.Similarly,whenchecking forsatisﬁability ,theal-
+gorithmcanstop(andreporttrue)ifafeasible1-pathis
+found.Thisapproach alsoleadstoapracticalalgorithm for
+ﬁndingasatisfying variableassignment, calledANYSAT.
+Thealgorithm searchesforafeasible1-pathandifoneis
+found,thecorresponding systemofdifferenceconstraints is
+solved,yieldingasatisfying assignment.
+5.FullyReduced DDDs
+Thereductions ensuring localandpathreducedness are
+quitepowerful.Asanexampleconsiderthetwosetsbuilt
+fromninetrianglesasshowninFigure4(a).Theyeachcon-
+tainnineconvexregionsrepresentable by15non-terminal
+DDDverticesusingtheordering
+\
+BU+aCÂ
+\
+BU)aCÂ
+\
+Bba.
+Computing thedisjunction ofthetwosetsusingAPPLYre-
+sultsinthe [Y[-squarerepresented withonlyfournon-
+terminalverticesinanRPDDD.Asanotherexamplecon-
+sidertheninesetsshowninFigure4(b).Combined they
+yieldasimpleconvexsquarealthough notwosetstogether
+formaconvexregion.Usingdifferenceboundmatricessim-
+ilarpowerfulreductions areveryexpensivetoobtain.
+However,path-reducedness isnotenoughtoensurea
+canonical representation. Asanexample,considerthethree
+path-reduced DDDsofFigure5whichallrepresent the
+sametriangular area(showninFigure5(d)).Localand
+pathreductions aretooweaktoidentifythem.Oneprob-
+lem(showninFigure5(a))isthattheconstraints maycon-
+tainacertainamountofslack.Forinstance, theconstraint-U^R couldbetightened to U^_ withoutchang-
+ingthesemantics. Toavoidthiskindofslackweintroduce
+anotionofapathbeingtight,whichstrengthens thenotion
+ofpathreducedness.1
+jlksm3tÈp
+j1knq@o
+8
+m@knq@oCp
+(a)1
+j1ksm0tCp
+jlksqro
+8
+m@knq@o
+8
+(b)1
+jlknmtÈp
+jlksqro
+8
+(c) (d)
+Figure5.ThreeRPDDDsrepresenting thesameset.
+Tointroduce tightness weneedtodistinguish thedomi-
+natingconstraints inapath.Formally,aconstraint;N
+¨isdominating inapath
+ãifallotherconstraintsN
+Z¨QQonthesamepairofvariablesin
+ã,arelessrestrictive,i.e.,\
+B¨saZ
+\¹Q
+B¨nQþa.Non-dominating constraints occuronly
+inpathsthatthroughlow-edgespassthroughseveralver-
+ticeswithconstraints onthesamepairofvariables.
+Deﬁnition 5(Tightness) Adominating constraint c
+;NA
+¨istightinafeasiblepath
+ú ãü
+¿ú ãb4ü
+:c
+:
+ú ã;8ü
+ifforalltighterconstraints
+\Q
+B¨Q
+aV
+\
+B¨sa,thesystemsú ã54ü
+:.\;N@.
+¨Q
+Q
+a
+:ú ã98üand
+ú ãühavedifferentsolu-
+tions.Apath
+ãistightifitisfeasibleandalldominating
+constraints onitaretight.AnRLDDD
+½istightifallpaths
+from
+½aretight.¤
+Fromthedeﬁnition itisclearthattightness generalizes path
+reducedness sinceanytightDDDisalsoanRPDDD.Hence,
+Theorem 1impliesthatitistrivialtodetermine satisﬁability
+andtautologiness oftightDDDs.
+Addingtightness asacondition preventstheexistence
+oftheDDDinFigure5(a).ADDDcanbemadetight
+byenumerating allpaths,foreachpathsolvetheassoci-
+atedall-pairsshortestpathproblem, replacing thebounds
+oftheconstraints bytheboundsfromthesolution, andﬁ-
+nallycombine allthetightpathsbydisjunction usingAP-
+PLY.Hence,theDDD(a)willgetreducedtotheDDD(b).
+TightDDDsarestillnotcanonical duetoimplicitcon-
+straintsthatariseasconsequences oftheconstraints inthe
+vertices.Thesolutionsetwillnotdependonhowmanyof
+theseimplicitconstraints aremadeexplicitbuttheresult-
+ingDDDswillbedifferent.Toremovethisarbitrariness,
+verticeswillbeaddedtotheDDD:
+Deﬁnition 6(Saturation) Atightpath
+ãfromanRPDDD
+issaturatedifforallconstraints cnoton
+ã,if cisaddedto
+ã
+either(1) cisnotdominating andtight,or(2)theconstraint
+system
+ú ãb4ü
+: /cisinfeasible, when
+ú ãüiswritten
+ú ãü
+ú ã54ü
+:ú ã;8üwithallconstraints on
+ãb4smallerthan cwith
+7
+
+--- Page 8 ---
+1
+jlksqrt
+4
+m@knq@o
+4jlknq@o
+4
+m@knq@o
+4
+jlksm3tCp
+(a)1
+jlksqro
+4
+m@knq@o
+4
+(b) (c)
+Figure6.Anexamplewherethemergeabilitytestisneces-
+sarytomergetwopathsintoone,makingthetopconstraint
+redundant.
+respecttoÂ,andallconstraints on
+ã8largerthanc.An
+RPDDD
+½issaturatedifallpathsfrom
+½aresaturated.¤
+Saturation canbeobtainedbymakingasmanyimplicitcon-
+straintsaspossibleexplicitwithoutintroducing anyinfea-
+siblepathsintheDDD.Asanexample,theDDDinFigure
+5(c)willbesaturated intotheDDDinFigure5(b).How-
+ever,tightandsaturated DDDsarestillnotcanonical. Fig-
+ure6showsanexampleoftwotight,saturated RPDDDs
+thathavethesamesolution. Intuitively,theproblemisthat
+thevertexwithconstraint È
+.R isredundant, sincethe
+solutionsetisthearea Y^
+W|B`^
+W(assuming U
+R).To
+detectsuchsituations, afurthercheckisnecessary:
+Deﬁnition 7(Disjuncti vevertex)Let
+ãbeapathleading
+tothevertex
+½inaDDD,andassumec
+OOzµ
+\½a,
+)
+A\½a,and
+ 
+\½a.Then
+½isdisjunctive in
+ãifú ãü
+:È\cY¥Ý
+B¦aand
+ú ãü
+:È\
+6¦ahavethesamesolution. ¤
+Thisleadsustothefollowingdeﬁnition andaccompan ying
+conjecture:
+Deﬁnition 8(FullyreducedDDD)AnRPDDD
+½isa
+fully-reducedDDD(RFDDD)ifitistight,saturated, and
+hasnodisjunctivevertices. ¤
+Conjectur e2(Canonicity) If
+½and
+areRFDDDswith
+thesamesetofsolutions then
+½§.
+Asitisillustrated bytheabovediscussion, canonicity is
+ratherdifﬁculttoobtaininDDDs.Thisisquiteunlikethe
+situation forBDDs,wherelocalreductions andatotalor-
+deringofthevariablesisenoughtoobtainit.Thereason
+isthat,inDDDstherearenon-local dependencies among
+thevariousconstraints givingrisetonotonlyuntightcon-
+straintsbutalsoimpliedconstraints thatmayormaynot
+beexplicitlypresent.Pragmatically ,thelackofcanonicity
+ofpath-reduced DDDsmightnotbeaproblem. Themainbeneﬁtofthecanonicity ofROBDDsisthatthequestions
+ofequivalence,satisﬁability ,andtautologiness aretrivialto
+answer.However,aspointedoutinTheorem 1,satisﬁability
+andtautologiness istrivialforpath-reduced DDDsandeven
+forjustlocal-reduced DDDsthequestions canbesolvedby
+asimpleon-the-ﬂy searchforfeasiblepaths.Thecrucialis-
+sueiswhethertherepresentation duringcomputations stay
+compactwhichcanoccurwithjustasemi-canonical repre-
+sentation.
+Corollary3If
+½isanRFDDDsuchthatthesolutionto
+½
+isconvexthen
+½containsexactlyonepathtotheterminal
+vertex
+W.
+6.Conclusion
+Theproblemaddressed inthispaperishowtoefﬁciently
+represent andmanipulate aBooleanlogicoverinequalities
+oftheform 0C. and 0C§ ,wherethevariablesare
+integerorreal-valued.Wehaveproposed adatastructure
+inspiredbyROBDDsforrepresenting theexpressions from
+thelogicasadecisiondiagraminwhichthetestconditions
+aredifferenceconstraints.
+Introducing anorderingoftheconstraints makesitpos-
+sibletoextendtheAPPLYalgorithm fororderedBDDsto
+orderedDDDswithoutchanging itsruntimecomplexity.
+However,sincethedomainofthevariablesinthelogicisin-
+ﬁnitary,otheroperations suchasexistential quantiﬁcation,
+aremoredifﬁcultthanforBDDs.FororderedDDDs,these
+algorithms arebasically polynomial, buttheybecomeex-
+ponential duetotheorderingrequirement. Anothercompli-
+cationisthatthereareimplicitconstraints amongthevari-
+ablescausingtheDDDdatastructure tobenon-canonical
+evenwhenlocalreductions areused.Aﬁrststeptowards
+canonicity istoeliminate allinfeasible paths.Suchapath-
+reducedDDD,canbetestedfortautology andsatisﬁability
+inconstanttime.However,semantically equivalentDDDs
+maystillhavedifferentrepresentations. Wehavedeﬁned
+severaladditional restricting conditions, whichweconjec-
+turewillresultincanonical DDDs.Itisclearlydifﬁcult
+toobtainanefﬁcientcanonical representation. Although
+canonicity wouldbeintriguing toobtainandallowoneto
+checkforequivalenceinconstanttime,itisnotnecessarily
+desirable inpractice.Acanonical representation willnotbe
+morecompactthananon-canonical representation andthe
+equivalencecheckcanbeperformed asatautology check.
+Boolean variablescanbemodeled asdifferencecon-
+straints,makingitpossibletocombine Boolean, continu-
+ous,andintegervariableswithinasingledatastructure. All
+operations ontheBooleanvariablesintheDDDcanbeper-
+formedasefﬁcientlyaswithBDDs.Oneuseofcombining
+Booleanandreal-valuedvariablesisinconstructing theset
+8
+
+--- Page 9 ---
+ofreachable statesforaconcurrent timedsystem.Theef-
+fectivenessofthedatastructure andassociated algorithms
+isdemonstrated byconstructing thesetofreachable states
+forMilner’sscheduler extendedwithtwotimerspercycler.
+Thisisahighlyconcurrent systemwithanexponential num-
+berof(discrete) reachable states,yettherepresentation of
+thereachable statesgrowsonlypolynomially inthenumber
+ofcyclers.Clearly,anyapproach basedonanexplicitstate
+enumeration, e.g.,thosebasedondifferenceboundmatri-
+ces,willfailforsuchsystems.
+Onepaththatcouldbetakenwhenextending there-
+sultsofthepaperwouldbetogeneralize thedifferencecon-
+straintstolinearinequalities 
+ÄN
+4N9Ns¨ orderedbya
+totalordering. Thebasicdatastructure andtheAPPLYal-
+gorithmwouldbeunchanged. Intheexistential quantiﬁca-
+tiontheonlychangeisinRELAX,whereisisolatedand
+newinequalites areobtained bysubstituting theinequality
+for.Ineliminating infeasible paths,agenerallinearpro-
+gramming solvermustbeused,e.g,thesimplexalgorithm.
+References
+[1]R.AlurandD.Dill.Thetheoryoftimedautomata. InReal-
+Time:TheoryinPractice,number600inLNCS,pages28–
+73.Springer,1991.
+[2]E.Asarin,M.Bozga,A.Kerbrat,O.Maler,A.Pnueli,and
+A.Rasse.Data-structures fortheveriﬁcation oftimedau-
+tomata.InInt.WorkshoponHybridandReal-TimeSystem,
+Mar.1997.
+[3]F.Balarin.Approximate reachability analysisoftimedau-
+tomata.InProc.Real-TimeSystemsSymposium ,pages52–
+61.IEEE,1996.
+[4]W.Belluomini andC.J.Myers.Efﬁcienttiminganalysis
+algorithms fortimedstatespaceexploration. InProc.Int.
+Symposium onAdvanced ResearchinAsynchronousCircuits
+andSystems,Apr.1997.
+[5]W.Belluomini andC.J.Myers.Veriﬁcation oftimedsys-
+temsusingPOSETs. InProc.Computer AidedVerﬁcation
+(CAV),June1998.
+[6]B.Berthomieu andM.Diaz.Modeling andveriﬁcation of
+timedependent systemsusingtimePetrinets.IEEETrans-
+actionsonSoftwareEngineering ,17(3):259–273, 1991.
+[7]M.Bozga,O.Maler,A.Pnueli,andS.Yovine.Some
+progressinthesymbolic veriﬁcation oftimedautomata. In
+CAV’97,LNCS1254,pages179–190, 1997.
+[8]R.E.Bryant. Graph-based algorithms forBooleanfunc-
+tionmanipulation. IEEETransactions onComputer s,C-
+35(8):677–691, 1986.
+[9]J.R.Burch.TraceAlgebraforAutomatic Veriﬁcation of
+Real-TimeConcurrentSystems.PhDthesis,CarnegieMel-
+lon,Aug.1992.
+[10]S.V.Campos, E.Clarke,W.Marrero, M.Minea,andH.Hi-
+raishi.Computing quantitativecharacteristics ofﬁnite-state
+real-time systems. InReal-TimeSystemsSymposium ,pages
+266–70.IEEE,Dec.1994.[11]W.Chan,R.Anderson, P.Beame,andD.Notkin.Combin-
+ingconstraint solvingandsymbolic modelchecking fora
+classofsystemswithnon-linear constraints. InComputer
+AidedVeriﬁcation ,pages316–27,1997.
+[12]E.ClarkeandE.Emerson. Designandsynthesis ofsynchro-
+nizationskeletonsusingbranching timetemporal logic.In
+WorkshoponLogicsofPrograms,LNCS131,pages52–71.
+Springer-Verlag,1981.
+[13]T.H.Cormen, C.E.Leiserson, andR.L.Rivest.Introduc-
+tiontoAlgorithms .MITPress,1994.
+[14]D.L.Dill.Timingassumptions andveriﬁcation ofﬁnite-
+stateconcurrent systems.InAutomaticVeriﬁcation Methods
+forFiniteStateSystems,LNCS407.Springer,1989.
+[15]K.G.Larsen,P.Pettersson, andW.Yi.Model-checking
+forreal-time systems. InProc.ofthe10thInt.Conference
+onFundamentals ofComputation Theory,number965in
+LNCS,pages62–88,Aug.1995.
+[16]K.G.LarsenandC.Weise.Clockdecisiondiagrams, draft.
+Privatecommunication, 1998.
+[17]T.G.Rokicki. RepresentingandModeling DigitalCircuits.
+PhDthesis,StanfordUniversity,1993.
+[18]T.G.RokickiandC.J.Myers.Automatic veriﬁcation of
+timedcircuits.InD.L.Dill,editor,Computer AidedVeriﬁ-
+cation(CAV),number818inLNCS,pages468–480, 1994.
+[19]R.L.Spelberg,H.Toetenel,andM.Ammerlaan. Partition
+reﬁnement inreal-time modelchecking. InProceedings of
+FTRTFT’98 ,pages143–57,1998.
+[20]E.Verlind,G.deJong,andB.Lin.Efﬁcientpartialenumer-
+ationfortiminganalysisofasynchronous systems. InProc.
+ACM/IEEE DesignAutomation Conference,1996.
+[21]H.Wong-ToiandD.Dill.Approximations forverifyingtim-
+ingproperties. InTheories andExperiences forReal-Time
+SystemsDevelopment .WorldScientiﬁc Publishing, 1994.
+[22]S.Yovine.Kronos: Averiﬁcation toolforreal-time sys-
+tems.SpringerInt.JournalofSoftwareToolsforTechnology
+Transfer,1(1/2),Oct.1997.
+[23]S.Yovine.Modelchecking timedautomata. InEmbedded
+Systems,LNCS.Springer-Verlag,1998.
+9
