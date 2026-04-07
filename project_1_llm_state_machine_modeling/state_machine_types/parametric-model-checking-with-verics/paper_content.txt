@@ -1,0 +1,1000 @@
+--- Page 1 ---
+Parametric Model Checking with Ver ICS⋆
+(Tool Paper)
+Micha/suppress l Knapik1, Artur Niewiadomski2, Wojciech Penczek1,2, Agata P´ o/suppress lrola3,
+Maciej Szreter1, and Andrzej Zbrzezny4
+1Institute of Computer Science, PAS, Ordona 21, 01-237 Warsza wa, Poland
+{Michal.Knapik,penczek,mszreter }@ipipan.waw.pl
+2Siedlce University, ICS, 3 Maja 54, 08-110 Siedlce, Poland
+artur@ii.uph.edu.pl
+3University of /suppress L´ od´ z, FMCS, Banacha 22, 90-238 /suppress L´ od´ z, Po land
+polrola@math.uni.lodz.pl
+4Jan D/suppress lugosz University, IMCS, Armii Krajowej 13/15, 42-200 C z¸ estochowa, Poland
+a.zbrzezny@ajd.czest.pl
+Abstract. The paper presents the veriﬁcation system Ver ICS, extended
+with the three new modules aimed at parametric veriﬁcation o f Elemen-
+tary Net Systems, Distributed Time Petri Nets, and a subset of UML.
+All the modules exploit Bounded Model Checking for verifying pa ramet-
+ric reachability and the properties speciﬁed in the logic PR TECTL – the
+parametric extension of the existential fragment of CTL.
+1 Introduction
+VerICSis a model checker for high-level languages as well as real-t ime and multi-
+agent systems. Depending on the type of a considered system, the veriﬁer enables
+to test various classes of properties - from reachability of a state satisfying cer-
+tain conditions to more complicated features expressed wit h formulas of (timed)
+temporal, epistemic, or deontic logics. The implemented mo del checking meth-
+ods include SAT-based ones as well as these based on generati ng abstract models
+for systems.
+The architecture of Ver ICSis depicted in Fig. 1. At its right-hand side there
+are visualized the model checking methods oﬀered for real-t ime systems: bounded
+model checking (BMC) for proving reachability in Time Petri Nets (TPN) and
+in Timed Automata (TA) (including TADD - TA with Discrete Dat a) as well
+as for testing TECTL (Timed Existential CTL) formulas for TA , unbounded
+model checking (UMC) for proving CTL properties for slightl y restricted TA, and
+splitting for testing reachability for TA. The modules impl ementing the above
+methods are described in [8, 17] and [18]. In the boxes with ro unded corners the
+input formalisms are depicted: both the low-level (TPN, TA) and high-level lan-
+guages (Java, Promela, UML, Estelle). The languages for exp ressing properties
+⋆Partly supported by the Polish Ministry of Science and Highe r Education under the
+grants No. N N206 258035 and N N516 370436.
+
+--- Page 2 ---
+to be veriﬁed are depicted in ovals. Considering multi-agen t systems, Ver ICSim-
+plements UMC for CTLpK (Computation Tree Logic with knowled ge and past
+operators) and BMC for ECTLKD (the existential fragment of C TL extended
+with knowledge and deontic operators) as well as TECTLK (the existential frag-
+ment of timed CTL extended with knowledge operators). All th ese modules are
+covered in [17]. Moreover, our veriﬁer oﬀers also SAT-based model checking for
+high-level languages like UML [27], Java [13], and Promela [ 14]. The details can
+be found in [18].
+In this paper we present the three new modules of Ver ICS, aimed at paramet-
+ric veriﬁcation. These are BMC4EPN, BMC4TPN, and BMC4UML di splayed
+in the Ver ICS’ architecture diagram in Fig. 1 (the right upper corner). Th e mod-
+ules allow for checking properties, expressed in the PRTECT L logic [12, 19], of
+systems modelled as Elementary Net Systems, Distributed Ti me Petri Nets, and
+in a subset of UML, respectively.
+Fig.1. Architecture of Ver ICS
+Below, we give a short overview of some well-known tools for P etri Nets.
+Tina [4] is a toolbox for analysis of (Time) Petri Nets, which constructs state
+class graphs (abstract models) and exploits them for LTL, CT L, or reachability
+veriﬁcation. Romeo [22] is a tool for analysis of Time Petri N ets. It provides
+several methods for translating TPN to TA and for computing s tate class graphs.
+CPN Tools [6] is a software package for modelling and analysi s of both timed and
+untimed Coloured Petri Nets, enabling their simulation, ge nerating occurrence
+(reachability) graphs, and analysis by place invariants.
+There have been a lot of attempts to verify UML state machines - all of
+them based on the same idea consisting in translation of a UML speciﬁcation
+to the input language of some model checker, and then perform ing veriﬁcation
+using the model checker. Some of the approaches [16, 21] tran slate UML to the
+2
+
+--- Page 3 ---
+Promela language and then make use of the Spin [14] model chec ker. Other
+[10, 20] exploit timed automata as an intermediate formalis m and employ the
+UPPAAL [3] for veriﬁcation. The third group of tools (e.g., [ 11]) applies the
+symbolic model checker NuSMV [7] via translating UML to its i nput language.
+One of the modules of Ver ICSfollows this idea. A UML subset is translated to
+the Intermediate Language (IL) of Ver ICS. However, we have developed also a
+symbolic model checker that deals directly with UML speciﬁc ations by avoid-
+ing any intermediate translations. The method is implement ed as the module
+BMC4UML.
+There are only a few tools designed for parametric veriﬁcati on. One of UP-
+PAAL’s modules oﬀers a possibility to verify some propertie s of Parametric
+Timed Automata [15] – namely, reachability with additional time constraints;
+LPMC [33] (a module of the TVS toolset) oﬀers parametric veri ﬁcation of
+Timed Automata based on partition reﬁnement; Moby/DC [9] implements
+model checking algorithms for Phase Automata; the Romeo too l contains a mod-
+ule aimed at parametric veriﬁcation of Time Petri Nets with s topwatches [34].
+To our best knowledge, there are no tools dealing with parame tric veriﬁcation
+of UML.
+The rest of the paper is organised as follows. Section 2 intro duces Elementary
+Net Systems (ENS), Time Petri Nets (TPN) (both restricted to 1-safe nets, as
+required by our tool), and the subset of UML recognized by the tool. Main ideas
+behind Bounded Model Checking and parametric veriﬁcation a re presented in
+Section 3, while Section 4 describes major steps of implemen tation of parametric
+BMC. In Section 5 we present some experimental results, wher eas Section 6
+contains some concluding remarks and discusses directions of future work.
+2 Input Formalisms of Ver ICS
+In this section we deﬁne the input formalisms of Ver ICS, for which parametric
+veriﬁcation is available. These are Elementary Net Systems , Distributed Time
+Petri Nets, and a subset of UML.
+2.1 Elementary Net Systems (ENS)
+Elementary Net Systems (called also Elementary Petri Nets) are one of the
+formalisms used to specify concurrent systems. An elementary net system is a
+4-tupleEN = (P,T,F,m0),whereP(theplaces ) andT(thetransitions ) are
+ﬁnite sets s.t. P∩T=∅, theﬂow relation F⊆(P×T)∪(T×P) has the property
+that for every t∈Tthere exist p,p′∈Ps.t. (p,t),(t,p′)∈F, andm0⊆Pis
+theinitial marking (initial conﬁguration ). For each transition t∈Twe deﬁne
+the set of ingoing places pre(t) ={p∈P|(p,t)∈F}, and the set of outgoing
+placespost(t) ={p∈P|(t,p)∈F}. A state (conﬁguration) of the system EN
+is given by a marking ofN, i.e., by a set of places m⊆P, represented graph-
+ically as containing “tokens”. We consider 1 -safe nets only, i.e., these in which
+each place can be marked by at most one token. Let m⊆Pbe a conﬁguration.
+3
+
+--- Page 4 ---
+Iftis a transition, pre(t)⊆mand (post(t)\pre(t))∩m=∅,then we say
+that the transition tisenabled inm(denoted by m/bracketleftbig
+t/angbracketrightbig
+). Letm,m′⊆Pbe two
+conﬁgurations. A transition tﬁres frommtom′(denoted by m/bracketleftbig
+t/angbracketrightbig
+m′) ifm/bracketleftbig
+t/angbracketrightbig
+andm′= (m\pre(t))∪post(t).A conﬁguration m⊆Pisreachable if there
+are conﬁgurations m0,m1,...,m n⊆Pwithm0=m0,mn=m, and transitions
+t0,t1,...,tn∈Tsuch that mi−1/bracketleftbig
+ti/angbracketrightbig
+mifor all 1 ≤i≤n.We denote the set of
+all the reachable conﬁgurations of ENbyMEN.
+An example of an elementary net system with P={wi,ci,ri,p}andT=
+{ini,outi,di}, fori= 1,...,n (modelling a mutual exclusion protocol) is pre-
+sented in Fig. 2.
+Fig.2. Elementary net system for a mutual exclusion protocol
+2.2 Time Petri Nets
+The tool Ver ICSaccepts also an input in the form of Time Petri Nets, which
+are one of the formalisms for specifying real-time systems. A Time Petri Net
+is a tuple N= (P,T,F,m0,Eft,Lft ), in which the elements P,T,F, andm0
+are the same as in an ENS, while Eft :T→NandLft :T→N∪ {∞} ,
+satisfying Eft(t)≤Lft(t) for each t∈T, are functions which assign to the
+transitions their earliest andlatest ﬁring times . The values of these functions
+are represented graphically as intervals annotating the tr ansitions. In the cur-
+rent version of Ver ICS, we consider Distributed Time Petri Nets [29] only5.
+A Distributed Time Petri Net consists of a set of 1-safe seque ntial6TPNs (called
+5The restriction follows from eﬃciency reasons: the distrib uted form allows to reduce
+the size of the timed part of the concrete states of nets by ass igning clocks to the
+processes (instead of assigning them to the transitions lik e in the standard case),
+which is important for optimising the implementation. Simi larly, 1-safety allows to
+reduce the size of the information stored in the marking part o f concrete states.
+6A net is sequential if none of its reachable markings concurren tly enables two tran-
+sitions.
+4
+
+--- Page 5 ---
+processes ), of pairwise disjoint sets of places, and communicating vi a joint tran-
+sitions. Moreover, the processes are required to be state machines , which means
+that each transition has exactly one input place and exactly one output place
+in each process it belongs to. A state of the system considere d is given by a
+marking of the net and by the values of the clocks associated w ith the pro-
+cesses (a detailed description of the nets as well as their se mantics can be found
+in [30]). An example of a distributed TPN (Fischer’s mutual e xclusion proto-
+waiting1setx0_1
+enter1trying1critical1
+idle2start2
+trying2waiting2 critical2
+setx0_2place 0place 1
+place 2idle1 start1setx1−copy1setx1
+setx1−copy2
+setx2−copy2
+setx2enter2setx2−copy1
+[0,∞)[0,∞)
+[0,∞)[0,∞)[0,∆][0,∆]
+[0,∆]
+[0,∆][δ,∞)
+[0,∆]
+[0,∆][δ,∞)
+Fig.3. A net for Fischer’s mutual exclusion protocol for n= 2
+col7) is shown in Fig. 3. The net consists of three communicating p rocesses
+with the sets of places Pi={idlei,trying i,enter i,critical i}fori= 1,2, and
+P3={place 0,place 1,place 2}. All the transitions of the process N1and all the
+transitions of the process N2(i.e., of the nets modelling the competing processes)
+are joint with the process N3(modelling the process aimed at coordinating the
+access).
+7The system consists of nprocesses (here n= 2) trying to enter their critical sections,
+and one process aimed at coordinating their access. The syste m is parameterised by
+the time-delay constants δand∆, whose relationship inﬂuences preservation of the
+mutual exclusion property.
+5
+
+--- Page 6 ---
+2.3 UML
+Another language handled as an input by our tool - a subset of U ML - is sketched
+below. The syntax is illustrated with the diagrams of the Gen eralised Railroad
+Crossing (GRC) system, which is also used as a benchmark in Se ction 5. Due to
+the space limitations we give only intuitive explanations, but all the remaining
+details and formal deﬁnitions can be found in the papers [24, 25].
+The systems considered are speciﬁed by a single class diagra m, which deﬁnes
+kclasses (e.g. see Fig. 4(a)), a single object diagram which d eﬁnesnobjects
+(e.g. in Fig. 4(a)), and kstate machine diagrams (e.g. in Fig. 4(b), 5), each one
+assigned to a diﬀerent class of the class diagram.
+(a) Class and object diagrams (b) State machine diagram of class Train
+Fig.4. Speciﬁcation of GRC system
+The class diagram deﬁnes a list of attributes and a list of ope rations (possibly
+with parameters) for each class. The object diagram speciﬁe s the instances of
+classes (objects) and (optionally) assigns the initial val ues to variables. All the
+objects are visible globally. Moreover the set of objects is constant during the life
+time of the system and therefore dynamic object creation and termination is not
+allowed. Each object is assigned an instance of a state machi ne that determines
+the behaviour of the object. A state machine diagram typical ly consists of states,
+regions and transitions connecting source and target state s. We consider several
+types of states, namely: simple states (e.g., Away in Fig. 4(b)), composite states,
+(e.g.,Main in Fig. 5), ﬁnal states, and initial pseudo-states, (e.g., Initial in Fig.
+5). The areas ﬁlling the composite states are called regions . The regions contain
+states and transitions, and thus introduce a hierarchy of state machines. The
+labels of transitions are expressions of the form trigger [guard ]/action , where
+each of these components can be empty. The transitions with n on-empty trigger
+are called triggered transitions . A transition can be ﬁred if the source state is
+active , the guard (a Boolean expression) is satisﬁed, and the trigg er matching
+event occurs. An event can be of the following three types: an operation call ,
+acompletion event , or atime event . The operation calls coming to the given
+6
+
+--- Page 7 ---
+object are put into the event queue of the object, and then, one at a time, they
+are handled. The completion events and the time events are pr ocessed without
+placing them in queues.
+Fig.5. Speciﬁcation of GRC system - state machine diagram of class Gate Controller
+The highest priority is bound to completion events. A comple tion event oc-
+curs for a state, when all internal activities of the state te rminate. Then the
+completion event is discarded (when it cannot ﬁre any transi tion – level 1 of
+the hierarchy), or it ﬁres a transition and is consumed (leve l 2). If none of the
+above cases holds, triggered transitions are considered. T he event from the head
+of the queue, or a time event possibly ﬁres a transition (leve l 3), and is con-
+sumed. If the event from the head of the queue cannot ﬁre any tr ansition and
+the matching trigger is deferred in the current state, then the event is deferred
+(level 4), i.e., it will be processed later. Otherwise, the e vent is discarded (level
+5). We refer to the processing of a single event from the queue or a time event as
+theRun-To-Completion (RTC) step . Next, an event can be handled only if the
+previous one has been fully processed, together with all the completion events
+which eventually have occurred.
+The execution of the whole system follows the interleaving s emantics, similar
+to [10]. During a single step only one object performs its RTC step. If more
+than one object can execute such a step, then an object is chos en in a non-
+deterministic way. However, if none of the objects can perfo rm anuntimed action ,
+then the time ﬂows (level 6).
+3 Bounded Model Checking methodology
+In this section we present some basic ideas behind Bounded Mo del Checking and
+parametric veriﬁcation.
+7
+
+--- Page 8 ---
+3.1 SAT-based Bounded Model Checking
+Bounded Model Checking (BMC) is a symbolic method aimed at ve riﬁcation of
+temporal properties of distributed (timed) systems. It is b ased on the observation
+that some properties of a system can be checked using only a pa rt of its model.
+In order to apply SAT-based BMC to testing whether a system sa tisﬁes
+a certain (usually undesired) property, we unfold the trans ition relation of a
+given system up to some depth k, and encode this unfolding as a propositional
+formula. Then, the formula expressing a property to be teste d is encoded as a
+propositional formula as well, and satisﬁability of the con junction of these two
+formulas is checked using a SAT-solver. If the conjunction i s satisﬁable, one can
+conclude that a witness was found. Otherwise, the value of kis incremented. The
+above process can be terminated when the value of kis equal to the diameter
+of the system, i.e., to the maximal length of a shortest path b etween its two
+arbitrary states.
+All the above processes are performed fully automatically a nd do not require
+any assistance from the user.
+3.2 Parametric Veriﬁcation
+The parametric veriﬁcation performed in our system is of two kinds. In the
+case of systems modelled by Elementary Petri Nets, BMC is app lied to veriﬁ-
+cation of properties expressed in the existential fragment of the logic PRTCTL
+[12], i.e., PRTECTL. The logic PRTCTL is an extension of Comp utation Tree
+Logic (CTL), which allows to formulate properties involvin g lengths of paths
+in a model. Informally, the fragment of PRTCTL we consider co nsists of all
+the existential CTL formulas, these formulas augmented wit h superscripts of
+the form ≤c(wherec∈N) restricting the length of the path of interest, and
+the formulas as above, but with creplaced by a linear expression over a set of
+natural-valued parameters, preceded by the existential or universal quantiﬁer
+over (possibly bounded) valuations of these parameters. As to give an example,
+consider EG≤3p, which expresses that there is a path such that in the ﬁrst fou r
+states of this path pholds. Another example is ∀Θ1≤1∃Θ2≤2EF≤Θ1+Θ2p, which
+expresses that for each value of the parameter Θ1not greater than 1 there is a
+value of the parameter Θ2not exceeding 2 s.t. for some path we can reach pwhile
+visiting not more than Θ1+Θ2+1 ﬁrst states of that path. The propositions ap-
+pearing in these formulas correspond to the places of the net considered. To the
+aim of veriﬁcation using BMC, the qualitative properties ex pressed in PRTECTL
+are directly encoded as propositional formulas. Using some basic features of the
+considered logic, we introduce bounds on the parameters whe re not present, and
+replace the universal and existential quantiﬁers with, res pectively, conjunctions
+and disjunctions.
+Parametric BMC for PRTECTL. The veriﬁcation of PRTECTL is per-
+formed by a translation of a part of a model, together with a pr operty to be
+checked, to a propositional formula. We have proved in [19] t hat the method is
+8
+
+--- Page 9 ---
+correct and theoretically complete, albeit in practice tra nslated formulas might
+be too complex for current SAT-solvers – that is often the cas e, when the depth
+of the unwinding is close to the size of a model. We use the Krip ke structures in-
+duced by Petri nets (i.e., the marking graphs) as the models f or PRTECTL logic,
+where the transitions are assumed to take one unit of time. Su ch an approach
+has several beneﬁts listed below.
+1. Our choice of parameterized logic is practical, as it is kn own that the pa-
+rameterized extensions of temporal logics tend to be diﬃcul t problems in
+model-checking. For example, the joint complexity of veriﬁ cation of the ex-
+istential fragment of TCTL, is 3EXPTIME [5], which is due to t he presence
+of satisﬁability in Presburger Arithmetics as a subproblem .
+2. It is shown in [12] that the complexity of model-checking o f a PRTCTL
+formulaφcontaining kparameters, over a Kripke model M, isO(|M|k+1·|φ|),
+where|M|stands for the size of Mand|φ|stands for the length of φ. Notice,
+however, that the Kripke structures induced by Petri nets te nd to be very
+large (exponential in the size of the nets), hence the genera l veriﬁcation
+problem may be untractable for many real-life systems. The B MC approach
+allows for checking some of diﬃcult properties in a part of th e model, giving
+a chance to succeed where the explicit approaches fail.
+3. The PRTECTL logic can be model-checked by means of the stan dard BMC,
+using an extension of the eﬃcient translation proposed in [3 7]. This is a
+serious advantage as the encoding employs an adequate set of symbolic paths
+for each subformula of a given formula.
+A detailed description of the method can be found in [19].
+Parametric Reachability. Parametric veriﬁcation of Time Petri Nets and
+systems speciﬁed in UML is restricted to testing parametric reachability only.
+Again, the propositions used to build the properties tested correspond to the
+places of the nets. Besides “ordinary” reachability veriﬁc ation, Ver ICSenables
+searching for the minimal time c∈Nin which a state satisfying pcan be reached,
+or ﬁnding the minimal time c∈Nafter which pdoes not hold. This is formally
+expressed respectively as ﬁnding the minimal csuch that EF<cp(or EF≤cp)
+holds, and ﬁnding a maximal csuch that EF>cp(or EF≥cp) holds. To this aim,
+parametric reachability checking is used. The algorithm for ﬁnding the minimal
+c∈Nsuch that EF≤cpholds is as follows:
+1. Using the standard BMC approach, ﬁnd a reachability witne ss of minimal
+length8,
+2. Read from the witness the time required to reach p(denoted x). Now, we
+know that c≤ ⌈x⌉(where⌈·⌉is theceiling function),
+3. Extend the veriﬁed TPN with a new process N, which is composed of one
+transition ts.t.Eft(t) =Lft(t) =n, and two places pin,pout, wherepinis
+the input place and poutis the output place of t,
+8If we cannot ﬁnd such a witness, then we try to prove unreachab ility ofp.
+9
+
+--- Page 10 ---
+4. Setnto⌈x⌉−1,
+5. Run BMC to test reachability of a state satisfying p∧pinin the extended
+TPN,
+6. If such a state is reachable, set n:=n−1 and go to 5,
+7. If such a state is unreachable, then c:=n+ 1, STOP.
+The algorithms for other cases are similar. The details can b e found in [30].
+Concerning the systems speciﬁed in UML, Ver ICSoﬀers similar options as
+in the case of Time Petri Nets, i.e., reachability and parame tric reachability
+veriﬁcation. However, in this case we are restricted to sear ching for the minimal
+integercs.t.EF≤cpholds in the model. The algorithm is based on the same
+idea as before. The main diﬀerences can be formulated as foll ows:
+–instead of the additional process we introduce an additiona l clock that is
+never reset,
+–the values of the clocks can take only natural numbers.
+The details of the veriﬁcation method can be found in [25].
+4 The implementation
+Our goal is to symbolically represent all the possible compu tations of a ﬁxed
+lengthkof a given system. In all the cases, i.e., for ENS, TPN, and UML , the
+main idea is similar: we represent a set of global states (con ﬁgurations) as a
+singlesymbolic state , i.e., as a vector of propositional variables w(called a state
+variable vector ). Then, k+ 1 state variable vectors stand for a symbolic k-path,
+where the ﬁrst symbolic state encodes the initial state of th e system, and the last
+one corresponds to the last states of the k-paths. Next, we encode the transition
+relation over the symbolic k-path as a propositional formula, and compute a
+formula encoding the property tested. Hence, in the general case, the formula
+encoding the symbolic k-path is deﬁned as follows:
+pathk(w0,...,wk) =I(w0)∧k−1/logicalanddisplay
+i=0T(wi,wi+1) (1)
+whereI(w0) encodes the initial state of the system, and T(wi,wi+1) encodes
+a transition between symbolic states represented by the glo bal state vectors wi
+andwi+1.
+In what follows we shortly describe how to deﬁne T(wi,wi+1) for ENS, TPN,
+and systems in UML.
+4.1 Implementation for ENS
+Consider an Elementary Net System EN = (P,T,F,m0), where the places
+are denoted with the integers smaller or equal than n=|P|. We use the set
+{p1,...,p n}of propositions, where piis interpreted as the presence of a token
+10
+
+--- Page 11 ---
+in the place i. We deﬁne the model M= (S,→,L) forENS , whereS=MEN
+is the set of the reachable conﬁgurations, s→s′iﬀ there exists t∈Tsuch that
+s/bracketleftbig
+t/angbracketrightbig
+s′fors,s′∈S,andpi∈ L(s) iﬀi∈s. The states of Sare encoded by
+valuations of a vector of state variables w= (w[1],...,w[n]),wherew[i] =pi
+for 0≤i≤n. The initial state and the transition relation →are encoded as
+follows:
+–Im0(w) :=/logicalandtext
+i∈m0w[i]∧/logicalandtext
+i∈P\m0¬w[i],
+–T(w,v):=/logicalortext
+t∈T/parenleftbig/logicalandtext
+i∈pre(t)w[i]∧/logicalandtext
+i∈(post(t)\pre(t))¬w[i]∧/logicalandtext
+i∈(pre(t)\post(t))¬v[i]
+∧/logicalandtext
+i∈post(t)v[i]∧/logicalandtext
+i∈(P\(pre(t)∪post(t)))∪(pre(t)∩post(t))w[i]⇐⇒v[i]/parenrightbig
+.
+As to give an outline of the encoding of the PRTECTL formulas, consider
+the formula β=∃Θ≤cα(Θ), where α(Θ) is a PRTECTL formula containing free
+variable Θ, andc∈N. For a given depth kof the unfolding let d=min(c,k).
+We deﬁne the translation of βinm–th symbolic state of n–th symbolic path,
+using the set of indices of symbolic k–pathsA, as follows:
+/bracketleftbig
+β][m,n,A]
+k :=/bracketleftbig
+α(d)/bracketrightbig[m,n,ˆgL(A,fk(α(d)))]
+k∨/bracketleftbig
+∃Θ≤d−1α(Θ)/bracketrightbig[m,n,ˆgL(A,fk(∃Θ≤d−1α(Θ)))]
+k,
+wherefka function returning the number of k–paths suﬃcient to perform the
+translation of a given formula, and ˆ gL(A,b) returns the subset of bleast elements
+ofA. Thefkfunction is an extension of its counterpart for ECTL from [31 ].
+Similarly, consider the formula γ=∀Θ≤cα(Θ). The translation of γis deﬁned
+as follows:
+/bracketleftbig
+γ/bracketrightbig[m,n,A]
+k:=/bracketleftbig
+α(c)/bracketrightbig[m,n,ˆgL(A,fk(α(c)))]
+k∧/bracketleftbig
+∀Θ≤c−1α(Θ)/bracketrightbig[m,n,ˆgR(A,fk(∀Θ≤c−1α(Θ)))]
+k,
+where ˆgR(A,b) returns the subset of bgreatest elements of A.
+The consecutive application of any of the above rules leads t o the conjunc-
+tion ofd+ 1 propositional formulas containing no existential quant iﬁers. These
+formulas are in turn translated using the eﬃcient translati on inspired by its
+counterpart for ECTL (see [37]), where ˆ gLand ˆgRare introduced along with
+several other methods for an optimal path selection.
+A more detailed description and the encoding of the formulas of PRTECTL
+can be found in [19].
+4.2 Implementation for TPN
+The main diﬀerence between symbolic encoding of the transit ion relation of
+ENS and TPN consists in the time ﬂow. A current state of a TPN Nis given
+by its marking and the time passed since each of the enabled tr ansitions became
+enabled (which inﬂuences the future behaviour of the net). T hus, aconcrete state
+σofNcan be deﬁned as an ordered pair ( m,clock ), where mis a marking, and
+clock :I→I R+is a function, which for each index iof a process of Ngives
+the time elapsed since the marked place of this process becam e marked most
+recently [32].
+11
+
+--- Page 12 ---
+Given a set of propositional variables PV, we introduce a valuation function
+Vc:Σ→2PV, which assigns the same propositions to the states with the s ame
+markings. We assume the set PVto be such that each q∈PVcorresponds to
+exactly one place p∈P, and use the same names for the propositions and the
+places. The function Vcis deﬁned by p∈Vc(σ)⇔p∈mfor each σ= (m,·).
+The structure Mc(N) = ((T∪I R+,Σ,σ0,→c),Vc) is called a concrete (dense )
+model of N. It is easy to see that concrete models are usually inﬁnite.
+In order to deal with countable structures instead of uncoun table ones, we
+introduce extended detailed region graphs for distributed TPNs. They correspond
+to the well-known graphs deﬁned for timed automata in [1] and adapted for Time
+Petri Nets [26, 35], but involve disjunctions of constraint s, the reﬂexive transitive
+closure of the time successor of [1], and make no use of the max imal constant
+appearing in the invariants and enabling conditions. To do t his, we assign a clock
+to each of the processes of a net.
+To apply the BMC approach to veriﬁcation of a particular dist ributed Time
+Petri Net N, we deal with a model obtained by a discretisation of its extended
+detailed region graph. The model is of an inﬁnite but countab le structure, which,
+however, is suﬃcient for BMC (which deals with ﬁnite sequenc es of states only).
+Instead of dealing with the whole extended detailed region g raph, we discretise
+this structure, choosing for each region one or more appropr iate representatives.
+The discretisation scheme is based on the one for timed autom ata [36], and
+preserves the qualitative behaviour of the underlying syst em. The details and
+the formal deﬁnitions can be found in [30].
+4.3 Implementation for UML
+Symbolic semantics. Below we sketch a symbolic encoding of the operational
+semantics introduced in [24, 25].As usual, the global state s are represented by
+state variable vectors. However each global state gis represented by nsub-
+vectors, where each one stands for a state of one object ( nis the number of
+objects in the system). The representation of a state of a sin gle object consists of
+ﬁve components that encode respectively a set of active stat es, a set of completed
+states, a contents of the event queue, a valuation of the vari ables, and a valuation
+of the clocks.
+Moreover, according to the OMG semantics, the transition re lation is hier-
+archical , i.e., we distinguish between 6 levels (types) of transitio ns, where the
+ordering follows their priorities. Therefore, we ensure th at a transition of each
+level becomes enabled only if the transitions of the precedi ng levels cannot be
+executed, by nesting the conditions for the consecutive lev els [24, 25].
+Symbolic encoding. The implementations described above for Timed Petri
+Nets were closely following the general idea of implementin g formalisms based
+on transitions systems, e.g., with symbolic states capable of representing every
+part of system states, and Boolean constraints added for tra nsitions with respec-
+tive guards, invariants, etc. While the symbolic operation al semantics of UML
+12
+
+--- Page 13 ---
+could be expressed in terms of timed automata or Petri nets, t he resulting trans-
+lation would be highly complex because of the need for repres enting by means
+of automata every language construct, most of which are sema ntically not a
+close match with this formalism. We have tried another way by encoding these
+constructions directly into propositional logic, without introducing any interme-
+diate transition systems. The general idea can be described as follows: states of
+state machines are encoded directly, by assigning boolean v ariables in symbolic
+vectors representing system states. Then, propositional f ormulas are deﬁned for
+encoding every transition type. Finally, these formulas ar e structured according
+to the hierarchy of corresponding transitions (see Section 2.3, page 7), giving as
+a result the formula encoding the transition relation.
+We deﬁne propositional formulas EOi(o,w) for transitions of types 1 ≤i≤5
+that encode their preconditions over the vector wfor the object o. Also we deﬁne
+the propositional formulas XOi(o,w,v) for 1≤i≤5 encoding an execution of
+these transitions over the vectors w,vfor the object oand the formula X6(w,v)
+encoding the time ﬂow.
+The transitions of types 1–5 are called local as their execution does not
+depend on the type of a transition that can be ﬁred by other obj ects. The
+execution of local transitions for object oover the vectors of the state variables
+wandvis recursively encoded as:
+f5(o,w,v) =EO5(o,w)∧XO5(o,w,v)
+fi(o,w,v) =EOi(o,w)∧XOi(o,w,v) (2)
+∨¬EOi(o,w)∧fi+1(o,w,v)fori∈ {1,2,3,4},
+and we denote f1(o,w,v) byXO(o,w,v).
+We ensure that a transition of each level becomes enabled onl y if the transi-
+tions of the preceeding levels cannot be executed, by nestin g the conditions for
+the consecutive levels. All the components of the encoded mo del are represented
+by propositional formulas. For example, an event queue is en coded along with
+the corresponding operations of inserting and removing an e vent, testing if a
+queue is empty or full and so on. A queue is modeled by a circula r buﬀer, with
+indices pointing to ﬁrst deferred event, an event to be proce ssed next, and the
+ﬁrst free position of the queue (a place for inserting new eve nts).
+Then, iterating over the objects of class c, we encode the execution of the
+local transitions for the class c:
+XC(c,w,v) =/logicalordisplay
+o∈Objects (c)XO(o,w,v). (3)
+Now, we are ready to give the encoding of the transition relat ion:
+T(w,v) =/logicalordisplay
+c∈ClassesXC(c,w,v)∨E6(w)∧X6(w,v), (4)
+whereE6(w) encodes the enabling conditions of the time ﬂow transition .
+In this way we have managed to deal with the hierarchical stru cture of the
+transition relation simply by nesting the appropriate form ula encoding every
+level of the hierarchy.
+13
+
+--- Page 14 ---
+5 Experimental Results
+We present some experimental results for parametric veriﬁc ation of systems spec-
+iﬁed as ENS, Distributed TPN, or in our subset of UML. We deal w ith standard
+benchmarks, i.e., timed and untimed versions of the mutual e xclusion protocol
+and the Generalised Railroad Crossing system as well as with timed and untimed
+versions of Generic Pipeline Paradigm model [28].
+Our motivation for presenting the results is to give an idea a bout the overall
+performance and about typical problems the tool deals with. To the best of our
+knowledge there are no other tools performing parametric mo del checking for a
+similar input, so we cannot follow a common pattern of compar ing several tools
+for the same input. However, we provide some comparisons wit h other tools for
+non-parametric problems in order to give a hint about the eﬃc iency of Ver ICS.
+5.1 Elementary Net Systems
+In the case of Elementary Petri Nets we have tested two models . The ﬁrst one
+is a system which models the well-known mutual exclusion pro blem, shown in
+Fig. 2. The system consists of n+1 processes (where n≥2) of which nprocesses
+compete for the access to the shared resource, while one proc ess guards that no
+two processes use the resource simultaneously. The presenc e of a token in the
+place labelled by wimeans that the i-th process is waiting for the access to the
+critical section while the token in cimeans that the i-th process has acquired the
+permission and entered the critical section. The place rimodels the unguarded
+part of the process and the presence of the token in the place pindicates that
+the resource is available.
+We have explored the validity of the formula ϕb
+1=∀Θ≤bEF(¬p∧EG≤Θc1)
+with respect to the value of b. Intuitively, ϕb
+1expresses that for each parameter
+valuation Θbounded by b, there exists a future state such that the ﬁrst process
+stays in the critical section for at least Θtime steps. It is quite obvious that
+the non-parameterized counterpart of the formula ϕ1, i.e.,EF(¬p∧EGc1) does
+not hold in our model as no process can stay in the critical sec tion forever. The
+experimental results for the protocol are presented in Tabl e 1.
+The Generic Pipeline Paradigm modelled by an Elementary Pet ri Net is the
+second system we have tested. The model consists of three par ts, namely: the
+Producer which is able to produce data ( ProdReady ), the Consumer being able
+to receive data ( ConsReady ) and a chain of nintermediate Nodes – having capa-
+bilities of data receiving ( NodeiReady ),processing ( NodeiProcj),and sending
+(NodeiSend ). Notice that the example is scalable in two ways: ﬁrstly – th e num-
+bernof the processing Nodes can be increased in order to modify th e length
+of the pipeline chain, secondly – the length mof the processing queue in each
+intermediate Node can be incremented, which may be interpre ted as modifying
+the time spent on internal calculations. In the experiments we explore how these
+changes aﬀect the validity of the formula tested and the tool performance.
+14
+
+--- Page 15 ---
+formulank PBMC MiniSAT SAT?
+vars clauses sec MBsec
+ϕ1
+1321063 2920 0.01 1.30.003 NO
+ϕ1
+1331505 4164 0.01 1.50.008 YES
+ϕ2
+1342930 8144 0.01 1.50.01 NO
+ϕ2
+1353593 10010 0.01 1.60.03 YES
+ϕ2
+130437825 108371 0.3 7.40.2 NO
+ϕ2
+130546688 133955 0.4 8.90.52 YES
+ϕ3
+1468001 22378 0.06 2.50.04 NO
+ϕ3
+1479244 25886 0.05 2.80.05 YES
+Table 1. Elementary Net Systems: Mutual exclusion, testing the formul aϕb
+1
+Node 1Ready
+Node 1Proc 1
+Node 1SendNode 1Proc m Node 2Proc m
+Node 2SendNode 2Proc 1 Node nProc 1
+Node nSendProdReady Node 2Ready Node nReady ConsReady
+Node nProc m
+Fig.6. Elementary Net Systems: Generic Pipeline Paradigm
+We have tested the following property:
+ϕn,m
+4=∀Θ≤nm−1EFEG≤Θ(¬ProdReady ∧¬ConsReady ∧n/logicalordisplay
+i=1¬NodeiReady ).
+The intuitive meaning of ϕn,m
+4is that it is possible that for some state of the
+system, during some time (bounded by nm−1) neither Producer is able to
+produce, nor Consumer is able to receive, while the intermed iate Node chain is
+processing or transferring data. The experimental results for the Generic Pipeline
+Paradigm modelled by an Elementary Petri Net are presented i n Table 2.
+The experiments were performed on a Linux machine with dual c ore 1.6 GHz
+processor; satisﬁability was tested using the MiniSAT solv er [23].
+5.2 Distributed Time Petri Nets
+We have tested Distributed Time Petri Nets specifying the st andard (timed)
+Fischer’s mutual exclusion protocol (mutex) [2] and a timed version of Generic
+Pipeline Paradigm.
+15
+
+--- Page 16 ---
+formula nmk PBMC MiniSAT SAT?
+vars clauses sec MB sec
+ϕ2,1
+4 2164086 11315 0.03 2.07 0.008 NO
+ϕ2,1
+4 2174696 13079 0.036 2.7 0.02 YES
+ϕ2,2
+4 2285980 16811 0.06 2.6 0.01 NO
+ϕ2,2
+4 22913484 37927 0.08 2.7 0.06 YES
+ϕ2,3
+4 23108844 24873 0.07 2.9 0.02 NO
+ϕ2,3
+4 23119776 27509 0.08 3.1 0.2 YES
+ϕ3,1
+4 3187416 20739 0.04 2.6 0.01 NO
+ϕ3,1
+4 3198292 23207 0.03 2.7 0.07 YES
+ϕ3,2
+4 321120025 56568 0.12 4.6 0.04 NO
+ϕ3,2
+4 321221768 61517 0.14 4.7 0.43 YES
+ϕ10,1
+4 1012474488 212315 0.4 13.2 0.43 NO
+ϕ10,1
+4 1012577548 221055 0.52 13.6 19.2 YES
+ϕ10,2
+4 10232111844 320863 1.6 37.3 0.98 NO
+ϕ10,2
+4 10233230812 662175 1.64 38.4 23.1 YES
+Table 2. Elementary Net Systems: Generic Pipeline Paradigm, testing t he formula
+ϕn,m
+4
+The mutex model consists of NTime Petri Nets, each one modelling a pro-
+cess, together with one additional net used to coordinate th eir access to the
+critical sections. A distributed TPN modelling the system f orn= 2 is shown
+in Fig. 3. Mutual exclusion means that no two processes can reach their crit-
+ical sections at the same time. The preservation of this prop erty depends on
+the relative values of the time-delay constants δand∆parametrizing the sys-
+tem: they correspond to the earliest ﬁring time of the the tra nsition entering
+the critical section and the latest ﬁring time of the transit ion entering the wait-
+ing section, respectively. In particular, the following pr operty holds: ” Fischer’s
+protocol ensures mutual exclusion iﬀ ∆ < δ ”.
+We have searched for the minimal csuch that EF≤cpholds. The results are
+presented in Table 3 (see the table denoted with Tb). We considered the case,
+where∆= 2 and δ= 1, and the net of 25 processes. The witness was found
+fork= 12, while the time of the path found was between 8 and 9. The co lumn
+marked with nshows the values of the parameter in the additional componen t.
+Forn= 1 and k= 12 unsatisﬁability was returned. Testing the property on a
+longer path could not be completed in a reasonable time.
+Comparing the last two rows of Table Tbone can see the typical behaviour
+of SAT testers, namely that diagnosing unsatisﬁability is u sually much harder
+than satisﬁability given formulas of similar size.
+We have compared the eﬃciency of Ver ICSwith the tool Romeo [22], using
+exactly the same mutex benchmark and testing the same proper ty. The left part
+(denoted with Ta) of Table 3 contains the results, where Nis the number of
+processes.
+16
+
+--- Page 17 ---
+TaRomeo VerICS
+NsecMB secMB
+20.1 10.65 3
+30.14 62.65 4
+40.61 91.92 5
+54.99 382.93 6
+644.76 3646.02 7
+7>360>2000 8.63 9
+8--12.67 12
+9--20.74 15
+10 --30.28 23
+12 --43.72 32
+15 --136.78 92
+20 --551.64 299
+25 --1304.2 538Tb tpnBMC RSat
+kNvariables clauses secMB secMBsat
+0- 8402192 0.021.688 01.4NO
+2-16263 47705 0.313.621 04.9NO
+4-33835 99737 0.665.805 0.39.1NO
+6-51406151697 1.048.113 0.813.8NO
+8-72752214851 1.4910.81 8.527.7NO
+10-92629273489 1.9513.27 152.3 200.8NO
+12-113292 334355 2.415.84 6.739.0YES
+128120182 354944 2.5716.74 13.847.9YES
+127120254 355178 2.6716.74 5.738.3YES
+123115675 341405 2.5216.22 12.749.0YES
+122115669 341387 2.5616.23 3.332.3YES
+121115729 341579 2.5416.23 1100.1 538.4 NO
+sum for all rows: 20.73 16.23 1304.2 538.4
+Table 3. Distributed Time Petri Nets: Results for mutex, ∆= 2,δ= 1, mutual
+exclusion violated. Left: comparison with Romeo. Right: deta ils of veriﬁcation with
+VerICSfor 25 processes. The tpnBMC column shows the results for the part of the tool
+used to represent the problem as a propositional formula (a s et of clauses); the column
+RSat displays the results of running the RSat solver for the se t of clauses obtained
+from tpnBMC.
+[a,b] [a,b][c, d] [c,d] [ c,d] [ c, d] [ c,d]
+[e,f] [e,f]Node 1Ready Node 2Ready
+[e,f]Node nReady
+Node 1Proc Node 2Proc Node nProcConsReady ProdReady
+Node 1Send Node nSend Node 2Send
+Fig.7. Distributed Time Petri Nets: Generic Timed Pipelining Parad igm
+The Generic Timed Pipelining Paradigm modelled by a Distrib uted Time
+Petri Net has a structure similar to its untimed version. Aga in, the system con-
+sists of Producer, Consumer, and a chain of nintermediate Nodes. As previously,
+the length of the chain is scalable, this time however we are a ble to manipulate
+the time properties of all the parts by means of parameters a,b,c,d,e, andf. In
+this way we can specify, for example, the maximal idle time al lowed for Producer
+or Consumer. We have tested the following formula:
+ϕ5:=EF≤Θ(¬ProdReady ∧¬ConsReady ).
+Intuitively, it expresses that the system can reach, in the t ime smaller or equal
+than some value Θ, such a state that Producer is not able to produce, and
+Consumer receiving abilities are disabled. The aim of the ex periment was to
+synthesize the smallest Θvalue for which ϕ5holds, using parametric reachability
+methods. We have checked the property for various instances of Generic Timed
+Pipelining Paradigm, by setting some arbitrary values of th e chain length n, and
+17
+
+--- Page 18 ---
+the time constraint parameters a,b,c,d,e, andf. The results can be found in
+Table 4.
+nktime params PBMC RSat synth.Θ
+abcdefclauses varstimememtimemem
+110111313 19686 6915 0.25 2.203 0.1 2.8 6
+110133435 22928 7974 0.3 2.332 0.1 3.1 12
+214121324 41467 14378 0.77 3.105 0.5 4.6 7
+214112425 44191 15306 0.57 3.234 0.4 4.8 10
+318142215 73913 25554 0.94 4.52 1.9 7.2 11
+326121325 133423 46028 1.7 7.098 19.3 13.9 10
+430142215 109339 37923 1.82 6.059 3.4 10 11
+422231213 115001 29661 1.47 6.289 5.2 10.4 9
+534142215 92628 268942 3.74 12.75 93.7 28.8 17
+536131223 291710 100530 4.09 13.66 61.8 27 16
+630231401 235115 81118 3.82 11.34 27.8 21.6 7
+638142215 354108 121937 4.64 16.36 92.2 34.1 20
+734231401 311252 107432 4.78 14.56 31.8 26.3 8
+754142215 687242 236971 11.17 30.41 2565.0 177.2 23
+Table 4. Distributed Time Petri Nets: Testing the formula ϕ5. Memory in megabytes,
+time in seconds.
+The experiments were performed on the computer equipped wit h Intel Pen-
+tium Core 2 Duo CPU (2.40 GHz), 2 GB main memory and the operati ng system
+Linux 2.6.28.
+5.3 UML
+The UML speciﬁcation tested is a variant of the well known Gen eralised Railroad
+Crossing (GRC) benchmark (Fig. 4, 5). The system, operating a gate at a railroad
+crossing, consists of a gate, a controller, and Ntracks which are occupied by
+trains. Each track is equipped with sensors that indicate a p osition of a train and
+send an appropriate message to the controller. Depending on the track occupancy
+the controller can either open or close the gate. We check whe ther a train can
+cross the road while the gate is not closed. The tests have bee n performed on the
+computer equipped with Pentium M 1.73 GHz CPU and 1.2 GB RAM ru nning
+Linux.
+Table 5 presents the results of veriﬁcation, where Ndenotes the number of
+trains, and k- the depth of a symbolic path at which the tested property is
+satisﬁable. The next columns show the time consumed by Hugo/ Uppaal toolset,
+and our BMC4UML tool (reachability and parametric reachabi lity testing). The
+minimal time in which property can be reached (as introduced in Section 3.2,
+p. 9) was found to be 6. The results in the column marked with th e asterisk
+18
+
+--- Page 19 ---
+Fig.8. GUI screenshot: Simulation of a UML witness
+concern the symbolic paths of length 18 that do not start from the initial state
+of the GRC system, but from the state where all the trains are i n the states
+Away and the object ctlis in the states Main ,Open , andcontrol (see Fig. 4, 5).
+In other words, the paths have been made shorter by the “initi alisation part”,
+which could be removed, because it always leads to the state d eﬁned above. This
+optimisation can be applied to all the systems for which the t ime must ﬂow just
+after the initial transitions.
+Another UML benchmark is Aircraft Carrier (AC - Fig. 9). AC co nsists of a
+ship and a number of aircrafts taking oﬀ and landing continuo usly, after issuing a
+request being accepted by the controller. The events of answ ering these requests
+may be marked as deferred. Each aircraft reﬁlls fuel while on board and burns
+NHugo & BMC4UML[s] BMC4UML*[s]
+Uppaal[s] kreachability par.reach. kreachability par.reach.
+3 2.89 24 86.07 140.9 18 40.44 27.51
+4 175.41 25 139.4 83.45 18 50.41 85.01
+5>2500 26 221.4 240.9 18 59.90 131.5
+6 — 27 1354.9 365.4 18 75.21 175.6
+7 — — — — 18 92.60 191.5
+20 — — — — 18 448.6 620.7
+Table 5. UML: The results of veriﬁcation of GRC
+19
+
+--- Page 20 ---
+Fig.9. UML diagrams of Aircraft Carrier
+20
+
+--- Page 21 ---
+fuel while airborne. We check the property whether an aircra ft can run out of
+fuel during its ﬂight. The results are presented in Table 6, w hereNdenotes the
+number of planes, and kthe depth at which the property is satisﬁable. The next
+columns stand for veriﬁcation results of AC system in two ver sions: with and
+without deferred events, obtained with Hugo/Uppaal toolse t and BMC4UML
+(reachability + parametric reachability testing, the valu e of the parameter c
+found is 4).
+NkHugo+Uppaal [s] BMC4UML [s]
+deferred no defer deferred no defer
+319 1.32 1.25 67.59 + 31.34 51.26 + 22.64
+420 13.15 11.41 101.58 + 45.44 81.28 + 42.38
+521147.43 95.67 155.63 + 60.49 132.34 + 37.01
+622 Out of mem 257.08 + 52.23 216.42 + 75.08
+723 — 686.06 + 101.86 421.85 + 199.09
+Table 6. UML: Results of veriﬁcation of Aircraft Carrier system
+Finally, if the tested property is satisﬁable, then it can be visualised and
+simulated with the Ver ICSgraphical user interface (see Fig. 8).
+5.4 Analysis of the results
+The experiments have conﬁrmed the well-known fact that BMC i s a method of
+falsiﬁcation rather than veriﬁcation. The method performs best when a coun-
+terexample is found before the resources are exhausted when increasing the depth
+of the unfolding. The parametric features seem to work best w ithin the range of
+successful BMC applications.
+Our general observation on the non-parametric features is t hat we have ob-
+tained the eﬃcient state representations and the compact en coding of the transi-
+tion relation for all the types of the presented systems. The overall performance
+is determined by the characteristics of the method to which t hese representations
+and encodings are applied (BMC in this case).
+Concerning our parametric extensions, our motivation was t o show that they
+can be added to the framework relatively easily. We learned t hat the best per-
+formance is achieved for the scenarios in which BMC works wel l, i.e., on short
+paths. The overhead introduced by testing parametric prope rties is then rela-
+tively small. The parameter synthesis in the parametric rea chability problem is
+a diﬃcult task, yet the results are quite promising – we have b een able to test
+simple models in matter of seconds or minutes, however the ve riﬁcation of some
+properties in the large networks (e.g., Generic Timed Pipel ining Paradigm with
+7 nodes, a= 1,b= 4,c=d= 2,e= 1,f= 5) took a large amount of time (see
+Figure 4). The latter is mostly due to the size of the tested pr opositional formulas
+and may heavily depend on heuristics implemented in the appl ied SAT-solver.
+21
+
+--- Page 22 ---
+The veriﬁcation of PRTECTL properties seems to be quite eﬃci ent, despite the
+fact that the translation of the universal quantiﬁer bounde d withbresults with
+the conjunction of length b+1. Notice that the disjunction being the result of the
+translation of the existential quantiﬁer depends on the dep th of the unwinding –
+hence in case of purely existential properties we can expect satisfactory results.
+6 Final Remarks
+We have presented the three new modules of Ver ICSaimed at SAT-based para-
+metric veriﬁcation, together with experimental results ob tained for some typical
+benchmarks. The results prove eﬃciency of the method. Howev er, it would be
+interesting to check practical applicability of parametri c BMC for more compli-
+cated examples of Petri Nets and UML systems. On the other han d, in the future
+we are going to extend the tool to support parametric veriﬁca tion of other kinds
+of systems and properties.
+As far as a comparison with other tools is concerned, in this p aper we com-
+pared Ver ICSwith Hugo (see Table 5) and Romeo (see Table 3). It seems that
+both these tools suﬀer from the exponential explosion for la rge systems, while
+VerICScan still deal with k-models for some small values of k.
+The Ver ICSparametric toolset described in the paper can be downloaded
+from the site http://verics.ipipan.waw.pl/parametric together with all the
+benchmarks presented. All the input ﬁles for running experi ments with Romeo,
+Hugo, and UppAal tools are available at http://ii.uph.edu.pl/~artur/topnoc .
+References
+1. R. Alur, C. Courcoubetis, and D. Dill. Model checking for re al-time systems. In
+Proc. of the 5th Symp. on Logic in Computer Science (LICS’90) , pages 414–425.
+IEEE Computer Society, 1990.
+2. R. Alur, C. Courcoubetis, D. Dill, N. Halbwachs, and H. Won g-Toi. An implemen-
+tation of three algorithms for timing veriﬁcation based on a utomata emptiness. In
+Proc. of the 13th IEEE Real-Time Systems Symposium (RTSS’92) , pages 157–166.
+IEEE Computer Society, 1992.
+3. J. Bengtsson, K. G. Larsen, F. Larsson, P. Pettersson, W. Yi, an d C. Weise. New
+generation of U ppaal . InProc. of the Int. Workshop on Software Tools for Tech-
+nology Transfer , 1998.
+4. B. Berthomieu, P-O. Ribet, and F. Vernadat. The tool TINA - c onstruction of
+abstract state spaces for Petri nets and time Petri nets. International Journal of
+Production Research , 42(14), 2004.
+5. V. Bruy´ ere, E. Dall’Olio, and J-F. Raskin. Durations and par ametric model-
+checking in timed automata. ACM Transactions on Computational Logic , 9(2),
+2008.
+6. S. Christensen, J. Jørgensen, and L. Kristensen. Design/CPN - a computer tool
+for coloured Petri nets. In Proc. of the 3rd Int. Conf. on Tools and Algorithms
+for the Construction and Analysis of Systems (TACAS’97) , volume 1217 of LNCS ,
+pages 209–223. Springer-Verlag, 1997.
+22
+
+--- Page 23 ---
+7. A. Cimatti, E. Clarke, E. Giunchiglia, F. Giunchiglia, M. Pi store, M. Roveri, R. Se-
+bastiani, and A. Tacchella. NuSMV2 : An open-source tool for symbolic model
+checking. In Proc. of the 14th Int. Conf. on Computer Aided Veriﬁcation (C AV’02) ,
+volume 2404 of LNCS , pages 359–364. Springer-Verlag, 2002.
+8. P. Dembi´ nski, A. Janowska, P. Janowski, W. Penczek, A. P´ o/suppress lrol a, M. Szreter,
+B. Wo´ zna, and A. Zbrzezny. Ver ICS: A tool for verifying timed automata and
+Estelle speciﬁcations. In Proc. of the 9th Int. Conf. on Tools and Algorithms for
+the Construction and Analysis of Systems (TACAS’03) , volume 2619 of LNCS ,
+pages 278–283. Springer-Verlag, 2003.
+9. H. Dierks and J. Tapken. Moby/DC - a tool for model-checking parametric real-
+time speciﬁcations. In Proc. of the 9th Int. Conf. on Tools and Algorithms for the
+Construction and Analysis of Systems (TACAS’03) , volume 2619 of LNCS , pages
+271–277. Springer-Verlag, 2003.
+10. K. Diethers, U. Goltz, and M. Huhn. Model checking UML statec harts with
+time. In Proc. of the Workshop on Critical Systems Development with UM L (CS-
+DUML’02) , pages 35–52. Technische Universit¨ at M¨ unchen, 2002.
+11. J. Dubrovin and T. Junttila. Symbolic model checking of hierar chical UML state
+machines. Technical Report HUT-TCS-B23, Helsinki Institut e of Technology, Es-
+poo, Finland, 2007.
+12. E. A. Emerson and R. Treﬂer. Parametric quantitative temp oral reasoning. In
+Proc. of the 14th Symp. on Logic in Computer Science (LICS’99 ), pages 336–343.
+IEEE Computer Society, July 1999.
+13. J. Gosling, B. Joy, G. Steele, and G. Bracha. The Java Language Speciﬁcation.
+Third Edition . Addison-Wesley, 2005.
+14. G. J. Holzmann. The model checker SPIN. IEEE Trans. on Software Eng. ,
+23(5):279–295, 1997.
+15. T. Hune, J. Romijn, M. Stoelinga, and F. Vaandrager. Linea r parametric model
+checking of timed automata. In Proc. of the 7th Int. Conf. on Tools and Algorithms
+for the Construction and Analysis of Systems (TACAS’01) , volume 2031 of LNCS ,
+pages 189–203. Springer-Verlag, 2001.
+16. T. Jussila, J. Dubrovin, T. Junttila, T. Latvala, and I. Porre s. Model checking
+dynamic and hierarchical UML state machines. In Proc. of the 3rd Int. Workshop
+on Model Design and Validation (MoDeVa 2006) , pages 94–110. CEA, 2006.
+17. M. Kacprzak, W. Nabia/suppress lek, A. Niewiadomski, W. Penczek, A. P´ o/suppress l rola, M. Szreter,
+B. Wo´ zna, and A. Zbrzezny. Ver ICS2007 - a model checker for knowledge and
+real-time. Fundamenta Informaticae , 85(1-4):313–328, 2008.
+18. M. Kacprzak, W. Nabia/suppress lek, A. Niewiadomski, W. Penczek, A. P´ o/suppress l rola, M. Szreter,
+B. Wo´ zna, and A. Zbrzezny. Ver ICS2008 - a model checker for time Petri nets
+and high-level languages. In Proc. of Int. Workshop on Petri Nets and Software
+Engineering (PNSE’09) , pages 119–132. University of Hamburg, 2009.
+19. M. Knapik, W. Penczek, and M. Szreter. Bounded parametric mod el checking for
+elementary net systems. In LNCS Transactions on Petri Nets and Other Models
+of Concurrency (ToPNoC) – submitted . Springer, 2010.
+20. A. Knapp, S. Merz, and C. Rauh. Model checking - timed UML sta te machines and
+collaborations. In Proc. of the 7th Int. Symp. on Formal Techniques in Real-Time
+and Fault Tolerant Systems (FTRTFT’02) , volume 2469 of LNCS , pages 395–416.
+Springer-Verlag, 2002.
+21. J. Lilius and I. Paltor. vUML: A tool for verifying UML models . InProc. of
+the 14th IEEE Int. Conf. on Automated Software Engineering ( ASE’99) , pages
+255–258. IEEE Computer Society, 1999.
+23
+
+--- Page 24 ---
+22. Didier Lime, Olivier H. Roux, Charlotte Seidner, and Louis- Marie Traonouez.
+Romeo: A parametric model-checker for petri nets with stopw atches. In TACAS ,
+pages 54–57, 2009.
+23. MiniSat. http: //www.cs.chalmers.se /Cs/Research /FormalMethods /MiniSat,
+2006.
+24. A. Niewiadomski, W. Penczek, and M. Szreter. A new approach t o model checking
+of UML state machines. Fundamenta Informaticae , 93 (1-3):289–303, 2009.
+25. A. Niewiadomski, W. Penczek, and M. Szreter. Towards checkin g parametric reach-
+ability for UML state machines. In Proc. of the 7th Int. Ershov Memorial Conf.
+’Perspectives of Systems Informatics’ (PSI’09) , volume 5947 of LNCS , pages 319–
+330. Springer-Verlag, 2010.
+26. Y. Okawa and T. Yoneda. Symbolic CTL model checking of time Pe tri nets.
+Electronics and Communications in Japan, Scripta Technica , 80(4):11–20, 1997.
+27. OMG. Uniﬁed Modeling Language. http: //www.omg.org /spec/UML/2.1.2, 2007.
+28. D. Peled. All from one, one for all: On model checking using r epresentatives. In
+Proc. of the 5th Int. Conf. on Computer Aided Veriﬁcation (CA V’93) , volume 697
+ofLNCS , pages 409–423. Springer-Verlag, 1993.
+29. W. Penczek, A. P´ o/suppress lrola, B. Wo´ zna, and A. Zbrzezny. Bound ed model checking for
+reachability testing in time Petri nets. In Proc. of the Int. Workshop on Concur-
+rency, Speciﬁcation and Programming (CS&P’04) , volume 170(1) of Informatik-
+Berichte , pages 124–135. Humboldt University, 2004.
+30. W. Penczek, A. P´ o/suppress lrola, and A. Zbrzezny. SAT-based (para metric) reachability
+for distributed time Petri nets. In LNCS Transactions on Petri Nets and Other
+Models of Concurrency (ToPNoC) – accepted . Springer, 2010.
+31. W. Penczek, B. Wo´ zna, and A. Zbrzezny. Bounded model checki ng for the universal
+fragment of CTL. Fundamenta Informaticae , 51(1-2):135–156, 2002.
+32. A. P´ o/suppress lrola and W. Penczek. Minimization algorithms for t ime Petri nets. Funda-
+menta Informaticae , 60(1-4):307–331, 2004.
+33. R. L. Spelberg, H. Toetenel, and M. Ammerlaan. Partition reﬁnement in real-time
+model checking. In Proc. of the 5th Int. Conf. on Formal Techniques in Real-Time
+and Fault Tolerant Systems (FTRTFT’98) , volume 1486 of LNCS , pages 143–157.
+Springer-Verlag, 1998.
+34. L-M. Tranouez, D. Lime, and O. H. Roux. Parametric model che cking of time
+Petri nets with stopwatches using the state-class graph. In Proc. of the 6th Int.
+Workshop on Formal Analysis and Modeling of Timed Systems (FOR MATS’08) ,
+volume 5215 of LNCS , pages 280–294. Springer-Verlag, 2008.
+35. I. B. Virbitskaite and E. A. Pokozy. A partial order metho d for the veriﬁcation of
+time Petri nets. In Fundamental of Computation Theory , volume 1684 of LNCS ,
+pages 547–558. Springer-Verlag, 1999.
+36. A. Zbrzezny. SAT-based reachability checking for timed a utomata with diagonal
+constraints. Fundamenta Informaticae , 67(1-3):303–322, 2005.
+37. A. Zbrzezny. Improving the translation from ECTL to SAT. Fundamenta Infor-
+maticae , 85(1-4):513–531, 2008.
+24
+View publication statsView publication stats

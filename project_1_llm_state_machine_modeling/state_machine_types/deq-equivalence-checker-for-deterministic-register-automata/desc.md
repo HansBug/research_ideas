@@ -6,8 +6,8 @@
 - 中文标题：DEQ：确定性寄存器自动机等价检查器
 - 作者：Andrzej S. Murawski，Steven J. Ramsay，Nikos Tzevelekos
 - 发表：*Automated Technology for Verification and Analysis*，`LNCS 11781`，pp. 350-356，2019
-- DOI：`10.1007/978-3-030-31784-3_27`
-- 链接：https://doi.org/10.1007/978-3-030-31784-3_27
+- DOI：`10.1007/978-3-030-31784-3_20`
+- 链接：https://doi.org/10.1007/978-3-030-31784-3_20
 - 形式主义：`deterministic register automata / DEQ / group-theoretic equivalence checking`
 - 主类：📦 标准、交换格式、元模型与执行载体
 - 对象类型：🏗️ 标准/基础设施
