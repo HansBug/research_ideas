@@ -1,0 +1,485 @@
+--- Page 1 ---
+Vision-based parking assistance system for leaving perpendicular and
+angle parking lots
+D. F. Llorca, S. ´Alvarez, M. A. Sotelo
+Abstract — Backing-out maneuvers in perpendicular or angle
+parking lots are one of the most dangerous maneuvers, specially
+in cases where side parked cars block the driver view of the
+potential trafﬁc ﬂow. In this paper a new vision-based Advanced
+Driver Assistance System (ADAS) is proposed to automatically
+warn the driver in such scenarios. A monocular gray-scale
+camera is installed at the back-right side of the vehicle. A Finite
+State Machine (FSM) deﬁned according to three CAN-Bus
+variables and a manual signal provided by the user is used to
+handle the activation/deactivation of the detection module. The
+proposed oncoming trafﬁc detection module computes spatio-
+temporal images from a set of pre-deﬁned scan-lines which
+are related to the position of the road. A novel spatio-temporal
+motion descriptor is proposed (STHOL) accounting the number
+of lines, their orientation and length of the spatio-temporal
+images. A Bayesian framework is used to trigger the warning
+signal using multivariate normal density functions. Experiments
+are conducted on image data captured from a vehicle parked at
+different locations of an urban environment, including different
+lighting conditions. We demonstrate that the proposed approach
+provides robust results maintaining processing rates close to
+real-time.
+Index Terms — Park Assist, Perpendicular and Angle Park-
+ings, Backing-out Maneuvers, Spatio-temporal Images, Motion
+Patterns, ADAS.
+I. INTRODUCTION
+In the last years, a considerable number of research
+works and industrial developments on Intelligent Parking
+Assist Systems (IPAS) have been proposed, including both
+assistance and automatic parking approaches. Most of these
+systems have been designed to assist the driver when parking
+in parallel, perpendicular or angle parking lots. However t he
+development of intelligent systems designed to assist the
+driver when leaving the parking lots has been somewhat
+neglected in the literature.
+The nature of parking assistance systems for entering
+a parking lot is different from that of parking assistance
+systems for backing-out manoeuvres. On the one hand, the
+main goal of IPAS that assist drivers when parking is to
+ease the maneuver avoiding small collisions, reducing car
+damage, and avoiding personal injuries. Although the numbe r
+of injured people is not negligible at all (more than 6 .000
+people are injured yearly by vehicles that are backing up
+only in the United States [1]), the low speed of the vehicles
+involved in the accidents reduce the severity of the damage.
+On the other hand, leaving parking manoeuvres imply to
+enter in an active trafﬁc lane where vehicles move at a
+D. F. Llorca, S. ´Alvarez, M. A. Sotelo are with the Com-
+puter Engineering Department, Polytechnic School, Univers ity of Al-
+cal´a, Madrid, Spain. email: llorca, sergio.alvarez,
+sotelo@aut.uah.es .relative speed much higher than the speed of the vehicle that
+is leaving the parking lot. This situation can be particular ly
+dangerous when the pull out manoeuvre has to be done
+blindly, since the driver does not have visibility of the
+oncoming trafﬁc. In other words, the safety component of
+IPAS devised to assist the driver when leaving a parking
+space is much more relevant since the possible collisions
+may cause serious injuries and damages.
+In this paper a new vision-based Advanced Driver As-
+sistance System (ADAS) is proposed to deal with scenarios
+like the ones depicted in Figs. 1(a) and 1(b). We consider
+backing-out or heading-out maneuvers in perpendicular or
+angle parking lots, in cases where side parked cars block the
+driver view of the potential trafﬁc ﬂow. In such cases the
+common recommendation can be simpliﬁed as to move slow
+looking at every direction, but it is not possible to avoid
+initiating the maneuver in blind conditions. We propose a
+vision-based solution using a camera located at the back-
+right side of the vehicle1which captures images with a
+better Field of View (FOV) than the driver’s FOV (see Fig.
+1).
+II. RELATED WORK
+A sizeable body of literature exists related to IPAS,
+including range sensor-based approaches [2], monocular-
+based systems [3], [4], and motion stereo-based proposals
+[5]. However all these systems propose target position-
+designation methods to assist the driver when parking or to
+perform automatic parking. The closest ﬁeld related with ou r
+proposal can be found in the area of Blind Spot Detection
+systems (BSD) that monitor the road behind and next to the
+host vehicle, warning the driver when there are vehicles in
+the blind spot of the side-view. These systems are mainly
+based on the use of cameras installed in the left and/or right
+door mirrors [6]. These systems can be utilized to assist the
+driver when leaving a parallel parking lot, but the position
+of the camera makes not possible to use BSD systems in
+the scenarios depicted in Fig. 1. In addition, BSD systems
+usually take advantage of the opposite direction between
+the implicit optical ﬂow and the motion of the overtaking
+vehicles. This difference is not so evident in the scenarios
+used in this work.
+Considering the recognition of vehicles in the context of
+ADAS, extensive literature is available for both forward an d
+rear vehicle detection [7]. The FOV of the camera and the
+1In countries with left-hand trafﬁc the camera will be located at the back-
+left side of the vehicle2013 IEEE Intelligent Vehicles Symposium (IV)
+June 23-26, 2013, Gold Coast, Australia
+978-1-4673-2754-1/13/$31.00 ©2013 IEEE 437
+
+--- Page 2 ---
+(a) Back-out perpendicular parking
+ (b) Back-out angle parking
+Fig. 1. Driver and camera Field of View (FOV).
+type of maneuver when leaving a perpendicular or angle
+parking (see Fig. 1) provide images similar to the ones
+used by rear vehicle detection systems [8]. Most of these
+systems follow a three-staged framework: Region-Of-Inter est
+(ROI) generation (monocular or stereo [9])), classiﬁcatio n
+and tracking. All these stages are needed since the system
+has to deal with a wide number of scenarios and driving
+conditions. However, in the context of our application, the
+number of possible scenarios is much lower so we aim to
+devise a simpler system without this tree-staged scheme.
+We propose a probabilistic model of the spatio-temporal
+motion patterns obtained from a set of virtual lines placed
+following the road location. The spatio-temporal domain
+is analyzed by accounting the number of lines and their
+length with respect to their orientations in a histogram of
+orientations that we so-called Spatio-Temporal Histogram s
+of Oriented Lines (STHOL). The resulting feature vectors
+are modeled assuming a normalized multivariate Gaussian
+distribution for two types of scenarios (classes): oncoming
+trafﬁc and free road . Bayes decision theory is then used
+by means of discriminant functions based on the minimum
+error rate that assumes equal prior probabilities. Finally , if
+the p.d.f. of the oncoming trafﬁc class is larger than free
+trafﬁc class p.d.f, the system triggers a warning signal that
+alerts the driver of oncoming trafﬁc.
+III. SYSTEM DESCRIPTION
+The proposed architecture of the system is composed of
+three main parts: camera, processor and CAN-Bus commu-
+nications. A gray-scale 640 ×480 resolution camera is used,
+with a focal lenght of 12 .5mm. The location of the camera is
+depicted in Fig. 2. This is obviously a preliminary structur e
+since the camera should be integrated inside the vehicle
+bodywork. As can be observed in Figs. 3(a) and 3(b) the
+point of view of the camera is much better than the driver’s
+point of view.
+The processor is a PC-based architecture that is connected
+with both the camera and the CAN-Bus interface. From the
+CAN-Bus we obtain the next variables: steering angle ,car
+speed andcurrent gear . These variables are used to trigger
+on/off the detection module according to the Finite State
+Machine (FSM) described in Fig. 4. As can be observed
+Fig. 2. Camera located at the back-right side of the vehicle.
+(a) Driver’s point of
+view
+(b) Image captured by the camera
+Fig. 3. Driver and camera point of view.
+the system has to be ﬁrstly activated by the user. Then the
+system waits until the car has been put into reverse gear and
+the detection module is then triggered on. The system stops
+if one of the following conditions are met: (1) vehicle speed
+is greater than 5km/h or (2) steering angle is greater than
+10 degrees with respect to the zero reference position or (3)
+reverse gear is deactivated.
+IV. S PATIO -TEMPORAL DETECTION MODEL
+An overview of the proposed spatio-temporal detection
+model of the oncoming trafﬁc is depicted in Fig. 5. Spatio-
+temporal images are computed using a pre-deﬁned grid
+of scan-lines which are related with the location of the
+road. These images are then analyzed using a line detection
+stage, which provides the lines, their orientation and leng th.
+This information is used to compute the so-called Spatio-438
+
+--- Page 3 ---
+Fig. 5. Overview of the spatio-temporal detection module.
+INIT_STATE
+PRE_DETECTIONNo user activation
+User activation
+!Condition 1
+DETECTIONCondition 1Condition 1 (AND)
+Reverse gear ON
+|Steering angle| /c9410º
+0 /c94Speed /c945km/hCondition 1/ Warning
+!Condition 1
+Fig. 4. FSM for detection module.
+Temporal Histograms of Oriented Lines (STHOL), which are
+the features used to represent the current state of the adjac ent
+lane: oncoming trafﬁc or free trafﬁc. Finally, a Bayesian
+decision scheme is used to trigger the warning signal to the
+user. In the following, details of each one of the modules
+represented in Fig. 5 are given.
+A. Spatio-temporal images
+Vehicle detection proceeds with the computation of spatio-
+temporal images which represents a single intensity scan-l ine
+collected over several frames. This approach was presented
+in [10] to perform crow detection in video sequences using
+a set of horizontal scan-lines. In our case, the distributio n
+of the scan-lines follows a pre-deﬁned representation of th e
+road using the ﬂat world assumption, extrinsic parameters
+of the camera w.r.t. the road (obtained by means of an off-
+line camera calibration process) and a pre-deﬁned grid whic h
+covers half of the road. The deﬁnition of the number of
+scan-lines and their distribution have been experimentall y
+determined taking into account the maximum and minimum
+range, as well as a trade-off between computation time and
+the density of information. Two examples are depicted in
+Figs. 6(a) and 6(b) where we can observe that only the half
+of the image is covered2.
+For each scan-line we create a spatio-temporal image that
+contains that scan-line in the last 16 frames (the scan-line
+from the last image is placed at the upper part of the spatio-
+temporal image and the rest of the scan-lines are shifted
+2In countries with left-hand trafﬁc the deﬁnition of the scan lines will be
+symmetric and located at the other side.to the bottom). As can be observed in Figs. 6(c) and 6(d)
+the motion patterns showed by the spatio temporal images
+between the case of a vehicle approaching and no vehicle
+approaching are, at ﬁrst glance, very different.
+(a) Scan-lines with a vehicle
+ (b) Scan-lines with no vehicle
+(c) Spatio-temporal images with a ve-
+hicle
+(d) Spatio-temporal images with no
+vehicle
+Fig. 6. Two examples of the scan-lines and spatio temporal image s. Note
+that the size of the spatio-temporal images is different depen ding on the
+scan-line.
+B. Feature selection
+Given a set of spatio-temporal images, a new descriptor is
+here introduced by accounting the number of lines and their
+length with respect to their orientations in a histogram of
+orientations that we denote as Spatio-Temporal Histograms
+of Oriented Lines (STHOL). Instead of using the Hough
+transform as in [10], which in our case provides noisy result s,
+we propose to use the approach suggested by [11]. The
+ﬁrst step of the line detection is the computation of the
+image derivatives using Sobel edge detector. The gradient
+direction is then quantized into a set of kranges (in our439
+
+--- Page 4 ---
+0º 180ºscan line 0
+scan line 1 
+scan line 19
+scan line 20
+Spatio-temporal images Line detection Histograms of 
+Oriented LinesSpatio-Temporal Histograms 
+of Oriented Lines (STHOL)
+Fig. 7. Overview of the STHOL feature selection architectur e.
+case, k=16) where all the edge pixels having an orientation
+within the speciﬁc range fall into the corresponding bin and
+will be properly labeled. The edge pixels having the same
+label are then grouped together using connected components
+algorithm. The line segment candidates are obtained by
+ﬁtting a line parameterized by an angle θand a distance
+from the origin ρusing the following expression:
+ρ=xcosθ+ysinθ (1)
+Each obtained connected component is a list of edge pixels
+(ui,vi)with similar gradient orientation, which is considered
+as the line support regions. The line parameters are then
+determined from the eigenvalues λ1andλ2and eigenvectors
+/vectorv1and/vectorv2of the matrix Dassociated with the line support
+region which is given by:
+D=/bracketleftbigg
+∑i(xi−¯x)2
+i ∑i(xi−¯x)(yi−¯y)
+∑i(xi−¯x)(yi−¯y) ∑i(yi−¯y)2/bracketrightbigg
+(2)
+where ¯ x=1
+n∑ixiand ¯y=1
+n∑iyiare the mid-points of the
+line segment. The second eigenvalue of an ideal line should
+be zero. The quality of the lines ﬁt is modeled by the ratio of
+the two eigenvalues of matrix D, i.e.,λ1
+λ2. If the eigenvector /vectorv1
+is associated with the largest eigenvalue, the line paramet ers
+(ρ,θ)are determined using:
+θ=atan2(/vectorv1(2),/vectorv1(1))
+ρ=¯xcosθ+¯ysinθ(3)
+This procedure is applied on each one of the spatio-
+temporal images, providing a set of lines with their ori-
+entation and length. Motion patterns corresponding to on-
+coming trafﬁc yield a considerable number of lines with a
+speciﬁc orientation that clearly differs from cases withou t
+oncoming vehicles (see Figs. 6(c) and 6(d)). The number
+of lines detected on each spatio-temporal image is then
+combined in an orientation histogram with dbins evenly
+spaced over 0◦-180◦(unsigned gradient, i.e., the sign of
+the line is ignored). To take into account the strength of
+each line, votes are directly related with the length of the
+line. Thus each image, which integrates information fromthe last 16 frames, provides a speciﬁc d-dimensional feature
+vector that accounts for the number of lines, their lengths
+and their orientation corresponding to the spatio-tempora l
+images of all the pre-deﬁned scan-lines. We have called
+this feature vector Spatio-Temporal Histograms of Oriente d
+Lines (STHOL). An overview of the proposed architecture
+is depicted in Fig. 7.
+C. Bayesian decision scheme
+Given a particular image Ithat contains temporal infor-
+mation of the last 15 frames, our aim is to estimate its
+posterior probability, P(ω0|I)with respect to the oncoming
+trafﬁc class ω0. To that extend, we represent the image Iin
+terms of STHOL features ϕIand follow a Bayesian approach
+considering the free trafﬁc class:
+P(ω0|I)=P(ω0|ϕI)=p(ϕI|ω0)P(ω0)
+∑1
+i=0p(ϕI|ωi)P(ωi)(4)
+Although, it may be intuitive to consider the free trafﬁc
+class to be more probable than the oncoming trafﬁc class,
+priors for both oncoming trafﬁc ω0andfree trafﬁc ω1class,
+P(ω0)and P(ω1)are considered uniform and equal. This
+is an obvious simpliﬁcation that could be overcome by, for
+example, modeling the priors using trafﬁc data depending
+on the time and the global positioning where the vehicle
+is parked. We consider this interesting analysis out of the
+scope of this paper. Accordingly, since we manage equal
+priors, and the evidence ∑1
+i=0p(ϕI|ωi)P(ωi)is also common
+to both classes, our problem can be simpliﬁed by estimating
+and evaluating the likelihoods p(ϕI|ωi)which represent the
+probability of a particular observation (feature descript or)
+given the trafﬁc state of the lane ( oncoming trafﬁc orfree
+trafﬁc ).
+The following multivariate normal density function is used
+to model the likelihoods, p(ϕI|ωi)∼N(µi,Σi):
+p(ϕI|ωi)=1
+(2π)d/2|Σi|1/2exp/bracketleftbigg
+−1
+2(x−µi)tΣ−1
+i(x−µi)/bracketrightbigg
+(5)440
+
+--- Page 5 ---
+where xis the d-component feature descriptor (STHOL), µi
+is the d-component mean vector for class ωiandΣiis the d-
+by-dcovariance matrix corresponding to class ωi. The next
+parameters are then estimated using the training data: samp le
+means µ0andµ1and sample covariance matrices Σ0andΣ1.
+We ﬁnally use the minimum-error-rate classiﬁcation using
+the discriminant function:
+gi(x)=lnp(ϕI|ωi)+lnP(ωi) (6)
+By merging Eq. 5 and Eq. 6 we have:
+gi(x)=−1
+2(x−µi)tΣ−1
+i(x−µi)−d
+2ln2π−1
+2ln|Σi|+lnP(ωi)
+(7)
+Taking into account that we consider equal priors, and
+equal feature vector dimension for each class, the terms
+(d/2)ln2πandlnP(ωi)can be dropped from Eq. 7, giving
+the following discriminant function:
+gi(x)=−1
+2(x−µi)tΣ−1
+i(x−µi)−1
+2ln|Σi| (8)
+Instead of using two discriminant functions g0andg1, and
+assigning ϕItoω0ifg0>g1we deﬁne a single discriminant
+function g(x) =g0(x)−g1(x)and we ﬁnally trigger the
+warning signal if g(x)>θT H.
+V. EXPERIMENTS
+The proposed oncoming vehicle detection approach to
+assist the driver when leaving a perpendicular or angle
+parking was tested in experiments with data recorded from
+a real vehicle in real urban trafﬁc conditions. Four dif-
+ferent locations have been used, including different level s
+of visibility due to the size of the side parked vehicles
+and different camera orientations. Datasets were acquired in
+daylight conditions. Some examples of the different locati ons
+and lighting conditions contained in our dataset are depict ed
+in Fig. 8.
+Fig. 8. Sample images of the datasets.
+The experimental data is divided in two datasets. One of
+the datasets is utilized at a time to learn the probabilis-
+tic spatio-temporal model. Performance is evaluated in the
+remaining dataset. To evaluate the quality of the proposed
+method, we have labeled all the images in two categories:
+oncoming trafﬁc and free trafﬁc. Note that vehicles that
+are out of the range of the vision system (50m with our
+conﬁguration) were labeled as free trafﬁc until they enter i n
+the range of the camera. Table I depicts the number of images
+of the two datasets, including the number of images with
+free trafﬁc conditions, the number of images with oncoming
+trafﬁc as well as the number of vehicle trajectories (oneTABLE I
+STATISTICS OF THE CONSIDERED DATA SETS .
+dataset 1 dataset 2
+# of images 16124 6902
+# of free trafﬁc images 12862 4838
+# of oncoming trafﬁc images 3262 2064
+# of vehicle trajectories 34 15
+vehicle usually appears a number of frames which is directly
+related with its speed). In addition, stationary cars that a ppear
+inside the range area, are considered as free trafﬁc. The
+proposed method should be able to distinguish this speciﬁc
+case.
+In our case the number of bins used in the STHOL features
+has been experimentally ﬁxed to 36. The mean values of the
+multivariate normal density function as well as their stand ard
+deviations (computed as the squared root of the diagonal
+elements of the covariance matrices) for both oncoming
+trafﬁc and free trafﬁc classes are depicted in Figs. 9(a) and
+9(b). As can be observed, the mean values of the multivariate
+Gaussian modeling corresponding to the STHOL features are
+very different for both classes. The orientations of most of the
+lines when a vehicle is approaching lie between 120◦−170◦.
+Fig. 9(c) shows the performance of the proposed classiﬁer in
+terms of ROC curve, by varying the threshold value θT Hof
+the discriminant function. Note that these results corresp ond
+to single-frame classiﬁcation. A deeper analysis of the err ors
+show that most of the false negatives and false positives
+appear when the vehicle is located far from the vehicle
+around the limits of the system range, obtaining a more
+robust detection as the vehicle gets closer to the camera.
+In such cases the number of usable edges and the length
+of the lines are insufﬁcient to take a consistent decision. I n
+practice the system correctly triggers the warning signal f or
+all the vehicles that appear in our test data set (15 vehicles
+trajectories). Fig. 10 depicts some results of the proposed
+system. Processing time is around 20Hz using a C/C++
+implementation on a state-of-the-art 2.66 GHz Intel PC.
+VI. CONCLUSION
+This paper presented a novel solution to a new type
+of ADAS to automatically warn the driver when backing-
+out in perpendicular or angle parking lots, specially in
+cases where side parked cars block the driver view of the
+potential trafﬁc ﬂow. The detection system is handled by a
+FSM. A novel spatio-temporal motion descriptor is presente d
+(STHOL features) to robustly represent oncoming trafﬁc or
+free trafﬁc states. A Bayesian framework is ﬁnally used to
+trigger the warning signal.
+Future work will be concerned with the evaluation of
+the method in night-time conditions, comparisons between
+our generative approach and other discriminative approach es
+such as SVM-based. A more sophisticated approach should
+be elaborated to model the priors using massive trafﬁc data
+globally and temporally referenced, since it is obvious tha t
+the prior probability of meeting oncoming trafﬁc depends
+on variables such as the time of the day, the type of road,441
+
+--- Page 6 ---
+0 5 10 15 20 25 30 35 40−202468101214POSITIVES
+BinsHistogram value
+(a)0 5 10 15 20 25 30 35−4−202468101214NEGATIVES
+BinsHistogram value
+(b)0.05 0.1 0.15 0.2 0.25 0.3 0.350.50.550.60.650.70.750.80.850.90.951
+False Positive RateDetection RateROC Curve
+(c)
+Fig. 9. Mean value of the multivariate Gaussian and standard d eviations (square root of the diagonal elements of the covari ance matrix) corresponding
+to (a) Oncoming trafﬁc and (b) Free trafﬁc classes. (c) Receiv er-Operating-Characteristic curve of the single frame Baye sian classiﬁer.
+Fig. 10. Three sample sequences with the triggered warning si gnal.
+etc. More experimental work should be carried out including
+optimization procedures and different conﬁgurations of th e
+STHOL feature descriptor.
+VII. ACKNOWLEDGMENTS
+This work was supported by the Spanish Ministry of
+Science and Innovation under Research Grant ONDA-FP
+TRA2011-27712-C02-02.
+REFERENCES
+[1] NHTSA, “Vehicle backover avoidance technology,” Natio nal Highway
+Trafﬁc Safety Administration, Madrid, Spain, Report to Cong ress,
+2006.
+[2] H. G. Jung, Y . H. Cho, P. J. Yoon, and J. Kim, “Scanning laser
+radarbased target position designation for parking aid sys tem,” IEEE
+Trans. on Intell. Transp. Sys. , vol. 9, pp. 406–424, 2008.
+[3] H. G. Jung, D. S. Kim, P. J. Yoon, and J. Kim, “Parking slot marki ngs
+recognition for automatic parking assist system,” in IEEE Intelligent
+Vehicle Symposium , 2006.
+[4] H. G. Jung, D. S. Kim, and J. Kim, “Light-stripe-projection -based
+target position designation for intelligent parking-assi st system,” IEEE
+Trans. on Intell. Transp. Sys. , vol. 11, pp. 942–953, 2010.[5] ——, “Automatic free parking space detection by using motion stereo-
+based 3d reconstruction,” Machine Vision and Applications , vol. 21,
+pp. 163–176, 2010.
+[6] M. A. Sotelo, J. Barriga, D. Fern ´andez, I. Parra, J. E. Naranjo,
+M. Marr ´on, S. ´Alvarez, and M. Gavil ´an, “Vision-based blind spot
+detection using optical ﬂow,” EUROCAST 2007, LNCS , vol. 4739, pp.
+1113–1118, 2007.
+[7] Z. Sun, G. Bebis, and R. Miller, “On-road vehicle detecti on: A review,”
+IEEE Trans. on Pattern Analysis and Machine Intelligence , vol. 28,
+pp. 694–711, 2006.
+[8] D. Balcones, D. F. Llorca, M. A. Sotelo, M. Gavil ´an, S. ´Alvarez,
+I. Parra, and M. Ocana, “Real-time vision-based vehicle dete ction for
+rear-end collision mitigation systems,” EUROCAST 2009, LNCS , vol.
+5717, pp. 320–235, 2009.
+[9] D. F. Llorca, M. A. Sotelo, A. M. Hell ´ın, A. Orellana, M. Gavil ´an,
+I. G. Daza, and A. G. Lorente, “Stereo regions-of-interest s election
+for pedestrian protection: A survey,” Transportation Research Part C ,
+vol. 25, pp. 226–237, 2012.
+[10] P. Reisman, O. Mano, S. Avidan, and A. Shashua, “Crowd det ection
+in video sequences,” in IEEE Intelligent Vehicle Symposium , 2004.
+[11] W. Zhang and J. Kosecka, “Efﬁcient computation of vanish ing points,”
+inIEEE International Conference on Robotics and Automation , 2002.442
