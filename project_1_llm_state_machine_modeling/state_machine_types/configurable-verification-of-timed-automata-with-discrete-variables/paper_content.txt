@@ -1,0 +1,1541 @@
+--- Page 1 ---
+Acta Informatica (2022) 59:1–35
+https://doi.org/10.1007/s00236-020-00393-4
+ORIGINAL ARTICLE
+Conﬁgurable veriﬁcation of timed automata
+with discrete variables
+Tamás Tóth1·István Majzik1
+Received: 5 March 2019 / Accepted: 27 October 2020 / Published online: 15 December 2020
+© The Author(s) 2020
+Abstract
+Algorithms and protocols with time dependent behavior are often speciﬁed formally usingtimed automata. For practical real-time systems, besides real-valued clock variables, thesespeciﬁcations typically contain discrete data variables with nontrivial data ﬂow. In this paper,we propose a conﬁgurable lazy abstraction framework for the location reachability problemof timed automata that potentially contain discrete variables. Moreover, based on our previouswork, we uniformly formalize in our framework several abstraction reﬁnement strategies forboth clock and discrete variables that can be freely combined, resulting in many distinctalgorithm conﬁgurations. Besides the proposed reﬁnement strategies, the conﬁgurability ofthe framework allows the integration of existing efﬁcient lazy abstraction algorithms for clockvariables based on LU-bounds. We demonstrate the applicability of the framework and the
+proposed reﬁnement strategies by an empirical evaluation on a wide range of timed automatamodels, including ones that contain discrete variables or diagonal constraints.
+1 Introduction
+Timed automata [ 1] is a widely used formalism for the modeling and veriﬁcation of algo-
+rithms and protocols with time-dependent behavior. In timed automata models, erroneous or
+unsafe behavior (that is to be avoided during operation) is often modeled by error locations.
+The location reachability problem deals with the question whether a given error location isreachable from an initial state along the transitions of the automaton, or network of automata.
+As timed automata contain real-valued clock variables, to ensure better performance and
+termination, model checkers for timed automata apply abstraction over clock variables. The
+T. Tóth: This work was partially supported by Gedeon Richter’s Talentum Foundation (Gyömr˝ oi út 19-21,
+1103 Budapest, Hungary). I. Majzik: The research reported in this paper was partially supported by the BMENC TKP2020 grant of NKFIH Hungary.
+B Tamás Tóthtotht@mit.bme.hu
+István Majzik
+majzik@mit.bme.hu
+1Department of Measurement and Information Systems, Budapest University of Technology andEconomics, Budapest, Hungary
+123
+
+--- Page 2 ---
+2 T. Tóth, I. Majzik
+standard solution involves performing a forward exploration in the zone abstract domain [ 15],
+combined with extrapolation [ 4] parametrized by bounds appearing in guards in the model,
+extracted by static analysis [ 3]. Other zone-based methods propagate bounds lazily for all
+transitions [ 20] or along an infeasible path [ 22], and perform efﬁcient inclusion checking
+with respect to a non-convex abstraction induced by the bounds [ 21]. Alternatively, some
+methods perform lazy abstraction directly over the zone abstract domain [ 30,33]. However,
+in the context of timed automata, methods rarely address the problem of abstraction for
+discrete data variables that often appear in speciﬁcations for practical real-time systems, or
+do so by applying a fully SMT (satisﬁability modulo theories) [ 2] based approach, relying
+on the efﬁciency of underlying decision procedures for the abstraction of both continuousand discrete variables.
+In our work, we address the location reachability problem of timed automata with discrete
+variables. Overall, we propose a formal algorithmic framework that enables the uniform
+formalization of several abstract domains and reﬁnement strategies for both clock and discretevariables. The main elements are a generic algorithm for lazy reachability checking and anabstract reachability tree as its central data structure. Second, we present the formalization
+and integration of several novel strategies in this framework, especially based on our work
+on lazy interpolation over zones [ 30], and on the application of interpolation to lazily control
+the visibility of discrete variables in timed automata models [ 31]. The main advantage of
+the framework is that, based on the notion of the direct product abstract domain, it allowstheseamless combination of various lazy abstraction methods, resulting in many distinct
+algorithm conﬁgurations that together admit efﬁcient veriﬁcation of a wide range of timedautomata models. This algorithmic framework allowed a straightforward implementation ofthese strategies in our open source model checking framework Theta [29], this way enabling
+the practical evaluation of the proposed algorithm conﬁgurations . The conﬁgurability of this
+framework also allowed the integration of existing efﬁcient lazy abstraction algorithms forclock variables based on LU-bounds [ 22], thus admitting the combination and comparison
+of our methods with the state-of-the-art.
+We evaluated the algorithm conﬁgurations that our framework currently supports on a wide
+range of timed automata models, including ones that contain discrete variables or diagonalconstraints. Our results show that our framework offers algorithm conﬁgurations that arecompetitive in terms of performance with the state-of-the-art.
+1.1 Comparison to related work
+Lazy abstraction [ 19], a form of counterexample-guided abstraction reﬁnement [ 14], is an
+approach widely used for reachability checking, and in particular for model checking soft-ware. It consists of building an abstract reachability tree on-the ﬂy, representing an abstractionof the system, and reﬁning a part of the tree in case a spurious counterexample is found. Fortimed automata, a lazy abstraction approach based on non-convex LU-abstraction [ 4]a n d
+on-the-ﬂy propagation of bounds has been proposed [ 22]. A signiﬁcant difference of this
+algorithm compared to usual lazy abstraction algorithms is that it builds an abstract reach-ability tree that preserves exact reachability information (a so-called adaptive simulationgraph or ASG). As a consequence it is able to apply reﬁnement as soon as the abstractionadmits a transition that is disabled in the concrete system. Similar abstraction techniquesbased on building an ASG include difference bound constraint abstraction [ 33], the zone
+interpolation-based technique of [ 30], and the lazy abstraction method for timed automata
+with discrete variables proposed in [ 31]. In our work, we build on the same approach, but with
+123
+
+--- Page 3 ---
+Conﬁgurable veriﬁcation of timed automata… 3
+abstracting over the speciﬁcs of any given abstract domain , thus admitting conﬁgurability
+of the abstraction reﬁnement strategy.
+Symbolic handling of integer variables for timed automata is often supported by
+unbounded fully symbolic SMT-based approaches. Symbolic backward search techniqueslike [ 12,27] are based on the computation and satisﬁability checking of pre-images. In [ 23],
+reachability checking for timed automata is addressed by solving Horn clauses. In the ic3-
+based [ 11] technique of [ 25], the problem of discrete variables is not addressed directly,
+but the possibility of generalization over discrete variables is (to some extent) inherent inthe technique. In [ 24], also based on ic3, generalization of counterexamples to induction is
+addressed for both discrete and clock variables by zone-based pre-image computation. Theabstraction methods proposed in our work are completely theory agnostic , and do not rely
+on an SMT-solver.
+In [16], an abstraction reﬁnement algorithm is proposed for timed automata that handles
+clock and discrete variables in a uniform way. There, given a set of visible variables, anabstracted timed automaton is derived from the original by removing all assignments toabstracted variables, and by replacing all constraints by the strongest constraint that is impliedand that does not contain abstracted variables. In case the model checker ﬁnds an abstractcounterexample, a linear test automaton is constructed for the path, which is then composedwith the original system to check whether the counterexample is spurious. If the ﬁnal locationof the test automaton is unreachable, a set of relevant variables is extracted from the disabledtransition that will be included in the next iteration of the abstraction reﬁnement loop. In ourwork, we use a similar approach, but instead of building abstractions globally on the systemlevel and then calling to a model checker for both model checking and counterexampleanalysis, we use a more integrated, lazy abstraction method, where the abstraction is built
+on-the-ﬂy, and reﬁnement is performed locally in the state space where more precision is
+necessary.
+Interpolation for variable assignments was ﬁrst described in [ 7]. There, the interpolant
+is computed for a preﬁx and a sufﬁx of a constraint sequence, and an inductive sequenceof interpolants is computed by propagating interpolants forward using the abstract post-image operator. In our work, we deﬁne interpolation for a variable assignment and a formula,and compute inductive sequences of interpolants by propagating interpolants both forward
+and backward , using post-image and weakest precondition computation, respectively. In our
+context, this enables us to consider a sufﬁx of an infeasible path, instead of the whole path,for computing inductive sequences of interpolants.
+Timed automata with diagonal constraints are exponentially more concise than diagonal-
+free timed automata [ 9]. In [ 6], a method has been proposed that eliminates diagonal
+constraints occurring in timed automata speciﬁcations, resulting in an (in general) exponentialblowup in the size of the automaton. An extrapolation method has been proposed in [ 5]t h a t
+handles diagonal constraints on-the-ﬂy. A reﬁnement-based approach has been describedin [10] that does not remove all diagonal constraints systematically. Instead, it performs
+forward model checking using the standard extrapolation operator used for diagonal-freetimed automata, which might admit false negatives. In case a counterexample is found, it isanalyzed for feasibility. If the counterexample is spurious, a set of diagonal constraints isselected and eliminated from the model, resulting in a new model, which is then fed back tothe model checker. An implementation of the algorithm is described in [ 28]. In [ 18], the LU-
+abstraction based simulation relation of [ 4] is extended to models with diagonal constraints.
+The corresponding simulation test, which generalizes the inclusion test deﬁned in [ 21]f o r
+the diagonal-free setting, is shown to be NP-complete, and is implemented in terms of SMTsolving. In our work, we examine two methods for analyzing timed automata with diagonal
+123
+
+--- Page 4 ---
+4 T. Tóth, I. Majzik
+constraints. The ﬁrst is based on the eager elimination of diagonal constraints, however, as our
+algorithms support discrete variables, instead of introducing new locations, we introduce a
+new discrete variable per constraint . In case abstraction reﬁnement is used for these variables
+[31], a method is obtained that considers constraints as needed, similarly to [ 10]. However,
+instead of building a new model and running the model checker from scratch, this methodis lazy, and performs abstraction reﬁnement locally in the state space where more precision
+is necessary . The second approach is based on zone interpolation, which supports diagonal
+constraints, as well as other extensions [ 30], automatically. Thus in this case, elimination of
+diagonal constraints is not necessary. Unfortunately, this method is not complete, as it doesnot guarantee termination on all models.
+This paper is based on our previous work presented in [ 30,31]. In addition to the results pre-
+sented there, we provide an algorithmic framework in which we uniformly formalize, provecorrect and evaluate our abstraction reﬁnement strategies and their combinations. Moreover,besides the reﬁnement strategy presented in [ 31] that propagates interpolants backward, we
+introduce a novel strategy that performs abstraction reﬁnement by forward propagation ofinterpolants. Furthermore, we present an empirical evaluation of the algorithm conﬁgurationsthat the framework offers on a benchmark containing 51 timed automata models. In partic-ular, we examine how the different conﬁgurations perform on models containing diagonalconstraints.
+1.2 Organization of the paper
+The rest of the paper is organized as follows. In Sect. 2, we deﬁne the notations used through-
+out the paper, and present the theoretical background of our work. In Sect. 3we propose
+our formal framework, a uniform lazy reachability checking algorithm that admits variousabstract domains and reﬁnement strategies. In Sect. 4, four abstraction reﬁnement strategies
+are formalized in our framework, two for clock variables, and two for the efﬁcient handlingof discrete variables. Section 5describes experiments performed on the proposed algorithm
+conﬁgurations. Finally, conclusions are given in Sect. 6.
+2 Background and notations
+In this section, we summarize the theoretical background of our work. Moreover, we deﬁne
+the notation used throughout the paper.
+2.1 Valuations
+LetCbe a set of clock variables over R≥0,a n d Das e to f data variables over Z.L e t
+V=C∪Ddenote the set of all variables.
+Aclock constraint is a formula ϕ∈Constr Cthat is a conjunction of atoms of the form
+c⊿/triangleleftmandci−cj⊿/triangleleftmwhere c,ci,cj∈Candm∈Zand⊿/triangleleft ∈/braceleftbig
+<,≤,> ,≥,.=/bracerightbig
+.I nt h e
+latter case, if i/negationslash=j, then a constraint is called a diagonal constraint .Adata constraint is
+a well-formed formula ϕ∈Constr Dbuilt from variables in Dand arbitrary function and
+predicate symbols interpreted over Z.L e t Constr =Constr C∪Constr Ddenote the set of all
+constraints.
+Aclock update (clock reset) is an assignment u∈UpdateCof the form c:=mwhere
+c∈Candm∈Z.Adata update is an assignment u∈UpdateDof the form d:=twhere
+123
+
+--- Page 5 ---
+Conﬁgurable veriﬁcation of timed automata… 5
+d∈Dandtis a term built from variables in Dand function symbols interpreted over Z.L e t
+Update =UpdateC∪UpdateDdenote the set of all updates.
+The set of variables appearing in a term t(resp. in a formula ϕ) is denoted by vars(t)(resp.
+byvars(ϕ)). Similarly, the set of variables occurring in an update is denoted by vars(u),t h a t
+is,vars(x:=t)=vars(t)∪{x}.
+Avaluation over a ﬁnite set of variables is a function that maps variables to their respective
+domains. We will denote by V(X)the set of valuations over a set of variables X. Throughout
+the paper we will allow partial functions as valuations. We will denote by def(σ) the domain
+of deﬁnition of a valuation σ,t h a ti s , def(σ)={x|σ(x)/negationslash=⊥}. We extend valuations to
+range over terms and formulas the usual way, with the possibility that the value of a term isundeﬁned over a valuation.
+We will denote by σ|/equal1ϕiff formula ϕis satisﬁed under valuation σ.L e t
+/llbracketϕ/rrbracketstand for
+the set of models of a formula ϕ, formally deﬁned as /llbracketϕ/rrbracket={σ∈(V◦vars)(ϕ)|σ|/equal1ϕ},
+where ◦denotes function composition as usual. Given a valuation σ,w ed e n o t eb y form(σ)
+the formula characterizing the valuation, that is, form(σ)=/logicalandtext
+x∈def(σ)x.=σ(x).
+Remark 1 Note that in the context of partial valuations, σ|/equal1 ¬ϕis a strictly stronger
+statement than σ/negationslash|/equal1ϕ. For example, {x←/mapsfromchar1}/negationslash|/equal1y.=1 but it is not the case that
+{x←/mapsfromchar1}|/equal1y/negationslash.=1.
+Letσ/precedesequalσ/primeiffσ(x)=σ/prime(x)for all x∈def(σ/prime). Moreover, let A/precedesequalBiff for all σ∈Athere
+exists σ/prime∈Bsuch that σ/precedesequalσ/prime. Clearly, /precedesequalis a partial order over sets of valuations. We will
+denote the restriction of valuation σto a set of variables Xbyσ/harpoonuprightX,t h a ti s , (σ/harpoonuprightX)(x)=σ(x)
+ifx∈Xand(σ/harpoonuprightX)(x)=⊥ ifx/∈X. We lift the notion to sets of valuations with the obvious
+meaning. Let moreover /llparenthesisσ/rrparenthesis=/braceleftbig
+σ/prime∈V(V)|σ/prime/precedesequalσ/bracerightbig
+, also deﬁned for sets of valuations in
+the obvious way.
+We state the following lemmas (without proof).
+Lemma 1 σ/precedesequalσ/prime⇒σ/prime|/equal1ϕ⇒σ|/equal1ϕ
+Lemma 2 σ/precedesequalσ/prime⇔σ|/equal1form(σ/prime)
+Lemma 3 A/precedesequalB⇒A/harpoonuprightX/precedesequalB/harpoonuprightX
+We will denote by ⊗the partial function over valuations that is deﬁned as
+(σ⊗σ/prime)(x)=⎧
+⎪⎨
+⎪⎩σ(x)ifx∈def(σ)
+σ/prime(x)ifx∈def(σ/prime)
+⊥ otherwise
+ifσ(x)=σ/prime(x)for all x∈def(σ)∩def(σ/prime), and is undeﬁned otherwise. We extend this
+function to sets of valuations in both parameters in the obvious way.
+Finally, given a valuation σand an update x:=t,w ed e n o t eb y σ{x:=t}the valuation
+σ/primesuch that σ/prime(x)=σ(t)andσ/prime(x/prime)=σ(x/prime)for all x/prime/negationslash=x. For a sequence of updates, let
+σ{/epsilon1}=σandσ{u·μ}=σ{u}{μ},w h e r e uis an update and μis a sequence of updates.
+2.2 Timed automata
+In the area of modeling and verifying time-dependent behavior, timed automata [ 1]i st h e
+most prominent formalism. To make the speciﬁcation of practical systems more convenient,
+123
+
+--- Page 6 ---
+6 T. Tóth, I. Majzik
+the traditional formalism is often extended with various syntactic and semantic constructs,
+in particular with the handling of discrete variables. In the following, we describe such anextension.
+Deﬁnition 1 (Syntax ) Syntactically, a timed automaton with discrete variables is a tuple
+A=(L,C,D,T,/lscript0)where
+–Lis a ﬁnite set of locations,
+–Cis a ﬁnite set of continuous clock variables over R≥0,
+–Dis a ﬁnite set of discrete data variables over Z,
+–T⊆L×P(Constr )×Update∗×Lis a ﬁnite set of transitions, where for a transition
+(/lscript,G,μ,/lscript/prime),t h es e t G⊆Constr is a set of guards, and μ∈Update∗is a sequence of
+updates, and
+–/lscript0∈Lis the initial location.
+We are going to refer to a sequence of transitions π∈T∗as a path .
+Remark 2 According to the above deﬁnition, clearly C∩D=∅ . Note that given a guard
+g∈G, either vars(g)⊆C,o rvars(g)⊆D. Similarly, given an update u, either vars(u)⊆C,
+orvars(u)⊆D.
+Deﬁnition 2 (Semantics )L e tσ0be the unique total function σ0:V→{0}. The operational
+semantics of a timed automaton is given by a labeled transition system with initial state(/lscript
+0,σ0)and two kinds of transitions:
+–Delay: (/lscript, σ)δ−→(/lscript/prime,σ/prime)for some real number δ≥0w h e r e /lscript/prime=/lscriptandσ/prime=delayδ(σ)
+with
+delayδ(σ)( x)=/braceleftBigg
+σ(x)+δifx∈C
+σ(x) otherwise
+–Action: (/lscript, σ)t−→(/lscript/prime,σ/prime)for some transition t=(/lscript,G,μ,/lscript/prime)where σ/prime=action t(σ)
+with
+action t(σ)=/braceleftBigg
+⊥ ifσ|/equal1 ¬ gfor some g∈G
+σ{μ}otherwise
+We will use the notation C=V(V), and refer to a valuation σ∈Cas a concrete state .A
+state of a timed automaton is a state of its semantics, that is, a pair (/lscript, σ) where /lscript∈Land
+σ∈C.
+In case D=∅ , the above deﬁnition for semantics coincides with the semantics of timed
+automata in the usual sense. Throughout the paper, we will refer to a timed automaton withdiscrete variables simply as a timed automaton.
+Deﬁnition 3 (Run )Arun of a timed automaton is a sequence of states from the initial state
+(/lscript
+0,σ0)along the transition relation
+(/lscript0,σ0)α1−→(/lscript1,σ1)α2−→···αk−→(/lscriptk,σk)
+where αi∈T∪R≥0for all 0 ≤i≤k.
+123
+
+--- Page 7 ---
+Conﬁgurable veriﬁcation of timed automata… 7
+Deﬁnition 4 (Reachable location ) A location /lscript∈Lisreachable iff there exists a run such
+that/lscriptk=/lscript.
+Clearly, if a location is reachable then it is reachable along a run of the form
+·δ0−→(/lscript0,σ/prime
+0)t1−→·δ1−→(/lscript1,σ1)t2−→·δ2−→···tk−→·δk−→(/lscriptk,σk). This observation enables the
+deﬁnition of a symbolic semantics for timed automata as follows.
+Deﬁnition 5 (Symbolic semantics )L e tΣ0=/braceleftbig
+delayδ(σ0)|δ≥0/bracerightbig
+, that is, the set of con-
+crete states reachable from σ0by a delay transition. The symbolic semantics of a timed
+automaton is a labeled transition system with initial state (/lscript0,Σ 0)and transitions of the form
+(/lscript, Σ)t−→(/lscript/prime,Σ/prime)where t=(/lscript,·,·,/lscript/prime)andΣ/prime=postt(Σ) with the concrete post-image
+operator
+postt(σ)=/braceleftbig
+(delayδ◦action t)(σ)|δ≥0/bracerightbig
+,
+deﬁned for paths as post/epsilon1=idandpostt·π=postπ◦postt.
+We will refer to a pair (/lscript, Σ) with/lscript∈LandΣ⊆Cas a symbolic state .
+Let pret=post−1
+tand postX
+t(Σ)=postt(Σ)/harpoonuprightXforX∈{C,D}. Let moreover
+preC
+t=(postC
+t)−1. Furthermore, let ν0=Σ0/harpoonuprightDand Z0=Σ0/harpoonuprightC.
+Remark 3 As a consequence of Remark 2, it can be shown that in general, a symbolic state
+(/lscript, Σ) occurring in a symbolic run of timed automaton is such that Σ=ν⊗Z,w h e r e
+ν=Σ/harpoonuprightDis a data valuation, and Z=Σ/harpoonuprightCis a special set of clock valuations, called a zone
+(see Sect. 2.3). Moreover, postt(ν⊗Z)=postD
+t(ν)⊗postC
+t(Z).
+Deﬁnition 6 (Enabled transition ) Given a set of concrete states Σ, we will say that a transition
+tisenabled fromΣiffpostt(Σ)/negationslash=∅ , otherwise it is disabled .
+Deﬁnition 7 (Feasible path ) We will say that a path πisfeasible (resp. data-feasible ) (resp.
+clock-feasible )i f f postπ(Σ0)/negationslash=∅ (resp. postD
+π(ν0)/negationslash=∅ ) (resp. postC
+π(Z0)/negationslash=∅ ), otherwise
+it isinfeasible (resp. data-infeasible ) (resp. clock-infeasible ).
+Remark 4 By Remark 3and induction, a path πis feasible iff it is data-feasible and clock-
+feasible.
+Deﬁnition 8 (Symbolic run )A symbolic run of a timed automaton is a sequence of
+symbolic states from the symbolic initial state (/lscript0,Σ 0)along the transition relation
+(/lscript0,Σ 0)t1−→(/lscript1,Σ 1)t2−→···tk−→(/lscriptk,Σk)where Σk/negationslash=∅ .
+Remark 5 Clearly, a timed automaton has a symbolic run ·t1−→·t2−→ ···tk−→· iff the path
+t1t2···tkis feasible.
+Proposition 1 For a timed automaton, a location /lscript∈L is reachable iff there exists a symbolic
+run with /lscriptk=/lscript[15].
+2.3 Zones and DBMs
+Azone Z ∈ Zis the set of solutions of a clock constraint ϕ∈Constr C,t h a ti s
+Z={η∈V(C)|η|/equal1ϕ}.I fZand Z/primeare zones and t∈T,t h e n ∅,V(C),Z0,Z∩Z/prime,
+postC
+t(Z)andpreC
+t(Z/prime)are also zones. In the context of zones, we will denote ∅by⊥and
+123
+
+--- Page 8 ---
+8 T. Tóth, I. Majzik
+V(C)by/latticetop. Zones are not closed under complementation, but the complement of any zone
+is the union of ﬁnitely many zones. For a zone Z, we are going to denote a minimal set of
+such zones by ¬Z.
+Zones can be efﬁciently represented by difference bound matrices [ 17]. A bound is either
+∞, or a ﬁnite bound of the form (m,≺)where m∈Zand≺∈{<,≤}. Difference bounds
+can be totally ordered by “strength”, that is, (m,≺)<∞and(m1,≺1)<( m2,≺2)iff
+m1<m2and(m,< )<( m,≤). Moreover the sum of two bounds is deﬁned as b+∞=∞
+and(m1,≤)+(m2,≤)=(m1+m2,≤)and(m1,< )+(m2,≺)=(m1+m2,< ) .
+Adifference bound matrix (DBM) over X={x0,x1,..., xn}is a square matrix Mof
+bounds of order n+1 where an element Mij=(m,≺)represents the clock constraint
+xi−xj≺m.W ed e n o t eb y /llbracketM/rrbracketthe zone induced by the conjunction of constraints stored
+inM.W es a yt h a t Misconsistent iff/llbracketM/rrbracket/negationslash=⊥ . The following is a simple sufﬁcient and
+necessary condition for a DBM to be inconsistent.
+Proposition 2 A DBM M is inconsistent iff there exists a negative cycle in M, that
+is, a set of pairs of indexes {(i1,i2) ,...,( ik−1,ik), (ik,i1)}such that
+Mi1,i2+···+ Mik−1,ik+Mik,i1<(0,≤)[17].
+For a consistent DBM M, we say it is canonical iff constraints in it cannot be strengthened
+without losing solutions, formally, iff Mi,i=(0,≤)for all 0 ≤i≤nandMi,j≤Mi,k+Mk,j
+for all 0 ≤i,j,k≤n. For convenience, we will also consider the inconsistent DBM Mwith
+the single ﬁnite bound M0,0=(0,< ) canonical. Up to the ordering of clocks, the canonical
+form is unique.
+The zone operations described above, as well as set inclusion ⊆over zones, can be efﬁ-
+ciently implemented in terms of canonical DBMs [ 5]. Therefore, we will refer to a canonical
+DBM M(syntax) and the zone /llbracketM/rrbracketit represents (semantics) interchangeably throughout the
+paper.
+Moreover, for two DBMs M1and M2, we will denote by min (M1,M2)the (not neces-
+sarily canonical) DBM Mwhere Mi,j=min(M1,ij,M2,ij). It can be easily shown that
+/llbracketmin(M1,M2)/rrbracket=/llbracketM1/rrbracket∩/llbracketM2/rrbracket.
+3 Algorithm for lazy reachability checking
+In this section we present our uniform approach, a lazy reachability checking algorithm that
+allows the combination of various abstract domains and reﬁnement strategies. It is based onthe notion of Abstract Reachability Tree, which is deﬁned in the sequel. Then the algorithmitself is described.
+3.1 Abstract reachability tree
+The central data structure of the algorithm is an abstract reachability tree.
+Deﬁnition 9 (Abstract domain ) For our purposes, an abstract domain for a timed automaton
+is a tuple D=(S,/subsetsqequal,init,post,/llbracket·/rrbracket)such that
+–Sis set of abstract states,
+–/subsetsqequal⊆ S×Sis a preorder,
+–init∈Sis the abstract initial state,
+–post:T×S→ Sis the abstract post-image operator, and
+123
+
+--- Page 9 ---
+Conﬁgurable veriﬁcation of timed automata… 9
+–/llbracket·/rrbracket:S→ P(C)is the concretization function.
+For soundness, we assume the following properties to hold.
+Deﬁnition 10 (Sound abstraction ) An abstract domain (S,/subsetsqequal,init,post,/llbracket·/rrbracket)is sound iff
+–s1/subsetsqequals2⇒/llbrackets1/rrbracket⊆/llbrackets2/rrbracket,
+–Σ0⊆/llbracketinit/rrbracket,a n d
+–postt/llbrackets/rrbracket⊆/llbracketpostt(s)/rrbracket.
+Deﬁnition 11 (Unwinding ) An unwinding of a timed automaton A is a tuple
+U=(N,E,n0,MN,ME,⊿)where
+–(N,E)is a directed tree rooted at node n0∈N,
+–MN:N→Lis the node labeling,
+–ME:E→Tis the edge labeling and
+–⊿⊆ N×Nis the covering relation.
+For an unwinding we require that the following properties hold:
+–MN(n0)=/lscript0,
+– for each edge e∈Ewith e=(n,n/prime)the transition ME(e)=(/lscript,·,·,/lscript/prime)is such that
+MN(n)=/lscriptand MN(n/prime)=/lscript/prime,
+– for all nodes nandn/primesuch that n⊿n/primeit holds that MN(n)=MN(n/prime).
+The term n⊿n/primemarks that search from node nof the unwinding is to be pruned, as another
+node n/primeadmits all runs that are feasible from n. We deﬁne the following shorthand notations
+for convenience: /lscriptn=MN(n)andte=ME(e).
+Deﬁnition 12 (Abstract reachability tree ) An abstract reachability tree (ART) for a timed
+automaton Aover a sound abstract domain Dis a labeled unwinding, that is, a pair G=(U,ψ)
+where
+–Uis an unwinding of A,a n d
+–ψ:N→ Sis a labeling of nodes by abstract states.
+We will use the following shorthand notation: sn=ψ(n).
+Deﬁnition 13 (Properties of nodes ) A node nisexpanded iff for all transitions t∈Tsuch
+thatt=(/lscript,·,·,·)and/lscriptn=/lscript, either tis disabled from /llbracketsn/rrbracket,o rnhas a successor for t. A node
+niscovered iffn⊿n/primefor some node n/prime.I ti s excluded iff it is covered or it has an excluded
+parent. A node is complete iff it is either expanded or excluded. A node nis/lscript-safe iff /lscriptn/negationslash=/lscript.
+For an ART to be useful for reachability checking, we have to ensure that the tree represents
+an over-approximation of the set of reachable states. Therefore we introduce restrictions onthe labeling, as formalized in the next deﬁnition.
+Deﬁnition 14 (Well-labeled node ) A node nof an ART
+Gfor a timed automaton Ais well-
+labeled iff the following conditions hold:
+– (initiation) if n=n0,t h e nΣ0⊆/llbracketsn/rrbracket,
+– (consecution) if n/negationslash=n0, then for its parent mand the transition t=t(m,n)it holds that
+postt/llbracketsm/rrbracket⊆/llbracketsn/rrbracket
+– (coverage) if n⊿n/primefor some node n/prime,t h e n /llbracketsn/rrbracket⊆/llbracketsn/prime/rrbracketandn/primeis not excluded.
+123
+
+--- Page 10 ---
+10 T. Tóth, I. Majzik
+Besides preserving reachable states, we will also ensure that nodes represent runs of the
+automaton. We formalize this in the following deﬁnitions.
+Deﬁnition 15 (Feasible node and transition )L e t nbe a node of an ART G,a n dπthe path
+from n0toninG.T h e n nis feasible iff πis feasible. Moreover, a transition tis feasible from
+niff the path π·tis feasible.
+The above deﬁnitions for nodes can be extended to trees.
+Deﬁnition 16 (Properties of ARTs ) An ART is complete, /lscript-safe, well-labeled or feasible iff
+all its nodes are complete, /lscript-safe, well-labeled, or feasible, respectively.
+A well-labeled ART preserves reachable states, which is expressed by the following propo-
+sition.
+Proposition 3 Let Gbe a complete, well-labeled ART for a timed automaton A.I f Ahas a
+symbolic run (/lscript0,Σ 0)t1−→(/lscript1,Σ 1)t2−→ ···tk−→(/lscriptk,Σk)then Ghas a non-excluded node n
+such that /lscriptk=/lscriptnandΣk⊆/llbracketsn/rrbracket.
+Proof We prove the statement by induction on the length kof the symbolic run. If k=0,
+then/lscript0=/lscriptn0andΣ0⊆/llbracketsn0/rrbracketby condition initiation , thus n0is a suitable witness. Suppose
+the statement holds for runs of length at most k−1. Hence there exists a non-excluded node
+msuch that /lscriptk−1=/lscriptmandΣk−1⊆/llbracketsm/rrbracket.
+Clearly transition tkis not disabled from /llbracketsm/rrbracket, as then by the induction hypothesis it
+would also be disabled from Σk−1, which contradicts our assumption. As mis complete and
+not excluded, it is expanded, and thus has a successor nfor transition tkwith/lscriptn=/lscriptk.B y
+condition consecution ,w eh a v e posttk/llbracketsm/rrbracket⊆/llbracketsn/rrbracket.A sΣk−1⊆/llbracketsm/rrbracket, by the monotonicity of
+images in ⊆,w eo b t a i n Σk⊆/llbracketsn/rrbracket.
+Thus if nis not covered, then it is a suitable witness for the statement. Otherwise there
+exists a node n/primesuch that n⊿n/prime. By condition coverage , we know that /llbracketsn/rrbracket⊆/llbracketsn/prime/rrbracketandn/primeis
+not excluded, thus n/primeis a suitable witness. /intersectionsq/unionsq
+3.2 Reachability algorithm
+The pseudocode of the algorithm is shown in Algorithm 1. The algorithm gets as input a timed
+automaton Aand a distinguished error location /lscripte∈L. The goal of the algorithm is to decide
+whether /lscripteis reachable for A. To this end the algorithm gradually constructs an ART for
+Aand continually maintains its well-labeledness and feasibility. Upon termination, it either
+witnesses reachability of /lscripteby a feasible node nsuch that /lscriptn=/lscripte, which by Deﬁnition 15
+corresponds to a symbolic run of Ato/lscripte, or produces a complete, well-labeled, /lscripte-safe ART
+that proves unreachability of /lscripteby Proposition 3.
+The main data structures of the algorithm are the ART Gand sets passed andwaiting .S e t
+passed is used to store nodes that are expanded, and waiting stores nodes that are incomplete.
+The algorithm consists of two subprocedures, close and expand . Procedure close attempts
+to cover a node nby some other node. It calls a procedure cover that tries to force cover
+the node by adjusting its label so that it is subsumed by the label of some candidate node n/prime.
+Procedure expand expands a node nby creating its successors. To avoid creating infeasible
+nodes, it calls a procedure disable that checks feasibility of a given transition t,a n da d j u s t s
+the labeling of nso that if tis infeasible from n, then it also becomes disabled from /llbracketsn/rrbracket.B o t h
+close and expand potentially modify the labeling of some nodes as a side effect, but in a way
+123
+
+--- Page 11 ---
+Conﬁgurable veriﬁcation of timed automata… 11
+Algorithm 1 Reachability algorithm
+1:ensure ρ=safe iff/lscripteis unreachable for A
+2:function explore (A,/lscripte)returns ρ∈/braceleftbig
+safe,unsafe/bracerightbig
+3: letn0be a node with /lscriptn0=/lscript0andsn0=init
+4: N←{n0},E←∅ ,⊿←∅
+5: let Gbe an ART for Aover N,Eand⊿
+6:7: passed ←∅ ,waiting ←{n
+0}
+8: invariant Gis well-labeled and feasible
+9: while n∈waiting for some ndo
+10: waiting ←waiting \{n}
+11: if/lscriptn=/lscriptethen
+12: return unsafe
+13: else
+14: close (n)
+15: ifnis not covered then
+16: expand (n)
+17: return safe
+18:invariant Gis well-labeled and feasible
+19:procedure close (n)
+20: for all n/prime∈passed such that /lscriptn=/lscriptn/primedo
+21: cover (n,n/prime)
+22: ifsn/subsetsqequalsn/primethen
+23: ⊿←⊿∪/braceleftbig
+(n,n/prime)/bracerightbig
+24: return
+25:invariant Gis well-labeled and feasible
+26:ensure nis expanded
+27:procedure expand (n)
+28: for all t∈Tsuch that t=(/lscript,·,·,/lscript/prime)with/lscript=/lscriptndo
+29: ifnot disable (n,t)then
+30: lets/prime=post t(sn)
+31: letn/primebe a new node with /lscriptn/prime=/lscript/primeandsn/prime=s/prime
+32: lete=(n,n/prime)be a new edge with te=t
+33: N←N∪/braceleftbig
+n/prime/bracerightbig
+34: E←E∪{e}
+35: waiting ←waiting ∪/braceleftbig
+n/prime/bracerightbig
+36: passed ←passed ∪{n}
+37:invariant Gis well-labeled and feasible
+38:procedure cover (n,n/prime)
+39:invariant Gis well-labeled and feasible
+40:ensure βifftis disabled from /llbracketsn/rrbracket
+41:ensure ¬βifftis feasible from n
+42:function disable (n,t)returns β
+that maintains well-labeledness and feasibility of the ART. Naturally, the implementation of
+procedures cover and disable depends on the abstract domain, and are described in Sect. 4
+in detail.
+The algorithm consists of a single loop in line 9 that employs the following strategy.
+The loop consumes nodes from waiting one by one. If waiting becomes empty, then Ais
+deemed safe. Otherwise, a node nis removed from waiting . If the node represents the error
+location, then Ais deemed unsafe. Otherwise, in order to avoid unnecessary expansion of
+the node, the algorithm tries to cover it by a call to close . If there are no suitable candidates
+123
+
+--- Page 12 ---
+12 T. Tóth, I. Majzik
+for coverage, then the algorithm establishes completeness of the node by expanding it using
+expand , which puts it in passed , and puts all its successors in waiting .
+We show that explore is correct with respect to the procedure contracts listed in Algo-
+rithm 1. We focus on partial correctness, as termination depends on the particular abstract
+domain and reﬁnement method used. We note that in general, termination can be easilyensured using the right extrapolation operator for clock variables [ 22,30,33].
+Proposition 4 Procedure explore is partially correct: if explore (
+A,/lscripte)terminates, then
+the result is safe iff/lscripteis unreachable for A.
+Proof (sketch) Let covered ={n∈N|nis covered }. It is easy to verify that the algorithm
+maintains the following invariants:
+–N=passed ∪waiting ∪covered ,
+–passed is a set of non-excluded, expanded, /lscripte-safe nodes,
+–waiting is a set of non-excluded, non-expanded nodes,
+–covered is a set of covered, non-expanded, /lscripte-safe nodes.
+It is easy to see that under the above assumptions sets passed ,waiting andcovered form
+a partition of N. Assuming that Gis well-labeled and feasible, partial correctness of the
+algorithm is then a direct consequence: At line 12 a node is encountered that is not /lscripte-safe,
+thus by Deﬁnition 15there is a symbolic run of Ato/lscripte; conversely, at line 17 the set waiting
+is empty, so Gis complete and /lscripte-safe, and as a consequence of Proposition 3the location
+/lscripteis indeed unreachable for A.
+What remains to show is that the algorithm maintains well-labeledness and feasibility of
+G. We assume that procedures cover and disable maintain well-labeledness and feasibility,
+which we prove to hold in Sect. 4.
+Initially, node n0is well-labeled, as Σ0⊆/llbracketinit/rrbracket=/llbracketsn0/rrbracket, thus n0satisﬁes initiation .I ta l s o
+trivially satisﬁes feasibility, as post/epsilon1(Σ0)=Σ0/negationslash=∅ . Procedure close trivially maintains
+well-labeledness and feasibility, as it just possibly adds a covering edge for two nodes suchthat condition coverage is not violated. In procedure expand ,i f disable (n,t)for a transition
+t,t h e n tis not feasible from n, and the labeling is adjusted so that tis disabled from
+/llbracketsn/rrbracket.
+Otherwise, tis feasible from n, and a successor node n/primeis created. Clearly, n/primeis feasible as
+tis feasible. Moreover, postt/llbracketsn/rrbracket⊆/llbracketpostt(sn)/rrbracket=/llbracketsn/prime/rrbracket, thus n/primesatisﬁes consecution . Thus
+according to the contract, nbecomes expanded, and all its successors are well-labeled and
+feasible, so well-labeledness and feasibility of Gis preserved. /intersectionsq/unionsq
+4 Abstraction reﬁnement
+Algorithm 1is abstracted over the particular abstract domain used to well-label the con-
+structed ART. Moreover, it declares two procedures, cover and disable , that perform forced
+covering and abstraction reﬁnement over the abstract domain, respectively. In this section,we describe several possible abstract domains, and corresponding abstraction reﬁnementstrategies, that can be used for model checking timed automata with discrete variables.
+In the listings of the given reﬁnement strategies, we are going to refer to a simple procedure
+update that enables safely updating the labeling for a given node in the ART.
+Proposition 5 update is totally correct: If either n is the root and Σ
+0⊆/llbrackets/rrbracket, or there exists an
+edge e =(m,n)with t e=t for some m and postt/llbracketsm/rrbracket⊆/llbrackets/rrbracket,t h e n update (n,s)terminates
+and ensures s n=s. Moreover, it preserves well-labeledness and feasibility of G.
+123
+
+--- Page 13 ---
+Conﬁgurable veriﬁcation of timed automata… 13
+Algorithm 2 Safely updating the abstraction
+1:invariant Gis well-labeled and feasible
+2:require nroot⇒Σ0⊆/llbrackets/rrbracket
+3:require (m,n)∈Ewith t=t(m,n)for some m⇒post t/llbracketsm/rrbracket⊆/llbrackets/rrbracket
+4:ensure sn=s
+5:procedure update (n,s)
+6: for all msuch that m⊿nandsm/negationslash/subsetsqequalsdo
+7: ⊿←⊿\ (m,n)
+8: waiting ←waiting ∪{m}
+9: sn←s
+Proof Termination of the procedure is trivial. Moreover, the procedure trivially maintains
+feasibility of G, as it does not create new nodes. At the end of the procedure, sn=sis
+ensured. Clearly, nis well-labeled: initiation and consecution is ensured by contract, and
+coverage is ensured by the loop due to soundness of the abstract domain. /intersectionsq/unionsq
+4.1 Combination of abstractions
+Our approach is based on the direct product of abstract domains, as described below.
+Deﬁnition 17 (Direct product domain )L e t Di=(Si,/subsetsqequali,init i,posti,/llbracket·/rrbracketi)fori∈{1,2}.
+Then their direct product is the abstract domain D1×D2=(S,/subsetsqequal,init,post,/llbracket·/rrbracket)where
+–S=S1×S2,
+–(s1,s2)/subsetsqequal(s/prime
+1,s/prime
+2)iffs1/subsetsqequal1s/prime
+1ands2/subsetsqequal2s/prime
+2(thus/subsetsqequalis a preorder),
+–init=(init 1,init 2),
+–postt(s1,s2)=(post1
+t(s1),post2
+t(s2)),a n d
+–/llbracket(s1,s2)/rrbracket=/llbrackets1/rrbracket1∩/llbrackets2/rrbracket2.
+In later descriptions, when it is clear from the context, we are going to omit indexes when
+referring to components of a direct product (and write e.g. (postt(s1),postt(s2))instead of
+(post1
+t(s1),post2
+t(s2))).
+Proposition 6 IfD1and D2are sound, then D1×D2is sound.
+In case of timed automata with discrete variables, as according to Deﬁnition 1, abstraction
+and reﬁnement can be conveniently deﬁned compositionally, where clock variables and dis-crete variables are handled by separate abstractions. Algorithm 3describes a straightforward
+method for achieving this separation.
+In the above description, in line 10 and line 15, we refer to the preservation of well
+labeledness for the two projections of the ART. This weaker assumption will simplify proofsof correctness for the component reﬁners. We show that this implies well-labeledness in theoriginal sense.
+Total correctness of cover
+×follows from total correctness of cover Dand cover C.W e
+show total correctness of disable ×as follows.
+Proposition 7 disable ×is totally correct: disable ×(n,t)terminates and preserves well-
+labeledness and feasibility of G; Moreover, it returns false iff t is feasible from n, and ensures
+that t is disabled from /llbracketsn/rrbracketotherwise.
+123
+
+--- Page 14 ---
+14 T. Tóth, I. Majzik
+Algorithm 3 Combination of Abstractions
+1:procedure cover ×(n,n/prime)
+2: cover D(n,n/prime)
+3: cover C(n,n/prime)
+4:invariant Gis well-labeled and feasible
+5:procedure cover D(n,n/prime)6:invariant Gis well-labeled and feasible
+7:procedure cover C(n,n/prime)
+8:function disable ×(n,t)returns β
+9: return disable D(n,t)or
+disable C(n,t)
+10:invariant Gis well-labeled and feasible
+11:deﬁne (s1,s2)=sn
+12:ensure βifftis disabled from /llbrackets1/rrbracket
+13:ensure ¬βifftis data-feasible from n
+14:function disable D(n,t)returns β15:invariant Gis well-labeled and feasible
+16:deﬁne (s1,s2)=sn
+17:ensure βifftis disabled from /llbrackets2/rrbracket
+18:ensure ¬βifftis clock-feasible from n
+19:function disable C(n,t)returns β
+Proof Termination of the procedure is trivial. Moreover, the procedure trivially maintains
+feasibility of G, as it does not create new nodes.
+First we show that disable ×maintains well-labeledness. By contract, disable Cand
+disable Dpreserve well-labeledness of G(in the weaker sense described above). Let
+sn=(s1,s2)for root node n.A sΣ0⊆/llbrackets1/rrbracketandΣ0⊆/llbrackets2/rrbracket, clearly Σ0⊆/llbrackets1/rrbracket∩/llbrackets2/rrbracket=
+/llbracket(s1,s2)/rrbracket, thus initiation is preserved. Now let sm=(s1,s2)andsn=(s/prime
+1,s/prime
+2)for nodes m
+and nsuch that (m,n)∈Eand t=t(m,n).A s posttis an image and postt/llbrackets1/rrbracket⊆/llbrackets/prime
+1/rrbracketand
+postt/llbrackets2/rrbracket⊆/llbrackets/prime
+2/rrbracket,w eh a v e postt/llbracket(s1,s2)/rrbracket=postt(/llbrackets1/rrbracket∩/llbrackets2/rrbracket)⊆postt/llbrackets1/rrbracket∩postt/llbrackets2/rrbracket⊆
+/llbrackets/prime
+1/rrbracket∩/llbrackets/prime
+2/rrbracket=/llbracket(s/prime
+1,s/prime
+2)/rrbracket, thus consecution is preserved. Finally, let sm=(s1,s2)and
+sn=(s/prime
+1,s/prime
+2)for nodes mand nsuch that m⊿n.A s/llbrackets1/rrbracket⊆/llbrackets/prime
+1/rrbracketand/llbrackets2/rrbracket⊆/llbrackets/prime
+2/rrbracket, clearly
+/llbracket(s1,s2)/rrbracket=/llbrackets1/rrbracket∩/llbrackets2/rrbracket⊆/llbrackets/prime
+1/rrbracket∩/llbrackets/prime
+2/rrbracket=/llbracket(s/prime
+1,s/prime
+2)/rrbracket, thus coverage is preserved.
+Assume that tis feasible from n.T h e n tis both data- and clock-feasible from nby
+Remark 4. Thus disable D(n,t)=false and disable C(n,t)=false by contract, from which
+disable ×(n,t)=false follows directly. Assume that tis not feasible from n.T h e n tis either
+not data- or not clock-feasible from nby Remark 4. Assume tis not data-feasible from n. Thus
+disable D(n,t)=true and tbecomes disabled from /llbrackets1/rrbracketby contract. As a consequence,
+disable ×(n,t)=true ,a n d tbecomes disabled from /llbracketsn/rrbracket=/llbracket(s1,s2)/rrbracket=/llbrackets1/rrbracket∩/llbrackets2/rrbracket.T h e
+other case follows symmetrically. /intersectionsq/unionsq
+To simplify exposition, we are going to treat ψas a lens (in simple terms, a pair consisting
+of a “getter” and a “setter”) that can be used to deeply manipulate the structure of a givenlabel. Thus later in the text, when we refer to s
+n, we are going to mean the corresponding
+component of a direct product based on the context.
+4.2 Abstraction for clock variables
+First, we address abstraction reﬁnement over clock variables.
+123
+
+--- Page 15 ---
+Conﬁgurable veriﬁcation of timed automata… 15
+4.2.1 Zone abstraction
+Most model checkers for timed automata rely on zones for abstracting clock valuations. We
+deﬁne zone abstraction in our framework as follows.
+Deﬁnition 18 (Zone abstraction ) We deﬁne zone abstraction as the abstract domain
+DZ=(Z,⊆,Z0,postC,/llparenthesis·/rrparenthesis).
+Note that in the absence of discrete variables, Deﬁnition 18corresponds to the usual
+deﬁnition of zone abstraction.
+Proposition 8 DZis sound.
+We deﬁne cover Zas a no-op, thus its total correctness is trivial. Moreover, we deﬁne
+disable Zasdisable Z(n,t)iffpostt(Z)/subsetsqequal⊥ forZ=sn.
+Proposition 9 disable Zis totally correct: disable Z(n,t)terminates and preserves well-
+labeledness and feasibility of G; moreover, it returns false iff t is clock-feasible from n, and
+ensures that t is disabled from /llbracketsn/rrbracketotherwise.
+Proof Termination of the procedure is trivial. Well-labeledness and feasibility follow from
+the fact that the procedure has no side effects. Let πbe the path induced by n. Notice that
+Z=postC
+π(Z0). Assume postC
+t(Z)/negationslash=⊥ . Then by deﬁnition, tis clock-feasible from n,
+and the procedure returns false . Now assume postC
+t(Z)=⊥ . Then by deﬁnition, tis not
+clock-feasible from n.B u t tis also disabled from /llparenthesisZ/rrparenthesis, and the procedure returns true ./intersectionsq/unionsq
+4.2.2 Lazy zone abstraction
+To obtain a coarser abstraction, we extend zone abstraction with interpolation as follows.
+Deﬁnition 19 (Lazy zone abstraction )L e t DZI=(S,/subsetsqequal,init,post,/llbracket·/rrbracket)be the abstract
+domain over DZwith
+–S=Z×Z,
+–(Z,W)/subsetsqequal(Z/prime,W/prime)iffW/subsetsqequalW/prime,
+–init=(init,/latticetop),
+–postt(Z,W)=(postt(Z),/latticetop),a n d
+–/llbracket(Z,W)/rrbracket=/llbracketW/rrbracket.
+Proposition 10 DZIis sound.
+Given an abstract state (Z,W), the purpose of Zis to encode an exact set of reachable
+valuations, whereas the purpose of Wis to represent a safe overapproximation of Z.T h i s
+potentially enables better coverage between nodes, thus faster convergence, compared to thepurely zone-based setting. In order to efﬁciently maintain this relationship however, we haveto deﬁne procedure cover
+ZIand disable ZIaccordingly. To maintain well-labeledness,
+these procedures rely on a procedure block that performs abstraction reﬁnement by safely
+adjusting labels of nodes.
+Incover ZI,a sZ⊆W/primeand B∩W/prime⊆⊥ , clearly Z∩B⊆⊥ , thus calling block (n,B)
+is safe. Other than that, total correctness of cover ZIfollows trivially from total correctness
+ofblock (see later). To show the correctness of disable ZI, we state the following simple
+lemma that establishes a connection between preCandpostC.
+123
+
+--- Page 16 ---
+16 T. Tóth, I. Majzik
+Algorithm 4 Lazy Zone Abstraction
+1:procedure cover ZI(n,n/prime)
+2: let(Z,·)=sn
+3: let(·,W/prime)=sn/prime
+4: ifZ⊆W/primethen
+5: for all B∈¬W/primedo
+6: block (n,B)
+7:function disable ZI(n,t)8: let(Z,W)=sn
+9: letZ/prime=postCt(Z)
+10: ifZ/prime=⊥ then
+11: block (n,preCt(/latticetop))
+12: return true
+13: else
+14: return false
+15:invariant Gis well-labeled and feasible
+16:deﬁne (Z,W)=sn
+17:require Z∩B⊆⊥
+18:ensure W∩B⊆⊥
+19:procedure block (n,B)
+Lemma 4 Z∩preC
+t(Z/prime)⊆⊥⇔ postC
+t(Z)∩Z/prime⊆⊥
+Proposition 11 disable ZIis totally correct: disable ZI(n,t)terminates and preserves
+well-labeledness and feasibility of G; moreover, it returns false iff t is clock-feasible from n,
+and ensures that t is disabled from /llbracketsn/rrbracketotherwise.
+Proof Termination of the procedure is trivial. Well-labeledness and feasibility follow from
+the total correctness of block .L e tπbe the path induced by n. Notice that Z=postC
+π(Z0).
+Assume postC
+t(Z)/negationslash=⊥ . Then by deﬁnition, tis clock-feasible from n, and the procedure
+returns false . Now assume postC
+t(Z)=⊥ . Then by deﬁnition, tis not clock-feasible from
+n. By Lemma 4,w eg e t Z∩preC
+t(/latticetop)⊆⊥ . Thus block (n,preC
+t(/latticetop))can be called, and as
+a result, W∩preC
+t(/latticetop)⊆⊥ . By Lemma 4,w eg e t postC
+t(W)=⊥ . Thus tbecomes disabled
+from/llparenthesisW/rrparenthesis, and the procedure returns true . /intersectionsq/unionsq
+4.2.3 Interpolation for zones
+The proposed reﬁnement strategies for zone abstraction, and in particular, the different imple-
+mentations of block are based on interpolation, deﬁned over zones expressed in terms of
+canonical DBMs.
+Deﬁnition 20 (Zone interpolant ) Given zones Aand Bsuch that A∩B⊆⊥ , a zone inter-
+polant is a zone Isuch that A⊆Iand I∩B⊆⊥ and Iis deﬁned over the clocks that
+appear in both Aand B.
+This deﬁnition of a zone interpolant is analogous to the deﬁnition of an interpolant in the
+usual sense [ 26]. As zones correspond to formulas in DL(Q), a theory that admits interpo-
+lation [ 13], an interpolant always exists for a pair of disjoint zones. Algorithm 5is a direct
+adaptation of the graph-based algorithm of [ 13] for DBMs. For simplicity, we assume that A
+and Bare deﬁned over the same set of clocks with the same ordering, and are both canonical
+(naturally, these restrictions can be lifted).
+After checking the trivial cases, the algorithm searches for a negative cycle in min (A,B)
+to witness its inconsistency. This can be done e.g. by running a variant of the Floyd-Warshallalgorithm.The interpolant Iis then the DBM induced by the constraints in the negative cycle
+that come from A. It is easy to verify that Iis indeed an interpolant.
+123
+
+--- Page 17 ---
+Conﬁgurable veriﬁcation of timed automata… 17
+Algorithm 5 Interpolation for Canonical DBMs
+1:require A∩B⊆⊥
+2:ensure Iis a zone interpolant for Aand B
+3:function interpolate Z(A,B)returns I
+4: ifA⊆⊥ then
+5: return ⊥
+6: else if B⊆⊥ then
+7: return /latticetop
+8: else
+9: letM=min(A,B)
+10: letC=/braceleftbig
+(i1,i2) ,...,( ik−1,ik), (ik,i1)/bracerightbig
+be a negative cycle in M
+11: letCA=/braceleftbig
+(i,j)∈C|Ai,j=Mi,j/bracerightbig
+12: letIi,j=⎧
+⎪⎨
+⎪⎩(0,≤)ifi=j
+Ai,j if(i,j)∈CA
+∞ otherwise
+13: letI=/bracketleftbig
+Ii,j/bracketrightbig
+14: return I
+Proposition 12 Function interpolate Zis totally correct: if A ∩B⊆⊥ ,t h e n
+interpolate Z(A,B)terminates and ensures A ⊆I and I ∩B⊆⊥ . Moreover, it pre-
+serves well-labeledness and feasibility of G.
+Proof Function interpolate Zhas no side effect, it thus trivially maintains feasibility and
+well-labeledness. In the trivial cases, Iis clearly an interpolant. Assume A/negationslash=⊥ and B/negationslash=⊥ .
+AsA∩B⊆⊥ by contract, there exists a negative cycle Cin min (A,B)by Proposition 2.
+AsAis canonical, we can assume that no two edges are subsequent in CA,t h u st h eD B M I
+induced by CAis clearly canonical. The properties of an interpolant directly follow from the
+deﬁnitions of CAand I. /intersectionsq/unionsq
+4.2.4 Abstraction reﬁnement for lazy zone abstraction
+To maintain well-labeledness, procedures cover and disable rely on a procedure block that
+performs abstraction reﬁnement by safely adjusting labels of nodes. Algorithm 6describes
+two methods for abstraction reﬁnement based on interpolation for zones. Both methods arebased on pre- and post-image computation, and can be considered as a generalization of zoneinterpolation to sequences of transitions of a timed automaton. The main difference betweenthe two strategies is that block
+fw(which we refer to as the “forward” zone interpolation
+strategy) propagates the interpolant forward using postC; whereas block bw(which we refer
+to as the “backward” zone interpolation strategy) propagates “bad” zones, obtained as thecomplement of the interpolant, backward using pre
+C.
+123
+
+--- Page 18 ---
+18 T. Tóth, I. Majzik
+Algorithm 6 Reﬁnement Strategies for Lazy Zone Abstraction
+1:ensure W⊆I
+2:ensure I∩B⊆⊥
+3:function blockfw(n,B)returns I
+4: ifW∩B⊆⊥ then
+5: return W
+6: else
+7: if(m,n)∈Efor some mthen
+8: lett=t(m,n)
+9: letB/prime=preCt(B)
+10: letA/prime=blockfw(m,B/prime)
+11: letA=postCt(A/prime)
+12: else
+13: letA=Z
+14: letI=interpolate Z(A,B)
+15: update (n,(Z,W∩I))16: return I
+17:procedure blockbw(n,B)
+18: ifW∩B⊆⊥ then
+19: return
+20: else
+21: letI=interpolate Z(Z,B)
+22: if(m,n)∈Efor some mthen
+23: lett=t(m,n)
+24: for all B/prime∈¬Ido
+25: letB/prime/prime=preCt(B/prime)
+26: blockbw(m,B/prime/prime)
+27: update (n,(Z,W∩I))
+In order to make proofs of correctness for the two reﬁnement strategies more concise, we
+state the following simple lemmas.
+Lemma 5 postC
+t(Z)⊆Z/prime⇒postt/llparenthesisZ/rrparenthesis⊆/llparenthesisZ/prime/rrparenthesis
+Lemma 6 /llparenthesisZ∩Z/prime/rrparenthesis=/llparenthesisZ/rrparenthesis∩/llparenthesisZ/prime/rrparenthesis
+Proposition 13 block fwis totally correct: if Z ∩B⊆⊥ ,t h e n block fw(n,B)terminates
+and ensures W ⊆I and I ∩B⊆⊥ and W ∩B⊆⊥ . Moreover, it preserves well-labeledness
+and feasibility of G.
+Proof Termination of the procedure is trivial. Moreover, the procedure trivially maintains
+feasibility of G, as it does not create new nodes. Thus we focus on partial correctness and
+the preservation of well-labeledness. By contract (Algorithm 4),Z∩B⊆⊥ is ensured.
+Moreover, notice that W∩B⊆⊥ follows from W⊆Iand I∩B⊆⊥ , thus it is sufﬁcient
+to establish the latter two claims.
+IfW∩B⊆⊥ ,t h e n I=W,s oW⊆IandI∩B⊆⊥ are trivially established. Moreover,
+well-labeledness is trivially maintained, as no reﬁnement is performed.
+Otherwise, if nis the root, then A=Z. Thus interpolate Z(A,B)can be called, and
+the resulting interpolant Iis such that Z⊆IandI∩B⊆⊥ .A si nt h i sc a s e Z=Z0, clearly
+Σ0⊆/llparenthesisI/rrparenthesis. Thus Σ0⊆/llparenthesisW∩I/rrparenthesisbyinitiation and Lemma 6. Therefore, update (n,(Z,W∩I))
+can be called, which establishes W⊆I, while preserving the well-labeledness of G.
+Otherwise, there exists a transition t=tm,nfor some node m.S i n c e Z=postC
+t(Z/prime)and
+B/prime=preC
+t(B),w eh a v e Z/prime∩B/prime⊆⊥ for(Z/prime,W/prime)=smby Lemma 4. Thus block fw(m,B/prime)
+can be called, and as a result, A/primeis such that W/prime⊆A/primeand A/prime∩B/prime⊆⊥ by contract. As
+A=postC
+t(A/prime),w eo b t a i n A∩B⊆⊥ by Lemma 4. Thus interpolate Z(A,B)can be called,
+and the resulting interpolant Iis such that A⊆Iand I∩B⊆⊥ . By the monotonicity of
+images in ⊆,w eh a v e postC
+t(W/prime)⊆A. Hence postC
+t(W/prime)⊆I, from which postt/llparenthesisW/prime/rrparenthesis⊆/llparenthesisI/rrparenthesis
+follows by Lemma 5. Thus postt/llparenthesisW/prime/rrparenthesis⊆/llparenthesisW∩I/rrparenthesisbyconsecution and Lemma 6. Therefore,
+update (n,(Z,W∩I))can be called, which establishes W⊆I, while preserving the well-
+labeledness of G. /intersectionsq/unionsq
+Proposition 14 block bwis totally correct: if Z ∩B⊆⊥ ,t h e n block bw(n,B)terminates
+and ensures W ∩B⊆⊥ . Moreover, it preserves well-labeledness and feasibility of G.
+123
+
+--- Page 19 ---
+Conﬁgurable veriﬁcation of timed automata… 19
+Proof Termination of the procedure is trivial. Moreover, the procedure trivially maintains
+feasibility of G, as it does not create new nodes. Thus we focus on partial correctness and the
+preservation of well-labeledness. By contract, Z∩B⊆⊥ is ensured.
+IfW∩B⊆⊥ , then the contract is trivially satisﬁed. Moreover, well-labeledness is trivially
+maintained, as no reﬁnement is performed.
+Otherwise, interpolate Z(Z,B)can be called, and the resulting interpolant Iis such
+that Z⊆Iand I∩B⊆⊥ . We show that at the end of the procedure, the claim W⊆I,a n d
+thus W∩B⊆⊥ holds.
+Assume nis the root node. In this case Z=Z0, thus clearly Σ0⊆/llparenthesisI/rrparenthesis. Thus
+Σ0⊆/llparenthesisW∩I/rrparenthesisbyinitiation and Lemma 6. Therefore, update (n,(Z,W∩I))can be called,
+which establishes W⊆I, while preserving the well-labeledness of G.
+Now assume there exists a transition t=tm,nfor some node mwith(Z/prime,W/prime)=sm.
+Let B/prime∈¬ I,a n d B/prime/prime=preC
+t(B/prime). Clearly, Z∩B/prime⊆⊥ .A s Z=postC
+t(Z/prime), we obtain
+Z/prime∩B/prime/prime⊆⊥ by Lemma 4. Thus block bw(m,B/prime/prime)can be called, which ensures W/prime∩B/prime/prime⊆⊥
+by contract. Thus postC
+t(W/prime)∩B/prime⊆⊥ by Lemma 4. Hence postC
+t(W/prime)⊆I, from which
+postt/llparenthesisW/prime/rrparenthesis⊆/llparenthesisI/rrparenthesisfollows by Lemma 5. Thus postt/llparenthesisW/prime/rrparenthesis⊆/llparenthesisW∩I/rrparenthesisbyconsecution and
+Lemma 6. Therefore, update (n,(Z,W∩I))can be called, which establishes W⊆I,
+while preserving the well-labeledness of G. /intersectionsq/unionsq
+We would like to point out that for reﬁnement with block fw, syntactically, it is sufﬁcient to
+store a single zone at each node, thus obtaining a major optimization in memory consumption.In particular, it is sufﬁcient to store Zat leaves, and store Wat non-leaf nodes. This is due
+to the fact that while running the algorithm, Zis only necessary when expand is called, and
+when the interpolant is computed for the initial node, in this later situation Zbeing obvious.
+On the other hand, Wis only necessary when calling cover , where coverer nodes are always
+non-leaf. Moreover, it is always safe to treat Was⊥for leafs.
+4.3 Abstraction and refinement for discrete variables
+In the following, we describe strategies for the handling of discrete variables that appear in
+timed automata speciﬁcations.
+4.3.1 Explicit tracking of variables
+The most straightforward way for the handling discrete variables is to explicitly track theirvalue.
+Deﬁnition 21 (Explicit domain )L e t
+E=V(D). We deﬁne the abstraction that tracks discrete
+variables explicitly as the abstract domain DE=(E,=,ν0,postD,/llparenthesis·/rrparenthesis).
+Proposition 15 DEis sound.
+Similarly to zone abstraction, we deﬁne cover Eto be a no-op, thus its total correctness
+is trivial. Moreover, let disable E(n,t)/circleequal(postt(ν)/subsetsqequal⊥)where ν=sn.
+Proposition 16 disable Eis totally correct: disable E(n,t)terminates and preserves well-
+labeledness and feasibility of G; moreover, it returns false iff t is data-feasible from n, and
+ensures that t is disabled from /llbracketsn/rrbracketotherwise.
+123
+
+--- Page 20 ---
+20 T. Tóth, I. Majzik
+Proof Termination of the procedure is trivial. Well-labeledness and feasibility follow from
+the fact that the procedure has no side effects. Let πbe the path induced by n. Notice that
+ν=postD
+π(ν0). Assume postD
+t(ν)/negationslash=⊥ . Then by deﬁnition, tis data-feasible from n,a n dt h e
+procedure returns false . Now assume postD
+t(ν)=⊥ . Then by deﬁnition, tis not data-feasible
+from n.B u t tis also disabled from /llparenthesisν/rrparenthesis, and the procedure returns true . /intersectionsq/unionsq
+4.3.2 Visible variables abstraction
+Instead of explicitly tracking in all states the values for all variables, by tracking in each state
+only those that play a role in unreachability of a given location along a path through the state,and “hiding” all the others, the size of the explored state space can be signiﬁcantly reduced.In the following, we describe such an abstract domain, together with the correspondingreﬁnement strategies.
+Deﬁnition 22 (Visible variables domain )L e t D
+EI=(S,/subsetsqequal,init,post,/llbracket·/rrbracket)be the abstract
+domain over DEwith
+–S=V(D)×P(D),
+–(ν,Q)/subsetsqequal(ν/prime,Q/prime)iffν/precedesequalν/prime/harpoonuprightQ/primeand Q/prime⊆Q(thus/subsetsqequalis a preorder),
+–init=(init,∅),
+–postt(ν,Q)=(postt(ν),∅),a n d
+–/llbracket(ν,Q)/rrbracket=/llparenthesisν/harpoonuprightQ/rrparenthesis.
+Proposition 17 DEIis sound.
+Algorithm 7describes the corresponding reﬁnement methods. Both cover EI and
+disable EIrely on a procedure refine for abstraction reﬁnement. Moreover, disable EI
+depends on a weakest precondition operator, deﬁned by the following property.
+Deﬁnition 23 (Weakest discrete precondition )L e t wpD
+t(ϕ) be the formula such that
+ν|/equal1wpD
+t(ϕ)iffpostD
+t(ν)|/equal1ϕfor all νandϕ, with respect to t.
+In cover EI,a sν/precedesequalν/prime/harpoonuprightQ/prime,w eh a v e ν|/equal1form(ν/prime/harpoonuprightQ/prime)by Lemma 2, thus calling
+refine (n,form(ν/prime/harpoonuprightQ/prime))is safe. Other than that, total correctness of cover EIfollows trivially
+from total correctness of refine (see later).
+Proposition 18 disable EIis totally correct: disable EI(n,t)terminates and preserves well-
+labeledness and feasibility of G; moreover, it returns false iff t is data-feasible from n, and
+ensures that t is disabled from /llbracketsn/rrbracketotherwise.
+Proof Termination of the procedure is trivial. Well-labeledness and feasibility follow from
+the total correctness of refine .L e tπbe the path induced by n. Notice that ν=postD
+π(ν0).
+Assume postD
+t(ν)/negationslash=⊥ . Then by deﬁnition, tis data-feasible from n, and the procedure
+returns false . Now assume postD
+t(ν)=⊥ . Then by deﬁnition, tis not data-feasible from n.
+AspostD
+t(ν)|/equal1 ⊥ , by Deﬁnition 23,w eg e t ν|/equal1wpD
+t(⊥). Thus refine (n,wpD
+t(⊥))can be
+called, and as a result, ν/harpoonuprightQ|/equal1wpD
+t(⊥). By Deﬁnition 23,w eg e t postD
+t(ν/harpoonuprightQ)|/equal1 ⊥ , thus
+clearly postD
+t(ν/harpoonuprightQ)=⊥ . Thus tbecomes disabled from /llparenthesisν/harpoonuprightQ/rrparenthesis, and the procedure returns
+true . /intersectionsq/unionsq
+123
+
+--- Page 21 ---
+Conﬁgurable veriﬁcation of timed automata… 21
+Algorithm 7 Visible V ariables Abstraction
+1:procedure cover EI(n,n/prime)
+2: let(ν,·)=sn
+3: let(ν/prime,Q/prime)=sn/prime
+4: ifν/precedesequalν/prime/harpoonuprightQ/primethen
+5: refine (n,form(ν/prime/harpoonuprightQ/prime))
+6:function disable EI(n,t)7: let(ν,·)=sn
+8: letν/prime=postDt(ν)
+9: ifν/prime=⊥ then
+10: refine (n,wpDt(⊥))
+11: return true
+12: else
+13: return false
+14:invariant Gis well-labeled and feasible
+15:deﬁne (ν,Q)=sn
+16:require ν|/equal1ϕ
+17:ensure ν/harpoonuprightQ|/equal1ϕ
+18:procedure refine (n,ϕ)
+4.3.3 Interpolation for valuations
+The proposed reﬁnement strategies for discrete variables, and in particular, different imple-
+mentations of refine are based on the notion of a valuation interpolant, deﬁned over a
+valuation and a formula.
+Deﬁnition 24 (Valuation interpolant ) Given a valuation σand a formula ϕsuch that
+σ|/equal1ϕ, a valuation interpolant is a valuation σ/primesuch that σ/precedesequalσ/primeandσ/prime|/equal1ϕand
+def(σ/prime)⊆def(σ)∩vars(ϕ).
+Algorithm 8 Interpolation for V aluations
+1:invariant Gis well-labeled and feasible
+2:require σ|/equal1ϕ
+3:ensure σ/harpoonuprightIis an interpolant for σandϕ
+4:function interpolate E(σ,ϕ)returns I
+5: letX=def(σ)∩vars(ϕ)
+6: I←X
+7: for all x∈Xdo
+8: letI/prime=I\{x}
+9: ifσ/harpoonuprightI/prime|/equal1ϕthen
+10: I←I/prime
+11: return I
+Proposition 19 Function interpolate Eis totally correct: if σ|/equal1ϕ,t h e n
+interpolate E(σ, ϕ) terminates and ensures σ/harpoonuprightI|/equal1ϕ. Moreover, it preserves well-
+labeledness and feasibility of G.
+Proof Function interpolate Ehas no side effect, it thus trivially maintains feasibility and
+well-labeledness. Moreover, it is easy to see that it satisﬁes its contract, as the postconditionis an invariant for the loop. /intersectionsq/unionsq
+Next, we show how valuation interpolants can be used for hiding variables that are irrel-
+evant with respect to the reachability of a given location along a path.
+123
+
+--- Page 22 ---
+22 T. Tóth, I. Majzik
+4.3.4 Abstraction reﬁnement for visible variables abstraction
+Algorithm 9outlines two strategies for abstraction reﬁnement over the visible variables
+abstract domain. Symmetrically to the variants of block , procedure refine fw(which we
+refer to as the “forward” valuation interpolation strategy) propagates interpolants forwardusing post
+D; whereas procedure refine bw(which we refer to as the “backward” valuation
+interpolation strategy) propagates interpolants backward using wpDalong the path to be
+reﬁned.
+Algorithm 9 Reﬁnement Strategies for Visible V ariables Abstraction
+1:ensure I⊆Q
+2:ensure ν/harpoonuprightI|/equal1ϕ
+3:function refinefw(n,ϕ)returns ν/harpoonuprightI
+4: ifν/harpoonuprightQ|/equal1ϕthen
+5: return ν/harpoonuprightQ
+6: else
+7: if(m,n)∈Efor some mthen
+8: lett=t(m,n)
+9: letϕ/prime=wpDt(ϕ)
+10: letα/prime=refinefw(m,ϕ/prime)
+11: letα=postDt(α/prime)
+12: else
+13: letα=ν
+14: letI=interpolate E(α, ϕ)15: update (n,( ν, Q∪I))
+16: return ν/harpoonuprightI
+17:procedure refinebw(n,ϕ)
+18: ifν/harpoonuprightQ|/equal1ϕthen
+19: return
+20: else
+21: letI=interpolate E(ν, ϕ)
+22: if(m,n)∈Efor some mthen
+23: lett=t(m,n)
+24: letϕ/prime=wpDt(form(ν/harpoonuprightI))
+25: refinebw(m,ϕ/prime)
+26: update (n,( ν, Q∪I))
+To make our formal description more concise, we state the following simple lemmas.
+Lemma 7 α/precedesequalβ⇒postD
+t(α)/precedesequalpostD
+t(β)
+Lemma 8 postD
+t(ν)/precedesequalν/prime⇒postt/llparenthesisν/rrparenthesis⊆/llparenthesisν/prime/rrparenthesis
+Lemma 9 /llparenthesisν/harpoonuprightA∪B/rrparenthesis=/llparenthesisν/harpoonuprightA/rrparenthesis∩/llparenthesisν/harpoonuprightB/rrparenthesis
+Proposition 20 refine fwis totally correct: if ν|/equal1ϕ,t h e n refine fw(n,ϕ) terminates and
+ensures I ⊆Q and ν/harpoonuprightI|/equal1ϕandν/harpoonuprightQ|/equal1ϕ. Moreover, it preserves well-labeledness and
+feasibility of G.
+Proof Termination of the procedure is trivial. Moreover, the procedure trivially maintains
+feasibility of G, as it does not create new nodes. Thus we focus on partial correctness and
+the preservation of well-labeledness. By contract, ν|/equal1ϕis ensured. Moreover, notice that
+ν/harpoonuprightQ|/equal1ϕfollows from I⊆Qandν/harpoonuprightI|/equal1ϕby Lemma 1, thus it is sufﬁcient to establish the
+latter two claims.
+Ifν/harpoonuprightQ|/equal1ϕ,t h e n I=Q,s o I⊆Qandν/harpoonuprightI|/equal1ϕare trivially established. Moreover,
+well-labeledness is trivially maintained, as no reﬁnement is performed.
+Otherwise, if nis the root, then α=ν. Thus interpolate E(α, ϕ) can be called, and the
+resulting interpolant Iis such that ν/harpoonuprightI|/equal1ϕ.A si nt h i sc a s e ν=ν0, clearly Σ0⊆/llparenthesisν/harpoonuprightI/rrparenthesis.
+ThusΣ0⊆/llparenthesisν/harpoonuprightQ∪I/rrparenthesisbyinitiation and Lemma 9. Therefore, update (n,( ν, Q∪I))can be
+called, which establishes I⊆Q, while preserving the well-labeledness of G.
+Otherwise, there exists a transition t=tm,nfor some node m.S i n c e ν=postD
+t(ν/prime)and
+ϕ/prime=wpD
+t(ϕ),w eh a v e ν/prime|/equal1ϕ/primefor(ν/prime,Q/prime)=smby Deﬁnition 23. Thus refine fw(m,ϕ/prime)can
+123
+
+--- Page 23 ---
+Conﬁgurable veriﬁcation of timed automata… 23
+Table 1 Summary of reﬁnement strategies
+Lazy zone interpolation Lazy valuation interpolation
+Forward Backward Forward Backward
+DD ZI DEI
+cover cover ZI cover EI
+disable disable ZI disable EI
+Propagation blockfw blockbw refinefw refinebw
+Interpolation interpolate Z interpolate E
+be called, and as a result, α/primeis such that α/prime=ν/prime/harpoonuprightI/primeand I/prime⊆Q/primeandα/prime|/equal1ϕ/primeby contract for
+some I/prime.A sα=postD
+t(α/prime),w eo b t a i n α|/equal1ϕby Deﬁnition 23. Thus interpolate E(α, ϕ)
+can be called, and the resulting interpolant Iis such that α/harpoonuprightI|/equal1ϕ. Clearly ν/prime/precedesequalα/prime,
+thusν/precedesequalαby Lemma 7. Therefore, ν/harpoonuprightI=α/harpoonuprightI,a s I⊆def(α).F r o mt h i s , ν/harpoonuprightI|/equal1ϕ
+follows directly. Moreover, as ν/prime/harpoonuprightQ/prime/precedesequalν/prime/harpoonuprightI/prime/prime, by Lemma 7,w eh a v e postD
+t(ν/prime/harpoonuprightQ/prime)/precedesequalα.
+Hence postD
+t(ν/prime/harpoonuprightQ/prime)/precedesequalν/harpoonuprightI, from which postt/llparenthesisν/prime/harpoonuprightQ/prime/rrparenthesis⊆/llparenthesisν/harpoonuprightI/rrparenthesisfollows by Lemma 8. Thus
+postt/llparenthesisν/prime/harpoonuprightQ/prime/rrparenthesis⊆/llparenthesisν/harpoonuprightQ∪I/rrparenthesisbyconsecution and Lemma 9. Therefore, update (n,( ν, Q∪I))
+can be called, which establishes I⊆Q, while preserving the well-labeledness of G. /intersectionsq/unionsq
+Proposition 21 refine bwis totally correct: if ν|/equal1ϕ,t h e n refine bw(n,ϕ) terminates and
+ensures ν/harpoonuprightQ|/equal1ϕ. Moreover, it preserves well-labeledness and feasibility of G.
+Proof Termination of the procedure is trivial. Moreover, the procedure trivially maintains
+feasibility of G, as it does not create new nodes. Thus we focus on partial correctness and the
+preservation of well-labeledness. By contract, ν|/equal1ϕis ensured.
+Ifν/harpoonuprightQ|/equal1ϕ, then the contract is trivially satisﬁed. Moreover, well-labeledness is trivially
+maintained, as no reﬁnement is performed.
+Otherwise interpolate E(ν, ϕ) can be called, and the resulting interpolant Iis such that
+ν/harpoonuprightI|/equal1ϕ. We show that at the end of the procedure, the claim I⊆Q, and thus by Lemma 1
+alsoν/harpoonuprightQ|/equal1ϕholds.
+Assume nis the root node. In this case ν=ν0, thus clearly Σ0⊆/llparenthesisν/harpoonuprightI/rrparenthesis. Thus
+Σ0⊆/llparenthesisν/harpoonuprightQ∪I/rrparenthesisfollows by initiation and Lemma 9. As a consequence, update (n,( ν, Q∪I))
+can be called, which establishes I⊆Q, while preserving the well-labeledness of G.
+Now assume there exists a transition t=tm,nfor some node mwith(ν/prime,Q/prime)=sm. Clearly,
+ν/precedesequalν/harpoonuprightI, thusν|/equal1form(ν/harpoonuprightI)by Lemma 2.A sν=postD
+t(ν/prime)andϕ/prime=wpD
+t(form(ν/harpoonuprightI))
+we obtain ν/prime|/equal1ϕ/primeby Deﬁnition 23. Thus refine bw(m,ϕ/prime)can be called, which ensures
+ν/prime/harpoonuprightQ/prime|/equal1ϕ/primeby contract. Thus postD
+t(ν/prime/harpoonuprightQ/prime)|/equal1form(ν/harpoonuprightI)by Deﬁnition 23. Hence
+postD
+t(ν/prime/harpoonuprightQ/prime)/precedesequalν/harpoonuprightIby Lemma 2, from which postt/llparenthesisν/prime/harpoonuprightQ/prime/rrparenthesis⊆/llparenthesisν/harpoonuprightI/rrparenthesisfollows by
+Lemma 8. Thus postt/llparenthesisν/prime/harpoonuprightQ/prime/rrparenthesis⊆/llparenthesisν/harpoonuprightQ∪I/rrparenthesisbyconsecution and Lemma 9. As a consequence,
+update (n,( ν, Q∪I))can be called, which establishes I⊆Q, while preserving the well-
+labeledness of G. /intersectionsq/unionsq
+Finally, to conclude this section, Table 1summarizes the different abstraction reﬁnement
+strategies discussed.
+5 Evaluation
+In this section, we investigate how each algorithm conﬁguration that our framework supportsbehaves on a wide range of timed automata models in terms of performance (execution time)
+123
+
+--- Page 24 ---
+24 T. Tóth, I. Majzik
+and size of the state space (number of nodes in the generated ART). The input models,
+raw measurement data, and instructions to reproduce our experiments are available in asupplementary material [ 32].
+We implemented a prototype version of our algorithm and reﬁnement strategies in the
+open source model checking framework Theta [29]. Our tool performs location reachability
+checking on models given in a reasonable language subset
+1of the Uppaal 4.0 XTA format.
+To enable comparison to the state-of-the-art, we implemented in our framework a variant
+of the lazy abstraction method of [ 22] based on LU-bounds as an alternative reﬁnement
+strategy for clock variables (by deﬁning the domain, cover and disable accordingly). The
+main difference in our implementation compared to [ 22] is that when performing abstraction
+reﬁnement, bounds are propagated from all guards on an infeasible path, and not just fromones that contribute to the infeasibility. Because of this, reﬁnement in the resulting algorithmis extremely cheap, but as the comparison of our data with that of [ 22] suggests, for the
+models examined in both papers, the algorithm is similarly as space- and time-efﬁcient asthe original one.
+The algorithms are evaluated for both breadth-ﬁrst and depth-ﬁrst search orders of ART
+expansion. By combining all the possible alternatives, this results in 16 distinct algorithmconﬁgurations:
+– as search order, breadth-ﬁrst ( BFS) or depth-ﬁrst ( DFS ) search,
+– for clock variables, forward ( FWITP ) or backward ( BWITP ) zone interpolation, or lazy
+a
+/precedesequalLUabstraction ( LU),
+– for discrete variables, forward ( FWITP ) or backward ( BWITP ) valuation interpolation, or
+no reﬁnement ( NONE ).
+Each algorithm conﬁguration is encoded as a string containing three characters, specif-
+ically the ﬁrst character of the name of each selected parameter. So for example, theconﬁguration with BFS as search order, LUas reﬁnement strategy for clock variables, and
+NONE as reﬁnement strategy for discrete variables, is going to be encoded as BLN .
+For the conﬁgurations that handle discrete variables explicitly ( ·N·), we partitioned the set
+of nodes of the ART based on the value of the data valuation, this way saving the
+O(n)cost
+of checking inclusion for valuations. This optimization also signiﬁcantly reduces the numberof nodes for which coverage is checked and attempted during close . Apart from this and the
+difference in reﬁnement strategies, the implementation of the conﬁgurations is shared.
+As inputs we considered 51 timed automata models in total, which we divided to three dis-
+tinct categories. For each model, the number of clock variables/number of discrete variables
+is given in parentheses.
+– Category PAT : classic timed automata models from the Pat benchmark set.
+2These
+models contain only a few discrete variables.
+–critical nwith n∈{3,4}(n/1): Critical Region with nprocesses.
+–csma nwith n∈{9,10,11,12}(n/1): CSMA/CD protocol with nprocesses.
+–fddi nwith n∈{50,70,90,110}(3n+1/1): FDDI token ring with nprocesses.
+–ﬁscher nwith n∈{7,8,9,10}(n/1): Fischer’s mutual exclusion protocol with n
+processes.
+–lynch nwith n∈{7,8,9}(n/2): Lynch-Shavit protocol with nprocesses.
+1Not supporting procedures and composite types other than arrays of synchronization channels.
+2https://www.comp.nus.edu.sg/~pat/bddlib/timedexp.html .
+123
+
+--- Page 25 ---
+Conﬁgurable veriﬁcation of timed automata… 25
+– Category MCTA : model containing a signiﬁcant number of discrete variables (relative to
+the number of clock variables). Most of the models come from the Mcta benchmark
+set,3while some of them come from the Uppaal benchmark set.4
+–bocdp (3/26), bocdpf (3/26): models of the Bang & Olufsen Collision Detection
+Protocol obtained from the Uppaal benchmark set.
+–brp (7/7): a model of the Bounded Retransmission Protocol.
+–c1(3/12), c2(3/14), c3(3/15), c4(3/17): models of a real-time mutual exclusion
+protocol obtained from the Mcta benchmark set.
+–m1 (4/11), m2 (4/13), m3 (4/13), m4 (4/15), n1(7/11), n2(7/13), n3(7/13),
+n4(7/15), e1(3/41): industrial cases studies obtained from the Mcta benchmark
+set.
+– Fischer’s protocol with diagonal constraints, based on [ 28]
+–diag nwith n∈{3,4,5,6,7,8}(2n/1): the original model, containing diagonal
+constraints.
+–split nwith n∈{3,4,5,6,7,8}(2n/n+1): diagonal-free model obtained from diag
+nby eliminating diagonal constraints by introducing additional discrete variables
+and transitions, following the idea described in [ 6].
+–optnwith n∈{3,4,5,6,7,8}(2n/n+1): diagonal-free model obtained from split
+nby (manually) removing some guards, updates and transitions about which it can
+statically be established that they do not inﬂuence the set of reachable locations.
+We performed our measurements on a machine running Windows 10 with a 2.6 GHz dual
+core CPU and 8GB of RAM. We evaluated the algorithm conﬁgurations for both executiontime and the number of nodes in the resulting ART. The timeout (denoted by “–” in the tables)was set to 300 s. The execution time shown in the following tables is the average of 10 runs,obtained from 12 deterministic runs by removing the slowest and the fastest one. For eachmodel, the value belonging to the best conﬁguration is typeset in bold .
+5.1 Diagonal-free models
+Performing location reachability checking on the models, Figure 1a shows the frequency
+with which different relative standard deviation (RSD) values of execution time occur. Itcan be seen from the plot that higher RSD values ( >5%) are relatively rare among the
+measurements. Moreover, Figure 1b shows how the RSD of execution time relates to the
+average execution time for each model and conﬁguration (in this type of ﬁgures, each pointrepresents the average result for a given model and conﬁguration). Aside from a few outliersamong the PAT models, it can be stated that higher RSD values belong to small average
+execution times, as expected. Thus it is justiﬁable to base the comparison of conﬁgurationson the average value.
+As can be seen on Figure 2, on the selected benchmark set, having all other conﬁguration
+parameters ﬁxed, clock reﬁnement strategies FWITP andBWITP do not signiﬁcantly differ
+in performance. On both benchmarks, FWITP slightly outperforms BWITP in the size of the
+generated state space. Moreover, for the MCTA models, FWITP , while for the PAT models,
+BWITP performs slightly better in terms of execution time (note the logarithmic scale on
+3http://gki.informatik.uni-freiburg.de/tools/mcta/benchmarks.html .
+4https://www.it.uu.se/research/group/darts/uppaal/benchmarks .
+123
+
+--- Page 26 ---
+26 T. Tóth, I. Majzik
+0102030
+0.00 0.02 0.04 0.06
+RSD of execution timecount
+(a)Frequency1e+031e+041e+05
+0.02 0.04 0.06
+RSD of execution timeexecution time (ms)Category
+MCTA
+PAT
+(b)Compared to Execution Time (ms)
+Fig. 1 Relative Standard Deviation of Execution Time
+1e+031e+041e+05
+1e+03 1e+04 1e+05
+FWITPBWITPCategory MCTA PAT
+(a)Execution Time (ms)1e+031e+041e+051e+06
+1e+03 1e+04 1e+05 1e+06
+FWITPBWITPCategory MCTA PAT
+(b)Number of Nodes
+Fig. 2 Clock Reﬁnement: BWITP vs.FWITP
+the axes). An explanation for this is that in general, FWITP tends to perform less reﬁnement
+steps (as reﬁnement is performed in a single iteration), whereas BWITP performs reﬁnement
+steps more cheaply (as no post-image computation is involved). In our experiments, thetwo algorithms performed roughly the same number of reﬁnement steps for the PAT models
+(probably due to discovering the same or similar simple invariants), in which case BWITP has
+an advantage. In the case of MCTA models however, in general, the number of reﬁnement
+steps performed was in favor of FWITP .
+Figure 3shows similar results for comparing the two interpolation-based strategies for
+discrete reﬁnement. Here, BWITP tends to perform better in terms of execution time. There-
+fore, we are going to omit detailed results for clock reﬁnement BWITP and discrete reﬁnement
+FWITP for the rest of the section.
+Figure 4compares the impact of the two search orders on performance. With respect to
+execution time, DFS generally outperforms BFS on the MCTA models, whereas on the PAT
+models, the performance of the two search orders is balanced. When considering the size ofthe state space, the tendency is similar.
+123
+
+--- Page 27 ---
+Conﬁgurable veriﬁcation of timed automata… 27
+1e+031e+041e+05
+1e+03 1e+04 1e+05
+BWITPFWITPCategory MCTA PAT
+(a)Execution Time (ms)1e+031e+041e+051e+06
+1e+03 1e+04 1e+05 1e+06
+BWITPFWITPCategory MCTA PAT
+(b)Number of Nodes
+Fig. 3 Discrete Reﬁnement: FWITP vs.BWITP
+1e+031e+041e+05
+3e+03 1e+04 3e+04 1e+05 3e+05
+BFSDFSCategory MCTA PAT
+(a)Execution Time (ms)1e+031e+041e+051e+06
+1e+04 1e+05 1e+06
+BFSDFSCategory MCTA PAT
+(b)Number of Nodes
+Fig. 4 Search Order: DFS vs. BFS
+Clock reﬁnements LUandFWITP are compared on Figure 5. With respect to execution
+time, LUperforms better in category PAT , whereas FWITP performs better in category MCTA .
+However, with respect to the size of the state space, FWITP outperforms LU.
+Figure 6shows the pairwise comparison of interpolation-based and explicit handling of
+discrete variables. On the MCTA models, BWITP is always able to generate an—in some cases,
+signiﬁcantly—smaller state space. Unsurprisingly, the same reduction effect is not presentonPAT models, where there are only one or two discrete variables. Despite the signiﬁcant
+reduction in state space, on the models considered, aside from a couple of cases, BWITP
+is somewhat slower. Beside the obvious overhead of running abstraction reﬁnement, thiscan be explained with the optimization of coverage checking applied in the explicit case, asdescribed above.
+The detailed results for the PAT models are shown in Table 2. On these models, conﬁgu-
+rations BLN andDLN usually perform best in terms of execution time. When considering the
+size of the state space however, there is a small variability between conﬁgurations. Moreover,
+123
+
+--- Page 28 ---
+28 T. Tóth, I. Majzik
+3e+031e+043e+041e+053e+05
+1e+03 1e+04 1e+05
+FWITPLUCategory MCTA PAT
+(a)Execution Time (ms)1e+031e+041e+051e+06
+1e+03 1e+04 1e+05 1e+06
+FWITPLUCategory MCTA PAT
+(b)Number of Nodes
+Fig. 5 Clock Reﬁnement: LUvs.FWITP
+1e+031e+041e+05
+1e+03 1e+04 1e+05
+NONEBWITPCategory MCTA PAT
+(a)Execution Time (ms)1e+031e+041e+051e+06
+1e+03 1e+04 1e+05 1e+06
+NONEBWITPCategory MCTA PAT
+(b)Number of Nodes
+Fig. 6 Discrete Reﬁnement: BWITP vs.NONE
+we point our that our results for conﬁgurations BLN andDLN are consistent with the results
+presented in [ 22].
+Detailed results for the MCTA models are shown in Table 3. Here, conﬁgurations DFN
+orDFB give the fastest execution on most models. Moreover, conﬁguration DFB generates
+the least number of nodes in almost all cases, which highlights the advantages of our newinterpolation based algorithm presented ﬁrst in [ 31].
+5.2 Models containing diagonal constraints
+We also evaluated how the different conﬁgurations are able to handle models with diagonal
+constraints. As our benchmark, we used the diagonal version of Fischer’s mutual exclusionalgorithm, as presented in [ 28]. We considered two approaches:
+123
+
+--- Page 29 ---
+Conﬁgurable veriﬁcation of timed automata… 29Table 2 Detailed results for PAT models
+Model BFB BFN BLB BLN DFB DFN DLB DLN
+(a) Execution time (s)
+critical 3 2.1 1.7 2.6 1.9 2.7 2.0 2.7 1.8
+critical 4 42.1 34.4 55.4 41.4 50.6 41.4 48.8 34.9
+csma 9 13.4 8.7 11.7 7.2 22.0 18.4 35.9 32.1
+csma 10 33.0 20.6 28.7 17.1 69.3 60.0 155.2 150.3
+csma 11 85.6 53.2 72.4 43.2 270.6 254.7 – –
+csma 12 254.7 154.8 208.7 125.8 ––––
+fddi 50 – – 9.6 9.1 3.3 3.0 2.3 2.1
+fddi 70 – – 22.9 22.3 5.8 5.3 4.1 3.7
+fddi 90 – – 50.3 49.5 10.2 9.7 7.5 7.1
+fddi 110 – – 90.0 86.8 15.9 15.4 11.9 11.4
+ﬁscher 7 4.1 3.3 3.2 2.3 4.3 3.3 3.2 2.3
+ﬁscher 8 10.3 8.4 7.2 5.4 10.1 8.5 7.1 5.2
+ﬁscher 9 34.1 28.3 19.6 14.1 34.2 28.9 18.9 14.1
+ﬁscher 10 135.3 116.1 65.4 48.9 139.1 120.1 65.7 49.9
+lynch 7 6.4 4.5 4.9 3.1 5.8 4.3 4.4 2.9
+lynch 8 17.4 11.9 11.5 7.1 16.3 12.2 10.1 6.7
+lynch 9 62.0 44.4 36.2 21.2 56.9 44.1 31.2 20.2
+123
+
+--- Page 30 ---
+30 T. Tóth, I. MajzikTable 2 continued
+Model BFB BFN BLB BLN DFB DFN DLB DLN
+(b) Number of Nodes
+critical 3 12,981 12,981 21,699 21,699 18,310 18,310 25,697 25,697
+critical 4 395,188 394,525 772,221 777,784 564,014 564,014 1,043,487 1,043,487
+csma 9 78,552 78,552 78,552 78,552 98,989 98,989 217,656 217,656
+csma 10 200,649 200,649 200,649 200,649 274,759 274,759 745,149 745,149
+csma 11 501,432 501,432 501,432 501,432 787,898 787,898 – –
+csma 12 1,230,757 1,230,757 1,230,757 1,230,757 – – – –
+fddi 50 – – 2098 2098 503 503 503 503
+fddi 70 – – 2961 2961 703 703 703 703
+fddi 90 – – 3881 3881 903 903 903 903
+fddi 110 – – 4678 4678 1103 1103 1103 1103
+ﬁscher 7 26,405 26,405 26,405 26,405 26,405 26,405 26,405 26,405
+ﬁscher 8 95,353 95,353 95,353 95,353 95,353 95,353 95,353 95,353
+ﬁscher 9 339,211 339,211 339,211 339,211 339,211 339,211 339,211 339,211
+ﬁscher 10 1,191,211 1,191,211 1,191,211 1,191,211 1,191,211 1,191,211 1,191,211 1,191,211
+lynch 7 46,915 46,915 46,915 46,915 46,915 46,915 46,915 46,915
+lynch 8 162,801 162,801 162,801 162,801 162,801 162,801 162,801 162,801
+lynch 9 563,491 563,491 563,491 563,491 563,491 563,491 563,491 563,491
+123
+
+--- Page 31 ---
+Conﬁgurable veriﬁcation of timed automata… 31
+Table 3 Detailed results for MCTA models
+Model BFB BFN BLB BLN DFB DFN DLB DLN
+(a) Execution time (s)
+bocdp 13.2 10.2 11.5 6.1 10.2 8.5 10.1 6.0
+bocdpf 15.9 20.9 14.5 12.1 9.3 16.2 9.3 10.3
+brp 13.4 12.9 9.5 7.1 17.8 20.2 18.7 8.7
+c1 4.4 2.3 5.4 3.0 3.1 1.7 3.6 2.0
+c2 8.7 5.5 11.8 6.5 6.2 4.0 7.0 4.3
+c3 9.8 6.4 13.6 8.1 7.1 4.7 8.2 4.8
+c4 70.7 46.6 117.8 82.7 41.7 29.3 50.6 33.6
+e1 5.5 3.9 6.5 4.4 4.1 2.5 4.6 2.6
+m1 2.7 2.2 5.2 3.4 1.2 1.0 1.9 1.8
+m2 7.1 5.2 14.7 9.4 2.4 2.6 4.8 4.4
+m3 8.1 6.0 17.2 9.8 3.0 2.6 5.9 4.7
+m4 28.9 17.9 84.8 43.9 6.3 6.1 16.3 10.8
+n1 2.9 2.6 5.5 3.8 1.3 1.3 1.9 1.9
+n2 7.4 7.0 17.7 11.9 2.8 3.1 5.4 4.3
+n3 8.4 6.8 17.7 12.2 3.0 3.5 5.5 5.5
+n4 30.9 28.9 87.7 57.5 6.6 8.7 22.3 21.3
+(b) Number of nodesbocdp 32,639 94,801 33,030 96,460 29,846 84,643 33,341 97,462
+bocdpf 38,492 212,225 40,083 209,430 26,544 183,402 30,230 197,234
+brp 36,761 72,117 58,825 115,675 56,786 111,705 119,826 169,672
+c1 17,156 20,967 27,058 32,963 14,973 18,614 18,292 22,968
+c2 44,906 67,433 71,657 103,476 39,644 57,170 48,069 69,760
+c3 50,713 86,285 81,524 136,015 46,593 76,335 56,833 95,548
+c4 339,560 876,266 502,423 1,365,289 318,480 737,964 389,018 932,334
+e1 24,677 31,247 37,105 47,199 20,299 23,657 23,931 27,513
+m1 4394 8541 13,171 27,216 1901 3625 4970 15,233
+m2 16,246 31,932 44,095 112,634
+5673 15,471 16,603 60,995
+m3 18,369 38,128 49,032 118,485 7181 16,189 20,291 68,091
+m4 66,255 145,378 157,864 464,477 20,335 61,915 61,606 215,984
+n1 4222 7645 13,731 26,467 1921 3898 4579 13,869
+n2 15,648 33,054 49,197 122,680 5933 15,514 18,315 53,212
+n3 17,177 32,493 48,007 122,178 6536 16,677 18,031 74,393
+n4 63,674 150,864 160,825 493,530 18,798 69,308 74,430 326,938
+1. Eager elimination of difference constraints by introducing new discrete variables (models
+split nand manually optimized versions optn).
+2. Applying abstraction reﬁnement to the model with diagonal constraints directly (models
+diag n).
+Table 4shows our detailed measurement data for all three types of models. Models split n,
+where diagonal constraints are eliminated, enable the comparison of our approach with state-of-the-art approaches presented in [ 18,28]. We point out that our results for conﬁguration
+123
+
+--- Page 32 ---
+32 T. Tóth, I. Majzik
+Table 4 Detailed results for the diagonal version of Fischer’s protocol
+Model BFB BFN BLB BLN DFB DFN DLB DLN
+(a) Execution time (s)
+diag 3 0.3 0.2 –– 0 . 3 0 . 2 ––
+diag 4 0.7 0.6 –– 0 . 8 0 . 7 ––
+diag 5 1.7 1.5 –– 2 . 0 1 . 8 ––
+diag 6 5.7 4.9 –– 6 . 9 6 . 0 ––
+diag 7 21.4 19.9 – – 27.7 25.7 – –
+diag 8 111.8 104.1 – – 153.6 144.2 – –
+split 3 0.3 0.7 0.4 0.6 0.5 0.8 0.4 0.6
+split 4 1.0 7.1 1.9 5.5 1.9 5.4 2.5 5.3
+split 5 3.1 – 19.9 259.4 11.8 – 45.4 –
+split 6 11.6 ––– ––––
+split 7 58.5 ––– ––––
+split 8 –––– ––––
+opt 3 0.3 0.3 0.3 0.2 0.4 0.4 0.3 0.2
+opt 4 0.9 1.6 0.9 0.9 1.2 1.8 1.0 0.8
+opt 5 2.8 12.7 4.3 4.8 7.8 15.8 4.5 4.1
+opt 6 10.0 244.4 36.4 49.9 – – 43.9 39.3
+opt 7 47.1 ––– ––––
+opt 8 293.5 ––– ––––
+(b) Number of nodesdiag 3 193 193 – – 220 220 – –
+diag 4 933 933 – – 1262 1262 – –
+diag 5 4181 4181 – – 5515 5515 – –
+diag 6 17,815 17,815 – – 24,772 24,772 – –
+diag 7 73,137 73,137 – – 100,147 100,147 – –
+diag 8 291,593 291,593 – – 406,392 406,392 – –
+split 3 333 1929 664 3137 492 2096 811 3322
+split 4 1833 34,579 7144 68,999 3847 31,827 12,527 82,939
+split 5 9388 – 90,877 1,572,515 27,135 – 207,627 –
+split 6 45,566 ––– ––––
+split 7 211,828 ––– ––––
+split 8 –––– ––––
+opt 3 252 619 350 621 372 639 399 655
+opt 4 1330 5591 2591 5666 2305 6092 3268 5837
+opt 5 6550 51,465 20,987 51,431 23,529 63,504 29,124 54,586
+opt 6 30,634 494,997 178,954 474,498 – – 272,734 541,533
+opt 7 137,788 ––– ––––
+opt 8 601,970 ––– ––––
+123
+
+--- Page 33 ---
+Conﬁgurable veriﬁcation of timed automata… 33
+1e+031e+041e+05
+1e+03 1e+04 1e+05
+FWITPBWITPCategory diag opt split
+(a)Execution Time (ms)1e+031e+041e+05
+1e+03 1e+04 1e+05
+FWITPBWITPCategory diag opt split
+(b)Number of Nodes
+Fig. 7 Clock Reﬁnement: BWITP vs.FWITP
+BLN are consistent with the results presented in [ 18]. In these models, by using valuation
+interpolation, both execution times and the size of the state space can be signiﬁcantly reduced.In particular, conﬁguration BFB signiﬁcantly outperforms all the other conﬁgurations.
+In general, all conﬁgurations beneﬁted greatly from the manual optimization that we
+applied for models optn. However, using valuation interpolation still signiﬁcantly improves
+performance for all conﬁgurations. Moreover, conﬁguration BFB is still by far the most
+successful conﬁguration. This also highlights the beneﬁcial effects of combining abstractionreﬁnement strategies for clock and discrete variables, in line with our results in [ 31].
+In case of models diag n, clock reﬁnement strategy LUis not applicable. The other four
+conﬁgurations, using FWITP for the handling of clocks, perform well regardless of search
+strategy, with BFN being the fastest. In fact, in case of this particular model, not eliminating
+diagonal constraints, and using zone interpolation seems to be the best of the examinedapproaches. Moreover, as Figure 7, shows, there is a signiﬁcant difference in the performance
+of the two interpolation strategies, with FWITP having the better performance.
+Finally, we point out that in case a model with diagonal constraints is analyzed by apply-
+ing zone interpolation on its own (e.g. without zone splitting [ 5]), then termination is not
+guaranteed. In particular, during our experiments, we found that the algorithm diverges onthe well-known example presented in [ 8].
+6 Conclusions
+In this paper, we presented an algorithmic framework for the lazy abstraction based location
+reachability checking of timed automata with discrete variables. We formalized in our frame-work several abstract domains and reﬁnement strategies, both for clock and discrete variables,including a novel strategy that propagates valuation interpolants forward (called forward val-uation interpolation). We also formalized the combination of abstractions and proved theirproperties. This framework allowed the straightforward implementation of efﬁcient modelcheckers using conﬁgurable combined strategies.
+We performed empirical evaluation on 16 conﬁgurations that our tool currently supports
+for 51 timed automata models, including ones that contain many discrete variables or diagonal
+123
+
+--- Page 34 ---
+34 T. Tóth, I. Majzik
+constraints. Our results show that our framework offers conﬁgurations that are competitive in
+terms of performance with the state-of-the-art. It turned out that for models with a signiﬁcantnumber of discrete variables (category MCTA ) it is worth using forward zone interpolation,
+combined with backward valuation interpolation. For the examined models with diagonalconstraints, using forward interpolation for the handling of clocks performs well. In caseof eager elimination of diagonal constraints by introducing new discrete variables, again acombination of strategies (breadth-ﬁrst search with forward zone interpolation and backwardvaluation interpolation) is the most successful strategy. In general, using valuation interpo-lation in this model category, both execution times and the size of the state space can besigniﬁcantly reduced.
+According to the method described in this paper, reﬁnement is triggered upon encountering
+a disabled transition. In the future, we intend to experiment with counterexample-guidedreﬁnement for both the abstraction of discrete and continuous variables. In addition, we planto experiment with different abstract domains (e.g. intervals, octahedra, or polyhedra), andinvestigate alternative reﬁnement strategies. Moreover, we plan to explore more sophisticatedstrategies for ﬁnding covering states, as this can potentially yield considerable speedups forour method.
+Funding Open access funding provided by Budapest University of Technology and Economics.
+Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which
+permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you giveappropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence,and indicate if changes were made. The images or other third party material in this article are included in thearticle’s Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is
+not included in the article’s Creative Commons licence and your intended use is not permitted by statutory
+regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder.To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/ .
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. Theor. Comput. Sci. 126(2), 183–235 (1994). https://
+doi.org/10.1016/0304-3975(94)90010-8
+2. Barrett, C., Sebastiani, R., Seshia, S.A., Tinelli, C.: Satisﬁability modulo theories. In: Handbook of
+Satisﬁability, chap. 26, pp. 825–885. IOS Press (2009). https://doi.org/10.3233/978-1-58603-929-5-825
+3. Behrmann, G., Bouyer, P ., Fleury, E., Larsen, K.G.: Static guard analysis in timed automata veriﬁcation.
+In: TACAS 2003, LNCS, vol. 2619, pp. 254–270. Springer (2003). https://doi.org/10.1007/3-540-36577-
+X_18
+4. Behrmann, G., Bouyer, P ., Larsen, K.G., Pelánek, R.: Lower and upper bounds in zone based abstractions
+of timed automata. In: TACAS 2004, LNCS, vol. 2988, pp. 312–326. Springer (2004). https://doi.org/10.
+1007/978-3-540-24730-2_25
+5. Bengtsson, J., Yi, W.: Timed automata: semantics, algorithms and tools. In: ACPN 2003, LNCS, vol.
+3098, pp. 87–124. Springer (2004). https://doi.org/10.1007/978-3-540-27755-2_3
+6. Bérard, B., Petit, A., Diekert, V ., Gastin, P .: Characterization of the expressive power of silent transitions
+in timed automata. Fundamenta Informaticae 36(2,3), 145–182 (1998). https://doi.org/10.3233/FI-1998-
+36233
+7. Beyer, D., Löwe, S.: Explicit-state software model checking based on CEGAR and interpolation. In:
+FASE 2013, LNCS, vol. 7793, pp. 146–162. Springer (2013). https://doi.org/10.1007/978-3-642-37057-
+1_11
+8. Bouyer, P .: Untameable timed automata! In: STACS 2003, LNCS, vol. 2607, pp. 620–631. Springer
+(2003). https://doi.org/10.1007/3-540-36494-3_54
+9. Bouyer, P ., Chevalier, F.: On conciseness of extensions of timed automata. J. Autom. Lang. Combin.
+10(4), 393–405 (2005). https://doi.org/10.25596/jalc-2005-393
+123
+
+--- Page 35 ---
+Conﬁgurable veriﬁcation of timed automata… 35
+10. Bouyer, P ., Laroussinie, F., Reynier, P .A.: Diagonal constraints in timed automata: forward analysis of
+timed systems. In: FORMA TS 2005, LNCS, vol. 3829, pp. 112–126. Springer (2005). https://doi.org/10.
+1007/11603009_10
+11. Bradley, A.R.: SA T-based model checking without unrolling. In: VMCAI 2011, LNCS, vol. 6538, pp.
+70–87. Springer (2011). https://doi.org/10.1007/978-3-642-18275-4_7
+12. Carioni, A., Ghilardi, S., Ranise, S.: Mcmt in the land of parametrized timed automata. In: International
+V eriﬁcation Workshop (VERIFY -2010), pp. 47–64 (2010)
+13. Cimatti, A., Griggio, A., Sebastiani, R.: Efﬁcient interpolant generation in satisﬁability modulo theories.
+In: TACAS 2008, LNCS, vol. 4963, pp. 397–412. Springer (2008). https://doi.org/10.1007/978-3-540-
+78800-3_30
+14. Clarke, E., Grumberg, O., Jha, S., Lu, Y ., V eith, H.: Counterexample-guided abstraction reﬁnement for
+symbolic model checking. J. ACM 50(5), 752–794 (2003). https://doi.org/10.1145/876638.876643
+15. Daws, C., Tripakis, S.: Model checking of real-time reachability properties using abstractions. In: TACAS
+1998, LNCS, vol. 1384, pp. 313–329. Springer (1998). https://doi.org/10.1007/BFb0054180
+16. Dierks, H., Kupferschmid, S., Larsen, K.G.: Automatic abstraction reﬁnement for timed automata. In:
+FORMA TS 2007, LNCS, vol. 4763, pp. 114–129. Springer (2007). https://doi.org/10.1007/978-3-540-
+75454-1_10
+17. Dill, D.L.: Timing assumptions and veriﬁcation of ﬁnite-state concurrent systems. In: CA V 1989, LNCS,
+vol. 407, pp. 197–212. Springer (1990). https://doi.org/10.1007/3-540-52148-8_17
+18. Gastin, P ., Mukherjee, S., Srivathsan, B.: Reachability in timed automata with diagonal constraints. In:
+International Conference on Concurrency Theory, LIPIcs, vol. 118, pp. 1–17. Dagstuhl (2018). https://
+doi.org/10.4230/LIPIcs.CONCUR.2018.28
+19. Henzinger, T.A., Jhala, R., Majumdar, R., Sutre, G.: Lazy abstraction. In: Principles of Programming
+Languages, pp. 58–70. ACM (2002). https://doi.org/10.1145/503272.503279
+20. Herbreteau, F., Kini, D., Srivathsan, B., Walukiewicz, I.: Using non-convex approximations for efﬁcient
+analysis of timed automata. In: Foundations of Software Technology and Theoretical Computer Science,LIPIcs, vol. 13, pp. 78–89. Dagstuhl (2011). https://doi.org/10.4230/LIPIcs.FSTTCS.2011.78
+21. Herbreteau, F., Srivathsan, B., Walukiewicz, I.: Better abstractions for timed automata. In: Logic in
+Computer Science, pp. 375–384. IEEE (2012). https://doi.org/10.1109/LICS.2012.48
+22. Herbreteau, F., Srivathsan, B., Walukiewicz, I.: Lazy abstractions for timed automata. In: CA V 2013,
+LNCS, vol. 8044, pp. 990–1005. Springer (2013). https://doi.org/10.1007/978-3-642-39799-8_71
+23. Hojjat, H., Rümmer, P ., Subotic, P ., Yi, W.: Horn clauses for communicating timed systems. In: Horn
+Clauses for V eriﬁcation and Synthesis, EPTCS, vol. 169, pp. 39–52. Open Publishing Association (2014).https://doi.org/10.4204/EPTCS.169.6
+24. Isenberg, T., Wehrheim, H.: Timed automata veriﬁcation via IC3 with zones. In: ICFEM 2014, LNCS,
+vol. 8829, pp. 203–218. Springer (2014). https://doi.org/10.1007/978-3-319-11737-9_14
+25. Kindermann, R., Junttila, T., Niemelä, I.: SMT-based induction methods for timed systems. In: FORMA TS
+2012, LNCS, vol. 7595, pp. 171–187. Springer (2012). https://doi.org/10.1007/978-3-642-33365-1_13
+26. McMillan, K.L.: Interpolation and SA T-based model checking. In: CA V 2003, LNCS, vol. 2725, pp. 1–13.
+Springer (2003). https://doi.org/10.1007/978-3-540-45069-6_1
+27. Morbé, G., Pigorsch, F., Scholl, C.: Fully symbolic model checking for timed automata. In: CA V 2011,
+LNCS, vol. 6806, pp. 616–632. Springer (2011). https://doi.org/10.1007/978-3-642-22110-1_50
+28. Reynier, P .A.: Diagonal constraints handled efﬁciently in Uppaal . Technical Report, LSV-07-02, Labo-
+ratoire Spéciﬁcation et V ériﬁcation, ENS Cachan, France (2007)
+29. Tóth, T., Hajdu, Á., Vörös, A., Micskei, Z., Majzik, I.: Theta : A framework for abstraction reﬁnement-
+based model checking. In: Formal Methods in Computer Aided Design, pp. 176–179. FMCAD Inc.(2017). https://doi.org/10.23919/FMCAD.2017.8102257
+30. Tóth, T., Majzik, I.: Lazy reachability checking for timed automata using interpolants. In: FORMA TS
+2017, LNCS, vol. 10419, pp. 264–280. Springer (2017). https://doi.org/10.1007/978-3-319-65765-3_15
+31. Tóth, T., Majzik, I.: Lazy reachability checking for timed automata with discrete variables. In: SPIN 2018,
+LNCS, vol. 10869, pp. 235–254. Springer (2018). https://doi.org/10.1007/978-3-319-94111-0_14
+32. Tóth, T., Majzik, I.: Supplementary material for the paper “Conﬁgurable veriﬁcation of timed automata
+with discrete variables”. Zenodo (2020). https://doi.org/10.5281/zenodo.3965792
+33. Wang, W., Jiao, L.: Difference bound constraint abstraction for timed automata reachability checking.
+In: FORTE 2015, LNCS, vol. 9039, pp. 146–160. Springer (2015). https://doi.org/10.1007/978-3-319-
+19195-9_10
+Publisher’s Note Springer Nature remains neutral with regard to jurisdictional claims in published maps and
+institutional afﬁliations.
+123
