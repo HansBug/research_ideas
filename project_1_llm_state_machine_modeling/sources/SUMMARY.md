@@ -42,6 +42,7 @@
 - 离散制造、过程与机器人方向继续保留：`bottle filling + conveyor + valve + level sensor`，`washing machine + rinse + dehydration + water level sensor`，`packaging + count=6 + weighing + reject`，`packaging + Grafcet + cylinder + counter + sequence`，`crusher circuit + CSS + feeder + silo level`，`air-duct robot + Navigate/Recovery/Return`，`greenhouse robot + target alignment + inspect + traverse backward`，`waste robot manipulator + state machine + force control + pick and drop`，`cotton harvesting rover + get image + move arm + pick boll`，`cotton laser weeding + get image + weed detection + move arm + laser duration`，`ASV docking + LED panel + heading error + lateral error + replan`，`tracked vehicle + shift timing + clutch + gear shift + braking stop`，`dialysis machine + fill + dwell + drain + turbidity + error alarm`，`smart shunt + posture detection + ICP / flow reference`。
 - 近期继续验证通过的高命中短语包括：`RoboSimian + contact-triggered state machine + door open / valve turn / drill grab / drive to contact`、`ground target + move to target + re-estimate + descend + confirm target + action`、`battery management system + ISO / CHG + fault + countdown + shunt`、`elevator + SCADA + hall call + queue + limit switch`、`lane change + lateral state manager + NoRequest / Finished + timer1 / timer2 / timer3`、`behavior planner + LCfast + gap structure + indicators turned on + waits for two steps`、`railway signaling + route request + switch normal / reverse + 7 sec`、`vertical car parking + rotary encoder + set point + slot position`、`eye-hand + indication / capture / mapping + G1 / G2 / G3 / G4 + PRM`、`interlocking table + abstract state machine + counter route + green/yellow signal`、`smart charging + traffic light model + low-red/high-red + standby + SoC`、`HRI + dynamic finite-state machine + SRMS / SSM / AutoMode`、`front-following + finite-state machine + intention + observing + idle`、`field robot + SMACH + row following + turning + realignment`，以及 `autonomous parking + drop-off / pick-up + point of interest + standby`、`adaptive traffic signal + weighted round-robin + Tthr + wait-time counter`、`HFSM + task selector / allocator / communication instructor / task executor`、`manufacturing cell + object handover + PUSH / PULL + F gesture`、`UAV + WAYPOINT + collision avoidance + testCollision / findWPT`、`elevator + priority rank + collective operation + privileged mode`、`traffic light + FPGA + four states + countdown`、`microgrid + state machine + Vbus / PV / battery / grid`、`mini UAV + rule-based energy management + SOC + altitude energy`、`traffic light + peak/off-peak + Sensor1 / Sensor2 + T1/T2/T3/T4/T5/T6`、`traffic light + countdown + manual override + automatic mode`、`UAV mission management + Mission Mode / Command Mode + truth table + EBNF grammar`、`safe mission manager + soft contingency + hard contingency + loiter / climb / manual / landing / termination`、`railway crossing + waiting / closing / maintenance / opening + 8 s + 6 s + pre-warning`、`humanoid + Shift CoM / Move contact link + way-point correction`、`robotic teams + barrier + TurnedOff / Free / Asking / Joined + timeout`、`EMG + low-damping / high-damping + 1.5 s / 3 s`、`teaching / teleoperation / playback + finite state machine + voice command`、`lunar rover + Planning / Traverse / Localization Recovery / Emergency Charging + HomeArm / Scoop / Drop`、`dual conveyor + state diagram + primitive flow table + T1 / T6 + material / height`、`metro railway + OCC + metro platform view + electrical control + t = 0 / 20 > t >= 15 / 50 <= t1 < 100`、`ship crossing + photo sensor #1 / #2 + bridge up / down + auto / manual + 5 detik`、`duck egg washing + Outseal PLC + 40 C + proximity counter + hairdryer + 20 detik`、`rotary parking + PLC Outseal + Android HMI + slot selection + CW / CCW + BENAR / SALAH`、`parking + Beckhoff / TwinCAT + AUTO_MODE / MAN_MODE + slot number + parking / retrieval`、`traffic light + normal / busy / priority / pedestrian / maintenance + T1-T12`、`climate chamber + Off / Automatic / Manual + humidity / temperature / CO2 + schedule + dew point + Modbus`、`railway level crossing + basic / alarm / automatic / manual + pre-alarm + 40 seconds + long alarm`、`underground parking + lift / rotate / pneumatic + slot 2A + limit switch + photoelectric`。
 - 本轮新验证通过的高命中短语，集中落在 `parking + cabin / pallet / password + 2sn`、`elevator + S7-200 + limit switch + 12 networks`、`vehicle washing + conveyor + foaming / brushing / rinsing / drying + 15 / 10 / 10 / 20 sec`、`traffic light + Verilog + Mealy FSM + S0-S7 + safe states + 64 seconds`、`railway crossing + RFID + ultrasonic + ETA + 30 seconds`；这组模式都能稳定命中 `FSM/EFSM/HSM + T0/T1 + 双 A` 的系统级控制链。
+- 本轮又新确认了一组更稳的高命中组合：`rotary parking + weight verification + password + room number + left/right shortest path + fire temperature`、`parking + crane / combs + home position + M1 / M2 / M3 / M4 + limit switch`、`traffic light + Verilog + emergency vehicle + camera module + Y1 / Y2`、`bottle filling + master coil + Sensor 1 / Sensor 2 + Timer 0 + pump`，以及 `water treatment plant + intake / distribution / backwash + turbidity + 22:30 + over current`；这些短语比泛化的 `smart parking / smart traffic / PLC project` 更容易直接命中系统级双 A 控制链。
 - 在任何新一轮联网扩样前，先做 `标题 + DOI + 目录 slug` 去重；本轮 `Autonomous Control for Miniaturized Mobile Robots in Unknown Pipe Networks` 就是命中质量很高但已在库内存在的样本，如果只看题名会被误收。
 - 若某个词簇同时带 `具体对象 + 输入感知 + 输出执行 + 局部 timer/顺序词`，默认优先级高于只写“verification / optimization / framework”的泛词簇。
 
@@ -65,6 +66,7 @@
 - `review`、`survey`、`state of the art`、`architecture`、`framework`、`middleware`、`standards` 这类题名通常低产。
 - `parking / traffic / railway + prototype / monitoring / pricing / entry-control` 这类题名，近几轮很容易漂向薄系统概述、感知管理稿或局部实验链，通常不足以支撑 `原文 = 描述 = 🟢 A`。
 - `parking / traffic + PLC / HMI / prototype / lab / SCADA` 这类题名本轮继续高频失效，`car wash + PLC` 也常漂到硬件/流程概述：很多原文虽然能下载，但正文只剩实验台、界面、接线或装置说明，没有完整系统级 `state/mode + guard + sensor + actuator + timer/recovery` 链。
+- 本轮又补强了三类应尽早止损的失败画像：`parking + Arduino / IoT + occupancy counter / website / LED` 常只剩门禁、计数或空位展示链，`traffic + Omron PLC + ladder + VB6 / manual time / simulation display` 往往把篇幅耗在仿真界面和手动配时而不是系统级 guard 链，`liquid level + MCGS + touch screen + triangle wave / analog simulation` 也容易退化成 `PLC-HMI` 演示稿甚至混入模板化错文；这三类线索都不应再按双 A 主方向继续深挖。
 - “状态/模式”如果指的是开发流程、分析流程、工具流程，而不是控制对象运行状态，应直接降权。
 - `VDM-SL / operation / formal modeling` 一类候选，如果正文主轴是操作规格和证明而不是控制对象状态链，往往很难稳定归入 `FSM / EFSM / HSM` 主补样方向。
 - 航空与机器人方向低命中特征本轮比较明确：`pose estimation`、`visual feedback`、`bearing-only observations`、`disturbance rejection`、`bifurcation analysis` 往往导向连续控制/估计论文；`autonomous driving + behavior / arbitration framework` 也容易漂到架构层，而 `space / robotics + state machine` 题名若没有显式状态、guard 和 recovery chain，常只是方法或工具论文。若没有 `mode / state / recovery / standby` 等离散词，应优先降权。
@@ -126,7 +128,7 @@
 - 下一轮优先补 `FSM/HSM/EFSM + T0/T1` 的双 A 候选，检索时默认优先找**具体工程控制客体 + 明确模式/阶段 + 输入感知 + 输出执行 + 局部 timer/顺序词**同时出现的题目。
 - 做新一轮检索前，先对照案例总账里的 `🟢 A` 分布与类型/时间/结构覆盖度，动态找出**此时此刻**最缺样本的领域，再把检索资源投过去；不要把某几个领域长期钉死成优先方向，也不要在已经补起来的领域里继续单边扩库。
 - 在 `PLC/SCADA` 工程控制方向，可优先复用 `object + controller/system/program + sensor + actuator + delay/timer/sequence/cycle` 这条模板，而不是只搜宽泛 `formal methods`。
-- 本轮起始先确认当前分支与远端同步，但工作区遗留 `5` 个已下载未入账的新目录，因此按续做轮次先补齐 `bibtex.bib / STM.md / DESC.md` 再统一回填总账。按当前可追溯记录，总计翻阅并逐篇核验 **10** 篇候选原文，最终只收录 **5** 篇同时满足“原文 = 描述 = 🟢 A、FSM / HSM / EFSM、T0 / T1、且每篇至少 1 个 STM”的新样本，并按当轮 `🟢 A` 缺口与结构平衡优先回补 `🅿️ / 🏢 / 🏭 / 🚦 / 🚆` 五个方向；期间停车 `PLC/HMI` 薄短文、平台堆料型交通 `FPGA` 稿和通用化铁路道口稿都在全文核验后被严格丢弃，相关失败画像已同步整合回关键词簇。
+- 本轮起始先确认当前分支与远端同步，工作区只有 `5` 个已下载但未成账的新目录，因此直接按续做轮次补齐 `bibtex.bib / STM.md / DESC.md` 后再统一回填总账。按当前可追溯记录，总计翻阅并逐篇核验 **9** 篇候选原文，最终只收录 **5** 篇同时满足“原文 = 描述 = 🟢 A、FSM / HSM / EFSM、T0 / T1、且每篇至少 1 个 STM”的新样本，实际落库为 `🅿️ x2 + 🚦 x1 + 🏭 x1 + 🌡️ x1`；期间 `parking + Arduino/IoT + occupancy counter`、`smart parking + website / vacant slot`、`traffic + Omron PLC + VB6/manual time` 和 `liquid level + MCGS + triangle wave` 这几类全文候选都在核验后被严格丢弃，相关失败画像已同步整合回关键词簇。
 - 在 `✈️ / ⚙️` 方向，优先找 `safe mode / LEOP / HSAFE / FTM / standby / mission supervisor / SMACH / recovery / return / extend-retract sequence / PSAM / relay / burn config / docking / heading correction / replan / laser duration / shift timing / braking stop` 这类离散模式词，而不是连续估计、轨迹跟踪和扰动抑制。
 - 在多个方向都可命中时，优先补当前更稀缺但高价值的 `FSM/HSM + T0/T1` 样本，不要让 `EFSM + PLC` 一类继续单边膨胀。
 - 在 `🩺` 方向，优先补 `robotic knee exoskeleton / pediatric knee exoskeleton / sit-to-stand exoskeleton / gait-training exoskeleton / modular neuroprosthesis / hybrid walking neuroprosthesis / FES walking assistance / reflexive FES gait controller / foot-ankle prosthesis / powered knee prosthesis / transtibial prosthesis / powered transfemoral prosthesis / myoelectric prosthesis / dexterous prosthetic hand / semi-autonomous bimanual prosthesis / multi-functional myoelectric prosthesis / portable lower-limb exoskeleton / prosthetic hand controller / transfemoral prosthesis / smart shunt / gait rehabilitation exoskeleton / MINDWALKER / dialysis / ventilator / infusion / pacemaker` 这类**模式链明确、传感器或定时 guard 明确**的设备控制论文，而不是只写临床效果或连续控制性能的论文。
@@ -136,10 +138,10 @@
 
 ## 当前收录统计
 
-- 已收录论文：**454** 篇
+- 已收录论文：**459** 篇
 - 本轮新增论文：**5** 篇
 - 累计下载失败记录：**110** 条
-- 已完成 STM 梳理：**454** 篇
+- 已完成 STM 梳理：**459** 篇
 - ⏳ 尚未提取 STM：**0** 篇
 - 本轮新增目录均已包含：PDF 原文、`bibtex.bib`、自动生成的 `paper_content.txt`，并已按 [STM_GUIDE.md](./STM_GUIDE.md) 补齐 `STM.md` 与 `DESC.md`。
 
@@ -175,15 +177,15 @@
 | 🚆 轨道交通与铁路控制 | 39 | 3 | 7 | 0 | 49 |
 | ✈️ 航空航天与飞行/空管控制 | 36 | 0 | 10 | 0 | 46 |
 | 🩺 医疗设备与生命支持控制 | 63 | 1 | 2 | 0 | 66 |
-| 🏭 工业自动化与离散制造 | 32 | 1 | 7 | 0 | 40 |
+| 🏭 工业自动化与离散制造 | 33 | 1 | 7 | 0 | 41 |
 | 🏢 楼宇机电与电梯控制 | 39 | 1 | 3 | 0 | 43 |
-| 🌡️ 过程与环境控制 | 33 | 1 | 1 | 0 | 35 |
-| 🚦 道路交通信号控制 | 39 | 4 | 0 | 0 | 43 |
-| 🅿️ 智慧停车与车位管理 | 34 | 3 | 3 | 0 | 40 |
+| 🌡️ 过程与环境控制 | 34 | 1 | 1 | 0 | 36 |
+| 🚦 道路交通信号控制 | 40 | 4 | 0 | 0 | 44 |
+| 🅿️ 智慧停车与车位管理 | 36 | 3 | 3 | 0 | 42 |
 | 🧩 建模方法与系统工程 | 1 | 0 | 3 | 0 | 4 |
 | 🔐 安全/安保分析 | 0 | 0 | 4 | 0 | 4 |
 | ⚙️ 通用控制与形式化工具 | 30 | 0 | 2 | 0 | 32 |
-| **合计** | 382 | 16 | 56 | 0 | 454 |
+| **合计** | 387 | 16 | 56 | 0 | 459 |
 
 ### 论文清单
 
@@ -647,6 +649,11 @@
 | 452 | 🏭 | `🟢 直接可用` | 1 | A Prototype PLC Built Automatic Vehicle Washing System Using VFD | 2019 | 自动洗车道顺序控制与变频输送 | `vehicle washing, PLC, VFD, conveyor, proximity sensor, timer` | [STM](./prototype-plc-built-automatic-vehicle-washing-system-vfd/STM.md) / [DESC](./prototype-plc-built-automatic-vehicle-washing-system-vfd/DESC.md) |
 | 453 | 🚦 | `🟢 直接可用` | 1 | Implementation of a Fully Automatic Four-way Traffic Light Controller Using Verilog | 2024 | 四向路口八态 Verilog 配时控制 | `traffic light controller, Verilog, Mealy FSM, S0-S7, safe states` | [STM](./fully-automatic-four-way-traffic-light-controller-verilog/STM.md) / [DESC](./fully-automatic-four-way-traffic-light-controller-verilog/DESC.md) |
 | 454 | 🚆 | `🟢 直接可用` | 1 | Automatic Railway Road Crossing (RLC) Traffic Light System for Metric Gauge Railway Network in Tanzania | 2021 | RFID/超声铁路道口监督控制 | `railway road crossing, RFID, ultrasonic sensor, barrier, ETA` | [STM](./automatic-railway-road-crossing-traffic-light-system-tanzania/STM.md) / [DESC](./automatic-railway-road-crossing-traffic-light-system-tanzania/DESC.md) |
+| 455 | 🅿️ | `🟢 直接可用` | 1 | Hardware Design and Implementation of Automated Rotary Car Parking System on FPGA | 2024 | 旋转立体停车安全与取车控制 | `rotary parking, FPGA, weight verification, password retrieval, shortest path` | [STM](./rotary-car-parking-system-fpga/STM.md) / [DESC](./rotary-car-parking-system-fpga/DESC.md) |
+| 456 | 🅿️ | `🟢 直接可用` | 1 | Design of Automated Parking System Using PLC | 2018 | 起重机梳齿式立体停车顺序控制 | `automated parking, PLC, crane-combs, limit switch, security data` | [STM](./design-of-automated-parking-system-using-plc/STM.md) / [DESC](./design-of-automated-parking-system-using-plc/DESC.md) |
+| 457 | 🚦 | `🟢 直接可用` | 1 | An Advanced Traffic Light Controller using Verilog HDL | 2017 | 密度感知与应急优先交通灯控制 | `traffic light, Verilog, FSM, emergency vehicle, camera module` | [STM](./advanced-traffic-light-controller-using-verilog-hdl/STM.md) / [DESC](./advanced-traffic-light-controller-using-verilog-hdl/DESC.md) |
+| 458 | 🏭 | `🟢 直接可用` | 1 | PLC Driven Conveyor and Bottle Filling System | 2025 | 输送带瓶装定位与定时灌装控制 | `conveyor, bottle filling, PLC, photoelectric sensor, timer` | [STM](./plc-driven-conveyor-and-bottle-filling-system/STM.md) / [DESC](./plc-driven-conveyor-and-bottle-filling-system/DESC.md) |
+| 459 | 🌡️ | `🟢 直接可用` | 1 | Model Sistem Otomatis Water Treatment Plant Menggunakan PLC Berbasis Wireless | 2021 | 水处理厂泵组调度与反冲洗控制 | `water treatment plant, PLC, backwash, turbidity, distribution pump` | [STM](./wireless-plc-water-treatment-plant/STM.md) / [DESC](./wireless-plc-water-treatment-plant/DESC.md) |
 
 ### `⚪ 未收获` 论文成因分布
 
@@ -847,13 +854,13 @@
 
 | 指标 | 数量 | 占比 | 说明 |
 | --- | ---: | --- | --- |
-| 含正例案例的论文数 | 398 | 87.7% | 以 454 篇论文为分母，至少含 1 条正例案例 |
-| 正例案例总数 | 413 | 100.0% | 案例级主账的当前规模 |
-| `💎 核心保留` | 367 | 88.9% | 可直接进入主训练集母体 |
+| 含正例案例的论文数 | 403 | 87.8% | 以 459 篇论文为分母，至少含 1 条正例案例 |
+| 正例案例总数 | 418 | 100.0% | 案例级主账的当前规模 |
+| `💎 核心保留` | 372 | 89.0% | 可直接进入主训练集母体 |
 | `🧰 清洗后保留` | 15 | 3.6% | 案例可留，但需先补原文细节或重写描述 |
-| `🪫 降采样保留` | 31 | 7.5% | 细节过线，但属于强趋同簇 |
-| `原文 = 🟢 A / 🟡 B` | 398 | 96.4% | 原文侧达到主数据集候选下限 |
-| `描述 = 🟢 A / 🟡 B` | 398 | 96.4% | 当前 STM 描述稿本身达到主数据集候选下限 |
+| `🪫 降采样保留` | 31 | 7.4% | 细节过线，但属于强趋同簇 |
+| `原文 = 🟢 A / 🟡 B` | 403 | 96.4% | 原文侧达到主数据集候选下限 |
+| `描述 = 🟢 A / 🟡 B` | 403 | 96.4% | 当前 STM 描述稿本身达到主数据集候选下限 |
 
 ### 各领域案例角色分布
 
@@ -863,15 +870,15 @@
 | 🚆 轨道交通与铁路控制 | 36 | 2 | 6 | 44 |
 | ✈️ 航空航天与飞行/空管控制 | 33 | 0 | 3 | 36 |
 | 🩺 医疗设备与生命支持控制 | 66 | 1 | 0 | 67 |
-| 🏭 工业自动化与离散制造 | 32 | 3 | 2 | 37 |
+| 🏭 工业自动化与离散制造 | 33 | 3 | 2 | 38 |
 | 🏢 楼宇机电与电梯控制 | 33 | 0 | 7 | 40 |
-| 🌡️ 过程与环境控制 | 31 | 1 | 3 | 35 |
-| 🚦 道路交通信号控制 | 34 | 5 | 5 | 44 |
-| 🅿️ 智慧停车与车位管理 | 38 | 1 | 1 | 40 |
+| 🌡️ 过程与环境控制 | 32 | 1 | 3 | 36 |
+| 🚦 道路交通信号控制 | 35 | 5 | 5 | 45 |
+| 🅿️ 智慧停车与车位管理 | 40 | 1 | 1 | 42 |
 | 🧩 建模方法与系统工程 | 1 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 30 | 0 | 0 | 30 |
-| **合计** | 367 | 15 | 31 | 413 |
+| **合计** | 372 | 15 | 31 | 418 |
 
 ### 各领域原文细节充实度分布
 
@@ -881,15 +888,15 @@
 | 🚆 轨道交通与铁路控制 | 31 | 11 | 2 | 0 | 44 |
 | ✈️ 航空航天与飞行/空管控制 | 30 | 6 | 0 | 0 | 36 |
 | 🩺 医疗设备与生命支持控制 | 64 | 2 | 1 | 0 | 67 |
-| 🏭 工业自动化与离散制造 | 30 | 4 | 3 | 0 | 37 |
+| 🏭 工业自动化与离散制造 | 31 | 4 | 3 | 0 | 38 |
 | 🏢 楼宇机电与电梯控制 | 30 | 10 | 0 | 0 | 40 |
-| 🌡️ 过程与环境控制 | 31 | 3 | 1 | 0 | 35 |
-| 🚦 道路交通信号控制 | 29 | 10 | 5 | 0 | 44 |
-| 🅿️ 智慧停车与车位管理 | 30 | 9 | 1 | 0 | 40 |
+| 🌡️ 过程与环境控制 | 32 | 3 | 1 | 0 | 36 |
+| 🚦 道路交通信号控制 | 30 | 10 | 5 | 0 | 45 |
+| 🅿️ 智慧停车与车位管理 | 32 | 9 | 1 | 0 | 42 |
 | 🧩 建模方法与系统工程 | 0 | 1 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 30 | 0 | 0 | 0 | 30 |
-| **合计** | 334 | 64 | 13 | 2 | 413 |
+| **合计** | 339 | 64 | 13 | 2 | 418 |
 
 ### 各领域描述细节充实度分布
 
@@ -899,15 +906,15 @@
 | 🚆 轨道交通与铁路控制 | 31 | 11 | 2 | 0 | 44 |
 | ✈️ 航空航天与飞行/空管控制 | 30 | 6 | 0 | 0 | 36 |
 | 🩺 医疗设备与生命支持控制 | 64 | 2 | 1 | 0 | 67 |
-| 🏭 工业自动化与离散制造 | 30 | 4 | 3 | 0 | 37 |
+| 🏭 工业自动化与离散制造 | 31 | 4 | 3 | 0 | 38 |
 | 🏢 楼宇机电与电梯控制 | 30 | 10 | 0 | 0 | 40 |
-| 🌡️ 过程与环境控制 | 31 | 3 | 1 | 0 | 35 |
-| 🚦 道路交通信号控制 | 29 | 10 | 5 | 0 | 44 |
-| 🅿️ 智慧停车与车位管理 | 30 | 9 | 1 | 0 | 40 |
+| 🌡️ 过程与环境控制 | 32 | 3 | 1 | 0 | 36 |
+| 🚦 道路交通信号控制 | 30 | 10 | 5 | 0 | 45 |
+| 🅿️ 智慧停车与车位管理 | 32 | 9 | 1 | 0 | 42 |
 | 🧩 建模方法与系统工程 | 0 | 1 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 30 | 0 | 0 | 0 | 30 |
-| **合计** | 334 | 64 | 14 | 1 | 413 |
+| **合计** | 339 | 64 | 14 | 1 | 418 |
 
 ### 各领域时间级别分布
 
@@ -917,15 +924,15 @@
 | 🚆 轨道交通与铁路控制 | 26 | 17 | 1 | 0 | 0 | 44 |
 | ✈️ 航空航天与飞行/空管控制 | 21 | 13 | 2 | 0 | 0 | 36 |
 | 🩺 医疗设备与生命支持控制 | 26 | 36 | 5 | 0 | 0 | 67 |
-| 🏭 工业自动化与离散制造 | 15 | 20 | 2 | 0 | 0 | 37 |
+| 🏭 工业自动化与离散制造 | 15 | 21 | 2 | 0 | 0 | 38 |
 | 🏢 楼宇机电与电梯控制 | 13 | 27 | 0 | 0 | 0 | 40 |
-| 🌡️ 过程与环境控制 | 20 | 15 | 0 | 0 | 0 | 35 |
-| 🚦 道路交通信号控制 | 0 | 44 | 0 | 0 | 0 | 44 |
-| 🅿️ 智慧停车与车位管理 | 22 | 9 | 0 | 9 | 0 | 40 |
+| 🌡️ 过程与环境控制 | 20 | 16 | 0 | 0 | 0 | 36 |
+| 🚦 道路交通信号控制 | 0 | 45 | 0 | 0 | 0 | 45 |
+| 🅿️ 智慧停车与车位管理 | 23 | 10 | 0 | 9 | 0 | 42 |
 | 🧩 建模方法与系统工程 | 1 | 0 | 0 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 20 | 9 | 0 | 1 | 0 | 30 |
-| **合计** | 185 | 201 | 15 | 12 | 0 | 413 |
+| **合计** | 186 | 205 | 15 | 12 | 0 | 418 |
 
 ### 各领域状态机类型分布
 
@@ -935,29 +942,29 @@
 | 🚆 轨道交通与铁路控制 | 6 | 26 | 2 | 0 | 10 | 0 | 0 | 44 |
 | ✈️ 航空航天与飞行/空管控制 | 3 | 13 | 18 | 1 | 1 | 0 | 0 | 36 |
 | 🩺 医疗设备与生命支持控制 | 1 | 41 | 25 | 0 | 0 | 0 | 0 | 67 |
-| 🏭 工业自动化与离散制造 | 6 | 23 | 8 | 0 | 0 | 0 | 0 | 37 |
+| 🏭 工业自动化与离散制造 | 6 | 24 | 8 | 0 | 0 | 0 | 0 | 38 |
 | 🏢 楼宇机电与电梯控制 | 5 | 32 | 3 | 0 | 0 | 0 | 0 | 40 |
-| 🌡️ 过程与环境控制 | 1 | 30 | 4 | 0 | 0 | 0 | 0 | 35 |
-| 🚦 道路交通信号控制 | 11 | 30 | 3 | 0 | 0 | 0 | 0 | 44 |
-| 🅿️ 智慧停车与车位管理 | 4 | 21 | 5 | 0 | 2 | 8 | 0 | 40 |
+| 🌡️ 过程与环境控制 | 1 | 31 | 4 | 0 | 0 | 0 | 0 | 36 |
+| 🚦 道路交通信号控制 | 12 | 30 | 3 | 0 | 0 | 0 | 0 | 45 |
+| 🅿️ 智慧停车与车位管理 | 4 | 23 | 5 | 0 | 2 | 8 | 0 | 42 |
 | 🧩 建模方法与系统工程 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
 | 🔐 安全/安保分析 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | ⚙️ 通用控制与形式化工具 | 8 | 8 | 13 | 0 | 0 | 1 | 0 | 30 |
-| **合计** | 51 | 232 | 97 | 4 | 13 | 16 | 0 | 413 |
+| **合计** | 52 | 236 | 97 | 4 | 13 | 16 | 0 | 418 |
 
 ### 结构标签覆盖率（多标签口径）
 
-> 说明：本表按多标签计数，占比以 `413` 条正例案例为分母，因此不会加总到 `100.0%`。
+> 说明：本表按多标签计数，占比以 `418` 条正例案例为分母，因此不会加总到 `100.0%`。
 
 | 结构标签 | 条目数 | 占比 |
 | --- | ---: | --- |
-| `显式时钟` | 134 | 32.4% |
-| `层次` | 99 | 24.0% |
-| `连续耦合` | 30 | 7.3% |
-| `资源互斥` | 19 | 4.6% |
+| `显式时钟` | 138 | 33.0% |
+| `层次` | 99 | 23.7% |
+| `连续耦合` | 30 | 7.2% |
+| `资源互斥` | 19 | 4.5% |
 | `并行` | 20 | 4.8% |
 | `协议交互` | 15 | 3.6% |
-| `-`（无额外结构标签） | 152 | 36.8% |
+| `-`（无额外结构标签） | 153 | 36.6% |
 
 ### 强趋同簇汇总（已按类型 / 时间 / 结构复核代表样本）
 
@@ -989,19 +996,19 @@
 1. **真实控制对象多**：不是泛泛的 UML/工具论文，而是大量具体控制对象，如联锁、电梯、交通灯、液位、泊车、医疗装置、起落架、车队等。
 2. **绝大多数正例条目都写成了“可生成输出”的最终口吻**：这对做 `NL -> state machine` 的目标输出很友好。
 3. **正负样本边界已经开始显化**：`⚪ 未收获` 文件可以直接转化为 hard negative，而不必简单丢弃。
-4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **398** 条（**96.4%**），`描述 = 🟢 A / 🟡 B` 也有 **398** 条（**96.4%**），其中 `💎` 已有 **367** 条，按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **398** 条（**96.4%**）。
+4. **主体材料已经具备主数据集候选基础**：当前 `原文 = 🟢 A / 🟡 B` 有 **403** 条（**96.4%**），`描述 = 🟢 A / 🟡 B` 也有 **403** 条（**96.4%**），其中 `💎` 已有 **372** 条，按新边界可直接进入正样本母体的 `💎 + 🪫` 合计 **403** 条（**96.4%**）。
 
 #### 现在最需要警惕的问题
 
-1. **强趋同问题真实存在**：`🔁` 强趋同条目有 **31** 条，占正例条目的 **7.5%**。这不是“有点像”，而是足以污染训练分布。
+1. **强趋同问题真实存在**：`🔁` 强趋同条目有 **31** 条，占正例条目的 **7.4%**。这不是“有点像”，而是足以污染训练分布。
 2. **系统级、构件级、语义级样本混在一起**：例如 IEC 61499、EAST-ADL、ViTAL、部分 SysML/ECC/构件执行语义条目，并不是坏样本，但如果不打标签，会让训练目标粒度漂移。
 3. **原文侧薄弱与描述侧薄弱已经重新对齐**：`原文 = 🟠 C / 🔴 D` 有 **15** 条（**3.6%**），`描述 = 🟠 C / 🔴 D` 也有 **15** 条（**3.6%**）；此前锁定的“原文够但描述降级”条目已全部回刷，当前 `🧰` 的主体问题重新回到原文侧本来就偏薄。
 4. **异常/恢复链仍然偏少**：很多条目保住了 nominal path，但没有把 fault、degraded、manual takeover、recovery 条件完整保住。
-5. **领域分布并不均匀**：交通灯、联锁、电梯、医疗与工程 PLC 仍然占比较高；本轮在严格筛选后实际新增落到了 `🅿️ / 🏢 / 🏭 / 🚦 / 🚆`，说明“优先去缺口领域检索”和“最终确实能收录”并不总是一回事。后续仍应按当轮统计动态盯住当前又回到低位的 `🚗 / 🚦`，以及数量虽补起来但结构差异仍需继续观察的 `🅿️ / 🏢 / 🏭 / ✈️ / ⚙️`，不应因为某一轮个别领域命中率更高就继续在该方向单边扩库。
+5. **领域分布并不均匀**：交通灯、联锁、电梯、医疗与工程 PLC 仍然占比较高；本轮在严格筛选后实际新增落到了 `🅿️ / 🚦 / 🏭 / 🌡️`，其中 `🅿️` 补入 `2` 篇，说明“优先去缺口领域检索”和“最终确实能收录”并不总是一回事。后续仍应按当轮统计动态盯住当前又回到低位的 `🚗 / 🚆 / ⚙️`，以及刚被拉平但结构差异仍需继续观察的 `🅿️ / 🚦 / 🏭 / 🌡️`，不应因为某一轮个别领域命中率更高就继续在该方向单边扩库。
 
 #### 如果今天就拿它做数据集，我建议这样分桶
 
-1. `主训练集`：以当前 **367** 条 `💎 核心保留` 为主，并从 **31** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
+1. `主训练集`：以当前 **372** 条 `💎 核心保留` 为主，并从 **31** 条 `🪫 降采样保留` 中按簇和差异位点抽代表样本。
 2. `待清洗正样本池`：全部 **15** 条 `🧰 清洗后保留` 条目。由于描述降级问题已清空，后续清洗重点应回到补原文可追溯细节，例如 guard、阈值、定时值、异常链、显式状态名。
 3. `降采样补充池`：`🪫` 条目只用于增强鲁棒性，不作为主训练集主力；当前规模为 **31** 条。
 4. `hard negative / background`：全部 `⛔ 不作正样本` 文件，尤其是连续控制、工具流程和综述型条目。
@@ -1435,6 +1442,11 @@
 | 411 | 452 | 🏭 | Conveyor-Foaming-Brushing-Rinsing-Drying Wash Supervisor | 工业自动化与离散制造领域的自动车辆清洗输送、喷淋、刷洗、漂洗与吹干顺序控制器 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./prototype-plc-built-automatic-vehicle-washing-system-vfd/STM.md) / [DESC](./prototype-plc-built-automatic-vehicle-washing-system-vfd/DESC.md) |
 | 412 | 453 | 🚦 | Eight-State Four-Way Traffic-Light Mealy Controller | 道路交通信号控制领域的四向路口 Verilog 配时与安全黄灯控制器 | `FSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./fully-automatic-four-way-traffic-light-controller-verilog/STM.md) / [DESC](./fully-automatic-four-way-traffic-light-controller-verilog/DESC.md) |
 | 413 | 454 | 🚆 | RFID-Ultrasonic Railway Crossing Supervisor | 轨道交通与铁路控制领域的道口 `RFID / ultrasonic` 栏杆门控与交通灯监督控制器 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./automatic-railway-road-crossing-traffic-light-system-tanzania/STM.md) / [DESC](./automatic-railway-road-crossing-traffic-light-system-tanzania/DESC.md) |
+| 414 | 455 | 🅿️ | Weight-Checked Rotary Parking Admission and Retrieval Supervisor | 智慧停车与车位管理领域的旋转立体车库入场、存取车与安全联锁控制器 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./rotary-car-parking-system-fpga/STM.md) / [DESC](./rotary-car-parking-system-fpga/DESC.md) |
+| 415 | 456 | 🅿️ | Crane-Combs Parking and Retrieval Sequence Controller | 智慧停车与车位管理领域的起重机梳齿式立体停车存取车顺序控制器 | `EFSM` | `T0` | `-` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./design-of-automated-parking-system-using-plc/STM.md) / [DESC](./design-of-automated-parking-system-using-plc/DESC.md) |
+| 416 | 457 | 🚦 | Sensor-Prioritized Traffic-Light FSM with Emergency and Camera Override | 道路交通信号控制领域的密度感知、应急优先与抓拍联动交通灯控制器 | `FSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./advanced-traffic-light-controller-using-verilog-hdl/STM.md) / [DESC](./advanced-traffic-light-controller-using-verilog-hdl/DESC.md) |
+| 417 | 458 | 🏭 | Sensor-Timed Conveyor Bottle-Filling Sequence Controller | 工业自动化与离散制造领域的输送带瓶装定位与定时灌装顺序控制器 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./plc-driven-conveyor-and-bottle-filling-system/STM.md) / [DESC](./plc-driven-conveyor-and-bottle-filling-system/DESC.md) |
+| 418 | 459 | 🌡️ | Wireless PLC Water-Treatment Pump-Scheduling Supervisor | 过程与环境控制领域的水处理厂进水、配水、反冲洗与应急监督控制器 | `EFSM` | `T1` | `显式时钟` | `💎 核心保留` | `🟢 A` | `🟢 A` | [STM](./wireless-plc-water-treatment-plant/STM.md) / [DESC](./wireless-plc-water-treatment-plant/DESC.md) |
 
 ## 统一更新日志
 
@@ -1442,6 +1454,7 @@
 
 | 时间 | 论文总账更新 | 案例总账更新 | 说明 |
 | --- | --- | --- | --- |
+| 2026-04-07 17:35:17 | 新增 **5** 篇，当前累计 **459** 篇 | 新增 `#455-459` 与 `#414-418` 并同步汇总统计；新增 `5` 个双 A 样本，均为 `💎` | 本轮开始前先确认当前分支与远端同步，工作区只有 `5` 个已下载未入账的新目录，因此按续做轮次直接补齐并回填总账。按当前可追溯记录，总计翻阅并逐篇核验 **9** 篇候选原文，最终只收录 **5** 篇同时满足“原文 = 描述 = 🟢 A、FSM/EFSM/HSM、T0/T1、且每篇至少 1 个 STM”的新样本，实际落库为 `🅿️ x2 + 🚦 x1 + 🏭 x1 + 🌡️ x1`，也正好优先回补了当轮 `🟢 A` 更低的 `🅿️ / 🚦` 方向。被严格丢弃的全文候选包括 `Low Cost Arduino Based Smart Parking Lot Controller with Occupancy Counter` 与 `Smart Parking System`（只剩门禁、空位显示或网站链）、`Traffic Light Control System Design Using Omron PLC With Ladder Diagram Method`（仿真界面与手动配时描述重于系统级 guard 链），以及 `Industrial Material Liquid Level Control System based on PLC`（`PLC-HMI` 演示与模板化错文混入，不能诚实维持双 A）；同时把 `rotary parking + weight verification + password + room number + shortest path`、`parking + crane / combs + M1 / M2 / M3 / M4 + limit switch + home position`、`traffic light + Verilog + emergency vehicle + camera module + Y1 / Y2`、`bottle filling + master coil + Sensor 1 / Sensor 2 + Timer 0 + pump`、`water treatment plant + intake / distribution / backwash + turbidity + 22:30 + over current` 这批高命中短语，以及 `parking + Arduino/IoT + occupancy counter / website / LED`、`traffic + Omron PLC + VB6 / manual time / simulation`、`liquid level + MCGS + triangle wave / analog simulation` 这批失败画像，一并整合回检索关键词簇。 |
 | 2026-04-07 16:04:42 | 新增 **5** 篇，当前累计 **454** 篇 | 新增 `#450-454` 与 `#409-413` 并同步汇总统计；新增 `5` 个双 A 样本，其中 `💎 x4 + 🪫 x1` | 本轮开始前先确认当前分支与远端同步，但工作区遗留 `5` 个已下载未入账的新目录，因此按续做轮次先补齐并回填总账。按当前可追溯记录，总计翻阅并逐篇核验 **10** 篇候选原文，最终只收录 **5** 篇同时满足“原文 = 描述 = 🟢 A、FSM/EFSM/HSM、T0/T1、且每篇至少 1 个 STM”的新样本，实际落库为 `🅿️ x1 + 🏢 x1 + 🏭 x1 + 🚦 x1 + 🚆 x1`，也正好优先回补了当轮 `🟢 A` 相对更缺的 `5` 个方向。被严格丢弃的全文候选包括 `Parking management system using xilinx FPGA`（提取字形噪声重、不能诚实维持原文 A）、`Automated Car Parking System Using PLC and HMI System` 与 `An Automated Car Parking System by using Programmable Logic Controller`（系统级控制链过薄）、`Advanced Traffic Light Controller using FPGA and ARDUINO`（平台堆料过多，相位主链不够集中），以及 `Automatic Railway Crossing Gate Controller`（器件/流程描述强于事件链）；同时把 `parking + cabin / pallet / password / 2sn`、`elevator + S7-200 + limit switch + 12 networks`、`vehicle washing + conveyor + foaming / brushing / rinsing / drying + 15 / 10 / 10 / 20 sec`、`traffic light + Verilog + S0-S7 + safe states + 64 seconds`、`railway crossing + RFID + ultrasonic + ETA + 30 seconds` 这批高命中短语，以及 `parking + slot / availability / monitoring` 薄短文、`Xilinx/FPGA parking` 提取噪声稿、`platform-heavy traffic FPGA` 稿、`generic railway gate controller` 这批失败画像，一并整合回检索关键词簇。 |
 | 2026-04-07 14:18:01 | 新增 **5** 篇，当前累计 **449** 篇 | 新增 `#445-449` 与 `#404-408` 并同步汇总统计；新增 `5` 个双 A 样本，均为 `💎`；补记 `3` 条下载失败记录 | 本轮开始前先确认当前分支与远端同步，但工作区遗留 `5` 个已下载未入账的新目录，因此按续做轮次先补齐 `bibtex.bib / STM.md / DESC.md` 再统一回填总账。按当前可追溯记录，累计翻阅并逐篇核验 **8** 篇候选原文，最终只收录 **5** 篇同时满足“原文 = 描述 = 🟢 A、FSM/EFSM/HSM、T0/T1、且每篇至少 1 个 STM”的新样本，实际落库为 `🏭 x1 + ✈️ x1 + 🚗 x1 + 🌡️ x1 + ⚙️ x1`。被严格丢弃的全文候选包括 `SECURE CAR PARKING SYSTEM USING VHDL`（系统级控制链过薄）、`GAS LEAK SOURCE DETECTION ROBOT USING FINITE STATE MACHINE MODEL (FSM)`（提取文本不足以诚实维持双 A）以及 `FAULT TOLERANCE FOR TWO WHEEL MOBILE ROBOT USING FSM`（下载结果题名错配到其他论文）；同时补记 `A ROS-Based GNC Architecture for Autonomous Surface Vehicle Based on a New Multimission Management Paradigm`、`Car Parking System Using FPGA`、`PLC Controlled Automatic Food Packaging Machine` 三条下载失败，并把 `carwash + Sensor 1-6 + 5 second delay + TIM000/TIM003`、`UAV mission management + generate-plan / modify-plan + plan-sequencing / actions-definition / plan-optimization`、`micro-mobility + Forward / Follow / StopSign / StopSignWait + 3 seconds`、`water distribution + Low / High / High-High + jockey / booster pump`、`robot excavation + RGB sensor + ArduCAM + antenna + excavate / deposit / return` 这批高命中短语，以及 `secure/VHDL parking` 薄概述稿、`robot FSM` 关键状态只压在图中的候选、题名与 PDF 首页错配源、`MDPI/globalpresshub/OJS` 403/404 下载链，一并整合回检索关键词簇。 |
 | 2026-04-07 12:33:03 | 新增 **5** 篇，当前累计 **444** 篇 | 新增 `#440-444` 与 `#399-403` 并同步汇总统计；新增 `5` 个双 A 样本，均为 `💎` | 本轮开始前先确认仓库状态：`dev/p1src` 与远端同步且工作区干净，因此直接按新轮次联网扩样并回填总账。按当前可追溯记录，累计翻阅并逐篇核验 **16** 篇候选原文，最终只收录 **5** 篇同时满足“原文 = 描述 = 🟢 A、FSM/EFSM/HSM、T0/T1、且每篇至少 1 个 STM”的新样本，实际落库为 `🅿️ x1 + 🚦 x1 + 🏢 x1 + ⚙️ x1 + 🚗 x1`，也正好对应当轮 `🟢 A` 缺口较低的五个方向。期间原先一度通过初筛的 `Design and Implementation of Controller for Car parking System using VHDL` 在仓库侧复核 `paper_content.txt` 后确认系统级控制链不足、不能诚实维持双 A，因此被严格剔除并替换为 `Semi-Automated Parking System Using VHDL`；同时把 `parking + INACTIVE / IDLE / WAIT_PASSWORD / RIGHT_PASS / WRONG_PASS / STOP + front_sensor / back_sensor + 4 cycles`、`traffic + SIM / SGM / DCM + TIB / DIB + 10 / 8 / 6 / 4 / 2 / 1 sec + S1-S4`、`elevator + 10x7 RAM + X0-X9 + Y0-Y6 + slide door / traction motor`、`electric boat + Virtual Anchor / Manual Drive / Exiting / Navigation / Avoid / Enter`、`platoon + Not able / Able / Want to form / Joining / In a platoon / Leaving + distance state machine + MCM` 等高命中词簇，以及 `stereo / garage / parking management / embedded system`、`rally / hybrid / drift / loose surfaces`、`social robot + Cambridge Core pdf` 等失败画像，一并整合回检索关键词簇。 |
