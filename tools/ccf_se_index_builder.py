@@ -1006,7 +1006,7 @@ class Builder:
         venue: Venue,
         source_mode: str,
     ) -> str:
-        key = "CCF2025:" + re.sub(r"[^A-Za-z0-9:_-]+", "_", record["key"] or record["title"])[:120]
+        key = f"CCF{self.year}:" + re.sub(r"[^A-Za-z0-9:_-]+", "_", record["key"] or record["title"])[:120]
         authors = " and ".join(record["authors"])
         biblio = openalex_item.get("biblio") or {}
         volume = str(biblio.get("volume") or "")
@@ -1221,7 +1221,7 @@ class Builder:
                     kind=venue.kind,
                     count=payload["actual_total"],
                     screening=self.md_escape(
-                        format_screening_summary(screening_counts, empty_text="无 2025 条目")
+                        format_screening_summary(screening_counts, empty_text=f"无 {self.year} 条目")
                     ),
                     venue_page=self.md_escape(files["venue_page"]),
                     meta=self.md_escape(files["metadata"]),
@@ -1247,7 +1247,7 @@ class Builder:
             lines.append(f"- 年份：`{self.year}`")
             lines.append(f"- 条目数：`{payload['actual_total']}`")
             lines.append(
-                f"- 初筛分布：{format_screening_summary(screening_counts, empty_text='无 2025 条目')}"
+                f"- 初筛分布：{format_screening_summary(screening_counts, empty_text=f'无 {self.year} 条目')}"
             )
             lines.append(
                 f"- 论文名录页：[venues/{Path(files['venue_page']).name}](./{files['venue_page']})"
@@ -1302,7 +1302,7 @@ class Builder:
             lines.append("- 高频方向标签：" + " / ".join(f"{tag} ({count})" for tag, count in top_tags))
         lines.append(
             "- 初筛分布："
-            + format_screening_summary(screening_totals, empty_text="无 2025 条目")
+            + format_screening_summary(screening_totals, empty_text=f"无 {self.year} 条目")
         )
         lines.append("- 复核状态：以 [verification.json](./verification.json) 为准；默认要求 `expected_total == actual_total`。")
         lines.append("- 后续若需继续扩年份，优先参考 [../README.md](../README.md) 与 `tools/ccf_se_index_builder.py`。")
@@ -1419,7 +1419,7 @@ class Builder:
             ][:5]
             lines.append(f"- 主题倾向：{tag_text}")
             lines.append(
-                f"- 初筛分布：{format_screening_summary(screening_counts, empty_text='无 2025 条目')}"
+                f"- 初筛分布：{format_screening_summary(screening_counts, empty_text=f'无 {self.year} 条目')}"
             )
             lines.append("- 与博士研究的相关性：请结合 `一句话说明`、`方向标签` 与伴随 `metadata` 文件中的摘要进一步判断。")
             if a_titles:

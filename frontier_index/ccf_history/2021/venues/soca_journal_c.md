@@ -1,0 +1,71 @@
+# `SOCA` (`2021`) 论文名录
+
+## 1. 文件导航
+
+- 年度总页：[../README.md](../README.md)
+- 计数复核：[../verification.json](../verification.json)
+- 数据文件：[metadata](../metadata/soca_journal_c.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-soca_journal_c](../../SUBMISSION_TIMELINES.md#timeline-soca_journal_c)
+- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
+
+## 2. 基本信息
+
+- 全称：Service Oriented Computing and Applications
+- `CCF` 等级：`C`
+- 类型：`期刊`
+- 年份：`2021`
+- 条目数：`24`
+- 主体归属：软件工程与服务系统工程交叉
+- `软工归属级别`：`部分属于软工`
+- `氛围`：`C 🟡`
+- 与本课题的关系：服务计算与应用为主
+
+## 3. 关键信息页面
+
+- 期刊主页：https://link.springer.com/journal/11761
+- 学术索引页：http://dblp.uni-trier.de/db/journals/soca/
+- 2021 年官方 article page：见下表 `官方落地页` 列
+
+## 4. 本 venue 统计
+
+- 初筛分布：🟢 优先跟进 (0) / 🟡 保留观察 (2) / ⏳ 待补信息 (22) / ⚪ 暂不跟进 (0)
+- 一级总判定分布：跨域/待判定 21 / 软件工程 2 / 系统软件 1
+- 软工纳入判定分布：不属于软件工程 22 / 属于软件工程 1 / 跨域但软工主导 1
+- 判定来源分布：启发式初判 (24)
+- 人工复核状态分布：未人工复核 (24)
+- 高频软工主路径：2.1.4 云/服务/平台架构 (1) / 3.1.2 回归测试与测试选择 (1)
+
+## 5. 论文名录
+
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
+
+| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | A third-party replication service for dynamic hidden databases | Stefan Hintzen, Yves Liesy, Christian Zirpins | Abstract Much data on the web is available in hidden databases. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00313-x](https://doi.org/10.1007/s11761-020-00313-x) | [link](https://link.springer.com/10.1007/s11761-020-00313-x) | 🟡 保留观察 | 🟡 可选获取 | `CCF2021:journals_soca_HintzenLZ21` |  |
+| 2 | Comprehensive review and classification of game analytics | Yanhui Su, Per Backlund, Henrik Engström | Abstract As a business model, the essence of games is to provide a service to satisfy the player experience. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00303-z](https://doi.org/10.1007/s11761-020-00303-z) | [link](https://link.springer.com/10.1007/s11761-020-00303-z) | 🟡 保留观察 | 🟡 可选获取 | `CCF2021:journals_soca_SuBE21` |  |
+| 3 | (k, ε , δ)-Anonymization: privacy-preserving data release based on k-anonymity and differential privacy | Yao-Tung Tsou, Mansour Naser Alraja, Li-Sheng Chen, Yu-Hsiang Chang, Yung-Li Hu, Yennun Huang, Chia-Mu Yu, Pei-Yuan Tsai | 围绕《(k, ε , δ)-Anonymization: privacy-preserving data release based on k-anonymity and differential privacy》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00324-2](https://doi.org/10.1007/s11761-021-00324-2) | [link](https://link.springer.com/10.1007/s11761-021-00324-2) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_TsouACCHHYT21` |  |
+| 4 | A deep learning approach for collaborative prediction of Web service QoS | Mohammed Ismail Smahi, Fethallah Hadjila, Chouki Tibermacine, Abdelkrim Benamar | 围绕《A deep learning approach for collaborative prediction of Web service QoS》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00304-y](https://doi.org/10.1007/s11761-020-00304-y) | [link](http://link.springer.com/10.1007/s11761-020-00304-y) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_SmahiHTB21` |  |
+| 5 | A microservice-based framework for exploring data selection in cross-building knowledge transfer | Mouna Labiadh, Christian Obrecht, Catarina Ferreira da Silva, Parisa Ghodous | 围绕《A microservice-based framework for exploring data selection in cross-building knowledge transfer》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 8.2.3 服务系统与 API 生态；4.4.1 可观测性、日志与异常检测；4.4.2 事故诊断、回滚与恢复 | X1=否; D1=2; D2=1; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00306-w](https://doi.org/10.1007/s11761-020-00306-w) | [link](https://link.springer.com/10.1007/s11761-020-00306-w) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_LabiadhOSG21` | 跨域 |
+| 6 | An Event-B formal model for a system reconfiguration pattern and its instantiation: application to Web services compensation | Yamine Aït Ameur, Guillaume Babin, Marc Pantel | 围绕《An Event-B formal model for a system reconfiguration pattern and its instantiation: application to Web services compensation》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00314-4](https://doi.org/10.1007/s11761-021-00314-4) | [link](https://link.springer.com/10.1007/s11761-021-00314-4) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_AmeurBP21` |  |
+| 7 | An evolution model of composed service based on global dependence net | Yuanming Zhang, Zhoushuai Xu, Jiawei Lu, Gang Xiao 0001 | 围绕《An evolution model of composed service based on global dependence net》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00318-0](https://doi.org/10.1007/s11761-021-00318-0) | [link](https://link.springer.com/10.1007/s11761-021-00318-0) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_ZhangXLX21` |  |
+| 8 | Building adaptive context-aware service-based smart systems | Soufiane Faieq, Rajaa Saidi, Hamid El Ghazi, Agnès Front, Moulay Driss Rahmani | 围绕《Building adaptive context-aware service-based smart systems》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00310-0](https://doi.org/10.1007/s11761-020-00310-0) | [link](http://link.springer.com/10.1007/s11761-020-00310-0) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_FaieqSGFR21` |  |
+| 9 | Digital twins are shaping future virtual worlds | Jingzhi Guo | 围绕《Digital twins are shaping future virtual worlds》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00321-5](https://doi.org/10.1007/s11761-021-00321-5) | [link](https://link.springer.com/10.1007/s11761-021-00321-5) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_Guo21` |  |
+| 10 | Exposing safe correlations in transactional datasets | Elie Chicha, Bechara al Bouna, Kay Wünsche, Richard Chbeir | 围绕《Exposing safe correlations in transactional datasets》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00325-1](https://doi.org/10.1007/s11761-021-00325-1) | [link](https://link.springer.com/10.1007/s11761-021-00325-1) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_ChichaBWC21` |  |
+| 11 | Genetic-based web regression testing: an ontology-based multi-objective evolutionary framework to auto-regression testing of web applications | Maryam Nooraei Abadeh | 围绕《Genetic-based web regression testing: an ontology-based multi-objective evolutionary framework to auto-regression testing of web applications》开展研究。 | 软件工程 | 跨域但软工主导 | 启发式初判 | 未人工复核 | 3.1.2 回归测试与测试选择 | 3.1.4 场景化测试；2.1.4 云/服务/平台架构；8.2.3 服务系统与 API 生态 | X1=否; D1=2; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00312-y](https://doi.org/10.1007/s11761-020-00312-y) | [link](http://link.springer.com/10.1007/s11761-020-00312-y) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_Abadeh21` | 跨域 |
+| 12 | Guarded attribute grammars and publish/subscribe for implementing distributed collaborative business processes with high data availability | Maurice Tchoupé Tchendji, Joskel Ngoufo Tagueu | 围绕《Guarded attribute grammars and publish/subscribe for implementing distributed collaborative business processes with high data availability》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00319-z](https://doi.org/10.1007/s11761-021-00319-z) | [link](https://link.springer.com/10.1007/s11761-021-00319-z) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_TchendjiT21` |  |
+| 13 | Increasing the availability of IoT applications with reactive microservices | Cleber Jorge Lira de Santana, Leandro José Silva Andrade, Flávia Coimbra Delicato, Cássio V. S. Prazeres | 围绕《Increasing the availability of IoT applications with reactive microservices》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00308-8](https://doi.org/10.1007/s11761-020-00308-8) | [link](https://link.springer.com/10.1007/s11761-020-00308-8) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_SantanaADP21` |  |
+| 14 | Integration of ontologies to support Control as a Service in an Industry 4.0 context | Minhu Lyu, Frédérique Biennier, Parisa Ghodous | 围绕《Integration of ontologies to support Control as a Service in an Industry 4.0 context》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00317-1](https://doi.org/10.1007/s11761-021-00317-1) | [link](https://link.springer.com/10.1007/s11761-021-00317-1) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_LyuBG21` |  |
+| 15 | Mashup tag completion with attention-based topic model | Min Shi 0001, Yufei Tang, Yu Huang 0017, Maohua Lin | 围绕《Mashup tag completion with attention-based topic model》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00302-0](https://doi.org/10.1007/s11761-020-00302-0) | [link](https://link.springer.com/10.1007/s11761-020-00302-0) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_ShiTHL21` |  |
+| 16 | Mobility-as-a-Service research trends of 5G-based vehicle platooning | Lingling Lv, Yanjun Shi, Weiming Shen 0001 | 围绕《Mobility-as-a-Service research trends of 5G-based vehicle platooning》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00309-7](https://doi.org/10.1007/s11761-020-00309-7) | [link](http://link.springer.com/10.1007/s11761-020-00309-7) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_LvSS21` |  |
+| 17 | Modified Chebyshev polynomial-based access control mechanism for secured data access in cloud computing environment | J. V. Bibal Benifa, Venifa Mini G | 围绕《Modified Chebyshev polynomial-based access control mechanism for secured data access in cloud computing environment》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00307-9](https://doi.org/10.1007/s11761-020-00307-9) | [link](https://link.springer.com/10.1007/s11761-020-00307-9) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_BenifaG21` |  |
+| 18 | Orchestration- and choreography-based composition of Internet of Transactional Things | Zakaria Maamar, Muhammad Asim 0001, Saoussen Cheikhrouhou, Ayesha Qamar | 围绕《Orchestration- and choreography-based composition of Internet of Transactional Things》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00320-6](https://doi.org/10.1007/s11761-021-00320-6) | [link](https://link.springer.com/10.1007/s11761-021-00320-6) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_MaamarACQ21` |  |
+| 19 | Privacy preservation of genome data analysis using homomorphic encryption | Bachar Kachouh, Khalil Hariss, Layth Sliman, Abed Ellatif Samhat, Tamim Alsuliman | 围绕《Privacy preservation of genome data analysis using homomorphic encryption》开展研究。 | 系统软件 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是; SYS=homomorphic encryption | [10.1007/s11761-021-00326-0](https://doi.org/10.1007/s11761-021-00326-0) | [link](https://link.springer.com/10.1007/s11761-021-00326-0) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_KachouhHSSA21` |  |
+| 20 | Privacy protection in government data sharing: an improved LDP-based approach | Chunhui Piao, Yurong Hao, Jiaqi Yan, Xuehong Jiang | 围绕《Privacy protection in government data sharing: an improved LDP-based approach》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00315-3](https://doi.org/10.1007/s11761-021-00315-3) | [link](https://link.springer.com/10.1007/s11761-021-00315-3) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_PiaoHYJ21` |  |
+| 21 | QoS Prediction based on temporal information and request context | Bingzhuo Li, Chunyang Ye, Xuezhi Yu, Hui Zhou 0011, Cheng Huang | 围绕《QoS Prediction based on temporal information and request context》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00322-4](https://doi.org/10.1007/s11761-021-00322-4) | [link](https://link.springer.com/10.1007/s11761-021-00322-4) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_LiYYZH21` |  |
+| 22 | ReLock: a resilient two-phase locking RESTful transaction model | Luca Frosini, Pasquale Pagano, Leonardo Candela, Manuele Simi, Cinzia Bernardeschi | 围绕《ReLock: a resilient two-phase locking RESTful transaction model》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00311-z](https://doi.org/10.1007/s11761-020-00311-z) | [link](http://link.springer.com/10.1007/s11761-020-00311-z) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_FrosiniPCSB21` |  |
+| 23 | Security and privacy in the Internet of Things: threats and challenges | Youakim Badr, Xiaoyang Zhu, Mansour Naser Alraja | 围绕《Security and privacy in the Internet of Things: threats and challenges》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00327-z](https://doi.org/10.1007/s11761-021-00327-z) | [link](https://link.springer.com/10.1007/s11761-021-00327-z) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_BadrZA21` |  |
+| 24 | Service-enabled systems and applications: current and future trends | Karim Benouaret, Patrick C. K. Hung, Ladjel Bellatreche | 围绕《Service-enabled systems and applications: current and future trends》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-021-00323-3](https://doi.org/10.1007/s11761-021-00323-3) | [link](https://link.springer.com/10.1007/s11761-021-00323-3) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2021:journals_soca_BenouaretHB21` |  |
+
+## 6. 本 venue 年度观察
+
+- 主题标签补充：待人工细分 (12) / 建模/模型驱动 (5) / 可靠性/安全 (4) / 维护与演化 (3) / 系统软件 (2)

@@ -2052,12 +2052,12 @@ def render_year_readme(
         macro_summary = format_counter_summary(
             venue_macro_counts,
             order=MACRO_DISPLAY_ORDER,
-            empty_text="无 2025 条目",
+            empty_text=f"无 {year} 条目",
         )
         se_summary = format_counter_summary(
             venue_se_counts,
             order=SE_DECISION_DISPLAY_ORDER,
-            empty_text="无 2025 条目",
+            empty_text=f"无 {year} 条目",
         )
         path_summary = format_top_paths(
             venue_path_counts,
