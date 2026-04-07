@@ -1,0 +1,673 @@
+--- Page 1 ---
+Algorithmic Approaches to Enhance Safety in
+Autonomous Vehicles: Minimizing Lane Changes
+and Merging
+Seyed Moein Abtahi
+Faculty of Engineering and Applied Science
+Ontario Tech University
+Oshawa, Canada
+seyedmoein.abtahi@ontariotechu.netAkramul Azim
+Faculty of Engineering and Applied Science
+Ontario Tech University
+Oshawa, Canada
+akramul.azim@ontariotechu.ca
+Abstract —Advances in autonomous vehicle (A V) technology
+promise substantial gains in safety and operational efficiency;
+nonetheless, frequent lane changes and merging maneuvers
+remain critical safety challenges that impede smooth traffic
+flow. This paper proposes the Minimizing Lane Change Al-
+gorithm (MLCA), a finite-state-machine controller that defers
+non-safety-critical lane changes to maintain lane stability. We
+evaluated MLCA through 100 microscopic traffic simulations
+on the SUMO platform, executed on an Intel Core i5-8250U
+processor. Compared to the LC2017 and MOBIL models, MLCA
+achieved a 35% reduction in lane-change events and a 28%
+decrease in collision occurrences across diverse traffic densi-
+ties and roadway geometries. These findings confirm MLCA’s
+efficacy on commodity hardware and its compatibility with
+existing A V control architectures. Future research will assess
+MLCA within high-fidelity CARLA environments and investigate
+GPU-accelerated, distributed simulation frameworks to support
+large-scale validation and real-time deployment.
+Index Terms —Autonomous Vehicle (A V), SUMO, Open-
+StreetMap, CARLA, Lane Changes, V2V
+I. I NTRODUCTION
+Autonomous driving technologies have witnessed remark-
+able strides in recent years, driven by their vast potential
+across numerous applications. The synergy between computer
+technology and artificial intelligence has propelled significant
+advancements in autonomous driving over the last decade.
+Owing to the collaborative efforts of scientific researchers,
+this theoretical technology has transitioned from the confines
+of research labs to practical civilian applications [1]. Un-
+like human drivers, A Vs offer a promising array of bene-
+fits, including enhanced driving safety, comfort, and resource
+optimization, enabled by their superior sensing capabilities,
+precise behavior prediction [2], and swift execution of control
+commands. Widely regarded as the future of transportation,
+autonomous cars, or self-driving cars, rely on a sophisticated
+blend of sensors, cameras, and AI algorithms to navigate roads
+autonomously [3]. With the potential to reduce accidents and
+streamline traffic flow, autonomous cars are poised to redefine
+the transportation landscape. However, formidable challenges
+such as regulatory complexities, ethical dilemmas, and societal
+acceptance must be addressed before mainstream adoption canbe achieved. Despite these obstacles, the rapid progression of
+A V technology heralds a future in which driving is markedly
+safer, more efficient, and more convenient for all road users.
+According to Statista [4], the global fleet of A Vs reached 31
+million in 2019 and is projected to hit 54 million by 2024.
+With the rapid advancement and integration of A Vs into
+modern transportation systems, the potential for enhanced road
+safety and operational efficiency has increased significantly.
+Despite these advancements, a persistent challenge that must
+be addressed is A Vs’ frequent and often unnecessary lane
+changes and merging maneuvers. These actions pose safety
+risks to vehicles and their occupants, disrupt traffic flow, and
+reduce overall transportation efficiency. This study addresses
+these critical issues by proposing and validating innovative
+strategies designed to minimize lane changes and merges
+during A V operations. The primary objective was to develop
+methodologies that improve both safety and efficiency by
+reducing the frequency and necessity of lane changes and
+merges, thereby contributing to a safer and more streamlined
+driving environment.
+This paper presents the MLCA algorithm as an innovative
+approach designed to reduce unnecessary lane changes in
+autonomous vehicles (A Vs). Its performance was evaluated
+against existing models, including LC2013 [5], LC2014 [5],
+LC2017 [5], the MOBIL Model [6], the IDM/LC Model [7],
+and the Continuous Model [8]. Results indicate a notable
+reduction in lane-change frequency, with decreases of approx-
+imately 50% in one scenario and 33% in another, suggesting
+that the MLCA algorithm enhances traffic flow and road
+safety by mitigating collision risks. The subsequent sections
+will review related literature to establish the study’s context,
+followed by a detailed discussion of the methodologies and
+experimental setups used, and finally, the presentation and
+analysis of results to offer insights into current practices and
+potential areas for further development.
+II. B ACKGROUND AND RELATED WORKS
+In this section, We delve into recent advancements in the
+field, particularly emphasizing ramp merging and efficient lanearXiv:2506.15026v2  [eess.SY]  16 Jul 2025
+
+--- Page 2 ---
+change planning using quintic splines. These studies have
+captivated my interest, particularly in the realm of minimizing
+lane changes in A Vs. Given the paramount importance of
+safety in A Vs, unnecessary lane changes can lead to catas-
+trophic outcomes.
+Li et al. [9] propose a lane change path planning method
+for A Vs in structured environments. This method swiftly
+generates safe and smooth paths by integrating curvature and
+heading angle considerations, ensuring stability during lane
+changes. Using quintic splines with second-order geometric
+(G2) continuity in a Frenet coordinate system, the method
+calculates the optimal prediction time interval to keep the
+heading angle within a safe range. It also uses prior road
+information to optimize sampling point selection, reducing
+the number of candidate paths and improving real-time per-
+formance. Additionally, it introduces mid-adjust and target
+points for continuous lane changes, enabling A Vs to execute
+complex maneuvers seamlessly. Experimental validation in an
+urban environment with an A V equipped with a modular ROS
+architecture demonstrated the efficient generation of complex
+motion paths, ensuring continuity in curvature and heading
+angle, thereby enhancing the efficiency and stability of path
+planning [9].
+Liao et al. [10] addressed the challenges posed by ramp
+merging in traffic, known for its chaotic nature and signif-
+icant contribution to accidents and congestion. This paper
+proposes a game theory-based strategy to tackle these issues.
+By leveraging the collaborative capabilities of connected and
+automated vehicles during merging maneuvers, the strategy
+aims to optimize coordination in mixed-traffic environments
+that include legacy vehicles.
+The effectiveness of the proposed strategy is demonstrated
+through simulations conducted on an integrated Unity-SUMO
+platform. The results show substantial improvements, includ-
+ing up to a 210% increase in traffic flow speed and a reduction
+of up to 53.9% in fuel consumption. Additionally, the strategy
+helps stabilize driving volatility, ensuring smoother and safer
+merging operations in mixed traffic scenarios.
+Numerous lane-change algorithms have been developed to
+assist A Vs in navigating lane changes across various traffic
+scenarios. These algorithms utilize a range of methodologies to
+simulate driver behavior and make lane-change decisions, each
+designed to address specific simulation requirements and ob-
+jectives. Each algorithm offers unique features and capabilities
+[11], allowing researchers and practitioners to model diverse
+traffic conditions and thoroughly evaluate different aspects of
+traffic flow dynamics. This versatility enables a comprehensive
+analysis and optimization of traffic management strategies.
+Rooted in the Krauß and MOBIL models, LC2013 is a
+foundational lane change algorithm in SUMO. It assesses
+safety gaps and follower benefits to balance safety and traffic
+flow. Building on LC2013, LC2014 improves decision-making
+with additional safety criteria, enhancing the handling of
+various scenarios. LC2017 advances this further by providing
+more accurate predictions in complex scenarios with multiple
+followers, improving simulation realism in dense traffic.The MOBIL model prioritizes traffic efficiency by optimiz-
+ing lane changes to minimize braking and maximize flow,
+making it effective in scenarios focused on traffic optimization.
+The IDM/LC model integrates the Intelligent Driver Model
+with a lane change algorithm, simulating realistic driver be-
+havior by considering factors like desired time gaps and safety
+margins. The Continuous Model offers smoother, gradual
+adjustments in lane position, simulating more natural and
+realistic lane change behavior compared to discrete changes.
+III. M ETHODOLOGY
+This section delves deeper into the proposed lane-changing
+and merging strategy tailored for A Vs navigating through
+mixed traffic scenarios and highways. To illustrate, consider
+a common scenario in which a ramp merges with a highway.
+Typically, the speed limit on the ramp ranges from 40km/h to
+50km/h, whereas on a highway, it is approximately 80km/h.
+The primary safety-critical challenge lies in effectively
+executing the ramp merging maneuver. The core idea is to
+maintain the A V in a specific lane with a safe speed limit
+for as long as possible, thereby minimizing unnecessary lane
+changes. For instance, envision a scenario where the A V enters
+a highway and travels approximately 10 km. Assuming that a
+highway comprises five lanes, upon entry, the A V merges with
+the traffic flow and positions itself in the middle lane [9], [10].
+A. Scenarios
+1) Lane Change Considerations for one AV: Consider a
+situation where the left lane is relatively empty, allowing the
+A V to potentially switch to it and increase its speed by 3km/h.
+However, any decision to change lanes triggers the merging
+algorithm. This introduces potential risks, such as the failure
+of obstacle detection sensors or adverse weather conditions.
+In safety-critical domains such as A V navigation, prioritizing
+safety over speed is paramount. Thus, minimizing lane changes
+reduces the overall risk of accidents, thereby ensuring the well-
+being of passengers and other road users.
+Highlighting the cascading effects of frequent lane changes
+and mergers in high-speed environments is essential. Each
+lane change introduces uncertainty and potential hazards,
+particularly when interacting with other vehicles traveling at
+varying speeds. The increased complexity of navigation in
+such scenarios increases the likelihood of accidents or dis-
+ruptions in traffic flow [12]. Moreover, frequent lane changes
+affect the efficiency of traffic flow. Each maneuver requires
+time and space, contributing to delays and congestion, partic-
+ularly during peak hours and in densely populated areas. By
+minimizing unnecessary lane changes, the overall efficiency
+of the transportation system can be enhanced, leading to a
+smoother traffic flow and reduced travel times for all road
+users.
+The proposed strategy aims to balance safety and efficiency
+in A V operations. By prioritizing stable lane positioning and
+minimizing unnecessary maneuvers, the risk of accidents can
+be mitigated while optimizing traffic flow. This approach
+aligns with the broader goals of advancing autonomous driving
+
+--- Page 3 ---
+technologies toward safer and more efficient transportation
+systems.
+2) Lane Change Considerations in V2V Communication:
+In another scenario, consider the concept of V2V commu-
+nication in A Vs. Building upon the previous scenario, the
+key difference lies in the presence of multiple interconnected
+autonomous cars, enabling real-time communication and coor-
+dination. However, if one of the vehicles experiences a failure
+in obstacle detection, suboptimal lane-changing and merging
+decisions may result. Consider a situation in which an A V
+fails to detect an obstacle and initiates a lane change. This
+action, based on flawed information, can potentially disrupt
+the flow of traffic and create a cascade effect. Another A V
+intending to change lanes may encounter unexpected obstacles
+or sudden maneuvers from neighboring vehicles, leading to a
+chain reaction of lane changes and potential accidents [12].
+Idle startWaiting
+Moving Left Moving RightN & W
+N & L N & RN & (L ∨R)
+N & LN &¬L
+N & RN &¬R¬NN &¬(L∨R)
+Fig. 1. Finite-state machine diagram for A V lane-change decision logic.
+States: Idle (no active request), Waiting (evaluating safety gaps), Moving
+Left/Right (executing lane-change maneuver). Boolean triggers: N(lane-
+change needed), W(waiting timeout), L/R(safe gap on left/right). Solid
+arrows indicate conditional transitions; loops represent state persistence or
+fallback logic based on gap availability or timeout.
+Therefore, adhering to maintaining a safe lane becomes even
+more crucial in V2V scenarios. Minimizing unnecessary lane
+changes can significantly reduce the risk of such cascading
+incidents. Rather than prioritizing rapid lane changes for
+individual vehicles, the focus shifts toward collective safety
+and stability within traffic flow.
+Furthermore, the concept of V2V communication opens
+avenues for proactive risk mitigation strategies. For example,
+if an A V detects an obstacle or hazardous condition, it can
+promptly relay this information to nearby vehicles, thereby
+enabling them to adjust their trajectories accordingly. This
+collaborative approach enhances situational awareness and
+promotes safer decision-making among all vehicles in the net-
+work. While V2V communication offers tremendous potential
+for enhancing traffic safety and efficiency, it also introduces
+new challenges related to coordination and reliability. By
+emphasizing the importance of staying in a safe lane andfostering cooperative behavior among A Vs, we can mitigate
+these challenges and pave the way for safer and more reliable
+autonomous driving ecosystems.
+B. MLCA Algorithm
+An algorithmic workflow can significantly improve the
+safety of A Vs by offering a structured approach to their
+operations. MLCA Algorithm is a roadmap, empowering A Vs
+to navigate roads with enhanced safety measures. Although
+MLCA presents a fundamental algorithm designed for con-
+ceptual understanding within a contextual information setting
+rather than a practical application, it lays the groundwork for
+illustrating its real-time implementation within an experimen-
+tal plan section.
+The MLCA algorithm, as outlined in the A V movement
+decision state machine in Fig. 1 and detailed in Alg. 1, is
+specifically designed to regulate the movement behavior of
+an autonomous vehicle (A V) in a multi-lane environment.
+The algorithm defines four distinct operational states: Idle,
+Waiting, Moving Left, and Moving Right. The transitions
+between states are dictated by a set of Boolean variables: N
+(Need to Move), W (Can Wait), L (Left Side Empty), and R
+(Right Side Empty). The A V begins in the Idle state, where
+it remains stationary. A transition occurs from the Idle state
+to the Waiting state if there is a need to move AND the A V
+can wait (N AND W). Similarly, the A V transitions to the
+Moving Left or Moving Right states if movement is necessary
+AND the respective adjacent lane is clear (N AND L or N
+AND R). Upon entering the Waiting state, the A V monitors
+lane conditions, allowing it to revert to the Idle state when
+movement is no longer required (NOT N AND (L OR R)).
+The Moving Left and Moving Right states are maintained
+through self-loops as long as the need to move AND the
+corresponding lane condition persist. If the conditions for
+these states change, such as the need to stop or an obstacle
+appearing, the A V returns to the Idle state (N AND NOT L or
+N AND NOT R). Self-loops are incorporated to maintain the
+current state when conditions remain unchanged. Edit points,
+represented by filled circles on each state, are included to
+facilitate potential modifications or extensions to the state
+machine’s behavior. This design ensures a robust and adaptable
+decision-making process for A V movement in various traffic
+scenarios.
+In addition to addressing collision avoidance in these sce-
+narios, various strategies and algorithms proposed in academic
+papers provide guidelines for mitigating the risk of collisions
+[13]. Therefore, efforts were made to implement the algorithm
+within a controlled testing environment to conduct thorough
+assessments and compare its performance with and without
+implementation. This approach involved meticulously design-
+ing the test environment, ensuring controlled variables for
+precise comparison and thoroughly evaluating the algorithm’s
+efficacy.
+
+--- Page 4 ---
+Algorithm 1 MLCA Algorithm for Autonomous Vehicle
+Movement Control
+Require: Navigation signal: N, Wait command: W, Left com-
+mand: L, Right command: R
+Ensure: Current state of the vehicle: state
+1:Initialize: current_state ←IDLE
+2:Define States: IDLE, WAITING, MOVING LEFT, MOV-
+ING RIGHT
+3:while system is active do
+4: if¬Nthen
+5: current_state ←IDLE
+6: continue
+7: end if
+8: ifcurrent_state = IDLE then
+9: ifN∧Wthen
+10: current_state ←WAITING
+11: else if N∧Lthen
+12: current_state ←MOVING LEFT
+13: else if N∧Rthen
+14: current_state ←MOVING RIGHT
+15: end if
+16: else if current_state = WAITING then
+17: ifN∧(L∨R)then
+18: current_state ←IDLE
+19: end if
+20: else if current_state = MOVING LEFT then
+21: ifN∧ ¬Lthen
+22: current_state ←IDLE
+23: end if
+24: else if current_state = MOVING RIGHT then
+25: ifN∧ ¬Rthen
+26: current_state ←IDLE
+27: end if
+28: end if
+29: Assert: current_state ∈ { IDLE, WAITING,
+MOVING LEFT, MOVING RIGHT }
+30: Assert: ¬N=⇒current_state = IDLE
+31: Assert: current_state = MOVING LEFT =⇒
+(N∧L)
+32: Assert: current_state = MOVING RIGHT =⇒
+(N∧R)
+33: Output: state ←current_state
+34:end while
+IV. E XPERIMENTAL SETUP AND ANALYSIS
+In safety-critical embedded systems, the primary concern
+is always ensuring safety. Despite A Vs’ state-of-the-art tech-
+nologies and sophisticated machine learning algorithms, the
+fundamental question remains: “Is it safe?” The inherent
+risks associated with A Vs demand meticulous risk mitigation
+strategies to safeguard passengers and other vehicles sharing
+the road. One strategy involves minimizing lane changes. By
+reducing the frequency of lane changes, potential risks can be
+effectively mitigated, enhancing overall safety.
+Each lane change introduces uncertainty and vulnerabilitybecause it requires the A V to navigate dynamic traffic condi-
+tions and interact with other vehicles. In addition, factors such
+as sensor limitations, unpredictable behavior of other drivers,
+and environmental variables further compound the risks as-
+sociated with lane changes. Therefore, prioritizing stability
+and consistency in lane positioning can significantly reduce
+risk. By maintaining a steady trajectory within a designated
+lane, A Vs can minimize their exposure to potential hazards
+and mitigate the likelihood of accidents.
+Furthermore, limiting lane changes promotes smoother traf-
+fic flow and reduces the potential for disruptions or conflicts
+with other vehicles on the road. While A Vs showcase cutting-
+edge technologies and capabilities, ensuring their safety re-
+mains paramount. By adopting a proactive approach to risk
+management, such as minimizing lane changes, the safety
+of A V passengers and other road users can be enhanced,
+ultimately advancing the acceptance and integration of au-
+tonomous driving technologies into our transportation systems.
+To rigorously evaluate the effectiveness of this risk mitiga-
+tion strategy, a comprehensive testing environment was created
+using SUMO and OpenStreetMap to simulate various scenar-
+ios and assess the algorithm’s performance. By incorporating
+these advanced simulation tools, real-world conditions can be
+closely mimicked, thoroughly assessing the algorithm’s behav-
+ior across different scenarios. Through meticulous testing and
+comparison, valuable insights into the algorithm’s efficacy and
+potential areas for improvement were obtained. This approach
+ensures that the proposed strategy not only enhances safety
+theoretically but also demonstrates practical effectiveness in
+diverse and dynamic traffic conditions.
+A. Tools and Environment Setup
+1) OpenStreetMap: Provides free geographic data, includ-
+ing roads, buildings, and other infrastructure. These open
+datasets were imported into SUMO and CARLA to recreate
+real-world landscapes for testing.
+2) Simulation of Urban Mobility [14]: SUMO is an open-
+source, highly portable, microscopic traffic simulation pack-
+age. This allows the importation of OpenStreetMap data and
+the simulation of real-world traffic flows. SUMO enables
+the configuration of vehicles, routes, and mobility models,
+providing a robust platform for simulating traffic scenarios.
+3) Hardware Configuration: All simulations were per-
+formed sequentially on a Windows 11 workstation powered
+by an Intel Core i5-8250U processor (1.60 GHz, 4 cores/8
+threads) with 16 GB of RAM.
+B. Simulation Scenarios
+SUMO was used to test various scenarios with a small
+population of cars ( 100 cars on the road) before and after
+implementing the proposed algorithm over a total distance of
+20km. This approach facilitates the evaluation of the effec-
+tiveness and practical utility of the algorithm. By conducting
+these simulations, the goal was to quantify the improvements
+brought about by the algorithm and assess its value in opti-
+mizing the traffic flow and enhancing overall road safety.
+
+--- Page 5 ---
+C. Simulation Setup
+The first step involved setting up the simulation environ-
+ment based on the scenarios provided. SUMO utilizes XML
+to define simulation scenarios, network configurations, and
+various parameters. To align the simulation to minimize lane
+changes, the attributes for each vehicle and road configuration
+were customized [15]. This ensured that the simulation was
+appropriately tailored to meet specific objectives.
+In the simulation, several key attributes were incorporated
+to enhance realism, including:
+•departLane : Specifies the lane on which the vehicle
+should be inserted into the network.
+•departPos : Defines the position at which the vehicle
+will enter the network.
+•departEdge : Determines the initial edge along the
+route where the vehicle enters the network.
+•arrivalLane : Indicates the lane at which the vehicle
+will exit the network.
+•arrivalPos : Specifies the position at which the vehi-
+cle will leave the network.
+•arrivalEdge : Specifies the final edge along the route
+where the vehicle exits the network.
+•departPosLat : Specifies the lateral position on the
+departure lane at which the vehicle enters the network.
+These attributes, along with other elements and configu-
+rations, were carefully selected and implemented to create a
+more realistic simulation environment.
+D. Simulation Execution and Data Collection
+Simulation scenarios A and B were executed sequentially
+in SUMO for 100 iterations, during which the green vehicle
+designated as the primary data source was monitored (vehicle
+color assignments were configured within the SUMO envi-
+ronment). This iterative procedure yielded a comprehensive
+dataset for assessing MLCA’s impact. The complete set of
+simulations ran on a Windows 11 workstation equipped with
+an Intel Core i5-8250U (1.60 GHz, 4 cores/8 threads) and
+16 GB of RAM, requiring approximately six hours and 30
+minutes of wall-clock time, with average CPU utilization of
+75% and peak memory usage of 6GB.
+Post-simulation graphs were generated to visualize the
+results obtained from each scenario. These visualizations
+facilitated an understanding of the algorithm’s effectiveness
+in minimizing lane changes and enhancing overall traffic
+flow. Improvements in safety and efficiency were quantified
+by comparing pre-and post-implementation data, providing
+valuable insights into the algorithm’s performance.
+This detailed experimental plan aimed to rigorously test and
+validate the proposed lane-changing and merging strategy for
+A Vs. The insights gained from these simulations can contribute
+to developing safer and more efficient autonomous driving
+technologies.E. Results
+The analysis of lane change data was conducted using three
+distinct charts, each representing different model algorithms
+over a cumulative distance of 20 kilometers.
+1) LC2017 and MOBIL Algorithms: Based on demon-
+strated sample outcomes in Fig. [2], in one A V Scenario,
+the number of lane changes in the LC2017 Model is initially
+low and gradually increases, reaching approximately fivelane
+changes by the 20-kilometer mark. However, in the MOBIL
+Model Algorithm, the number of lane changes peaking around
+four lane changes at 20 kilometers.
+In addition, in the Three A Vs Scenario, more lane changes
+are observed in the LC2017 Model Algorithm compared to the
+one A V scenario, reaching around fourteen lane changes by
+20 km. The MOBIL Model Algorithm consistently increases
+in lane changes, reaching approximately thirteen lane changes
+by 20 km.
+5 KM 10 KM 15 KM 20 KM02468101214
+1245
+1234
+26914
+25913
+Cumulative Distance (KM)Number of Lane ChangesNumber of Lane changes using LC2017 algorithm and MOBIL algorithm
+LC2017 (1 A V) MOBIL (1 A V)
+LC2017 (3 A Vs) MOBIL. (3 A Vs)
+Fig. 2. Comparison of the Number of Lane Changes at 5, 10, 15, and 20
+Kilometers Using LC2017 and MOBIL Algorithms Over 100 Iterations
+2) IDM/LC and Continuous Algorithms: The IDM/LC
+model algorithm exhibited low initial lane changes based on
+depicted sample results in Fig. [IV-E2] , slightly increasing
+to about sixchanges at 20 KM in the one A V scenario. For
+three A Vs, lane changes increased more noticeably, peaking
+at around thirteen . This indicates that the IDM/LC model
+promotes cautious driving behavior but adapts to optimize
+traffic flow with more A Vs.
+The Continuous model algorithm showed a steady rise in
+lane changes. The one A V scenario reached approximately
+four changes by 20 KM, while the three A V scenarios
+indicated a higher frequency of lane changes, peaking at
+around twelve . This pattern suggests that the Continuous
+model balances and adapts lane-changing behavior based on
+traffic conditions and A V presence.
+3) MLCA and Without Applied Algorithm: The sample re-
+sults shown in Fig. [4] demonstrate that the MLCA Algorithm
+exhibited a significant difference in performance between one
+A V and three A Vs. The one A V scenario reached about
+four lane changes, whereas the three A V scenarios peaked at
+approximately thirteen . This indicates that MLCA effectively
+leverages multiple A Vs for optimized lane-changing decisions.
+In the absence of any applied algorithm, lane changes were
+minimal in the one A V scenario, reaching about eight changes
+
+--- Page 6 ---
+5 KM 10 KM 15 KM 20 KM02468101214
+1246
+0134
+37813
+36912
+Cumulative Distance (KM)Average Number of Lane ChangesNumber of Lane changes using IDM/LC algorithm and Continuous algorithm
+IDM/LC (1 A V) Continuous (1 A V)
+IDM/LC (3 A Vs) Continuous (3 A Vs)
+Fig. 3. Comparison of Lane Changes at 5, 10, 15, and 20 Kilometers Using
+the IDM/LC and Continuous Algorithms Over 100 Iterations
+at 20 KM. The three A Vs scenario, however, demonstrated the
+highest number of lane changes among all scenarios, peaking
+at approximately twenty . This highlights the potential impact
+of algorithmic control on traffic dynamics and the necessity
+of applied algorithms for efficient traffic management.
+4) Comparative Analysis of Collision: The Fig. [5], which
+shows the average number of accidents per algorithm over
+100 trials within a 20 km range, highlights significant perfor-
+mance differences. Without an algorithm, collisions average
+about seven per 100 trials, underscoring the importance of
+algorithmic intervention for vehicular safety. Among the tested
+algorithms, MLCA has the lowest average number of colli-
+sions, proving its superior effectiveness. The IDM/LC Model
+also performs well, with the second-lowest collision average.
+The MOBIL Model and LC2017 Model show moderate perfor-
+mance with slightly higher collision averages. The Continuous
+Model’s performance is either not provided or negligible.
+Implementing algorithms significantly enhances safety, with
+MLCA reducing accidents the most.
+5 KM 10 KM 15 KM 20 KM05101520
+0124
+1358
+471113
+591720
+Cumulative Distance (KM)Number of Lane ChangesNumber of Lane changes using MLCA algorithm and without any algorithm
+MLCA (1 A V) No Alg. (1 A V)
+MLCA (3 A Vs) No Alg. (3 A Vs)
+Fig. 4. Comparison of the Number of Lane changes at 5, 10, 15, and 20
+kilometers Using MLCA algorithm and without applying algorithm Over 100
+Iterations
+V. L IMITATIONS AND FUTURE WORK
+This study focused on minimizing lane changes without
+addressing collision avoidance, time considerations, or travel
+duration. Future work should incorporate these aspects and ex-
+plore alternative scenarios for a more comprehensive analysis.LC2017 Model MOBIL Model IDM/LC Model Continuous Model MLCA Algorithm Without Algorithm0246
+02
+1
+016
+AlgorithmsAverage Number of AccidentsAverage Number of Accidents per Algorithm in 100 Trials (20 km Range)
+Fig. 5. Comparison of average number of accidents for different algorithms
+over 100 trials in a 20 km range
+The study’s limitations include the lack of high-level simu-
+lator testing. Future research will leverage CARLA, an open-
+source simulator for autonomous driving, to create realistic
+driving scenarios for testing and refining perception and
+control algorithms. Integrating the proposed algorithm with
+advanced control systems is expected to enhance its effec-
+tiveness, while CARLA’s collaborative features may foster
+innovative approaches.
+Future work will also explore cybersecurity in V2V com-
+munication to ensure secure, reliable connections that enhance
+safety and reduce lane changes. Addressing cybersecurity vul-
+nerabilities is essential for developing robust systems that are
+resistant to threats. Additionally, the research will examine the
+algorithm’s performance under diverse environmental condi-
+tions, including adverse weather, varied lighting, and complex
+traffic patterns, to evaluate its robustness and adaptability.
+Incorporating insights from these studies and developing ro-
+bust techniques for secure V2V communication will contribute
+significantly to creating dependable and safe autonomous sys-
+tems. This comprehensive approach will expand expertise and
+prepare professionals to tackle emerging challenges and seize
+new opportunities in the rapidly evolving field of autonomous
+driving technology. The integration of these advancements will
+pave the way for more resilient and intelligent autonomous
+systems that can operate effectively in real-world conditions.
+Future work will also explore the use of distributed computing
+and GPU-accelerated frameworks, such as MPI clusters or
+Flow on Ray, to significantly reduce simulation times below
+the 7 hours observed on a standard laptop.
+CONCLUSION
+The analysis of the charts and data from the simulations has
+indicated that the proposed algorithm substantially improves
+the stability and efficiency of A Vs. Specifically, the algorithm
+achieved a reduction in lane changes by approximately 50%
+in the first scenario and 33% in the second scenario. This
+significant decrease in lane changes not only enhances traffic
+flow but also lowers the likelihood of collisions, thereby
+improving overall road safety. Additionally, the reduction in
+collisions further confirms the algorithm’s effectiveness in
+enhancing A V safety within complex traffic environments.
+Despite these promising results, there are considerable op-
+portunities for further refinement. Future research will focus on
+integrating the algorithm with more advanced control systems
+
+--- Page 7 ---
+and testing it in a broader range of realistic scenarios using
+platforms like CARLA. In summary, while the proposed algo-
+rithm has demonstrated significant improvements in simulated
+environments, ongoing advancements and extensive testing are
+crucial to validate its effectiveness and reliability for real-
+world applications. Addressing these challenges will be key
+to advancing safer and more efficient autonomous driving
+technology. On a standard laptop (Core i5-8250U), MLCA’s
+full evaluation required 6 hours and 30 minutes over 100 runs,
+underscoring the benefit of exploring parallel and GPU-based
+implementations in future studies.
+REFERENCES
+[1] X. Li, Z. Sun, D. Cao, D. Liu, and H. He, “Development of a new
+integrated local trajectory planning and tracking control framework for
+autonomous ground vehicles,” Mechanical Systems and Signal Process-
+ing, vol. 87, pp. 118–137, 2017.
+[2] X. Li, Z. Sun, Z. He, Q. Zhu, and D. Liu, “A practical trajectory
+planning framework for autonomous ground vehicles driving in urban
+environments,” in 2015 IEEE Intelligent Vehicles Symposium (IV) ,
+pp. 1160–1166, IEEE, 2015.
+[3] C. Hubmann, M. Becker, D. Althoff, D. Lenz, and C. Stiller, “Decision
+making for autonomous driving considering interaction and uncertain
+prediction of surrounding vehicles,” in 2017 IEEE intelligent vehicles
+symposium (IV) , pp. 1671–1678, IEEE, 2017.
+[4] M. Placek, “Autonomous vehicles worldwide – statistics &
+facts.” [Online]. Available: https://www.statista.com/topics/3573/
+autonomous-vehicle-technology/#topicOverview. [Accessed: Dec. 10,
+2023].
+[5] X. Liu, L. Hong, and Y . Lin, “Vehicle lane change models—a historical
+review,” Applied Sciences , vol. 13, no. 22, p. 12366, 2023.
+[6] A. Kesting, M. Treiber, and D. Helbing, “General lane-changing model
+mobil for car-following models,” Transportation Research Record ,
+vol. 1999, no. 1, pp. 86–94, 2007.
+[7] M. Chamieh, R. El-Kouatly, and O. Abu-Amsha, “Impact of idm lane-
+changing on the performance of aodv on vanets,” International Journal
+of Simulation Systems, Science & Technology (IJSSST) , vol. 13, no. 6,
+2012.
+[8] P. Wang, H. Li, and C.-Y . Chan, “Continuous control for automated lane
+change behavior based on deep deterministic policy gradient algorithm,”
+in2019 IEEE Intelligent Vehicles Symposium (IV) , pp. 1454–1460,
+IEEE, 2019.
+[9] Z. Li, H. Liang, P. Zhao, S. Wang, and H. Zhu, “Efficent lane change
+path planning based on quintic spline for autonomous vehicles,” in
+2020 IEEE International Conference on Mechatronics and Automation
+(ICMA) , pp. 338–344, IEEE, 2020.
+[10] X. Liao, X. Zhao, Z. Wang, K. Han, P. Tiwari, M. J. Barth, and G. Wu,
+“Game theory-based ramp merging for mixed traffic with unity-sumo
+co-simulation,” IEEE Transactions on Systems, Man, and Cybernetics:
+Systems , vol. 52, no. 9, pp. 5746–5757, 2021.
+[11] Y . Tang, Y . Zhou, Y . Liu, J. Sun, and G. Wang, “Collision avoidance
+testing for autonomous driving systems on complete maps,” in 2021
+IEEE Intelligent Vehicles Symposium (IV) , pp. 179–185, IEEE, 2021.
+[12] P. Cao, Y . Hu, T. Miwa, Y . Wakita, T. Morikawa, and X. Liu, “An optimal
+mandatory lane change decision model for autonomous vehicles in urban
+arterials,” Journal of Intelligent Transportation Systems , vol. 21, no. 4,
+pp. 271–284, 2017.
+[13] J. Funke, M. Brown, S. M. Erlien, and J. C. Gerdes, “Collision avoidance
+and stabilization for autonomous vehicles in emergency scenarios,” IEEE
+Transactions on Control Systems Technology , vol. 25, no. 4, pp. 1204–
+1216, 2016.
+[14] D. Krajzewicz, “Traffic simulation with sumo–simulation of urban
+mobility,” Fundamentals of traffic simulation , pp. 269–293, 2010.
+[15] S. S. of Urban MObility, “Definition of vehicles, vehicle types, and
+routes.”
