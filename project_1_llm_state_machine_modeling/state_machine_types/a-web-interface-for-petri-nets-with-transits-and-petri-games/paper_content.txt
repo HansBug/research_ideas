@@ -1,0 +1,339 @@
+--- Page 1 ---
+Consistent * Complete * W
+ell Documented * Easy to Reuse * *  Evaluated * TACAS * Artifact  *  AECA Web Interface for Petri Nets with Transits
+and Petri Games?
+Manuel Gieseking1(B)
+, Jesko Hecking-Harbusch2
+, and Ann Yanich1
+1University of Oldenburg, Oldenburg, Germany
+fgieseking,ann.yanich g@informatik.uni-oldenburg.de
+2CISPA Helmholtz Center for Information Security, Saarbr ucken, Germany
+jesko.hecking-harbusch@cispa.de
+Abstract. Developing algorithms for distributed systems is an error-
+prone task. Formal models like Petri nets with transits and Petri games
+can prevent errors when developing such algorithms. Petri nets with tran-
+sits allow us to follow the data ow between components in a distributed
+system. They can be model checked against specications in LTL on both
+the local data ow and the global behavior. Petri games allow the synthe-
+sis of local controllers for distributed systems from safety specications.
+Modeling problems in these formalisms requires dening extended Petri
+nets which can be cumbersome when performed textually.
+In this paper, we present a web interface1that allows an intuitive, visual
+denition of Petri nets with transits and Petri games. The corresponding
+model checking and synthesis problems are solved directly on a server.
+In the interface, implementations, counterexamples, and all intermediate
+steps can be analyzed and simulated. Stepwise simulations and interac-
+tive state space generation support the user in detecting modeling errors.
+1 Introduction
+Distributed systems consist of several individual components. Each component
+has incomplete information about the other components. Asynchronous dis-
+tributed systems have no xed rate at which components progress but rather each
+component progresses at its individual rate between synchronizations with other
+components. Implementing correct algorithms for asynchronous distributed sys-
+tems is dicult because they have to both work with the incomplete information
+of the components and for every possible scheduling between the components.
+Petri nets [22,21] are a natural model for asynchronous distributed systems.
+Tokens represent components and transitions with more than one token corre-
+spond to synchronizations between the components. Petri nets with transits [9]
+extend Petri nets with a transit relation to model the data ow in asynchronous
+?This work has been supported by the German Research Foundation (DFG) through
+Grant Petri Games (392735815) and through the Collaborative Research Center
+\Foundations of Perspicuous Software Systems" (TRR 248, 389792660), and by the
+European Research Council (ERC) through Grant OSARES (683300).
+1The web interface is deployed at http://adam.informatik.uni-oldenburg.de.
+
+--- Page 2 ---
+2 M. Gieseking et al.
+distributed systems. Flow-LTL [9] is a specication language for Petri nets with
+transits and allows us to specify linear properties on both the global and the
+local view of the system. In particular, it is possible to globally select desired
+runs of the system with LTL (e.g., only fair and maximal runs) and check the
+local data ow of only those runs again with LTL. A model checker for Petri
+nets with transits against Flow-LTL is implemented in the tool AdamMC [10].
+Petri games [14] dene the synthesis of asynchronous distributed systems
+based on Petri nets and causal memory. With causal memory, players exchange
+their entire causal past only upon synchronization. Without synchronization,
+players have no information of each other. For safety winning conditions, the
+synthesis algorithm for Petri games with a bounded number of controllable com-
+ponents and one uncontrollable component is implemented in AdamSYNT [12]2.
+Both tools are command-line tools lacking visual support to model Petri nets
+with transits or Petri games and the possibility to simulate or interactively ex-
+plore implementations, counterexamples, and parts of the created state space.
+In this paper, we present a web interface3for model checking asynchronous
+distributed systems with data ows and for the synthesis of asynchronous dis-
+tributed systems with causal memory from safety specication. The web inter-
+face oers an input for Petri nets with transits and Petri games where the user
+interactively creates places, transitions, and their connections with a few inputs.
+As a back-end, the algorithms of AdamMC are used to model check Petri
+nets with transits against a given Flow-LTL formula as specication. Internally,
+the problem is reduced to the model checking problem of Petri nets against
+LTL. Both, the input Petri net with transits and the constructed Petri net can
+be visualized and simulated in the web interface. For a positive result, the web
+interface lets the user follow the control ow of the combined system and the data
+ow of the components. For a negative result, the web interface simulates the
+counterexample with a visual separation of the global and each local behavior.
+The algorithms of AdamSYNT solve the given Petri game with safety speci-
+cation. Internally, the problem is reduced to solving a nite two-player game with
+complete information. For a positive result, a winning strategy for the Petri game
+and the two-player game can be visualized and the former can be simulated. For
+a negative result, the web interface lets the user interactively construct strategies
+of the two-player game and highlights why they violate the specication. These
+new intuitive construction methods, interactive features, and visualizations are
+of great impact when developing asynchronous distributed systems.
+2 Web Interface for Petri Nets with Transits
+The web interface can model check Petri nets with transits against Flow-LTL.
+We use an example from software-dened networks to showcase the workow.
+2AdamSYNT was previously called Adam . From now on, AdamMC and
+AdamSYNT are combined in the tool Adam (https://github.com/adamtool/adam).
+3The web interface is open source (https://github.com/adamtool/webinterface) and
+a corresponding artifact to set it all up locally in a virtual machine is available [16].
+
+--- Page 3 ---
+A Web Interface for Petri Nets with Transits and Petri Games 3
+Fig. 1. Screenshot from the web interface for the model checking workow.
+Workow for Petri Nets With Transits One application domain for Petri
+nets with transits are software-dened networks (SDNs) [20,4]. The nodes of
+the network are switches which forward packets along the edges of the net-
+work according to the routing conguration . Packets enter the network at ingress
+switches and leave it at egress switches . SDNs separate the packet forwarding
+process, called the data plane , from the routing process, called the control plane .
+Concurrent updates to the routing conguration are dicult to get right [15].
+The separation of data and control plane and updates to the routing con-
+guration can be encoded into Petri nets with transits [9]. Using this encod-
+ing, we demonstrate the workow of the web interface for model checking an
+asynchronous distributed system with data ows. The packets of the SDN are
+modeled by the data ow in the Petri net with transits. The data ow relation
+as an extension from Petri nets to Petri nets with transits is depicted as colored
+and labeled arcs. In Fig. 1, the web interface presents the resulting Petri net
+with transits N. First, we use the tools on the left to create for each switch a
+place siwith i2f0; : : : ; 5gand add a token (cf. outer parts of N). Then, we
+create transitions for the connections between the switches and for the origin of
+packets in the SDN (cf. transition ingress in the top-left corner) and link them
+with ows in both directions. Additionally, we create local transits between the
+switches corresponding to the forwarding of packets. They are displayed in light
+blue and red and are identied by the letters. This constitutes the data plane .
+Next, we dene the control plane , i.e., which forwarding is activated. Each
+transition to forward packets is connected to a place aiwithi2f0; : : : ; 5gwhich
+has a token when the forwarding is congured initially (cf. places a3,a4, and a5)
+and no token otherwise (cf. places a0,a1, and a2). For the concurrent update,
+we create places uiwith i2f0; : : : ; 7gand transitions tiwith i2f6; : : : ; 11g
+with corresponding ows (cf. inner parts of N).
+
+--- Page 4 ---
+4 M. Gieseking et al.
+Transitions for the forwarding are set as weak fair, i.e., whenever a transition
+is innitely long enabled in a run, it also has to re innitely often, indicated by
+the purple color of the outer transitions. Transitions for the update do not require
+fairness assumptions. A satised Flow-LTL formula is A F s 5 specifying that all
+packets eventually reach switch s5. An unsatised formula is ( G u0)A F s 2)
+requiring for runs, where the update is never executed, that all packets are taking
+the lower-left route. The fairness assumptions and a maximality assumption, i.e.,
+whenever some transition can re in a run some transition res, are automatically
+added to the formula. In the screenshot, a counterexample for the unsatised
+formula is displayed on the right. The rst packet takes the upper-right route
+via transitions t3,t4, and t5 and the update never starts.
+Features for Petri Nets with Transits. AdamMC [10] is a command-line
+model checking tool for Petri nets with transits and Flow-LTL [9]. The model
+checking problem of Petri nets with transits against Flow-LTL is solved by a re-
+duction to Petri nets and LTL. The web interface allows displaying and arranging
+the nodes of the Petri net from the reduction and the input Petri net with tran-
+sits. Automatic layout techniques are applied to avoid the overlapping of nodes.
+A physics control, which modies the repulsion, link, and gravity strength of
+nodes, can be used to minimize the overlapping of edges. Heuristics generate
+coordinates for the constructed Petri net by using the coordinates of the input
+Petri net with transits to obtain a similar layout of corresponding parts.
+For a positive result, the web interface allows visualizing the data ow trees
+for given ring sequences of the nets. For a negative result, the counterexample
+can be simulated both in the Petri net with transits and in the Petri net from
+the reduction. The witness of the counterexample for each ow subformula and
+the run violating the global behavior can be displayed by the web interface. This
+functionality is helpful when developing an encoding of a problem into Petri net
+with transits to ensure that a counterexample is not an error in the encoding.
+The constructed Petri net can be exported into a standard format for Petri net
+model checking (PNML) and the constructed LTL formula can be displayed.
+3 Web Interface for Petri Games
+The web interface can synthesize local controllers from safety specications. The
+workow is showcased for a distributed alarm system given as a Petri game.
+Workow for Petri Games We demonstrate the workow of the web interface
+for the synthesis of asynchronous distributed systems with causal memory from
+safety specications. Petri games separate the places of an underlying Petri net
+into system places and environment places . Tokens on system places are system
+players and tokens on environment places are environment players . Each player
+hascausal memory : only upon synchronization with other players, they exchange
+their entire causal past. For safety specications, the system players have to avoid
+that a bad place is reached for all behaviors of the environment players.
+
+--- Page 5 ---
+A Web Interface for Petri Nets with Transits and Petri Games 5
+Fig. 2. Screenshot from the web interface for the synthesis workow.
+We want to obtain two local controllers of a distributed alarm system that
+should indicate the location of a burglary at both controllers. In Fig. 2, the web
+interface presents the resulting Petri game on the left and the winning strategy
+for the alarm system on the right. The burglar is modeled by an environment
+player and each component of the distributed alarm system by a system player.
+Environment players are on white places and system players on gray ones. We
+create ve environment places e0,e1,e2,eL, and eR. The place e0 has a token,
+e1 and e2 serve for the decision to burgle a location, and eLandeRfor actually
+burgling the location. Each component x2fp; qgof the alarm system has one
+system place x0 with a token, two system places x1 and x2 to detect a burglary
+and inform the other component, and two system places xLand xRto sound
+an alarm with the position of a burglary. We create rows of transitions for the
+environment player deciding where to burgle (rst row), for the components de-
+tecting a burglary (second row), for the communication between the components
+(third row), and for sounding the alarm at each location (fourth row).
+At last, we use transitions faiwithi2f0; : : : ; 3gandfrjwithj2f0; : : : ; 7g
+connected to the bad place badto dene that the implementation of the dis-
+tributed alarm system should avoid false alarms and false reports. A false alarm
+occurs if the burglar did not burgle any location but an alarm occurred, i.e., in
+every pair of places fe0gf pL;pR;qL;qRg. Afalse report occurs if a burglary
+happened at a location but a component of the alarm system indicates a bur-
+glary at the other location, i.e., in every pair of places fe1;eLgf pR;qRgand
+fe2;eRgf pL;qLg. We add transitions and ows to badfor these cases.
+The web interface nds a winning strategy (depicted on the right in Fig. 2)
+for the Petri game described above. Each component locally monitors its location
+(t2,t3) and simultaneously waits for information about a burglary at the other
+location ( t4,t5). When a burglary is detected at the location of the component
+
+--- Page 6 ---
+6 M. Gieseking et al.
+then it rst informs the other component ( t4,t5) and then outputs an alarm for
+the current location ( t7,t8). When a component is informed about a burglary
+at the other location, it outputs an alarm for the other location ( t6,t9).
+Features for Petri Games AdamSYNT [12] is a command-line tool for Petri
+games [14]. The synthesis problem for Petri games with a bounded number of
+system players, one environment player, and a safety objective is reduced to the
+synthesis problem for two-player games. A winning strategy in the two-player
+game is translated into a winning strategy for the Petri game. Both can be vi-
+sualized in the web interface. Here, the web interface provides the same features
+for visualizing, manipulating, and automatically laying out the elements as for
+model checking. It uses the order of nodes of the Petri game to heuristically pro-
+vide a positioning of the strategy and allows simulating runs of the strategy. The
+winning strategy of the two-player game provides an additional view on the im-
+plementation to check if it is not bogus due to a forgotten case in the Petri game
+or specication. For an unrealizable synthesis problem, the web interface allows
+analyzing the underlying two-player game via a stepwise creation of strategies.
+This guides the user towards changes to make the problem realizable.
+4 Implementation Details
+The server is implemented using the Sparkjava micro-framework [23] for incom-
+ing HTTP and WebSocket connections. The client is a single-page application
+written in Javascript using Vue.js [25], D3 [5], and the Vuetify component li-
+brary [26]. We constructed libraries out of the tools AdamMC andAdamSYNT
+and implemented one interface handling both libraries. Common features like the
+physics control of nodes share the same implementation. All components of the
+libraries and the web interface [2] are open source and available on GitHub [1].
+5 Conclusion
+We presented a web interface for two tools: AdamMC , a model checker for data
+ows in asynchronous distributed systems represented by Petri nets with transits,
+andAdamSYNT , a synthesis tool for local controllers from safety specications
+in asynchronous distributed systems with causal memory represented by Petri
+games. The web interface makes the modeling and debugging of Petri nets with
+transits and Petri games user-friendly as it presents visual representations of
+the input, all intermediate steps, and the output of the tools. The interactive
+features are a great assistance for correctly modeling distributed systems.
+We plan to extend the web interface and tool support to model checking
+Petri nets with transits against Flow-CTL[11], to other classes of Petri games
+with a decidable synthesis problem [13,3], to the bounded synthesis approach for
+Petri games [7,8,19,18], and to high-level Petri games [17]. As our web interface
+is open source and easy to extend, we also plan to connect it to other tools for
+Petri nets like APT [24], LoLA [27], or TAPAAL [6].
+
+--- Page 7 ---
+A Web Interface for Petri Nets with Transits and Petri Games 7
+References
+1.Adam : https://github.com/adamtool/ (2020)
+2.AdamWEB : https://github.com/adamtool/webinterface (2020)
+3. Beutner, R., Finkbeiner, B., Hecking-Harbusch, J.: Translating asynchronous
+games for distributed synthesis. In: 30th International Conference on Concurrency
+Theory, CONCUR. LIPIcs, vol. 140, pp. 26:1{26:16. Schloss Dagstuhl - Leibniz-
+Zentrum f ur Informatik (2019), https://doi.org/10.4230/LIPIcs.CONCUR.2019.26
+4. Casado, M., Foster, N., Guha, A.: Abstractions for software-dened networks. Com-
+mun. ACM 57(10), 86{95 (2014), https://doi.org/10.1145/2661061.2661063
+5. D3: https://d3js.org/ (2020)
+6. David, A., Jacobsen, L., Jacobsen, M., Jrgensen, K.Y., Mller, M.H., Srba, J.:
+TAPAAL 2.0: Integrated development environment for timed-arc Petri nets. In:
+Tools and Algorithms for the Construction and Analysis of Systems - 18th Inter-
+national Conference, TACAS. Lecture Notes in Computer Science, vol. 7214, pp.
+492{497. Springer (2012), https://doi.org/10.1007/978-3-642-28756-5 36
+7. Finkbeiner, B.: Bounded synthesis for Petri games. In: Correct System Design
+- Symposium in Honor of Ernst-R udiger Olderog on the Occasion of His 60th
+Birthday. Lecture Notes in Computer Science, vol. 9360, pp. 223{237. Springer
+(2015), https://doi.org/10.1007/978-3-319-23506-6 15
+8. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: Symbolic vs.
+bounded synthesis for Petri games. In: Sixth Workshop on Synthesis, SYNT@CAV.
+EPTCS, vol. 260, pp. 23{43 (2017), https://doi.org/10.4204/EPTCS.260.5
+9. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: Model checking
+data ows in concurrent network updates. In: Automated Technology for Veri-
+cation and Analysis - 17th International Symposium, ATVA. Lecture Notes in
+Computer Science, vol. 11781, pp. 515{533. Springer (2019), https://doi.org/10.
+1007/978-3-030-31784-3 30
+10. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: AdamMC:
+A model checker for Petri nets with transits against Flow-LTL. In: Computer
+Aided Verication - 32nd International Conference, CAV. Lecture Notes in Com-
+puter Science, vol. 12225, pp. 64{76. Springer (2020), https://doi.org/10.1007/
+978-3-030-53291-8 5
+11. Finkbeiner, B., Gieseking, M., Hecking-Harbusch, J., Olderog, E.: Model checking
+branching properties on Petri nets with transits. In: Automated Technology for
+Verication and Analysis - 18th International Symposium, ATVA. Lecture Notes
+in Computer Science, vol. 12302, pp. 394{410. Springer (2020), https://doi.org/10.
+1007/978-3-030-59152-6 22
+12. Finkbeiner, B., Gieseking, M., Olderog, E.: Adam: Causality-based synthesis of
+distributed systems. In: Computer Aided Verication - 27th International Confer-
+ence, CAV. Lecture Notes in Computer Science, vol. 9206, pp. 433{439. Springer
+(2015), https://doi.org/10.1007/978-3-319-21690-4 25
+13. Finkbeiner, B., G olz, P.: Synthesis in distributed environments. In: 37th IARCS
+Annual Conference on Foundations of Software Technology and Theoretical Com-
+puter Science, FSTTCS. LIPIcs, vol. 93, pp. 28:1{28:14. Schloss Dagstuhl - Leibniz-
+Zentrum f ur Informatik (2017), https://doi.org/10.4230/LIPIcs.FSTTCS.2017.28
+14. Finkbeiner, B., Olderog, E.: Petri games: Synthesis of distributed systems with
+causal memory. Inf. Comput. 253, 181{203 (2017), https://doi.org/10.1016/j.ic.
+2016.07.006
+
+--- Page 8 ---
+8 M. Gieseking et al.
+15. F orster, K., Mahajan, R., Wattenhofer, R.: Consistent updates in software de-
+ned networks: On dependencies, loop freedom, and blackholes. In: IFIP Network-
+ing Conference. pp. 1{9. IEEE Computer Society (2016), https://doi.org/10.1109/
+IFIPNetworking.2016.7497232
+16. Gieseking, M., Hecking-Harbusch, J., Yanich, A.: AdamWEB: A
+Web Interface for Petri Nets with Transits and Petri Games (2020).
+https://doi.org/10.6084/m9.gshare.13089800
+17. Gieseking, M., Olderog, E., W urdemann, N.: Solving high-level Petri games. Acta
+Informatica 57(3-5), 591{626 (2020), https://doi.org/10.1007/s00236-020-00368-5
+18. Hecking-Harbusch, J., Metzger, N.O.: Ecient trace encodings of bounded syn-
+thesis for asynchronous distributed systems. In: Automated Technology for Ver-
+ication and Analysis - 17th International Symposium, ATVA. Lecture Notes in
+Computer Science, vol. 11781, pp. 369{386. Springer (2019), https://doi.org/10.
+1007/978-3-030-31784-3 22
+19. Hecking-Harbusch, J., Tentrup, L.: Solving QBF by abstraction. In: Ninth Inter-
+national Symposium on Games, Automata, Logics, and Formal Verication, Gan-
+dALF. EPTCS, vol. 277, pp. 88{102 (2018), https://doi.org/10.4204/EPTCS.277.7
+20. McKeown, N., Anderson, T.E., Balakrishnan, H., Parulkar, G.M., Peterson, L.L.,
+Rexford, J., Shenker, S., Turner, J.S.: Openow: enabling innovation in campus
+networks. Comput. Commun. Rev. 38(2), 69{74 (2008), https://doi.org/10.1145/
+1355734.1355746
+21. Nielsen, M., Plotkin, G.D., Winskel, G.: Petri nets, event structures and do-
+mains, part I. Theor. Comput. Sci. 13, 85{108 (1981), https://doi.org/10.1016/
+0304-3975(81)90112-2
+22. Reisig, W.: Petri Nets: An Introduction, EATCS Monographs on Theoretical Com-
+puter Science, vol. 4. Springer (1985), https://doi.org/10.1007/978-3-642-69968-9
+23. Sparkjava: http://sparkjava.com/ (2020)
+24. University of Oldenburg: APT { Analyse von Petri-Netzen und Transitionssyste-
+men. https://github.com/CvO-Theory/apt (2012)
+25. Vue.js: https://vuejs.org/ (2020)
+26. Vuetify: https://vuetifyjs.com/ (2020)
+27. Wolf, K.: Petri net model checking with LoLA 2. In: Application and Theory
+of Petri Nets and Concurrency - 39th International Conference, PETRI NETS.
+Lecture Notes in Computer Science, vol. 10877, pp. 351{362. Springer (2018), https:
+//doi.org/10.1007/978-3-319-91268-4 18
+Open Access This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License (https://creativecommons.org/licenses/by/4.0/),
+which permits use, sharing, adaptation, distribution and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and the
+source, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the chapter's
+Creative Commons license, unless indicated otherwise in a credit line to the material. If
+material is not included in the chapter's Creative Commons license and your intended
+use is not permitted by statutory regulation or exceeds the permitted use, you will need
+to obtain permission directly from the copyright holder.
+

@@ -1,0 +1,1036 @@
+--- Page 1 ---
+Lazy Automata Techniques for WS1S
+Tom´aˇs Fiedor1, Luk ´aˇs Hol ´ık1, Petr Jank ˚u1, Ond ˇrej Leng ´al1;2, and Tom ´aˇs V ojnar1
+1FIT, Brno University of Technology, IT4Innovations Centre of Excellence, Czech Republic
+2Institute of Information Science, Academia Sinica, Taiwan
+Abstract. We present a new decision procedure for the logic WS1S. It originates
+from the classical approach, which ﬁrst builds an automaton accepting all models
+of a formula and then tests whether its language is empty. The main novelty is to
+test the emptiness on the ﬂy, while constructing a symbolic, term-based represen-
+tation of the automaton, and prune the constructed state space from parts irrele-
+vant to the test. The pruning is done by a generalization of two techniques used in
+antichain-based language inclusion and universality checking of ﬁnite automata:
+subsumption and early termination. The richer structure of the WS1S decision
+problem allows us, however, to elaborate on these techniques in novel ways. Our
+experiments show that the proposed approach can in many cases signiﬁcantly
+outperform the classical decision procedure (implemented in the M ONA tool) as
+well as recently proposed alternatives.
+1 Introduction
+Weak monadic second-order logic of one successor (WS1S) is a powerful language
+for reasoning about regular properties of ﬁnite words. It has found numerous uses,
+from software and hardware veriﬁcation through controller synthesis to computational
+linguistics, and further on. Some more recent applications of WS1S include veriﬁca-
+tion of pointer programs and deciding related logics [1,2,3,4,5] as well as synthesis
+from regular speciﬁcations [6]. Most of the successful applications were due to the tool
+MONA [7], which implements classical automata-based decision procedures for WS1S
+and WS2S (a generalization of WS1S to ﬁnite binary trees). The worst case complexity
+of WS1S is nonelementary [8] and, despite many optimizations implemented in M ONA
+and other tools, the complexity sometimes strikes back. Authors of methods translating
+their problems to WS1S/WS2S are then forced to either ﬁnd workarounds to circumvent
+the complexity blowup, such as in [2], or, often restricting the input of their approach,
+give up translating to WS1S/WS2S altogether [9].
+The classical WS1S decision procedure builds an automaton A'accepting all mod-
+els of the given formula 'in a form of ﬁnite words, and then tests A'for language
+emptiness. The bottleneck of the procedure is the size of A', which can be huge due
+to the fact that the derivation of A'involves many nested automata product construc-
+tions and complementation steps, preceded by determinization. The main point of this
+paper is to avoid the state-space explosion involved in the classical explicit construc-
+tion by representing automata symbolically and testing the emptiness on the ﬂy , while
+constructing A', and by omitting the state space irrelevant to the emptiness test. This is
+done using two main principles: lazy evaluation andsubsumption-based pruning . These
+principles have, to some degree, already appeared in the so-called antichain-based test-
+ing of language universality and inclusion of ﬁnite automata [10]. The richer structure
+of the WS1S decision problem allows us, however, to elaborate on these principles in
+novel ways and utilize their power even more.arXiv:1701.06282v2  [cs.LO]  24 Jan 2017
+
+--- Page 2 ---
+Overview of our algorithm. Our algorithm originates in the classical WS1S decision
+procedure as implemented in M ONA, in which models of formulae are encoded by ﬁnite
+words over a multi-track binary alphabet where each track corresponds to a variable
+of'. In order to come closer to this view of formula models as words, we replace
+the input formula 'by a language term t'describing the language L'of all word
+encodings of its models.
+Int', the atomic formulae of 'are replaced by predeﬁned automata accepting lan-
+guages of their models. Boolean operators ( ^,_, and:) are turned into the correspond-
+ing set operators ([,\, and complement) over the languages of models. An existential
+quantiﬁcation9Xbecomes a sequence of two operations. First, a projection Xre-
+moves information about valuations of the quantiﬁed variable Xfrom symbols of the
+alphabet. After the projection, the resulting language Lmay, however, encode some but
+not necessarily allencodings of the models. In particular, encodings with some speciﬁc
+numbers of trailing 0’s, used as a padding, may be missing. 0here denotes the sym-
+bol with 0 in each track. To obtain a language containing allencodings of the models,
+Lmust be extended to include encodings with any number of trailing 0’s. This corre-
+sponds to taking the (right) 0-quotient of L, writtenL0, which is the set of all
+preﬁxes of words of Lwith the remaining sufﬁx in 0. We give an example WS1S for-
+mula'in (1) and its language term t'in (2). The dotted operators represent operators
+'9X: Sing(X)^(9Y:Y=X+ 1) (1)
+t'X(
+ASing(X)\(Y(AY=X+1)0)	
+)0(2)over language terms. See
+Fig. 2 for the automata
+ASing(X)andAY=X+1.
+The main novelty of our work is that we test emptiness of L'directly over t'.
+The term is used as a symbolic representation of the automata that would be explicitly
+constructed in the classical procedure: inductively to the terms structure, starting from
+the leaves and combining the automata of sub-terms by standard automata constructions
+that implement the term operators. Instead of ﬁrst building automata and only then
+testing emptiness, we test it on the ﬂy during the construction. This offers opportunities
+to prune out large portions of the state space that turn out not to be relevant for the test.
+A sub-termt oft', corresponding to a sub-formula  , represents ﬁnal states of the
+automatonA accepting the language encoding models of  . Predecessors of the ﬁnal
+states represented by t correspond to quotients of t . All states ofA could hence
+be constructed by quotienting t until ﬁxpoint. By working with terms, our procedure
+can often avoid building large parts of the automata when they are not necessary for
+answering the emptiness query. For instance, when testing emptiness of the language
+of a termt1[t2, we adopt the lazy approach (in this particular case the so-called
+short-circuit evaluation ) and ﬁrst test emptiness of the language of t1; if it is non-
+empty, we do not need to process t2. Testing language emptiness of terms arising from
+quantiﬁed sub-formulae is more complicated since they translate to 0quotients. We
+evaluate the test on t0by iterating the0quotient from t. We either conclude
+with the positive result as soon as one of the iteration computes a term with a non-
+empty language, or with the negative one if the ﬁxpoint of the quotient construction is
+reached. The ﬁxpoint condition is that the so-far computed quotients subsume the newly
+constructed ones, where subsumption is a relation under-approximating inclusion of
+languages represented by terms. Subsumption is also used to prune the set of computed
+terms so that only an antichain of the terms maximal wrt subsumption is kept.
+2
+
+--- Page 3 ---
+Besides lazy evaluation and subsumption, our approach can beneﬁt from multiple
+further optimizations. For example, it can be combined with the explicit WS1S deci-
+sion procedure , which can be used to transform arbitrary sub-terms of t'to automata.
+These automata can then be rather small due to minimization, which cannot be applied
+in the on-the-ﬂy approach (the automata can, however, also explode due to determini-
+sation and product construction, hence this technique comes with a trade-off). We also
+propose a novel way of utilising BDD-based encoding of automata transition functions
+in the M ONA style for computing quotients of terms. Finally, our method can exploit
+various methods of logic-based pre-processing , such as anti-prenexing , which, in our
+experience, can often signiﬁcantly reduce the search space of ﬁxpoint computations.
+Experiments. We have implemented our decision procedure in a prototype tool called
+GASTON and compared its performance with other publicly available WS1S solvers on
+benchmarks from various sources. In the experiments, G ASTON managed to win over
+all other solvers on various parametric families of WS1S formulae that were designed—
+mostly by authors of other tools—to stress-test WS1S solvers. Moreover, G ASTON was
+able to signiﬁcantly outperform M ONA and other solvers on a number of formulae ob-
+tained from various formal veriﬁcation tasks. This shows that our approach is applicable
+in practice and has a great potential to handle more complex formulae than those so far
+obtained in WS1S applications. We believe that the efﬁciency of our approach can be
+pushed much further, making WS1S scale enough for new classes of applications.
+Related work. As already mentioned above, M ONA [7] is the usual tool of choice for de-
+ciding WS1S formulae. The efﬁciency of M ONA stems from many optimizations, both
+higher-level (such as automata minimization, the encoding of ﬁrst-order variables used
+in models, or the use of BDDs to encode the transition relation of the automaton) as well
+as lower-level (e.g. optimizations of hash tables, etc.) [11,12]. Apart from M ONA, there
+are other related tools based on the explicit automata procedure, such as JMOSEL [13]
+for a related logic M2L(Str), which implements several optimizations (such as second-
+order value numbering [14]) that allow it to outperform M ONA on some benchmarks
+(MONA also provides an M2L(Str) interface on top of the WS1S decision procedure),
+or the procedure using symbolic ﬁnite automata of D’Antoni et al. in [15].
+Our work was originally inspired by antichain techniques for checking universality
+and inclusion of ﬁnite automata [16,10,17], which use symbolic computation and sub-
+sumption to prune large state spaces arising from subset construction. In [18], which is
+a starting point for the current paper, we discussed a basic idea of generalizing these
+techniques to a WS1S decision procedure. In the current paper we have turned the idea
+of [18] to an algorithm efﬁcient in practice by roughly the following steps: (1) refor-
+mulating the symbolic representation of automata from nested upward and downward
+closed sets of automata states to more intuitive language terms, (2) generalizing the pro-
+cedure originally restricted to formulae in the prenex normal form to arbitrary formulae,
+(3) introduction of lazy evaluation, and (4) many other important optimizations.
+Recently, a couple of logic-based approaches for deciding WS1S appeared. Ganzow
+and Kaiser [19] developed a new decision procedure for the weak monadic second-order
+logic on inductive structures, within their tool T OSS, which is even more general than
+WSkS. Their approach completely avoids automata; instead, it is based on Shelah’s
+composition method. The T OSS tool is quite promising as it outperforms M ONA on
+3
+
+--- Page 4 ---
+some of the benchmarks. It, however, lacks some features in order to perform meaning-
+ful comparison on benchmarks used in practice. Traytel [20], on the other hand, uses the
+classical decision procedure, recast in the framework of coalgebras. The work focuses
+on testing equivalence of a pair of formulae, which is performed by ﬁnding a bisim-
+ulation between derivatives of the formulae. While it is shown that it can outperform
+MONA on some simple artiﬁcial examples, the implementation is not optimized enough
+and is easily outperformed by the rest of the tools on other benchmarks.
+2 Preliminaries on Languages and Automata
+Aword over a ﬁnite alphabet is a ﬁnite sequence w=a1an, forn0, of
+symbols from . Itsi-th symbolaiis denoted by w[i]. Forn= 0, the word is the
+empty word . A language Lis a set of words over . We use the standard language
+operators of concatenation L:L0and iteration L. The (right) quotient of a language L
+wrt the language L0is the language LL0=fuj9v2L0:uv2Lg. We abuse
+notation and write Lwto denoteLfwg, for a word w2.
+Aﬁnite automaton (FA) over an alphabet is a quadrupleA= (Q;;I;F )where
+Qis a ﬁnite set of states, QQis a set of transitions, IQis a set
+ofinitial states, andFQis a set of ﬁnal states. The pre-image of a stateq2Q
+overa2is the set of states pre[a](q) =fq0j(q0;a;q)2g, and it is the set
+pre[a](S) =S
+q2Spre[a](q)for a set of states S.
+The languageL(q)accepted ata stateq2Qis the set of words that can be read
+along a run ending in q, i.e. all words a1an, forn0, such thatcontains transi-
+tions (q0;a1;q1);:::; (qn1;an;qn)withq02Iandqn=q. The languageL(A)ofA
+is then the unionS
+q2FL(q)of languages of its ﬁnal states.
+3 WS1S
+In this section, we give a minimalistic introduction to the weak monadic second-order
+logic of one successor (WS1S) and outline its explicit decision procedure based on
+representing sets of models as regular languages and ﬁnite automata. See, for instance,
+Comon et al. [21] for a more thorough introduction.
+3.1 Syntax and Semantics of WS1S
+WS1S allows quantiﬁcation over second-order variables , which we denote by upper-
+case lettersX;Y;::: , that range over ﬁnite subsets of N0. Atomic formulae are of the
+form (i)XY, (ii) Sing(X), (iii)X=f0g, and (iv)X=Y+ 1. Formulae are
+built from the atomic ones using the logical connectives ^;_;:, and the quantiﬁer 9X
+whereXis a ﬁnite set of variables (we write 9XifXis a singletonfXg). Amodel of
+a WS1S formula '(X)with the set of free variables Xis an assignment :X! 2N0
+of the free variables Xof'to ﬁnite subsets of N0for which the formula is satisﬁed ,
+writtenj='. Satisfaction of atomic formulae is deﬁned as follows: (i) j=XY
+iff(X)(Y), (ii)j= Sing(X)iff(X)is a singleton set, (iii) j=X=f0g
+iff(X) =f0g, and (iv)j=X=Y+ 1 iff(X) =fxg;(Y) =fyg, and
+x=y+ 1. Satisfaction for formulae obtained using Boolean connectives is deﬁned
+as usual. A formula 'isvalid , writtenj=', iff all assignments of its free variables to
+4
+
+--- Page 5 ---
+ﬁnite subsets of N0are its models, and satisﬁable if it has a model. Wlog we assume
+that each variable in a formula is quantiﬁed at most once.
+3.2 Models as Words
+LetXbe a ﬁnite set of variables. A symboloverXis a mapping of all variables in X
+to the setf0;1g, e.g.=fX17!0;X27!1gforX=fX1;X2g, which we will write
+as=X1: 0
+X2: 1below. The set of all symbols over Xis denoted as X. We use 0to denote
+the symbol in Xthat maps all variables to 0, i.e. 0 =fX7!0jX2Xg .
+An assignment :X! 2N0may be encoded as a word wof symbols overXin
+the following way: wcontains 1in the (i+ 1) -st position of the row for Xiffi2X
+in. Notice that there exists an inﬁnite number of encodings of : the shortest encoding
+isws
+of the length n+1, wherenis the largest number appearing in any of the sets that
+is assigned to a variable of Xin, or1when all these sets are empty. The rest of the
+encodings are all those corresponding to ws
+extended with an arbitrary number of 0’s
+appended to its end. For example,X1: 0
+X2: 1,X1: 00
+X2: 10,X1: 000
+X2: 100,X1: 000:::0
+X2: 100:::0are all encodings of the
+assignment=fX17!;;X27!f0gg. We useL(')
+Xto denote the language of
+all encodings of a formula '’s models, whereXare the free variables of '.
+For two setsXandYof variables and any two symbols 1;22X, we write
+1Y2iff8X2XnY :1(X) =2(X), i.e. the two symbols differ (at most) in the
+values of variables in Y. The relationYis generalized to words such that w1Yw2iff
+jw1j=jw2jand81ijw1j:w1[i]Yw2[i]. For a language L
+X, we deﬁne
+Y(L)as the language of words wthat areY-equivalent with some word w02L.
+Seen from the point of view of encodings of sets of assignments, Y(L)encodes all
+assignments that may differ from those encoded by L(only) in the values of variables
+fromY. IfYis disjoint with the free variables of ', thenY(L('))corresponds to the
+so-called cylindriﬁcation ofL('), and if it is their subset, then Y(L('))corresponds
+to the so-called projection [21]. We use Yto denotefYgfor a variable Y.
+LV('_ ) =LV(')[LV( )(3)
+LV('^ ) =LV(')\LV( )(4)
+LV(:') =
+VnLV(') (5)
+LV(9X:') =X(LV('))0(6)Consider formulae over the set Vof vari-
+ables. Let free(')be the set of free variables of
+', and letLV(') =Vnfree(')(L('))be the lan-
+guageL(')cylindriﬁed wrt those variables of
+Vthat are not free in '. Let'and be formu-
+lae and assume that LV(')andLV( )are lan-
+guages of encodings of their models cylindriﬁed wrt V. Languages of formulae obtained
+from'and using logical connectives are deﬁned by equations (3) to (6). Equations
+(3)-(5) above are straightforward: Boolean connectives translate to the corresponding
+set operators over the universe of encodings of assignments of variables in V. Exis-
+tential quantiﬁcation 9X:'translates into a composition of two language transfor-
+mations. First, Xmakes the valuations of variables of Xarbitrary, which intuitively
+corresponds to forgetting everything about values of variables in X(notice that this is a
+different use of Xthan the cylindriﬁcation since here variables of Xarefree variables
+of'). The second step, removing sufﬁxes of 0’s from the model encodings, is necessary
+sinceX(LV('))might be missing some encodings of models of 9X:'. For example,
+suppose that V=fX;Ygand the only model of 'isfX7!f0g;Y7!f1gg, yielding
+LV(') =X: 10
+Y: 010
+0. ThenY(LV(')) =X: 10
+Y: ??0
+?does not contain the shortest encod-
+ingX: 1
+Y: ?(where each ‘?’ denotes an arbitrary value) of the only model fX7!f0ggof
+5
+
+--- Page 6 ---
+9Y:'. It only contains its variants with at least one 0appended to it. This generally
+happens for models of 'where the largest number in the value of the variable Ybeing
+eliminated is larger than maximum number found in the values of the free variables of
+9Y:'. The role of the0quotient is to include the missing encodings of models
+with a smaller number of trailing 0’s into the language.
+The standard approach to decide satisﬁability of a WS1S formula 'with the set
+of variables Vis to construct an automaton A'acceptingLV(')and check emptiness
+of its language. The construction starts with simple pre-deﬁned automata A for'’s
+atomic formulae  (see Fig. 2 for examples of automata for selected atomic formulae
+and e.g. [21] for more details) accepting cylindriﬁed languages LV( )of models of  .
+These are simple regular languages. The construction then continues by inductively
+constructing automata A'0accepting languages LV('0)of models for all other sub-
+formulae'0of', using equations (3)–(6) above. The language operators used in the
+rules are implemented using standard automata-theoretic constructions (see [21]).
+4 Satisﬁability via Language Term Evaluation
+This section introduces the basic version of our symbolic algorithm for deciding sat-
+isﬁability of a WS1S formula 'with a set of variables V. Its optimized version is the
+subject of the next section. To simplify presentation, we consider the particular case of
+ground formulae (i.e. formulae without free variables), for which satisﬁability corre-
+sponds to validity. Satisﬁability of a formula with free variables can be reduced to this
+case by preﬁxing it with existential quantiﬁcation over the free variables. If 'is ground,
+the languageLV(')is either
+Vin the case'is valid, or empty if 'is invalid. Then,
+to decide the validity of ', it sufﬁces to test if 2LV(').
+Our algorithm evaluates the so-called language term t', a symbolic representation
+of the languageLV('), whose structure reﬂects the construction of A'. It is a (ﬁnite)
+term generated by the following grammar:
+t::=Ajt[tjt\tjtjX(t)jtjtjT
+whereAis a ﬁnite automaton over the alphabet V,is a symbol 2Vor a set
+SVof symbols, and Tis a ﬁnite set of terms. We use marked variants of the
+operators to distinguish the syntax of language terms manipulated by our algorithm
+from the cases when we wish to denote the semantical meaning of the operators. A term
+of the formtis called a star quotient , or shortly a star, and a termtis asymbol
+quotient . Both are also called quotients . The languageL(t)of a termtis obtained by
+taking the languages of the automata in its leaves and combining them using the term
+operators. Terms with the same language are language-equivalent . The special terms T,
+having the form of a set, represent intermediate states of ﬁxpoint computations used to
+eliminate star quotients.The language of a set Tequals the union of the languages of its
+elements. The reason for having two ways of expressing a union of terms is a different
+treatment of[andT, which will be discussed later. We use the standard notion of
+isomorphism of two terms, extended with having two set terms isomorphic iff they
+contain isomorphic elements.
+A formula'is initially transformed into the term t'by replacing every atomic sub-
+formula in'by the automatonA acceptingLV( ), and by replacing the logical
+connectives with dotted term operators according to equations (3)–(6) of Section 3.2.
+The core of our algorithm is evaluation of the -membership query 2t', which will
+also trigger further rewriting of the term.
+6
+
+--- Page 7 ---
+2Tiff2tfor somet2T(7)
+2t[t0iff2tor2t0(8)
+2t\t0iff2tand2t0(9)
+2tiff not2t (10)
+2X(t)iff2t (11)
+2A iffI(A)\F(A)6=;(12)The-membership query on a quotient-
+free term is evaluated using equivalences
+(7) to (12). Equivalences (7) to (11) reduce
+tests on terms to Boolean combinations of
+tests on their sub-terms and allow pushing
+the test towards the automata at the term’s
+leaves. Equivalence (12) then reduces it to
+testing intersection of the initial states I(A)and the ﬁnal states F(A)of an automaton.
+Equivalences (7) to (11) do not apply to quotients, which arise from quantiﬁed sub-
+formulae (cf. equation (6) in Section 3.2). A quotient is therefore (in the basic version)
+ﬁrst rewritten into a language-equivalent quotient-free form. This rewriting corresponds
+to saturating the set of ﬁnal states of an automaton in the explicit decision procedure
+with all states in their pre-image over 0. In our procedure, we use rules (13) and (14).
+X(T)0!X(TX(0))(13)Rule (13) transforms the term into
+a form in which a star quotient is applied
+on a plain set of terms rather than on a projection. A star quotient of a set is then elimi-
+nated using a ﬁxpoint computation that saturates the set with all quotients of its elements
+wrt the set of symbols S=X(0). A single iteration is implemented using rule (14).
+TS!T ifT	SvT
+(T[(T	S))Sotherwise(14)There,T	Sis the setftj
+t2T^2Sgof quo-
+tients of terms in Twrt sym-
+bols ofS. (Note that (14) uses the identity S=fg[SS.) Termination of the ﬁxpoint
+computation is decided based on the subsumption relation v, which is some relation
+that under-approximates language inclusion of terms. When the condition holds, then
+the language of Tis stable wrt quotienting by S, i.e.L(T) =L(TS). In the basic al-
+gorithm, we use term isomorphism for v; later, we provide a more precise subsumption
+relation with a good trade-off between precision and cost. Note that an iteration of rule
+(14) can be implemented efﬁciently by the standard worklist algorithm, which extends
+Tonly with quotients T0	Sof termsT0that were added to Tin the previous iteration.
+(t[t0)!(t)[(t0)(15)
+(t\t0)!(t)\(t0)(16)
+t!t (17)
+X(t)!X(tX()) (18)
+A! pre[](A) (19)The setT	Sintroduces quotient terms
+of the form t, for2V, which also
+need to be eliminated to facilitate the -
+membership test. This is done using rewriting
+rules (15) to (19), where pre[](A)isAwith
+its set of ﬁnal states Freplaced by pre[](F).
+Iftis quotient-free, then rules (15)–(18)
+applied totpush the symbol quotient down the structure of ttowards the automata
+in the leaves, where it is eliminated by rule (19). Otherwise, if tis not quotient-free,
+it can be re-written using rules (13)–(19). In particular, if tis a star quotient of a
+quotient-free term, then the quotient-free form of tcan be obtained by iterating rule
+(14), combined with rules (15)–(19) to transform the new terms in Tinto a quotient-
+free form. Finally, terms with multiple quotients can be rewritten to the quotient-free
+form inductively to their structure. Every inductive step rewrites some star quotient of
+a quotient-free sub-term into the quotient-free form. Note that this procedure is bound
+to terminate since the terms generated by quotienting a star have the same structure as
+the original term, differing only in the states in their leaves. As the number of the states
+is ﬁnite, so is the number of the terms.
+7
+
+--- Page 8 ---
+/epsilon1∈πX/parenleftBig/braceleftBig
+{q}∩πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig/bracerightBig
+−πX(¯0)∗/parenrightBig
+/epsilon1∈/braceleftBig
+{q}∩πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig/bracerightBig
+−πX(¯0)∗1
+/epsilon1∈{q}∩πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig
+∨ /epsilon1∈/parenleftBig/braceleftBig
+{q}∩πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig/bracerightBig
+/circleminusπX(¯0)/parenrightBig
+−πX(¯0)∗2 4
+/epsilon1∈{q}∧/epsilon1∈πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig3
+/epsilon1∈/parenleftBig
+{q}∩πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig/parenrightBig
+−/bracketleftBig
+X: 0
+Y: 0/bracketrightBig
+∨
+/epsilon1∈/parenleftBig
+{q}∩πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig/parenrightBig
+−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig
+∨/epsilon1∈/parenleftBig/parenleftBig/braceleftBig
+{q}∩πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig/bracerightBig
+/circleminusπX(¯0)/parenrightBig
+/circleminusπX(¯0)/parenrightBig
+−πX(¯0)∗5
+9
+/epsilon1∈/parenleftbigg
+{q}−/bracketleftBig
+X: 0
+Y: 0/bracketrightBig/parenrightbigg
+∩/parenleftbigg
+πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig
+−/bracketleftBig
+X: 0
+Y: 0/bracketrightBig/parenrightbigg6
+/epsilon1∈{q}−/bracketleftBig
+X: 0
+Y: 0/bracketrightBig
+∧/epsilon1∈πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig
+−/bracketleftBig
+X: 0
+Y: 0/bracketrightBig7
+/epsilon1∈∅8/epsilon1∈{q}−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig
+∧/epsilon1∈πY/parenleftBig
+{t}−πY(¯0)∗/parenrightBig
+−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig10 12
+/epsilon1∈{p}11
+/epsilon1∈/parenleftBig
+{t}−πY(¯0)∗/parenrightBig
+−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig
+∨/epsilon1∈/parenleftBig
+{t}−πY(¯0)∗/parenrightBig
+−/bracketleftBig
+X: 1
+Y: 1/bracketrightBig13
+/epsilon1∈{t}−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig
+∨
+/epsilon1∈/parenleftBig
+{t}/circleminusπY(¯0)/parenrightBig
+−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig
+∨/epsilon1∈/parenleftBig/parenleftBig
+({t}/circleminusπY(¯0))/circleminusπY(¯0)/parenrightBig
+−πY(¯0)∗/parenrightBig
+−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig1416
+/epsilon1∈∅15
+/epsilon1∈/braceleftbigg
+t−/bracketleftBig
+X: 0
+Y: 1/bracketrightBig/bracerightbigg
+−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig
+∨/epsilon1∈/braceleftbigg
+t−/bracketleftBig
+X: 0
+Y: 0/bracketrightBig/bracerightbigg
+−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig17
+/epsilon1∈{s}−/bracketleftBig
+X: 1
+Y: 0/bracketrightBig18/epsilon1∈{r}19Fig. 1. Example of deciding validity of the formula '9X: Sing( X)^(9Y:Y=X+ 1)
+p q[X: 0] [X: 0][X: 1]
+a)ASing(X)
+r s t/bracketleftBig
+X: 0
+Y: 0/bracketrightBig /bracketleftBig
+X: 0
+Y: 0/bracketrightBig
+/bracketleftBig
+X: 1
+Y: 0/bracketrightBig /bracketleftBig
+X: 0
+Y: 1/bracketrightBig
+b)AY=X+1
+Fig. 2. Example automataExample 1. We will show the workings of our procedure
+using an example of testing satisﬁability of the formula
+'9X:Sing(X)^(9Y:Y =X+1). We start by rewrit-
+ing'into a termt'representing its language LV('):
+t'X(ffqg\Y(ftgY(0))gX(0))
+(we have already used rule (13) twice). In the example,
+a setRof states will denote an automaton obtained from
+ASing(X)orAY=X+1(cf. Fig. 2) by setting the ﬁnal
+states toR. Red nodes in the computation tree denote -membership tests that failed
+and green nodes those that succeeded. Grey nodes denote tests that were not evaluated.
+As noted previously, it holds that j='iff2t'. The sequence of computation steps
+for determining the -membership test is shown using the computation tree in Fig. 1.
+The nodes contain -membership tests on terms and the test of each node is equivalent
+to a conjunction or disjunction of tests of its children. Leafs of the form 2Rare eval-
+uated as testing intersection of Rwith the initial states of the corresponding automaton.
+In the example, we also use the lazy evaluation technique (described in Section 5.2),
+which allows us to evaluate -membership tests on partially computed ﬁxpoints.
+The computation starts at the root of the tree and proceeds along the edges in the
+order given by their circled labels. Edges 2and 4were obtained by a partial unfolding
+of a ﬁxpoint computation by rule (14) and immediately applying -membership test on
+the obtained terms. After step 3, we conclude that  =2fqgsincefpg\fqg=;,
+which further refutes the whole conjunction below 2, so the overall result depends on
+the sub-tree starting by 4. The steps 5and 9are another application of rule (14),
+which transforms X(0)to the symbols
+X: 0
+Y: 0
+and
+X: 1
+Y: 0
+respectively. The branch 5
+pushes theX: 0
+Y: 0
+quotient to the leaf term using rules (16) and (9) and eventually fails
+8
+
+--- Page 9 ---
+because the predecessors of fqgover the symbolX: 0
+Y: 0
+inASing(X)is the empty set. On
+the other hand, the evaluation of the branch 9continues using rule (16), succeeding in
+the branch 10. The branch 12is further evaluated by projecting the quotient 
+X: 1
+Y: 0
+wrtY(rule 18) and unfolding the inner star quotient zero times ( 14, failed) and once
+(16). The unfolding of one symbol eventually succeeds in step 19, which leads to
+concluding validity of '. Note that thanks to the lazy evaluation, none of the ﬁxpoint
+computations had to be fully unfolded. u t
+5 An Efﬁcient Algorithm
+In this section, we show how to build an efﬁcient algorithm based on the symbolic term
+rewriting approach from Section 4. The optimization opportunities offered by the sym-
+bolic approach are to a large degree orthogonal to those of the explicit approach. The
+main difference is in the available techniques for reducing the explored automata state
+space. While the explicit construction in M ONA proﬁts mainly from calling automata
+minimization after every step of the inductive construction, the symbolic algorithm can
+use generalized subsumption andlazy evaluation . None of the two approaches seems to
+be compatible with both these techniques (at least in their pure variant, disregarding the
+possibility of a combination of the two approaches discussed below).
+Efﬁcient data structures have a major impact on performance of the decision proce-
+dure. The efﬁciency of the explicit procedure implemented in M ONA is to a large degree
+due to the BDD-based representation of automata transition relations. BDDs compactly
+represent transition functions over large alphabets and provide efﬁcient implementation
+of operations needed in the explicit algorithm. Our symbolic algorithm can, on the other
+hand, beneﬁt from a representation of terms as DAGs where all occurrences of the same
+sub-term are represented by a unique DAG node. Moreover, we assume the nodes to be
+associated with languages rather than with concrete terms (allowing the term associ-
+ated with a node to change during its further processing, without a need to transform
+the DAG structure as long as the language of the term does not change).
+We also show that despite our algorithm uses a completely different data structure
+than the explicit one, it can still exploit a BDD-based representation of transitions of
+the automata in the leaves of terms. Moreover, our symbolic algorithm can also be com-
+bined with the explicit algorithm. Particularly, it turns out that, sometimes, it pays off
+to translate to automata sub-formulae larger than the atomic ones. Our procedure can
+then be viewed as an extension of M ONA that takes over once M ONA stops managing.
+Lastly, optimizations on the level of formulae often have a huge impact on the per-
+formance of our algorithm. The technique that we found most helpful is the so-called
+anti-prenexing . We elaborate on all these optimizations in the rest of this section.
+5.1 Subsumption
+Our ﬁrst technique for reducing the explored state space is based on the notion of sub-
+sumption between terms, which is similar to the subsumption used in antichain-based
+universality and inclusion checking over ﬁnite automata [10]. We deﬁne subsumption
+as the relationvson terms that is given by equivalences (20)–(25). Notice that, in rule
+(20), all terms of Tare tested against all terms of T0, while in rule (21), the left-hand
+side termt1is not tested against the right-hand side term t0
+2(and similarly for t2andt0
+1).
+9
+
+--- Page 10 ---
+TvsT0iff8t2T9t02T0:tvst0(20)
+t1[t2vst0
+1[t0
+2ifft1vst0
+1andt2vst0
+2 (21)
+t1\t2vst0
+1\t0
+2ifft1vst0
+1andt2vst0
+2 (22)
+tvst0ifftwst0(23)
+X(t)vsX(t0)ifftvst0(24)
+AvsA0iffF(A)F(A0) (25)The reason why [is order-
+sensitive is that the terms on dif-
+ferent sides of the[are assumed
+to be built from automata with
+disjoint sets of states (originat-
+ing from different sub-formulae
+of the original formula), and
+hence the subsumption test on
+them can never conclude positively. The subsumption under-approximates language
+inclusion and can therefore be used for vin rule (14). It is far more precise than iso-
+morphism and its use leads to an earlier termination of ﬁxpoint computations.
+T!Tnftgif there ist02Tnftgwithtvst0(26)Moreover,vscan be
+used to prune star quotient
+termsTSwhile preserving their language. Since the semantics of the set Tis the
+union of the languages of its elements, then elements subsumed by others can be re-
+moved while preserving the language. Tcan thus be kept in the form of an antichain of
+vs-incomparable terms. The pruning corresponds to using the rewriting rule (26).
+5.2 Lazy Evaluation
+The top-down nature of our technique allows us to postpone evaluation of some of the
+computation branches in case the so-far evaluated part is sufﬁcient for determining the
+result of the evaluated -membership or subsumption test. We call this optimization
+lazy evaluation . A basic variant of lazy evaluation short-circuits elimination of quo-
+tients from branches of [and\. When testing whether 2t[t0(rule (8)), we ﬁrst
+evaluate, e.g., the test 2t, and when it holds, we can completely avoid exploring t0
+and evaluating quotients there. When testing 2t\t0, we can proceed analogously
+if one of the two terms is shown not to contain . Rules (21) and (22) offer similar
+opportunities for short-circuiting evaluation of subsumption of [and\.
+Let us note that subsumption is in a different position than -membership since
+correctness of our algorithm depends on the precision of the -membership test, but
+subsumption may be evaluated in any way that under-approximates inclusion of lan-
+guages of terms (and over-approximates isomorphism in order to guarantee termina-
+tion). Hence, -membership test must enforce eliminating quotients until it can con-
+clude the result, while there is a choice in the case of the subsumption. If subsumption
+is tested on quotients, it can either eliminate them, or it can return the (safe) negative an-
+swer. However, this choice comes with a trade-off. Subsumption eliminating quotients
+is more expensive but also more precise. The higher precision allows better pruning of
+the state space and earlier termination of ﬁxpoint computation, which, according to our
+empirical experience, pays off.
+Lazy evaluation can also reduce the number of iterations of a star. The iterations can
+be computed on demand , only when required by the tests. The idea is to try to conclude
+a test2TSbased on the intermediate state Tof the ﬁxpoint computation. This
+can be done since L(T)always under-approximates L(TS), hence if2L(T),
+then2L(TS). Continuing the ﬁxpoint computation is then unnecessary.
+The above mechanism alone is, however, rather insufﬁcient in the case of nested
+stars. Assume that an inner star ﬁxpoint computation was terminated in a state TS
+10
+
+--- Page 11 ---
+whenwas found in Tfor the ﬁrst time. Every unfolding of an outer star then propa-
+gatesquotients towards TS. We have, however, no way of eliminating it from
+(TS)other than ﬁnishing the unfolding of TSﬁrst (which eliminates the
+inner star). The need to fully unfold TSwould render the earlier lazy evaluation of
+the-membership test worthless. To remove this deﬁciency, we need a way of eliminat-
+ing thequotient from the intermediate state of TS.
+TS!TS<T(27)
+2t<t0if2t0(28)
+t<T6vst0ifT6vst0(29)
+t<Twst0ifTwst0(30)The elimination is achieved by letting the star
+quotientTSexplicitly “publish” its intermedi-
+ate stateTusing rule (27). The symbol <is read as
+“is under-approximated by .” Rules (28)–(30) allow
+to conclude -membership and subsumption by test-
+ing the under-approximation on its right-hand side
+(notice the distinction between “if” and the “iff” used in the rules earlier).
+(t<T)S!((t<T)S)<T	S(31)Symbol quotients that come
+from the unfolding of an outer star
+can be evaluated on the approximation too using rule (31), which then applies the
+symbol-set quotient on the approximation Tof the inner term t, and publishes the result
+on the right-hand side of <. The left-hand side still remembers the original term tS.
+T<T0!T(32)Terms arising from rules (27) and (31) allow an efﬁcient up-
+date in the case an inner term tspawns a new, more precise
+approximation. In the process, rule (32) is used to remove old outdated approximations.
+We will explain the working of the rules and their efﬁcient implementation on
+an evaluation from Example 1. Note that in Example 1, the partial unfoldings of the
+ﬁxpoints that are tested for -membership are under-approximations of a star quo-
+tient term. For instance, branch 14corresponds to testing -membership in the right-
+most approximation of the term
+(ftgY(0))<ftg
+
+X: 1
+Y: 0
+<ftg
+X: 1
+Y: 0
+by
+rule (28) (the branch determines that  =2ftgX: 1
+Y: 0
+). The result of 14cannot conclude
+the top-level -membership test because ftg
+X: 1
+Y: 0
+is just an under-approximation of
+(ftgY(0))
+X: 1
+Y: 0
+. Therefore, we need to compute a better approximation of the
+term and try to conclude the test on it. We compute it by ﬁrst applying rule (32) twice to
+discard obsolete approximations ( ftgandftgX: 1
+Y: 0
+), followed by applying rule (14)
+to replace (ftgY(0))X: 1
+Y: 0
+with
+(ftg[(ftg	Y(0)))Y(0)
+X: 1
+Y: 0
+. Let
+=ftg[(ftg	Y(0)). Then, using rules (27) and (31), we can rewrite the term
+Y(0)
+X: 1
+Y: 0
+into
+Y(0)<
+X: 1
+Y: 0
+<	X: 1
+Y: 0
+, where	X: 1
+Y: 0
+is the approximation used in step 16, and re-evaluate the -membership test on it.
+Implemented na ¨ıvely, the computation of subsequent approximations of ﬁxpoints
+would involve a lot of redundancy, e.g., in X: 1
+Y: 0
+we would need to recompute the
+termftgX: 1
+Y: 0
+, which was already computed in step 15. The mechanism can, how-
+ever, be implemented efﬁciently so that it completely avoids the redundant computa-
+tions. Firstly, we can maintain a cache of already evaluated terms and never evaluate
+the same term repeatedly. Secondly, suppose that a term tShas been unfolded sev-
+eral times into intermediate states (T1=ftg)S;T2S;:::;TnS. One more
+unfolding using (14) would rewrite TnSintoTn+1= (Tn[(Tn	S))S. When
+11
+
+--- Page 12 ---
+computing the set Tn	S, however, we do not need to consider the whole set Tn, but
+only those elements that are in Tnand are not in Tn1(sinceTn=Tn1[(Tn1	S),
+all elements of Tn1	Sare already in Tn). Thirdly, in the DAG representation of terms
+described in Section 5.3, a term (T[(T	S))S<T[(T	S)is represented by
+the set of terms obtained by evaluating T	S, a pointer to the term TS(or rather
+to its associated DAG node), and the set of symbols S. The cost of keeping the history
+of quotienting together with the under-approximation (on the right-hand side of <) is
+hence only a pointer and a set of symbols.
+5.3 Efﬁcient Data Structures
+We describe two important techniques used in our implementation that concern (1) rep-
+resentation of terms and (2) utilisation of BDD-based symbolic representation of tran-
+sition functions of automata in the leaves of the terms.
+Representation of language terms. We keep the term in the form of a DAG such that
+all isomorphic instances of the same term are represented as a unique DAG node, and,
+moreover, when a term is rewritten into a language-equivalent one, it is still associated
+with the same DAG node. Newly computed sub-terms are always ﬁrst compared against
+the existing ones, and, if possible, associated with an existing DAG node of an existing
+isomorphic term. The fact that isomorphic terms are always represented by the same
+DAG node makes it possible to test isomorphism of a new and previously processed
+term efﬁciently—it is enough to test that their direct sub-terms are represented by iden-
+tical DAG nodes (let us note that we do not look for language equivalent terms because
+of the high cost of such a check).
+We also cache results of membership and subsumption queries. The key to the cache
+is the identity of DAG nodes, not the represented sub-terms, which has the advantage
+that results of tests over a term are available in the cache even after it is rewritten ac-
+cording to!(as it is still represented by the same DAG node). The cache together with
+the DAG representation is especially efﬁcient when evaluating a new subsumption or -
+membership test since although the result is not in the cache, the results for its sub-terms
+often are. We also maintain the cache of subsumptions closed under transitivity.
+BDD-based symbolic automata. Coping with large sets of symbols is central for our
+algorithm. Notice that rules (14) and (18) compute a quotient for each of the symbols in
+the setX()separately. Since the number of the symbols is 2jXj, this can easily make
+the computation infeasible.
+MONA resolves this by using a BDD-based symbolic representation of transition
+relations of automata as follows: The alphabet symbols of the automata are assign-
+ments of Boolean values to the free variables X1;:::;Xnof a formula. The transitions
+leading from a state qcan be expressed as a function fq: 2fX1;:::;X ng!Qfrom all
+assignments to states such that (q;;q0)2qifffq() =q0. The function fqis encoded
+as a multi-terminal BDD (MTBDD) with variables X1;:::;Xnand terminals from the
+setQ(essentially, it is a DAG where a path from the root to a leaf encodes a set of
+transitions). The BDD apply operation is then used to efﬁciently implement the com-
+putation of successors of a state via a large set of symbols, and to facilitate essential
+constructions such as product, determinization, and minimization. We use M ONA to
+create automata in leaves of our language terms. To fully utilize their BDD-based sym-
+bolic representation, we had to overcome the following two problems.
+12
+
+--- Page 13 ---
+First, our algorithm computes predecessors of states, while the BDDs of M ONA
+are meant to compute successors. To use apply to compute backwards, the BDDs
+would have to be turned into a representation of the inverted transition function. This
+is costly and, according to our experience, prone to produce much larger BDDs. We
+have resolved this by only inverting the edges of the original BDDs and by imple-
+menting a variant of apply that runs upwards from the leaves of the original BDDs,
+against the direction of the original BDD edges. It cannot be as efﬁcient as the normal
+apply because, unlike standard BDDs, the DAG that arises by inverting BDD edges is
+nondeterministic, which brings complications. Nevertheless, it still allows an efﬁcient
+implementation of prethat works well in our implementation.
+A more fundamental problem we are facing is that our algorithm can use apply to
+compute predecessors over the compact representation provided by BDDs only on the
+level of explicit automata in the leaves of terms. The symbols generated by projection
+during evaluation of complex terms must be, on the contrary, enumerated explicitly.
+For instance, the projection X(t)withX=fX1;:::;Xnggenerates 2nsymbols,
+with no obvious option for reduction. The idea to overcome this explosion is to treat
+nodes of BDDs as regular automata states. Intuitively, this means replacing words over
+Xthat encode models of formulae by words over the alphabet f0;1g: every symbol
+2Xis replaced by the stringoverf0;1g. Then, instead of computing a quotient
+over, e.g., the set X(0)of the size 2n, we compute only quotients over the 0’s and 1’s.
+Each quotienting takes us only one level down in the BDDs representing the transition
+relation of the automata in the leaves of the term. For every variable Xi, we obtain
+terms over nodes on the i-th level of the BDDs as 0and1quotients of the terms
+at the leveli1. The maximum number of terms in each level is thus 2i. In the worst
+case, this causes roughly the same blow-up as when enumerating the “long” symbols.
+The advantage of this techniques is, however, that the blow-up can now be dramatically
+reduced by using subsumption to prune sets of terms on the individual BDD levels.
+5.4 Combination of Symbolic and Explicit Algorithms
+It is possible to replace sub-terms of a language term by a language-equivalent automa-
+ton built by the explicit algorithm before starting the symbolic algorithm. The main
+beneﬁt of this is that the explicitly constructed automata have a simpler ﬂat structure
+and can be minimized. The minimization, however, requires to explicitly construct the
+whole automaton, which might, despite the beneﬁt of minimization, be a too large over-
+head. The combination hence represents a trade-off between the lazy evaluation and
+subsumption of the symbolic algorithm, and minimization and ﬂat automata structure of
+the explicit one. The overall effect depends on the strategy of choice of the sub-formulae
+to be translated into automata, and, of course, on the efﬁciency of the implementation
+of the explicit algorithm (where we can leverage the extremely efﬁcient implementation
+of M ONA). We mention one particular strategy for choosing sub-formulae in Section 6.
+5.5 Anti-prenexing
+Before rewriting an input formula to a symbolic term, we pre-process the formula by
+moving quantiﬁers down by several language-preserving identities (which we call anti-
+prenexing ). We, e.g., change 9X:('^ )into'^(9X: )ifXis not free in '. Moving
+a quantiﬁer down in the abstract syntax tree of a formula speeds up the ﬁxpoint compu-
+tation induced by the quantiﬁer. In effect, one costlier ﬁxpoint computation is replaced
+13
+
+--- Page 14 ---
+by several cheaper computations in the sub-formulae. This is almost always helpful
+since if the original ﬁxpoint computation unfolds, e.g., a union of two terms, the two
+ﬁxpoint computations obtained by anti-prenexing will each unfold only one operand of
+the union. The number of union terms in the original ﬁxpoint is roughly the product of
+the numbers of terms in the simpler ﬁxpoints. Further, in order to push quantiﬁers even
+deeper into the formula, we reorder the formula by several heuristics (e.g. group sub-
+formulae with free occurrences of the same variable in a large conjunction) and move
+negations down in the structure towards the leaves using De Morgan’s laws.
+6 Experiments
+We have implemented the proposed approach in a prototype tool G ASTON3, Our tool
+uses the front-end of M ONA to parse input formulae, to construct their abstract syntax
+trees, and also to construct automata for sub-formulae (as mentioned in Section 5.4).
+From several heuristics for choosing the sub-formulae to be converted to automata by
+MONA, we converged to converting only quantiﬁer free sub-formulae and negations
+of innermost quantiﬁers to automata since M ONA can usually handle them without
+any explosion. G ASTON , together with all the benchmarks described below and their
+detailed results, is freely available [22].
+Table 1. UABE experiments
+FormulaMONA GASTON
+Time Space Time Space
+a-a 1.71 30 253 >2m>2m
+ex10 7.71 131 835 12.67 82 236
+ex11 4.40 2 393 0.18 4 156
+ex12 0.13 2 591 6.31 68 159
+ex13 0.04 2 601 1.19 16 883
+ex16 0.04 3 384 0.28 3 960
+ex17 3.52 165 173 0.17 3 952
+ex18 0.27 19 463 >2m>2m
+ex2 0.18 26 565 0.01 1 841
+ex20 1.46 1 077 0.27 12 266
+ex21 1.68 30 253 >2m>2m
+ex4 0.08 6 797 0.50 22 442
+ex6 4.05 27 903 22.69 132 848
+ex7 0.90 857 0.01 594
+ex8 7.69 106 555 0.03 1 624
+ex9 7.16 586 447 9.41 412 417
+fib 0.10 8 128 24.19 126 688We compared G ASTON ’s performance with that of
+MONA,DWINA implementing our older approach [18],
+TOSSimplementing the method of [19], and the imple-
+mentations of the decision procedures of [20] and [15]
+(which we denote as C OALG and SFA, respectively).4
+In our experiments, we consider formulae obtained from
+various formal veriﬁcation tasks as well as parametric
+families of formulae designed to stress-test WS1S de-
+cision procedures.5We performed the experiments on
+a machine with the Intel Core i7-2600@3.4 GHz pro-
+cessor and 16 GiB RAM running Debian GNU/Linux.
+Table 1 contains results of our experiments with for-
+mulae from the recent work [24] (denoted as UABE be-
+low), which uses WS1S to reason about programs with
+unbounded arrays. Table 2 gives results of our experiments with formulae derived from
+the WS1S-based shape analysis of [2] (denoted as Strand ). In the table, we use slto
+denote Strand formulae over sorted lists and bsfor formulae from veriﬁcation of the
+bubble sort procedure. For this set of experiments, we considered M ONA and G ASTON
+only since the other tools were missing features (e.g., atomic predicates) needed to han-
+dle the formulae. In the UABE benchmark, G ASTON was used with the last optimization
+3The name was chosen to pay homage to Gaston, an Africa-born brown fur seal who escaped the
+Prague Zoo during the ﬂoods in 2002 and made a heroic journey for freedom of over 300 km
+to Dresden. There he was caught and subsequently died due to exhaustion and infection.
+4We are not comparing with JMOSEL [13] as we did not ﬁnd it available on the Internet.
+5We note that G ASTON currently does not perform well on formulae with many Boolean vari-
+ables and M2L formulae appearing in benchmarks such as Secrets [11] or Strand2 [1,23],
+which are not included in our experiments. To handle such formulae, further optimizations of
+GASTON such as M ONA’s treatment of Boolean variables via a dedicated transition are needed.
+14
+
+--- Page 15 ---
+of Section 5.3 (treating MTBDD nodes as automata states) to efﬁciently handle quanti-
+ﬁers over large numbers of variables. In particular, without the optimization, G ASTON
+hit 11 more timeouts. On the other hand, this optimization was not efﬁcient (and hence
+not used) in Strand .Table 2. Strand experiments
+FormulaMONA GASTON
+Time Space Time Space
+bs-loop-else 0.05 14 469 0.04 2 138
+bs-loop-if-else 0.19 61 883 0.08 3 207
+bs-loop-if-if 0.38 127 552 0.18 5 428
+sl-insert-after-loop 0.01 2 634 0.36 5 066
+sl-insert-before-head 0.01 678 0.01 541
+sl-insert-before-loop 0.01 1 448 0.01 656
+sl-insert-in-loop 0.02 5 945 0.01 1 079
+sl-reverse-after-loop 0.01 1 941 0.01 579
+sl-search-in-loop 0.08 23 349 0.03 3 247The tables compare the overall time
+(in seconds) the tools needed to decide the
+formulae, and they also try to character-
+ize the sizes of the generated state spaces.
+For the latter, we count the overall num-
+ber of states of the generated automata
+for M ONA, and the overall number of gen-
+erated sub-terms for G ASTON . The tables
+contain just a part of the results, more can be found in [22]. We use >2min case the
+running time exceeded 2 minutes, oom to denote that the tool ran out of memory, + k
+to denote that we added kquantiﬁer alternations to the original benchmark, and N/A
+to denote that the benchmark requires some feature or atomic predicate unsupported by
+the given tool. On Strand , GASTON is mostly comparable, in two cases better, and
+in one case worse than M ONA. OnUABE , GASTON outperformed M ONA on six out of
+twenty-three benchmarks, it was worse on ten formulae, and comparable on the rest.
+The results thus conﬁrm that our approach can defeat M ONA in practice.
+Table 3. Experiments with parametric families of formulae
+Benchmark Src MONA DWINA TOSS COALG SFA GASTON
+HornLeq [15] oom(18) 0.03 0.08>2m(08) 0.03 0.01
+HornLeq (+3) [15] oom(18)>2m(11)0.16>2m(07)>2m(11) 0.01
+HornLeq (+4) [15] oom(18)>2m(13)0.04>2m(06)>2m(11) 0.01
+HornIn [19] oom(15)>2m(11)0.07>2m(08)>2m(08) 0.01
+HornTrans [18] 86.43 >2m(14)N/A N/A 38.56 1.06
+SetSingle [18] oom(04)>2m(08)0.10 N/A>2m(03) 0.01
+Ex8 [24] oom(08) N/A N/A N/A N/A 0.15
+Ex11(10) [24] oom(14) N/A N/A N/A N/A 1.62The second part of our ex-
+periments concerns paramet-
+ric families of WS1S for-
+mulae used for evaluation
+in [19,18,15], and also pa-
+rameterized versions of se-
+lected UABE formulae [24].
+Each of these families has
+one parameter (whose meaning is explained in the respective works). Table 3 gives
+times needed to decide instances of the formulae for the parameter having value 20. If
+the tools did not manage this value of the parameter, we give in parentheses the highest
+value of the parameter for which the tools succeeded. More results are available in [22].
+In this set of experiments, G ASTON managed to win over the other tools on many of
+their own benchmark formulae. In the ﬁrst six rows of Table 3, the superior efﬁciency
+of G ASTON was caused mainly by anti-prenexing. It turns out that this optimization
+of the input formula is universally effective. When run on anti-prenexed formulae, the
+performance of the other tools was comparable to that of G ASTON . The last two bench-
+marks (parameterized versions of formulae from UABE ) show, however, that G ASTON ’s
+performance does not stand on anti-prenexing only. Despite that its effect here was neg-
+ligable (similarly as for all the original benchmarks from UABE andStrand ), G AS-
+TON still clearly outperformed M ONA. We could not compare with other tools on these
+formulae due to a missing support of the used features (e.g. constants).
+15
+
+--- Page 16 ---
+7 Concluding Remarks
+We have presented a novel WS1S decision procedure based on symbolic, term-based
+representation of the languages of formulae. Our experiments proved that the approach
+is competitive and often better than state-of-the-art methods, including M ONA. Let us
+emphasize that, like with M ONA, optimizations play a crucial role for the efﬁciency of
+our tool—without them, the basic approach is much less efﬁcient. Let us brieﬂy mention
+some of the further possible optimization opportunities. First, our use of BDDs is not
+optimal since M ONA gives us efﬁcient post only. We would beneﬁt from an explicit pro-
+cedure producing automata encodings with efﬁcient pre. Also, as we mention in Sec-
+tion 6, performance of our tool could be improved by a specialised treatment of Boolean
+variables. A plausible solution is to integrate our approach with SAT/SMT technology
+or to adapt techniques of M ONA. A further logical step would be to use abstraction
+over the language terms. Handling more complex formulae in the logic M2L(str), such
+as those mentioned in Sec. 6, also requires speciﬁc optimizations. Last, we wish to
+generalize the approach for the logic WS2S, which has many practical applications too.
+Acknowledgement. We thank the anonymous reviewers for their helpful comments on
+how to improve the presentation in this paper. This work was supported by the Czech
+Science Foundation (projects 14-11384S, 16-17538S, and 16-24707Y), the BUT FIT
+project FIT-S-17-4014, and the IT4IXS: IT4Innovations Excellence in Science project
+(LQ1602).
+References
+1. Madhusudan, P., Parlato, G., Qiu, X.: Decidable logics combining heap structures and data.
+In: POPL 2011, ACM (2011) 611–622
+2. Madhusudan, P., Qiu, X.: Efﬁcient decision procedures for heaps using STRAND. In: SAS
+2011. V olume 6887 of Lecture Notes in Computer Science., Springer (2011) 43–59
+3. Iosif, R., Rogalewicz, A., ˇSim´aˇcek, J.: The tree width of separation logic with recursive
+deﬁnitions. In: CADE 2013. V olume 7898 of Lecture Notes in Computer Science., Springer
+(2013) 21–38
+4. Chin, W., David, C., Nguyen, H.H., Qin, S.: Automated veriﬁcation of shape, size and
+bag properties via user-deﬁned predicates in separation logic. Sci. Comput. Program. 77(9)
+(2012) 1006–1036
+5. Zee, K., Kuncak, V ., Rinard, M.C.: Full functional veriﬁcation of linked data structures. In:
+POPL 2008, ACM (2008) 349–361
+6. Hamza, J., Jobstmann, B., Kuncak, V .: Synthesis for regular speciﬁcations over unbounded
+domains. In: FMCAD 2010, IEEE (2010) 101–109
+7. Elgaard, J., Klarlund, N., Møller, A.: MONA 1.x: new techniques for WS1S and WS2S. In:
+CA V 1998. V olume 1427 of Lecture Notes in Computer Science., BRICS, Department of
+Computer Science, Aarhus University, Springer (1998) 516–520
+8. Meyer, A.R.: Weak monadic second order theory of successor is not elementary-recursive. In
+Parikh, R., ed.: Logic Colloquium—Symposium on Logic Held at Boston, 1972–73. V olume
+453 of Lecture Notes in Mathematics., Springer (1972) 132–154
+9. Wies, T., Mu ˜niz, M., Kuncak, V .: An efﬁcient decision procedure for imperative tree data
+structures. In Bjørner, N., Sofronie-Stokkermans, V ., eds.: CADE 2011. V olume 6803 of
+Lecture Notes in Computer Science., Springer (2011) 476–491
+10. Wulf, M.D., Doyen, L., Henzinger, T.A., Raskin, J.F.: Antichains: A new algorithm for
+checking universality of ﬁnite automata. In: CA V’06. V olume 4144 of LNCS., Springer
+(2006) 17–30
+16
+
+--- Page 17 ---
+11. Klarlund, N., Møller, A., Schwartzbach, M.I.: MONA implementation secrets. International
+Journal of Foundations of Computer Science 13(4) (2002) 571–586
+12. Klarlund, N.: A theory of restrictions for logics and automata. In: Proc. of CA V’99. V olume
+1633 of LNCS., Springer (1999) 406–417
+13. Topnik, C., Wilhelm, E., Margaria, T., Steffen, B.: jMosel: A stand-alone tool and jABC
+plugin for M2L(Str). In Valmari, A., ed.: 13th International SPIN Workshop. V olume 3925
+of Lecture Notes in Computer Science., Springer Berlin Heidelberg (2006) 293–298
+14. Margaria, T., Steffen, B., Topnik, C.: Second-order value numbering. In: Proc. of GraMoT
+2010. V olume 30 of ECEASST., EASST (2010) 1–15
+15. D’Antoni, L., Veanes, M.: Minimization of symbolic automata. In: In Proc. of POPL’14.
+(2014) 541–554
+16. Doyen, L., Raskin, J.F.: Antichain algorithms for ﬁnite automata. In: Proc. of TACAS’10.
+V olume 6015 of LNCS., Springer (2010) 2–22
+17. Abdulla, P.A., Chen, Y .F., Hol ´ık, L., Mayr, R., V ojnar, T.: When simulation meets antichains
+(on checking language inclusion of NFAs). In: Proc. of TACAS’10. V olume 6015 of LNCS.,
+Springer (2010) 158–174
+18. Fiedor, T., Hol ´ık, L., Leng ´al, O., V ojnar, T.: Nested antichains for WS1S. In: Proc. of
+TACAS’15. V olume 9035 of LNCS., Springer (2015)
+19. Ganzow, T., Kaiser, L.: New algorithm for weak monadic second-order logic on inductive
+structures. In: CSL 2010. V olume 6247 of Lecture Notes in Computer Science., Springer
+(2010) 366–380
+20. Traytel, D.: A coalgebraic decision procedure for WS1S. In Kreutzer, S., ed.: 24th EACSL
+Annual Conference on Computer Science Logic (CSL 2015). V olume 41 of Leibniz Interna-
+tional Proceedings in Informatics (LIPIcs)., Dagstuhl, Germany, Schloss Dagstuhl–Leibniz-
+Zentrum fuer Informatik (2015) 487–503
+21. Comon, H., Dauchet, M., Gilleron, R., L ¨oding, C., Jacquemard, F., Lugiez, D., Tison, S.,
+Tommasi, M.: Tree Automata Techniques and Applications. (2008)
+22. Fiedor, T., Hol ´ık, L., Jank ˚u, P., Leng ´al, O., V ojnar, T.: G ASTON (2016) Avail-
+able from http://www.fit.vutbr.cz/research/groups/verifit/tools/
+gaston/ .
+23. Madhusudan, P., Parlato, G., Qiu, X.: Strand benchmark. http://web.engr.
+illinois.edu/ ˜qiu2/strand/ Accessed: 2014-01-29.
+24. Zhou, M., He, F., Wang, B., Gu, M., Sun, J.: Array theory of bounded elements and its
+applications. J. Autom. Reasoning 52(4) (2014) 379–405
+17
