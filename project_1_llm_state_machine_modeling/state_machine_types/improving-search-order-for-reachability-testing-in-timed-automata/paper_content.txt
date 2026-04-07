@@ -1,0 +1,786 @@
+--- Page 1 ---
+arXiv:1506.07000v1  [cs.LO]  23 Jun 2015Improving search order for reachability testing
+in timed automata
+Fr´ ed´ eric Herbreteau and Thanh-Tung Tran
+Universit´ e de Bordeaux, Bordeaux INP, CNRS, LaBRI UMR5800
+LaBRI Bˆ at A30, 351 crs Lib´ eration, 33405 Talence, France
+Abstract. Standard algorithms for reachability analysis of timed au-
+tomata are sensitive tothe order in which thetransitions of the automata
+are taken. To tackle this problem, we propose a ranking system and a
+waiting strategy . This paper discusses the reason why the search order
+matters and shows how a ranking system and a waiting strategy can be
+integrated into the standard reachability algorithm to all eviate and pre-
+ventthe problem respectively. Experiments show that theco mbination of
+the two approaches gives optimal search order on standard be nchmarks
+except for one example. This suggests that it should be used i nstead of
+the standard BFS algorithm for reachability analysis of tim ed automata.
+1 Introduction
+Reachability analysis for timed automata asks if there is an execution of an
+automaton reaching a given state. This analysis can be used to verif y all kinds
+of safety properties of timed systems. The standard approach t o reachability
+analysis of timed automata uses sets of clock valuations, called zones, to reduce
+the reachability problem in the inﬁnite state space of a timed automat on to the
+reachability problem in a ﬁnite graph. We present two heuristics to imp rove the
+eﬃciency of the zone based reachability algorithm.
+The algorithm for reachability analysis of timed automata is a depth-ﬁ rst
+search, or a breadth-ﬁrst search on a graph whose nodes are pa irs consisting of a
+state of the automaton and a zone describing the set of possible clo ck valuations
+in this state. The use of zone inclusion is crucial for eﬃciency of this a lgorithm.
+It permits to stop exploration from a smaller zone if a bigger zone with the same
+state has been already explored.
+Due to the use of zone inclusion the algorithm is sometimes very sensit ive
+to exploration order. Indeed, it may happen that a small zone is rea ched and
+explored ﬁrst, but then it is removed when a bigger zone is reached la ter. We
+will refer to such a situation as a mistake. A mistake can often be avoided by
+taking a diﬀerent exploration order that reaches the bigger zone ﬁ rst.
+In this paper we propose two heuristics to reduce the number of mis takes
+in the reachability analysis. In the example below we explain the mistake phe-
+nomenon in more details, and point out that it can cause an exponent ial blowup
+in the search space; this happens in the FDDI standard benchmark . The two
+
+--- Page 2 ---
+2
+q1
+q2
+q3
+q4
+. .. . ..y >1
+y≤5
+(a) Timed automaton.(q1,Z1)
+(q3,Z3) ( q2,Z2)
+(q3,Z′
+3) (q4,Z4)
+(q4,Z′
+4) ...
+...⊆
+(b) In wrong order.(q1,Z1)
+(q2,Z2) ( q3,Z3)
+(q3,Z′
+3)
+(q4,Z′
+4)
+. ..⊇
+(c) In good order.
+Fig.1: A timed automaton and two exploration graphs of its state-s pace. On the
+left, the transition to q3is explored ﬁrst, which results in exploring the subtree
+ofq3twice. On the right, the transition to q2is explored ﬁrst and subsumption
+stops the second exploration as Z3is included in Z′
+3.
+heuristics are quite diﬀerent in nature, so we evaluate their perfor mance on the
+standard examples. Based on these experimental results we prop ose a simple
+modiﬁcation to the standard exploration algorithm that signiﬁcantly improves
+the exploration order.
+We now give a concrete example showing why exploration order matte rs.
+Consider the timed automaton shown in Figure 1a, and assume we per form a
+depth-ﬁrst search (DFS) exploration of its state space. The algo rithm starts in
+(q1,Z1) where Z1= (y≥0) is the set of all clock values. Assume that the
+transition to q3is taken ﬁrst as in Figure 1b. The algorithm reaches the node
+(q3,Z3) withZ3= (y >1) and explores its entire subtree. Then, the algorithm
+backtracks to ( q1,Z1) and proceeds with the transition to q2reaching ( q2,Z2),
+and then ( q3,Z′
+3) withZ2=Z′
+3= (y≥0). It happens that Z3⊆Z′
+3: the node
+(q3,Z′
+3) isbiggerthan the node ( q3,Z3) which has been previously visited. At
+this point, the algorithm has to visit the entire subtree of ( q3,Z′
+3) since the clock
+valuations in Z′
+3\Z3have not been explored. The net result is that the earlier
+exploration from ( q3,Z3) turns out to be useless since we need to explore from
+(q3,Z′
+3) anyway. If, by chance, our DFS exploration had taken diﬀerent o rder
+of transitions, and ﬁrst considered the one from q1toq2as in Figure 1c, the
+exploration would stop at ( q3,Z3) since the bigger node ( q3,Z′
+3) has already
+been visited and Z3⊆Z′
+3. To sum up, in some cases DFS exploration is very
+sensible to the search order.
+Several authors [3,6] have observed that BFS exploration is ofte n much more
+eﬃcient than DFS for reachability testing in timed automata. This can be at-
+tributed to an empirical observation that often a zone obtained by a short path
+is bigger than the one obtained by a longer path. This is the opposite in our
+example from Figure 1a. In consequence, a BFS algorithm will also do u nnec-
+
+--- Page 3 ---
+3
+essary explorations. When ( q3,Z′
+3) is visited, the node ( q4,Z4) is already in the
+queue. Hence, while the algorithm has a chance to realise that explor ing (q3,Z3)
+is useless due to the bigger node ( q3,Z′
+3), it will keep visiting ( q4,Z4) and all the
+subtreeof( q3,Z3).Indeed,inthestandardBFSalgorithm,thereisnomechanism
+to remove ( q4,Z4) from the queue when ( q3,Z′
+3) is reached. Again, considering
+the transition from q1toq2before the transition to q3as in Figure 1c, avoids
+unnecessary exploration. Yet, by making the path q1→q2→q3one step longer
+we would obtain an example where all choices of search order would lea d to
+unnecessary exploration. Overall, the standard reachability algor ithm for timed
+automata, be it DFS or BFS, is sensitive to the alignment between the discovery
+of big nodes and the exploration of small nodes.
+q1q2
+q3q4
+q5...q2n−1q2n
+q2n+1qf{y}
+y >1,{y}{x1}
+{y}
+y >1,{y}{x2}
+{y}
+y >1,{y}{xn}(x1≤n)
+∧ ···
+∧(xn≤n)
+∧(n < y ≤5n)
+Fig.2: Timed automaton with a racing situation.
+One could ask what can be the impact of a pattern from Figure 1a, an d does
+it really occur. The blowup of the exploration space can be exponent ial. One
+example is presented in Figure 2. It is obtained by iterating ntimes the pattern
+we have discussed above. The ﬁnal state qfis not reachable. By a similar analy-
+sis we can show that both the BFS and DFS algorithms with wrong explo ration
+order explore and store exponentially more nodes than needed. In the automa-
+ton there are 2ndiﬀerent paths to q2n+1. The longest path q1,q2,q3,...,q 2n+1
+generates the biggest zone, while there are about 2ndiﬀerent zones that can
+be generated by taking diﬀerent paths. If the DFS takes the wors t exploration
+order, all these zones will be generated. If it takes the wrong ord er half of the
+times, then about 2n/2zones will be generated. Similarly for BFS.
+In the experiments section we show that, this far from optimal beh aviour
+of BFS and DFS exploration indeed happens in the FDDI model, a stand ard
+benchmark model for timed automata.
+In this paper we propose simple modiﬁcations of the exploration stra tegy to
+counter the problem as presented in the above examples. We will ﬁrs t describe
+aranking system that mitigates the problem by assigning ranks to states, and
+using ranks to chose the transitions to explore. It will be rather cle ar that this
+system addresses the problem from our examples. Then we will prop osewaiting
+strategy that starts from a diﬀerent point of view and is simpler to implement.
+The experiments on standard benchmarks show that the two appr oaches are
+incomparable but they can be combined to give optimal results in most of the
+cases. Since this combination is easy to implement, we propose to use it instead
+of standard BFS for reachability checking.
+
+--- Page 4 ---
+4
+Related work: The inﬂuence of the search order has been discussed in the lit-
+erature in the context of state-caching [7,11–13], and state-sp ace fragmenta-
+tion [3,6,8]. State-caching focuses on limiting the number of stored nodes at the
+cost of exploring more nodes. We propose a strategy that improve s the num-
+ber of visited nodes as well as the number of stored nodes. In [3,6, 8], it is
+suggested that BFS is the best search order to avoid state-spac e fragmentation
+in distributed model checking. We have not yet experimented our ap proach for
+distributed state-space exploration.
+In terms of implementation, our approaches add a metric to states . In a
+diﬀerent context a metric mechanism has been used by Behrmann et al.to guide
+the exploration in priced timed automata in [5].
+Organisation of the paper: In the next section we present preliminaries for this
+paper: timed automata, the reachability problem and the standard reachability
+algorithmfor timed automata.InSection 3,weproposearankingsy stem tolimit
+the impact of mistakes during exploration. Section 4 presents anot her strategy
+that aims at limiting the number of mistakes. Finally, Section 5 gives som e
+experimental results on the standard benchmarks.
+2 Preliminaries
+We introduce preliminary notions about timed automata and the reac hability
+problem. Then, we introduce the classical zone-based algorithm us ed to solve
+this problem.
+2.1 Timed Automata and the Reachability Problem
+LetX={x1,...,x n}be a set of clocks, i.e. variables that range over the non-
+negative real numbers R≥0. Aclock constraint φis a conjunction of constraints
+x#cforx∈X, #∈ {<,≤,=,≥,>}andc∈N. LetΦ(X) be the set of clock
+constraints over the set of clocks X. Avaluation overXis a function v:X→
+R≥0. We denote by 0the valuation that maps each clock in Xto 0, and by RX
+≥0
+the set of valuations over X. A valuation vsatisﬁes a clock constraint φ∈Φ(X),
+denoted v|=φ, when all the constraints in φhold after replacing every clock x
+by its value v(x). Forδ∈R≥0, we denote v+δthe valuation that maps every
+clockxtov(x) +δ. ForR⊆X,R[v] is the valuation that sets xto 0 ifx∈R,
+and that sets xtov(x) otherwise.
+Atimed automaton (TA) is a tuple A= (Q,q0,F,X,Act,T ) whereQis a
+ﬁnite set of states with initial state q0∈Qand accepting states F⊆Q,Xis a
+ﬁnitesetofclocks, Actisaﬁnitealphabetofactions, T⊆Q×Φ(X)×2X×Act×Q
+is a ﬁnite set of transitions ( q,g,R,a,q′) wheregis aguard,Ris the set of clocks
+that are resetandais theactionof the transition.
+The semantics of a TA Ais given by a transition system whose states are
+conﬁgurations (q,v)∈Q×RX
+≥0.Theinitial conﬁguration is(q0,0).Wehavedelay
+transitions:( q,v)δ− →(q,v+δ)forδ∈R≥0,andactiontransitions:( q,v)a− →(q′,v′)
+
+--- Page 5 ---
+5
+ifthereexistsatransition( q,g,R,a,q′)∈Tsuchthat v|=gandv′= [R]v.Arun
+is a ﬁnite sequence of transitions starting from the initial conﬁgura tion (q0,0).
+A run is accepting is it ends in a conﬁguration ( q,v) with an accepting state
+q∈F.
+Thereachability problem consistsindecidingifagivenTA Ahasanaccepting
+run. This problem is known to be Pspace-complete [1].
+2.2 Symbolic Semantics
+The reachability problem cannot be solved directly from Adue to the uncount-
+able number of conﬁgurations. The standard solution is to use symb olic seman-
+tics of timed automata by grouping valuations together. A zoneis a set of valua-
+tions described by a conjunction of two kinds of constraints: xi#candxi−xj#c
+wherexi,xj∈X,c∈Zand #∈ {<,≤,=,≥,>}.
+Thezone graph ZG(A) of a timed automaton A= (Q,q0,F,X,Act,T ) is a
+transition system with nodes of the form ( q,Z) whereq∈QandZis a zone. The
+initial nodeis ( q0,Z0) whereZ0={0+δ|δ∈R≥0}. Thenodes ( q,Z)withq∈F
+are accepting. There is a transition ( q,Z)⇒(q′,Z′) if there exists a transition
+(q,g,R,a,q′)∈Tsuch that Z′={v′∈R≥0| ∃v∈Z∃δ∈R≥0(q,v)a− →δ− →
+(q′,v′)}andZ′/\e}atio\slash=∅. The relation ⇒is well-deﬁned as it can be shown that if Z
+is a zone, then Z′is a zone. Zones can be eﬃciently represented by Diﬀerence
+Bound Matrices (DBMs) [10] and the successor Z′of a zone Zcan be eﬃciently
+computed using this representation.
+Thezonegraph ZG(A) isstillinﬁnite[9],andanadditionalabstractionstepis
+needed to obtain a ﬁnite transition system. An abstraction operator is a function
+a:P(RX
+≥0)→ P(RX
+≥0) such that W⊆a(W) anda(a(W)) =a(W) for every set
+Wofvaluations.Anabstractionoperatordeﬁnesanabstractsymb olicsemantics.
+Similarly to the zone graph, we deﬁne the abstract zone graph ZGa(A). Its initial
+node is ( q0,a(Z0)) and we have a transition ( q,Z)⇒a(q′,a(Z′)) ifa(Z) =Z
+and (q,Z)⇒(q′,Z′).
+In orderto solvethe reachabilityproblem for AfromZGa(A), the abstraction
+operator ashould have the property that every run of Ahas a corresponding
+path inZGa(A) (completeness) and conversely, every path in ZGa(A) should
+correspond to a run in A(soundness). Furthermore, ZGa(A) should be ﬁnite.
+Several abstraction operators have been introduced in the litera ture [4,9]. The
+abstraction operator ExtraLU+[4] has all the required properties above. More-
+over, the ExtraLU+abstraction of a zone is itself a zone. It can be computed
+from the DBM representation of the zone. This allows to compute th e abstract
+zone graph eﬃciently using DBMs as a symbolic representation for zo nes. The
+ExtraLU+abstraction is used by most implementation including the state-of-t he-
+art tool UPPAAL [2]. The theorem below reduces the reachability pro blem for
+Ato the reachability problem in the ﬁnite graph ZGExtraLU+(A).
+Theorem 1 ( [4]). There is an accepting run in Aiﬀ there exists a path in
+ZGExtraLU+(A)from(q0,ExtraLU+(Z0))to some state (q,Z)withq∈F. Further-
+moreZGExtraLU+(A)is ﬁnite.
+
+--- Page 6 ---
+6
+Algorithm 1.1: Standard reachability algorithm for timed automaton A.
+1function reachability check(A)
+2W:={(q0,ExtraLU+(Z0))};P:=W// Invariant: W⊆P
+3
+4while(W/ne}ationslash=∅)do
+5 takeandremove a node ( q,Z) from W
+6 if(qis accepting)
+7 return Yes
+8 else
+9 foreach (q,Z)⇒ExtraLU+(q′,Z′)
+10 ifthere is no ( qB,ZB)∈Ps . t . (q′,Z′)⊆(qB,ZB)
+11 foreach ( qS,ZS)∈Psuch that (qS,ZS)⊆(q′,Z′)
+12 remove (qS,ZS) from WandP
+13 add(q′,Z′) toWand to P
+14
+15return No
+2.3 Reachability algorithm
+Algorithm 1.1 is the standard reachability algorithm for timed automat a. It
+explores the ﬁnite abstract zone graph ZGExtraLU+(A) of an automaton Afrom
+the initial node until it ﬁnds an accepting node, or it has visited the en tire state-
+space ofZGExtraLU+(A). It maintains a set of waiting nodes Wand a set of visited
+nodesPsuch that W⊆P.
+Algorithm 1.1 uses zone inclusion to stop exploration, and this is essen tial
+for its eﬃciency. We have ( q,Z)⊆(q′,Z′) whenq=q′andZ⊆Z′. Notice
+that zone inclusion is a simulation relation over nodes since zones are s ets of
+valuations. Zone inclusion is ﬁrst used in line 10 to stop the exploration in (q,Z)
+if there is a bigger node ( qB,ZB) inP. It is also used in line 12 to only keep the
+maximal nodes w.r.t. ⊆inPandW.
+Algorithm 1.1 does not specify any exploration strategy. As we have stressed
+in the introduction, the search order greatly inﬂuences the numbe r of nodes
+visited by the algorithm and stored in the sets WandP. At ﬁrst sight it may
+seem strange why there should be a big diﬀerence between, say, BF S and DFS
+search orders. The cause is the optimisation due to subsumption w.r .t.⊆in
+lines 10 and 12. When equality on nodes is used instead of zone inclusion , every
+node is visited. Hence, BFS and DFS coincide in the sense that they will visit the
+samenodes, while notin the same order.The situationis verydiﬀeren t with zone
+inclusion. Consider again the two nodes ( q2,Z2)⊆(q2,Z′
+2) in Figure 1b. Since
+the smaller node ( q2,Z2) is reached ﬁrst, the entire subtrees of both nodes are
+visited whereas it would be suﬃcient to explore the subtree of the big ger node
+(q2,Z′
+2) to solve the reachability problem. Indeed, every node below ( q2,Z2) is
+simulated by the corresponding node below ( q2,Z′
+2). Notice that the problem
+occurs both with a DFS and with a BFS strategy since the bigger node (q2,Z′
+2)
+
+--- Page 7 ---
+7
+is further from the root node than the smaller node ( q2,Z2). When the bigger
+node is found before the smaller one, as in Figure 1c, only the subtre e of the
+bigger node is visited. An optimal search strategy would guarantee that big
+nodes are visited before small ones. In the remaining of the paper w e propose
+two heuristics to optimise the search order.
+3 Ranking system
+In this sectionweproposeanexplorationstrategytoaddressthe phenomenonwe
+have presented in the introduction: we propose a solution to stop t he exploration
+of the subtree of a small node when a bigger node is reached. As we h ave seen,
+the late discovery of big nodes causes unnecessary explorations o f small nodes
+and their subtrees. In the worst case, the number of needlessly v isited nodes may
+be exponential (cf. Figure 2).
+Our goal is to minimise the number of visited nodes as well as the numbe r of
+stored nodes (i.e. the size of Pin Algorithm 1.1). Consider again the situation in
+Figure 1b where ( q3,Z3)⊆(q3,Z′
+3). When the big node ( q3,Z′
+3) is reached, we
+learn that exploring the small node ( q3,Z3) is unnecessary. In such a situation,
+Algorithm 1.1 erases the small node ( q3,Z3) (line 10), but all its descendants
+that are in the waiting list Wwill be still explored.
+Aﬁrstandstraightforwardsolutionwouldbetoerasethewholesub treeofthe
+small node ( q3,Z3). Algorithm 1.1 would then proceed with the waiting nodes
+in the subtree of ( q3,Z′
+3). This approach is however too rudimentary. Indeed, it
+may happen that the two nodes ( q4,Z4) and (q4,Z′
+4) in Figure 1b are identical.
+Then, erasing the whole subtree of ( q3,Z3) will lead to exploring ( q4,Z4) and all
+its subtree twice. We have observed on classical benchmarks (see Section 5) that
+identical nodes are frequently found. While this approach is correc t, it would
+result in visiting more nodes than the classical algorithm.
+We propose a more subtle approach based on an interesting proper ty of
+Algorithm 1.1. Consider the two nodes ( q4,Z4) and (q4,Z′
+4) in Figure 1b again,
+and assume that ( q4,Z′
+4) is reached after ( q4,Z4). If the two nodes are identical,
+then (q4,Z′
+4) is erased by Algorithm 1.1 in line 10, but ( q4,Z4) is kept since it
+has been visited ﬁrst. Conversely, if the two nodes are diﬀerent, w e still have
+(q4,Z4)⊆(q4,Z′
+4), then ( q4,Z4) is erased by Algorithm 1.1 in line 10. Hence,
+as the algorithm explores the subtree of ( q3,Z′
+3), it progressively erases all the
+nodes in the subtree of ( q3,Z3) that are smaller than some node in the subtree
+of (q3,Z′
+3). At the same time, it keeps the nodes that are identical to some no de
+below (q3,Z′
+3), hence avoiding several explorations of the same node.
+Now, it remains to make all this happen before the subtree of ( q3,Z3) is de-
+veloped any further. This is achieved by giving a higher priority to ( q3,Z′
+3) than
+all the waiting nodes below ( q3,Z3). This priority mechanism is implemented by
+assigning a rankto every node.
+Algorithm 1.2 below is a modiﬁed version of Algorithm 1.1 that implements
+the ranking of nodes (the modiﬁcations are highlighted). Nodes are initialised
+with rank 0. The rank of a node ( q′,Z′) is updated with respect to the ranks
+
+--- Page 8 ---
+8
+of the nodes ( qS,ZS) that are simulated by ( q′,Z′) (line 15). For each node
+(qS,ZS), we compute the maximum rank rof the waiting nodes below ( qS,ZS).
+Then,rank(q′,Z′) is set to max( rank(q′,Z′),r+1) giving priority to ( q′,Z′) over
+the waiting nodes below ( qS,ZS).
+Algorithm 1.2: Reachability algorithm with ranking of nodes for timed
+automaton A. The set Pis stored as a tree →.
+1function reachability check(A)
+2W:={(q0,ExtraLU+(Z0))};P:=W
+3initrank(q0,ExtraLU+(Z0))
+4
+5while (W/ne}ationslash=∅)do
+6 takeandremove a node ( q,Z)with highest rank fromW
+7 if(qis accepting ) then
+8 return Yes
+9 else
+10 foreach ( q,Z)⇒ExtraLU+(q′,Z′)
+11 initrank(q′,Z′)
+12 ifthere is no ( qB,ZB)∈Ps . t . ( q′,Z′)⊆(qB,ZB)then
+13 foreach ( qS,ZS)∈Ps . t . ( qS,ZS)⊆(q′,Z′)
+14 if(qS,ZS)/ne}ationslash∈Wthen// implies nota leaf node in P
+15 rank(q′,Z′) := max( rank(q′,Z′),1 +maxrankwaiting(qS,ZS))
+16 remove (qS,ZS) from WandP
+17 add(q′,Z′) toWand to P
+18 return No
+19
+20function maxrankwaiting(q,Z)
+21 if(q,Z) is in Wthen// implies leaf node in P
+22 return rank(q,Z)
+23 else
+24 r:= 0;
+25 foreach edge ( q,Z)→(q′,Z′) inP
+26 r:= max( r,maxrankwaiting( q′,Z′))
+27 return r
+28
+29function initrank(q,Z)
+30 ifZis the truezonethen
+31 rank(q,Z) :=∞
+32 else
+33 rank(q,Z) := 0
+The function maxrankwaitingdetermines the maximal rank among waiting
+nodes below ( qS,ZS). To that purpose, the set of visited nodes Pis stored as a
+reachability tree. When a node ( qS,ZS) is removed in line 16, its parent node is
+connected to its child nodes to maintain reachability of waiting nodes. Observe
+that the node ( q′,Z′) is added to the tree Pin line 17 after its rank has been
+updated in line 15. This is needed in the particular case where ( qS,ZS) is an
+ancestor of node ( q′,Z′) in line 15. The rank of ( q′,Z′) will be updated taking
+into account the waiting nodes below ( qS,ZS). Obviously, ( q′,Z′) should not be
+considered among those waiting nodes, which is guaranteed since ( q′,Z′) does
+not belong to the tree yet.
+The intuition behind the use of ranks suggest one more useful heur istic.
+Ranks are used to give priority to exploration from some nodes over the others.
+Nodes with true zones are a special case in this context, since they can never
+be covered, and in consequence it is always better to explore them ﬁ rst. We
+
+--- Page 9 ---
+9
+(q1,Z1)
+(q3,Z3) ( q2,Z2)
+(q4,Z4) (q3,Z′
+3)
+(q4,Z′
+4)
+...⊆
+⊆
+Fig.3: Reachability tree for Al-
+gorithm1.2ontheautomatonin
+Figure 1a.s
+... ... ...
+v1v2 vn
+... ... ...
+t
+... ...
+Fig.4: Waiting strategy starts ex-
+ploring from tonly after all paths
+leading to tare explored.
+implement this observation by simply assigning the biggest possible ran k (∞)
+to such nodes (line 31 in the Algorithm).
+Let us explain how the Algorithm 1.2 works on an example. Consider aga in
+the automaton in Figure 1a. The ﬁnal exploration graph is depicted in Figure 3.
+When (q1,Z1) is visited, both ( q3,Z3) and (q2,Z2) are put into the waiting list
+Wwith rank 0. Recall that exploring ( q3,Z3) ﬁrst is the worst explorationorder.
+This adds ( q4,Z4) to the waiting list with rank 0. The exploration of ( q2,Z2)
+adds (q3,Z′
+3) to the waiting list. At this stage, the rank of ( q3,Z′
+3) is set to 1
+since it is bigger than ( q3,Z3) which is erased. The node ( q3,Z′
+3) has the highest
+priority among all waiting nodes and is explored next. This generates the node
+(q4,Z′
+4) that is bigger than ( q4,Z4). Hence ( q4,Z4) is erased, ( q4,Z′
+4) gets rank
+1 and the exploration proceeds from ( q4,Z′
+4). One can see that, when a big node
+is reached, the algorithm not only stops the exploration of the smalle r node
+but also of the nodes in its subtree. Figure 3 shows a clear improveme nt over
+Figure 1b.
+4 Waiting strategy
+We present an exploration strategy that will aim at reducing the num ber of
+exploration mistakes: situations when a bigger node is discovered lat er than a
+smaller one. The ranking strategy from the previous section reduc ed the cost of
+a mistake by stopping the exploration from descendants of a small n ode when
+it found a bigger node. By contrast, the waiting strategy of this se ction will not
+develop a node if it is aware of some other parts of exploration that m ay lead to
+a bigger node.
+The waiting strategyis based on topological-likeorderon states of a utomata.
+We ﬁrst present this strategy on a single automaton. Then we cons ider networks
+
+--- Page 10 ---
+10
+of timed automata, and derive a topological-like ordering from order ings on the
+components. Before we start we explain what kind of phenomenon o ur strategy
+is capturing.
+To see what we aim at, consider the part of a timed automaton depict ed in
+Figure 4. There is a number of paths form state sto state t, not necessary of
+the same length. Suppose the search strategy from ( s,Z) has reached ( t,Z1) by
+following the path through v1. At this point it is reasonable to delay exploration
+from (t,Z1) until all explorations of paths through v2,...,v kﬁnish. This is be-
+cause some of these explorations may result in a bigger zone than Z1, and in
+consequence make an exploration from ( t,Z1) redundant.
+The eﬀect of such a waiting heuristic is clearly visible on our example fro m
+Figure 2. The automaton consists of segments: from q1toq3, fromq3toq5, etc.
+Every segment is a very simple instance of the situation from Figure 4 that we
+have discussed in the last paragraph. There are two paths that lea d from state
+q1to stateq3. These two paths have diﬀerent lengths, so with a BFS exploration
+one of the paths will reach q3faster than the other. The longest path (that one
+going through q2) gives the biggest zone in q3; but BFS will no be able to use
+this information; and in consequence it will generate exponentially ma ny nodes
+on this example. The waiting heuristic will collect all the search paths a t states
+q3,q5,...and will explore only the best ones, so its search space will be linear.
+We propose to implement these ideas via a simple modiﬁcation of the sta n-
+dard algorithm. The waiting strategy will be based on a partial order ⊑topoof
+sates ofA. We will think of it as a topological order of the graph of the automa-
+ton (after removing cycles in some way). This order is then used to d etermine
+the exploration order.
+Algorithm 1.3: Reachability algorithm with waiting strategy
+This algorithm is obtained from the standard Algorithm 1.1 b y changing line 5 to
+takeandremove (q,Z) minimal w. r . t . ⊑topofromW
+In the remaining of the section we will propose some simple ways of ﬁnd ing
+a suitable ⊑topoorder.
+4.1 Topological-like ordering for a timed automaton
+It is helpful to think of the order ⊑topoon states as some sort of topological
+ordering, but we cannot really assume this since the graphs of our a utomata
+may have loops. Given a timed automaton A, we ﬁnd a linear order on the
+states of Ain two steps:
+1. we ﬁnd a maximal subset of transitions of Athat gives a graph ADAG
+without cycles;
+2. then we compute a topological ordering of this graph.
+Given an automaton A, the graph ADAGcan be computed by running a
+depth-ﬁrst search (DFS) from the initial state of A. While traversing A, we only
+
+--- Page 11 ---
+11
+consider the transitions that point downwards or sideways; in othe r words we
+ignore all the transitions that lead to a state that is on the current search stack.
+At the end of the search, when all the states have been visited, th e transitions
+that have not been ignored form a graph ADAG.
+As an example, consider the timed automaton Ain Figure 1a. The transition
+fromq4toq1is ignored when computing ADAGstarting from q1. A topological-
+like orderingis computed from the resulting graph: q1⊑topoq2⊑topoq3⊑topoq4.
+Let us see how ⊑topohelps Algorithm 1.1 to explore bigger nodes ﬁrst. Starting
+from node ( q1,true), Algorithm 1.1 adds ( q2,true) and (q3,y >1) to the waiting
+list. Since q2⊑topoq3, the algorithm then explores node ( q2,true), hence adding
+node (q3,true) to the waiting list. The small node ( q3,y >1) is then automati-
+cally erased, and the exploration proceeds from the big node ( q3,true). Observe
+that the exploration of the node ( q3,y >1) is postponed until the second path
+reachesq3. Upon this stage, the zone inclusion relation will help to stop all ex-
+plorations of smaller nodes; in our case it is ( q3,y >1). Thus, the algorithm
+performs optimally on this example, no exploration step can be avoide d.
+4.2 Topological-like ordering for networks of timed automa ta
+Real-time systems often consist of several components that inte ract with each
+other. In order to apply the same approach we need to ﬁnd an orde ring on a
+set of global states of the system. For this we will ﬁnd an ordering f or each
+component and then extend it to the whole system without calculatin g the set
+of global states.
+We suppose that each component of a system is modelled by a timed au -
+tomaton Ai= (Qi,q0i,Fi,Xi,Acti,Ti). The system is modelled as the prod-
+uctA= (Q,q0,F,X,Act,T ) of the components ( Ai)1≤i≤k. The states of A
+are the tuples of states of A1,...,Ak:Q=Q1× ··· ×Qkwith initial state
+q0=/a\}bracketle{tq01,...,q 0k/a\}bracketri}htand ﬁnal states F=F1× ··· ×Fk. Clocks and actions are
+shared among the processes: X=/uniontext
+1≤i≤kXiandAct=/uniontext
+1≤i≤kActi. Inter-
+actions are modelled by the synchronisation of processes over the same action.
+There is a transition ( /a\}bracketle{tq1,...,q n/a\}bracketri}ht,g,R,a,/a\}bracketle{tq′
+1,...,q′
+n/a\}bracketri}ht)∈Tif
+–either, there are two processes iandjwith transitions ( qi,gi,Ri,a,q′
+i)∈Ti
+and (qj,gj,Rj,a,q′
+j)∈Tjsuch that g=gi∧gjandR=Ri∪Rj, andq′
+l=ql
+for every process l/\e}atio\slash=i,j(synchronised action)
+–or there is a process iwith transition ( qi,g,R,a,q′
+i)∈Tisuch that for every
+processl/\e}atio\slash=i,a/\e}atio\slash∈Actlandq′
+l=ql(local action).
+The product above allows synchronisation of 2 processes at a time. Our work
+does not rely on a speciﬁc synchronisation policy, hence other mode ls of interac-
+tions (broadcast communications, n-ary synchronisation, etc.) could be consid-
+ered as well. Notice that the product automaton Ais, in general, exponentially
+bigger than each component Ai.
+The semantics of a network of timed automata ( Ai)1≤i≤kis deﬁned as the se-
+mantics of the corresponding product automaton A. As a result, the reachability
+problem for ( Ai)1≤i≤kreduces to the reachability problem in A.
+
+--- Page 12 ---
+12
+In order to apply the same approach as above, an ordering must be deﬁned
+on the states of Awhich are tuples q=/a\}bracketle{tq1,...,q k/a\}bracketri}htof states of the component
+automata Ai. It would not be reasonable to compute the product automaton A
+asitssizegrowsexponentiallywiththenumberofitscomponents.We proposean
+alternative solution that consists in computing a topological-like orde ring⊑i
+topo
+for each component Ai. To that purpose, we can apply the algorithm introduced
+intheprevioussection.Then,the orderingoftuples ofstatesisde ﬁnedpointwise:
+Deﬁnition 1 (Joint ordering). Forq,q′∈Q1×···×Qk, we have q⊑topoq′
+ifqi⊑i
+topoq′ifor all1≤i≤k.
+Thus for networks of timed automata we consider the joint orderin g in our
+waiting strategy.
+5 Experimental evaluation
+We present and comment the experimental results that we have pe rformed. The
+results indicate that a mix of a ranking and waiting strategies avoids m istakes
+in most the examples.
+We have evaluated the ranking system (Section 3) and the waiting st rat-
+egy (Section 4) on classical benchmarks from the literature1:Critical Re-
+gion (CR) ,Csma/Cd (C) ,Fddi (FD) ,Fischer (Fi) ,Flexray (Fl-PL)
+andLynch (L) , and on the BlowUp (B) example in Figure 2. These automata
+have no reachable accepting state, hence forcing algorithms to vis it the entire
+state-space of the automata to prove unreachability.
+Our objective is to avoid mistakes during exploration of the state-s pace of
+timed automata. At the end of the run of the algorithm, the set of v isited nodes
+Pforms an invariant showing that accepting nodes are unreachable. Every node
+that is visited by the algorithm and that does not belong to Pat the end of the
+run is useless to prove unreachability. This happens when the algorit hm does
+a mistake: it ﬁrst visits a small node before reaching a bigger node lat er. We
+aim at ﬁnding a search order that visits bigger nodes ﬁrst, hence do ing as few
+mistakes as possible. Notice that it is not always possible to completely avoid
+mistakes since the only paths to a big node may have to visit a small nod e ﬁrst.
+We compare three algorithms in Table 1: BFSthe standard breadth-ﬁrst
+search algorithm2(i.e. Algorithm 1.1), R-BFSwhich implements a breadth-ﬁrst
+search with priority to the highest ranked nodes (i.e. Algorithm 1.2) a ndTW-
+BFSwhich combines giving highest priority to true-zone nodes and the wa iting
+strategy. We report on the number of visited nodes, the number o f mistakes, the
+maximum number ofstored nodes, and the ﬁnal number ofstoredn odes. We also
+mention in column “visited ranking” the number of nodes that are re- visited to
+update the rank of the nodes by algorithm R-BFS(line 15 in Algorithm 1.2).
+The number of visited nodes gives a good estimate of the running time of the
+1The models are available from http://www.labri.fr/perso/ herbrete/tchecker.
+2Algorithm 1.1 is essentially the algorithm that is implemen ted in UPPAAL [2].
+
+--- Page 13 ---
+13
+algorithm, while the maximal number of stored nodes gives a precise in dication
+of the memory used for the set P.
+Therankingsystemgivesverygoodresultsonallmodelsexcept Csma/Cd .It
+makes no mistakes on Fischer andLynch. This is due to the highest priority
+given to true-zone nodes. Indeed, column “visited ranking” shows that ranks
+are never updated, hence the nodes keep their initial rank. It also performs
+impressively well on BlowUp ,FddiandFlexray , gaining several orders of
+magnitude in the number of mistakes. However, it makes more mistak es than
+BFSonCsma/Cd . Indeed, the ranking system is eﬃcient when big nodes are
+reached quickly, as the example in Figure 3 shows. When the big node ( q3,Z′
+3)
+is reached, the ranking system stops the exploration of the subtr ee of the small
+node (q3,Z3) at (q4,Z4). However, making the path q1→q2→q3longer in
+the automaton in Figure 1a leads to explore a bigger part of the subt ree of
+(q3,Z3). If this path is long enough, the entire subtree of ( q3,Z3) may be visited
+before (q3,Z′
+3) is reached. The ranking system does not provide any help in this
+situation. This bad scenario occurs in the Csma/Cd example.
+We have experimented the waiting strategy separately (not repor ted in Ta-
+ble 1). While the results are good on some models ( BlowUp ,Fddi,Csma/Cd ),
+the waitingstrategymakesalot moremistakesthan the standard BFSonLynch
+andFlexray . Indeed, the waiting strategy is sensitive to the topological order -
+ing. Consider the automaton in Figure 1a with an extra transition q3→q2.
+The loop on q2andq3may lead to diﬀerent topological orderings, for instance
+q1⊑topoq2⊑topoq3⊑topoq4andq1⊑topoq3⊑topoq2⊑topoq4. These two
+choices lead to very diﬀerent behaviours of the algorithm. Once the initial node
+has been explored, the two nodes ( q3,y >1) and (q2,true) are in the waiting
+queue. With the ﬁrst ordering, ( q2,true) is selected ﬁrst and generates ( q3,true)
+that cuts the exploration of the smaller node ( q3,y >1). However, with the sec-
+ond ordering ( q3,y >1) is visited ﬁrst. As a result, ( q3,true) is reached too late,
+and the entire subtree of ( q3,y >1) is explored unnecessarily. We have investi-
+gated the robustness of the waiting strategy w.r.t. random topolo gical orderings
+for the models in Table 1. The experiments conﬁrm that the waiting st rategy is
+sensitive to topological ordering. For most models, the best result s are achieved
+using the topologicalorderingthat comes from running a DFS on the automaton
+as suggested in Section 4.1.
+The two heuristics perform well on diﬀerent models. This suggests t o com-
+bine their strengths. Consider again the automaton in Figure 1a with an extra
+transition q3→q2. As explained above, due to the cycle on q2andq3, sev-
+eral topological orderings are possible for the waiting strategy. T he choice of
+q1⊑topoq3⊑topoq2⊑topoq4leads to a bad situation where ( q3,y >1) is taken
+ﬁrst when the two nodes ( q3,y >1) and (q2,true) are in the waiting queue. As a
+result, the node ( q3,y >1) is visited without waiting the bigger node ( q3,true).
+In such a situation, combining ranking and the waiting strategies help s. In-
+deed, after ( q3,y >1) has been explored, the waiting queue contains two nodes
+(q2,true) and (q4,1< y≤5). Since q2⊑topoq4, the algorithm picks ( q2,true),
+
+--- Page 14 ---
+14
+hence generating ( q3,true). As a true-zone node, ( q3,true) immediately gets a
+higher rank than every waiting node. Exploring ( q3,true) generates ( q4,y≤5)
+that cuts the exploration from the small node ( q4,1< y≤5).
+We have tried several combinations of the two heuristics. The best one con-
+sists in using the waiting strategy with priority to true zones. More p recisely,
+the resulting algorithm TW-BFS selects a waiting node as follows:
+–True-zone nodes are taken in priority,
+–If there is no true-zone node, the nodes are taken according to t he waiting
+strategy, and in BFS order.
+As Table 1 shows, TW-BFS makes no mistake on all models but three. Crit-
+ical Region has unavoidable mistakes: big nodes that can only be reached
+after visiting a smaller node. The topological ordering used for Fddiis not opti-
+mal. Indeed, there exists an optimal topological search order for whichTW-BFS
+makes no mistake, but it is not the one obtained by the algorithm pres ented
+in Section 4.1. Finally, the algorithm makes a lot of mistakes on Flexray , but
+the memory usage is almost optimal: the mistakes are quickly eliminated . This
+example is the only one where applyingthe rankingheuristic clearlyout performs
+TW-BFS.
+We have also evaluated TW-BFS using randomised versions of the models in
+Table 1. Randomisation consists in taking the transitions in a non-ﬁxe d order,
+hence increasing the possibility of racing situations like in Figure 1. The experi-
+ments show that the strategies are robust to such randomisation , and the results
+on random instances are very close to the ones reported in the tab le.
+The ranking strategy R-BFSrequires to keep a tree structure over the passed
+nodes. Using the classical left child-right sibling encoding, the tree c an be repre-
+sented with only two pointers per node. This tree is explored when th e rank of a
+node is updated (line 15 in Algorithm 1.2). Column “visited ranking” in Tab le 1
+shows that these explorations do not inﬂict any signiﬁcant overhea d in terms of
+explored nodes, except for Csma/Cd andCritical Region for which it has
+been noticed above that algorithm R-BFSdoes not perform well. Furthermore,
+exploring the tree is inexpensive since the visited nodes, in particular the zones,
+havealreadybeen computed. Both the rankingstrategyand the w aitingstrategy
+require to sort the list of waiting nodes. Our prototype implementat ion based on
+insertionsortis slow.However,preliminaryexperiments showthat im plementing
+the list of waiting nodes as a heap turns out to be very eﬃcient.
+To summarise we can consider our ﬁndings from a practical point of v iew of
+an implementation. Thesimplest to implement strategywouldbe togive priority
+to true zones. This would already give some improvements, but for e xample for
+Fddithere would be no improvement since there are no true zones. R-BFSgives
+very good results on Flexray model its implementation is more complex than
+TW-BFS strategy is relatively easy to implement and has very good performa nce
+on all but one model, where it is comparableto standard BFS. This suggeststhat
+TW-BFS could be used as a replacement for BFS.
+
+--- Page 15 ---
+15
+BFS R-BFS TW-BFS
+visited mist.storedvisited mist.stored visitedvisited mist.stored
+final max final max ranking final max
+B-5 63 52 11 22 16 5 11 11 13 11 0 11 11
+B-10 1254 1233 21 250 31 10 21 21 28 21 0 21 21
+B-15 37091 37060 31 6125 46 15 31 31 43 31 0 31 31
+FD-8 2635 2294 341 439 437 96 341 341 579 349 8 341 341
+FD-10 10219 9694 525 999 684 159 525 525 1168 535 10 525 525
+FD-15 320068 318908 1160 18707 1586 426 1160 1160 4543 1175 15 1160 1160
+C-10 39698 5404 34294 48286 59371 25077 34294 52210 54319 34294 0 34294 34302
+C-11 98118 17233 80885 124220 153042 72157 80885 130557 160822 80885 0 80885 80894
+C-12 239128 50724 188404 311879 378493 190089 188404 320181 430125 188404 0 188404 188414
+Fi-7 11951 4214 7737 7738 7737 0 7737 7737 0 7737 0 7737 7737
+Fi-8 40536 15456 25080 25082 25080 0 25080 25080 0 25080 0 25080 25080
+Fi-9 135485 54450 81035 81038 81035 0 81035 81035 0 81035 0 81035 81035
+L-8 45656 15456 30200 30202 30200 0 30200 30200 0 30200 0 30200 30200
+L-9 147005 54450 92555 92558 92555 0 92555 92555 0 92555 0 92555 92555
+L-10 473198 186600 286598 286602 286598 0 286598 286598 0 286598 0 286598 286598
+CR-3 1670 447 1223 1223 1532 309 1223 1223 1837 1563 340 1223 1223
+CR-4 21180 7440 13740 13740 17694 3954 13740 13740 24295 19489 5749 13740 13740
+CR-5 285094 113727 171367 171367 216957 45590 171367 171367 307010 257137 85770 171367 171367
+Fl-PL 881214 228265 652949 652949 655653 2704 652949 652949 6977 12660557 11997402 663155 684467
+Table 1: Experimental results: BFScorresponds to Algorithm 1.1 with a BFS
+order on the waiting nodes, R-BFSimplements the ranking system on top of
+theBFSalgorithm (i.e. Algorithm 1.2), and TW-BFS implements the waiting
+strategy with a priority to true-zone nodes.
+6 Conclusion
+We have analysed the phenomenon of mistakes in the zone based rea chability
+algorithm for timed automata. This situation occurs when the explor ation algo-
+rithm visits a node that is later removed due to a discovery of a bigger node.
+It is well known that DFS exploration may suﬀer from an important nu mber of
+mistakes. We have exhibited examples where BFS makes an important number
+of mistakes that can be avoided.
+To limit the number of mistakes in exploration we have proposed two he uris-
+tics:ranking system and thewaiting strategy . The experimentson standardmod-
+elsshowthat,comparedwiththestandardBFSreachabilityalgorith mthestrate-
+gies using our heuristics give not only a smaller number of visited nodes , but
+also a smaller number of stored nodes. Actually, on most examples ou r strate-
+gies are optimal as they do not make any mistakes. In addition, the e xperiments
+indicate that the TW-BFS strategy works often as good as the combination of
+both waiting and ranking strategies, while its implementation is much sim pler.
+Therefore, we suggest to use the TW-BFS algorithm instead of standard BFS for
+reachability checking.
+Acknowledgements. The authors wish to thank Igor Walukiewicz for the many
+helpful discussions.
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. Theoreti cal computer science
+126(2), 183–235 (1994)
+
+--- Page 16 ---
+16
+2. Behrmann, G., David, A., Larsen, K., Haakansson, J., Pett ersson, P., Yi, W.,
+Hendriks, M.: Uppaal 4.0. In: QEST. pp. 125–126. IEEE Comput er Society (2006)
+3. Behrmann, G.: Distributed reachability analysis in time d automata. International
+Journal on Software Tools for Technology Transfer 7(1), 19– 30 (2005)
+4. Behrmann, G., Bouyer, P., Larsen, K.G., Pel´ anek, R.: Low er and upper bounds
+in zone-based abstractions of timed automata. Internation al Journal on Software
+Tools for Technology Transfer 8(3), 204–215 (2006)
+5. Behrmann, G., Fehnker, A.: Eﬃcient guiding towards cost- optimality in UPPAAL.
+In: TACAS. pp. 174–188 (2001)
+6. Behrmann, G., Hune, T., Vaandrager, F.W.: Distributing t imed model checking -
+how the search order matters. In: CAV. pp. 216–231 (2000)
+7. Behrmann, G., Larsen, K.G., Pel´ anek, R.: To store or not t o store. In: CAV. pp.
+433–445 (2003)
+8. Braberman, V., Olivero, A., Schapachnik, F.: Zeus: A dist ributed timed model-
+checker based on Kronos. Electronic notes in theoretical co mputer science 68(4),
+503–522 (2002)
+9. Daws, C., Tripakis, S.: Model checking of real-time reach ability properties using
+abstractions. In: TACAS, pp. 313–329. Springer (1998)
+10. Dill, D.L.: Timing assumptions and veriﬁcation of ﬁnite -state concurrent systems.
+In: Automatic veriﬁcation methods for ﬁnite state systems. pp. 197–212. Springer
+(1989)
+11. Evangelista, S., Kristensen, L.: Search-order indepen dent state caching. T. Petri
+Nets and Other Models of Concurrency 4, 21–41 (2010)
+12. Godefroid, P., Holzmann, G.J., Pirottin, D.: State-spa ce caching revisited. Formal
+Methods in System Design 7(3), 227–241 (1995)
+13. Ple´ anek, R., Roseck´ y, V., Sedenka, J.: Evaluation of s tate caching and state com-
+pression techniques. Tech. rep., Masaryk University, Brno (2008)
