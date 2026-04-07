@@ -1,0 +1,1131 @@
+--- Page 1 ---
+Grey-Box Learning of Register Automata
+Bharat Garhewal1⋆, Frits Vaandrager1, Falk Howar2,
+Timo Schrijvers1, Toon Lenaerts1, and Rob Smits1
+1Radboud University, Nijmegen, The Netherlands
+fbharat.garhewal, frits.vaandrager g@ru.nl
+2Dortmund University of Technology
+Abstract. Model learning (a.k.a. active automata learning) is a highly
+eﬀective technique for obtaining black-box ﬁnite state models of soft-
+ware components. Thus far, generalization to inﬁnite state systems with
+inputs and outputs that carry data parameters has been challenging.
+Existing model learning tools for inﬁnite state systems face scalability
+problems and can only be applied to restricted classes of systems (regis-
+ter automata with equality/inequality). In this article, we show how we
+can boost the performance of model learning techniques by extracting
+the constraints on input and output parameters from a run, and making
+this grey-box information available to the learner. More speciﬁcally, we
+provide new implementations of the tree oracle and equivalence oracle
+from RALib, which use the derived constraints. We extract the con-
+straints from runs of Python programs using an existing tainting library
+for Python, and compare our grey-box version of RALib with the existing
+black-box version on several benchmarks, including some data structures
+from Python’s standard library. Our proof-of-principle implementation
+results in almost two orders of magnitude improvement in terms of num-
+bers of inputs sent to the software system. Our approach, which can be
+generalized to richer model classes, also enables RALib to learn models
+that are out of reach of black-box techniques, such as combination locks.
+Keywords: Model learning·Active Automata Learning ·Register Au-
+tomata·RALib·Grey-box·Tainting
+1 Introduction
+Model learning, also known as active automata learning, is a black-box technique
+for constructing state machine models of software and hardware components
+from information obtained through testing (i.e., providing inputs and observing
+the resulting outputs). Model learning has been successfully used in numerous
+applications, for instance for generating conformance test suites of software com-
+ponents [14], ﬁnding mistakes in implementations of security-critical protocols
+[9–11], learning interfaces of classes in software libraries [15], and checking that
+⋆Supported by NWO TOP project 612.001.852 “Grey-box learning of Interfaces for
+Refactoring Legacy Software (GIRLS)”.
+
+--- Page 2 ---
+2 B. Garhewal et al.
+a legacy component and a refactored implementation have the same behaviour
+[20]. We refer to [18, 21] for surveys and further references.
+In many applications it is crucial for models to describe control ﬂow , i.e.,
+states of a component, data ﬂow , i.e., constraints on data parameters that are
+passed when the component interacts with its environment, as well as the mutual
+inﬂuence between control ﬂow and data ﬂow. Such models often take the form
+ofextended ﬁnite state machines (EFSMs). Recently, various techniques have
+been employed to extend automata learning to a speciﬁc class of EFSMs called
+register automata , which combine control ﬂow with guards and assignments to
+data variables [1, 2, 5].
+While these works demonstrate that it is theoretically possible to infer such
+richer models, the presented approaches do not scale well and they are not yet
+satisfactorily developed for richer classes of models (c.f. [17]): Existing techniques
+either rely on manually constructed mappers that abstract the data aspects of
+input and output symbols into a ﬁnite alphabet, or otherwise infer guards and
+assignments from black-box observations of test outputs. The latter can be costly,
+especially for models where control ﬂow depends on test on data parameters
+in input: in this case, learning an exact guard that separates two control ﬂow
+branches may require a large number of queries.
+One promising strategy for addressing the challenge of identifying data-ﬂow
+constraints is to augment learning algorithms with white-box information ex-
+traction methods, which are able to obtain information about the SUL at lower
+cost than black-box techniques. Several researchers have explored this idea. Gi-
+annakopoulou et al. [12] develop an active learning algorithm that infers safe in-
+terfaces of software components with guarded actions. In their model, the teacher
+is implemented using concolic execution for the identiﬁcation of guards. Cho et
+al. [8] present MACE an approach for concolic exploration of protocol behaviour.
+The approach uses active automata learning for discovering so-called deep states
+in the protocol behaviour. From these states, concolic execution is employed in
+order to discover vulnerabilities. Similarly, Botinˇ can and Babi´ c [4] present a
+learning algorithm for inferring models of stream transducers that integrates
+active automata learning with symbolic execution and counterexample-guided
+abstraction reﬁnement. They show how the models can be used to verify proper-
+ties of input sanitizers in Web applications. Finally, Howar et al. [16] extend the
+work of [12] and integrate knowledge obtained through static code analysis about
+the potential eﬀects of component method invocations on a component’s state
+to improve the performance during symbolic queries. So far, however, white-
+box techniques have never been integrated with learning algorithms for register
+automata.
+In this article, we show how dynamic taint analysis can be used to eﬃciently
+extract constraints on input and output parameters from a test, and improves
+the performance of the SL∗algorithm of Cassel et al. [7]. The SL∗algorithm gen-
+eralises the classical L∗algorithm of Angluin [3] and has been used successfully
+to learn register automaton models, for instance of Linux and Windows imple-
+
+--- Page 3 ---
+Grey-Box Learning of Register Automata 3
+mentations of TCP [10]. We have implemented the presented method on top of
+RALib [6], a library that provides an implementation of the SL∗algorithm.
+SL∗Learner Teacher
+M/ SUT
+Equivalence
+OracleTree OracleTQ
+SDT
+EQ
+H
+Yes/CEMQ
+Yes/No and
+Constraints
+MQ
+Yes/No and
+Constraints
+Fig. 1: MAT Framework (Our addition — tainting — in red): Double
+arrows indicate possible multiple instances of a query made by an oracle
+for a single query by the learner.
+The integration of the two techniques (dynamic taint analysis and learning
+of register automata models) can be explained most easily with reference to the
+architecture of RALib, shown in Figure 1, which is a variation of the Minimally
+Adequate Teacher (MAT) framework of [3]: In the MAT framework, learning is
+viewed as a game in which a learner has to infer the behaviour of an unknown
+register automaton Mby asking queries to a teacher . We postulateMmod-
+els the behaviour of a System Under Test (SUT) . In the learning phase, the
+learner (i.e., SL∗) is allowed to ask questions to the teacher in the form of tree
+queries (TQs) and the teacher responds with symbolic decision trees (SDTs).
+In order to construct these SDTs, the teacher uses a tree oracle , which queries
+the SUT with membership queries (MQs) and receives a yes/no reply to each.
+Typically, the tree oracle asks many membership queries to answer a single tree
+query in order to infer causal impact and ﬂow of data values. Based on the an-
+swers on a number of tree queries, the learner constructs an hypothesis in the
+form of a register automaton H. The learner submits Has an equivalence query
+(EQ) to the teacher, asking whether His equivalent to the SUT model M. The
+teacher uses an equivalence oracle to answer equivalence queries. Typically, the
+equivalence oracle asks many membership queries to answer a single equivalence
+query. If, for all membership queries, the output produced by the SUT is consis-
+tent with hypothesis H, the answer to the equivalence query is ‘Yes’ (indicating
+learning is complete). Otherwise, the answer ‘No’ is provided, together with a
+counterexample (CE) that indicates a diﬀerence between HandM. Based on
+this counterexample, learning continues. In this extended MAT framework, we
+
+--- Page 4 ---
+4 B. Garhewal et al.
+have constructed new implementations of the tree oracle and equivalence oracle
+that leverage the constraints on input and output parameters that are imposed
+by a program run: dynamic tainting is used to extract all constraints on param-
+eters that are performed during a run of a program. Our implementation learns
+models of Python programs, using an existing tainting library for Python [13].
+We compare our grey-box tree oracle and equivalence oracle with the existing
+black-box versions of these oracles on several benchmarks, including Python’s
+queue andsetmodules. Our proof-of-concept implementation3results in almost
+two orders of magnitude improvement in terms of numbers of inputs sent to the
+software system. Our approach, which generalises to richer model classes, also
+enables RALib to learn models that are completely out of reach for black-box
+techniques, such as combination locks.
+Outline: Section 2 contains preliminaries, Section 3 discusses tainting in our
+Python SUTs, Section 4 contains the algorithms we use to answer TQs using
+tainting and the deﬁnition for the tainted equivalence oracle needed to learn
+combination lock automata, Section 5 contains the experimental evaluation of
+our technique, and Section 6 concludes.
+2 Preliminary deﬁnitions and constructions
+This section contains the deﬁnitions and constructions necessary to understand
+active automata learning for models with dataﬂow. We ﬁrst deﬁne the concept
+of a structure , followed by guards ,data languages ,register automata , and ﬁnally
+symbolic decision trees .
+Deﬁnition 1 (Structure). A structureS=/angbracketleftR,D,R/angbracketrightis a triple where Ris
+a set of relation symbols, each equipped with an arity, Dis an inﬁnite domain
+of data values, and Rcontains a distinguished n-ary relation rR⊆Dnfor each
+n-ary relation symbol r∈R.
+In the remainder of this section, we ﬁx a structure S=/angbracketleftR,D,R/angbracketright, whereR
+contains a binary relation symbol = and unary relation symbols = c, for eachc
+contained in a ﬁnite set Cof constant symbols, Dequals the set Nof natural
+numbers, =Ris interpreted as the equality predicate on N, and to each symbol
+c∈Ca natural number ncis associated such that (= c)R={nc}.
+Guards are a restricted type of Boolean formulas that may contain relation
+symbols from R.
+Deﬁnition 2 (Guards). We postulate a countably inﬁnite set V={v1,v2,...}
+ofvariables . In addition, there is a variable p/negationslash∈V that will play a special role
+as formal parameter of input symbols; we write V+=V∪{p}. Aguard is
+a conjunction of relation symbols and negated relation symbols over variables.
+Formally, the set of guards is inductively deﬁned as follows:
+3Available at https://bitbucket.org/toonlenaerts/taintralib/src/basic/ .
+
+--- Page 5 ---
+Grey-Box Learning of Register Automata 5
+–Ifr∈Ris ann-ary relation symbol and x1,...,xnare variables from V+,
+thenr(x1,...,xn)and¬r(x1,...,xn)are guards.
+–Ifg1andg2are guards then g1∧g2is a guard.
+LetX⊂V+. We say that gis a guard overXif all variables that occur in gare
+contained in X. Avariable renaming is a function σ:X→V+. Ifgis a guard
+overXtheng[σ]is the guard obtained by replacing each variable xingbyσ(x).
+Next, we deﬁne the notion of a data language . For this, we ﬁx a ﬁnite set of
+actionsΣ. Adata symbol α(d) is a pair consisting of an action α∈Σand a
+data value d∈D. While relations may have arbitrary arity, we assume that all
+actions have an arity of one to ease notation and simplify the text. A data word
+is a ﬁnite sequence of data symbols, and a data language is a set of data words.
+We denote concatenation of data words wandw/primebyw·w/prime, wherewis the preﬁx
+andw/primeis the suﬃx .Acts(w) denotes the sequence of actions α1α2...αninw,
+and Vals(w) denotes the sequence of data values d1d2...dninw. We refer to a
+sequence of actions in Σ∗as a symbolic suﬃx . Ifwis a symbolic suﬃx then we
+write JwKfor the set of data words uwith Acts(u) =w.
+Data languages may be represented by register automaton , deﬁned below.
+Deﬁnition 3 (Register Automaton). A Register Automaton (RA) is a tuple
+M= (L,l0,X,Γ,λ )where
+–Lis a ﬁnite set of locations, with l0as the initial location;
+–Xmaps each location l∈Lto a ﬁnite set of registers X(l);
+–Γis a ﬁnite set of transitions, each of the form /angbracketleftl,α(p),g,π,l/prime/angbracketright, where
+•l,l/primeare source and target locations respectively,
+•α(p)is a parametrised action,
+•gis aguard overX(l)∪{p}, and
+•πis an assignment mapping from X(l/prime)toX(l)∪{p}; and
+–λ:L− →{+,−}.
+We require that Misdeterministic in the sense that for each location q∈Q
+and input symbol α∈Σ, the conjunction of the guards of any pair of distinct
+α-transitions with source qis not satisﬁable. Miscompletely speciﬁed if for all
+α-transitions out of a location, the disjunction of the guards of the α-transitions
+is a tautology. Mis said to be simple if there are no registers in the initial
+location, i.e.,X(l) =?. In this text, all RAs are assumed to be completely
+speciﬁed and simple, except when we explicitly say they are not.
+Example 1 (FIFO-buﬀer). The register automaton displayed in Figure 2 models
+a FIFO-buﬀer with capacity 2. It has three accepting locations l0,l1andl2;
+and one rejecting location l3. FunctionXassigns the empty set of registers to
+locationsl0andl3, singleton set{x}to location l1, and set{x,y}tol2.
+
+--- Page 6 ---
+6 B. Garhewal et al.
+l0 start l1 l2
+l3Push(p)
+x:=p
+Pop(p)Push(p)
+y:=p
+p=x
+Pop(p)
+p/negationslash=x
+Pop(p)p=x
+Pop(p)
+x:=y
+p/negationslash=x
+Pop(p)Push(p)
+Push(p)
+Pop(p)
+Fig. 2: FIFO-buﬀer with a capacity of 2 modelled as a register automaton
+2.1 Semantics of a RA
+We now formalise the semantics of an RA. A valuation of a set of variables X
+is a function ν:X→D that assigns data values to variables in X. Ifνis a
+valuation of Xandgis a guard with variables contained in Xthenν|=gis
+deﬁned inductively by:
+–ν|=r(x1,...,xn) iﬀ (ν(x1),...,ν (xn))∈rR
+–ν|=¬r(x1,...,xn) iﬀ (ν(x1),...,ν (xn))/negationslash∈rR
+–ν|=g1∧g2iﬀν|=g1andν|=g2
+Astate of a RAM= (L,l0,X,Γ,λ ) is a pair/angbracketleftl,ν/angbracketright, wherel∈Lis a location
+andν:X(l)− →D is a valuation of the set of registers at location l. ArunofM
+over data word w=α1(d1)...αn(dn) is a sequence
+/angbracketleftl0,ν0/angbracketrightα1(d1),g1,π1−−−−−−−−→/angbracketleft l1,ν1/angbracketright.../angbracketleftln−1,νn−1/angbracketrightαn(dn),gn,πn−−−−−−−−−→/angbracketleft ln,νn/angbracketright,
+where
+–for each 0≤i≤n,/angbracketleftli,νi/angbracketrightis a state (with l0the initial location),
+–for each 0<i≤n,/angbracketleftli−1,αi(p),gi,πi,li/angbracketright∈Γsuch thatιigiandνi=ιi◦πi,
+whereιi=νi−1∪{(p,di)}extendsνi−1by mapping ptodi.
+A run is accepting ifλ(ln) = +, else rejecting . The language of M, notation
+L(M), is the set of words wsuch that Mhas an accepting run over w. Wordw
+isaccepted (rejected) under valuationν0ifMhas an accepting (rejecting) run
+that starts in state /angbracketleftl0,νo/angbracketright.
+
+--- Page 7 ---
+Grey-Box Learning of Register Automata 7
+Example 2. Consider the FIFO-buﬀer example from Figure 2. This register au-
+tomaton has a run
+/angbracketleftl0,ν0= []/angbracketrightPush(7),g1≡/latticetop,π1=[x/mapsto→p]−−−−−−−−−−−−−−−→ /angbracketleft l1,ν1= [x/mapsto→7]/angbracketright
+Push(7),g2≡/latticetop,π2=[x/mapsto→x,y/mapsto→p]−−−−−−−−−−−−−−−−−−−→/angbracketleft l2,ν2= [x/mapsto→7,y/mapsto→7]/angbracketright
+Pop(7),g3≡p=x,π3=[x/mapsto→y]−−−−−−−−−−−−−−−−→ /angbracketleft l1,ν3= [x/mapsto→7]/angbracketright
+Push(5),g4≡/latticetop,π4=[x/mapsto→x,y/mapsto→p]−−−−−−−−−−−−−−−−−−−→/angbracketleft l2,ν4= [x/mapsto→7,y/mapsto→5]/angbracketright
+Pop(7),g5≡p=x,π5=[x/mapsto→y]−−−−−−−−−−−−−−−−→ /angbracketleft l1,ν5= [x/mapsto→5]/angbracketright
+Pop(5),g6≡p=x,π6=[]−−−−−−−−−−−−−→ /angbracketleft l0,ν6= []/angbracketright
+and thus the trace is Push(7)Push(7)Pop(7)Push(5)Pop(7)Pop(5).y
+2.2 Symbolic Decision Tree
+TheSL∗algorithm uses tree queries in place of membership queries. The argu-
+ments of a tree query are a preﬁx data word uand a symbolic suﬃx w, i.e., a
+data word with uninstantiated data parameters. The response to a tree query
+is a so called symbolic decision tree (SDT), which has the form of tree-shaped
+register automaton that accepts/rejects suﬃxes obtained by instantiating data
+parameters in one of the symbolic suﬃxes. Let us illustrate this on the FIFO-
++ −−{x1,x2}
+Pop(p)
+p=x1Pop(p)
+p/negationslash=x1
+Pop(p)
+p=x2Pop(p)
+p/negationslash=x2Pop(p)
+Fig. 3: A symbolic decision tree for preﬁx Push (5)Push(7)and (sym-
+bolic) suﬃx Pop Pop.
+buﬀer example for the preﬁx Push(5)Push(7) and the symbolic suﬃx Pop Pop .
+The acceptance/rejection of suﬃxes obtained by instantiating data parameters
+after Push(5)Push(7) can be represented by the SDT in Figure 3. In the initial
+location, values 5 and 7 from the preﬁx are stored in registers x1andx2, respec-
+tively. Thus, in general, SDTs will not be simple register automata. Moreover,
+
+--- Page 8 ---
+8 B. Garhewal et al.
+since the leaves of an SDT have no outgoing transitions, they are also not com-
+pletely speciﬁed. We use the convention that register xistores theith data value
+from the preﬁx. The SDT accepts suﬃxes of form Pop(d1)Pop(d2) iﬀd1equals
+the value stored in register x1, andd2equals the data value stored in register
+x2.
+The formal deﬁnitions of an SDT and the notion of a tree oracle are presented
+in Appendix A. For a more detailed discussion we refer to [7].
+3 Tainting
+We postulate that the behaviour of the SUT (in our case: a Python program)
+can be modelled by a register automaton M. In a black-box setting, observations
+on the SUT will then correspond to words from the data language of M. In this
+section, we will describe the additional observations that a learner can make
+in a grey-box setting, where also the constraints on the data parameters that
+are imposed within a run become visible. In this setting, observations of the
+learner will correspond to what we call tainted words of M. Tainting semantics
+is an extension of the standard semantics in which each input value is “tainted”
+with a unique marker from V. In a data word w=α1(d1)α2(d2)...αn(dn), the
+ﬁrst data value d1is tainted with marker v1, the second data value d2withv2,
+etc. Whereas the same data value may occur repeatedly in a data word, all the
+markers are diﬀerent.
+3.1 Semantics of Tainting
+Atainted state of a RA M= (L,l0,X,Γ,λ ) is a triple/angbracketleftl,ν,ζ/angbracketright, wherel∈L
+is a location, ν:X(l)→D is a valuation, and ζ:X(l)→V is a function
+that assigns a marker to each register of l. Atainted run ofMover data word
+w=α1(d1)...αn(dn) is a sequence
+τ=/angbracketleftl0,ν0,ζ0/angbracketrightα1(d1),g1,π1−−−−−−−−→/angbracketleft l1,ν1,ζ1/angbracketright.../angbracketleftln−1,νn−1/angbracketrightαn(dn),gn,πn−−−−−−−−−→/angbracketleft ln,νn,ζn/angbracketright,
+where
+–/angbracketleftl0,ν0/angbracketrightα1(d1),g1,π1−−−−−−−−→/angbracketleft l1,ν1/angbracketright.../angbracketleftln−1,νn−1/angbracketrightαn(dn),gn,πn−−−−−−−−−→/angbracketleft ln,νn/angbracketrightis a run of M,
+–for each 0≤i≤n,/angbracketleftli,νi,ζi/angbracketrightis a tainted state,
+–for each 0<i≤n,ζi=κi◦πi, whereκi=ζi−1∪{(p,vi)}.
+The tainted word of τis the sequence w=α1(d1)G1α2(d2)G2···αn(dn)Gn,
+whereGi=gi[κi], for 0<i≤n. We deﬁne constraints M(τ) = [G1,...,Gn].
+Letw=α1(d1)...αn(dn) be a data word. Since register automata are deter-
+ministic, there is a unique tainted run τoverw. We deﬁne constraints M(w) =
+constraints M(τ), that is, the constraints associated to a data word are the con-
+straints of the unique tainted run that corresponds to it. In the untainted set-
+ting a membership query for data word wleads to a response “yes” if w∈
+L(M), and a response “no” otherwise, but in a tainted setting the predicates
+constraints M(w) are also included in the response, and provide additional infor-
+mation that the learner may use to accomplish its task.
+
+--- Page 9 ---
+Grey-Box Learning of Register Automata 9
+Example 3. Consider the FIFO-buﬀer example from Figure 2. This register au-
+tomaton has a tainted run
+/angbracketleftl0,[],[]/angbracketrightPush(7)−−−−→/angbracketleftl1,[x/mapsto→7],[x/mapsto→v1]/angbracketright
+Push(7)−−−−→/angbracketleftl2,[x/mapsto→7,y/mapsto→7],[x/mapsto→v1,y/mapsto→v2]/angbracketright
+Pop(7)−−−−→/angbracketleftl1,[x/mapsto→7],[x/mapsto→v2]/angbracketright
+Push(5)−−−−→/angbracketleftl2,[x/mapsto→7,y/mapsto→5],[x/mapsto→v2,y/mapsto→v4]/angbracketright
+Pop(7)−−−−→/angbracketleftl1,[x/mapsto→5],[y/mapsto→v4]/angbracketright
+Pop(5)−−−−→/angbracketleftl0,[],[]/angbracketright
+(For readability, guards giand assignments πihave been left out.) The con-
+straints in the corresponding tainted trace can be computed as follows:
+κ1= [p/mapsto→v1]G1≡/latticetop[κ1]≡/latticetop
+κ2= [x/mapsto→v1,p/mapsto→v2]G2≡/latticetop[κ2]≡/latticetop
+κ3= [x/mapsto→v1,y/mapsto→v2,p/mapsto→v3]G3≡(p=x)[κ3]≡v3=v1
+κ4= [x/mapsto→v2,p/mapsto→v4]G4≡/latticetop[κ4]≡/latticetop
+κ5= [x/mapsto→v2,y/mapsto→v4,p/mapsto→v5]G5≡(p=x)[κ5]≡v5=v2
+κ6= [x/mapsto→v4,p/mapsto→v6]G6≡(p=x)[κ6]≡v6=v4
+and thus the tainted word is:
+Push(7)/latticetopPush(7)/latticetopPop(7)v3=v1Push(5)/latticetopPop(7)v5=v2Pop(5)v6=v4,
+and the corresponding list of constraints is [ /latticetop,/latticetop,v3=v1,/latticetop,v5=v2,v6=v4].y
+Various techniques can be used to observe tainted traces, for instance sym-
+bolic and concolic execution. In this work, we have used a Python library called
+“taintedstr ” to achieve tainting in Python and make tainted traces available
+to the learner.
+3.2 Tainting in Python
+Tainting in Python is achieved by using a library called “ taintedstr ”4, which
+implements a “ tstr ” (tainted string ) class. We do not discuss the entire imple-
+mentation in detail, but only introduce the portions relevant to our work. The
+“tstr ” class works by operator overloading : each operator (method) in Python
+can be overloaded to record the invocation of the operator. The tstr class over-
+loads the implementation of the “ eq” (equality) method in Python’s str
+class, amongst others. In this text, we only consider the equality method. A
+tstr objectxcan be considered as a triple /angbracketlefto,t,cs/angbracketright, where:ois the (base) string
+4See [13] and https://github.com/vrthra/taintedstr .
+
+--- Page 10 ---
+10 B. Garhewal et al.
+object,tis the taint value associated with string o, andcsis a set of comparisons
+made byxwith other objects, where each comparison c∈csis a triple/angbracketleftm,a,b/angbracketright
+where
+–mis the name of the binary method invoked on x,
+–ais a copy of x, and
+–bis the argument supplied to m.
+Each a method min the tstr class is an overloaded implementation of the
+relevant (base) method fas follows:
+1 def m(self , other ):
+2 self .cs.add ((m. _name_ , self , other ))
+3 return self .o.f( other ) # ‘o’ is the base string
+We present a short example of how such a method would work below:
+Example 4 ( tstr tainting). Consider two tstr objects:x1=/angbracketleft“1”,1,∅/angbracketrightandx2=
+/angbracketleft“1”,2,∅/angbracketright. Callingx1==x2returns True as “1 == 1”; however, as a side-eﬀect,
+the set of comparisons csinx1is updated with the triple c=/angbracketleft“eq”,x1,x2/angbracketright.
+We may then conﬁrm that x1is compared to x2by checking the taint values
+of the variables in comparison c:x1.t= 1 andx2.t= 2. Doing so may seem
+non-obvious in this example, but is necessary when two objects have the same
+string value, as we have overloaded the equality method. y
+We will only posses information about comparisons which are actually per-
+formed when running the code and only those which deal with methods called
+by a tstr object.
+Example 5 (Complicated Comparison). Consider the following code snippet, where
+x1,x2,x3aretstr objects with some base values and 1 ,2,3 as taint values re-
+spectively:
+1 if not ( x_1 == x_2 or( x_2 != x_3 )):
+2 # do something
+Consider a case where the base values of x1andx2are equal: the Python inter-
+preter will “short-circuit” the if-statement and the second condition, x2/negationslash=x3,
+will not be evaluated. Thus, the set of comparisons of x1will only contain the
+equality comparison with x2and the set of comparisons of x2will not record the
+comparison with x3asx2.ne(x3) was never called. On the other hand, if the
+base values of x1andx2are not equal, the interpreter will not short-circuit, and
+both comparisons will be recorded as {x2=x3,x1/negationslash=x2}. Although the compar-
+isons are stored as a set, from the perspective of the tainted trace, the guard(s)
+is a single conjunction: x2=x3∧x1/negationslash=x2. However, note that the external
+negation (the notwrapping the two conditions) will not be recorded by any of
+thetstr objects: the negation was not performed on the tstr objects.y
+
+--- Page 11 ---
+Grey-Box Learning of Register Automata 11
+4 Learning Register Automata using Tainting
+Given an SUT and a tree query, we generate an SDT in the following steps:
+(i)construct a characteristic predicate of the tree query (Algorithm 1) using
+membership and guard queries, (ii)transform the characteristic predicate into
+a non-minimal SDT using Algorithm 2, and (iii) minimize the obtained SDT
+using Algorithm 3.
+4.1 Tainted Tree Oracle
+Construction of Characteristic Predicate Foru=α(d1)···αk(dk) a data
+word,νudenotes the valuation of {x1,...,xk}withνu(xi) =di, for 1≤i≤k.
+Supposew=αk+1···αk+nis a symbolic suﬃx. Then His a characteristic
+predicate foruandwinMif, for each valuation νof{x1,...,xk+n}that extends
+νu,
+ν|=H⇔α1(ν(x1))···αk+n(ν(xk+n))∈L(M),
+that is,Hcharacterises the data words u/primewith Acts(u/prime) =wsuch thatu·u/primeis
+accepted by M. A characteristic predicate is computed by Algorithm 1, using
+tainted membership queries, that is, membership queries that do not only return
+a yes/no answer but also the constraints on the parameters that are imposed by
+a run. During the execution of the algorithm, predicate Gdescribes the part of
+the parameter space that still needs to be explored, and His the characteristic
+predicate for the part of the parameter space that has been covered. We note
+that if there exists no parameter space to be explored (i.e., wis empty), and
+u·w∈L(M), thenH:=/latticetop.
+Algorithm 1: ComputeCharacteristicPredicate
+Data: A tree query consisting of a preﬁx u=α1(d1)···αk(dk) and symbolic
+suﬃxw=αk+1···αk+n
+Result: A characteristic predicate for uandwinM
+1G:=/latticetop,H:=⊥,V:={x1,...,xk+n}
+2do
+3ν:= valuation for Vthat extends νuand satisﬁes ν|=G
+4z:=α1(ν(x1))···αk+n(ν(xk+n)) // Construct query
+5I:=/logicalandtextk+n
+i=k+1constraints M(z)[i]// Constraints resulting from query
+6 ifz∈L(M)then // Result query ‘‘yes’’ or ‘‘no’’
+7H:=H∨I
+8G:=G∧¬I
+9while∃valuationνforVthat extends νuand satisﬁes ν|=G
+10returnH
+
+--- Page 12 ---
+12 B. Garhewal et al.
+Construction of a non-minimal SDT Given a characteristic predicate H
+for a tree query ( u,w), we convert Hinto a (possibly) non-minimal symbolic
+decision tree (i.e., an SDT which may contain redundancies) using Algorithm 2.
+We no longer need to query the SUT and may construct the SDT directly from
+Algorithm 2: SDTConstructor
+Data: Characteristic predicate H, Integer idx=k+ 1
+Result: Non-minimal SDT T
+1ifidx=k+nthen
+2l0:= SDT node
+3λ:=−ifH=⊥else + // Leaf node of the SDT
+4 return/angbracketleft{l0},l0,?,?,λ/angbracketright
+5else
+6T:= SDT node
+7It:={i|xn⊙xi∈H, n>i} //⊙∈{ =,/negationslash=}is symmetric
+8 ifItis?then
+9t:=SDTConstructor (H,idx+ 1) // No guards present
+10 Addtwith guard/latticetoptoT
+11 else
+12g:=/logicalandtext
+i∈Itxn/negationslash=xi // Disequality guard case
+13H/prime:=/logicalortext
+f∈Hf∧giff∧gis satisﬁable else ⊥ //fis a disjunct
+14t/prime:=SDTConstructor (H/prime,idx+ 1)
+15 Addt/primewith guard gtoT
+16 fori∈Itdo
+17 g:=xn=xi // Equality guard case
+18 H/prime:=/logicalortext
+f∈Hf∧giff∧gis satisﬁable else ⊥
+19 t/prime:=SDTConstructor (H,idx+ 1)
+20 Addt/primewith guard gtoT
+21 end
+22 returnT
+H. Algorithm 2 proceeds in the following manner: for a symbolic action α(xn)
+with parameter xn, construct the potential set It(lines 6 & 7), that is, the set of
+parameters to which xnhas been compared to in M. UsingIt, we can construct
+the disequality and equality guards as follows:
+– Disequality guard : The disequality guard will be g:=/logicalandtext
+{i∈It}xn/negationslash=xi.
+We can then check which guards in Hare still satisﬁable with the addition
+ofgand constructs the predicate H/primefor the next call of Algorithm 2 (lines
+13–16).
+– Equality guard (s) : For each parameter xifori∈It, the equality guard
+will beg:=xn=xi. We can then check which guards in Hare still satisﬁable
+with the addition of gand this becomes the predicate H/primefor the next call
+of Algorithm 2 (lines 18–21).
+
+--- Page 13 ---
+Grey-Box Learning of Register Automata 13
+At the base case (lines 1 −4), there are no more parameters remaining and
+we return a non-accepting leaf if H=⊥, otherwise accepting. As mentioned,
+at each non-leaf location lof the SDTTreturned by Algorithm 2, there exists
+a potential set It. For each parameter xi, we know that there is a comparison
+betweenxiandxnin the SUT.
+However, characteristic predicate Hmay contain redundant comparisons,
+making the SDT Tbigger than necessary, creating a ‘non-minimal’ SDT, as
+shown in Figure 4a. We use Algorithm 3 to minimise each SDT Treturned
+by Algorithm 2. Algorithm 3 transforms a non-minimal SDT Tto a minimal
+SDTT/primeby removing all irrelevant parameters from each location of T.
+Algorithm 3: MinimiseSDT
+Data: Non-minimal SDT T
+Result: Minimal SDTT/prime
+1ifTis a leaf then // Base case
+2 returnT
+3else
+4T/prime:= SDT node
+// Minimise the lower levels
+5 forguardgwith associated sub-tree tinTdo
+6 Add guard gwith associated sub-tree MinimiseSDT (t) toT/prime
+7 end
+// Minimise the current level
+8I:= Potential set of root node of T
+9t/prime:= disequality sub-tree of Twith guard/logicalandtext
+i∈Ixn/negationslash=xi
+10I/prime:=?
+11 fori∈Ido
+12t:= sub-tree ofTwith guard xn=xi
+13 ift/prime/angbracketleftxi,xn/angbracketright/negationslash/similarequaltort/prime/angbracketleftxi,xn/angbracketrightis undeﬁned then
+14 I/prime:=I/prime∪{i}
+15 Add guard xn=xiwith corresponding sub-tree ttoT/prime
+16 end
+17 Add guard/logicalandtext
+i∈I/primexn/negationslash=xiwith corresponding sub-tree t/primetoT/prime
+18 returnT/prime
+SDT Minimisation We present an example of the application of Algorithm 3,
+shown for the SDT of Figure 4a. Figure 4a visualises a non-minimal SDT T,
+wheres20ands21(in red) are essentially “duplicates” of each other: the sub-
+tree for node s20is isomorphic to the sub-tree for node s21under the relabelling
+“s1=r0” . We indicate this relabelling using the notation T[s20]/angbracketleftr0,s1/angbracketrightand
+the isomorphism relation under the relabelling as T[s20]/angbracketleftr0,s1/angbracketright/similarequalT [s21]. Algo-
+rithm 3 accepts the non-minimal SDT of Figure 4a and produces an equivalent
+minimal SDT, shown in Figure 4b. Nodes s20ands21are merged into one node,
+
+--- Page 14 ---
+14 B. Garhewal et al.
+− − + +s20 s21s1
+s1/negationslash=r0 s1=r0
+s2/negationslash=r0 s2/negationslash=s1s2=s1 s2=r0
+(a)Non-minimal SDT T− +s2s1
+/latticetop:s1
+s2/negationslash=r0s2=r0
+(b)Minimal SDTT/prime
+Fig. 4: Minimisation algorithm in action: The non-minimal SDT on the
+left contains redundant decision points (red nodes), which are not present
+in the minimal SDT on the right (green nodes).
+s2, marked in green. We can observe that both SDTs still encode the same de-
+cision tree. SL∗requires such ‘minimal’ SDTs. With Algorithm 3, we have com-
+pleted our tainted tree oracle, and can now proceed to the tainted equivalence
+oracle.
+4.2 Tainted Equivalence Oracle
+The tainted equivalence oracle, similar to its non-tainted counterpart, accepts
+a hypothesisHand veriﬁes whether His equivalent to register automaton M
+that models the SUT or not. If HandMare equivalent, the oracles returns a
+reply “yes”, otherwise it returns “no” together with a counterexample.
+Deﬁnition 4 (Tainted Equivalence Oracle). For a given hypothesis Hand
+an SUTS, a tainted equivalence oracle is a function OE(H,n,S)for all tainted
+traceswofSwhere|w|≤n,OE(H,n,S)returnswifw∈L(H)/unionmultiL(S), and
+‘Yes’ otherwise.
+The RandomWalk Equivalence Oracle as implemented in RALib — like the
+name suggests — essentially walks randomly through an SUT in order to ﬁnd a
+CE. Our Tainted Equivalence Oracle, in comparison, can compute which guards
+have been triggered in the SUT and can then ‘explore’ the SUT by triggering
+other guards. Example 6 presents a scenario of a combination lock automaton
+that can be learned (relatively easily) using a tainted equivalence oracle and
+cannot be handled by normal oracles.
+Example 6 (Combination Lock RA). A combination lock RA is a type of RA
+which requires a sequence of speciﬁc inputs to perform a particular action.
+Figure 5 presents an RA C: ‘4-digit’ combination lock, which requires a spe-
+ciﬁc sequence of actions to unlock: the sequence w=α(c0)α(c1)α(c2)α(c3) un-
+locks the automaton, where {c0,c1,c2,c3}are constants. Consider a case where a
+
+--- Page 15 ---
+Grey-Box Learning of Register Automata 15
+l0 start l1 l2 l3 l4α(x)|x=1
+∅α(x)|x=9
+∅α(x)|x=6
+∅α(x)|x=2
+∅
+βα(x)|x/negationslash=1
+∅
+α(x)|x/negationslash=9
+∅α(x)|x/negationslash=6
+∅α(x)|x/negationslash=2
+∅
+Fig. 5: Combination Lock C: Sequence α(1)α(9)α(6)α(2)unlocks the
+automaton. Error transitions (from l3–l1tol0) are distinct, but have
+been ‘merged’ for conciseness. A sink state l5has not been drawn, as
+well as transitions to the sink state that are required to make the register
+automaton non-blocking.
+hypothesisHis being checked for equivalence against the RA Cwithw/negationslash∈L(H).
+While would be diﬃcult for an untainted equivalence oracle to generate the word
+wrandomly; the tainted equivalence oracle will record at every location the com-
+parison of input datavalue xwith some constant ciand explore all corresponding
+guards at the location, eventually constructing the word w.
+If the ‘depth’ of the combination lock is not deep, then an untainted equiv-
+alence oracle may be able to ﬁnd a CE, however, as the depth would increase,
+the probability of ﬁnding a CE would decrease as well.
+y
+5 Experimental Evaluation
+We have used stubbed versions of the FIFO-Queue and Set modules5from
+Python for learning the FIFO and Set models. Additionally, the Combination
+Lock automata were constructed manually. Source code for all other models was
+obtained by translating existing benchmarks from [19] (see also automata.cs.
+ru.nl ) to Python code. Furthermore, each experiment was repeated 30 times
+with diﬀerent random seeds. Each experiment was bounded according to the
+following:
+–Learning Phase: 109inputs and 5×107resets,
+–Testing Phase: 109inputs and 5×104resets,
+–Maximum depth of testing (i.e., length of the longest word during testing):
+50, and
+–Timeout (for the learner to respond): 10 minutes.
+Figure 6 gives an overview of our experimental results. We use the notation
+‘TTO’ to represent ‘Tainted Tree Oracle’ and ‘TEO’ to represent ‘Tainted Equiv-
+alence Oracle’ (with similar labels for the untainted oracles). In the ﬁgure, we
+5From Python’s queue module and standard library, respectively.
+
+--- Page 16 ---
+16 B. Garhewal et al.
+can see that as the size of the container increases, the diﬀerence between the
+fully tainted version (TTO+TEO, in blue) and the completely untainted version
+(NTO+NEO, in red) increases. In the case where only a tainted tree oracle is
+used (TTO+NEO, in green), we see that it is following the fully tainted ver-
+sion closely (for the FIFO models) and is slightly better in the case of the SET
+models.
+SIP 2015
+ABP OUTPUTFIFO 01 FIFO 02 FIFO 03 FIFO 04 FIFO 05 LOCK 2 LOCK 4 LOCK 5 SET 01 SET 02 SET 03
+REPETITION100101102103104105106107Inputs + Resets (log scale)
+TTO + TEO
+NTO + TEO
+TTO + NEO
+NTO + NEO
+Fig. 6: Benchmark plots: Number of symbols used with tainted versions
+of the oracles (blue and green) are generally lower than with normal
+oracles (red and orange). Note that the y-axis is log-scaled. Additionally,
+normal oracles are unable to learn the Combination Lock and Repetition
+automata and are hence not plotted.
+The addition of the tainted equivalence oracle by itself cannot be shown to
+have a conclusive advantage for the benchmarks we have considered. However,
+the addition of the tainted tree oracle by itself results in signiﬁcantly fewer
+number of symbols, even without the tainted equivalence oracle (TTO v/s NTO,
+compare the green and red lines). The TTO+TEO combination does not provide
+vastly better results in comparison to the TTO+NEO results, however, it is still
+(slightly) better.
+
+--- Page 17 ---
+Grey-Box Learning of Register Automata 17
+We note that — as expected — the NEO does not manage to provide CEs
+for the Repetition and Combination Lock automata. The TEO is therefore much
+more useful for ﬁnding CEs in SUTs which utilise constants. For complete details
+of the data used to produce the plots, please refer to Appendix B.
+6 Conclusions and Future Work
+In this article, we have presented an integration of dynamic taint analysis, a
+white-box technique for tracing data ﬂow, and register automata learning, a
+black-box technique for inferring behavioural models of components. The com-
+bination of the two methods improves upon the state-of-the-art in terms of class
+of systems for which models can be generated and in terms of performance:
+Tainting makes it possible to infer data-ﬂow constraints even in instances with a
+high essential complexity (e.g., in the case of so-called combination locks). Our
+implementation outperforms pure black-box learning by two orders of magni-
+tude with a growing impact in the presence of multiple data parameters and
+registers. Both improvements are important steps towards the applicability of
+model learning in practice as they will help scaling to industrial use cases.
+At the same time our evaluation shows the need for further improvements:
+Currently, the SL∗algorithm uses symbolic decision trees and tree queries glob-
+ally, a well-understood weakness of learning algorithms that are based on ob-
+servation tables. It also uses individual tree oracles each type of operation and
+relies on syntactic equivalence of decision trees. A more advanced learning al-
+gorithm for extended ﬁnite state machines will be able to consume fewer tree
+queries, leverage semantic equivalence of decision trees. Deeper integration with
+white-box techniques could enable the analysis of many (and more involved)
+operations on data values.
+Acknowledgement We are grateful to Andreas Zeller for explaining the use of
+tainting for dynamic tracking of constraints, and to Rahul Gopinath for helping
+us using his library for tainting Python programs.
+References
+[1] Aarts, F., Heidarian, F., Kuppens, H., Olsen, P., Vaandrager, F.: Automata
+learning through counterexample-guided abstraction reﬁnement. In: Gian-
+nakopoulou, D., M´ ery, D. (eds.) 18th International Symposium on Formal
+Methods (FM 2012), Paris, France, August 27-31, 2012. Proceedings. Lec-
+ture Notes in Computer Science, vol. 7436, pp. 10–27. Springer (Aug 2012),
+http://dx.doi.org/10.1007/978-3-642-32759-9_4
+[2] Aarts, F., Jonsson, B., Uijen, J., Vaandrager, F.: Generating models of
+inﬁnite-state communication protocols using regular inference with ab-
+straction. Formal Methods in System Design 46(1), 1–41 (2015), http:
+//dx.doi.org/10.1007/s10703-014-0216-x
+
+--- Page 18 ---
+18 B. Garhewal et al.
+[3] Angluin, D.: Learning regular sets from queries and counterexamples.
+Inf. Comput. 75(2), 87–106 (Nov 1987), https://doi.org/10.1016/
+0890-5401(87)90052-6
+[4] Botinˇ can, M., Babi´ c, D.: Sigma*: Symbolic learning of input-output spec-
+iﬁcations. In: Proceedings of the 40th Annual ACM SIGPLAN-SIGACT
+Symposium on Principles of Programming Languages. pp. 443–456. POPL
+’13, ACM, New York, NY, USA (2013), http://doi.acm.org/10.1145/
+2429069.2429123
+[5] Cassel, S., Howar, F., Jonsson, B., Steﬀen, B.: Active learning for extended
+ﬁnite state machines. Formal Asp. Comput. 28(2), 233–263 (2016), http:
+//dx.doi.org/10.1007/s00165-016-0355-5
+[6] Cassel, S., Howar, F., Jonsson, B., Steﬀen, B.: Learning extended ﬁnite state
+machines. In: Giannakopoulou, D., Sala¨ un, G. (eds.) Software Engineering
+and Formal Methods. pp. 250–264. Springer International Publishing, Cham
+(2014)
+[7] Cassel, S., Howar, F., Jonsson, B., Steﬀen, B.: Active learning for extended
+ﬁnite state machines. Formal Aspects of Computing 28(2), 233–263 (Apr
+2016), https://doi.org/10.1007/s00165-016-0355-5
+[8] Cho, C.Y., Babi´ c, D., Poosankam, P., Chen, K.Z., Wu, E.X., Song, D.: Mace:
+Model-inference-assisted concolic exploration for protocol and vulnerability
+discovery. In: Proceedings of the 20th USENIX Conference on Security. pp.
+10–10. SEC’11, USENIX Association, Berkeley, CA, USA (2011), http:
+//dl.acm.org/citation.cfm?id=2028067.2028077
+[9] Fiter˘ au-Bro¸ stean, P., Janssen, R., Vaandrager, F.: Combining model learn-
+ing and model checking to analyze TCP implementations. In: Chaud-
+huri, S., Farzan, A. (eds.) Proceedings 28th International Conference on
+Computer Aided Veriﬁcation (CAV’16), Toronto, Ontario, Canada. Lec-
+ture Notes in Computer Science, vol. 9780, pp. 454–471. Springer (2016),
+http://www.sws.cs.ru.nl/publications/papers/fvaan/FJV16/
+[10] Fiter˘ au-Bro¸ stean, P., Howar, F.: Learning-based testing the sliding window
+behavior of TCP implementations. In: Petrucci, L., Seceleanu, C., Caval-
+canti, A. (eds.) Critical Systems: Formal Methods and Automated Veriﬁca-
+tion - Joint 22nd International Workshop on Formal Methods for Industrial
+Critical Systems - and - 17th International Workshop on Automated Ver-
+iﬁcation of Critical Systems, FMICS-AVoCS 2017, Turin, Italy, September
+18-20, 2017, Proceedings. Lecture Notes in Computer Science, vol. 10471,
+pp. 185–200. Springer (2017)
+[11] Fiter˘ au-Bro¸ stean, P., Lenaerts, T., Poll, E., Ruiter, J.d., Vaandrager, F.,
+Verleg, P.: Model learning and model checking of SSH implementations. In:
+Proceedings of the 24th ACM SIGSOFT International SPIN Symposium
+on Model Checking of Software. pp. 142–151. SPIN 2017, ACM, New York,
+NY, USA (2017), http://doi.acm.org/10.1145/3092282.3092289
+[12] Giannakopoulou, D., Rakamari´ c, Z., Raman, V.: Symbolic learning of com-
+ponent interfaces. In: Proceedings of the 19th International Conference on
+Static Analysis. pp. 248–264. SAS’12, Springer-Verlag, Berlin, Heidelberg
+(2012)
+
+--- Page 19 ---
+Grey-Box Learning of Register Automata 19
+[13] Gopinath, R., Mathis, B., H¨ oschele, M., Kampmann, A., Zeller, A.: Sample-
+free learning of input grammars for comprehensive software fuzzing. CoRR
+abs/1810.08289 (2018), http://arxiv.org/abs/1810.08289
+[14] Hagerer, A., Margaria, T., Niese, O., Steﬀen, B., Brune, G., Ide, H.D.:
+Eﬃcient regression testing of CTI-systems: Testing a complex call-center
+solution. Annual review of communication, Int.Engineering Consortium
+(IEC) 55, 1033–1040 (2001)
+[15] Howar, F., Isberner, M., Steﬀen, B., Bauer, O., Jonsson, B.: Inferring se-
+mantic interfaces of data structures. In: ISoLA (1): Leveraging Applications
+of Formal Methods, Veriﬁcation and Validation. Technologies for Master-
+ing Change - 5th International Symposium, ISoLA 2012, Heraklion, Crete,
+Greece, October 15-18, 2012, Proceedings, Part I. Lecture Notes in Com-
+puter Science, vol. 7609, pp. 554–571. Springer (2012)
+[16] Howar, F., Giannakopoulou, D., Rakamari´ c, Z.: Hybrid learning: Interface
+generation through static, dynamic, and symbolic analysis. In: Proceedings
+of the 2013 International Symposium on Software Testing and Analysis. pp.
+268–279. ISSTA 2013, ACM, New York, NY, USA (2013), http://doi.acm.
+org/10.1145/2483760.2483783
+[17] Howar, F., Jonsson, B., Vaandrager, F.W.: Combining black-box and white-
+box techniques for learning register automata. In: Steﬀen, B., Woeginger,
+G.J. (eds.) Computing and Software Science - State of the Art and Perspec-
+tives, Lecture Notes in Computer Science, vol. 10000, pp. 563–588. Springer
+(2019), https://doi.org/10.1007/978-3-319-91908-9_26
+[18] Howar, F., Steﬀen, B.: Active automata learning in practice. In: Ben-
+naceur, A., H¨ ahnle, R., Meinke, K. (eds.) Machine Learning for Dynamic
+Software Analysis: Potentials and Limits: International Dagstuhl Seminar
+16172, Dagstuhl Castle, Germany, April 24-27, 2016, Revised Papers. pp.
+123–148. Springer International Publishing (2018)
+[19] Neider, D., Smetsers, R., Vaandrager, F., Kuppens, H.: Benchmarks for
+Automata Learning and Conformance Testing, pp. 390–416. Springer
+International Publishing, Cham (2019), https://doi.org/10.1007/
+978-3-030-22348-9_23
+[20] Schuts, M., Hooman, J., Vaandrager, F.: Refactoring of legacy software
+using model learning and equivalence checking: an industrial experience
+report. In: ´Abrah´ am, E., Huisman, M. (eds.) Proceedings 12th International
+Conference on integrated Formal Methods (iFM), Reykjavik, Iceland, June
+1-3. Lecture Notes in Computer Science, vol. 9681, pp. 311–325 (2016)
+[21] Vaandrager, F.: Model learning. Commun. ACM 60(2), 86–95 (Feb 2017),
+http://doi.acm.org/10.1145/2967606
+
+--- Page 20 ---
+20 B. Garhewal et al.
+Appendix A Tree Oracle for Equalities
+In this appendix, we prove that the tainted tree oracle generates symbolic de-
+cision trees (SDTs) which are isomorphic to the SDTs generated by the normal
+tree oracle as deﬁned by Cassel et al. [7]. In order to do so, we ﬁrst introduce
+the constructs used by Cassel et al. [7] for generating SDTs. We begin with some
+preliminaries:
+For a word wwith Vals(w) =d1...dk, we deﬁne a potential ofw. The
+potential of w, written as pot(w), is the set of indices i∈{1,...,k}for which
+there exists no j∈{1,...,k}such thatj > i anddi=dj. The concept of
+potential essentially allows unique access to a data value without duplication,
+abstracting from the concrete position of a data value in a word. Cassel et al. [7]
+use the concept of a representative data value during the construction of SDTs.
+For a word uwith Vals(u) =d1,...,dk, letµube the valuation of {x1,...,xk}
+s.t.µu(xi) =di. Au-guard (referred to as ‘guard’ in the previous text) is a
+predicategover{x1,...,xk}∪{p}. A (unique) data value dg
+uis a representative
+data value if µu∪{(p,dg
+u)}g, i.e., such that the u-guardgis satisﬁed under
+the valuation that extends µuby mapping ptodg
+u. Representative data values
+are used when constructing SDTs from (concrete) tests.
+We may now deﬁne an SDT:
+Deﬁnition 5 (Symbolic Decision Tree). A Symbolic Decision Tree (SDT)
+is a register automaton T= (L,l0,X,Γ,λ )whereLandΓform a tree rooted at
+l0.
+For location lof SDTT, we writeT[l] to denote the subtree of Trooted atl.
+An SDT that results from a tree query ( u,w) (of a preﬁx word uand a symbolic
+suﬃxw), is required to satisfy some canconical form, captured by the following
+deﬁnition.
+Deﬁnition 6 ( (u,w)-tree). For any data word uwithkactions and any sym-
+bolic suﬃx w, a(u,w)-tree is an SDT Twhich has runs over all data words
+inJwK, and which satisﬁes the following restriction: whenever /angbracketleftl,α(p),g,π,l/prime/angbracketrightis
+thejthtransition on some path from l0, then for each xi∈X(l/prime)we have either
+(i)i<k +jandπ(xi) =xi, or(ii)i=k+jandπ(xi) =p.
+Ifu=α(d1)···αk(dk) is a data word then νuis the valuation of {x1,...,xk}
+satisfyingνu(xi) =di, for 1≤i≤k. Using this deﬁnition, the notion of a tree
+oracle , which accepts tree queries and returns SDTs, can be described as follows.
+Deﬁnition 7 (Tree Oracle). A tree oracle for a structure Sis a functionO,
+which for a data language L, preﬁx word uand symbolic suﬃx wreturns a (u,w)-
+treeO(L,u,w )s.t. for any word v∈JwK, the following holds: vis accepted by
+O(L,u,w )underνuiﬀu·v∈L.
+Cassel et al. [7] require their (equality trees) SDTs to be maximally abstract ,
+i.e., the SDTs must not contain any redundancies (such as Figure 4a): an element
+i∈Iiﬀiaﬀects the behaviour of the current parameter. In order to convert
+
+--- Page 21 ---
+Grey-Box Learning of Register Automata 21
+an SDT to a maximally abstract SDT, we require a procedure to minimise a
+(sub)-tree, called specialisation of equality tree :
+Deﬁnition 8 (Specialisation of equality tree). LetTbe an equality tree for
+preﬁxuand set of symbolic suﬃxes V, and letJ⊆pot(u)be a set of indices.
+ThenT/angbracketleftJ/angbracketrightdenotes the equality tree for (u,V)obtained fromTby performing
+the following transformations for each α:
+–WheneverThas several initial α-transitions of form /angbracketleftl0,α(p),(p=xj),lj/angbracketright
+withj∈J, then all subtrees of form (T[lj])/angbracketleftJ[(k+ 1)/mapsto→j]/angbracketrightforj∈Jmust
+be deﬁned and isomorphic, otherwise T/angbracketleftJ/angbracketrightis undeﬁned. If all such subtrees
+are deﬁned and isomorphic, then T/angbracketleftJ/angbracketrightis obtained fromTby
+1. replacing all initial α-transitions of form /angbracketleftl0,α(p),(p=xj),lj/angbracketrightforj∈J
+by the single transition /angbracketleftl0,α(p),(p=xm),lm/angbracketrightwherem= max(J),
+2. replacingT[lm]by(T[lm])/angbracketleftJ[(k+ 1)/mapsto→m]/angbracketright, and
+3. replacing all other subtrees T[l/prime]reached by initial α-transitions (which
+have not been replaced in Step 1by(T[l/prime])/angbracketleftJ/angbracketright.
+If, for some α, any of the subtrees generated in Step 2 or 3 are undeﬁned,
+thenT/angbracketleftJ/angbracketrightis also undeﬁned, otherwise T/angbracketleftJ/angbracketrightis obtained after performing Steps
+1−3 for eachα. Deﬁnition 8 is then used to deﬁne an equality tree OL(u,V).
+Deﬁnition 9 (Necessary Potential set for Tree Oracle). A necessary po-
+tential setIfor the root location l0of an equality tree O(L,u,V )is a subset
+of pot (u)— the potential of the preﬁx u— such that for each index i∈Ithe
+following holds:
+1.O(L,uα(d0
+u),Vα)/angbracketleft{i,k+ 1}/angbracketrightis undeﬁned, or
+2.O(L,uα(d0
+u),Vα)/angbracketleft{i,k+ 1}/angbracketright/negationslash/similarequalO (L,uα(di),Vα): i.e., the specialised sub-
+tree is not isomorphic to the original sub-tree.
+Intuitively, a necessary potential set contains indices of data values which
+inﬂuence future behaviour of the SUT. Consequently, indices of data values which
+do not inﬂuence the behaviour of the SUT are excluded from the necessary
+potential set. We use a special variant of a ( u,V)-tree, called an equality tree :
+Deﬁnition 10 (Equality Tree). Anequality tree for a tree query (u,V)is a
+(u,V)-treeTsuch that:
+–for each action α, there is a potential set I⊆pot(u)of indices such that the
+initialα-guards consist of the equalities of form p=xifori∈Iand one
+disequality of form ∧i∈Ip/negationslash=xi, and
+–for each initial transition /angbracketleftl0,α(p),g,l/angbracketrightofT, the treeT[l]is an equality tree
+for(uα(dg
+u),α-1V).
+Deﬁnition 11 (Tree oracle for equality). For a languageL, a preﬁxu,
+and the set of symbolic suﬃxes V, the equality tree O(L,u,V )is constructed as
+follows:
+
+--- Page 22 ---
+22 B. Garhewal et al.
+–IfV={/epsilon1}, thenO(L,u,{/epsilon1})is the trivial tree with one location l0and no
+registers. It is accepting if the word is accpeted, i.e., λ(l0) = + ifu∈L,
+elseλ(l0) =−. To determine u∈L, the tree oracle performs a membership
+query onu.
+–IfV/negationslash={/epsilon1}, then for each αsuch thatVα=α-1Vis non-empty,
+•letIbe the necessary potential set (Deﬁnition 9),
+• O(L,u,V )is constructed as O(L,u,V ) = (L,l0,Γ,λ ), where, letting
+O(L,uα(di),Vα)be the tuple (Lα
+i,lα
+0i,Γα
+i,λα
+i)fori∈(I∪{0}),
+∗Lis the disjoint union of all Lα
+iplus an additional initial location
+l0,
+∗Γis the union of all Γα
+ifori∈(I∪{0}), and in addition the
+transitions of form /angbracketleftl0,α(p),gi,lα
+0i/angbracketrightwithi∈(I∪{0}), wheregiis/logicalandtext
+j∈Ip/negationslash=xjfori= 0, andgiisp=xifori/negationslash= 0, and
+∗λagrees with each λα
+ionLα
+i. Moreover, if /epsilon1∈V, thenλ(l0) = + if
+u∈L, otherwise λ(l0) =−. Again, to determine whether u∈L, the
+tree oracle performs a membership query for u.
+Intuitively,O(L,u,V ) is constructed by joining the trees O(L,uα(di),Vα) with
+guardp=xifori∈I, and the treeO(L,uα(d0
+u),Vα) with guard/logicalandtext
+i∈Ip/negationslash=xi,
+as children of a new root. Note, while Vis a set of symbolic suﬃxes, RALib
+technically handles tree queries sequentially, i.e., as sequential tree queries of
+preﬁxuand symbolic suﬃx w. Consequently, we treat the set of symbolic suﬃxes
+Vas a singleton, referred to as ‘ w’ .
+O(L,u,w ) is constructed bottom-up, recursively building new ‘roots’ at the
+top with larger and larger symbolic suﬃxes (and consequently, shorter and
+shorter preﬁxes). The choice of the necessary potential set Iplays a crucial
+role: ifIis larger than necessary, O(L,u,w ) contains redundant guards (and is
+hence a ‘non-minimal’ SDT).
+We now have a clear goal for our proof: we must show that the SDT returned
+by Algorithm 3 is isomorphic to the SDT as deﬁned in Deﬁnition 11 (under the
+assumption that the ‘set’ of symbolic suﬃxes Vis a singleton). We can divide
+our proof into the following steps:
+1. We show that Algorithm 1 produces a characteristic predicate for tree query
+(u,w), and contains all the information for constructing an equality tree,
+2. Next, we show that Algorithm 2 guarantees that for potential set Itof a
+locationltof the tainted equality tree Tt, the potential set Iof equivalent
+locationlof the normal equality tree Tis a subset: I⊆It, and ﬁnally,
+3. We can then reduce the make the tainted potential set equal to the nor-
+mal potential set ( It=I) and the resulting tainted equality tree will be
+isomorphic to the normal equality tree.
+Each of the above steps correspond to one of our algorithms. We now begin
+with step 1: from Algorithm 1, we can state the following lemmas:
+Lemma 1 (Characteristic Predicate). For a tree query (u,w), Algorithm 1
+always produces a characteristic predicate H.
+
+--- Page 23 ---
+Grey-Box Learning of Register Automata 23
+Proof. We recall that, under the test hypothesis, an SUT Mis deterministic
+and has a ﬁnite number of logically disjoint branches to be followed from each
+state. Algorithm 1 initialises two variables G:=/latticetopandH:=⊥. For each word
+z=u·wunder a valuation νG, we may perform a membership query on M.
+Each query returns the guard I=∧k+n
+i=k+1constraints M(z)[i] such that νIand
+the acceptance of the word zin the language of M, i.e.,z∈M.
+For each iteration of the do-while loop, the variable Gis updated with the
+negation of the previously satisﬁed guard I, i.e.,G:=G∧¬I. This guarantees
+that any new valuation ν/primeGwill not satisfy I, and hence, the next iteration
+of the do-while loop shall induce a diﬀerent run of M. Given that Monly has
+a ﬁnite number of logical branches, Algorithm 1 terminates (and Gcontains a
+ﬁnite number of sub-terms).
+We also know that for each tainted word z, we obtain the acceptance of
+z∈L(M). Ifz∈L(M), the variable His updated to H∨I. Therefore, the
+predicateHreturned by Algorithm 1 is the characteristic predicate for the tree
+query (u,w). /intersectionsq /unionsq
+After constructing the characteristic predicate, we convert it to a non-minimal
+SDT using Algorithm 2, providing us with the following lemma:
+Lemma 2 (Non-minimal SDT). For any location ltof a non-minimal SDT
+with an equivalent location lof a minimal SDT, the necessary potential set It
+of the non-minimal SDT is a superset of the necessary potential set Iof the
+minimal SDT: I⊆It⊆pot(u)where pot (u)is the potential of the preﬁx uof
+locationsltandl.
+Proof. We know that I⊆pot(u) andIt⊆pot(u) by deﬁnition of the necessary
+potential set. For any word w=u·vwhere the preﬁx uleads to location lt
+of the tainted non-minimal SDT, Algorithm 2 guarantees that the suﬃxes of u
+will be classiﬁed correctly. If the suﬃxes are classiﬁed correctly, we know that
+It⊇I(otherwise the suﬃxes will not be classiﬁed correctly). Since It⊇Iand
+I,It⊆pot(u), we conclude I⊆It⊆pot(u). /intersectionsq /unionsq
+Following Lemma 2, if we wish to make I=It, we can simply remove all
+elements from Itwhich do not satisfy the conditions outlined in Deﬁnition 9.
+Since we already know that I⊆It, we can conﬁrm that after removal of all
+irrelevant parameters, I=It. Algorithm 3 accomplishes the same.
+Cassel et al. [7] use the concept of representative data values for constructing
+the SDT, while we treat the values symbolically: a representative data value
+‘represents’ the set of datavalues that satisfy a u-guard during construction of
+the SDT; in our case, we simply let Z3decide on all the values to use for our
+membership queries and obtain the guards about them using their taint markers
+as identiﬁers.
+Theorem 1 (Isomorphism of tree oracles). The SDTs generated by the
+tainted tree oracle and the untainted tree oracle for a tree query (u,w)are iso-
+morphic.
+
+--- Page 24 ---
+24 B. Garhewal et al.
+Proof. Lemma 1 guarantees that Algorithm 1 returns a characteristic predicate
+Hfor the tree query ( u,w). Application of Algorithm 2 on Hconstructs a non-
+minimal SDT. Using Lemma 2 and Algorithm 3 on the non-minimal SDT, we
+may conclude that the root locations of the tainted tree oracle and normal tree
+oracle have the same necessary potential set. By inductive reasoning on the
+depth of the trees, the same holds for all sub-trees of both oracles, eventually
+reducing to the leaves, showing that the tainted tree oracle is isomorphic to tree
+oracle. /intersectionsq /unionsq
+
+--- Page 25 ---
+Grey-Box Learning of Register Automata 25
+Appendix B Detailed Benchmark results
+Table 1 contains the full results of the values used to create the plots from Fig-
+ure 6.
+Table 1: Benchmarks
+Model Tree Oracle EQ Oracle Learn Symbols Test Symbols Total Symbols Learned
+(Std. Dev) (Std. Dev) (Std. Dev)
+Abp Output Tainted Normal 6.55E+02 1.57E+05 1.58E+05 30/30
+(8.33E+01) (1.29E+05) (1.29E+05)
+Abp Output Tainted Tainted 6.17E+02 1.68E+04 1.74E+04 30/30
+(7.78E+01) (1.15E+04) (1.15E+04)
+Abp Output Normal Normal 6.93E+03 1.57E+05 1.64E+05 30/30
+(5.20E+03) (1.29E+05) (1.29E+05)
+Abp Output Normal Tainted 6.51E+03 1.68E+04 2.33E+04 30/30
+(3.97E+03) (1.15E+04) (1.29E+04)
+Lock 2 Tainted Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Lock 2 Tainted Tainted 7.10E+01 1.15E+03 1.22E+03 30/30
+(0.00E+00) (6.76E+02) (6.76E+02)
+Lock 2 Normal Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Lock 2 Normal Tainted 2.00E+02 1.15E+03 1.35E+03 30/30
+(0.00E+00) (6.76E+02) (6.76E+02)
+Lock 4 Tainted Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Lock 4 Tainted Tainted 2.41E+02 6.29E+03 6.53E+03 30/30
+(0.00E+00) (5.52E+03) (5.52E+03)
+Lock 4 Normal Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Lock 4 Normal Tainted 3.45E+04 6.29E+03 4.08E+04 30/30
+(0.00E+00) (5.52E+03) (5.52E+03)
+Lock 5 Tainted Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Lock 5 Tainted Tainted 3.80E+02 2.62E+04 2.66E+04 30/30
+(0.00E+00) (1.45E+04) (1.45E+04)
+Lock 5 Normal Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Lock 5 Normal Tainted 6.35E+05 2.62E+04 6.61E+05 30/30
+(0.00E+00) (1.45E+04) (1.45E+04)
+Continued on next page
+
+--- Page 26 ---
+26 B. Garhewal et al.
+Table 1: Benchmarks
+Model Tree Oracle EQ Oracle Learn Symbols Test Symbols Total Symbols Learned
+(Std. Dev) (Std. Dev) (Std. Dev)
+Fifo 01 Tainted Normal 2.90E+01 1.71E+01 4.62E+01 30/30
+(4.08E+00) (6.12E+00) (6.73E+00)
+Fifo 01 Tainted Tainted 2.97E+01 1.38E+01 4.35E+01 30/30
+(3.83E+00) (3.58E+00) (4.93E+00)
+Fifo 01 Normal Normal 6.65E+01 1.71E+01 8.37E+01 30/30
+(1.84E+01) (6.12E+00) (1.80E+01)
+Fifo 01 Normal Tainted 7.07E+01 1.38E+01 8.46E+01 30/30
+(1.74E+01) (3.58E+00) (1.68E+01)
+Fifo 02 Tainted Normal 1.16E+02 6.47E+01 1.81E+02 30/30
+(3.26E+01) (2.77E+01) (4.28E+01)
+Fifo 02 Tainted Tainted 1.01E+02 5.10E+01 1.52E+02 30/30
+(3.03E+01) (1.55E+01) (3.31E+01)
+Fifo 02 Normal Normal 3.62E+02 6.47E+01 4.27E+02 30/30
+(1.29E+02) (2.77E+01) (1.33E+02)
+Fifo 02 Normal Tainted 3.50E+02 5.10E+01 4.01E+02 30/30
+(1.48E+02) (1.55E+01) (1.49E+02)
+Fifo 03 Tainted Normal 3.03E+02 1.34E+02 4.38E+02 30/30
+(8.53E+01) (5.84E+01) (9.39E+01)
+Fifo 03 Tainted Tainted 2.93E+02 1.05E+02 3.98E+02 30/30
+(8.54E+01) (4.69E+01) (8.07E+01)
+Fifo 03 Normal Normal 1.64E+03 1.34E+02 1.78E+03 30/30
+(9.00E+02) (5.84E+01) (8.82E+02)
+Fifo 03 Normal Tainted 1.93E+03 1.05E+02 2.03E+03 30/30
+(1.34E+03) (4.69E+01) (1.31E+03)
+Fifo 04 Tainted Normal 6.87E+02 2.20E+02 9.06E+02 30/30
+(1.51E+02) (1.11E+02) (2.14E+02)
+Fifo 04 Tainted Tainted 6.35E+02 1.62E+02 7.96E+02 30/30
+(1.41E+02) (7.53E+01) (1.53E+02)
+Fifo 04 Normal Normal 1.22E+04 2.20E+02 1.24E+04 30/30
+(1.22E+04) (1.11E+02) (1.22E+04)
+Fifo 04 Normal Tainted 1.19E+04 1.62E+02 1.20E+04 30/30
+(1.21E+04) (7.53E+01) (1.21E+04)
+Fifo 05 Tainted Normal 1.23E+03 3.53E+02 1.58E+03 30/30
+(3.35E+02) (2.13E+02) (4.49E+02)
+Fifo 05 Tainted Tainted 1.32E+03 2.24E+02 1.54E+03 29/30
+(2.88E+02) (9.79E+01) (3.14E+02)
+Fifo 05 Normal Normal 1.00E+05 3.19E+02 1.01E+05 25/30
+Continued on next page
+
+--- Page 27 ---
+Grey-Box Learning of Register Automata 27
+Table 1: Benchmarks
+Model Tree Oracle EQ Oracle Learn Symbols Test Symbols Total Symbols Learned
+(Std. Dev) (Std. Dev) (Std. Dev)
+(1.84E+05) (1.67E+02) (1.84E+05)
+Fifo 05 Normal Tainted 1.28E+05 2.35E+02 1.28E+05 25/30
+(2.08E+05) (8.76E+01) (2.08E+05)
+Repetition Tainted Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Repetition Tainted Tainted 1.22E+02 7.33E+03 7.45E+03 30/30
+(0.00E+00) (2.03E+03) (2.03E+03)
+Repetition Normal Normal N-A N-A N-A 0/30
+(N-A) (N-A) (N-A)
+Repetition Normal Tainted 8.90E+03 7.33E+03 1.62E+04 30/30
+(1.99E+03) (2.03E+03) (2.26E+03)
+Set 01 Tainted Normal 1.45E+02 1.28E+03 1.43E+03 29/30
+(1.03E+02) (1.52E+03) (1.52E+03)
+Set 01 Tainted Tainted 9.75E+01 1.83E+02 2.80E+02 30/30
+(3.56E+01) (1.61E+02) (1.56E+02)
+Set 01 Normal Normal 5.00E+06 1.28E+03 5.01E+06 29/30
+(1.73E+07) (1.52E+03) (1.73E+07)
+Set 01 Normal Tainted 2.96E+03 1.83E+02 3.15E+03 30/30
+(6.71E+03) (1.61E+02) (6.69E+03)
+Set 02 Tainted Normal 1.61E+03 8.21E+03 9.82E+03 28/30
+(9.96E+02) (1.26E+04) (1.24E+04)
+Set 02 Tainted Tainted 1.00E+03 2.21E+02 1.23E+03 29/30
+(3.26E+02) (2.14E+02) (3.68E+02)
+Set 02 Normal Normal 4.61E+06 8.60E+03 4.62E+06 25/30
+(1.43E+07) (1.31E+04) (1.43E+07)
+Set 02 Normal Tainted 4.35E+04 2.20E+02 4.37E+04 30/30
+(7.28E+04) (2.10E+02) (7.29E+04)
+Set 03 Tainted Normal 1.76E+04 5.01E+03 2.26E+04 24/30
+(8.71E+03) (9.51E+03) (1.40E+04)
+Set 03 Tainted Tainted 1.44E+04 6.91E+02 1.51E+04 30/30
+(5.05E+03) (8.76E+02) (4.95E+03)
+Set 03 Normal Normal 5.76E+06 3.94E+03 5.76E+06 14/30
+(1.47E+07) (6.48E+03) (1.47E+07)
+Set 03 Normal Tainted 2.01E+06 2.23E+02 2.01E+06 28/30
+(3.60E+06) (2.06E+02) (3.60E+06)
+Sip 2015 Tainted Normal 2.14E+03 1.89E+05 1.92E+05 10/30
+(4.00E+02) (2.60E+05) (2.60E+05)
+Continued on next page
+
+--- Page 28 ---
+28 B. Garhewal et al.
+Table 1: Benchmarks
+Model Tree Oracle EQ Oracle Learn Symbols Test Symbols Total Symbols Learned
+(Std. Dev) (Std. Dev) (Std. Dev)
+Sip 2015 Tainted Tainted 2.30E+03 3.18E+04 3.41E+04 29/30
+(3.13E+02) (1.59E+04) (1.59E+04)
+Sip 2015 Normal Normal 1.57E+05 2.07E+05 3.65E+05 9/30
+(4.42E+05) (2.69E+05) (4.81E+05)
+Sip 2015 Normal Tainted 1.47E+05 3.18E+04 1.79E+05 29/30
+(2.80E+05) (1.59E+04) (2.78E+05)

@@ -1,0 +1,1022 @@
+--- Page 1 ---
+D. Fisman, S. Jacobs (Eds.): Sixth Workshop on Synthesis (SYNT 2017)
+EPTCS 260, 2017, pp. 23–43, doi:10.4204/EPTCS.260.5cB. Finkbeiner, M. Gieseking,
+J. Hecking-Harbusch, & E.-R. Olderog
+This work is licensed under the
+Creative Commons Attribution License.Symbolic vs. Bounded Synthesis for Petri Games
+Bernd Finkbeiner
+Universit ¨at des Saarlandes
+Saarbr ¨ucken, Germany
+finkbeiner@react.uni-saarland.deManuel Gieseking
+Carl von Ossietzky Universit ¨at Oldenburg
+Oldenburg, Germany
+gieseking@informatik.uni-oldenburg.de
+Jesko Hecking-Harbusch
+Universit ¨at des Saarlandes
+Saarbr ¨ucken, Germany
+hecking-harbusch@react.uni-saarland.deErnst-R ¨udiger Olderog
+Carl von Ossietzky Universit ¨at Oldenburg
+Oldenburg, Germany
+olderog@informatik.uni-oldenburg.de
+Petri games are a multiplayer game model for the automatic synthesis of distributed systems. We
+compare two fundamentally different approaches for solving Petri games. The symbolic approach
+decides the existence of a winning strategy via a reduction to a two-player game over a ﬁnite graph,
+which in turn is solved by a ﬁxed point iteration based on binary decision diagrams (BDDs). The
+bounded synthesis approach encodes the existence of a winning strategy, up to a given bound on the
+size of the strategy, as a quantiﬁed Boolean formula (QBF). In this paper, we report on initial expe-
+rience with a prototype implementation of the bounded synthesis approach. We compare bounded
+synthesis to the existing implementation of the symbolic approach in the synthesis tool A DAM . We
+present experimental results on a collection of benchmarks, including one new benchmark family,
+modeling manufacturing and workﬂow scenarios with multiple concurrent processes.
+1 Introduction
+The synthesis problem asks, given a formal speciﬁcation, for the existence of an implementation and
+derives it automatically if existent [2]. This problem can be described as a game between the system and
+the environment. A strategy is winning for the system and therefore corresponds to an implementation
+if the strategy fulﬁlls the winning condition of the game against all behaviors of the environment. The
+synthesized implementation for a given speciﬁcation is correct by construction, which is beneﬁcial for
+error-prone implementation tasks. Synthesis has been applied successfully to implement several practical
+applications like the protocol of the AMBA bus circuit [1].
+Synthesis is especially interesting for distributed systems where several concurrent components can
+communicate with each other to fulﬁll the speciﬁcation. Pnueli and Rosner deﬁned the ﬁrst setting for
+distributed synthesis [14]. Information forks have been identiﬁed as a necessary and sufﬁcient crite-
+rion for the undecidability of the synthesis problem in this setting [9], which prevents most practical
+applications. Even for the decidable cases without information forks like pipelines and rings, the synthe-
+sis problem has non-elementary complexity [15, 11]. More recently, Zielonka’s asynchronous automata
+were introduced as another framework for distributed synthesis. Whereas the synthesis problem for some
+cases has non-elementary complexity, the general complexity of synthesis for asynchronous automata re-
+mains open [18, 12].
+We take Petri games as a starting point to synthesize distributed systems [8]. Petri games deﬁne
+a multiplayer game model where several distributed system players cooperatively play against several
+This work was partially supported by the European Research Council (ERC) Grant OSARES (No. 683300) and by the
+German Research Foundation through the Research Training Group (DFG GRK 1765) SCARE.
+
+--- Page 2 ---
+24 Symbolic vs. Bounded Synthesis for Petri Games
+distributed environment players. Petri games are based on an underlying Petri net where each token
+represents a player. Each player in a Petri game has only local information about other players it syn-
+chronized with on joint transitions.
+We compare two fundamentally different approaches to synthesize winning strategies of Petri games:
+Thesymbolic approach is based on the result that the synthesis problem for Petri games with a bounded
+number of system players, a single environment player, and the avoidance of bad places as winning
+condition can be solved in single exponential time [8]. This approach performs a reduction to a two-
+player game over a ﬁnite graph with full information. The implementation is realized in the tool A DAM
+using a BDD-based ﬁxed point iteration [6]. The restriction to only a single environment player is an
+impediment for convenient modeling.
+The second approach to ﬁnd winning strategies in a Petri game is bounded synthesis [10]. Here,
+the size of possible strategies and of the proof that the strategy is winning is limited. It is increased
+incrementally when no strategy of the previous size can be found. This steers the search towards small
+winning strategies at the cost of being unable to prove the non-existence of a winning strategy. Bounded
+synthesis can ﬁnd winning strategies for Petri games with more than one environment player [5]. The
+bounded approach for Petri games limits the number of ﬁred transitions in the proof of the strategy being
+winning. It further takes a second bound on the size of the memory each player can utilize as the memory
+of players is inﬁnite in general. For the pair of bounds, bounded synthesis searches for termination or
+loops in the strategy and can thereby prove the existence of an inﬁnite winning strategy. This search is
+encoded in a quantiﬁed Boolean formula (QBF) and solved by a QBF solver. We report on our experience
+with a ﬁrst prototype implementation of bounded synthesis generating the QBF and solving it with the
+QBF solver Q UABS [17] in comparison to the symbolic approach implemented in A DAM .
+ADAM has been used to synthesize several case studies from manufacturing and workﬂow scenarios.
+These case studies have been extended into scalable benchmark families to evaluate the behavior of the
+implementation of the symbolic approach and to show the applicability of Petri games to synthesize
+distributed systems [6].
+The key contributions of this paper are the following:
+We add the new benchmark family of a distributed alarm system to the benchmark families of
+ADAM . The new benchmark family serves to secure several locations with an alarm system such
+that a burglary at any location is indicated at all locations including the information where exactly
+the burglary takes place.
+We state our experience with the prototype implementation for the generation of the QBFs repre-
+senting the bounded synthesis problem for the given pair of bounds and with the solving of the
+generated QBFs. We found out that the bounded unfolding of Petri games beneﬁts from pruning
+techniques and that solvers for non-CNF QBFs reﬁning an abstraction based on counterexamples
+show the best performance for solving.
+We empirically compare the symbolic synthesis approach implemented in A DAM with the bounded
+synthesis approach realized by our prototype implementation. The symbolic approach solves more
+instances overall from the extended set of benchmark families whereas bounded synthesis derives
+strategies of smaller size. We present reasons for the observed behavior based on the number of
+variables in the two approaches.
+The remainder of the paper is structured as follows. Section 2 recaps the theory of Petri games on an ab-
+stract level and introduces the distributed alarm system as a running example. In Sec. 3, the symbolic and
+the bounded approach for solving Petri games are presented, including their application to the distributed
+alarm system. The experimental results comparing the two approaches are given in Sec. 4.
+
+--- Page 3 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 25
+EnviA iBLA LB
+tA
+SAAEA
+SA
+faA frAinfoB
+pA
+aaab
+AA ABtB
+SBBEB
+SB
+faB frBinfoA
+pB
+babb
+BA BBBurglary
+Comm.
+Alarm
+Figure 1: The Petri game depicting the synthesis problem of an alarm system being distributed over two
+independent locations with the possibility to communicate. The alarm system has to detect a burglary
+and set off alarms at both locations.
+2 Petri Games
+Petri games are a multiplayer game model for the synthesis of distributed systems [8]. They deﬁne a game
+on an underlying Petri net by characterizing certain places as bad such that the system has to cooperate
+to avoid reaching these places to win. The distinction between system and environment is achieved by
+distributing each place of the Petri net to either belong to the system or to the environment. System
+places are depicted gray whereas environment places remain white. The players in a Petri game are the
+tokens ﬂowing through the underlying Petri net. If a token resides in a system place then it is controlled
+by the token’s strategy whereas the behavior of tokens in environment places is uncontrollable. Each
+token in a Petri game has local memory, which is only exchanged with the other participating tokens
+of joint transitions. The causal history of tokens is utilized by their local strategy to make decisions on
+which transitions to ﬁre. Therefore, the strategy of the system in a Petri game is a local controller for
+each process and not a global controller with information about the state of tokens in all system places.
+Example. We model a distributed alarm system. A burglar (modeled by the environment player residing
+in place Env) decides to intrude one of several secured locations. In Fig. 1, the situation is displayed for
+the distributed locations A (shown to the left) and B (shown to the right). This situation has been used
+as the introductory example in [8] and is extended to a benchmark family for an arbitrary number of
+secured locations later in this paper. The goal of the game is to ﬁnd a strategy for each of the two alarm
+processes initially residing in places SA and SB. A token in place XY (for X ;Y2fA;Bg)represents that
+in location X an alarm is set off indicating that the strategy of the alarm system presumes an intrusion at
+location Y. If the burglar intrudes location A by entering place LA, the strategies should steer the token
+in SA to place AA and the token in SB to place BA in order to correctly indicate the burglar’s intrusion,
+and similarly for the burglar intruding location B. If a token resides in one of the system places SA, SB,
+SAA, SBB, pA, or pB then the strategy of the player has to resolve nondeterminism between the outgoing
+
+--- Page 4 ---
+26 Symbolic vs. Bounded Synthesis for Petri Games
+transitions. For this, the strategies for the players in SA and SB need to collect sufﬁcient information
+about the moves of the other system player and the burglar. For example, the player in place SB does not
+know whether the alarm system in SA has ﬁred transition t Aunless it gets informed by the communication
+transition infoB. We omit the bad places and transitions to them representing false alarms and false
+reports, which have to be avoided by a correct alarm system. A false alarm occurs when an intrusion is
+indicated before the burglar actually intruded the object whereas a false report occurs when the alarm
+system at a certain location indicates an intrusion at a location where no intrusion occurred.
+Formally, a Petri game P= (PS;PE;T;F;In;B)is based on a Petri net N= (P;T;F;In)with
+the set of places P=PS[PE, the set of transitions T, the ﬂow relation F(PT)[(TP),
+and the initial marking In. A Petri game divides the places to either belong to the system ( PS) or to the
+environment ( PE) and it further deﬁnes some places as bad ( BP). We restrict ourselves to safePetri
+games, i.e., at most one token can reside in each place. We identify a token residing in a place by the
+name of the place. A marking is a set of places where one token resides at each place. From a marking,
+a transition is enabled if all places in the transition’s preset have one token residing in them. The ﬁring
+of an enabled transition removes one token from each place in the transition’s preset (t) and creates
+one token in each place in the transition’s postset ( t). We also refer to the sets of transitions preceding
+and following a place as the place’s preset (p) and postset ( p). The behavior of Petri games is deﬁned
+by sequences of reachable markings . These sequences start from the initial marking and between each
+pair of subsequent markings one transition is ﬁred. We say that a place pisreachable if there exists a
+sequence of reachable markings such that one of the markings contains p.
+The notion of unfoldings from Petri nets [4] translates to Petri games. In an unfolding, all cycles, i.e.,
+all reachable sequences of markings starting and ending with the same marking, are unrolled inﬁnitely
+and all backward branches, i.e., places with at least two transitions merging into them, are unfolded.
+A place is unfolded by copying the place and all its outgoing transitions including the following sub-
+games and changing one of the incoming ﬂows of a transition from the place’s preset to the copied place.
+Therefore, the unfolding explicitly represents the unique causal history of each process. As for Petri
+nets, the unfolding can be inﬁnite for Petri games. In bounded unfoldings of Petri games [5], loops and
+backward branches are only unfolded up to a given bound bfor the number of copies per place. Upon
+reaching the bound for a place, both the original place and its existing copies can be part of a loop or
+can have backward branch. Therefore, the bounded unfolding is ﬁnite even for Petri games with inﬁnite
+unfoldings. One bounded unfolding for the Petri game in Fig. 1 is depicted in Fig. 5 in Sec. 3.2. The
+places AA,AB,BA, and BBare not unfolded despite them being reachable with different causal pasts,
+i.e., having backward branches.
+Astrategy of a Petri game is a restriction to the unfolding of the Petri game where certain branches
+of transitions and places are removed. We assume that this removal is based on the decisions of system
+players not to ﬁre certain transitions. The behavior of a strategy is deﬁned by the remaining sequences
+of reachable markings. The following four requirements have to hold for a strategy to be winning :
+1.Safety. No marking containing a bad place is reachable in the strategy.
+2.Determinism. For all system places in all reachable markings of the strategy, at most one outgoing
+transition is enabled.
+3.Deadlock avoidance. For all reachable markings in the strategy, if a transition is enabled for that
+marking in the unfolding then one transition is enabled in the strategy as well. This requirement
+prevents trivial solutions where the system does not ﬁre any transition to avoid reaching a marking
+containing a bad place.
+
+--- Page 5 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 27
+EnviA iBLA LB
+tA
+SAAEA
+SA
+infoB
+pA pA0
+aa ab
+AA ABtB
+SBBEB
+SB
+infoA
+pB pB0
+ba bb
+BA BBBurglary
+Comm.
+Alarm
+Figure 2: The winning strategy for the system players for the Petri game depicted in Fig. 1 modeling
+an alarm system. To win, both system players have to communicate the detection of the burglary before
+setting off their alarms.
+4.Justiﬁed refusal. When a transition is removed from the unfolding to create the strategy then there
+is at least one system place in the removed transition’s preset for which all copies of the removed
+transition are removed as well. This prevents the system from differentiating copies of transitions
+resulting from the unfolding.
+Petri games with a bounded number of system tokens, one environment token, and bad places as
+winning condition can be solved in single exponential time [8].
+Example. The winning strategy for the alarm system from Fig. 1 is depicted in Fig. 2. The displayed
+strategy avoids bad places because no false alarm can occur, as the alarm is always triggered after the
+burglar intruded, and because no false report can occur, as both system tokens exchange information and
+utilize it to indicate the correct location of intrusion. The strategy is deterministic because only one of the
+two respective outgoing transitions of SA and SB is enabled, depending on the location of intrusion, and
+all other system places have only one outgoing transition. The strategy is deadlock-avoiding because
+after indicating the alarm, the system terminates as no transitions are enabled. The unfolding of the
+game only allows justiﬁed refusal by the system. Therefore, the displayed strategy is winning.
+The strategy contains the local controllers for the alarm systems at location A and at location B. The
+local controller for the alarm system at A behaves in the following way. The alarm system at SA waits
+until it either recognizes an intrusion at A via transition t Aor is informed about an intrusion at B via
+transition infoA. The place pA0is reached after getting informed about an intrusion at B from which the
+transition ab is ﬁred setting off an alarm at A indicating an intrusion at B. The place SAA is reached
+after recognizing an intrusion at A. The local alarm system informs the local alarm system at B with the
+transition infoBand afterwards ﬁres the transition aa to reach the place AA. This place represents an
+alarm at location A that there was an intrusion at location A. The two local system controllers can be
+found in Fig. 3. Note that they can only behave correctly as they rely on the other local alarm system to
+
+--- Page 6 ---
+28 Symbolic vs. Bounded Synthesis for Petri Games
+Env
+iA iB
+LA LB
+tA tB
+EA EBSA
+tA infoA
+SAA
+infoB
+pA
+aa
+AApA0
+ab
+ABSB
+tB infoB
+SBB
+infoA
+pB
+bb
+BBpB0
+ba
+BABurglary
+Comm.
+Alarm
+Figure 3: The distributed local controllers for each player of the winning strategy depicted in Fig. 2.
+The parallel bars indicate the parallel composition of Petri nets [13] for the environment and the two
+system controllers, with synchronization on equally labeled transitions. First, the burglary is detected,
+then the detection is communicated, and afterwards the alarm is set off.
+faithfully inform them about an ongoing burglary, i.e., the system players cooperate. This distribution
+of a winning strategy into local controllers is possible for all winning strategies of safe, concurrency-
+preserving Petri games with only one environment player [8].
+Abounded strategy for a bounded unfolding is generated in the same way as a strategy is generated
+for the unfolding. Based on the decisions of system players, transitions and the following sub-games are
+removed. The bounded strategy has to fulﬁll the same requirements as a strategy for an unfolding but
+may have fewer system places where transitions can be removed. Places are not unfolded inﬁnitely often
+in the bounded unfolding, which implies that certain histories are aggregated in one place for which the
+same decision is repeated. A bounded strategy for a bounded unfolding can easily be extended into a
+strategy for the general unfolding by repeating the same decisions at places, which were not unfolded
+in the bounded unfolding. The converse direction is not true, i.e., a strategy for the unfolding cannot in
+general be translated into a strategy for a bounded unfolding [5].
+3 Symbolic and bounded solving
+We recall the symbolic solving approach implemented in A DAM and the bounded solving approach
+implemented as a prototype. Both approaches are compared in Sec. 4. Symbolic solving is based on the
+reduction of Petri games to a two-player game on ﬁnite graphs. This is solved using BDDs in A DAM . The
+bounded solving approach utilizes two bounds non the size of the proof and bon the available memory.
+The question of the existence of a strategy within these bounds is encoded in a 2-QBF. Our prototype
+automates the generation of the 2-QBF, invokes the QBF solver Q UABS to solve it, and generates a
+winning strategy if the QBF is satisﬁable.
+
+--- Page 7 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 29
+3.1 Symbolic Solving
+In the symbolic synthesis approach for Petri games introduced in [7], the existence of a winning strategy
+for the system players is decided via a reduction to a two-player game over a ﬁnite graph with complete
+information. We recap the ideas of the reduction in this section for the comparison to the bounded
+approach presented in Sec. 3.2. In this paper, we only consider the case of one environment and a
+bounded number of system players for the symbolic synthesis approach. This case can be solved with
+a safety objective in single-exponential time [8]. Furthermore, we stick to safe Petri nets, since the
+implementation of A DAM and the bounded synthesis approach are limited to safe nets.
+The general approach for the symbolic solving of Petri games is done in three steps: Firstly, from a
+given safe Petri game with one environment player, a bounded number of system players, and a safety
+objective, a two-player game over a ﬁnite graph is constructed. The environment player is represented by
+Player 1 (depicted as white rectangles with sharp corners) and all system players together are represented
+by Player 0 (depicted as gray rectangles with rounded corners). Secondly, a winning strategy of the two-
+player game is constructed such that the system players can cooperatively play against all behaviors
+of the hostile environment without encountering any bad situations. Thirdly, the winning strategy for
+the system players (Player 0) of the two-player game over a ﬁnite graph is transformed into a winning
+strategy of the system players in the Petri game and distributed into local controllers for each system
+player.
+The two-player game over a ﬁnite graph simulates a subset of the behavior of the Petri game in such
+a way that the game over the graph can be considered as completely informed , i.e., both players have full
+information about their opponent at all times. Even though only a subset of the behavior is considered, [8]
+shows the existence of a strategy of the Petri game if and only if a strategy for the two-player game exists.
+Intuitively, the omitted behavior corresponds to situations where the system players exploit knowledge
+about the environment player’s behavior of which they had not been informed. The key idea to achieve
+complete information is to delay every environment transition , i.e., transitions t2Twitht\PE6=/ 0,
+until every next possible action of the system has to be done directly or indirectly in interaction with the
+environment (or there is no future interaction with the environment needed at all). Those states of the
+two-player game where the system players have progressed maximally are called mcut s. In an mcut, all
+system players will be informed of the environment’s decision when executing their next step (or they
+will never be informed of the environment’s decision). This idea restricts the proposed solving technique
+to only one environment player. The states corresponding to an mcut are assigned to the environment
+(Player 1) and all other states to the system (Player 0).
+To simulate the Petri game, the states of the two-player game correspond to cuts, i.e., maximal sets of
+concurrent places. For the sophisticated handling of the causal memory model of Petri games, each place
+of a cut is enriched by a commitment set , i.e., a set of transitions currently selected by the corresponding
+system player to be allowed to ﬁre. The transition relation of the two-player game mimics the ﬁring of
+chosen (and enabled) transitions of the Petri net between the corresponding cuts.
+Additionally, there is one extra kind of transitions in the two-player game allowing the system players
+to chose new commitment sets. Therefore, each place in a state is equipped with a Boolean ﬂag >. It is set
+to true for a place pin a state sif and only if sis a successor of an mcut reached by ﬁring transition tand
+p2tholds. Note that it is only harmful for successors of mcuts to directly choose their commitment
+sets without such an intermediate state with a true >-ﬂag, since for a winning strategy of the system
+players, allsuccessors of the environment states have to avoid bad situations. Thus, the commitment sets
+of system state successors are directly chosen. The resolving of the >, i.e., choosing new commitment
+sets, has to be made before any transition is allowed to ﬁre to ensure the correct modeling of the players’
+
+--- Page 8 ---
+30 Symbolic vs. Bounded Synthesis for Petri Games
+informedness. It is therefore guaranteed that every decision of the system, which should be independent
+of the environment’s decision, is actually taken independently.
+Since environment decisions are delayed until the system players have maximally progressed, pos-
+sibly inﬁnite calculations can be encountered when the system players can inﬁnitely proceed without
+any interaction with the environment. To prevent these inﬁnite behaviors, a further Boolean ﬂag type2
+for each place in a state is introduced. This ﬂag set to true prohibits the corresponding player to maxi-
+mally progress. Thus, in an mcut all non- type2-typed places are blocked until the environment makes its
+next move due to the non-existence of an enabled and chosen transition and the type2-typed places are
+blocked by deﬁnition. This ensures that the system players cannot pass over the environment’s decision
+by just playing inﬁnitely on their own.
+There are three different types of bad situations in the two-player game. Firstly, a state sis bad if two
+different transitions t1andt2witht1\t26=/ 0 are enabled and chosen in s. Those situations are called
+nondeterministic . Secondly, a state represents a bad situation if it contains bad places. Thirdly, deadlock s
+are bad situations. Deadlocks are states swhere a transition exists which is enabled in the corresponding
+cut of the underlying Petri net, but there is no enabled and chosen transition in s. For more details, we
+refer the reader to [7, 6, 8].
+Example. We describe the two-player game over a ﬁnite graph obtained by the reduction of the Petri
+game of Fig. 1. In Fig. 4, a part of this game is visualized. Each state s is depicted as tuple s 2PE
+P(PSf0;1gf> ;!>g P(T)), where 0indicates that the corresponding place is type2typed. In
+this example, there is no possibility for the system players to play inﬁnitely long without any further
+interaction with the environment. Thus, all places are typed as not type2(indicated by 1).
+The initial state (labeled with 1) corresponds to the cut of the initial marking of the Petri net, where
+all system tokens initially have to decide on their commitment sets. A commitment set for a place p
+has to be chosen from the powerset of p. Hence, for the initial state the player on SA chooses from
+P(ftA;faA;infoAg)and SB from P(ftB;faB;infoBg). All of these possible combinations yield a successor
+of the initial state. Here, only four successors are displayed. In general, dashed borders designate that
+not all successors of a state are depicted in this ﬁgure.
+The checkerboard patterned states designate the bad situations of the game. Consider for example
+the upper left state. There, the token in pA has two possible chosen and enabled transitions (aa and
+ab). This situation corresponds to a nondeterministic choice in the Petri game. The other two depicted
+bad states correspond to deadlock situations, since the players in SA and SB decided not to allow to
+ﬁre any transition, but the underlying Petri net can still ﬁre in the corresponding cut fLA;SA;SBg(e.g.,
+transition t Ais enabled). The situations where the game enters a state containing a bad place are not
+directly visualized, but reaching a bad place cannot be prevented in both situations representing a false
+alarm (depicted as the left branch in Fig. 4) and a false report (depicted as the right branch). In the
+depicted case of a false alarm, the alarm system of location A decides to use transition faAand since
+the environment is delayed until all system behavior is maximally processed, the alarm system will show
+a burglary before it has happened (cf. state 2 with a transition t ?leading to a bad place andt?=
+fEnv;AAg). Even if the system decides to not use any of the bad transitions, it cannot avoid a bad
+situation because it will end up in a deadlock (cf. state 3, where reaching a deadlock is mandatory). This
+is similarly in the depicted case of a false report. Since alarm system B decided to use transition frB(cf.
+state 4) and thus does not report the burglary at its location to the alarm system in A, the token in SA
+triggers a deadlock. If SA would have chosen some of the other possible transitions (t Aor faA), it would
+still have been a deadlock or a false alarm. The only possible solution for the alarm systems is to wait
+for the burglary and then use their information channel (infoAand infoB) to inform the other player of
+the burglary. This situation corresponds to the orange underlaid states resulting in a winning strategy.
+
+--- Page 9 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 31
+Env,
+(SA;1;>;fg),
+(SB;1;>;fg)1
+Env,
+(SA;1;!>;ftA;info Ag),
+(SB;1;!>;ftB;info Bg)
+LA,
+(SA;1;!>;ftA;info Ag),
+(SB;1;!>;ftB;info Bg)
+EA,
+(SAA ;1;>;fg),
+(SB;1;!>;ftB;info Bg)
+EA,
+(SAA ;1;!>;finfo Bg),
+(SB;1;!>;ftB;info Bg)
+EA,
+(pA;1;!>;faag),
+(pB;1;!>;fbag)
+EA,
+(AA;1;!>;fg),
+(pB;1;!>;fbag)
+EA,
+(AA;1;!>;fg),
+(BA;1;!>;fg)LB,
+(SA;1;!>;ftA;info Ag),
+(SB;1;!>;ftB;info Bg)
+EB,
+(SA;1;!>;ftA;info Ag),
+(SBB ;1;>;fg)
+EB,
+(SA;1;!>;ftA;info Ag),
+(SBB ;1;!>;finfo Ag)
+EB,
+(pA;1;!>;fabg),
+(pB;1;!>;fbbg)
+EB,
+(AB;1;!>;fg),
+(pB;1;!>;fbbg)
+EB,
+(AB;1;!>;fg),
+(BB;1;!>;fg)Env,
+(SA;1;!>;ffaAg),
+(SB;1;!>;ftB;info Bg)
+Env,
+(pA;1;!>;faa;abg),
+(SB;1;!>;ftB;info Bg)
+Env,
+(pA;1;!>;faag),
+(SB;1;!>;ftB;info Bg)
+Env,
+(AA;1;!>;ft?g),
+(SB;1;!>;ftB;info Bg)2
+Env,
+(AA;1;!>;fg),
+(SB;1;!>;ftB;info Bg)
+LA,
+(AA;1;!>;fg),
+(SB;1;!>;ftB;info Bg)
+LB,
+(AA;1;!>;fg),
+(SB;1;!>;ftB;info Bg)
+EB,
+(AA;1;!>;fg),
+(SBB ;1;>;fg)3Env,
+(SA;1;!>;fg),
+(SB;1;!>;fg)
+LA,
+(SA;1;!>;fg),
+(SB;1;!>;fg)LB,
+(SA;1;!>;fg),
+(SB;1;!>;fg)
+Env,
+(SA;1;!>;finfoAg),
+(SB;1;!>;ftBg)
+LB,
+(SA;1;!>;finfoAg),
+(SB;1;!>;ftBg)
+EB,
+(SA;1;!>;finfoAg),
+(SBB ;1;>;fg)
+EB,
+(SA;1;!>;finfoAg),
+(SBB ;1;!>;ffrBg)4
+bbinfo AiB
+tBiA
+tA
+info B
+ab aa
+bafaAfaA
+aa
+aa
+iBiA
+tBiAtB
+iB
+tB
+Winning strategy for the system players
+Figure 4: The part of the two-player game over a ﬁnite graph constructed from the Petri game depicted
+in Fig. 1. The states belonging to the environment player are white with sharp corners whereas the
+states belonging to all system players together are gray with rounded corners. The winning strategy for
+the system players is underlaid in orange. Dashed states indicate that not all possible successors are
+depicted. Checkerboard patterned states designate bad states of the two-player game.
+
+--- Page 10 ---
+32 Symbolic vs. Bounded Synthesis for Petri Games
+3.2 Bounded Solving
+We recall the bounded synthesis approach for Petri games [5]. In bounded synthesis, a bound is intro-
+duced to limit the search space of possible winning strategies to small strategies. Therefore, bounded
+synthesis can ﬁnd small implementations fast. The bound is increased incrementally if no winning strat-
+egy can be found. If a winning strategy for a certain bound is found, bounded synthesis ensures that
+this solution is winning in general. We denote this bound by n. Bounded synthesis constitutes a semi-
+decision procedure, i.e., it can prove the existence of a winning strategy but not the non-existence of
+winning strategies in general. Bounded synthesis ﬁnds strategies, which are, because of their small size,
+interesting for practical applications as they avoid unnecessary (and possibly expensive) computation
+steps.
+In Petri games, each local player can have different information about the other players. Recall that
+only participating players of a ﬁred transition exchange their complete causal history. A place can have
+inﬁnitely many different histories, which are represented explicitly in the possibly inﬁnite unfolding. For
+bounded synthesis of Petri games, we have to introduce a second bound bon the size of the memory for
+each place in order to retain a ﬁnite representation of the bounded synthesis problem. A player residing
+in the place can only differentiate causal history up to this bound and further history is treated on par
+with some previous history. The original bound of bounded synthesis nlimits the size of the proof of
+correctness for the strategy. It deﬁnes how many transitions are ﬁred until the game has to terminate or
+has to repeat its behavior in a loop while fulﬁlling the requirements for a winning strategy. The conditions
+for a winning strategy are safety, determinism, deadlock-avoidance, and justiﬁed refusal as discussed in
+Sec. 2.
+We utilize 2-QBFs to realize the bounded synthesis approach for Petri games. 2-QBFs restrict QBFs
+to only have one quantiﬁer alternation. A QBF starts with an alternation of either existentially ( 9) or
+universally (8) quantiﬁed sets of Boolean variables. This preﬁx is followed by the matrix which is a
+Boolean formula using the standard operators ( ^,_,:) and abbreviated operators ( =),() ) on
+Boolean variables. We focus on 2-QBFs of the form 9V1:8V2:fwhere V1[V2are all Boolean variables
+inf. The meaning of a 2-QBF is that there exists an assignment for the Boolean variables in V1such that
+for all assignments to the Boolean variables in V2the formula fover the assigned Boolean variables is
+satisﬁed.
+For bounded synthesis of Petri games, the bound bis used to build a bounded unfolding Pbof the
+Petri game P.Pbis again a Petri game explicitly modeling all available decision points for the bounded
+strategy. For a Petri game, the existence of a winning strategy for a play of length ncan be encoded as
+a 2-QBF9S:8M:fn. The set Sdescribes the strategy and contains pairs (p;t)to indicate whether the
+system place p2Pb
+Sdecides to ﬁre the transition t2por not. We further ensure that a decision for
+or against tdoes not violate justiﬁed refusal such that all bounded strategies fulﬁll this condition. The
+setMdescribing the sequence of markings contains pairs (p;i)to indicate that on place presides a token
+at time point 1in. The formula fnensures that if Mrepresents a play following the decisions by the
+strategy Sand the rules of a Petri game for nsteps, then the play is winning. This approach can handle
+ﬁnite and inﬁnite plays by accepting termination before the last simulation step is reached and checking
+for loops if the last simulation step is reached.
+The encoding for bounded synthesis has the following form:
+
+--- Page 11 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 33
+fnDef:=0
+@^
+i2f1;:::;n 1gsequencei=)win i1
+A^(sequencen=)win n^loop )
+sequenceiDef:= initial^^
+j2f1;:::;i 1gﬂowj
+win iDef:= nobadplacesi^deterministic i^deadlocksterm i
+deadlocksterm iDef:= deadlock i=)terminatingi
+loopDef:=_
+j;k2f1;:::;ng;j<k 
+^
+p2P(p;j)() (p;k)!
+For each time point 1 in, it is tested whether the variables in Mrepresent a correct sequence of
+markings corresponding to a play in the Petri game. If this is the case then win iensures that the strategy
+fulﬁlls the requirements at ito be winning. If i=n, i.e., the limit on the simulation length is reached, then
+it is additionally tested that a loop occurred. A correct sequence is deﬁned by the play starting from the
+initial marking and ﬁring one enabled and (by the strategy) chosen transition at each time step ( ﬂowj).
+The play is winning if no bad places are reached, the system makes only deterministic decisions, and
+each deadlock is caused by termination . A deadlock occurs when all transitions are either not enabled
+or not chosen by the strategy. Meanwhile, termination occurs when no transition is enabled, i.e., only
+the lack of tokens in the preset of transitions is responsible for this and not the decisions of the system.
+Therefore, deadlocksterm iensures that the system does not prevent the reaching of bad places by just
+stopping to ﬁre transitions but deadlocks are only allowed when the whole game terminated. A loop in
+a Petri game occurs when the exact marking is repeated at two different time points jandk. Since it is
+tested that between jandkthe strategy is deterministic, this behavior is repeated inﬁnitely often such
+that the strategy is also winning in an inﬁnite play. For further details on the deﬁnition of initial ,ﬂowj,
+deterministic ietc., we refer the interested reader to [5].
+Example. In Fig. 5, a bounded unfolding of the distributed alarm system is given. Only the places pA and
+pB are unfolded three times resulting in the four respective places pA0, pAA, pABand pB0, pBB, pBA. The
+unfolded places of pA are on the lefthand side whereas the unfolded places of pB are on the righthand
+side. For the four places of pA from left to right, we thereby can differentiate the situation that the alarm
+system in the corresponding wing successfully tested for the environment and then decided not to inform
+the other system player (place pA), did not test for the environment at all (place pA0), successfully tested
+for the environment and then informed the other system player (place pA A), or was informed by the other
+system player about an intrusion at the other location (place pA B). The same holds in converse direction
+for pB. We did not unfold the places AA, AB, BA, and BB because they are used only to determine bad
+behavior. This is only possible in the bounded unfolding.
+We argue why bounded synthesis rejects and accepts certain strategies for the bounded unfolding
+from Fig. 5. The Petri game is the running example of an alarm system from Fig. 1 in Sec. 2. For ex-
+ample, the strategy (SA;tA),(SA;faA),(SA;infoA)activated and all other transitions deactivated is not
+winning because for the allowed sequence of markings (Env;1),(SA;1),(SB;1),(LA;2),(SA;2),(SB;2)
+in M there is nondeterminism between the enabled transitions t Aand faA. Meanwhile, the strategy al-
+lowing (SA;tA),(SA, infoA),(SB;tB),(SB;infoB),(SAA ;infoB),(SBB ;infoA),(pAA;a),(pAB;b),(pBA;a),
+(pBB;b)is winning because for all markings that represent a valid play of the game no bad place is
+reached, all decisions are deterministic, and all deadlocks are caused by termination. The places pAA,
+
+--- Page 12 ---
+34 Symbolic vs. Bounded Synthesis for Petri Games
+EnviA iBLA LB
+tA
+SAAEA
+SA
+faA frAinfoB
+pA0pA pAA pAB
+AB AAtB
+SBBEB
+SB
+faB frBinfoA
+pB0pB pBB pBA
+BB BABurglary
+Comm.
+Alarm
+Figure 5: A bounded unfolding for the Petri game depicted in Fig. 1 modeling an alarm system. The
+places pA and pB are unfolded three times, respectively, into the places pA0, pAA, pABand pB0, pBB, pBA
+whereas the places AA, AB, BA, and BB are not unfolded.
+pABand pBA, pBBdescribe the unfolded places of pA and pB reached after ﬁring infoBand infoA, respec-
+tively. For the pairs of unlabeled transitions, the left transitions are based on the original transition a
+and the right ones on b. The places pA, pA0, pB and pB0are not reached by the strategy and arbitrary de-
+cisions can be made there. We choose not to ﬁre any transitions in this case. For example, the sequence
+of markings (Env;1);(SA;1);(SB;1);(LA;2);(LB;2);::: in M does not represent a valid play because
+both outgoing transitions of Env have been ﬁred, which is illegal in a Petri game (ﬂow1is violated).
+4 Experimental Results
+We compare the implementation of the symbolic approach in the tool A DAM against our prototype imple-
+mentation of the bounded synthesis approach on an extended set of benchmarks. We take the benchmark
+set of A DAM and add the benchmark family of an alarm system. At ﬁrst, we describe all benchmark fam-
+ilies. Then, we outline the technical details of our comparison framework and implementation speciﬁc
+particularities of the two approaches. Afterwards, we state our observations and explanations concerning
+the times for ﬁnding winning strategies and the sizes of these strategies.
+4.1 Benchmark families
+The results in the table from Fig. 6 refer to the following scalable benchmark families where the alarm
+system is the new benchmark family:
+AS:Alarm System . There are msecured locations belonging to one person. A burglar can intrude
+one of the locations. Each location has a local alarm system, which can communicate with all
+
+--- Page 13 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 35
+other local alarm systems. The goal is that the alarm system in each location has to indicate the
+position where the burglar intruded. Furthermore, the alarm system should not issue unsubstanti-
+ated warnings of an intrusion at any location.
+Parameters :mlocations
+CM: Concurrent Machines . There are mmachines which should process korders. Each machine
+is allowed to process at most one order. The hostile environment disables one arbitrary machine
+such that it cannot process any order. The system’s goal is to still process all korders.
+Parameters :mmachines and korders.
+SR:Self-reconﬁguring Robots . There are mrobots having mdifferent tools at their disposal each.
+The robots can only equip one tool at a time. From a global perspective, all robots together have to
+maintain a functioning state such that material can be processed by each of the mdifferent tools.
+The environment can destroy ktools in total. This can occur at the same robot or on different
+robots. The robots have to reconﬁgure theirselves to maintain a functioning global state for the
+processing of material.
+Parameters :mrobots with mtools each and kdestroyed tools in total.
+JP:Job Processing . A job requires processing by a, from the environment chosen, subset of m
+processors in ascending order.
+Parameter :mprocessors.
+DW: Document Workﬂow . There are mclerks having to unanimously endorse or reject a document.
+The environment decides which clerk gets the document ﬁrst. In DWs, it is required that all clerks
+endorse the document.
+Parameter :mclerks.
+4.2 Comparison framework
+We compare the symbolic synthesis approach implemented in A DAM with our prototype implementation
+of the bounded synthesis approach. A DAM and the bounded synthesis approach are the only tools existing
+to ﬁnd winning strategies of Petri games but they are inherently different. On the one hand, the symbolic
+approach models, in theory, inﬁnite memory and unbounded ﬁring sequences of transitions. On the
+other hand, bounded synthesis has two parameters nandb, which can be increased to ﬁnd a winning
+strategy. Therefore, the bounded synthesis approach can be parallelized easily because the QBF-solver
+can be called twice for two different pairs (n;b)and the resulting encodings. We report in the following
+on the runtime results for the minimal band the corresponding nsuch that a winning strategy exists
+because bturned out to be more expensive than nin terms of runtime. Notice that b=1 enforces that
+the bounded unfolding is the original game, i.e., no bounded unfolding is utilized when searching for a
+winning bounded strategy of the corresponding Petri game.
+The table in Fig. 6 shows the results of A DAM and our prototype implementation of bounded syn-
+thesis for the previously described benchmark families. The results were obtained on an Intel i7-2700K
+CPU with 3.50 GHz, 32 GB RAM, and a timeout of 1800 seconds. For each benchmark (column Ben.),
+we report on the attempted parameters of the benchmark ( Par.), on the size of the Petri game (number of
+tokens (# Tok), places (# P), and transitions (# T)), and on the respective time andmemory for solving
+and on the respective number of places (# Pstr) and transitions (# Tstr) of the winning strategies synthe-
+sized by A DAM and by our prototype implementation of bounded synthesis. The elapsed CPU time is
+measured in seconds and the used memory in gigabyte. For bounded synthesis, we additionally report the
+smallest band corresponding nto ﬁnd winning bounded strategies with the least memory requirement.
+
+--- Page 14 ---
+36 Symbolic vs. Bounded Synthesis for Petri Games
+Symbolic Synthesis Bounded Synthesis
+Ben. Par. #Tok #P #T time memory #Pstr #Tstr n b time memory #Pstr #Tstr
+AS 2 3 17 26 1.9 .30 17 10 7 2 18.0 .18 17 10
+3 4 28 69 2.5 .41 31 18 7 3 timeout
+. . . . . . . . .
+6 7 73 462 91.0 4.65 97 54 7 6 timeout
+7 timeout 7 7 timeout
+CM 2/1 6 13 10 1.4 .30 14 8 6 3 .6 .06 13 8
+2/2 7 18 16 2.0 .30 - - - -
+. . . . . . . . .
+2/5 10 33 34 50.9 2.74 - - - -
+2/6 timeout - -
+3/1 8 18 15 2.0 .30 26 12 6 3 1.7 .12 18 9
+3/2 9 25 24 2.4 .30 36 18 6 4 timeout
+3/3 10 32 33 3.8 .39 - - - -
+3/4 11 39 42 17.2 1.28 - - - -
+3/5 timeout
+4/1 10 23 20 2.3 .30 42 16 6 3 6.0 .19 21 12
+4/2 11 32 32 5.0 .40 55 24 6 4 timeout
+4/3 12 41 44 10.9 .84 68 32 6 5 timeout
+4/4 13 50 56 92.2 4.17 - - - -
+4/5 out of memory - -
+5/1 12 28 25 7.2 .39 62 20 6 3 11.1 .19 22 11
+5/2 13 39 40 20.8 .79 78 30 6 4 timeout
+5/3 14 50 55 82.1 2.67 94 40 6 5 timeout
+5/4 15 61 70 1101.3 16.70 110 50 6 6 timeout
+5/5 out of memory - -
+6/1 14 33 30 41.5 .80 86 24 6 3 23.6 .31 25 12
+6/2 15 46 48 183.4 2.67 105 36 6 4 timeout
+7/1 16 38 35 289.5 5.35 114 28 6 3 26.0 .36 27 13
+8/1 18 43 40 1657.4 15.73 146 32 6 3 94.7 .65 27 14
+9/1 20 48 45 out of memory 6 3 152.4 1.22 36 25
+. . . . . . . . .
+15/1 32 78 75 out of memory 6 3 1259.5 23.24 66 49
+SR 2/1 5 18 17 1.9 .30 32 16 6 2 2.7 .16 18 10
+2/2 6 24 26 4.3 .39 - - - -
+2/3 7 30 35 1290.3 5.36 - - - -
+2/4 out of memory - -
+3/1 out of memory 7 2 219.4 .61 27 19
+JP 2 3 12 13 1.3 .30 16 13 7 3 1.5 .08 16 13
+3 4 18 23 1.8 .30 34 28 8 4 timeout
+. . . . . . . . .
+11 12 102 175 353.3 16.78 706 484 16 12 timeout
+12 out of memory 17 13 timeout
+DW 1 3 12 10 1.1 .30 10 6 8 1 .3 .04 10 6
+2 4 19 16 2.0 .30 24 16 10 1 .4 .05 16 12
+. . . . . . . . .
+11 13 82 70 137.6 2.82 420 286 28 1 78.3 2.26 70 57
+12 14 89 76 201.8 2.82 494 336 30 1 157.3 3.38 76 62
+13 15 96 82 277.9 4.24 574 390 32 1 341.1 8.18 82 67
+14 16 103 88 400.1 4.22 660 448 34 1 624.5 11.80 88 72
+15 17 110 94 537.2 4.87 752 510 36 1 timeout
+. . . . . . . . .
+20 22 145 124 1799.8 11.69 1302 880 46 1 timeout
+21 timeout 48 1 timeout
+DWs 1 3 11 6 .7 .29 8 3 5 1 .2 .04 8 3
+2 5 21 12 1.6 .30 23 10 7 1 .3 .05 17 8
+. . . . . . . . .
+7 15 71 42 14.4 .91 218 105 17 1 5.3 .87 57 28
+8 17 81 48 24.9 1.52 281 136 19 1 11.7 3.18 65 32
+9 19 91 54 45.4 2.83 352 171 21 1 41.3 8.84 73 36
+10 21 101 60 80.0 2.85 431 210 23 1 132.8 12.96 81 40
+11 23 111 66 142.6 4.42 518 253 25 1 timeout
+. . . . . . . . .
+16 33 161 96 1508.3 16.30 1073 528 35 1 timeout
+17 timeout 37 1 timeout
+’-’ means no winning strategy exists.
+Figure 6: Comparison between the symbolic synthesis approach and the bounded synthesis approach.
+
+--- Page 15 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 37
+When A DAM and our prototype implementation both synthesized a winning strategy, then we mark the
+minimal running time, the minimal memory usage, and the minimal number of places and of transitions
+in the winning strategy in bold, respectively.
+A selection of these values and benchmark families are plotted in Fig. 7. In Fig. 7(a), the CPU times
+in minutes for the symbolic and the bounded approach on selected benchmark families are plotted for an
+increasing number of processes, i.e., the number of tokens of the underlying net. CMi, for i2f2;4;5g,
+represents the subset of the concurrent machines benchmark, where the ﬁrst parameter mfor the number
+of machines is ﬁxed to i. Therefore, the number of orders increases the number of processes in CMi.
+The dotted lines designate the expected running time obtained by ﬁtting exponential curves through the
+actual values. In Fig. 7(b), we plotted the number of transitions of the input Petri games and of the
+corresponding winning strategies of the two approaches for an increasing number of processes from
+selected benchmark families.
+(a) The CPU running time (in minutes) for a selection of
+benchmarks and the respective number of processes (tokens).
+The running time for the bounded approach is given as squares
+and the running time for the symbolic case is given by stars.
+The dotted lines designate the expected running time after the
+timeout of 30 minutes.
+(b) The sizes (in the number of transitions) for a selection of
+benchmarks and the respective number of processes (tokens).
+The number of transitions of the Petri game is designated by
+stars, the number of transitions for the bounded strategy by
+ﬁlled circles, and the number of transitions of the strategy in
+the bounded case by squares.
+Figure 7: Comparison of the symbolic synthesis approach and the bounded synthesis approach by the
+running times and sizes of the strategies.
+
+--- Page 16 ---
+38 Symbolic vs. Bounded Synthesis for Petri Games
+4.3 Implementation details
+During the implementation of our prototype for bounded synthesis of Petri games, we observed that a
+translation of the matrix fninto conjunctive normalform (CNF) and the usage of a QBF solver requiring
+input in CNF has poor performance. We found out that the QCIR ﬁle format for QBFs [16] allows
+competitive performance as fndoes not need to be translated into CNF. As we have a 2-QBF not in CNF,
+solvers using counterexamples to reﬁne an abstraction (CEGAR-based) [3] showed the best performance.
+We therefore decided for the solver Q UABS [17] as it combines fast parsing with fast solving. Given a
+bound on the length of the proof of correctness for a strategy, we further pruned the bounded unfolding of
+unreachable places and unreachable transitions to remove unnecessary variables from the 2-QBF, which
+increased the overall performance.
+The running times of both approaches are highly dependent on the number of variables which are
+respectively used in the BBD and in the QBF. For the symbolic approach, the number of variables in the
+BDD grows signiﬁcantly with the number of players in the Petri game (which are represented by tokens
+in the underlying net). The two-player game over a ﬁnite graph with complete information is represented
+by a BDD for each ﬂow encoding the ﬂow’s source and target state. For optimizing the size of the BDD,
+we partition PSintokdisjunct sets PSiPS, for i2f1;:::; kg, such that for every reachable marking
+each place of the marking belongs uniquely to exactly one of the sets PSi. In general, the number k
+corresponds to the number of system processes in the game. A state of the ﬁnite graph is encoded by a
+binary encoding of the ID of the environment place and the maximally kIDs of the system places of the
+marking, which results in encodings of logarithmic size. Whether a process’s commitment set contains
+a transition is encoded explicitly by a Boolean ﬂag. An explicit encoding is used because the size of the
+commitment set varies for each process depending on the place it resides in. In general, this approach
+yields smaller BDDs. The two additional variables per system process encode whether the process’s
+commitment set has to be renewed, i.e., the >-ﬂag is set or not, and whether the place is a type2-typed
+place. Thus, the number of variables for a BDD can be calculated by
+2 
+log 2(jPEj) +k
+å
+i=1(log 2(jPSij) +jTij+2)!
+whereTi=S
+p2PSip.
+For the bounded approach, we distinguish existentially and universally quantiﬁed variables and gate
+variables. The existentially quantiﬁed variables describe the system’s strategy and the universally quan-
+tiﬁed variables encode all sequences of markings. The gate variables are used to describe the bounded
+synthesis problem in the matrix fngiven the existentially and universally quantiﬁed variables. Thus,
+the size of the QBF is growing with the structure of the underlying net of the Petri game, i.e., with the
+number of places and transitions.
+In Fig. 8, we compare the number of variables in the two approaches for benchmark families where
+several instances are solved by both approaches. DW, DWs, and CM with parameter k=1 qualify for
+this comparison. For the symbolic approach, the number of variables in the BDD is given (# Var symbolic ).
+For the bounded approach, the total number of variables in the QBF (# Var bounded ) and the number of
+existentially (# Var9) and universally (# Var8) quantiﬁed variables thereof are given. The number of gate
+variables (# Varfn) used to build the matrix fnis stated as the remaining variables of # Var bounded , i.e.,
+#Var9+#Var8+#Varfn=#Var bounded . From the size difference of the respective numbers of variables
+in the two approaches, one can derive that they are used for a different purpose in the respective ap-
+proach. For the symbolic approach, the number of variables grows linearly for all benchmarks. For the
+
+--- Page 17 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 39
+Ben. Par. #Var symbolic n b #Var bounded #Var9#Var8#Varfn
+CM 2/1 66 6 3 2743 53 162 2528
+3/1 92 6 3 7678 109 300 7269
+4/1 120 6 3 17849 197 462 17190
+5/1 146 6 3 25848 266 570 25012
+6/1 172 6 3 35287 343 678 34266
+7/1 198 6 3 46166 428 786 44952
+8/1 226 6 3 58485 521 894 57070
+DW 1 46 8 1 1144 12 96 1036
+2 72 10 1 2591 20 190 2381
+3 98 12 1 4838 28 312 4498
+4 124 14 1 8052 36 462 7554
+5 148 16 1 12404 44 640 11720
+6 172 18 1 18059 52 846 17161
+7 198 20 1 25186 60 1080 24046
+8 224 22 1 33953 68 1342 32543
+9 248 24 1 44528 76 1632 42820
+10 272 26 1 57079 84 1950 55045
+11 296 28 1 71744 92 2296 69356
+12 320 30 1 88781 100 2670 86011
+13 344 32 1 108268 108 3072 105088
+14 368 34 1 130403 116 3502 126785
+DWs 1 36 5 1 440 9 55 376
+2 70 7 1 1414 17 147 1250
+3 102 9 1 3204 25 279 2900
+4 136 11 1 6050 33 451 5566
+5 168 13 1 10192 41 663 9488
+6 200 15 1 15870 49 915 14906
+7 232 17 1 23324 57 1207 22060
+8 266 19 1 32794 65 1539 31190
+9 298 21 1 44520 73 1911 42536
+10 330 23 1 58742 81 2323 56338
+Figure 8: Comparison between the numbers of different variables in the two approaches.
+
+--- Page 18 ---
+40 Symbolic vs. Bounded Synthesis for Petri Games
+bounded approach, the number of existentially quantiﬁed variables grows linearly, the number of univer-
+sally quantiﬁed variables grows quadratically, and the total number of variables grows cubicly in DW and
+DWs. For CM, all variables in the bounded encoding grow exponentially which is surprising as nandb
+remain constant. We suppose that this increase is caused by the construction of the bounded unfolding
+which produces an exponentially growing number of transitions for this benchmark family despite b=3
+remaining constant.
+We further detected that the QBF problem ﬁles can become large, which requires a QBF solver with
+fast parsing of the problem ﬁle. The largest solved QCIR ﬁle is of size 40 MB and contains 208 :877
+variables (benchmark concurrent machines with parameters m=15 and k=1 and bounds n=6 and
+b=3). A very large QCIR ﬁle for a benchmark which A DAM solved but for which the QBF solver timed
+out (benchmark job processing with parameter m=4 and bounds n=9 and b=5) has a size of 275 MB
+and contains 2 :722:512 variables.
+In summary, the size of the BDD for the symbolic approach is dominated by the number of tokens
+whereas the size of the 2-QBF for the bounded approach is dominated by the number of places and
+transitions of the underlying net of the Petri game.
+4.4 Comparison
+Both approaches work especially well on certain aspects of distributed synthesis. The symbolic approach
+implemented in A DAM solves more instances than the bounded synthesis approach for all benchmark
+families but for concurrent machines (CM) with one defective machine ( k=1). A DAM can further show
+the non-existence of a winning strategy for instantiations of benchmark families for which bounded
+synthesis is not applicable. For example, A DAM shows that for CM no strategy exists when equally
+many or more orders as machines are placed because one machine can process at most one order and the
+environment marks one machine as unable to process an order.
+The bounded approach is well suited for ﬁnding small winning strategies. It holds for all winning
+strategies produced by the two approaches that the respective winning strategies from bounded synthesis
+have equally many or fewer places and transitions. For small instances, these differences are negligible
+as for the ﬁrst instances of alarm system (AS) and both versions of document workﬂow (DW and DWs)
+the respective strategies are of equal size. The larger the benchmark instances become, the larger the
+differences in strategy size get. For DW with parameter m=14, the strategy from A DAM has 660 places
+and 448 transitions whereas the strategy from the prototype implementation of bounded synthesis has
+only 88 places and 72 transition. This comes at a higher solving time of 625 seconds in contrast to
+400 seconds and at using 12 GB of memory in comparison to 4 GB.
+The difference in size of the strategies can also be observed from Fig. 7(b) where the size of the input
+and of the produced strategies by the two approaches are compared for a given number of processes. This
+difference in size is based on the different structure of the strategies in the two approaches. In bounded
+unfoldings and bounded strategies, more than one transition can merge into one place, if the different
+history of the token is not needed. In contrast, the symbolic approach has to unfold a place in every case
+notwithstanding the need for differentiation of its causal past. This becomes apparent in the benchmarks
+DW and DWs. In the symbolic case, for every choice of the environment which clerk has to decide on
+endorsing the document ﬁrst, the places and transitions of each clerk are copied and put into the right
+order. The bounded algorithm detects that it is not necessary to unfold all these places, since the memory
+is not needed for ﬁnding a winning strategy and thus yields a much smaller strategy.
+The bounded approach can be more subtle in choosing when to unfold places and therewith generally
+ﬁnds smaller strategies than the symbolic approach. This illustrates the difference between a bounded
+
+--- Page 19 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 41
+strategy (produced by the bounded synthesis approach) and a strategy (produced by the symbolic synthe-
+sis approach). Bounded strategies are based on the bounded unfolding which can consolidate different
+causal pasts into one system place for which the corresponding strategy has to make the same decision.
+In contrast, a strategy is based on the unfolding, which explicitly represents every causal past of a system
+place. At each such system place, an individual decision can be made. Therefore, when the same de-
+cision sufﬁces for each causal past, these decisions are represented explicitly with each unfolded place.
+From the visualization of Fig. 7(b), we can conjecture for the displayed subset of benchmark families
+that the symbolic approach can only ﬁnd strategies which grow in size exponentially because the unfold-
+ing is exponential in the number of places and transitions. In contrast, the bounded approach can ﬁnd
+strategies which grow in size linearly when a linearly growing bounded unfolding sufﬁces to represent
+the necessary causal history.
+For the sizes of the solution in the symbolic case, we can see that in general the strategy sizes increase
+faster and also are larger than the sizes of the input in the benchmark families from Fig. 7(b). This is
+caused by our benchmarks mostly increasing linearly in the input sizes (e.g., by adding a new robot or
+a new machine). Meanwhile, the solution is getting more difﬁcult due to the additional abilities and be-
+haviors of the whole system (e.g., the factory) and the symbolic approach has to consider more different
+ﬂows of tokens with different causal histories. In general, the unfolding and the strategy increase in size
+stronger than the input. One exception to the linear increase of the input is the new alarm system bench-
+mark. There we also add only linearly bounded many places and transitions for every new alarm system,
+but we have to add an additional alarm signal at each already existing alarm system and, furthermore,
+transitions leading to bad places for all additional combinations of bad situations. Since those transitions
+are not present in the strategy, the size of the solution is smaller than the size of the input for the alarm
+system benchmark.
+For the running time, we can see in Fig. 6 and in Fig. 7(a) that the bounded approach outperforms the
+symbolic one for smaller instances but increases more sharply. This stems from the different parameters
+in both approaches discussed in Sec. 4.3, which are responsible for the solving complexity. For the
+symbolic case, the number of processes are principally responsible for the increasing number of variables
+of the BDD and thus for the complexity. For the bounded approach, this is different because the number
+of QBF variables is more dependent on the structure of the net than on the number of tokens.
+For the benchmarks of DW and DWs, the bounded synthesis approach outperforms A DAM for the
+ﬁrst eleven respectively nine parameters in terms of runtime and memory usage. On the next three
+parameters (DW) respectively on the next parameter (DW), A DAM outperforms bounded synthesis. After
+that, bounded synthesis already reaches the time limit while A DAM can solve further ﬁve parameters for
+DW and DWs each.
+The bounded synthesis approach further showed that no unfolding is necessary to solve instances
+of DW and DWs. It also revealed that for CM it is possible to ﬁnd winning strategies for benchmark
+instances of growing size while maintaining the same values for nandb.
+5 Conclusion
+We added the new benchmark family of a distributed alarm system to the set of benchmark families
+for distributed synthesis with Petri games collected during the implementation of A DAM . The new
+benchmark family models an alarm system for a person with a scalable number of independent locations
+she needs to secure. Each of these locations has a local alarm system, which can detect the intrusion by
+a burglar. Furthermore, all alarm systems can communicate with each other and each alarm system can
+
+--- Page 20 ---
+42 Symbolic vs. Bounded Synthesis for Petri Games
+indicate the position of a detected burglary. We synthesized strategies to detect the position of a burglary
+and indicate it at the alarm systems of allindependent locations.
+We found out that the translation of bounded synthesis into 2-QBF resulted in large non-CNF formu-
+las, which were solved best by a CEGAR-based QBF solver like Q UABS. The automatic construction of
+the bounded unfolding beneﬁts from a removal of unreachable places and transitions, which implies that
+there is still room for improvement when constructing the bounded unfolding.
+We compared the symbolic synthesis approach implemented in the tool A DAM with the bounded
+synthesis approach on the extended set of benchmarks. We found out that symbolic synthesis can overall
+synthesize strategies for larger problems for all benchmark families except the benchmark family of
+concurrent machines (with parameter k=1). For the smaller instances, bounded synthesis is faster but
+the running time grows at a higher rate such that A DAM can solve more instances overall. At the same
+time, bounded synthesis ﬁnds smaller strategies in the number of places and transitions. This difference
+is negligible for small instances but grows for larger instances. The difference in size of the strategies is
+caused by the distinction between the bounded unfolding and the unfolding. In the bounded unfolding,
+different causal pasts can be consolidated into one place whereas in the unfolding, unique causal pasts
+have to be differentiated. Therefore, bounded strategies can proﬁt in terms of size from situations where
+only some causal past is needed. This adds to the general beneﬁt of bounded synthesis in comparison
+with symbolic synthesis to steer the search to small strategies.
+We identiﬁed that the number of variables in the BDD of the symbolic approach grows in the number
+of tokens in the underlying net of the Petri game whereas the number of variables in the QBF of the
+bounded approach grows in the number of places and transitions of the underlying net of the Petri game.
+We further showed that for the benchmark families DW and DWs local strategies for each system player
+sufﬁce as the bounded unfolding is the same as the original game. This proved that both symbolic and
+bounded synthesis are well-suited for certain aspects of distributed synthesis with Petri games.
+References
+[1] Roderick Bloem, Stefan J. Galler, Barbara Jobstmann, Nir Piterman, Amir Pnueli & Martin Weiglhofer
+(2007): Interactive presentation: Automatic hardware synthesis from speciﬁcations: a case study . In: 2007
+Design, Automation and Test in Europe Conference and Exposition, DATE 2007, Nice, France, April 16-20,
+2007 , pp. 1188–1193, doi:10.1145/1266366.1266622.
+[2] Alonzo Church (1963): Application of recursive arithmetic to the problem of circuit synthesis .
+[3] Edmund M. Clarke, Orna Grumberg, Somesh Jha, Yuan Lu & Helmut Veith (2000): Counterexample-
+Guided Abstraction Reﬁnement . In: Computer Aided Veriﬁcation, 12th International Conference, CA V 2000,
+Chicago, IL, USA, July 15-19, 2000, Proceedings , pp. 154–169, doi:10.1007/10722167 15.
+[4] Javier Esparza & Keijo Heljanko (2008): Unfoldings - A Partial-Order Approach to Model Checking . Mono-
+graphs in Theoretical Computer Science. An EATCS Series, Springer, doi:10.1007/978-3-540-77426-6.
+[5] Bernd Finkbeiner (2015): Bounded Synthesis for Petri Games . In: Correct System Design - Symposium in
+Honor of Ernst-R ¨udiger Olderog on the Occasion of His 60th Birthday, Oldenburg, Germany, September 8-9,
+2015. Proceedings , pp. 223–237, doi:10.1007/978-3-319-23506-6 15.
+[6] Bernd Finkbeiner, Manuel Gieseking & Ernst-R ¨udiger Olderog (2015): Adam: Causality-Based Synthesis
+of Distributed Systems . In: Computer Aided Veriﬁcation - 27th International Conference, CA V 2015, San
+Francisco, CA, USA, July 18-24, 2015, Proceedings, Part I , pp. 433–439, doi:10.1007/978-3-319-21690-4 -
+25.
+[7] Bernd Finkbeiner & Ernst-R ¨udiger Olderog (2014): Petri Games: Synthesis of Distributed Systems
+with Causal Memory . In: Proceedings Fifth International Symposium on Games, Automata, Log-
+
+--- Page 21 ---
+B. Finkbeiner, M. Gieseking, J. Hecking-Harbusch, & E.-R. Olderog 43
+ics and Formal Veriﬁcation, GandALF 2014, Verona, Italy, September 10-12, 2014. , pp. 217–230,
+doi:10.4204/EPTCS.161.19.
+[8] Bernd Finkbeiner & Ernst-R ¨udiger Olderog (2017): Petri games: Synthesis of distributed systems with causal
+memory .Inf. Comput. 253, pp. 181–203, doi:10.1016/j.ic.2016.07.006.
+[9] Bernd Finkbeiner & Sven Schewe (2005): Uniform Distributed Synthesis . In: 20th IEEE Symposium on
+Logic in Computer Science (LICS 2005), 26-29 June 2005, Chicago, IL, USA, Proceedings , pp. 321–330,
+doi:10.1109/LICS.2005.53.
+[10] Bernd Finkbeiner & Sven Schewe (2013): Bounded synthesis . STTT 15(5-6), pp. 519–539,
+doi:10.1007/s10009-012-0228-z.
+[11] Orna Kupferman & Moshe Y . Vardi (2001): Synthesizing Distributed Systems . In: 16th Annual IEEE Sym-
+posium on Logic in Computer Science, Boston, Massachusetts, USA, June 16-19, 2001, Proceedings , pp.
+389–398, doi:10.1109/LICS.2001.932514.
+[12] P. Madhusudan, P. S. Thiagarajan & Shaofa Yang (2005): The MSO Theory of Connectedly Communicat-
+ing Processes . In: FSTTCS 2005: Foundations of Software Technology and Theoretical Computer Sci-
+ence, 25th International Conference, Hyderabad, India, December 15-18, 2005, Proceedings , pp. 201–212,
+doi:10.1007/11590156 16.
+[13] Ernst-R ¨udiger Olderog (1991): Nets, Terms and Formulas: Three Views of Concurrent Processes and Their
+Relationship . Cambridge University Press, doi:10.1017/CBO9780511526589.
+[14] Amir Pnueli & Roni Rosner (1989): On the Synthesis of a Reactive Module . In: Conference Record of the
+Sixteenth Annual ACM Symposium on Principles of Programming Languages, Austin, Texas, USA, January
+11-13, 1989 , pp. 179–190, doi:10.1145/75277.75293.
+[15] Amir Pnueli & Roni Rosner (1990): Distributed Reactive Systems Are Hard to Synthesize . In: 31st Annual
+Symposium on Foundations of Computer Science, St. Louis, Missouri, USA, October 22-24, 1990, V olume
+II, pp. 746–757, doi:10.1109/FSCS.1990.89597.
+[16] QBF Gallery 2014: QCIR-G14: A Non-Prenex Non-CNF Format for Quantiﬁed Boolean Formulas . Available
+athttp://qbf.satisfiability.org/gallery/qcir-gallery14.pdf .
+[17] Leander Tentrup (2016): Non-prenex QBF Solving Using Abstraction . In: Proceedings of SAT ,LNCS 9710,
+Springer, pp. 393–401, doi:10.1007/978-3-319-40970-2 24.
+[18] Wieslaw Zielonka (1987): Notes on Finite Asynchronous Automata . ITA 21(2), pp. 99–135,
+doi:10.1051/ita/1987210200991.

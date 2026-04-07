@@ -1,0 +1,1928 @@
+--- Page 1 ---
+Better Abstractions for Timed AutomataI
+Fr ed eric Herbreteaua, B. Srivathsanb,, Igor Walukiewicza
+aUniversit e de Bordeaux, Bordeaux INP, CNRS, LaBRI, UMR 5800, Talence, France
+bChennai Mathematical Institute, Chennai, India
+Abstract
+We study the reachability problem for timed automata. A standard solution to
+this problem involves computing a search tree whose nodes are abstractions of
+zones. These abstractions preserve underlying simulation relations on the state
+space of the automaton. For both eectiveness and eciency reasons, they are
+parameterized by the maximal lower and upper bounds ( LU-bounds) occurring
+in the guards of the automaton.
+One such abstraction is the a4LUabstraction dened by Behrmann et al.
+Since this abstraction can potentially yield non-convex sets, it has not been
+used in implementations. Firstly, we prove that a4LUabstraction is the coarsest
+abstraction with respect to LU-bounds that is sound and complete for reacha-
+bility. Secondly, we provide an ecient technique to use the a4LUabstraction
+to solve the reachability problem.
+Keywords: Timed automata, reachability problem, non-convex abstractions
+1. Introduction
+Timed automata are nite automata extended with clocks whose values can
+be compared with constants and set to zero. The clocks measure delays between
+dierent steps of execution of the automaton. The reachability problem for
+timed automata asks if there exists a path from its initial state to a given
+target state. This problem cannot be solved by a simple state exploration since
+clocks are real-valued variables. The standard solution to this problem involves
+computing the zone graph of the automaton which in principle could be innite.
+In order to make it nite, zones are approximated using an abstraction operator.
+Till recently it has been generally assumed that for reasons of eciency an
+abstraction of a zone should always be a zone. Here we avoid this assumption.
+IThis work has been supported by project AVeRTS - CEFIPRA - Indo-French Program
+in ICST - DST/CNRS rf. 218093. Author B. Srivathsan is partially funded by a grant from
+Infosys Foundation.
+Corresponding author
+Email addresses: fh@labri.fr (Fr ed eric Herbreteau), sri@cmi.ac.in (B. Srivathsan),
+igw@labri.fr (Igor Walukiewicz)
+Preprint submitted to Elsevier July 21, 2016
+
+--- Page 2 ---
+We rst show that a4LUabstraction dened by Behrmann et al. [4] is the coarsest
+sound and complete abstraction. We then present a method of constructing the
+abstracted zone graph using the a4LUabstraction. Even though this abstraction
+can yield non-convex sets, we show that our method is at least as ecient as
+any other currently known method based on abstractions.
+The reachability problem is a basic problem in verication. It is histori-
+cally the rst problem that has been considered for timed-automata, and it is
+still a lively subject of research [4, 23, 19, 14]. Apart from being interesting
+by itself, the advances on this problem may give new methods for verication
+of more complicated models, like priced timed-automata [10], or probabilistic
+timed automata [13, 9, 17].
+All approaches to solving the reachability problem for timed automata should
+ensure termination. To tackle this, most of them use abstractions to group to-
+gether bisimilar valuations of clock variables, that is, valuations not distinguish-
+able by the automaton as far as reachability to the nal state is concerned. The
+rst solution has been based on regions, which are certain equivalence classes
+of clock valuations [2]. Their denition is parameterized by a threshold up to
+which the clock values should be considered. A great improvement in eciency
+has been obtained by adopting zones instead of regions. These are sets of valu-
+ations dened by conjunctions of dierences between pairs of clocks. They can
+be eciently implemented using dierence bound matrices (DBMs) [7, 12]. A
+challenge with zone based approach is that they are not totally compatible with
+regions, and moreover a forward exploration algorithm can produce innitely
+many zones. The union of regions intersecting a zone is a natural candidate for
+a nitary abstraction. Indeed this abstraction would make the forward explo-
+ration algorithm terminate. However such an union of regions is not necessarily
+a zone and so it is not clear how to represent it. For this reason a number of
+abstraction operators have been proposed that give an approximation of the
+union of regions intersecting a zone. A coarser approximation would make the
+abstracted zone graph smaller. So potentially it would give a more ecient
+algorithm.
+An important observation made in [4] is that if reachability is concerned
+then we can consider simulation instead of bisimulation. Indeed, it is safe
+to add congurations that can be simulated by those that we have already
+reached. Simulation relations in question depend on the given automaton, and
+it isExptime -hard to calculate the biggest one [18]. A pragmatic approach
+is to abstract some part of the structure of the automaton and dene a simu-
+lation based on this information. The most relevant information is the set of
+bounds with which clocks are compared to in the guards of the automaton. Since
+lower and upper bounds are considered separately, they are called LU-bounds.
+In [4] the authors dene an abstraction based on simulation with respect to LU-
+bounds; it is denoted a4LU. Theoretically a4LUis very attractive: it has clear
+semantics and, as we show here, it is always a union of regions. The problem is
+that a4LUabstraction of a zone is seldom a convex set, so one cannot represent
+the result as a zone.
+In this paper we give another very good reason to consider a4LUabstraction.
+2
+
+--- Page 3 ---
+xy
+Lx UxLyUyZ:
+Extra+
+LU(Z) :[
+Closure+
+LU(Z) :[[
+a4LU(Z) :[[[
+Figure 1: A comparison of abstraction operators for zones.
+We show that it is actually the coarsest abstraction that is sound and complete
+with respect to reachability for all automata with the same LU-bounds. In
+other words, it means that in order to get coarser (that is better) abstractions
+one would need to look at some other structural properties of automata than
+justLU-bounds. Our main technical result is an eective algorithm for dealing
+with a4LUabstraction. It allows to manipulate this abstraction as eciently as
+purely zone based ones. We propose a forward exploration algorithm working
+with zones that constructs the a4LUabstraction of the transition graph of the
+automaton. This algorithm uses standard operations on zones, plus a new test of
+inclusion of a zone in the a4LUabstraction of another zone. The test is quadratic
+in the number of clocks and not more complex than that for just testing an
+inclusion between two zones. Since a4LUabstraction is the coarsest sound and
+complete abstraction, it can potentially give smallest abstract systems.
+1.1. Related Work
+Forward analysis is the main approach for the reachability testing of real-
+time systems. The use of zone-based abstractions for termination has been
+introduced in [11]. In recent years, coarser abstractions have been introduced
+to improve eciency of the analysis [4]. An approximation method based on LU-
+bounds, called Extra+
+LU, is used in the current implementation of UPPAAL [5].
+In [14] it has been shown that it is possible to eciently use the region closure
+ofExtra+
+LU, denoted Closure+
+LU. This has been the rst ecient use of a non-
+convex abstraction. In comparison, a4LUapproximation has a well-motivated
+semantics, it is also region closed, coarser than Closure+
+LUand the resulting
+inclusion test is even simpler than that of Closure+
+LU. A comparison of these
+abstractions is depicted in Fig. 1.
+Let us mention that abstractions are not needed in backward exploration of
+timed systems. Nevertheless, any feasible backward analysis approach needs to
+simplify constraints. For example [19] does not use approximations and relies
+on an SMT solver instead. Clearly this approach is very dicult to compare
+with the forward analysis approach we study here.
+Another related approach to verication of timed automata is to build a
+quotient graph of the semantic graph of the automaton with respect to some
+bisimulation relation [22, 1, 24]. For reachability properties, this approach is
+3
+
+--- Page 4 ---
+not a priori competitive with respect to using the simulation-based abstraction
+a4LU. It is more adapted to checking branching time properties.
+1.2. Organization of the Paper
+The paper is organized as follows.
+Section 2 presents the preliminary denitions. It introduces the notion of
+sound and complete abstractions parameterized by LU-bounds. It also
+explains how these abstractions could be used to solve the reachability
+problem.
+Section 3 proposes absLUabstraction, and proves that it is the coarsest sound
+and complete abstraction for all automata with given LU-bounds.
+Section 4 shows that the a4LUabstraction actually coincides with this coarsest
+abstraction absLU.
+Section 5 presents an ecient inclusion test for a4LUabstraction, which allows
+for its use in implementations.
+A preliminary version of this paper appeared in the conference on Logic in
+Computer Science [15]. This version includes all missing proofs and gives a more
+elaborate discussion about the inclusion test (Section 5).
+2. Preliminaries
+After recalling some preliminary notions, we introduce a concept of abstrac-
+tion as a means to reduce the reachability problem for timed-systems to the one
+for nite systems. We then observe that simulation relation is a convenient way
+of obtaining abstractions with good properties.
+2.1. Timed automata and the reachability problem
+LetXbe a set of clocks, i.e., variables that range over R0, the set of non-
+negative real numbers. A clock constraint is a conjunction of constraints x#cfor
+x2X, #2f<;;=;;>gandc2N, e.g. (x3^y >0). Let (X) denote
+the set of clock constraints over clock variables X. Aclock valuation overXis
+a functionv:X!R0. We denote by RX
+0the set of clock valuations over X,
+and by 0the valuation that associates 0 to every clock in X. We write v
+whenvsatises2(X), i.e. when every constraint in holds after replacing
+everyxbyv(x). For2R0, letv+be the valuation that associates v(x) +
+to every clock x. ForRX, let [R]vbe the valuation that sets xto 0 ifx2R,
+and that sets xtov(x) otherwise.
+ATimed Automaton (TA) is a tupleA= (Q;q 0;X;T; Acc) whereQis a
+nite set of states, q02Qis the initial state, Xis a nite set of clocks, AccQ
+is a set of accepting states, and TQ(X)2XQis a nite set of
+4
+
+--- Page 5 ---
+transitions ( q;g;R;q0) wheregis a guard , andRis the set of clocks that are
+reset on the transition.
+The semantics of Ais a transition system of its congurations. A congura-
+tion ofAis a pair (q;v)2QRX
+0and (q0;0) is the initial conguration . We
+have two kinds of transitions:
+Delay: (q;v)!(q;v+) for some2R0;
+Action: (q;v)!t(q0;v0) for some transition t= (q;g;R;q0)2Tsuch that
+vgandv0= [R]v.
+We will denote by SAthe transition system describing the semantics of a
+timed automaton A. In this paper we are interested in the reachability problem :
+does there exist a conguration ( q;v) with accepting state q2Acc that is
+reachable from ( q0;0) by some nite sequence of delay and action transitions?
+The class of TA we consider is usually known as diagonal-free TA since clock
+comparisons like x y1 are disallowed. Notice that if we are interested in
+state reachability, considering timed automata without state invariants does not
+entail any loss of generality as the invariants can be added to the guards. For
+state reachability, we can also consider automata without transition labels.
+2.2. Abstractions
+Since the transition system determined by the automaton is innite, we
+usually try to nd a nite approximation of it by grouping valuations together.
+In consequence we work with congurations consisting of a state and a set of
+valuations. For every transition t, we have a transition:
+(q;W))t(q0;W0) whereW0=fv0:9v2W;92R0s.t.v!t!v0g
+We will write)without superscript to denote the union of all )trelations. The
+transition relation dened above considers each valuation v2Wthat can take
+the transition t, obtains the valuation after the transition, and then collects the
+time-successors from this obtained valuation. Therefore the symbolic transition
+)always yields sets closed under time-successors.
+The initial conguration of the automaton is ( q0;0). Starting from the initial
+valuation 0the set of valuations reachable by a time elapse at the initial state
+are given byf0+j2R0g. Call thisW0.
+From (q0;W0) as the initial node, computing the symbolic transition relation
+)leads to dierent nodes ( q;W) wherein the sets Ware closed under time-
+successors. Although the transition relation )talks about sets of valuations
+and not valuations themselves, it could still be potentially innite. A further
+grouping of valuations is necessary to get niteness.
+Anabstraction operation [3] is a convenient way of expressing a grouping of
+valuations. It is a function a:P(RjXj
+0)!P (RjXj
+0) such that Wa(W) and
+a(a(W)) = a(W). An abstraction operator denes an abstract semantics:
+(q;W))a(q0;a(W0))
+where a(W) =Wand (q;W))(q0;W0).
+5
+
+--- Page 6 ---
+Ifahas a nite range then this abstraction is said to be nite. We write )
+a
+for the transitive closure of ), similarly we write )and!respectively for
+the transitive closure of )and!(where!denotes the union of !tand!).
+Of course we want this abstraction to reect some properties of the original
+system. In order to preserve reachability properties we can require the following
+two properties (recall that 02W0):
+Soundness: if (q0;a(W0)))
+a(q;W) then there is a v2Wsuch that (q0;0)!
+(q;v).
+Completeness: if (q0;0)!(q;v) then there is a Wsuch thatv2Wand
+(q0;a(W0)))
+a(q;W).
+It can be easily veried that if an abstraction satises Wa(W) then the
+abstracted system is complete. However soundness is more delicate to obtain.
+Naturally, it is important to be able to eciently compute the abstract
+transition system. A standard way to do this is to use zones. A zone is a set of
+valuations dened by a conjunction of two kinds of constraints: comparison of
+dierences between two clocks with an integer like x y#c, or comparison of
+a single clock with an integer like x#c, where #2f<;;=;;>gandc2N.
+For instance ( x y1)^(y<2) is a zone. Zones can be eciently represented
+using dierence bound matrices (DBMs) [7, 12]. This suggests that one should
+consider abstractions that give zones. As zones are convex, abstractions that
+range over zones are called convex abstractions. This is an important restriction
+as abstractions based on regions are usually not convex [8].
+We propose a way to use non-convex abstractions and zone representations
+at the same time. We will only consider sets Wof the form a(Z) and represent
+them simply by Z. This way we can represent states of an abstract transition
+system eciently: we need just to store a zone. In order for this to work we
+need to be able to compute the transition relation )aon this representation.
+We also need to know when two zone representations stand for the same node
+in the abstract system. This is summarized in the following two requirements:
+Transition compatibility: for every transition ( q;a(Z)))a(q0;W0) and the
+matching transition ( q;Z))(q0;Z0) we haveW0=a(Z0).
+Ecient inclusion test: for every two zones Z;Z0, the testZ0a(Z) is
+ecient. Ideally, it has the same complexity O(jXj2) as the inclusion Z0Z.
+The rst condition is quite easy to satisfy: We will show quickly below
+that every abstraction relation coming from time-abstract simulation [21] is
+transition compatible. The second condition is the main topic of the paper.
+Denition 1 (Time-abstract simulation) A(state based) time-abstract sim-
+ulation between two states of a transition system SAis a relation ( q;v)t:a:
+(q0;v0) such that:
+q=q0,
+if (q;v)!(q;v+)!t(q1;v1), then there exists a 02R0such that
+(q;v0)!0(q;v0+0)!t(q1;v0
+1) satisfying ( q1;v1)t:a:(q1;v0
+1).
+6
+
+--- Page 7 ---
+For two valuations v;v0, we say that vt:a:v0if for every state qof the
+automaton, we have ( q;v)t:a:(q0;v0). An abstraction at:a:based on a simu-
+lationt:a:can be dened as follows:
+Denition 2 (Abstraction based on simulation) Given a set W, we de-
+neat:a:(W) =fvj9v02W: vt:a:v0g.
+Denition 3 (Timed-elapsed zone) A zoneZis said to be time-elapsed if
+it is closed under time-successors: that is Z=fv+jv2Z;2R0g.
+We had previously noted that all nodes ( q;W) reachable through )from
+the initial node ( q0;W0) are all time elapsed. We can now show that transition
+relations coming from abstractions based on time-abstract simulations satisfy
+the transition compatibility condition.
+Lemma 4 Letat:a:be an abstraction based on a time-abstract simulation rela-
+tion and let Zbe a time-elapsed zone. For every transition ( q;at:a:(Z)))at:a:(q0;W0) and the matching transition ( q;Z))(q0;Z0), we haveW0=at:a:(Z0).
+Proof
+Lettbe the transition corresponding to )at:a:and). We rst prove that
+W0at:a:(Z0). Letv02W0. We will show that there exists a valuation in Z0
+that simulates v0with respect tot:a:.
+By the denition of the abstract symbolic transition ( q;at:a:(Z)))at:a:(q0;W0), there is a valuation v12at:a:(Z) and a time elapse 12R0such
+that:
+(q;v1)!t!1(q0;v0
+1) andv0t:a:v0
+1
+Firstly consider the intermediate conguration obtained after the !ttransition
+from (q;v1). Call it ( q0;v0
+1). We know that v0
+12W0. This valuation v0
+1can
+elapse a time 1and become v0
+1. Given thatt:a:is a time-abstract simulation,
+this intermediate valuation v0
+1can simulate v0too:
+(q;v1)!t(q0;v0
+1) andv0t:a:v0
+1 (1)
+Recall that v12at:a:(Z). Therefore, there exists a valuation v22Zsuch that
+v1t:a:v2. As (q;v1) can take the transition !t, by denition of time-abstract
+simulation, there exists a time elapse 2such that (q;v2) can take the transition
+after the time elapse 2:
+(q;v2)!2!t(q0;v0
+2) andv0
+1t:a:v0
+2 (2)
+From (1) and (2), we see that v0t:a:v0
+2. Note that as Zis a time-elapsed zone
+and sincev22Z, we also have v2+22Zand this in turn implies that v0
+22Z0.
+This shows that v02at:a:(Z0) and hence Wat:a:(Z0).
+We will now show the converse: at:a:(Z0)W0. Letv2at:a:(Z0). Then,
+there exists v12Zand a12R0such that (q;v1)!t!1(q0;v0
+1) andvt:a:
+7
+
+--- Page 8 ---
+v0
+1. By the property of an abstraction operator, we will have v12at:a:(Z) too.
+Now, directly by the denition of ( q;at:a:(Z)))at:a:(q0;W0), we get that
+v2W0and hence at:a:(Z0)W0.
+
+This paper is essentially about how to satisfy the \ecient inclusion test"
+condition and get as good abstraction as possible at the same time. In this
+context, let us highlight an important remark that describes when an abstraction
+is better than another.
+Remark 5 Ifaand bare two abstractions such that for every set of valuations
+W, we have a(W)b(W), we prefer to use bsince the graph induced by it is a
+priori smaller than the one induced by a(sic [4]). In such a case, the abstraction
+bis said to be coarser than abstraction a.
+2.3. Bounds as parameters for abstraction
+Remark 5 suggests to make use of the coarsest possible abstraction. For a
+given automaton it can be computed if two congurations are in a simulation
+relation. It should be noted though that computing the biggest simulation
+relation is Exptime -hard [18]. Since the reachability problem can be solved in
+Pspace , this suggests that it may not be reasonable to try to solve it using the
+abstraction based on the biggest simulation.
+We can get simulation relations that are computationally easier if we con-
+sider only a part of the structure of the automaton. The simplest is to take a
+simulation based on the maximal constant that appears in guards. More rened
+is to take the maximum separately over constants from lower bound constraints,
+that is in guards of the form x>c orxc, and those from upper bound con-
+straints, that is in guards x < c orxc. If one moreover does this for every
+clockxseparately, one gets for each clock two integers LxandUx. The abstrac-
+tion that is currently most used is a renement of this method by calculating
+LxandUxfor every state of the automaton separately [3]. For simplicity of
+notation we will not consider this optimization but it can be incorporated with
+no real diculty in everything that follows. We summarize this presentation in
+the following denition.
+Denition 6 (LU-bounds) TheLbound for an automaton Ais the function
+assigning to every clock a maximal constant that appears in a lower bound guard
+forxinA. Similarly Ubut for upper bound guards. An LU-guard is a guard
+where lower bound guards use only constants bounded by Land upper bound
+guards use only constants bounded by U. An LU-automaton is an automaton
+using only LU-guards.
+In the rest of the paper, we try to nd good abstractions parameterized
+by LU-bounds that also have an ecient inclusion test. Section 3 denes an
+abstraction absLUand proves that this is the optimal sound and complete ab-
+straction that is based on LU-bounds. Section 4 then shows that the a4LU
+8
+
+--- Page 9 ---
+abstraction is the same as absLUwhen zones closed under time successors are
+considered. We then give an ecient test Za4LU(Z0) in Section 5, which
+enables the use of a4LUin implementations.
+3. The coarsest LU abstraction
+We call an abstraction that is based on LU bounds an LU abstraction . A
+natural question is to know what is the coarsest LU-abstraction sound and
+complete for reachability testing. Given LandUbounds, we know that the
+automata under consideration have guards only of the following form (with
+l2f<;gandm2f>;g) :
+xm0; xm1;:::; xmLx
+xl0; xl1;:::; xlUx
+However, we do not know the shape of the automata, in particular, the order in
+which the above guards appear in the paths of the automata.
+An abstraction ais sound if for every possible path using the above guards
+that a valuation v2a(W) can execute, there is a representative v02Wthat
+can execute the same path. If this rule is not followed, there is one possible au-
+tomaton with guards respecting the given LU-bounds for which this abstraction
+is not sound. Hence our question can be reworded as follows:
+GivenLandUbounds, what is the coarsest abstraction that is
+sound and complete for all LU-automata?
+We answer this question in four steps:
+Step 1. We dene a generic simulation relation vLU(Denition 7) which
+is a union over all time-abstract simulation relations on LU-automata.
+Roughly the simulation relation says that vvLUv0if all paths, using LU-
+guards, executed by vcan be executed by v0. We dene an abstraction
+absLUthat is based on LU-simulation (Denition 8). The denition of
+LU-simulation is dicult to work with as it talks about innite sequences
+of transitions.
+Step 2. The next aim is to characterize this LU-simulation using a nite
+sequence of transitions (Denition 11). We want to come up with a se-
+quence of LU-guards seq(v) executed by a valuation vfor which we can
+sayvvLUv0iv0executes this characteristic sequence seq(v). To achieve
+this, we go through an intermediate denition of what we call LU-regions
+(Denition 9). We dene this sequence in Denition 11.
+Step 3. Steps 1 and 2 have dened the necessary notions. We now observe
+that the following are equivalent (Proposition 12, Corollary 13):
+vvLUv0,
+9
+
+--- Page 10 ---
+v0can execute seq(v).
+Step 4. The previous step gives a nite characterization of the generic LU-
+simulationvLU. We use this to prove that every sound abstraction should
+be contained in absLU, in other words absLUis the coarsest abstraction
+sound and complete for all LU-automata (Theorem 14).
+Section 3.1 handles Step 1; Section 3.2 denes the LU-regions as mentioned
+in Step 2; Sections 3.3 and 3.4 handle Steps 3 and 4 respectively.
+3.1. LU-simulation
+Using LU-bounds we dene a simulation relation on valuations without re-
+ferring to any particular automaton; or to put it dierently, by considering all
+LU-automata at the same time.
+Denition 7 (LU-simulation) LetL,Ube two functions giving an integer
+bound for every clock. The LU-simulation relation between valuations is the
+biggest relationvLUsuch that if vvLUv0then for every LU-guard g, and set
+of clocksRXwe have
+ifvg;R !v1for somev1thenv0g;R !v0
+1forv0
+1such thatv1vLUv0
+1.
+wherevg;R !v1means that for some 2R0we havev+gandv1=
+[R](v+).
+Note that in the above denition, the time elapse 0required for v0to sat-
+isfy the guard gcould be dierent from the time elapse required for vto
+satisfy the guard g. It is immediate that vLUis the biggest relation that is
+a time-abstract simulation for all automata with given LU bounds. We dene
+abstraction operator absLUto be the abstraction based on this LU-simulation.
+Denition 8 (Abstraction based on LU-simulation) For a zoneZwe de-
+ne: absLU(Z) =fvj9v02Z: vvLUv0g.
+The denition of LU-simulation is sometimes dicult to work with since it
+talks about innite sequences of actions. We will present a useful characteriza-
+tion implying that actually we need to consider only very particular sequences of
+transitions that are of length bounded by the number of clocks (Corollary 13).
+Essentially, we are interested in the following question: given a valuation v,
+when does a valuation v0LU-simulate it, that is, when is vvLUv0. We start
+with a preparatory denition of what we call LU-regions.
+3.2. LU-regions
+We introduce the notion of LU-regions. The classical notion of regions [2]
+depends on the maximum bounds function M. Given only the maximum bounds
+M, we know that there could be guards xlcandxmcforc2f0;:::;Mxgin the
+automaton. Let us call them the M-guards . However, with the LU-bounds, there
+10
+
+--- Page 11 ---
+is more information and consequently fewer guards: xlcforc2f0;:::;Uxg,
+andxmcforc2f0;:::;Lxg. Note that for each x, we haveMx= max(Lx;Ux).
+Let us denote the region of a valuation vby [v]M. A valuation v0belongs to
+the region [ v]Mif two properties are satised:
+Invariance by guards: v0satises all M-guards that vsatises,
+Invariance by time-elapse: for every time elapse 2R0, there is a 02
+R0such thatv0+02[v+]M.
+We would like to dene a notion of LU-regions in the same spirit, now with the
+additional information on the guards. For this discussion let us x some Land
+Ufunctions.
+Denition 9 (LU-region) For a valuation vwe dene its LU-region , denoted
+hviLU, to be the set of valuations v0such that:
+v0satises all LU-guards that vsatises.
+For every pair of clocks x;ywithbv(x)c=bv0(x)c,bv(y)c=bv0(y)c,
+v(x)Uxandv(y)Lywe have:
+{if 0<fv(x)g<fv(y)gthenfv0(x)g<fv0(y)g.
+{if 0<fv(x)g=fv(y)gthenfv0(x)gfv0(y)g.
+The rst invariance with respect to guards has been directly incorporated
+in the rst condition of the denition. The second condition in the denition
+of LU-regions has been added in order to obtain the invariance by time-elapse
+property mentioned. Note that it is possible to have v02hviLUbutv =2hv0iLU.
+The following lemma will now show that with the two conditions specied in
+the denition, one can achieve the invariance with respect to time-elapse.
+Lemma 10 Letv;v0be valuations such that v02hviLU. For all2R0, there
+exists a02R0such thatv0+02hv+iLU.
+Proof
+We are given valuations vandv0such thatv02hviLU. Therefore, v0satises all
+the LU-guards that vsatises, and the property given by second condition of
+Denition 9 is true for the ordering of fractional parts. Let us call it the order
+property . Additionally, we are given a time elapse 2R0from the valuation
+v. We need to construct a value 02R0such thatv0+02hv+iLU.
+Assume<1.Without loss of generality, we can assume that <1. If1,
+then we can putb0c=bcand consider the valuations v+bcandv0+b0c. As
+we are not altering the fractional parts in these valuations, the order property
+is true for v+bcandv0+b0c. It is also easy to see that as v0satises all
+LU-guards that vdoes, the valuation v0+b0csatises all LU-guards that v+bc
+does. This gives us v0+b0c2hv+bciLUand we need to consider the time
+elapsefgfromv+bc. Therefore, in the rest of the proof, without loss of
+generality, we can assume that <1.
+11
+
+--- Page 12 ---
+Assumebv(z)c=bv0(z)cfor all clocks z.Suppose for a clock z, we have
+bv(z)c<bv0(z)c. Then, as v0satises all guards which vdoes, it should be
+the case that Uz<bv(z)c. All guards having constants in between bv(z)cand
+bv0(z)cwould be lower bound guards. So, irrespective of what we choose for
+0, the value v0(z) +0will satisfy all the LU-guards with respect to zthat
+v(z) +satises. Also, zdoes not concern the order property at all. Similarly,
+ifbv0(z)c<bv(z)c, asv0satises all LU-guards that vsatises, it should be the
+case thatLz<bv0(z)c<bv(z)c. In both the cases, we can safely ignore the
+clockz.
+Assumebv(z)cmax(Lz;Uz)for all clocks z.For a clock zsuch thatbv(z)c
+is greater than both LzandUz, we know that v0(z) should be greater than
+Lzin order to satisfy the same LU-guards. Hence any amount of time elapse
+would maintain this property and additionally such clocks do not concern order
+property. Hence, we assume without loss of generality that all clocks are less
+than at least one of the bounds.
+Constructing 0.We now have vandv0such that for all clocks z, the integral
+parts match, that is bv(z)c=bv0(z)candbv(z)cmax(Lz;Uz). Moreover, the
+time elapse <1.
+Let 01<  2<< k<1 be the fractional parts of clocks in v.
+Let us denote by Xithe set of clocks zthat havefv(z)g=i. Similarly, let
+00
+1< 0
+2<< 0
+k0<1 denote the fractional parts in v0and we dene
+the setX0
+ito be the set of clocks zsuch thatfv0(z)g=0
+i. This is pictorially
+illustrated below.
+0X1X2:::Xk1
+Inv0X0
+1X0
+2:::X0
+k01
+Inv0
+After a time elapse fromv, some of the clocks cross the next integer,
+whereas some of them do not. Let us say that clocks in Xj[[Xkhave
+crossed the integer. Now the fractional parts of these clocks would be smaller
+than those of X1[[Xj 1as shown below:
+0Xj:::XkX1:::Xj 11
+Inv+
+We need to choose a value 0so that for all clocks y2Xj[[Xksuch that
+(v+)(y)Ly, the time elapse 0takesv0to the next integer. Correspondingly
+for all the clocks x2X1[[Xj 1such that (v+)(x)Ux, the time elapse
+0still keepsv0within the same integer. Clearly we need this property to be
+12
+
+--- Page 13 ---
+satised so that v0+0satises the same LU-guards as v+. To this regard,
+we dene the following two values:
+l= minffv0(y)gj(v+)(y)Lyandy2Xj[[Xkg
+u= maxffv0(x)gj(v+)(x)Uxandx2X1[[Xj 1g
+Firstly note that u<l . If not, there exist clocks yandxsuch thatv(y)
+Lyandv(x)Ux, for which the order property is not true, thus giving a
+contradiction. Let be a value between uandl. Set0= 1 . By construction,
+v0+0satises the same LU-guards as v+.
+We will now see that this choice of 0also satises order property for v0+0
+andv+. Due to0some clocks in v0would have crossed the next integer. Let
+us say that clocks in Xj0[[Xk0have crossed and the others stay within the
+same integer. We pictorially depict the scenario with the two valuations v+
+andv0+0below.
+0Xj:::XkX1:::Xj 11
+Inv+0X0
+j0:::X0
+k0X0
+1:::X0
+j0 11
+Inv0+0
+Pick two clocks x;ysuch that:
+b(v+)(x)c=b(v0+0)(x)candb(v+)(y)c=b(v0+0)(y)c (3)
+(v+)(x)Uxand (v+)(y)Ly
+f(v+)(x)g<f(v+)(y)g
+Consider the case when both x;y2X1[[Xj 1. As they have not
+crossed integer in v, they should not have crossed integer in v0too because of
+(3). Therefore both x;y2X0
+1[[X0
+j0 1. We know from order property that
+fv0(x)g<fv0(y)g. Clearly the time elapse of 0has not changed this ordering
+for these clocks and hence f(v0+0)(x)g<f(v0+0)(y)g. We can prove similarly
+when both x;y2Xj[[Xk.
+Let us now consider the case when y2X1[[Xj 1andx2Xj[[Xk.
+Asxhas crossed integer in v, it should have crossed integer in v0too by the
+hypothesis (3). Therefore x2X0
+j0[[X0
+k0. Again by hypothesis (3) the clock
+yshould not have crossed integer and hence y2X0
+1[[X0
+j0 1. Hence we get
+thatf(v0+0)(x)g<f(v0+0)(y)g.
+This way we have proved the order property for v+andv0+0for the case
+of the strict inequality. The case of the equality can be handled in a similar
+way. 
+3.3. Finite paths characterizing LU-simulation
+The previous section took a digression to dene the notion of LU-regions.
+Now, we are in a position to answer the question: given two valuations v;v0,
+13
+
+--- Page 14 ---
+when isvvLUv0. This section is devoted to show the link between this question
+and the denition of LU-regions. For valuations v;v0, we will show that vvLUv0
+if and only if v0can elapse some amount of time and fall into the LU-region of v
+(Proposition 12). Before that, we will dene a sequence of guards that succinctly
+describes the LU-region hviLU.
+Denition 11 (LU-sequence) For a valuation v, letgintbe the conjunction
+of allLUguards that vsatises. For every pair of clocks x;ysuch thatv(x)
+Ux,v(y)Ly, consider guards:
+if 0<fv(x)g<fv(y)gthen we take a guard gxy(x<bv(x)c+1)^(y>
+bv(y)c+ 1).
+if 0<fv(x)g=fv(y)gthen we take a guard gxy(xbv(x)c+1)^(y
+bv(y)c+ 1).
+For everyywithv(y)Lyputgy=Vfgxy:v(x)Uxg. Consider all the clocks
+ywithv(y)Lyand suppose that y1;:::;ykis the ordering of these clocks with
+respect to the value of their fractional parts: 0 fv(y1)gfv(yk)g. The
+LU-sequence seq(v) is dened to be the sequence of transitionsgint !gyk !:::gy1 !
+Proposition 12 For every two valuations vandv0:
+vvLUv0i there is 02R0withv0+02hviLU:
+Proof
+First let us take vand consider its LU-sequence seq(v). The sequence seq(v)
+can be performed from v(the symbol denotes a time elapse):
+vgint  !v  !v+kgyk  !v+k  !v+k 1gyk 1    !:::
+:::  !v+1gy1  !v+1
+when choosing i= (1 fv(yi)g) ori= (1 fv(yi)g) +"for some suciently
+small">0; depending on whether we test for non-strict or strict inequality in
+gyi. Delayimakes the value of yiinteger or just above integer.
+IfvvLUv0, then there exists a 0such thatv0+0can do the sequence
+of transitions given by seq(v). The guard gintensures that v0+0satises the
+sameLU-guards asv. Note that in particular, this entails that for every pair
+of clocksx;ysuch thatv(x)Ux,v(y)Lyandfv(x)g>0, we have:
+ b(v0+0)(x)c<bv(x)c+ 1, and
+ b(v0+0)(y)cbv(y)c.
+Following transition gint, valuationv0+0can satisfy guards gyktogy1by letting
+some time elapse:
+v0+0gint  !v0+0  !v+0
+kgyk  !v+0
+k  !v+0
+k 1gyk 1    !:::
+:::  !v0+1gy1  !v0+0
+1
+14
+
+--- Page 15 ---
+Consider the clock yi. If the integral part b(v0+0)(yi)cis strictly greater
+thanbv(yi)c, time elapse is not necessary to cross the guard gyi. On the other
+hand, ifb(v0+0)(yi)c=bv(yi)c, then for the guard gyito be crossed, 0
+ishould
+be suciently large to make the value of ( v0+0
+i)(yi) integer or just above
+integer. But at the same time, the guard gxyiis satised, which entails that for
+allxsuch thatv(x)Ux,bv(x)c=b(v0+0)(x)c, we get:
+if 0<fv(x)g<fv(yi)g, thenf(v0+0)(x)g<f(v0+0)(yi)gand
+if 0<fv(x)g=fv(yi)g, thenf(v0+0)(x)gf (v0+0)(yi)g
+Therefore, from the denition of LU-regions, we get that v0+02hviLU. This
+shows left to right implication.
+For the right to left implication we show that the relation S=f(v;v0) :v02
+hviLUgis an LU-simulation relation. For this we take any ( v;v0)2S, anyLU
+guardg, and any reset Rsuch thatvg;R !v1. We show that v0g;R !v0
+1for some
+v0
+1with (v1;v0
+1)2S. The only non-trivial part in this is to show that if v+g
+for some, then there exists a 0such that (v+;v0+0)2Sandv0+0g.
+But this is exactly given by Lemma 10. 
+In particular the proof shows the following.
+Corollary 13 For two valuations v,v0:
+vvLUv0iv0can execute the sequence seq(v).
+3.4. Proof of optimality
+We are now ready to show that absLU(Z) (Denition 8), the abstraction
+based onvLUsimulation, is the coarsest sound and complete abstraction that
+uses solely the LUinformation.
+Theorem 14 The abs LUabstraction is the coarsest abstraction that is sound
+and complete for all LU-automata. It is also nite.
+Proof
+Suppose that we have some other abstraction a0that is not included in absLUon
+at least one LU-automaton. This means that there is some LUautomatonA1
+and its reachable conguration ( q1;Z) such that a0(Z)nabsLU(Z) is not empty.
+We suppose that a0is complete and show that it is not sound.
+Takev2a0(Z)nabsLU(Z). Consider the test sequence seq(v) as in Corol-
+lary 13. From this corollary we know that it is possible to execute this sequence
+fromvbut it is not possible to do it from any valuation in Zsince otherwise we
+would getv2absLU(Z).
+As illustrated in Fig 2 we add to A1a new sequence of transitions constructed
+from the sequence seq(v). We start this sequence from q1, and letqfbe the
+nal state of this new sequence. The modied automaton A1started in the
+initial conguration arrives with ( q1;Z) inq1and then it can try to execute the
+15
+
+--- Page 16 ---
+q0. . .
+. . .. . .
+q1. . .Automaton A1
+qfgintgykgy1seq(v)
+Figure 2: Adding the sequence seq(v) toA1.
+sequence we have added. From what we have observed above, it will not manage
+to reachqf. On the other hand from ( q1;v) it will manage to complete the
+sequence. But then by completeness of the abstraction ( q1;a0(Z))seq(v) ! (qf;W)
+for a nonempty W. So a0is not a sound abstraction.
+That absLUis nite is easy to see. The set absLU(Z) is a union of classical
+regions. Recall that we denote by Mthe bound function that assigns to each
+clockx, the maximum of LxandUx. Letv0be a valuation in Z. Ifv02[v]M
+then it is easy to see that v02hviLUand by denition v02absLU(Z).
+4. The a4LUabstraction
+Since absLUis the coarsest abstraction, we would like to use it in a reacha-
+bility algorithm. The denition of absLU, or even the characterization referring
+to LU-regions, are still too complicated to work with. It turns out though that
+there is a close link to an existing abstraction.
+The a4LUabstraction proposed by Behrmann et al. in [4] has a much sim-
+pler denition. Quite surprisingly, in the context of reachability analysis the
+two abstractions coincide (Theorem 19). The a4LUabstraction is based on a
+simulation relation 4LU.
+Denition 15 (LU-preorder [4]) LetL;U :X!N[f 1g be two bound
+functions. For a pair of valuations we set v4LUv0if for every clock x:
+ifv0(x)<v(x) thenv0(x)>Lx, and
+ifv0(x)>v(x) thenv(x)>Ux.
+It has been shown in [4] that 4LUis a simulation relation. The a4LUab-
+straction is based on this relation.
+Denition 16 ( a4LU-abstraction [4]) GivenLandUbound functions, for a
+set of valuations Wwe dene:
+a4LU(W) =fvj9v02W: v4LUv0g:
+Figure 3 gives an example of a zone Zand its abstraction a4LU(Z). It can
+be seen that a4LU(Z) is not a convex set.
+16
+
+--- Page 17 ---
+Ux LxLyUy
+0 xy
+ZZ:
+a4LU(Z) :[
+Figure 3: Zone Zis given by the grey area. Abstraction a4LU(Z) is given by the grey area
+along with the dotted area
+4.1. Abstractions abs LUand a4LUcoincide
+Our goal is to show that when we consider zones closed under time-successors,
+a4LUand absLUcoincide. To prove this, we would rst show that there is a
+very close connection between valuations in hviLUand valuations that simulate
+vwith respect to4LU. The following lemma says that if v02hviLUthen by
+slightly adjusting the fractional parts of v0we can get a valuation v0
+1such that
+v4LUv0
+1. We start with a preliminary denition.
+Denition 17 A valuation v1is said to be in the neighborhood ofv, written
+v12nbd(v) if for all clocks x;y:
+ bv(x)c=bv1(x)c,
+ fv(x)g= 0 ifv1(x)g= 0,
+ fv(x)glfv(y)gimpliesfv1(x)glfv1(y)gwherelis either<or =.
+Notice that the neighborhood of vis the same as the region of vwith respect
+to the classical region denition with maximal bound being 1.
+We give a brief intuition before proving the following lemma which gives
+the relation between LU-regions and 4LUsimulation. Consider a valuation v
+shown in Figure 4. Its LU-region hviLUis given by the shaded portion. Pick a
+valuationv0that belongs tohviLUand let us see if it satises v4LUv0.
+As we can see in Figure 4, the value of v0(x)>v(x) and additionally v0(x)
+Ux. This shows that v64LUv0due to itsx-coordinate. However, by slightly
+adjusting the fractional parts: that is, reducing fv0(y)gto move it down a bit
+and then reducing fv0(x)gto makev0(x) equal tov(x) leads us to a valuation
+v0
+1which is in the neighborhood of v0but nowv4LUv0
+1. The adjustment is
+depicted in Figure 4. Essentially, the following lemma claims that the LU-region
+hviLUcan be obtained as the downward closure of 4LUover the set nbd( v), in
+other words, a4LU(nbd(v)).
+17
+
+--- Page 18 ---
+Lx UxUyLy
+0 xy
+vv0
+1v0
+v(x)v0(x)
+Figure 4: Intuition for the adjustment lemma.
+Lemma 18 (Adjustment) Letvbe a valuation and let v02hviLU. Then,
+there exists a v0
+12nbd(v0) such that v4LUv0
+1.
+Proof
+Letv02hviLU. The goal is to construct a valuation v0
+12nbd(v0) that satises
+v4LUv0
+1. To be in the neighborhood, the valuation v0
+1should have the same
+integral parts as that of v0and should agree on the ordering of fractional parts.
+So for allx, we putbv0
+1(x)c=bv0(x)c. It remains to choose the fractional parts
+forv0
+1. But before, we will rst see that there are clocks for which irrespective
+of what the fractional part is, the two conditions in Denition 15 would be true.
+Consider a clock xthat hasbv0(x)c<bv(x)c. Sincev0satises all LU-guards
+asv, we should have v0(x)>Lx. The rst condition of 4LUforxbecomes true
+and the second condition is vacuously true. Similarly, when bv0(x)c>bv(x)c,
+we should have v(x)> Uxand the second condition of 4LUbecomes true and
+the rst condition is vacuously true. Therefore, clocks xthat do not have the
+same integral part in vandv0satisfy the4LUcondition directly thanks to
+the dierent integral parts. Whatever the fractional parts of v0
+1are, the4LU
+condition for these clocks would still be true.
+Let us therefore now consider only the clocks that have the same integral
+parts:bv0(x)c=bv(x)c. If this integer is strictly greater than both LxandUx,
+the two conditions of 4LUwould clearly be satised, again irrespective of the
+fractional parts. So we consider only the clocks xthat have the same integral
+part in both vandv0and additionally either bv(x)cUxorbv(x)cLx.
+We prune further from among these clocks. Suppose there is such a clock
+that hasfv0(x)g= 0. To be in the neighborhood, we need to set fv0
+1(x)g= 0.
+Iffv(x)gis 0 too, we are done as the 4LUcondition becomes vacuously true.
+18
+
+--- Page 19 ---
+Otherwise, we would have v0(x) =v0
+1(x)<v(x). But recall that v02hviLUand
+so it satises the same LU-guards as vdoes. This entails that v0
+1(x)>Lxand
+we get the rst condition of 4LUto be true. Once again, the other condition is
+trivial. So we eliminate clocks that have zero fractional parts in v0. A similar
+argument can be used to eliminate clocks that have zero fractional parts in v.
+So nally, we end up with the set of clocks xthat have:
+ bv0(x)c=bv(x)c,
+ fv0(x)g>0 andfv(x)g>0,
+v(x)<max(Ux;Lx).
+Call this set Xf. The task is to select non-zero fractional values fv0
+1(x)g
+for all clocks xinXfso that they match with the order in v0. This is the
+main challenge and this is where we would be using the second property in the
+denition of v02hviLU, which we restate here:
+8x;y2Xfsuch thatv(x)Uxandv(y)Ly (4)
+0<fv(x)g<fv(y)g)fv0(x)g<fv0(y)g
+0<fv(x)g=fv(y)g)fv0(x)gfv0(y)g
+Let 0<0
+1<0
+2<<0
+n<1 be the fractional values taken by clocks of
+Xfinv0, that is, for every clock x2Xf, the fractional value fv0(x)g=0
+ifor
+somei2f1;:::;ng. LetXibe the set of clocks x2Xfthat have the fractional
+value as0
+i:
+Xi=fx2Xfjfv0(x)g=0
+ig
+fori2f1;:::;ng.
+In order to match with the ordering of v0, one can see that for all clocks xi
+in someXi, the value offv0
+1(xi)gshould be the same, and if xj2Xjwithi6=j,
+then we need to choose fv0
+1(xi)gandfv0
+1(xj)gdepending on the order between
+0
+iand0
+j.
+Therefore, we need to pick nvalues 0<1<2<<n<1 and assign
+for allxi2Xi, the fractional part fv0
+1(xi)g=i. We show that it can be done
+by an induction involving nsteps.
+After thekthstep of the induction we assume the following hypothesis:
+we have picked values 0 <n k+1<n k+2<<n<1,
+for all clocks x2Xn k+1[Xn k+2[Xn, the4LUcondition is satised,
+for all clocks y2X1[X2[Xn k, we have
+v(y)Ly)fv(y)g<n k+1 (5)
+19
+
+--- Page 20 ---
+Let us now perform the k+ 1thstep and show that the induction hypothesis
+is true fork+ 1. The task is to pick n k. We rst dene two values 0 <l< 1
+and 0<u< 1 as follows:
+l= max
+fv(z)gjz2Xn kandv(z)Lz	
+u= min
+ffv(z)gjz2Xn kandv(z)Uzg[n k+1	
+We claim that lu. Firstly,l < n k+1from the third part of the induction
+hypothesis. So if uisn k+1we are done. If not, suppose l > u , this means
+that there are clocks x;y2Xn kwithv(x)Uxandv(y)Lysuch that
+fv(x)g<fv(y)g. From Equation 4, this would imply that fv0(x)g<fv0(y)g.
+But this leads to a contradiction since we know they both equal 0
+n kinv0.
+This leaves us with two cases, either l=uorl < u . Whenl=u, we pick
+n k=l=u. Firstly, from the third part of the hypothesis, we should have
+l<n k+1and son k<n k+1. Secondly for all z2Xn k, ifv0
+1(z)<v(z),
+thenzshould not contribute to land sov(z)> Lz, which is equivalent to
+saying,v0
+1(z)> Lz. Similarly, if v0
+1(z)> v(z), thenzshould not contribute
+touand sov(z)> Uz, thus satisfying the 4LUcondition for z. Finally, we
+should show the third hypothesis. Consider a clock y2X1[[Xn k 1with
+v(y)<Ly. Iffv(y)gn k, it would mean that fv(y)guand from Equation
+4 gives a contradiction. So the three requirements of the induction assumption
+are satised after this step in this case.
+Now suppose l < u . Consider a clock y2X1[[Xn k 1such that
+v(y)<Ly. From Equation 4, we should have fv(y)g<u. Take the maximum
+offv(y)gover all such clocks:
+= maxffv(y)gjy2X1[[Xn k 1andv(y)<Lyg
+Choosen kin the interval ( ;u). We can see that all the three assumptions
+of the induction hold after this step.
+
+We can now prove the main result of this section. Recall Denition 3 of
+time-elapsed zones.
+Theorem 19 IfZis time-elapsed then
+absLU(Z) =a4LU(Z)
+Proof
+Supposev2a4LU(Z). There exists a v02Zsuch thatv4LUv0. It can be
+easily veried that 4LUis aLU-simulation relation. Since vLUis the biggest
+LU-simulation, we get that vvLUv0. Hencev2absLU(Z).
+Supposev2absLU(Z). There exists v02Zsuch thatvvLUv0. From
+Proposition 12, this implies that there exists a 0such thatv0+02hviLU. As
+Zis time-elapsed, we get v0+02Z. Moreover, from Lemma 18, we know that
+there is a valuation v0
+12nbd(v0+0) such that v4LUv0
+1. Every valuation in the
+20
+
+--- Page 21 ---
+(q0; Z0)
+(q1; Z1)
+(q4; Z4)
+...(q5; Z5)
+...(q2; Z2)
+(q6; Z6)
+...(q3; Z3)
+(q7; Z7)
+...(q8; Z8)
+...
+Figure 5: A reachability tree of zones computed by a forward exploration
+neighborhood of v0+0satises the same constraints of the form y xlcwith
+respect to all clocks x;yand hencev0
+1belongs toZtoo. Therefore, we have a
+valuationv0
+12Zsuch thatv4LUv0
+1and hencev2a4LU(Z). 
+4.2. Using a4LUto solve the reachability problem
+A forward exploration algorithm for solving the reachability problem con-
+structs the reachability tree starting from the initial node ( q0;Z0) (cf. Figure 5),
+withZ0=f0+j2R0g. The successor with respect to )can be computed
+in timeO(jXj2) whereXis the number of clocks [25]. By denition )computes
+a time-elapsed zone. Therefore, all nodes that are explored by the algorithm
+have time-elapsed zones.
+Before continuing exploration from a node ( q;Z), the algorithm rst checks
+ifqis accepting. If not, the algorithm checks if for some visited node ( q;Z0), we
+haveZa4LU(Z0). If this is the case, ( q;Z) need not be explored. Otherwise,
+the successors of ( q;Z) are computed as stated above. This way we ensure
+termination of the algorithm since a4LUis a nite abstraction [4].
+Since the reachability algorithm refers to only time-elapsed zones, Theo-
+rems 14 and 19 show that a4LUis the coarsest sound and complete abstraction
+provided the only thing we know about the structure of the automaton are its
+LandUbounds. Recall that coarser abstractions make abstract graph smaller,
+so the exploration algorithm can nish faster.
+In Denition 6, we introduced LU-bounds that associate an Lbound and
+aUbound to every clock in an automaton A. Those bounds are the same
+in every state of the automaton. Instead, state-of-the-art algorithms calculate
+LU-bounds for each state of the automaton separately [3], or even on-the-y
+during exploration [14, 16]. The maximality argument in favor of a4LUis of
+course true also in this case.
+The last missing piece is an ecient inclusion test Za4LU(Z0). This is
+the main technical contribution of this paper.
+5. AnO(jXj2) algorithm for Za4LU(Z0)
+In this section, we present an ecient algorithm for the inclusion test Z
+a4LU(Z0) (Theorem 32). In the algorithm for the reachability problem as ex-
+21
+
+--- Page 22 ---
+plained in Section 4.2, each time a new node ( q;Z) is seen, it is checked if there
+exists an already visited node ( q;Z0) such that Za4LU(Z0). This means
+that a lot of such inclusion tests need to be performed during the course of
+the algorithm. Hence it is essential to have a low complexity for this inclusion
+procedure. We are aiming at quadratic complexity as this is the complexity
+incurred in the existing algorithms for inclusions of the form ZZ0used in the
+standard reachability algorithm. It is well known that all the other operations
+needed for forward exploration, can be done in at most quadratic time [25].
+We will now characterize when Z6a4LU(Z0) holds. The main steps are
+outlined below.
+Step 1 . As a rst step, we reduce the inclusion problem to a problem of
+intersection in Section 5.1. The question Z6a4LU(Z0) boils down to
+asking if there exists a valuation v2Zsuch that its LU-region hviLUdoes
+not intersect Z0(Proposition 21).
+Step 2 . As a next step, we consider the intersection hviLU\Z0. We aim to
+show that this intersection can be decided by looking at projections on
+every pair of clocks (Proposition 28). This is the most dicult step in
+the way to the inclusion test and spans three sections. We rst describe a
+convenient graph representation of zones in Section 5.2. We call this the
+distance graph and will use it to represent Z0. Subsequently, in Section 5.3,
+we see how we can represent LU-regions as distance graphs. This gives a
+distance graph representation for hviLU. Finally, in Section 5.4, we analyze
+the graph representations of hviLUandZ0to see when the intersection
+hviLU\Z0is empty. We show that for this it is enough to look at two
+clocks at a time.
+Step 3 . The previous step gives the condition for hviLU\Z0to be empty. We
+now look at the zone Zto nd out quickly the valuation v2Zthat can
+potentially satisfy this condition (Proposition 31).
+Step 4 . We substitute the valuation obtained from Step 3 to the condition of
+Step 2 to give the ecient test for inclusion (Theorem 32). Both steps 3
+and 4 appear in Section 5.5.
+Notation. For notational convenience, we denote v(x) byvxfor a valuation v
+and clockx.
+5.1. Reducing inclusion to intersection
+The aim of this chapter is to reduce the question of inclusion to a question
+of intersection. The adjustment lemma (Lemma 18) shows a close connection
+betweenLU-regions and4LU-simulation in one direction: that is, if v02hviLU
+then we can nd a valuation v0
+1in the neighborhood of v0such thatv4LUv0
+1.
+We show below a connection in the other direction too.
+Lemma 20 Letv;v0be valuations. If v4LUv0, thenv02hviLU.
+22
+
+--- Page 23 ---
+Proof
+It is not dicult to see from the denition of 4LU(Denition 15) that both v
+andv0satisfy the same LU-guards. It remains to show the second property for
+v0to be inhviLU.
+Letx;ybe clocks such that bvxc=bv0
+xc,bvyc=bv0
+yc, andvxUx,vyLy.
+Supposefvxglfvyg, forlbeing either <or =. Asv4LUv0, ifv0
+x> vx, we
+needvx>Uxwhich is not true. Hence we can conclude that v0
+xvx. Similarly,
+fory, one can conclude that v0
+yvy. As the integer parts are the same in vand
+v0, we getfv0
+xg<fv0
+ygorfv0
+xgfv0
+ygdepending on whether lis<or =.
+The above along with the adjustment lemma help us to reduce the question
+of inclusion as a question of intersection.
+Proposition 21 LetZ;Z0be zones. Then, Z6a4LU(Z0) i there exists a
+valuationv2Zsuch thathviLU\Z0is empty.
+Proof
+Consider the left-to-right direction. Suppose Z6a4LU(Z0). Then there exists a
+valuationv2Zsuch that for every valuation v02Z0we havev64LUv0. Pick an
+arbitraryv02Z0. In particular, every valuation v0
+12nbd(v0) satisesv64LUv0
+1.
+From the Adjustment lemma 18, we get that v062hviLU. Sincev0is arbitrary,
+we get thathviLU\Z0is empty.
+Now for the right-to-left direction. Suppose hviLU\Z0is empty. Then by
+Lemma 20, we get that v64LUv0for every valuation v02Z0. This shows that
+Z6a4LU(Z0). 
+5.2. Distance graphs
+Thanks to Proposition 21, we know that to solve Z6a4LU(Z0), we need to
+check if there exists a valuation v2Zsuch that its LU-region hviLUdoes not
+intersect with the zone Z0. The focus now is to study this intersection.
+We will begin with a convenient representation of zones that we use to solve
+this intersection question. The standard way to represent a zone is using a
+DBM. An equivalent representation is in terms of graphs [20] which we call here
+distance graphs .
+Denition 22 (Distance graph) Adistance graph Ghas clocks as vertices,
+with an additional special vertex x0representing constant 0. Between every
+two vertices there is an edge with a weight of the form ( l;c) wherec2Z
+andl2f;<gor (l;c) = (<;1). An edge xlc !yrepresents a constraint
+y xlc: or in words, the distance from xtoyis bounded by c. We let [ [G] ]
+be the set of valuations of clock variables satisfying all the constraints given by
+the edges of Gwith the restriction that the value of x0is 0. We also say that
+they x-constraint of [ [G] ] islcif the weight of the x  !yedge inGislc.
+For readability, we will often write 0 instead of x0. Figure 6 illustrates a
+zone with its constraints and the corresponding distance graph.
+An arithmetic over the weights ( l;c) can be dened as follows [6].
+23
+
+--- Page 24 ---
+xyy xlxycxy
+0 xlx0cx00 yly0cy0x ylyxcyx
+x 0l0xc0xy 0l0yc0y
+0 x y
+lx0cx0l0xc0xl0yc0y
+ly0cy0lxycxy
+lyxcyx
+Figure 6: An arbitrary zone with its constraints and distance graph
+Equality (l1;c1) = (l2;c2) ifc1=c2andl1=l2.
+Addition (l1;c1) + (l2;c2) = (l;c1+c2) where l=<i either l1orl2is
+<.
+Minus (l;c) = (l; c).
+Order (l1;c1)<(l2;c2) if eitherc1<c2or (c1=c2andl1=<andl2=).
+This arithmetic lets us talk about the weight of a path as a weight of the sum
+of its edges.
+A cycle in a distance graph Gis said to be negative if the sum of the weights
+of its edges is at most ( <;0); otherwise the cycle is positive . The following
+proposition is folklore.
+Proposition 23 A distance graph Ghas only positive cycles i [ [ G] ]6=;.
+A distance graph is in canonical form if the weight of the edge from xtoyis
+the lower bound of the weights of paths from xtoy. Given a distance graph, its
+canonical form can be computed by using an all-pairs shortest paths algorithm
+like Floyd-Warshall's [6] in time O(jXj3) wherejXjis the number of clocks. Note
+that the number of vertices in the distance graph is jXj+ 1. For computing
+the successors of a node in the zone graph, the most complex operation is the
+computation of Z^gwhich involves a canonicalization operation. However,
+sinceghas diagonal free constraints, the canonicalization procedure involved to
+computeZ^gis easier and costs only O(jXj2) [25].
+Recall that we have reduced the problem Z6a4LU(Z0) to checking if there
+existsvsuch thathviLU\Z0is empty. For this, we need to know when the
+intersection of an LU-region and a zone is empty. In the next section we will
+24
+
+--- Page 25 ---
+see that an LU-region is a zone and can be represented using a distance graph.
+Therefore, it boils down to asking given two distance graphs G1andG2when
+is [ [G1] ]\[ [G2] ] empty.
+For two distance graphs G1,G2which are not necessarily in canonical form,
+we denote by min( G1;G2) the distance graph where each edge has the weight
+equal to the minimum of the corresponding weights in G1andG2. Even though
+this graph may be not in canonical form, it should be clear that it represents
+intersection of the two arguments, that is, [ [min( G1;G2)] ] = [ [G1] ]\[ [G2] ]; in
+other words, the valuations satisfying the constraints given by min( G1;G2) are
+exactly those satisfying all the constraints from G1as well as from G2.
+Proposition 23 tells us that the intersection [ [ G1] ]\[ [G2] ] is empty i the
+distance graph min( G1;G2) has a negative cycle.
+5.3. LU-regions as distance graphs
+Our aim is to check when the intersection of hviLUandZ0is empty. We saw
+in the previous subsection that zones can be conveniently and canonically rep-
+resented by distance graphs. Here, we will see how we can canonically represent
+anLU-region of a valuation as a distance graph.
+We will rst recall a constructive denition of Alur-Dill regions.
+Denition 24 (Regions: constructive denition) A region with respect to
+bound function Mis the set of valuations specied as follows:
+1. for each clock x2X, one constraint from the set:
+fx=cjc= 0;:::;Mxg[fc 1<x<cjc= 1;:::;Mxg[fx>Mxg
+2. for each pair of clocks x;yhaving interval constraints: c 1<x<c and
+d 1< y < d , it is specied if fxgis less than, equal to or greater than
+fyg.
+The distance graph representing a region can be constructed using the above
+constructive denition of a region. For a valuation v, letGM
+vdenote the canoni-
+cal distance graph representing the region [ v]M. We are now interested in getting
+the LU-region of v, that is,hviLUas a distance graph. For convenience, we will
+recall below the denition of LU-regions.
+IDenition 9. (LU-region)
+For a valuation vwe dene its LU-region , denotedhviLU, to be the set of
+valuationsv0such that:
+v0satises the same LU-guards asv.
+For every pair of clocks x;ywithbv(x)c=bv0(x)c,bv(y)c=bv0(y)c,
+v(x)Uxandv(y)Lywe have:
+{if 0<fv(x)g<fv(y)gthenfv0(x)g<fv0(y)g.
+{if 0<fv(x)g=fv(y)gthenfv0(x)gfv0(y)g.
+25
+
+--- Page 26 ---
+Uxxy
+0v [v]M
+(a)Uxxy
+0v
+hviLU
+(b)
+Ly
+xy
+0v
+[v]M
+(c)Ly
+xy
+0v
+hviLU
+(d)
+Figure 7:hviLUcan be thought of as a transformation of [ v]Mby altering select constraints.
+Pictures (a) and (b) handle the case when vx> Ux; pictures (c) and (d) handle the case when
+vy> Ly
+For a valuation v, we need to collect all valuations v0satisfying the above
+two conditions to get hviLU. We begin with a motivating example in Figure 7.
+In the (a) part of the gure, we consider a valuation vsuch thatvx>Ux. The
+shaded portion in Figure 7 (a) shows the region [ v]Mand the nite valued x y
+andx 0 constraints bounding this region (c.f. Denition 22 for denition
+ofx y-constraints and Figure 6 for an illustration). The LU-region hviLUis
+shown in Figure 7 (b). Observe that it matches with the denition given above.
+But more importantly, note that it can be seen as a transformation of [ v]Mby
+moving its x yandx 0 constraints to innity and keeping the rest same.
+We now consider a valuation vwithvy>Lyin Figure 7 (c). Once again, the
+shaded portion shows the region [ v]Mand the relevant boundary constraints.
+We depict the LU-region hviLUin Figure 7 (d) matching the denition given
+above. Note that it can be seen as a transformation of [ v]Mby moving the x y
+constraint to innity and the 0  yconstraint up to Ly. However, when we move
+x yto innity, the graph that we get would no longer be canonical. We could
+then consider the canonicalization of the transformed graph.
+26
+
+--- Page 27 ---
+These examples lead us to the denition of the distance graph GLU
+vforhviLU
+as a transformation of the distance graph GM
+v.
+Denition 25 (Distance graph GLU
+v)Letvbe valuation. Given the distance
+graph of the region [ v]Min canonical form GM
+v= (lxy;cxy)x;y2X, rst dene
+the distance graph G0= (l0
+xy;c0
+xy)x;y2Xas follows:
+(l0
+yx;c0
+yx) =8
+>>><
+>>>:(<;1) ifvx>Ux
+(<;1) ifvy>Lyandx6= 0
+(<; Ly) ifvy>Lyandx= 0
+(lyx;cyx) otherwise
+Then, the distance graph GLU
+vis dened to be the canonical form of G0.
+The following lemma conrms that the distance graph dened above indeed
+representshviLU.
+Lemma 26 Letvbe a valuation. Let GLU
+vbe the graph obtained by Deni-
+tion 25. Then the sets hviLUand [ [GLU
+v] ] are equal.
+Proof
+Letv02hviLU. We will now show that v02[ [GLU
+v] ]. First observe that [ [ GLU
+v] ] =
+[ [G0] ] whereG0is the graph as in Denition 25. Therefore it is sucient to show
+thatv0satises the constraints given by G0. From the denition, it is clear that
+an edgey  !xis nite valued in G0only ifvxUx. Additionally when vyLy,
+the value of the edge y  !xis the same as that in GM
+v. Otherwise if vy>Ly,
+the only nite value is ( <; Ly) for the edge y  !x0.
+Sincev02hviLU, it satises all the LU-guards that vsatises. If yis a clock
+such thatvy> Lythenv0
+y> Lytoo. Sov0satises constraints of the form
+y< Ly    !x0. It now remains to look at edges yld  !xwithvyLy,vxUx
+and the weight ( l;d) coming from GM
+v. Letbvxcandbvycbe denoted as cxand
+cyrespectively. As v0satises the same LU-guards asv, we have:
+v0
+x<cx+ 1
+v0
+ycy(6)
+Thereforev0
+x v0
+y<cx+ 1 cy. SinceGM
+vrepresents the region containing v,
+by denition of regions, the constant in the weight ( l;d) is eithercx cy+ 1
+orcx cy. If it is the former, then clearly, v0also satises x yld. We need
+to consider the latter case, that is, discx cy. Thanks to (6) above, if either
+v0
+x<cxorv0
+ycy+ 1, we are done. We are left with considering the case when
+27
+
+--- Page 28 ---
+bv0
+xc=cxandbv0
+yc=cy. We have:
+vx vylcx cy
+) f vxg fvygl0
+) f v0
+xg fv0
+ygl0 (asv02hviLU)
+) b v0
+xc+fv0
+xg (bv0
+yc+fv0
+yg)lcx cy
+) v0
+x v0
+yld
+This proves that if v02hviLU, thenv0satises the constraints of G0and hence
+v02[ [G0] ].
+Now for the other direction, assume v02[ [G0] ]. We will show that v02hviLU.
+Letx;ybe clocks such that vxUxandvyLy. From the denition of [ [ G0] ],
+edges of the form y  !x0andx0  !xare retained as in GM
+v. Sincev02[ [G0] ],
+it is clear that v0satises the same LU-guards asv. We now consider the order
+property for LU-regions. From Denition 9, the order property only need to be
+considered when bv0
+xc=bvxcandbv0
+yc=bvyc. Let us denote cx=bv0
+xc=bvxc
+andcy=bv0
+yc=bvycBy denition of G0, the edgey  !xinG0has the same
+weight as that in GM
+v. Let the edge weight y  !xbe (l;d). We have:
+vx vyld
+) f vxg fvygld (cx cy)
+Iffvxg<fvygthen either d (cx cy)<0 or if it is 0 then lis the strict
+inequality. As this edge remains in G0, the valuation v0satisesv0
+x v0
+yld.
+Moreover, since the integral parts of v0match, we getfv0
+xg fv0
+ygld (cx cy).
+By the aforementioned property, we get fv0
+xg<fv0
+yg. A similar argument
+follows for the case when fvxg=fvyg. 
+Before we use the distance graph GLU
+vfor further analysis, recall that we rst
+dened a graph G0in Denition 25 and then obtained GLU
+vby canonicalizing it.
+We will now observe some properties of GLU
+vthat are either retained from G0
+or obtained thanks to canonicalization. These observations would be important
+in the next section when we do the analysis on the distance graph representing
+LU-regionhviLUand zoneZ0.
+Lemma 27 Letvbe a valuation. Let GM
+v,GLU
+vbe the canonical distance
+graphs of [v]MandhviLUrespectively. For variables x;y, if the edge y  !xhas
+a nite value in GLU
+v, then:
+1.vxUx,
+2. ifvyLy, the value of y  !xinGLU
+vandGM
+vare equal,
+3. ifvy> Ly, the value of y  !xinGLU
+vequals the value of the path
+y  !x0  !xinGLU
+v.
+Proof
+The graph GLU
+vis the canonical form of the graph G0dened in Denition 25.
+28
+
+--- Page 29 ---
+By denition, if vx>Ux, all incoming edges to xinG0have weight ( <;1). So,
+the shortest path in this graph G0from a variable yto a variable xsuch that
+vx>Uxis (<;1). Therefore, if in the canonical form GLU
+v, the edgey  !xis
+nite valued, we should have vxUx. This gives the rst part of the lemma.
+Consider the second part of the lemma. We know that vyLyand from
+the rst part of the lemma, we know that vxUx. The weight of y  !xinG0
+is the same as that of GM
+vaccording to Denition 25. Note that the nite values
+in the graph G0are either the same as that of GM
+vor of the form ( <; Lz) for
+some edges z  !0. In the latter case, we also know by denition that vz>Lz.
+Therefore the value ( <; Lz) is greater than the corresponding value in GM
+v.
+AsGM
+vis canonical, the shortest path from ytoxinG0cannot reduce from its
+value inGM
+vand hence equals just the edge value y  !x. This gives the second
+part of the lemma.
+Finally consider the third part. Assume vy> Ly. From Part 1, we know
+thatvxUx. By Denition 25, the weight of y  !xequals (<;1) ifxis not
+x0. The only nite valued outgoing edge from yisy  !x0. Therefore, we can
+infer two things: the shortest path from ytox0is given by the edge y  !x0;
+and the shortest path from ytoxshould contain this edge y  !x0. Secondly,
+note that variable x0hasvx0Lx0(vx0= 0 =Lx0). By denition, the value
+ofx0  !xinG0is given by the corresponding value in GM
+vand by Part 2, we
+know that this value stays in GLU
+v, that is, the shortest path from x0toxinG0
+is given by the direct edge. Summing up, the shortest path from ytoxinG0is
+given byy  !x0  !x, where both y  !x0andx0  !xare values coming from
+GLU
+v. 
+5.4. When does an LU-region intersect a zone.
+We are now in a position to characterize the intersection hviLU\Z0. Let
+GLU
+vas dened in the previous section be the canonical distance graph of hviLU
+and letGZ0be the canonical distance graph of Z0. By Proposition 23, the
+intersectionhviLU\Z0is empty i min( GLU
+v;GZ0) has a negative cycle.
+We will now state a necessary and sucient condition for the distance graph
+min(GLU
+v;GZ0) to have a negative cycle. We denote by Z0
+xythe weight of the
+edgex  !yinGZ0. Similarly we denote hviLU
+xyfor the weight of x  !yinGLU
+v.
+When a variable xrepresents the special clock x0, we denehviLU
+0xandhviLU
+x0to
+be (;0). Since by convention x0is always 0, this is consistent. We also denote
+[v]M
+xyfor the weight of x  !yinGM
+vwith the same convention when x=x0.
+The next proposition is the most important observation used in getting the
+nal inclusion test.
+Proposition 28 Letvbe a valuation and Z0a zone. The intersection hviLU\Z0
+is empty i there exist two variables x;ysuch thatvxUxandZ0
+xy+hviLU
+yx<
+(;0).
+To prove the above proposition, we need a small but a crucial observation
+that exploits the special structure of regions. A variable xis said to be bounded
+29
+
+--- Page 30 ---
+xy
+0ZA
+B
+Figure 8: A bounded region is either totally contained in a zone Zor totally disjoint from
+it. It can never intersect partially. For example, the bounded region B is totally inside Z,
+however the bounded region Ais totally disjoint from Z.
+in valuation vifvxmax(Lx;Ux). Ifx;yare bounded in v, then the projection
+of the region [ v]Montox;yhas very specic boundaries. Call it a bounded
+region. The following lemma makes use of the fact that a bounded region is
+either fully contained in a zone or is totally disjoint from it, that is, there
+cannot be a partial intersection of the bounded region and zone, as illustrated
+in Figure 8.
+Lemma 29 Letx,ybe bounded variables of vappearing in some negative
+cycleNof min(GLU
+v;GZ0). Let the edge weights be xlxycxy     !yandylyxcyx     !x
+inGM
+v. If the value of the path x  !:::  !yinNis strictly less than ( lxy;cxy),
+thenx  !:::  !ylyxcyx     !xis a negative cycle.
+Proof
+Let the path x  !:::  !yinNhave weight ( l;c). Now, since xandyare
+bounded variables in v, we can have either y x=dord 1<y x<d for
+some integer dinGM
+v.
+In the rst case, we have edges xd  !yandy d   !xinGM
+v, that is
+(lxy;cxy) = (;d) and (lyx;cyx) = (; d). Since by hypothesis ( l;c) is
+strictly less than ( ;d), we have either c < d orc=dandlis the strict
+inequality. Hence ( l;c) + (; d)<(;0) showing that x  !:::  !ylyxcyx     !x
+is a negative cycle.
+In the second case, we have edges x<d  !yandy< d+1     !xinGM
+v, that is,
+(lxy;cxy) = (<;d) and (lyx;cyx) = (<; d). Herec<d and againx  !:::  !
+ylyxcyx     !xgives a negative cycle. 
+We can now prove Proposition 28.
+30
+
+--- Page 31 ---
+Proof of Proposition 28
+The distance graph min( GLU
+v;GZ0) represents the set hviLU\Z0. By Propo-
+sition 23, the intersection is empty i min( GLU
+v;GZ0) has a negative cycle. If
+there exist variables x;ysuch thatZ0
+xy+hviLU
+yx<(;0), then there is a negative
+cyclex  !y  !xin min(GLU
+v;GZ0) and hencehviLU\Z0is empty. This shows
+the right-to-left direction.
+The left-to-right direction is less trivial. Assume that hviLU\Z0is empty.
+Then, there is a negative cycle Nin min(GLU
+v;GZ0). To prove the proposition,
+we aim to show the following.
+Aim. We show that the negative cycle Nof min(GLU
+v;GZ0) can be reduced to
+the form:
+xZ0
+xy    !yhviLU
+yx     !x (7)
+Firstly, since both GLU
+vandGZ0are canonical, we can assume without loss
+of generality that no two consecutive edges in Ncome from the same graph.
+Suppose there are two edges y1  !x1andy2  !x2inNwith weights coming
+fromGLU
+v:
+y1hviLU
+y1x1       ! x1  !  !y2hviLU
+y2x2       ! x2  !  !y1 (8)
+Since they are part of a negative cycle, their edge weights should be a nite
+value and by Part 1 of Lemma 27, this means:
+vx1Ux1andvx2Ux2
+1. Suppose vy1Ly1andvy2Ly2.By Part 2 of Lemma 27, the edge values
+y1  !x1andy2  !x2are the same as in GM
+v. Consider the edge:
+y1  !x2inGLU
+v
+Again, from the same lemma, this edge value comes from GM
+vtoo.
+If the value of this edge y1  !x2is smaller than the value of the path
+y1  !x1  !  !y2  !x2inN, then this path can be replaced by the single
+edgey1  !x2to get a smaller negative cycle in min( GLU
+v;GZ).
+However, if the value of the path y1  !x1  !  !y2  !x2is less than the
+edge valuey1  !x2, then by Lemma 29:
+y1  !x1  !:::  !y2  !x2  !y1, wherex2  !y1comes from GM
+v
+is a negative cycle. The edge x2  !y1might be innity in GLU
+v. But asGM
+vis
+canonical, we can replace y2  !x2  !y1  !x1byy2  !x1. From Lemma 27,
+this edge is retained in GLU
+vand hence we get a smaller negative cycle.
+Therefore in this case, we can eliminate the two edges y1  !x1andy2  !x2
+to get a smaller negative cycle containing either y1  !x2ory2  !x1. IfNdoes
+not contain a variable zsuch thatvz>Lz, this elimination can be repeatedly
+applied and Ncan be reduced to a negative cycle of the form y  !x  !ywith
+vyLy,vxUxand the edge weights y  !xcoming from GLU
+vandx  !y
+coming from GZ0, exactly as required by (7).
+31
+
+--- Page 32 ---
+2. Suppose vy1> Ly1.Consider again the two edges y1  !x1andy2  !x2of
+(8) and now suppose that vy1>Ly1. By Part 3 of Lemma 27, the edge y1  !x1
+can be replaced by:
+y1  !x0  !x1ofGLU
+v
+If there is another variable in Nthat is greater than its Lbound, then the vertex
+x0would occur twice in the negative cycle. From this negative cycle, we can
+obtain a smaller negative cycle containing only one occurrence of x0. Hence,
+without loss of generality, we can assume that x0occurs only once in N. In
+particular, this gives us that:
+vy2Ly2
+Note that the special variable x0hasvx0Lx0as its value is always sup-
+posed to be 0 and Lx0is dened to be 0. Now consider the two edges:
+x0  !x1andy2  !x2
+This corresponds to Case 1 as vx0Lx0andvy2Ly2. As we have seen, these
+two edges can be eliminated to give a smaller negative cycle containing either
+x0  !x2ory2  !x1, with the respective value coming from GLU
+v.
+If it is the latter edge y2  !x1, the smaller negative cycle does not contain
+y1and hence all variables are bounded by L. By Case 1, it can be reduced to a
+cycle as required by the proposition.
+Let us now consider the former edge x0  !x2. We have the cycle:
+y1  !x0  !x2  !:::  !y1
+All the variables other than y1in the path x0  !:::  !y1are bounded by their
+Lbound. We can therefore assume that all edges in x2  !:::  !y1come from
+GZ0, because if not, we can apply the argument of Case 1 to further reduce the
+cycle. AsGZ0andGLU
+vare canonical, this cycle reduces to y1  !x2  !y1with
+y1  !x2coming from GLU
+vandx2  !y1coming from Z0. This again conforms
+to the form of the cycle required by (7). 
+5.5. Final steps
+Proposition 28 gives a useful characterization of when hviLU\Z0is empty.
+To lift this characterization to Z6a4LU(Z0) and Proposition 21, we need to
+nd the least value of hviLU
+yxfrom among the valuations v2Zand see if this
+satises the condition given in Proposition 28.
+For the moment, assume that L=Uso that the LU-regions coincide with
+the classic regions. Consider a zone Zlying within the Mbounds, as shown in
+Figure 9. The values of [ v]M
+yxfor dierent valuations in the zone are shown. The
+value decreases as we move towards the \left boundary". In the gure, since
+they xconstraint of Zis given by y x 1, there exists a valuation v4
+on the \boundary" and hence the least value of [ v]M
+yxamong allv2Zwould
+32
+
+--- Page 33 ---
+(a)xy
+0My
+Mxv4
+v3
+v2
+v1v5
+[v1]Myx= 4
+[v2]Myx= 3
+[v3]Myx= 2
+[v4]Myx= 1y x 1
+Figure 9: Value of [ v]M
+yxdecreases as we move left
+be given by [ v4]M
+yxwhich is (;1). If they xconstraint of Zwasy x< 1
+with a strict inequality, then the least value of [ v]M
+yxfromv2Zis no longer
+(;1) as there is no valuation attaining this value. In this case, the least value
+of [v]M
+yxwould be (<;2), given by the open region containing v5with constraints
+y x< 1 andx y<2.
+Due to this asymmetry, we need to dene the following notion to handle
+weights in a convenient way. For a weight ( l;c) we dene (l;c) as (l; c)
+and a ceiling functiondeas follows.
+Denition 30 For a realc, letdcedenote the smallest integer that is greater
+than or equal to c. We dene the ceiling functiond(l;c)efor a weight ( l;c)
+depending on whether lequalsor<, as follows:
+d(;c)e=(
+(;c) ifcis an integer
+(<;dce) otherwise
+d(<;c)e=(
+(<;c+ 1) ifcis an integer
+(<;dce) otherwise
+The following proposition is one of the two cores for the proof of the main
+theorem. It gives the least value of hviLU
+yxfrom among the valuations vpresent
+in a zoneZ.
+33
+
+--- Page 34 ---
+Proposition 31 LetZbe a non-empty zone, and let x,ybe two clocks. The
+least value ofhviLU
+yxamong the valuations v2Zsuch thatvxUxis given by:
+(
+(<;1) if Zx0<(; Ux)
+maxfd Zxye;d Zx0e (<;Ly)gotherwise
+Proof
+LetGbe the canonical distance graph representing the zone Z. We denote
+the weight of an edge i  !jinGby (lij;cij). Recall that this means Zij=
+(lij;cij).
+We are interested in computing the smallest value of the x yconstraint
+dening an LU-region intersecting Z. Additionally we want to restrict to LU-
+regions in which all its valuations satisfy xUx, that is, we need to nd:
+:= minfhviLU
+yxjv2ZandvxUxg
+Clearly, ifvx> Uxfor all valuations v2Z, thenis (<;1). WhenZx0<
+(; Ux), it means that all valuations v2Zsatisfy 0 vxlx0cx0andcx0
+ Ux. Moreover lx0is the strict inequality if cx0= Ux. In consequence, all
+valuationsv2Zsatisfyvx> UxwhenZx0<(; Ux). Whence = (<;1).
+This corresponds to the rst case in the statement of the lemma.
+Let now restrict to the case when Zx0(; Ux). By denition of regions
+(cf. Denition 24) and Lemma 27, we have for a valuation v:
+hviLU
+yx=(
+d(;vx vy)e ifvxUxandvyLy
+(<; Ly) +d(;vx)eifvxUxandvy>Ly(9)
+LetG0be the graph in which the edge 0   !xhas weight minf(;Ux);(l0x;c0x)g
+and the rest of the edges are the same as that of G. This graph G0represents
+the valuations of Zthat havevxUx: [ [G0] ] =fv2ZjvxUxg. We show that
+this set is not empty. For this we check that G0does not have negative cycles.
+SinceGdoes not have negative cycles, every negative cycle in G0should include
+the newly modied edge 0   !x. Note that the shortest path value from xto 0
+does not change due to this modied edge. So the only possible negative cycle
+inG0is 0  !x  !0. But then we are considering the case when Zx0(; Ux),
+and soZx0+ (;Ux)(;0). Hence this cycle cannot be negative either. In
+consequence all the cycles in G0are positive and [ [ G0] ] is not empty.
+To nd, it is sucient to consider only the valuations in [ [ G0] ]. As seen
+from Equation 9, among the valuations in [ [ G0] ], we need to dierentiate between
+those withvyLyand the ones with vy>Ly. We proceed as follows. We rst
+compute minfhviLU
+yxjv2[ [G0] ] andvyLyg. Call this 1. Next, we compute
+minf[v]yxjv2[ [G0] ] andvy> Lygand set this as 2. Our required value 
+would then equal min f1;2g.
+To compute 1, consider the following distance graph G0
+1which is obtained
+fromG0by just changing the edge 0   !yto minf(;Ly);(l0y;c0y)gand keeping
+the remaining edges the same as in G0. The set of valuations [ [ G0
+1] ] equals
+34
+
+--- Page 35 ---
+fv2[ [G0] ]jvyLyg. If [ [G0
+1] ] =;, we set1to (<;1) and proceed to calculate
+2. If not, we see that from Equation 9, for every v2[ [G0
+1] ], [v]yxis given by
+d(;vx vy)e. Let (l1;w1) be the shortest path from xtoyin the graph G0
+1.
+Then, we have for all v2[ [G0
+1] ],vy vxl1w1. Ifl1is, then the least value
+of [v]yxwould be (; w1) and if l1is<, one can see that the least value of
+[v]yxis (<; w1+ 1). This shows that 1=d(l1; w1)e. It now remains to
+calculate ( l1;w1).
+Recall that G0
+1has the same edges as in Gexcept possibly dierent edges 0   !
+xand 0  !y. If the shortest path from xtoyhas changed in G0
+1, then clearly it
+should be due to one of the above two edges. However note that the edge 0   !x
+cannot belong to the shortest path from xtoysince it would contain a cycle
+x  !:::0  !x  !:::y that can be removed to give shorter path. Therefore,
+only the edge 0  !ycan potentially yield a shorter path: x  !:::  !0  !y.
+However, the shortest path from xto 0 inG0
+1cannot change due to the added
+edges since that would form a cycle with 0 and we know that all cycles in G0
+1
+are positive. Therefore the shortest path from xto 0 is the direct edge x  !0,
+and the shortest path from xtoyis the minimum of the direct edge x  !yand
+the pathx  !0  !y. We get: ( l1;w1) = minf(lxy;cxy);(lx0;cx0) + (;Ly)g
+which equals min fZxy;Zx0+ (;Ly)g. Finally, from the argument in the above
+two paragraphs, we get:
+1=8
+><
+>:(<;1) if [ [ G0
+1] ] =;
+d Zxye if [ [G0
+1] ]6=;andZxyZx0+ (;Ly)
+d Zx0e+ (; Ly) if [ [G0
+1] ]6=;andZxy>Zx0+ (;Ly)(10)
+We now proceed to compute 2= minf[v]yxjv2[ [G0] ] andvy> Lyg. Let
+G0
+2be the graph which is obtained from G0by modifying the edge y  !0 to
+minfZy0;(<; Ly)gand keeping the rest of the edges the same as in G0. Clearly
+[ [G0
+2] ] = minfv2[ [G0] ]jvy>Lyg.
+Again, if [ [G0
+2] ] is empty, we set 2to (<;1). Otherwise, from Equation 9,
+for each valuation v2[ [G0
+2] ], the value of [ v]yxis given by ( <;dvxe Ly). For
+the minimum value, we need the least value of vxfromv2[ [G0
+2] ]. Let (l2;w2)
+be the shortest path from xto 0 inG0
+2. Then, since vxl2w2, the least value
+ofdvxewould be w2ifl2isand equal tod w2eifl2=<and2would
+respectively be ( <; w2 Ly) or (<; w2+1 Ly). It now remains to calculate
+(l2;w2).
+Recall that G0
+2isGwith 0  !xandy  !0 modied. The shortest path from
+xto 0 cannot include the edge 0   !xsince it would need to contain a cycle, for
+the same reasons as in the 1case. So we get ( l2;w2) = minfZx0;Zxy+ (<
+; Ly)g. IfZx0Zxy+ (<; Ly), then we take ( l2;w2) asZx0, otherwise we
+take it to be Zxy+ (<; Ly). So, we get 2as the following:
+2=8
+><
+>:(<;1) if [ [ G0
+2] ] =;
+ Zxy+ (<;1) if [ [ G0
+2] ]6=;andZx0Zxy+ (<; Ly)
+d Zx0e+ (<; Ly) if [ [G0
+2] ]6=;andZx0<Zxy+ (<; Ly)(11)
+35
+
+--- Page 36 ---
+However, we would like to write 2in terms of the cases used for 1in Equation
+10 so that we can write , which equals min f1;2g, conveniently.
+Let 1be the inequation: ZxyZx0+ (;Ly). From Equation 10, note
+that1has been classied according to  1and: 1when [ [G0
+1] ] is not empty.
+Similarly, let  2be the inequation: Zx0Zxy+ (<; Ly). From Equation
+11 we see that 2has been classied in terms of  2and: 2when [ [G0
+2] ] is not
+empty. Notice the subtle dierence between  1and 2in the weight component
+involvingLy: in the former the inequality associated with Lyisand in the
+latter it is<. This necessitates a bit more of analysis before we can write 2in
+terms of 1and: 1.
+Suppose 1is true. So we have ( lxy;cxy)(lx0;cx0+Ly). This implies:
+cxycx0+Ly. Therefore, cx0cxy Ly. Whencx0>cxy Ly, 2is clearly
+true. For the case when cx0=cxy Ly, note that in  2the right hand side is
+always of the form ( <;cxy Ly), irrespective of the inequality in Zxyand so yet
+again, 2is true. We have thus shown that  1implies 2.
+Suppose: 1is true. We have ( lxy;cxy)>(lx0;cx0+Ly). Ifcxy>cx0+Ly,
+then clearly cx0<cxy Lyimplying that: 2holds. Ifcxy=cx0+Ly, then we
+need to have lxyequal toandlx0equal to<. Although: 2does not hold
+now, we can safely take 2to bed Zx0e+ (<; Ly) as its value is in fact equal
+to Zxy+ (<;1) in this case. Summarizing the above two paragraphs, we can
+rewrite2as follows:
+2=8
+><
+>:(<;1) if [ [ G0
+2] ] =;
+ Zxy+ (<;1) if [ [ G0
+2] ]6=;andZxyZx0+ (;Ly)
+d Zx0e+ (<; Ly) if [ [G0
+2] ]6=;andZxy>Zx0+ (;Ly)(12)
+We are now in a position to determine as minf1;2g. Recall that we
+are in the case where Zx0(; Ux) and we have established that [ [ G0] ] is
+non-empty. Now since [ [ G0] ] = [ [G0
+1] ][[ [G0
+2] ] by construction, both of them cannot
+be simultaneously empty. Hence from Equations 10 and 12, we get , the
+minf1;2gas:
+=(
+d Zxye ifZxyZx0+ (;Ly)
+d Zx0e+ (<; Ly) ifZxy>Zx0+ (;Ly)(13)
+There remains one last reasoning. To prove the lemma, we need to show
+that= maxfd Zxye;d Zx0e+ (<; Ly)g. For this it is enough to show the
+following two implications:
+ZxyZx0+ (;Ly))d Zxyed Zx0e+ (<; Ly)
+Zxy>Zx0+ (;Ly))d Zxyed Zx0e+ (<; Ly)
+We prove only the rst implication. The second follows in a similar fashion. Let
+us consider the notation ( lxy;cxy) and (lx0;cx0) forZxyandZx0respectively.
+So we have:
+36
+
+--- Page 37 ---
+(lxy;cxy)(lx0;cx0) + (;Ly)
+)(lxy;cxy)(lx0;cx0+Ly)
+If the constant cxy<cx0+Ly, then cxy> cx0 Lyand we clearly get that
+d Zxyed Zx0e+ (<; Ly). If the constant cxy=cx0+Lyand iflx0is,
+then the required inequation is trivially true; if lx0is<, it implies that lxyis
+<too and clearlyd(<; cxy)eequalsd(<; cx0)e+ (<; Ly). 
+We have a simple method that tells us when an LU-region hviLUdoes not
+intersect a zone Z0(Proposition 28). We have also characterized the potential
+valuationvfromZthat could satisfy the non-intersection condition with Z0
+(Proposition 31). This gives the necessary tools to solve inclusion Z6a4LU(Z0).
+The following theorem presents the ecient inclusion test.
+Theorem 32 LetZ;Z0be non-empty zones. Then, Z6a4LU(Z0)i there
+exist two variables x;ysuch that:
+Zx0(; Ux)andZ0
+xy<ZxyandZ0
+xy+ (<; Ly)<Zx0
+Proof
+From Proposition 21, we know that Z6a4LU(Z0) i there exists a valuation
+v2Zsuch thathviLUdoes not intersect Z0.
+From Proposition 28, we know that hviLU\Z0is empty i there exists a
+variablexsuch thatvxUxand a variable ysuch that:
+Z0
+xy+hviLU
+yx<(;0) (14)
+This is possible for variables x;yi the least value of hviLU
+yxfrom among the
+valuations in Zsatises the inequation (14) with Z0
+xy.
+This is where we use Proposition 31. According to this proposition, for (14)
+to be true for some valuation v2Z, we would need Zx0(; Ux) and:
+Z0
+xy+d Zxye<(;0) andZ0
+xy+d Zx0e (<;Ly)<(;0) (15)
+Consider the rst inequality: Z0
+xy+d Zxye<(;0). LetZxybe (lxy;cxy).
+Iflxyis the weak inequality , thend Zxyeis (; cxy) and hence the
+condition becomes: Z0
+xy+ (; cxy)<(;0). This is equivalent to saying
+Z0
+xy<(;cxy), that is,Z0
+xy< Zxy. Now, if lxyis the strict inequality <,
+thend Zxyebecomes (<; cxy+1) and hence the condition becomes: Z0
+xy+(<
+; cxy+ 1)<(;0). This is equivalent to saying Z0
+xy<(<;cxy). In both cases,
+the rst inequality of Equation (15) becomes Z0
+xy<Zxy.
+By a similar reasoning, the second inequality of Equation (15) can be seen
+to correspond to Z0
+xy+ (<; Ly)<Zx0. This proves the theorem. 
+TheZ6a4LU(Z0) test involves a comparison of corresponding edges in the
+distance graphs GZandGZ0, so it takes in the worst case a O(jXj2) number
+of steps. Notice that in fact the test requires only two tests for every pair of
+clocks.
+37
+
+--- Page 38 ---
+6. Conclusions
+Traditional methods for timed automata reachability store abstractions of
+zones for termination. Therefore, only convex abstractions have been used in
+implementations. We have proposed to store zones and use abstractions indi-
+rectly by means of inclusion tests Za(Z0). This allows us to use non-convex
+abstractions while still working with zones. The coarser the abstraction a, the
+higher is the possibility of inclusion, and hence smaller would be the reachability
+tree that is explored. For this construction to work eciently, one also needs
+an ecient inclusion test.
+In this paper, we have given a complete solution to using the a4LUabstrac-
+tion for the reachability algorithm. Firstly, we have given an O(jXj2) test for
+Za4LU(Z0) inclusion. This is the cornerstone of our approach since this test
+is used in the inner loop of the algorithm. Our test has the same complexity as
+ZZ0test used in the traditional algorithm. We have also shown that the a4LU
+abstraction is the coarsest abstraction that is sound and complete with respect
+to reachability for all automata with the same LU-bounds. The result showing
+that a4LUabstraction is the coarsest possible is quite unexpected. It works
+thanks to the observation that when doing forward exploration it is enough
+to consider only time-elapsed zones. This result explains why after Extra+
+LU
+from [4] there have been no new abstraction operators [9]. Indeed it is not that
+easy to nd a better zone inside a4LUabstraction than that given by Extra+
+LU
+abstraction.
+The maximality result for a4LUshows that to improve reachability testing
+even further we will need to look at new structural properties of timed automata,
+or to consider more rened algorithms than forward exploration. A work in this
+direction is [16].
+References
+[1] Rajeev Alur, Costas Courcoubetis, Nicolas Halbwachs, David L. Dill, and
+Howard Wong-Toi. Minimization of timed transition systems. In Rance
+Cleaveland, editor, CONCUR '92, Third International Conference on Con-
+currency Theory, Stony Brook, NY, USA, August 24-27, 1992, Proceedings ,
+volume 630 of Lecture Notes in Computer Science , pages 340{354. Springer,
+1992.
+[2] Rajeev Alur and David L. Dill. A theory of timed automata. Theor.
+Comput. Sci. , 126(2):183{235, 1994.
+[3] Gerd Behrmann, Patricia Bouyer, Emmanuel Fleury, and Kim Guldstrand
+Larsen. Static guard analysis in timed automata verication. In Hubert
+Garavel and John Hatcli, editors, Tools and Algorithms for the Construc-
+tion and Analysis of Systems, 9th International Conference, TACAS 2003,
+Held as Part of the Joint European Conferences on Theory and Practice
+38
+
+--- Page 39 ---
+of Software, ETAPS 2003, Warsaw, Poland, April 7-11, 2003, Proceed-
+ings, volume 2619 of Lecture Notes in Computer Science , pages 254{277.
+Springer, 2003.
+[4] Gerd Behrmann, Patricia Bouyer, Kim Guldstrand Larsen, and Radek
+Pel anek. Lower and upper bounds in zone-based abstractions of timed
+automata. STTT , 8(3):204{215, 2006.
+[5] Gerd Behrmann, Alexandre David, Kim Guldstrand Larsen, John Hakans-
+son, Paul Pettersson, Wang Yi, and Martijn Hendriks. UPPAAL 4.0. In
+Third International Conference on the Quantitative Evaluation of Systems
+(QEST 2006), 11-14 September 2006, Riverside, California, USA , pages
+125{126. IEEE Computer Society, 2006.
+[6] Johan Bengtsson and Wang Yi. Timed automata: Semantics, algorithms
+and tools. In J org Desel, Wolfgang Reisig, and Grzegorz Rozenberg, editors,
+Lectures on Concurrency and Petri Nets, Advances in Petri Nets [This
+tutorial volume originates from the 4th Advanced Course on Petri Nets,
+ACPN 2003, held in Eichst att, Germany in September 2003. In addition to
+lectures given at ACPN 2003, additional chapters have been commissioned] ,
+volume 3098 of Lecture Notes in Computer Science , pages 87{124. Springer,
+2003.
+[7] Bernard Berthomieu and Miguel Menasche. An enumerative approach for
+analyzing time petri nets. In IFIP Congress , pages 41{46, 1983.
+[8] Patricia Bouyer. Forward analysis of updatable timed automata. Formal
+Methods in System Design , 24(3):281{320, 2004.
+[9] Patricia Bouyer. From Qualitative to Quantitative Analysis of Timed Sys-
+tems. M emoire d'habilitation, Universit e Paris 7, Paris, France, 2009.
+[10] Patricia Bouyer, Uli Fahrenberg, Kim G. Larsen, and Nicolas Markey.
+Quantitative analysis of real-time systems using priced timed automata.
+Commun. ACM , 54(9):78{87, 2011.
+[11] Conrado Daws and Stavros Tripakis. Model checking of real-time reachabil-
+ity properties using abstractions. In Bernhard Steen, editor, Tools and Al-
+gorithms for Construction and Analysis of Systems, 4th International Con-
+ference, TACAS '98, Held as Part of the European Joint Conferences on
+the Theory and Practice of Software, ETAPS'98, Lisbon, Portugal, March
+28 - April 4, 1998, Proceedings , volume 1384 of Lecture Notes in Computer
+Science , pages 313{329. Springer, 1998.
+[12] David L. Dill. Timing assumptions and verication of nite-state concur-
+rent systems. In Joseph Sifakis, editor, Automatic Verication Methods for
+Finite State Systems, International Workshop, Grenoble, France, June 12-
+14, 1989, Proceedings , volume 407 of Lecture Notes in Computer Science ,
+pages 197{212. Springer, 1989.
+39
+
+--- Page 40 ---
+[13] H. Gregersen and H.E. Jensen. Formal design of reliable real time sys-
+tems. Master's thesis, Department of Mathematics and computer Science,
+Aalborg University, 1995.
+[14] Fr ed eric Herbreteau, Dileep Kini, B. Srivathsan, and Igor Walukiewicz. Us-
+ing non-convex approximations for ecient analysis of timed automata. In
+Supratik Chakraborty and Amit Kumar, editors, IARCS Annual Confer-
+ence on Foundations of Software Technology and Theoretical Computer Sci-
+ence, FSTTCS 2011, December 12-14, 2011, Mumbai, India , volume 13 of
+LIPIcs , pages 78{89. Schloss Dagstuhl - Leibniz-Zentrum fuer Informatik,
+2011.
+[15] Fr ed eric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Better abstrac-
+tions for timed automata. In Proceedings of the 27th Annual IEEE Sympo-
+sium on Logic in Computer Science, LICS 2012, Dubrovnik, Croatia, June
+25-28, 2012 , pages 375{384. IEEE Computer Society, 2012.
+[16] Fr ed eric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Lazy abstrac-
+tions for timed automata. In Natasha Sharygina and Helmut Veith, editors,
+Computer Aided Verication - 25th International Conference, CAV 2013,
+Saint Petersburg, Russia, July 13-19, 2013. Proceedings , volume 8044 of
+Lecture Notes in Computer Science , pages 990{1005. Springer, 2013.
+[17] Marta Z. Kwiatkowska, Gethin Norman, Roberto Segala, and Jeremy
+Sproston. Automatic verication of real-time systems with discrete proba-
+bility distributions. Theor. Comput. Sci. , 282(1):101{150, 2002.
+[18] Fran cois Laroussinie and Philippe Schnoebelen. The state explosion prob-
+lem from trace to bisimulation equivalence. In Jerzy Tiuryn, editor, Foun-
+dations of Software Science and Computation Structures, Third Interna-
+tional Conference, FOSSACS 2000, Held as Part of the Joint European
+Conferences on Theory and Practice of Software,ETAPS 2000, Berlin, Ger-
+many, March 25 - April 2, 2000, Proceedings , volume 1784 of Lecture Notes
+in Computer Science , pages 192{207. Springer, 2000.
+[19] Georges Morb e, Florian Pigorsch, and Christoph Scholl. Fully symbolic
+model checking for timed automata. In Ganesh Gopalakrishnan and Shaz
+Qadeer, editors, Computer Aided Verication - 23rd International Confer-
+ence, CAV 2011, Snowbird, UT, USA, July 14-20, 2011. Proceedings , vol-
+ume 6806 of Lecture Notes in Computer Science , pages 616{632. Springer,
+2011.
+[20] Robert E. Shostak. Deciding linear inequalities by computing loop residues.
+J. ACM , 28(4):769{779, 1981.
+[21] Serdar Tasiran, Rajeev Alur, Robert P. Kurshan, and Robert K. Brayton.
+Verifying abstractions of timed systems. In Ugo Montanari and Vladimiro
+Sassone, editors, CONCUR '96, Concurrency Theory, 7th International
+40
+
+--- Page 41 ---
+Conference, Pisa, Italy, August 26-29, 1996, Proceedings , volume 1119 of
+Lecture Notes in Computer Science , pages 546{562. Springer, 1996.
+[22] Stavros Tripakis and Sergio Yovine. Analysis of timed systems using time-
+abstracting bisimulations. Formal Methods in System Design , 18(1):25{68,
+2001.
+[23] Farn Wang. Ecient verication of timed automata with bdd-like data
+structures. STTT , 6(1):77{97, 2004.
+[24] Mihalis Yannakakis and David Lee. An ecient algorithm for minimizing
+real-time transition systems. Formal Methods in System Design , 11(2):113{
+136, 1997.
+[25] Jianhua Zhao, Xuandong Li, and Guoliang Zheng. A quadratic-time dbm-
+based successor algorithm for checking timed automata. Inf. Process. Lett. ,
+96(3):101{105, 2005.
+41
