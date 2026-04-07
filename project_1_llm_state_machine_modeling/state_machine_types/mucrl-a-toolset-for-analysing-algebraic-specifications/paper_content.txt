@@ -1,0 +1,223 @@
+--- Page 1 ---
+CRL: A Toolset for Analysing Algebraic
+Specications
+Stefan Blom1, Wan Fokkink1, Jan Friso Groote2, Izak van Langevelde1,
+Bert Lisser1,a n dJ a c ov a nd eP o l1
+1CWI, Department of Software Engineering
+PO Box 94079, 1090 GB Amsterdam, The Netherlands
+fsccblom,wan,izak,bertl,vdpol g@cwi.nl
+2Eindhoven University of Technology, Department of Computing Science
+PO Box 513, 5600 MB Eindhoven, The Netherlands
+jfg@win.tue.nl
+1 Introduction
+CRL [13] is a language for specifying and verifying distributed systems in an
+algebraic fashion. It targets the specication of system behaviour in a process-
+algebraic style and of data elements in the form of abstract data types. The
+CRL toolset [21] (see http://www.cwi.nl/~mcrl ) supports the analysis and
+manipulation of CRL specications. A CRL specication can be automatically
+transformed into a linear process operator (LPO). All other tools in the CRL
+toolset use LPOs as their starting point. The simulator allows the interactive
+simulation of an LPO. There are a number of tools that allow optimisations on
+the level of LPOs. The instantiator generates a labelled transition system (LTS)
+from an LPO (under the condition that it is nite-state), and the resulting LTS
+can be visualised, analysed and minimised.
+An overview of the CRL toolset is presented in Figure 1. This picture is
+divided into three layers: CRL specications, LPOs and LTSs. The rectangular
+boxes denote dierent ways to represent instances of the corresponding layer (for
+example, LPOs can be represented in a binary or a textual form). A solid arrow
+denotes a transformation from one instance to another that is supported by the
+CRL toolset; keywords are provided to these arrows to give some information
+on which kinds of transformations are involved. Finally, the oval boxes represent
+several ways to analyse systems, and dashed arrows show how the dierent rep-
+resentations of LPOs and LTSs can be analysed. The box named BCG and its
+three outgoing dashed arrows actually belong to the CADP toolset (see Section
+4). The next three sections are devoted to explaining Figure 1 in more detail.
+The CRL toolset was successfully used to analyse a wide range of protocols
+and distributed algorithms. Recently it was used to support the optimised re-
+design of the Transactions Capabilities Procedures in the SS No. 7 protocol stack
+for telephone exchanges [1,2], to detect a number of mistakes in a real-life proto-
+col over the CAN bus for lifting trucks [10], to analyse a leader election protocol
+from the Home Audio/Video interoperability (HAVi) architecture [20], and to
+perform scenario-based verications of the coordination language SPLICE [6].
+G. Berry, H. Comon, and A. Finkel (Eds.): CAV 2001, LNCS 2102, pp. 250{254, 2001.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2001
+
+--- Page 2 ---
+CRL: A Toolset for Analysing Algebraic Specications 251
+minimisation
+confluence reductionminimisationconstelm
+sumelm
+parelm
+structelm
+rewr
+instantiator with confluence reductioninstantiatorlineariser pretty printertext
+binary
+BCG SVC
+model checking visualisation simulationLTSLPOCRL
+Fig. 1. The Main Components of the CRL Toolset.
+2CRL Specications
+The CRL language is based on the process algebra ACP. It allows one to specify
+system behaviour in an algebraic style using atomic actions, alternative and
+sequential composition, parallelism and communication, encapsulation, hiding,
+renaming and recursive declarations. Furthermore, CRL supports equationally
+specied abstract data types. In order to intertwine processes and data, atomic
+actions and recursion variables carry data parameters. Moreover, an if-then-
+else construct enables that data elements inﬂuence the course of a process, and
+alternative quantication chooses from a possibly innite data domain.
+3 Linear Process Operators
+When investigating systems specied in CRL, our current standard approach is
+to transform the CRL specication under scrutiny to a relatively simple format
+without parallelism or communication, called an LPO. In essence this is a vector
+of data parameters together with a list of condition, action and eect triples,
+describing when an action may happen and what is its eect on the vector of
+data parameters. It is stored in a binary format or as a plain text le. From an
+LPO one can generate an LTS, in which the states are parameter vectors and
+the edges are labelled with parametrised actions.
+In [14] it is described how a large class of CRL processes can be transformed
+automatically to a bisimilar LPO. The resulting LPO and its data structures are
+stored as ATerms. The ATerm library [5] stores terms in a very compact way by
+minimal memory requirements, employing maximal sharing, and using a tailor-
+
+--- Page 3 ---
+252 Stefan Blom et al.
+made garbage collector. Moreover, the ATerm library uses a le format that is
+even more compact than the memory format.
+The CRL toolset comprises ve tools (constelm, sumelm, parelm, structelm
+and rewr) that target the automated simplication of LPOs while preserving
+bisimilarity [8]. These tools do not require the generation of the LTS belong-
+ing to an LPO, thus circumventing the ominous state explosion problem. The
+simplication tools are remarkably successful at simplifying the LPOs belonging
+to a number of existing protocols. In some cases these simplications lead to a
+substantial reduction of the size of the corresponding LTS.
+Elimination of constant parameters. A parameter of an LPO can be re-
+placed by a constant value, if it can be statically determined that this pa-
+rameter remains constant throughout any run of the process.
+Elimination of sum variables. The choice of a sum ranging over some data
+type may be restricted by a side condition to a single concrete value. In that
+case the sum variable can be replaced by this single value.
+Elimination of inert parameters. A parameter of an LPO that has no (di-
+rect or indirect) inﬂuence on the parameters of actions or on conditions does
+not inﬂuence the LPO’s behaviour and can be removed. Whereas the two re-
+duction techniques mentioned above only simplify the description of an LPO,
+elimination of inert parameters may lead to substantial reduction of the LTS
+underlying an LPO. If the inert parameter ranges over an innite domain,
+the number of states can even reduce from innite to nite by this operation.
+This typically happens after hiding part of the system’s behaviour.
+Elimination of data structures. Sometimes, the operations above cannot be
+applied to single parameters, but they can be applied to parts of the data
+structures that these variables range over. For this to take place, such data
+structures must be partitioned into their constituents.
+Rewriting data terms. The data terms occurring in an LPO can be rewritten
+using the equations of the data types. If a condition is rewritten to false, then
+the corresponding condition, action and eect triple in the LPO is removed.
+Conﬂuence is widely recognised as an important feature of the behaviour
+of distributed communicating systems. Roughly, a -transition from a state in
+an LTS, representing an internal computation that is externally invisible, is
+conﬂuent if it commutes with any other transition starting in this same state.
+In [18] it was shown that conﬂuence can be used in process verication. In [15]
+several notions of conﬂuence were studied on their practical applicability, and it
+was shown that on the level of LPOs conﬂuence can be expressed by means of
+logical formulas. In [4] it is shown that the presence of conﬂuence within an LPO
+can be exploited at a low cost at the level of the instantiator, i.e., during the
+generation of the associated LTS. A prototype of this generation algorithm was
+implemented, and experience learns that this exploitation of conﬂuence within an
+LPO may lead to the generation of an LTS that is several orders of magnitudes
+smaller compared to the standard instantiator. The detection of conﬂuence in an
+LPO is performed using the automated reasoning techniques that are surveyed
+in Section 5.
+
+--- Page 4 ---
+CRL: A Toolset for Analysing Algebraic Specications 253
+4 Labelled Transition Systems
+The SVC format [17] oers an extremely compact le format for storing LTSs.
+This format is open in its specication and implementation, and allows states
+to be labelled by ATerms. A prototype visualisation tool has been developed
+for the SVC format, dubbed Drishti. A reduction algorithm based on conﬂu-
+ence and minimisation algorithms modulo equivalences such as bisimulation and
+branching bisimulation have been implemented, collapsing equivalent states.
+Alternatively, LTSs belonging to CRL specications can be visualised and
+analysed using the Csar/Ald ebaran Development Package (CADP) [7]. This
+toolset originally targets the analysis of LOTOS specications. Csar gener-
+ates the LTS belonging to a LOTOS specication, and supports simulation.
+Aldebaran performs equivalence checking and minimisation of LTSs modulo a
+range of process equivalences. XTL oers facilities for model checking formulas
+in temporal logics. The CADP toolset comprises the BCG format, which sup-
+ports compact storage of LTSs. SVC les can be translated to BCG format and
+vice versa, given a CADP license (as the BCG format is not open source).
+In [11] a reduction algorithm for LTSs is presented, based on priorisation
+of conﬂuent -transitions. First the maximal class of conﬂuent -transitions is
+determined, and next outgoing conﬂuent -transitions from a state are given
+priority over all other outgoing transitions from this same state. For LTSs that
+do not contain an innite sequence of -transitions, this reduction preserves
+branching bisimulation. An implementation of this algorithm is included in the
+CRL toolset. In some cases it reduces the size of an LTS by an exponential
+factor. Furthermore, the worst-case time complexity of the reduction algorithm
+from [11] compares favourably with minimisation modulo branching or weak
+bisimulation equivalence. Hence, the algorithm from [11] can serve as a useful
+preprocessing step to these minimisation algorithms.
+5 Symbolic Reasoning about Innite-State Systems
+For very large nite-state systems, a symbolic analysis on the level of LPOs may
+result in the generation of much smaller LTSs. For systems with an inherently
+innite number of states the use of theorem proving techniques is indispensable.
+The original motivation behind the LPO format was that several proper-
+ties of a system can be uniformly expressed by rst-order formulae. Eective
+proof methods for LPOs have been developed, incorporating the use of invari-
+ants [3] and state mappings [16]. Also the conﬂuence property of an LPO can
+be expressed as a large rst-order formula [15]. Using these techniques, large
+distributed systems were veried in a precise and logical way, often with the
+help of interactive theorem provers. See [9] for an overview of such case studies.
+Since the conﬂuence properties and the correctness criteria associated with
+state mappings for industrial-scale case studies tend to be rather ﬂat but very
+large, we are developing a specialised theorem prover based on an extension of
+BDDs with equality [12]. A prototype tool has been implemented [19], which was
+used to detect conﬂuence in a leader election protocol and in a Splice specication
+
+--- Page 5 ---
+254 Stefan Blom et al.
+from [6]. (This information on conﬂuence was exploited using the method of [4];
+see Section 3.) This tool can also check invariants and the correctness criteria
+associated with a state mapping between a specication and its implementation.
+References
+1. Th. Arts and I.A. van Langevelde. How CRL supported a smart redesign of a
+real-world protocol. In Proc. FMICS'99 , pp. 31{53, 1999.
+2. Th. Arts and I.A. van Langevelde. Correct performance of transaction capabilities.
+InProc. ICACSD'2001 . IEEE, 2001.
+3. M.A. Bezem and J.F. Groote. Invariants in process algebra with data. In Proc. 5th
+Conference on Concurrency Theory , LNCS 836, pp. 401{416. Springer, 1994.
+4. S.C.C. Blom. Partial -conﬂuence for ecient state space generation. Technical
+Report, CWI, 2001.
+5. M.G.J. van den Brand, H. de Jong, P. Klint, and P.A. Olivier. Ecient annotated
+terms. Software { Practice and Experience , 30(3):259{291, 2000.
+6. P.F.G. Dechering and I.A. van Langevelde. The verication of coordination. In
+Proc. COORDINATION'2000 , LNCS 1906, pp. 335-340. Springer, 2000.
+7. J.-C. Fernandez, H. Garavel, A. Kerbrat, L. Mounier, R. Mateescu, and M. Sighire-
+anu. CADP { a protocol validation and verication toolbox. In Proc. 8th Confer-
+ence on Computer-Aided Verication , LNCS 1102, pp. 437{440. Springer, 1996.
+8. J.F. Groote and B. Lisser. Computer assisted manipulation of algebraic process
+specications. Technical Report, CWI, 2001.
+9. J.F. Groote, F. Monin, and J.C. van de Pol. Checking verications of protocols
+and distributed systems by computer. In Proc. 9th Conference on Concurrency
+Theory , LNCS 1466, pp. 629{655. Springer, 1998.
+10. J.F. Groote, J. Pang, and A.G. Wouters. Analysis of a distributed system for lifting
+trucks. Technical Report, CWI, 2001.
+11. J.F. Groote and J.C. van de Pol. State space reduction using partial -conﬂuence.
+InProc. MFCS'2000 , LNCS 1893, pp. 383{393. Springer, 2000.
+12. J.F. Groote and J.C. van de Pol. Equational binary decision diagrams. In Proc.
+LPAR'2000 , LNAI 1955, pp. 161{178. Springer, 2000.
+13. J.F. Groote and A. Ponse. The syntax and semantics of CRL. In Proc. ACP'94 ,
+Workshops in Computing, pp. 26{62. Springer, 1995.
+14. J.F. Groote, A. Ponse, and Y.S. Usenko. Linearization of parallel pCRL. To appear
+inJournal of Logic and Algebraic Programming .
+15. J.F. Groote and M.P.A. Sellink. Conﬂuence for process verication. Theoretical
+Computer Science , 170(1/2):47{81, 1996.
+16. J.F. Groote and J. Springintveld. Focus points and convergent process operators:
+a proof strategy for protocol verication. In Proc. ARTS'95 , 1995.
+17. I.A. van Langevelde. A compact le format for labeled transition systems. Technical
+Report SEN R0102, CWI, 2001.
+18. R. Milner. Communication and Concurrency . Prentice Hall, 1989.
+19. J.C. van de Pol. A prover for the CRL toolset with applications { version 1.
+Technical Report SEN R0106, CWI, 2001.
+20. Y.S. Usenko. State space generation for the HAVi leader election protocol. To
+appear in Science of Computer Programming .
+21. A.G. Wouters. Manual for the CRL toolset (version 1.11). Technical Report, CWI,
+2001.
