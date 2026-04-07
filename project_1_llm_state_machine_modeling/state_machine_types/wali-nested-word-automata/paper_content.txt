@@ -1,0 +1,1987 @@
+--- Page 1 ---
+WALi: Nested-Word Automata
+Evan Driscoll1Aditya Thakur1Amanda Burton1Thomas Reps1;2
+1University of Wisconsin | Madison
+Computer Sciences Department
+fdriscoll,adi,burtona,reps g@cs.wisc.edu
+2GrammaTech, Inc.
+Abstract
+WALi-NWA is a C++ library for constructing, querying, and operating on
+nested-word automata. It is a portion of the WALi library, which provides types
+and operations for weighted automata. While the NWA portions of WALi are
+mostly logically separate from the rest of WALi, it does use facilities provided by
+WALi and inter-operates with WALi's weighted pushdown system (WPDS) code.
+Contents
+1 Library Overview 3
+1.1 NWA core classes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.2 NWA non-member functions . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.3 Generic WALi . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.4 Simple example use of the library . . . . . . . . . . . . . . . . . . . . . . . 5
+2 The NestedWord class 8
+3 The NWAclass 9
+3.1 Construction, copying, assignment, and clearing . . . . . . . . . . . . . . . 9
+3.2 Simple manipulations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+3.3 Client Information . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+4 The wali::nwa::query namespace 11
+4.1 Querying information about an automaton's transitions . . . . . . . . . . 11
+4.2 Querying other structural aspects of an automaton . . . . . . . . . . . . . 11
+4.3 Querying properties of an automaton's language . . . . . . . . . . . . . . 11
+5 NWA serialization 13
+5.1 Parser . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+5.2 Examples . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+5.3 NWA description format . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+Supported by NSF under grants CCF- f0540955, 0810053, 0904371 g, by ONR under grants N00014- f09-1-
+0510, 10-M-0251g, by ARL under grant W911NF-09-1-0413, and by AFRL under grants FA9550-09-1-0279 and
+FA8650-10-C-7088. Any opinions, ndings, and conclusions or recommendations expressed in this material are
+those of the author(s) and do not necessarily reect the views of the sponsoring agencies.
+1
+
+--- Page 2 ---
+6 Building NWAs from other NWAs (namespace wali::nwa::construct ) 18
+6.1 Union . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+6.2 Intersection . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+6.3 Concatenation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+6.4 Kleene star . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+6.5 Reverse . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+6.6 Determinize . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+6.7 Complement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+7 Conversions beween WPDSs and NWAs (namespace
+wali::nwa::nwa pds) 32
+7.1 WPDS to NWA . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+7.2 NWA to WPDS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+7.2.1 Forwards ow stacking calls . . . . . . . . . . . . . . . . . . . . . . 36
+7.2.2 Backwards ow stacking calls . . . . . . . . . . . . . . . . . . . . . 36
+7.2.3 Forwards ow stacking returns . . . . . . . . . . . . . . . . . . . . 37
+7.2.4 Backwards ow stacking returns . . . . . . . . . . . . . . . . . . . 38
+A Nested-Word Automata 40
+B Determinize 42
+C Tables 44
+The WALi library is available from http://www.cs.wisc.edu/wpis/wpds/
+download.php . This document describes the NWA portion of version 4.0. Building
+instructions can be found in README.txt in the root directory of the distribution.
+We assume the reader is familiar with nested words and nested-word automata; if
+not, App. A provides the denition we use and Alur et al. [2, 3] describe them in detail.
+Our implementation corresponds to the denition from the DLT 2006 paper [2]; relative
+to follow-up work [3], this denition removes the distinction between the machine's lin-
+ear and hierarchical states, and on a call transition always stacks the source state. In
+addition, we only require that the nal linear state be accepting for an NWA to accept
+a word. (Following [3], this specic variant is a \weakly-hierarchical, linearly-accepting"
+NWA.)
+The terminology used in the interface of the package is geared toward program anal-
+ysis, so we use terms such as \call site" and \return site" to refer to states of the NWA
+even though they take on dierent meanings in dierent contexts.
+In contrast to the standard denitions, we allow internal "transitions (but not call or
+return"transitions). We also allow \wild" transitions, which match any single symbol.
+(Wilds canappear on calls and returns.)
+2
+
+--- Page 3 ---
+1 Library Overview
+The core of the NWA library is in the namespace wali::nwa . It includes the classes
+NestedWord ,NWA, and others.
+There are a large number of non-member functions that operate on NWAs. These
+are divided into three sub-namespaces: wali::nwa::query ,wali::nwa::construct ,
+andwali::nwa::nwa pds. There is also an experimental parser in wali::nwa .
+Finally, there are some operations and classes provided by WALi that the NWA
+portion of the library uses. This mostly consists of the key-handling code, but can also
+include the WPDS portions of the library.
+Throughout this document, include paths are relative to the Source directory from
+the WALi distribution.
+Section 1.4 illustrates a simple sample use of the library.
+1.1 NWA core classes
+These types live in namespace wali::nwa :
+NestedWord
+Implements a single nested word. Currently the only operation that can be per-
+formed using one is checking whether a NestedWord is a member of an NWA's lan-
+guage. Dened in wali/nwa/NestedWord.hpp . Seex2.
+NWA
+Implements a nested-word automaton. Dened in wali/nwa/NWA.hpp with a for-
+ward declaration in wali/nwa/NWAFwd.hpp . Seex3. (x5 also discusses member
+functions related to serializing an NWA.)
+NWARefPtr
+NWARefPtr is a typedef of refptr<NWA>(see below). This is dened in
+wali/nwa/NWAFwd.hpp .
+State andSymbol
+These are both typedefs of wali::Key (see below). Both are dened in
+wali/nwa/NWAFwd.hpp .Note: the use of keys for both states and symbols means
+that they can be confused from a types perspective, so use caution that this does
+not happen.
+StateSet andSymbolSet
+These are typedefs of std::set s of the corresponding type. (Client code should
+not rely on this fact; it could change to be an unordered mapor other similar
+container.) Both are dened in wali/nwa/NWAFwd.hpp .
+ClientInfo
+This class holds client-specic information that is associated with a state. Client
+code can subclass ClientInfo and use functions of the NWAclass to attach instances
+to states. To use, include wali/nwa/ClientInfo.hpp . Seex3.3.
+WeightGen
+This abstract class describes how to assign weights to transitions of the NWA, and
+is used both when converting an NWA to a PDS and when doing prestar/poststar
+queries on the NWA directly. To use, include wali/nwa/WeightGen.hpp . Seex7.2.
+1.2 NWA non-member functions
+The library provides a large number of non-member functions for operating on NWAs.
+These are partitioned into the following namespaces:
+wali::nwa::query
+This namespace provides functions for querying an automaton. The kinds of func-
+tions in this namespace are:
+3
+
+--- Page 4 ---
+Functions that query transitions of the NWA, returning information about
+one of the states or the symbol in transitions that meet some criteria. (For
+example, \give me all states that appear as the target state of an internal
+transition with this source state.") See x4.1.
+Determining whether two NWAs have any states in common. See x4.2.
+Determining whether an NWAis deterministic. See x4.2.
+Determining whether a NestedWord is a member of the language of an NWA.
+Seex4.3.
+Determining whether the language of an NWA is empty. See x4.3.
+Determining whether the languages of two NWAs are equal, or if one is a
+subset of the other. See x4.3.
+prestar and poststar operations on an NWA. See x4.3.
+wali::nwa::construct
+This namespace provides functions for constructing an NWA. Functions in this
+namespace are standard, automata-theoretic operations such as intersection, union,
+concatenation, Kleene star, and reversal. See x6.
+wali::nwa::nwa pds
+This namespace provides functions for converting between NWAs and PDSs, and
+related functions. (Note that construction of an NWA from a PDS is in this
+namespace, not in construct .) Seex7.
+wali::nwa
+This namespace, in addition to the items already discussed, provides an experi-
+mental parser for a serialization format of NWAs. See x5.
+1.3 Generic WALi
+The NWA library uses these portions of the standard WALi library. Unless otherwise
+specied, they are in namespace wali . See [5].
+refptr<T>
+This is a reference-counted, intrusive smart-pointer template. (\Intrusive" means
+that the pointed-to type must be modied to include a count eld used by the
+pointer. This is most conveniently done by subclassing wali::Countable .) Dened
+inwali/ref ptr.hpp .
+Key
+AKeyis a unique identier naming states and symbols in an NWA or NestedWord.
+It is actually a typedef of an integer, though client code should not rely on this
+precise type. Declared in wali/Key.hpp .
+Key getKey (...)
+This function produces a key from some input. If the input has not been seen
+before, it returns a new key; if it has, then it returns the same key as before. (One
+can think of this as translating whatever unique identier is known by the client
+code to the Keyneeded by WALi.) Overloads of this function are provided for the
+following types:
+std::string const &
+char *
+int
+std::set<Key> const &
+Key, Key (this is a two-argument version of getKey )
+keysrct
+The nal overload, for keysrct, is a refptrto a KeySource object. KeySource
+is an abstract class that client code can subclass to provide a translation to Keys
+for arbitrary types.
+All overloads are declared in wali/Key.hpp .
+4
+
+--- Page 5 ---
+std::string key2str (Key k)
+key2str is an \inverse" of getKey , except that it always returns a string repre-
+sentation. If the key was created with getKey(std::string const &) in the rst
+place, this returns a copy of the original string.1Declared in wali/Key.hpp .
+wali::wfa::WFA
+This is a weighted nite automaton. It is used in NWA poststar and prestar queries
+in much the same manner as in WPDS poststar and prestar queries. Dened in
+wali/wfa/WFA.hpp .
+wali::wpds::WPDS
+This is a weighted pushdown system. NWAs use WPDSs behind the scenes when
+doing poststar and prestar queries, and the library provides conversion routines
+between the two automata types. Dened in wali/wpds/WPDS.hpp .
+1.4 Simple example use of the library
+The following is an illustration of basic operations of the library. The full code is available
+in the le Doc/NWA tex/Example/example.cpp in the WALi distribution.
+// This program will walk through creating the NWA shown in Figure 4 of the
+// associated documentation, and reverse it (to get the result of Figure 12).
+// We then make a NestedWord of the one word in Figure 4's language and
+// another NestedWord of the one word in Figure 12's language, then test that
+// each is a member of just the appropriate NWA.
+#include <iostream>
+using std::cout;
+#include "wali/nwa/NWA.hpp"
+#include "wali/nwa/NestedWord.hpp"
+#include "wali/nwa/construct/reverse.hpp"
+#include "wali/nwa/query/language.hpp"
+using wali::getKey;
+using namespace wali::nwa;
+using wali::nwa::construct::reverse;
+using wali::nwa::query::languageContains;
+// These symbols are used in the NWA and both words
+Symbol const sym_a = getKey("a");
+Symbol const sym_b = getKey("b");
+Symbol const sym_call = getKey("call");
+Symbol const sym_ret = getKey("ret");
+/// Creates the NWA shown in Figure 4 of the Wali NWA documentation
+NWA
+create_figure_4()
+{
+NWA out;
+// Translate the names of the states then symbols to Wali identifiers
+State start = getKey("Start");
+State call = getKey("Call");
+1Forints, it is the textual representation of the original number. For a set<Key> , it is the set printed
+in standard set notation. For a pair of keys, it is the pair printed as an ordered pair. In general, it is
+the result of calling keysrct::print . See the print function in each of the les wali/*Source.cpp .
+5
+
+--- Page 6 ---
+State entry = getKey("Entry");
+State state = getKey("State");
+State exit = getKey("Exit");
+State return_ = getKey("Return");
+State finish = getKey("Finish");
+// Add the transitions
+out.addInternalTrans(start, sym_a, call);
+out.addCallTrans(call, sym_call, entry);
+out.addInternalTrans(entry, sym_b, state);
+out.addInternalTrans(state, sym_b, exit);
+out.addReturnTrans(exit, call, sym_ret, return_);
+out.addInternalTrans(return_, sym_a, finish);
+// Set the initial and final states
+out.addInitialState(start);
+out.addFinalState(finish);
+return out;
+}
+/// Creates a (the one) word in the language of Figure 4's NWA
+NestedWord
+create_forwards_word()
+{
+NestedWord out;
+out.appendInternal(sym_a);
+out.appendCall(sym_call);
+out.appendInternal(sym_b);
+out.appendInternal(sym_b);
+out.appendReturn(sym_ret);
+out.appendInternal(sym_a);
+return out;
+}
+/// Creates a (the one) word in the language of the reverse of Figure 4's NWA
+NestedWord create_backwards_word() { ... }
+int main()
+{
+// Create the NWA and reversed NWA
+NWA fig4 = create_figure_4();
+NWARefPtr fig4_reversed = reverse(fig4);
+// These are the words we are testing
+NestedWord forwards_word = create_forwards_word();
+NestedWord backwards_word = create_backwards_word();
+// Now do the tests
+cout << "fig4 contains:\n"
+<< " forwards_word [expect 1] : "
+6
+
+--- Page 7 ---
+<< languageContains(fig4, forwards_word) << "\n"
+<< " backwards_word [expect 0] : "
+<< languageContains(fig4, backwards_word) << "\n"
+<< "fig4_reversed contains:\n"
+<< " forwards_word [expect 0] : "
+<< languageContains(*fig4_reversed, forwards_word) << "\n"
+<< " backwards_word [expect 1] : "
+<< languageContains(*fig4_reversed, backwards_word) << "\n";
+}
+7
+
+--- Page 8 ---
+2 The NestedWord class
+The class wali::nwa::NestedWord provides support for building and iterating over
+nested words; currently there is no support for modifying them (other than append-
+ing).
+The representation used by this class is closer to that of a word in a visibly-pushdown
+language [3]. It holds the linear contents of a word, but does not store the nesting relation
+explicitly. Instead, each position in the word is annotated with whether it is an internal,
+call, or return position. The nesting relation is induced by the matchings between calls
+and returns.
+A position in a word is represented by the (nested) structure NestedWord::Position .
+Position itself declares an enumeration Type , which has the possible values CallType ,
+InternalType , or ReturnType . A Position object has two (public) elds: Symbol
+symbol andPosition::Type type ; these hold the symbol at that position and the type
+of the position.
+The NestedWord class has just seven functions:
+void NestedWord::appendInternal (Symbol s)
+void NestedWord::appendCall (Symbol s)
+void NestedWord::appendReturn (Symbol s)
+These append the symbol sto the linear word, and annotate that position as an
+internal, call, or return position, respectively.
+void NestedWord::append (Position p)
+Appends pto the word.
+size tNestedWord::size () const
+Returns the length of the word.
+NestedWord::const iterator NestedWord::begin () const
+NestedWord::const iterator NestedWord::end () const
+These return an iterator to the start or end of the nested word. The type returned
+by dereferencing these iterators is a Position object. (There is no non-const
+version of these functions.)
+The only operation the library currently supports on NestedWord s, besides
+building them, is checking whether a nested word is in an NWA's language.
+This is done by the function wali::nwa::query::languageContains(NWA const &,
+NestedWord const &) ; seex4.3.
+8
+
+--- Page 9 ---
+3 The NWAclass
+3.1 Construction, copying, assignment, and clearing
+The NWA provides two constructors: the default constructor and the copy constructor.
+The default constructor creates an empty NWA. Thereafter, client code can add or
+remove states, add or remove symbols, add or remove transitions, and set the status of
+certain states as initial or nal.
+The following functions are basic NWA operations:
+NWA::NWA ()
+Constructs an empty NWA.
+NWA::NWA (NWA const & other)
+Copies other ; the automata will not share structure. Any client information that
+is present is cloned.
+NWA& NWA::operator= (NWA const & other)
+Assigns other tothis ; the automata will not share structure. Client information
+is cloned.
+bool NWA::operator== (NWA const & other)
+Determines whether the two automata are structurally equal | that is, they con-
+tain exactly the same set of states (including initial and nal states), symbols,
+and transitions | and returns the result. (To test language equality, use the
+languageEquals function covered in x4.)
+void NWA::clear ()
+Removes all states, symbols, and transitions from the NWA.
+3.2 Simple manipulations
+An NWA object tracks the set of states, symbols, and transitions in the automaton.
+It also tracks the set of initial and accepting states. Counting each kind of transition
+separately, this gives 7 kinds of \entities" that client code may need to manipulate.
+For each kind of entity, there are NWAmember functions to add and remove a single
+entity, check whether a particular entity is in the automaton, count the number of entities
+of a particular type, remove all entities of a particular type, and retrieve the set of
+entities in the NWA. In addition, there are member functions for counting and clearing
+all transitions, regardless of the type.
+The names of these functions are very regular, but Tab. 1 (App. C) gives a list.
+The only potential diculties are in the interactions between the functions. Naturally,
+removing a state or a symbol also removes all transitions involving it; likewise, clearing
+all states or clearing all symbols also clears all transitions. (Calling removeInitialState
+orremoveFinalState does not cause ripple eects.)
+Adding a transition implicitly adds the states and symbol involved in that transition
+if they are not already present; hence it is not necessary to explicitly add all states
+and symbols before adding transitions. (It is quite reasonable to build an NWA by just
+adding initial states, nal states, and transitions.)
+The system supports two meta-symbols: wali::WALI EPSILON (") and
+wali::WALI WILD (@). WALI EPSILON is the standard "from automata theory; it
+denotes that a transition can be traversed without matching and consuming an input
+symbol. Epsilon symbols cannot label call or return transitions. WALI WILD is the `any'
+symbol; it matches any single symbol. Because the NWA alphabet is not xed, the
+actual symbols that WALI WILD stands for is uid. Note: WALI EPSILON andWALI WILD
+are not explicit elements of ; see Tab. 1, footnote 5.
+9
+
+--- Page 10 ---
+3.3 Client Information
+Each state in the NWA can be associated with some client-specic information. To
+utilize this functionality, client code must subclass ClientInfo and override ClientInfo
+* clone() const .
+Once done, client information can be attached or retrieved using the following two
+functions (both members of NWA):
+refptr<ClientInfo> NWA::getClientInfo (Key st) const
+Returns the client-specic information associated with the given state, st.
+void NWA::setClientInfo (Key st, ref ptr<ClientInfo> ci)
+Sets the client-specic information, ci, associated with the given state, st.
+Client information is tracked through the use of refptrs, so the programmer must con-
+sider the standard aliasing and lifetime considerations imposed by using smart pointers.
+(ClientInfo supplies the count eld needed by refptr.) Operations such as copying
+an NWA that clone client information can also result in changes in aliasing: if the client
+information for states pandqare aliased in NWA Nthat is then copied to NWA N0,
+the \copies" of pandqinN0will have separate copies of the client information.
+In addition, you may wish to subclass NWAitself. There are several virtual helper
+functions that are called during intersection and determinization to compute the client
+info for the resulting automaton; these can be overriden to customize the behavior. (This
+design is an instance of the \template method" design pattern.)
+The list of these helper methods is:
+intersectClientInfoInternal
+intersectClientInfoCall
+intersectClientInfoReturn
+mergeClientInfo
+mergeClientInfoInternal
+mergeClientInfoCall
+mergeClientInfoReturn
+(The rst three are used by intersection and the remaining four by determinization.) In
+addition, stateIntersect andtransitionIntersect can further customize the behav-
+ior of intersection, including computation of client information. x6.2 andx6.6 have more
+information on intersection and determinization, and discuss these functions further.
+10
+
+--- Page 11 ---
+4 The wali::nwa::query namespace
+Thewali::nwa::query namespace provides functions related to querying both the struc-
+ture and language of an automaton.
+In this section, we rst discuss how to retrieve information from an automaton's
+transitions (x4.1) then move on to other queries about an automaton proper. Following
+that, we discuss queries about the language of an automaton ( x4.3).
+4.1 Querying information about an automaton's transitions
+The wali::nwa::query namespace provides a large number of functions for retrieving
+information about an NWA's transitions. The questions answered by these functions are
+of the form, e.g., \what are all symbols that appear on a return transition where the call
+predecessor state is s1and the return site state is s1?"
+Functions return information either about all transitions or about transitions of a
+particular type (internal, call, or return). The names of these functions have regular
+patterns based on the information that is known and desired, but the rules for producing
+the names are perhaps not as simple as they could be. Because of this, Tabs. 2{5 in
+App. C provide a quick reference for the functions.
+The tables do not have allthe information one needs to know in order to call them,
+and the entries use some shorthands; but they provide enough information for specics
+to be looked up in the corresponding header or Doxygen documentation. The caption of
+each table gives the header that contains the functions listed. In the interest of space, the
+types of the function arguments are omitted, but they are likely to be what you expect.
+(The number of arguments is also always sucient to uniquely identify the function
+because all types are just wali::Key s anyway.) Almost all functions return a StateSet ,
+SymbolSet , or a std::set of pairs of a state and a symbol. (Those that return a set of
+pairs are marked specially.)
+4.2 Querying other structural aspects of an automaton
+The NWA library has two additional functions for querying attributes of NWAs them-
+selves. One computes whether an NWA is deterministic, and the other computes whether
+two automata have any states in common.
+These functions are declared in the header wali/nwa/query/automaton.hpp (and,
+of course, dened in the namespace wali::nwa::query ).
+bool isDeterministic (NWA const & nwa)
+Computes whether the given NWA is deterministic and returns the result. Warn-
+ing: The result is not cached in the NWA, and as presently-implemented, this
+function is very inecient. Improvements to this will come in a later version of the
+library.
+bool statesOverlap (NWA const & a, NWA const & b)
+Computes whether the two NWAs share any states and returns the result.
+4.3 Querying properties of an automaton's language
+The NWA library has several functions for querying properties of the language of an
+NWA (or how the languages of two NWAs relate), and it also supports the poststar and
+prestar queries used in program analysis.
+The following functions perform standard language-theoretic queries.
+They are located in namespace wali::nwa::query and are declared in
+wali/nwa/query/language.hpp . They are:
+11
+
+--- Page 12 ---
+bool languageContains (NWA const & nwa, Nested Word const & word)
+Computes whether word is a member of nwa's language, and returns the result. (It
+simulates the NWA in a nondeterministic fashion; the NWA is not determinized
+to answer this query.) To a rst approximation, the worst-case running time is
+O(jwordjwlogwlogn), wherewis the \width" of the nondeterminism of the
+NWA (i.e. the maximum number of simultaneous congurations that are possible
+when reading word ) andnis the number of states in the NWA.
+bool languageIsEmpty (NWA const & nwa)
+Computes whether the NWA's language is empty, and returns the result.
+refptr<NestedWord >getSomeAcceptedWord (NWA const & nwa)
+Ifnwa's language is empty, returns NULL . Otherwise returns an arbitrary word in
+L(nwa). (If nwaaccepts unbalanced words, the return value may be unbalanced.)
+bool languageSubsetEq (NWA const & left, NWA const & right)
+Computes whether L(left )L(right ) and returns the result. Since this proce-
+dure must determinize right , the worst-case running time is O(2n2n2m) wheren
+is the number of states in right andmis the number of states in left .
+bool languageEquals (NWA const & left, NWA const & right)
+Equivalent to languageSubsetEq(left, right) && languageSubsetEq(right,
+left) . This determinizes both machines; the running time is ... .
+There are also functions for performing a poststar and prestar query on an NWA.
+These work by converting the NWA to a WPDS (see x7 and, in particular, x7.2) using
+the function NWAtoPDScalls then running the query on the PDS.
+Conceptually, the transition system queried by prestar and poststar is the space of
+congurations of the NWA. A conguration is a pair hq;si, whereqis the current state
+andsis the stack of unmatched call sites. (More exactly, it is the stack of states the
+machine was in before reading a symbol in a call position that has not yet been matched.)
+In reality, the transition system is the conguration space of the WPDS resulting from
+calling NwaToWpdsCalls (seex7 andx7.2.1); that space is hp;ti, wherepis a WPDS state
+andtis the stack of unmatched call sites with the NWA's \current" state qadded on
+top.
+There are two variants of each function. One returns the WFA that results from
+the query, and the other stores the WFA in an output parameter. The WFAtype is
+wali::wfa::WFA .
+The functions that perform poststar and prestar are in the namespace
+wali::nwa::query and are declared in the header wali/nwa/query/weighted.hpp .
+They are:
+WFA prestar (NWA const & nwa, WFA const & input, WeightGen & wg)
+void prestar (NWA const & nwa, WFA const & input, WFA & output, WeightGen & wg)
+Computes the prestar of the congurations specied by input , using the weights
+generated by wg. Either returns the result or stores it in the parameter output .
+WFA poststar (NWA const & nwa, WFA const & input, WeightGen & wg)
+void poststar (NWA const & nwa, WFA const & input, WFA & output, WeightGen & wg)
+Computes the poststar of the congurations specied by input , using the weights
+generated by wg. Either returns the result or stores it in the parameter output .
+12
+
+--- Page 13 ---
+5 NWA serialization
+It is possible to serialize an NWA in two dierent supported formats.
+The rst is a description language of our own creation, described in most of the rest of
+this section. We also provide a parser for this format, with minor caveats. The grammar
+that the parser uses is dened formally in x5.3.
+The second is output in Graphviz Dot format. The output is natural. The color of
+an edge denotes the type of a transition: black edges are internal transitions, green edges
+are call transitions, and red edges are sets of return transitions with the same exit site,
+return site, and symbol. Return transitions are labeled with the symbol for its transitions
+and the list of call predecessors. Because it is possible to wind up with extremely long
+key names (especially in a determinized NWA) that can essentially destroy the ability
+of Dot to render useful output, by default any state names longer than 20 characters
+are replaced by the numerical value of the key. A call to print dotcan specify dierent
+behavior, however. All gures later in the document have been created via the Dot
+output (with minimal post-processing in some cases).
+There is a member function to produce each type of output:
+std::ostream& NWA::print (std::ostream & stream) const
+Writes the custom output described in this section to stream , returning stream .
+(This method is inherited from the wali::Printable abstract class.)
+std::ostream& NWA::print dot(ostream & os, std::string const & n,
+bool abbrev = true) const
+Outputs a Dot description of the NWA to the stream os, returning os. The name
+of the graph ( digraph "n"f...g) is given by n. Finally, if abbrev is set to
+false , the aforementioned abbreviation step above for state names is not done.
+Use this freedom at your peril.
+5.1 Parser
+The NWA library contains a semi-experimental parser for descriptions of NWAs. The
+format is described below, and matches the result of calling NWA::print(std::ostream
+&), provided that the result of calling key2str on the state and symbol keys produces
+strings that match the description of hactual-namesiin this grammar.
+Note: This is experimental code; in particular, the error-handling in it is basically
+non-existent. We detect when the input does not match the grammar, but we sometimes
+signal such input failures with assertion violations. In a future version of the library, we
+will report errors more gracefully, almost certainly through exceptions.
+There are two functions that parse NWA descriptions, both declared in
+wali/nwa/NWAParser.hpp in namespace wali::nwa :
+NWARefPtr read nwa(std::istream & is, std::string * name = NULL)
+Reads a description of a single NWA from isand returns it. The serialization
+format allows an optional name for an NWA; if one is specied and name is non-
+null, then the name is stored in the string pointed to by name .
+std::map<std::string, NWARefPtr >read nwaproc set(std::istream &)
+Reads the entire input stream, returning a map from the name of each automaton
+description to the parsed NWA. (This form was originally created to read NWAs
+for an entire program formatted with each procedure in a separate NWA. The
+name of each NWA was the name of the procedure in the original program.) The
+return type is typedef ed to the name ProcedureMap , dened in the same header
+and namespace.
+13
+
+--- Page 14 ---
+Q0: Start
+Qf: Finish
+Delta_i: (Start, a, Call)
+Delta_i: (Entry, b, State)
+Delta_i: (State, b, Exit)
+Delta_i: (Return, a, Finish)
+Delta_c: (Call, call, Entry)
+Delta_r: (Exit, Call, ret, Return)
+Figure 1: Serialized form of the NWA depicted in Fig. 3.
+5.2 Examples
+Figs. 1 and 2 show examples of the NWA serialization format, illustrating both the
+general form and some of the exibilities in what precise format is accepted.
+5.3 NWA description format
+This section describes the grammar of the le format.
+Note: Some characteristics in the description below have the following phrase as part
+of their description: \you should not rely on this." In such cases, we reserve the right to
+change this behavior in future versions.
+The grammar for an NWA is as follows. In order to accept a couple of slightly
+dierent output formats we have used in the past, there are some choices in whether
+braces are present and other aspects.
+A single input stream can contain either a single NWA (just a series of blocks) or
+multiple NWAs. If you would like to describe multiple NWAs, each individual starts
+with the literal nwa.
+hnwa-descriptioni::= (` nwa'hnamei? `:'?)? `f'?hblocki+ `g'?
+Braces are required if \nwa" is present and the name is absent in order to distinguish
+the rst block header ( Q:,Q0:, orQf:) from the name of the NWA.
+An NWA is a sequence of blocks; each block species one or more states, symbols, or
+transitions.
+hblocki::=hstate-blocki
+j hsigma-blocki
+j hdelta-blocki
+There can be more than one block of a given type; e.g. it is perfectly ne to specify
+all transitions in one block (as in Fig. 2), one block per transition (as in Fig. 1), or
+any mixture. The \block header" species what kind of block it is, and the body is a
+comma-separated list of whatever entity the block header species (e.g., states). The
+body may be surrounded by curly braces, but they are not required unless the body is
+empty.
+State blocks can specify states, initial states, or accepting states; these are denoted
+by the block headers Q:,Q0:, and Qf:, respectively.
+14
+
+--- Page 15 ---
+Q: {
+Begin (=2),
+End (=3),
+Entry (=4),
+Exit (=6),
+( Begin , prime ) (=10),
+( End , prime ) (=11),
+( Entry , prime ) (=12),
+( Exit , prime ) (=13)}
+Q0: {
+Begin (=2),
+( Begin , prime ) (=10)}
+Qf: {
+End (=3),
+( Begin , prime ) (=10)}
+Sigma: {
+call,
+a,
+ret}
+Delta_c: {
+(Begin (=2) , call, Entry (=4) ),
+(( Begin , prime ) (=10) , call, Entry (=4) )
+}
+Delta_i: {
+(Entry (=4) , a, Exit (=6) ),
+(( Entry , prime ) (=12) , a, ( Exit , prime ) (=13) )
+}
+Delta_r: {
+(Exit (=6) , Begin (=2) , ret, End (=3) ),
+(Exit (=6) , Begin (=2) , ret, ( Begin , prime ) (=10) ),
+(Exit (=6) , ( Begin , prime ) (=10) , ret, ( Begin , prime ) (=10) ),
+(Exit (=6) , ( Begin , prime ) (=10) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , Begin (=2) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , Begin (=2) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , End (=3) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , End (=3) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , Entry (=4) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , Entry (=4) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , Exit (=6) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , Exit (=6) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , ( Begin , prime ) (=10) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , ( Begin , prime ) (=10) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , ( End , prime ) (=11) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , ( End , prime ) (=11) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , ( Entry , prime ) (=12) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , ( Entry , prime ) (=12) , ret, ( End , prime ) (=11) ),
+(( Exit , prime ) (=13) , ( Exit , prime ) (=13) , ret, ( Begin , prime ) (=10) ),
+(( Exit , prime ) (=13) , ( Exit , prime ) (=13) , ret, ( End , prime ) (=11) )
+}
+Figure 2: Serialized form of the NWA depicted in Fig. 14.
+15
+
+--- Page 16 ---
+hstate-blocki::= ` Q:'hname-listi
+j`Q0:'hname-listi
+j`Qf:'hname-listi
+(It is not necessary to explicitly list all states; if a state is listed in a transition, it
+is implicitly added to the machine as needed. Thus, it is quite reasonable to have a
+machine description with no Q:blocks.)
+A name-list is simply a comma-separate list of names of states.
+hname-listi::= `f'? (hnamei(`,'hnamei))? `g'?
+Recall that if the list is empty, it must be followed by a g(or EOF) to distinguish
+the next block header from the name of a state.
+The grammar for hnameiwill be specied below.
+Symbol blocks are just like name blocks, except that they specify symbol names. The
+block header is simply 'sigma'.
+hsigma-blocki::= ` sigma: 'hname-listi
+A transition block can list internal, call, or return transitions, denoted by the block
+headers Delta i,Delta c, and Delta r, respectively.
+hdelta-blocki::= ` Delta i:'htriple-listi
+j`Delta c:'htriple-listi
+j`Delta r:'hquad-listi
+The bodies in each case are simply a comma-separated list of triples or quads (like
+hname-listi, if these are empty, they must be followed by ` g'):
+htriple-listi::= `f'? (htriplei(`,'htriplei))? `g'?
+hquad-listi::= `f'? (hquadi(`,'hquadi))? `g'?
+and each triple (resp., quad) is a 3-tuple (4-tuple) of names:
+htriplei::= ` ('hnamei`,'hnamei`,'hnamei`)'
+hquadi::= ` ('hnamei`,'hnamei`,'hnamei`,'hnamei`)'
+All that remains is to dene the grammar for `name'. Because the format grew
+organically and we wished to keep compatibility with existing log les (which could
+previously not be automatically parsed), the `name' terminal is a bit convoluted.
+The name consists of the actual name of the state or symbol in question, followed by
+an optional parenthesis-delimited token that is ignored. (In the output of print() , the
+hnameiis the result of key2str and the optional token is the actual numeric value of
+the key.)
+Before we discuss the grammar of hnamei, the following shows some examples of
+strings that are names:
+123 xyz a2y
+123 (=4) xyz (=42) a2y (=o3oth)
+(a,b)(x,y) (a, b) (=32) <1, 2>
+and strings which are not names:
+hello world hello world (=32) (unmatched
+16
+
+--- Page 17 ---
+The actual grammar is:
+hnamei ::=hactual-namei hdummy-tokeni?
+hdummy-tokeni::= ` (' (:f`('g)`)'
+Thehactual-nameiportion generally behaves like a standard programming-language
+identier, but with one important dierence: it can contain balanced parentheses, and
+anycharacters are allowed within a set of parentheses. (We actually allow a larger set
+of characters than is typical, but you should not rely on this. Surround your names with
+parentheses if you use \special" characters.)
+We can now dene the grammar of ` actual-name '.
+hactual-namei::=huniti+
+huniti ::=hnormal-chari
+j hparen-groupi
+hnormal-chari::= character other than whitespace, ` ,', or a paren
+(std::isspace is used to determine whether a character is whitespace.)
+hleft-pareni ::= ` ('j`f'j`['j`<'
+hright-pareni::= ` )'j`g'j`]'j`>'
+hnon-pareni ::= a character other than any of the above
+hparen-groupi::=hleft-pareni(hnon-parenijhparen-groupi) hright-pareni
+(Finally, we do not currently demand that the types of parens match up: e.g., (1,
+2, 3] is a valid name. You should not rely on this feature.)
+17
+
+--- Page 18 ---
+6 Building NWAs from other NWAs (namespace
+wali::nwa::construct )
+The library provides functions for performing automata-theoretic operations upon
+NWAs. The supported operations are union, intersection, concatenation, reversal, Kleene
+star, complement, and determinization.
+The library supports two interfaces to each of these operations. In one, the operation
+allocates an NWA with new, performs the construction, and returns a NWARefPtr to the
+result. In the other, the operation takes a reference to an NWA, clears it, and constructs
+the result in-place. The rst form is usually more convenient to use, and creates a mini
+language for set expressions; the second form makes it possible to store the result of an
+operation in a subclass of NWA.
+Each of these functions is in the namespace wali::nwa::construct :
+NWARefPtr unionNWA (NWA const & a, NWA const & b)
+void unionNWA (NWA & out, NWA const & a, NWA const & b)
+Computes the union of the NWAs aand b, either returning the result or storing
+it in out. See Section 6.1. (This function is called unionNWA instead of union
+because the latter is a C++ keyword.) The two NWAs must not have any states
+in common, and the output will be nondeterministic even if both input NWAs are
+deterministic. The running time2isO(jQaj+jQbj+jaj+jbj).
+NWARefPtr intersect (NWA const & a, NWA const & b)
+void intersect (NWA & out, NWA const & a, NWA const & b)
+Computes the intersection of the NWAs aand b, either returning the result or
+storing it in out. See Section 6.2. If both input NWAs are deterministic, the output
+will be deterministic. The worst-case running time is O(jQajjQbjdadb), whereda
+is the maximum out-degree of a state in aanddbis the maximum out-degree of a
+state in b.
+NWARefPtr concat (NWA const & left, NWA const & right)
+void concat (NWA & out, NWA const & left, NWA const & right)
+Computes the concatenation of the NWAs left and right , either returning the
+result or storing it in out. See Section 6.3. The output automaton will be nonde-
+terministic. The running time is O(jQaj+jQbj+jaj+jbj+jQajjb
+rj).
+NWARefPtr star (NWA const & orig)
+void star (NWA & out, NWA const & orig)
+Computes the Kleene star of the NWA orig , either returning the result or storing
+it in out. See Section 6.4. The output automaton will be nondeterministic. The
+running time is O(jQj+jj+jQ0jjQfjjcj).
+NWARefPtr reverse (NWA const & orig)
+void reverse (NWA & out, NWA const & orig)
+Computes the NWA that accepts the reverse of each nested word accepted by the
+NWA orig , either returning the result or storing it in out. See Section 6.5. The
+running time is O(jQj+jj).
+NWARefPtr determinize (NWA const & orig)
+NWARefPtr determinize (NWA & out, NWA const & orig)
+Computes a determinization of orig , either returning the result or storing it in
+out. See Section 6.6. The worst-case running time for this algorithm is at least
+O(jQj32jQj2).
+2We count state lookups, additions, etc. as constant time even though they are actually logarithmic,
+and occasionally linear.
+18
+
+--- Page 19 ---
+call
+ba
+aret: Call,b
+FinishReturnExitStart
+StateCall
+Entry
+Figure 3: An example
+NWA.ab
+baBegin
+EndState3State2
+State4
+Figure 4: A second exam-
+ple NWA.acall
+ba
+b
+ab
+ret: Call,baBegin
+FinishEnd
+ExitState2
+ReturnState3Start
+StateCall
+State4
+Entry
+Figure 5: The NWA re-
+sulting from the union of
+the NWA in Figure 3 and
+the NWA in Figure 4.
+Note that there are two
+initial states.
+NWARefPtr complement (NWA const & orig)
+void complement (NWA & out, NWA const & orig)
+Computes the complement of the determinization of orig , either returning the
+result or storing it in out. See Section 6.7. complement() determinizes orig , so
+its worst-case running time is also at least O(jQj32jQj2).
+As mentioned above, these functions create a small language of set expressions. For
+instance, to compute an automaton Mwhose language is A[(B\C)(where A,B, and C
+areNWARefPtr s), one can write
+NWARefPtr M = unionNWA(*A, *star(*intersect(*B, *C)))
+6.1 Union
+The union of two NWAs is constructed by taking the union of each of the components of
+the NWAs. (In particular, it does notdo a cross-product construction, and will always
+produce a nondeterministic automaton as a result as long as both machines have at least
+one initial state.)
+Formally, the union of NWAs N= (QN;N;Q0;N;N;FN) andM= (QM;M;
+Q0;M;M;FM) isN[M= (QN[QM;N[M;Q0;N[Q0;M;N[M;FN[FM).
+As an example, Fig. 5 illustrates the union of Fig. 3 and Fig. 4.
+19
+
+--- Page 20 ---
+call
+ba
+aret: Call,
+FinishReturnExitStart
+Call
+Entry
+Figure 6: Simple NWA to intersect with
+the NWA in Figure 3.acallb
+(key#2,2)(key#4,4)(key#6,9)
+(key#8,8)
+Figure 7: The NWA resulting from the
+intersection of the NWA in Figure 3 and
+the NWA in Figure 6. Note that because
+each of the input NWAs only accepts a
+single word and those words are dierent,
+the language of the intersection is empty.
+The NWA built up by intersect() got as
+far as it could. (key#2,3) is the pair of
+states (start,start) from the two input
+automata.
+The state sets of the NWAs must not overlap, i.e., Q1\Q2=;.Client code should
+not rely on this condition being checked or any particular behavior occurring if it does
+not hold.
+Client information is copied directly from the original NWAs using
+ClientInfo::clone() .
+6.2 Intersection
+The intersection of two NWAs is computed in the standard cross-product fashion, using
+a worklist algorithm to only compute those states that are reachable.
+The algorithm traverses the original NWAs starting at the initial states and incremen-
+tally adds transitions for each pair of \intersectable" transitions that are encountered.
+By default, transitions are intersectable when the transitions are the same kind (internal,
+call, or return) and the symbols on the edge are identical or one is wild.
+For example, Fig. 6 shows the intersection of Fig. 3 and Fig. 6, and Fig. 9 shows the
+intersection of the two NWAs in Fig. 8.
+It is possible to customize what symbols are considered equivalent, or other-
+wise impose constraints on what transitions can be intersected, by overriding the
+transitionIntersect function in a subclass of NWA. In addition, it is possible to impose
+additional constraints on what states can be combined by overriding stateIntersect .
+Both functions also produce the result of the intersection: transitionIntersect pro-
+duces the symbol that will be used on the resulting edge, and stateIntersect produces
+the state that will be used as the target.
+20
+
+--- Page 21 ---
+a
+ret: Call 2,call
+ab
+bb
+calla
+ret: Call 1,b
+a
+Finish
+Return 2Start
+Return 1Entry 2
+Exit 2Entry 1
+State 1Call 2Call 1
+State 2Exit 1
+calla
+b
+ab
+ret: Call,
+aFinish
+Return
+Exit
+StartState
+Call
+Dead EndEntry
+Figure 8: Two complex NWAs to intersect.
+bb
+a
+ret: (key#11,19),acalla
+(key#3,3)(key#12,20)
+(key#15,23)(key#11,19)
+(key#14,22)(key#4,18)
+(key#2,2)
+(key#13,21)
+Figure 9: The NWA resulting from the intersection of the NWAs in Figure 8.
+21
+
+--- Page 22 ---
+The default behavior of transitionIntersect is that two transitions are inter-
+sectable if neither symbol is epsilon and either the symbols are the same or at least
+one of the symbols is a wild. (Epsilon transitions are dealt with in intersect() itself.
+If you override transitionIntersect , it should return false if either input is epsilon.)
+The default behavior of stateIntersect is that any two states can be combined,
+the resulting state is labeled with a Keythat is uniquely generated from the pair of the
+Keys of the two states under consideration, and the client information associated with
+the resulting state is null .
+Client information is initially generated by the helper method stateIntersect , but
+can be altered through the use of the helper methods intersectClientInfoInternal ,
+intersectClientInfoCall , and intersectClientInfoReturn , which are invoked by
+intersect() as transitions of the three dierent kinds involving the associated state
+are added. The default behavior of these three functions is to perform no changes to
+theClientInfo . These methods can be overridden in subclasses to specify alternative
+behaviors.
+The following operations are virtual functions in class NWAand are intended to be
+overridden to customize behavior:
+bool stateIntersect (NWA const & first, Key state1,
+NWA const & second, Key state2,
+Key& resSt, ref ptr<ClientInfo>& resCI)
+Determines whether the given states can be combined and, if so, creates the
+combined state. If the two states are incompatable, returns false . If the two
+states are compatable, it computes the key of the combined state (storing it in
+resSt and the client information (storing it in resCI ), then returns true .
+bool transitionIntersect (NWA const & first, Key sym1,
+NWA const & second, Key sym2,
+Key& resSym )
+Determines whether the given symbols are considered to be equivalent for the
+purposes of intersection. If so, it computes the symbol that should be associated
+with the combined transition (storing it in resSym ) and returns true. If not,
+returns false.
+void intersectClientInfoInternal (NWA const & first, Key src1, Key tgt1,
+NWA const & second, Key src2, Key tgt2,
+Key resSym, Key resSt )
+void intersectClientInfoCall (NWA const & first ,Key call1, Key entry1,
+NWA const & second, Key call2, Key entry2,
+Key resSym, Key resSt )
+void intersectClientInfoReturn (NWA const & first, Key exit1, Key call1, Key ret1,
+NWA const & second, Key exit2, Key call2, Key ret2,
+Key resSym, Key resSt )
+Called after a transition of the corresponding type is added to the automaton. It
+is intended to be used to alter the client information associated with resSt given
+the endpoints of the new transition.
+6.3 Concatenation
+The concatenation of two NWAs is constructed by taking the union of all states and
+transitions of the two automata, and adding internal epsilon transitions from each nal
+state of the rst NWA to each initial state of the second NWA. In the resulting NWA,
+the initial states are the initial states from the rst NWA, and the nal states are the
+nal states of the second NWA.
+22
+
+--- Page 23 ---
+However, the concatenation construction is a bit more complicated than just this,
+because we need to address the issue of an unbalanced-left word being concatenated
+with an unbalanced-right word. (Recall the denition of what happens when an NWA
+reads a pending return: it is allowed to take a return transition where the call predecessor
+is an initial state of the automaton.)
+To deal properly with the case where the rst operand generates strings with pending
+calls and the second operand generates strings with pending returns, the transitions
+from the second automaton are augmented in the following manner. When computing
+the concatenation of left and right , for each transition ( q;p0;a;q0)2right
+r where
+p02Qright
+0 (these are transitions that right can take when reading a pending return)
+and eachp2Qleft, we add (q;p;a;q0) torof the result. (It is actually only necessary
+to add such a transition for states pthat either appear in the call position of a call
+transition in left or are inQleft
+0.)
+The state sets of the NWAs must not overlap, i.e., Q1\Q2=;.Client code should
+not rely on this condition being checked.
+Client information is copied directly from the original NWAs using
+ClientInfo::clone() .
+Fig. 12 shows the result of concatenating Fig. 3 and Fig. 10.
+6.4 Kleene star
+Like concatenation, Kleene-star is complicated in the case of NWAs because of the ability
+to have unbalanced words in the automaton's language. Relative to standard FAs, in the
+concatenation construction we only needed to add extra transitions; in this construction,
+we must add additional states as well.
+The NWA resulting from performing Kleene-Star on the NWA shown in Fig. 13 is
+shown in Fig. 14.
+The construction presented in [3] has an error. The error is analogous to not adding
+a distinguished start state in the traditional Thompson construction,3and in fact can
+be exhibited using the same example (it is not necessary to use NWA calls or returns).
+Alur conrmed that our interpretation of the construction in [3] is correct [1]. Below,
+we present a version that uses "-transitions, and thus it looks a bit dierent from the
+version in [3].
+When computing R=Afor some NWA A, the resulting NWA has two \copies" of
+A. These are denoted by primed and unprimed version of states from Ain the denition
+below.
+Suppose that Ris reading a word w=w1w2wn, where each wi2L(A).Rbegins
+in a start state of A0. Henceforth it maintains the following invariant on the state that
+Ris in with respect to the portion of wread so far: if the next symbol is in a return
+position, then that symbol is a pending return in the current wiiRis in theA0portion,
+i.e., if the current state is primed. (Note that this return only needs to be pending in
+the current wi. In the full string w,may match a call in an earlier wj, or it may be
+pending in the whole string.)
+Internal transitions thus keep Rin the same copy of A, and call transitions always
+takeRto the unprimed copy of A(because if it then reads a return, the return will
+match that call). Return transitions can target either copy of A: if the call predecessor
+is unprimed, then the target will be unprimed; if the call predecessor is primed, then the
+target will be primed.
+The description above describes R's operation under \normal" conditions. If Ris in
+a nal state (either primed or unprimed) of the automaton A, it is also allowed to guess
+3The initial state of the automaton Amust accept, because "is inL; and because of this property
+it is incorrect to merely add epsilon transitions from the old nal states to the old initial states. If you
+do this and there is a cycle from the initial state back to itself (for example, a self-loop on the initial
+state), the word corresponding to that path would be accepted even though it should not be.
+23
+
+--- Page 24 ---
+abState2 Begin
+End
+Figure 10: Simple NWA to concatenate onto
+the NWA in Figure 3.
+ba
+call: Return,bret
+aFinish
+Return
+StartState
+CallEntryExit
+Figure 11: The NWA resulting
+from performing reverse on the
+NWA in Figure 3.*call
+ba
+aaret: Call,b
+bBeginFinish
+EndExit
+State2ReturnStart
+StateCall
+Entry
+Figure 12: The NWA resulting from the
+concatenation of the NWA in Figure 3 with
+the NWA in Figure 10.
+24
+
+--- Page 25 ---
+ret: Begin,acall
+EntryBegin
+EndExit
+Figure 13: An NWA on which to perform Kleene-Star.
+call
+callret: ( Begin , prime ),
+ret: (any)
+aret: (any)ret: Begin, ( Begin , prime )ret: Begin,
+aBegin End
+( Exit , prime )
+( Entry , prime )( Begin , prime )ExitEntry
+( End , prime )
+Figure 14: The NWA resulting from performing Kleene-Star on the NWA in Figure 13.
+25
+
+--- Page 26 ---
+that it should \restart" by taking an epsilon transition to a distinguished start and nal
+stateq0. This guess is correct if it just read the last character in wi(making the next
+character the rst one in wi+1). Note that q0only has transitions to the A0portion of
+R, maintaining the invariant.
+The reason for the two copies of Acomes into play when Rreads a return while
+in theA0portion. By the invariant, is pending in the current wi. In the original
+automaton A, the transitions that the machine can use are return transitions ( q;r;;p )
+where the call predecessor ris inQ0. We need to make sure that Rcan take those same
+transitions. There are two cases we need to consider:
+1. For the cases where is pending in the whole string w, we need to have a version of
+the return transition with q0in the call-predecessor position, so we add ( q0;q0;;p0).
+2. For the cases where is matched with a call in some earlier wj, it does not matter
+what state the machine was in before that call; thus we add ( q0;s;;p0) for each
+statesinQ[Q0.
+\Normal" operation corresponds to the transitions introduced by the Internal ,
+Call , and Locally-Matched-Return inference rules given below. The source states
+of both transitions added by Locally-Matched-Return are unprimed, because if the
+current symbol is a return that matches a call in the same wi,Rwill be in the Aportion
+by the invariant. The Restart rule allows Rto restart, and the Start rule allows Rto
+get fromq0to theA0portion; these transitions target the A0portion because there have
+been no calls read in the current wi, and thus a return symbol would be pending. The
+Globally-Pending-Return rule addresses the situation where the current symbol is
+a return that is pending in the whole string w. (This is the rst case in the previous
+paragraph.) The Locally-Pending-Return rule addresses the situation where the
+current symbol is a return that is pending in the current wibut matches a call from a
+previouswj.
+Formally, if the original NWA is ( Q;;Q0;;Qf), then the result of performing
+Kleene-Star on that NWA is ( Q;;Q
+0;;Q
+f). The sets of states are dened by
+Q=Q[Q0[fq0g(withQ0=fq0jq2Qgandq062Q), andQ
+0=Q
+f=fq0g.
+The transitions in are dened by the following rules:
+Internal(q;;p )2i
+(q;;p )2
+i (q0;;p0)2
+i(q;;p )2c
+(q;;p )2
+c (q0;;p)2
+cCall
+Locally-Matched-Return(q;r;;p )2r
+(q;r;;p )2
+r (q;r0;;p0)2
+r
+Startq2Q0
+(q0;";q0)2
+iq2Qf
+(q;";q 0)2
+i (q0;";q 0)2
+iRetart
+Globally-Pending-Return(q;r;;p )2rr2Q0
+(q0;q0;;p0)2
+r
+Locally-Pending-Return(q;r;;p )2rr2Q0s2Q[Q0
+(q0;s;;p0)2
+r
+Client information is copied directly from the original NWA (using
+ClientInfo::clone() ) such that for each q2Q,qandq0have (dierent copies
+of) the same client information.
+Note: The key for state q0is generated from the key for state qusing the expression
+getKey(q, getKey("prime")) . The input automaton to the Kleene star function must
+not already contain both qandq0for anyq.
+26
+
+--- Page 27 ---
+6.5 Reverse
+A nested word n= (w; ) is reversed by reversing the linear word wand exchanging calls
+and returns. Formally, nrev= (wrev;f(jwj+1 r;jwj+1 c)j(c;r)2 g). (Pending calls
+and returns are handled by dening jwj+ 1 (+1) = 1 andjwj+ 1 ( 1) = +1.)
+Roughly speaking, call transitions in Acorrespond to return transitions in Arevand vice
+versa, and we reverse the direction of all transitions as in the standard FA construction.
+We describe the construction from the perspective of Arev| that is, a \call transition"
+is a call transition in Arev, and a \call" is a call in the reversed string.
+Perhaps unsurprisingly, pending returns pose a problem because the role of initial
+and nal states are exchanged. Because of this complication, the algorithm for reversing
+an NWA has a similar avor to that of the Kleene-star procedure. The automaton Arev
+has two \copies" of A(primed and unprimed), and maintains the same invariant as the
+Kleene-star construction: if the next symbol is in a return position, then that symbol
+is apending return iArevis in theA0portion. (For those familiar with the construction
+in [3], ours is more complicated because the version in [3] will not work as stated with a
+weakly-hierarchical NWA.)
+If the original NWA is ( Q;;Q0;;Qf), then the result of reversing that NWA is
+(Q[Q0;;Q0
+f;rev;Q0) obtained using the following rules:
+Internal(p;;q )2i
+(q;;p )2rev
+i (q0;;p0)2rev
+i
+Call-Return(qc;c;qe)2c (qx;;r;qr)2r
+(qr;r;qx);(q0
+r;r;qx)2rev
+c (qe;qr;c;qc);(qe;q0
+r;c;q0
+c)2rev
+c
+Pending-Return(qc;;qe)2cqf2Qf
+(q0
+e;qf;;q0
+c)2rev
+R
+The NWA resulting from performing reverse on the NWA shown in Figure 3 is shown
+in Figure 11.
+Client information is copied directly from the original NWA using
+ClientInfo::clone() .
+6.6 Determinize
+Denition. An NWA, ( Q;;Q0;;Qf), isdeterministic i
+1.jQ0j1,
+2. For allq2Q, there is never a choice between reading and following a
+transition or following a wild (@) transition:
+if (q;@;q0)2ithenjfq0j(q;;q0)2i;6= @gj= 0;
+otherwise, for all 2 f@g,jfq0j(q;;q0)2igj 1,
+if (q;@;q0)2cthenjfq0j(q;;q0)2c;6= @gj= 0;
+otherwise, for all 2 f@g,jfq0j(q;;q0)2cgj 1, and
+forq02Q, if (q;q0;@;q00)2rthenjfq00j(q;q0;;q00)2r;6= @gj= 0;
+otherwise, for all 2 f@g,jfq00j(q;q0;;q00)2rgj 1,
+3. There are no "transitions:
+for all (q;;q0)2i;6=",
+for all (q;;q0)2c;6=", and
+for all (q;q0;;q00)2r;6=".
+If an NWA is not deterministic, then it is non-deterministic .
+27
+
+--- Page 28 ---
+Determinizing an NWA operates like a generalization of the classical subset con-
+struction. Instead of the states in the determinized NWA being subsets of states
+in the original NWA, states of the determinized NWA are sets of state pairs (i.e.,
+binary relations on states) [3]. To support determinization, the library provides a
+typedef of std::set<pair<State, State >> asNWA::BinaryRelation . See also
+wali/nwa/RelationOps.hpp .
+We present the algorithm we use for determinization in App. B.
+The result of determinizing the automaton in Fig. 15 is shown in Fig. 16.
+Client information is generated through the use of the helper method
+mergeClientInfo , but can be altered through the use of the helper meth-
+odsmergeClientInfoInternal ,mergeClientInfoCall , and mergeClientInfoReturn ,
+which are invoked by determinize as transitions of the three kinds involving the
+associated state are added. The default behavior of mergeClientInfo is that the
+ClientInfo associated with the resulting state is null . The default behavior of
+mergeClientInfoInternal ,mergeClientInfoCall , and mergeClientInfoReturn is
+to make no changes to the the ClientInfo . These methods can be overridden to
+specify alternative behaviors. As determinization is performed, mergeClientInfo
+is called each time a new state is created. Then, as each transition is added,
+mergeClientInfoInternal ,mergeClientInfoCall , or mergeClientInfoReturn is
+called (depending on the type of transition being added) to update the ClientInfo
+associated with the target state of the transition being added.
+The following functions can be overridden in a subclass of NWAto customize the
+behavior of determinization:
+void mergeClientInfo (NWA const & nondet, BinaryRelation const& binRel,
+St resSt, ref ptr<ClientInfo>& resCI)
+Callback that gets called when a new state resSt (representing the binary
+relation binRel ) is added to the determinized automaton. Intended to provide
+a hook for computing the client information that should be associated with the
+new state; the client information should be set in the output parameter resCI
+(i.e., setClientInfo should not be called directly). nondet is the NWA being
+determinized.
+void mergeClientInfoInternal (NWA const & nondet,
+BinaryRelation const& binRelSource,
+BinaryRelation const& binRelTarget,
+Key sourceSt, Key resSym, Key resSt,
+refptr<ClientInfo>& resCI )
+void mergeClientInfoCall (NWA const & nondet,
+BinaryRelation const& binRelCall,
+BinaryRelation const& binRelEntry,
+Key callSt, Key resSym, Key resSt,
+refptr<ClientInfo>& resCI )
+void mergeClientInfoReturn (NWA const & nondet,
+BinaryRelation const& binRelExit,
+BinaryRelation const& binRelCall,
+BinaryRelation const& binRelReturn,
+Key exitSt, Key callSt, Key resSym,
+Key resSt, ref ptr<ClientInfo>& resCI )
+Callbacks that get called when a new transition is added to the given automaton.
+The endpoints and their associated binary relations are given. Alters the client
+information associated with resSt given information about the transition being
+added to the determinized automaton.
+28
+
+--- Page 29 ---
+6.7 Complement
+Complementing an NWA is performed by determinizing the automaton and then com-
+plementing the set of nal states. In our implementation, an extra ag to complement
+controls whether the determinization step is to be performed, so it can be bypassed if
+you have a priori knowledge that the input NWA must already be deterministic. The
+result of complementing the NWA shown in Figure 15 is shown in Figure 17.
+Client information is copied directly from the determinization of the original NWA
+using ClientInfo::clone() .
+29
+
+--- Page 30 ---
+ret: Call,call
+a
+ret: Call,ba
+call
+ab
+aEntry2
+FinishExit1State2
+Exit2Start
+State1Entry1Call
+Return
+Figure 15: Simple nondeterministic NWA.
+calla
+callcallcall
+callret: (2,4)callcall
+ret: (2,4)bacall
+aa
+bcall(2,2)
+(4,8)(4,11)
+(2,3)
+(4,6)(2,4)(4,10)
+(4,9)(4,12)
+(2,13)
+Figure 16: The NWA resulting from determinizing the NWA in Figure 15. As mentioned
+in the text, states in the determinized NWA are relations on the states in the original
+NWA. The state ?has been removed from this diagram.
+30
+
+--- Page 31 ---
+call
+a
+callcall
+callcall
+ret: (2,4)callcall
+ret: (2,4)ba
+call
+aa
+bcall(2,2)
+(4,8)(4,11)
+(2,3)
+(4,6)(2,4)
+(4,10)
+(4,9)
+(4,12)fg
+(2,13)
+Figure 17: The complement of the NWA in Figure 15 (the determinization of which
+is shown in Figure 16). We omit transitions to the state fg; any action that does not
+appear in the diagram goes to the state fg.
+31
+
+--- Page 32 ---
+7 Conversions beween WPDSs and NWAs (names-
+pace wali::nwa::nwa pds)
+It is possible to convert a WALi WPDS to an NWA and vice versa. However, the
+construction of an NWA from a WPDS is not the inverse of constructing a WPDS from
+an NWA, i.e., one cannot perform the two conversions in sequence and obtain the identity
+conversion.
+At a high level, the WPDS to NWA conversion works by making the NWA encode
+both the state of the WPDS and its top-of-stack symbol. A WPDS rule of the form
+hp;q1i,!hp;q2ileaves the stack height unchanged, and is thus associated with an internal
+NWA transition; in this case, that transition goes from the state ( p;q1) to (p;q2). The
+symbol of a transition is associated with the top-of-stack symbol of the source state, so in
+this example, the symbol labeling that transition would be q1. In other words, the WPDS
+rulehp;q1i,!hp;q2iis translated to the NWA internal transition (( p;q1);q1;(p;q2)).
+WPDS push rules correspond to NWA call transitions, and WPDS pop rules correspond
+to NWA return transitions.4
+The conversion in the other direction creates a WPDS with one primary state and
+one \helper" state for each NWA state that appears in the exit position of a return
+transition. The NWA's state is encoded by the symbol at the top of the WPDS's stack
+{ essentially the inverse of the encoding described in the previous paragraph. A slight
+complication arises in the case of return transitions. The NWA is able to look at both
+the exit node and the call predecessor. In the WPDS this would correspond to looking
+at the top two stack symbols { but the WPDS is only allowed to look at the top one.
+Hence each NWA return transition becomes two WPDS rules: the rst pops the top
+symbol (which corresponds to the current NWA state) and remembers what it was using
+the helper state; the second rule looks at the call predecessor and the helper state to
+dispatch to the corresponding return site.
+The library also oers two kinds of variants of this conversion. First, there is a
+backwards variant that can be used for backwards dataow-analysis problems. Second,
+the resulting WPDS can stack either calls or returns. The \stacking-calls" version turns
+a call transition ( c;;e ) into a WPDS rule hp;ci,!hp;eci{ leaving the call predecessor
+con the stack. (This is the translation described in the previous paragraph.) The
+\stacking-returns" version has, in general, several WPDS push rules for each NWA call
+transition. Each push rule leaves a potential return site on the stack. (For example, if
+there is a call transition ( c;;e ) and a return transition ( x;c;0;r), then the WPDS will
+have a rulehp;ci,!hp;eri).
+The following functions are in the namespace wali::nwa::nwa pdsand, except for
+plusWpds() , are declared in the header wali/nwa/nwa pds/conversions.hpp :
+void WpdsToNwa (NWA & out, const WPDS& pds)
+NWARefPtr WpdsToNwa (const WPDS& pds)
+Converts pdsto an NWA, either storing the result in nwaor returning it.
+4This encoding is motivated by our uses of both WPDSs and NWAs in program analysis. It is
+common for WPDSs to have just one state, p, and to use the top-of-stack symbol to encode the \current"
+program point. Pushing something onto the stack corresponds to a call, and popping corresponds to a
+return. For NWAs, we use the states themselves to encode the current program point. (The function
+that converts a WPDS into an NWA supports multi-state WPDSs, however; a WPDS rule of the form
+hp1; q1i,! hp2; q2iis translated to the NWA internal transition (( p1; q1); q1;(p2; q2)).)
+32
+
+--- Page 33 ---
+WPDS NwaToWpdsCalls (NWA const & nwa, WeightGen const & wg)
+WPDS NwaToWpdsCalls (NWA const & nwa, WeightGen const & wg,
+refptr<Wrapper> wr)
+WPDS NwaToBackwardsWpdsCalls (NWA const & nwa, WeightGen const & wg)
+WPDS NwaToWpdsReturns (NWA const & nwa, WeightGen const & wg)
+WPDS NwaToBackwardsWpdsReturn (NWA const & nwa, WeightGen const & wg)
+These functions each construct a WPDS that is equivalent to nwausing the appro-
+priate method (backwards or forwards ow, and stacking calls or stacking returns),
+returning the result. Uses wgto determine weights for the WPDS's transitions.
+The second variant of NwaToWpdsCalls takes a wali::wpds::Wrapper reference
+wr, and the WPDS is constructed by passing wrto the constructor. This feature
+can be used, for instance, if you would like the resulting WPDS to support witness
+tracing. (If wrisNULL , then the second version is equivalent to the rst.)
+State getProgramControlLocation ()
+Returns the program state pused as the primary WPDS state in the result of the
+NwaToWpds* variants.
+State getControlLocation (State exit, State call, State return)
+Returns the WPDS state pqxorpq3used as a \helper" state for return transitions
+from exit toreturn with call as a predecessor.
+WPDS plusWpds (NWA const & nwa, const WPDS& base)
+This function returns a WPDS that is the product of the NWA nwaand WPDS
+base , as described in the \Explicit NWA plus PDS" construction from [4, x6]. This
+function is declared in the header wali/nwa/nwa pds/plusWpds.hpp .
+7.1 WPDS to NWA
+The WpdsToNwa functions convert a WPDS into an NWA in a manner faithful to the
+encoding sketched out in the introduction to this section.
+Assume that we have a WPDS ( P; ;) where  = ( 0;1;2). This WPDS is
+converted into an NWA ( Q;;fg;;fg) using the following rules:
+Statesp2P q2 
+(p;q)2QAlphabetq2 
+q2
+Internalhp;qi,!hp0;q0i21
+((p;q);q;(p0;q0))2iCallhp;qci,!hp0;qeqri22
+((p;qc);qc;(p0;qe))2c
+Returnhp00;qxi,!hp000;"i20hp;qci,!hp0;qeqri22
+((p00;qx);(p;qc);qx;(p000;qr))2r
+Note that these rules generate an NWA return transition for each pair of WPDS pop
+and push rules; there is no constraint between the two rules. This is because, with the
+exception of the \revealed" stack symbol qr, everything that the push rule talks about
+concerns the call predecessor ( p;qc) and entry node ( q0;qe); nothing that the pop rule
+talks about | p00,qx, orp000| has any relation to those. (A consequence is that the
+number of NWA transitions may be quadratic in the number of WPDS rules.)
+In the resulting NWA, Q0andQfare empty; client code must set the initial and
+nal states as appropriate (with addInitialState(State) andaddFinalState(State) .
+The keys that are generated for the names of the NWA states are part of the interface
+of this function; they are generated by getKey(p, q) where pandqare the keys of the
+WPDS state and stack symbol being converted.
+33
+
+--- Page 34 ---
+ hp;maini,!hp;q1i
+ hp;q1i,!hp;c1i
+ hp;c1i,!hp;er 1i
+ hp;ei,!hp;q2i
+ hp;q2i,!hp;q3i
+ hp;q3i,!hp;xi
+ hp;xi,!hp;"i
+ hp;r1i,!hp;q4i
+ hp;q4i,!hp;q5i
+ hp;q5i,!hp;c2i
+ hp;c2i,!hp;er 2i
+ hp;r2i,!hp;q6i
+ hp;q6i,!hp;exiti
+Figure 18: An example WPDS.
+c2c1
+q4x: (p,c2),
+r1
+q5e
+x: (p,c1),q3main
+q2q6r2q1
+(p,x)
+(p,c2)(p,e)(p,r2) (p,c1)(p,q1)(p,exit)
+(p,q2) (p,q3)
+(p,q4)(p,main)
+(p,q5)(p,q6)
+(p,r1)
+Figure 19: The NWA resulting from converting the WPDS in Fig. 18 into an NWA.
+All weights on WPDS rules are ignored, and do not survive in any way in the resulting
+NWA. The client information for all states in the resulting NWA are set to null .
+For example, the NWA created from the WPDS shown in Fig. 18 is shown in Fig. 19.
+7.2 NWA to WPDS
+An NWA can also be converted into a WPDS. Weights for the rules of the resulting
+WPDS are provided using a mechanism described below. In this way it is possible to
+use the WPDS reachability queries that are a part of the main WALi library on NWAs.
+As mentioned in the introduction to x7, there are four variations on the NWA-to-WPDS
+conversion: forward ow with call states on the stack, backward ow with call states on
+the stack, forward ow with return states on the stack, and backward ow with return
+states on the stack. All four variations use WeightGen to determine weights for WPDS
+rules.
+WeightGen is an abstract class that client code must subclass to calculate the weights
+of the rules in the generated WPDS. It allows the underlying NWA to be decoupled from
+the weight domain used in the WPDS. See [5, x4-x5] for details about weight domains.
+There is a trivial weight domain (containing 1 and 0 only) implemented in the
+class Reach , dened in wali/Reach.hpp . A WeightGen subclass that returns ele-
+ments from this reachability domain is provided as the ReachGen class, dened in
+wali/nwa/WeightGen.hpp .ReachGen returns 1 for all transitions.
+34
+
+--- Page 35 ---
+main
+q6
+q2
+r2q1
+c2x: c1,x: c2,
+q4q3
+q5c1e
+r1q1
+q3 q2
+e
+q4r2q6
+r1exit
+x
+c2c1main
+q5
+Figure 20: An example NWA.
+ hp;maini,!hp;q1i
+ hp;q1i,!hp;c1i
+ hp;ei,!hp;q2i
+ hp;q2i,!hp;q3i
+ hp;q3i,!hp;xi
+ hp;r1i,!hp;q4i
+ hp;q4i,!hp;q5i
+ hp;q5i,!hp;c2i
+ hp;r2i,!hp;q6i
+ hp;q6i,!hp;exiti
+ hp;c1i,!hp;ec 1i
+ hp;c2i,!hp;ec 2i
+ hp;xi,!hpx;"i
+ hpx;c1i,!hp;r1i
+ hp;xi,!hpx;"i
+ hpx;c2i,!hp;r2i
+Figure 21: The WPDS resulting from
+calling NwaToWpdsCalls on Fig. 20 hp;q1i,!hp;maini
+ hp;c1i,!hp;q1i
+ hp;q2i,!hp;ei
+ hp;q3i,!hp;q2i
+ hp;xi,!hp;q3i
+ hp;q4i,!hp;r1i
+ hp;q5i,!hp;q4i
+ hp;c2i,!hp;q5i
+ hp;q6i,!hp;r2i
+ hp;exiti,!hp;q6i
+ hp;r1i,!hp;xr 1i
+ hp;r2i,!hp;xr 2i
+ hp;ei,!hpe;"i
+ hpe;r1i,!hp;c1i
+ hp;ei,!hpe;"i
+ hpe;r2i,!hp;c2i
+Figure 22: The result of call-
+ing NwaToBackwardsWpdsCalls on
+Fig. 20
+ hp;maini,!hp;q1i
+ hp;q1i,!hp;c1i
+ hp;ei,!hp;q2i
+ hp;q2i,!hp;q3i
+ hp;q3i,!hp;xi
+ hp;r1i,!hp;q4i
+ hp;q4i,!hp;q5i
+ hp;q5i,!hp;c2i
+ hp;r2i,!hp;q6i
+ hp;q6i,!hp;exiti
+ hp;c1i,!hp;er 1i
+ hp;c2i,!hp;er 2i
+ hp;xi,!hpx;"i
+ hpx;r1i,!hp;r1i
+ hp;xi,!hpx;"i
+ hpx;r2i,!hp;r2i
+Figure 23: The WPDS resulting from
+calling NwaToWpdsReturns on Fig. 20 hp;q1i,!hp;maini
+ hp;c1i,!hp;q1i
+ hp;q2i,!hp;ei
+ hp;q3i,!hp;q2i
+ hp;xi,!hp;q3i
+ hp;q4i,!hp;r1i
+ hp;q5i,!hp;q4i
+ hp;c2i,!hp;q5i
+ hp;q6i,!hp;r2i
+ hp;exiti,!hp;q6i
+ hp;r1i,!hp;xc 1i
+ hp;r2i,!hp;xc 2i
+ hp;ei,!hpe;"i
+ hpe;c1i,!hp;c1i
+ hp;ei,!hpe;"i
+ hpe;c2i,!hp;c2i
+Figure 24: The result of calling Nwa-
+ToBackwardsWpdsReturns on Fig. 20
+35
+
+--- Page 36 ---
+The following operations are virtual methods of WeightGen intended to be overridden:
+semelem tWeightGen::getOne () const = 0
+Returns an instance of the 1 element of the weight domain.
+semelem tgetWeight (State source, ClientInfoRefPtr sourceInfo,
+Symbol symbol, Kind k,
+State target, ClientInfoRefPtr targetInfo ) const
+Computes and returns the weight for the rule corresponding to the transition from
+source totarget (of kind k) labeled with symbol symbol . By default, returns
+getOne() .
+semelem tgetWildWeight (State source, ClientInfoRefPtr sourceInfo,
+State target, ClientInfoRefPtr targetInfo ) const
+Computes and returns the weight for the WPDS rule corresponding to the
+transition from source totarget labeled with the meta-symbol @. By default,
+returns getOne() .
+semelem tgetExitWeight (State src, ClientInfoRefPtr srcInfo) const
+This method computes the weight (in the desired semiring) for the return rule of
+the WPDS corresponding to the exit src. Note: the value is generally the same as
+getOne() , which is what the default implementation returns.
+7.2.1 Forwards ow stacking calls
+The conversion is performed by:
+p2P(qx;qc;;qr)2r
+pqx2Pq2Q
+q2 (q;;q0)2i
+hp;qiw1,!hp;q0i21
+(qc;;qe)2c
+hp;qciw2,!hp;qeqci22(qx;qc;;qr)2r
+hp;qxiw0,!hpqx;"i20hpqx;qciw3,!hp;qri21
+wherew0=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (q;CIq;q0;CIq0); if= @
+wg:getWeight (qx;CIqx;;EXIT TORET;qr;CIqr);otherwise
+w1=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (q;CIq;q0;CIq0); if= @
+wg:getWeight (q;CIq;;INTRA;q0;CIq0);otherwise
+w2=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (q;CIq;q0;CIq0); if= @
+wg:getWeight (qc;CIqc;;CALL TOENTRY;qe;CIqe);otherwise
+w3=wg:getOne ()
+For example, the WPDS resulting from converting the NWA shown in Fig. 20 into a
+WPDS is shown in Fig. 21.
+7.2.2 Backwards ow stacking calls
+The backwards-ow conversions are equivalent to calling wali::nwa::construct::-
+reverse and then the corresponding forwards ow version. When reversing, call tran-
+sitions become return transitions (and vice versa), and so call sites become return sites
+36
+
+--- Page 37 ---
+(and vice versa). Return sites in the original automaton behave as call sites in the re-
+versed automaton, and thus this version of the NWA-to-WPDS conversion stacks return
+states. (In other words, the Calls and Returns part of NwaToBackwardsWpdsCalls
+and NwaToBackwardsWpdsReturns refer to the behavior of the states in the reversed
+automaton, not the role they play in the original.)
+For example, the result of converting the NWA in Fig. 20 into a backwards ow
+WPDS is shown in Fig. 22.
+Formally, the conversion is performed by:
+p2P(qc;;qe)2c
+pqe2Pq2Q
+q2 (q;;q0)2i
+hp;q0iw1,!hp;qi21
+(qc;;qe)2c (qx;qc;;qr)2r
+hp;qeiw0,!hpqe;"i20hpqe;qriw3,!hp;qci21(qx;qc;;qr)2r
+hp;qriw2,!hp;qxqri22
+wherew0=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (qc;CIqc;qe;CIqe); if= @
+wg:getWeight (qc;CIqc;;CALL TOENTRY;qe;CIqe);otherwise
+w1=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (q;CIq;q0;CIq0); if= @
+wg:getWeight (q;CIq;;INTRA;q0;CIq0);otherwise
+w2=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (qx;CIqx;qr;CIqr); if= @
+wg:getWeight (qx;CIqx;;EXIT TORET;qr;CIqr);otherwise
+w3=wg:getOne ()
+7.2.3 Forwards ow stacking returns
+As an example, converting the NWA in Fig. 20 into a WPDS results in the WPDS
+shown in Fig. 23.
+The conversion is performed by:
+p2P(qx;qc;;qr)2r
+pqx2Pq2Q
+q2 (q;;q0)2i
+hp;qiw1,!hp;q0i21
+(qc;;qe)2c (qx;qc;;qr)2r
+hp;qciw2,!hp;qeqri22
+(qx;qc;;qr)2r
+hp;qxiw0,!hpqx;"i20hpqx;qriw3,!hp;qri21
+37
+
+--- Page 38 ---
+wherew0=wg:getOne ()
+w1=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (q;CIq;q0;CIq0); if= @
+wg:getWeight (q;CIq;;INTRA;q0;CIq0);otherwise
+w2=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (qc;CIqc;qe;CIqe); if= @
+wg:getWeight (qc;CIqc;;CALL TOENTRY;qe;CIqe);otherwise
+w3=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (qx;CIqx;qr;CIqr); if= @
+wg:getWeight (qx;CIqx;;EXIT TORET;qr;CIqr);otherwise
+7.2.4 Backwards ow stacking returns
+As an example, converting the NWA in Fig. 20 into a backwards ow WPDS results in
+the WPDS shown in Fig. 24.
+The conversion is performed by:
+Statesp2P(qc;;qe)2c
+pqe2Pq2Q
+q2 (q;;q0)2i
+hp;q0iw1,!hp;qi21
+(qc;;qe)2c
+hp;qeiw0,!hpqe;"i20hpqe;qciw3,!hp;qci21(qx;qc;;qr)2r
+hp;qriw2,!hp;qxqci22
+wherew0=wg:getOne ()
+w1=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (q;CIq;q0;CIq0); if= @
+wg:getWeight (q;CIq;;INTRA;q0;CIq0);otherwise
+w2=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (qx;CIqx;qr;CIqr); if= @
+wg:getWeight (qx;CIqx;;EXIT TORET;qr;CIqr);otherwise
+w3=8
+><
+>:wg:getOne (); if="
+wg:getWildWeight (qc;CIqc;qe;CIqe); if= @
+wg:getWeight (qc;CIqc;;CALL TOENTRY;qe;CIqe);otherwise
+38
+
+--- Page 39 ---
+References
+[1] R. Alur. Personal Communication, August 2011.
+[2] R. Alur and P. Madhusudan. Adding nesting structure to words. In Developments
+in Lang. Theory , 2006.
+[3] R. Alur and P. Madhusudan. Adding nesting structure to words. J. ACM , 56(3),
+May 2009.
+[4] N. Kidd, A. Lal, and T. Reps. Advanced querying for property checking. Technical
+Report TR-1624, University of Wisconsin, Madison, Oct 2007.
+[5] N. Kidd, A. Lal, and T. Reps. WALi: The Weighted Automaton Library, 2007.
+www.cs.wisc.edu/wpis/wpds/download.php.
+39
+
+--- Page 40 ---
+A Nested-Word Automata
+Nested-word automata (NWAs) [2, 3] are a generalization of nite-state automata that
+can capture the matched-parenthesis structure that is exhibited by, for example, open-
+ing and closing tags in XML and the call/return structure in execution traces in multi-
+procedure programs. Their languages represent somewhat of a middle-ground between
+standard regular languages and context-free languages. They are strictly more powerful
+than nite automata (FAs), but can also accept some languages that are context-free
+once the nesting structure (call/return, etc.) is dropped. (For instance, there is an NWA
+that accepts exactly the language of properly-balanced parentheses, with the associated
+matching structure.) Importantly, nested-word languages also retain all the closure prop-
+erties that makes standard regular languages attractive; in particular, they are closed
+under complementation and intersection. However, they are not directly comparable to
+languages of linear words, because the nesting structure is an explicit part of each nested
+word.
+Denition. Anested word (w; ) over alphabet  is an ordinary (linear)
+wordw2together with a nesting relation .
+The relation is a collection of edges (over the positions in w) that do not
+cross. Formally, f 1;1;2;:::;jwjgf 1;2;:::;jwj;+1gsuch that:
+Nesting edges only go forward: if i jtheni<j .
+No two edges share a position unless one is 1: for 1ijwj, either
+i=1,j=1, or there is at most one jsuch thati jorj i.
+Edges do not cross: if i jandi0 j0, then one cannot have i<i0
+j <j0.
+Anested-word language is any set of nested words; such a language is a regular
+nested-word language if it is accepted by an NWA as dened below.
+Wheni jholds, for 1ijwj,iis called a callposition. If i +1, theniis a
+pending call ; otherwise iis amatched call , and the (unique) position jsuch thati j
+is called its return successor . (Note that these terms refer to positions within wand
+not the to symbol itself, which is what you may expect if you are familiar with visibly
+pushdown languages [3].)
+Similarly, when i jholds, for 1jjwj,jis areturn position. If 1 j, then
+jis apending return , otherwise jis amatched return , and the (unique) position isuch
+thati jis called its call predecessor .
+A position 1ijwjthat is neither a call nor a return is an internal position.
+A nested word is balanced if it has no pending calls or returns. A nested word is
+unbalanced-left (or a nested-word prex ) if it has only pending calls, and it is unbalanced-
+right (or a nested-word sux ) if it has only pending returns.
+Denition. Anested-word automaton (NWA)Ais a 5-tuple ( Q;;Q0;;F ),
+whereQis a nite set of states,  is a nite alphabet, Q0Qis the initial
+state,FQis a set of nal states, and is a transition relation. The
+transition relation consists of three components, ( c;i;r), where:
+i: (Q)Qis the transition relation for internal positions of the
+input word.
+c: (Q)Qis the transition relation for call positions.
+r: (QQ)Qis the transition relation for return positions.
+Starting from a state in Q0, an NWAAreads a nested word ( w; ) from left
+to right, and performs transitions according to the current input symbol and
+ . IfAis in stateqwhen reading input symbol at position iinw, andi
+is an internal (resp, call) position in  ,Amakes a transition to a state q0(if
+40
+
+--- Page 41 ---
+one is available) such that ( q;;q0)2i(resp, (q;;q0)2c). Ifiis a return
+position, let kbe the call predecessor of i(sok i) andqcbe the state A
+was in just before the transition it made on the kthsymbol;Achanges to a
+stateq0such that (q;qc;;q0)2r. If there is a computation of Aon input
+(w; ) that terminates in a state q2F, thenAaccepts (w; ).
+NWAs can be either deterministic or nondeterministic, and these variations
+have equivalent power.
+We extend the above denition to allow two meta-symbols, "and @ (wild). Call and
+return transitions are prohibited from being labeled with ", but allowing "s on internal
+transitions can be done in an analogous fashion to standard FAs. The wild symbol, @,
+can label any transition, and it matches any input symbol. For example, the internal
+rule from the denition would be reworded as follows:
+IfAis in stateqwhen reading input symbol at position iinw, andiis an
+internal position, Amakes a transition to a state q0(if one is available) such
+that either ( q;;q0)2ior (q;@;q0)2i.
+The other rules are modied similarly.
+To distinguish among the dierent roles for states in an internal transition ( q;;q0),
+we say that qis the source and q0is the target. Similarly, to distinguish among the roles
+for states in a call transition ( qc;;qe), we say that qcis the call state and qeis the entry
+state. To distinguish among the roles for states in a return transition ( qx;qc;;qr), we
+say thatqxis the exit state, qcis the call state (or call predecessor), and qris the return
+state.
+41
+
+--- Page 42 ---
+B Determinize
+We found the explanations of how to determinize NWAs that are given in [2, 3] to be
+confusing (and contradictory between the two accounts), and so we reformulated it using
+relational operations.
+We use the following notation in the determinize algorithm:
+(Q;;;Q 0;Qf) The components of the input automaton nwa
+ij The binary relation f(p;q)j(p;;q )2ig
+cj The binary relation f(p;q)j(p;;q )2cg
+rj The binary relation f(p;q)j9c:(p;c;;q )2rg
+RS Relational composition of the binary relations RandS
+RTransitive closure of the binary relation R
+Qnew;newComponents of the determinized NWA
+We use the following auxiliary function to compute the target of a return transition:
+Merge(Rexit;Rcall;) =f(q;q0)j 9q1;q2:(q;q1)2Rcall
+and (q1;q2)2Rexit
+and (q2;q1;q0)2g
+Each state Rin the determinized automaton is a binary relation on states in the
+original. In a standard determinized FA, a state fq0;q1;;qngmeans the automaton
+can be in state q0of the original FA, or in state q1of the original, etc. For NWAs, a state
+f(p0;q0);(p1;q1);;(pn;qn)gmeans that the NWA is one of the states fq0;q1;;qng,
+but the relation carries around extra meaning.
+If a state in the determinized automaton contains a pair ( p;q), then this means
+the input automaton can begin in the state p, immediately perform a call transition,
+follow a path with balanced calls and returns, and nally arrive in state q. In such a
+conguration, if the input automaton then reads a return symbol, qis the exit site and p
+is the call predecessor. These two pieces of information are exactly what the automaton
+needs to decide what return transitions it can take. The call predecessor pneeds to be
+stored explicitly because it is possible to arrive at the same state qwith dierent call
+predecessors.
+At the start of the run, and any time the automaton has not read any pending calls,
+the rst component of each pair in the current state will be some q2Q0; this is because
+the initial states act as call predecessors in that situation.
+42
+
+--- Page 43 ---
+determinize(NWA nwa)
+Close = (ij")
+R0=Q0Q0Close
+Qnew=fR0g
+InsertR0inWL
+while WL6=?do
+select and remove a relation Rfrom WL
+// Note that Ris a state in Qnew
+markR
+for2do
+// Compute internal transitions
+Ri=RijClose
+Qnew=Qnew[fRig
+InsertR!Riintonew
+i
+ifRiunmarked then
+WL =WL[fRig
+// Compute call transitions
+Rc=ClosecjClose
+Qnew=Qnew[fRcg
+InsertR!Rcintonew
+c
+ifRcunmarked then
+WL =WL[fRcg
+// Compute return transitions where Rappears as the exit
+node
+forRcall2Qnewdo
+Rr=Merge (R;Rcall;rj)Close
+Qnew=Qnew[fRrg
+Insert (R;Rcall;;Rr) intonew
+r
+ifRrunmarked then
+WL =WL[fRrg
+// Compute return transitions with Ras the call
+predecessor
+forRexit2Qnewdo
+Rr=Merge (Rexit;R;rj)Close
+Qnew=Qnew[fRrg
+Insert (Rexit;R;;Rr) intonew
+r
+ifRrunmarked then
+WL =WL[fRrg
+// end worklist while loop
+Qnew
+f=fR2Qnewjthere is (p;q)2Rwithq2Qfg
+return (Qnew;;new;fR0g;Qnew
+f)
+43
+
+--- Page 44 ---
+C Tables
+This section provides a number of quick-reference tables.
+The tables do not have allthe information one needs to know in order to call the
+functions, and the entries use some shorthands; but they provide enough information for
+specics to be looked up in the corresponding header or Doxygen documentation. The
+caption of each table gives the header that contains the functions listed. In the interest
+of space, the types of the function arguments are sometimes omitted, but they are likely
+to be what you expect.
+List of Tables
+1 Accessors and mutators of NWA components . . . . . . . . . . . . . . . . 45
+2 Query functions for all transition types . . . . . . . . . . . . . . . . . . . . 46
+3 Query functions for internal transitions. . . . . . . . . . . . . . . . . . . . 47
+4 Query functions for call transitions . . . . . . . . . . . . . . . . . . . . . . 48
+5 Query functions for return transitions. . . . . . . . . . . . . . . . . . . . . 49
+44
+
+--- Page 45 ---
+Table 1: Accessors and mutators of NWA components. All functions are members of the NWA class, and thus declared in wali/nwa/NWA.hpp .
+add1remove1check membership2count clear get3
+states addState(State st) removeState(State st)4isState(State st) sizeStates() clearStates()4getStates() or
+fbegin,end gStates()
+initial
+statesaddInitialState(State st) removeInitialState(State st) isInitialState(State st) sizeInitialStates() clearInitialStates() getInitialStates() or
+fbegin,end gInitialStates()
+nal
+statesaddFinalState(State st) removeFinalState(State st) isFinalState(State) sizeFinalStates() clearFinalStates() getFinalStates() or
+fbegin,end gFinalStates()
+symbols5addSymbol(Symbol sym) removeSymbol(Symbol sym)4isSymbol(Symbol sym) sizeSymbols() clearSymbols() getSymbols() or
+fbegin,end gSymbols()
+all
+transitions| ndTrans(State s1,
+Symbol sym, State s2)| sizeTrans() clearTrans() |
+internal
+transitionsaddInternalTrans( ...6) removeInternalTrans( ...6) | sizeInternalTrans() | fbegin,end ginternalTrans()
+call
+transitionsaddCallTrans( ...6) removeCallTrans( ...6) | sizeCallTrans() | fbegin,end gcallTrans()
+return
+transitionsaddReturnTrans( ...6) removeReturnTrans( ...6) | sizeReturnTrans() | fbegin,end greturnTrans()
+1These functions return a bool indicating whether the item was added/removed. Adding a transition implicitly adds all states and symbols in that transition if they are not already present.
+Removing a state or symbol removes all transitions the removed item was a part of.
+2These functions return a bool with the natural interpretation.
+3The entries of the form, e.g., \ fbegin,end gStates()" denote a pair of functions, each of which returns an iterator. The type of that iterator is either a NWA::StateIterator ,
+NWA::SymbolIterator ,NWA::CallIterator ,NWA::InternalIterator , or NWA::ReturnIterator , as appropriate; all of these are actually const iterators. The other functions
+(\get Kind ()") return a StateSet orSymbolSet as appropriate.
+4Removing a state or a symbol also removes all transitions involving it. (Hence clearing all states or clearing all symbols also clears all transitions.)
+5WALI EPSILON and WALI WILD are not explicit members of the symbol set. This has the following consequences (for sas epsilon or wild): addSymbol(s) and removeSymbol(s)
+are both no-ops and return false ,isSymbol(s) returns false, sizeSymbols() does not count epsilon or wild, and neither the set returned by getSymbols() nor the iterator range
+fbegin,end gSymbols() will contain epsilon or wild.
+6There are two overloads of each of these functions. The rst takes each element of the transition tuple individually, e.g., addCallTrans(State src, State sym, State tgt) . The
+second takes a (constant reference to an) NWA::Internal ,NWA::Call , orNWA::Return object (as appropriate). (These are typedefs of a Triple orQuad of the appropriate type.)
+45
+
+--- Page 46 ---
+Table 2: Query functions for all transition types. These functions are in the namespace wali::nwa::query ; include the le
+wali/nwa/query/transitions.hpp . For return transitions, the \source" is the rst component of the transition; nothing involving call predecessors (the
+second component of return transitions) appears in this table. A table entry of \|" means that the combination of arguments does not make sense.
+What you know What you want
+this... ... and this sources symbols targets
+source (nothing) | (none) getSuccessors(nwa, src)
+symbol | | getSuccessors(nwa, src, sym)
+target | getSymbol(nwa, src, tgt, &sym) |
+symbol (nothing) | | (none)
+target getPredecessors(nwa, sym, tgt) | |
+target (nothing) getPredecessors(nwa, tgt) (none) |
+46
+
+--- Page 47 ---
+Table 3: Query functions for internal transitions.. These functions are in the namespace wali::nwa::query ; include the le
+wali/nwa/query/internals.hpp . A table entry of \|" means that combinations of arguments does not make sense.
+What you know What you want
+this... ... and this sources symbols targets
+(nothing) (nothing) getSources(nwa) getInternalSym(nwa) getTargets(nwa)
+source (nothing) | getInternalSym Source(nwa, src)
+or getTargets(nwa, src)1getTargets(nwa, src)1
+symbol | | getTargets(nwa, src, sym)
+target | getInternalSym(nwa, src, tgt) |
+symbol (nothing) getSources Sym(nwa, sym) | getTargets Sym(nwa, sym)
+target getSources(nwa, sym, tgt) | |
+target (nothing) getSources(nwa, tgt)1getInternalSym Target(nwa, tgt)
+or getSources(nwa, tgt)1|
+1Returns a set of pairs (either source/symbol or symbol/target).
+47
+
+--- Page 48 ---
+Table 4: Query functions for call transitions. These functions are in the namespace wali::nwa::query ; include the le wali/nwa/query/calls.hpp . The
+\call site" is the source of the transition (and uses the argument name call ), and the \entry" of the transition is the target (and uses the argument name ent).
+What you know What you want
+this... ... and this call sites symbols entries
+(nothing) (nothing) getCallSites(nwa) getCallSym(nwa) getEntries(nwa)
+call site (nothing) | getCallSym Call(nwa, call)
+or getEntries(nwa, call)1getEntries(nwa, call)1
+symbol | | getEntries(nwa, call, sym)
+target | getCallSym(nwa, call, ent) |
+symbol (nothing) getCallSites Sym(nwa, sym) | getEntries Sym(nwa, sym)
+target getCallSites(nwa, sym, ent) | |
+entry (nothing) getCallSites(nwa, ent)1getCallSym Entry(nwa, ent)
+or getCallSites(nwa, ent)1|
+1Returns a set of pairs (either call site/symbol or symbol/entry).
+48
+
+--- Page 49 ---
+Table 5: Query functions for return transitions.. These functions are in the namespace wali::nwa::query ; include the le wali/nwa/query/returns.hpp .
+The \exit site" is the source of the transition (the rst component) and uses the argument name exit in this table; the \call predecessor" is the second component
+and uses the argument name call ; the symbol is the third component and uses the argument name sym; the \return site" is the fourth component and uses the
+argument name ret.
+What you know What you want
+this... and this ... and this exit sites call predecessors symbols return sites
+(nothing) (nothing) (nothing) getExits(nwa) getCalls(nwa) getReturnSym(nwa) getReturns(nwa)
+exit site (nothing) (nothing) | getCalls Exit(nwa, exit)1getReturnSym Exit(nwa, exit)
+or getReturns Exit(nwa, exit)1
+or getCalls Exit(nwa, exit)1getReturns Exit(nwa, exit)1
+call pred (nothing) | | getReturnSym ExitCall(nwa, exit,
+call)
+or getReturns(nwa, exit, call)1getReturns(nwa, exit, call)1
+symbol | | | getReturns(nwa, exit, call, sym)
+return | | getReturnSym(nwa, exit, call,
+ret)|
+symbol (nothing) | getCalls Exit(nwa, exit, sym) | getReturns Exit(nwa, exit, sym)
+return | getCalls(nwa, exit, sym, ret) | getEntries(nwa, call, sym, ret)
+return site (nothing) | getCalls(nwa, exit, ret)1getReturnSym ExitRet(nwa, exit,
+ret)
+or getCalls(nwa, exit, ret)1|
+call pred (nothing) (nothing) getExits Call(nwa, call)1| getReturnSym Call(nwa, call)
+or getReturns Call(nwa, call)1
+or getExits Call(nwa, call)1getReturnSites(nwa, call) or
+getCallSuccessors(nwa, call) or
+getReturns Call(nwa, call)1
+symbol (nothing) getExits Call(nwa, call, sym) | | getCallSuccessors(nwa, call, sym)
+or getReturns Call(nwa, call, sym)
+return getExits(nwa, call, sym, ret) | | |
+return site (nothing) getExits(nwa, call, ret)1| getReturnSym CallRet(nwa, call,
+ret)
+or getExits(nwa, call, ret)1|
+symbol (nothing) (nothing) getExits Sym(nwa, c) getCalls Sym(nwa, c) | getReturns Sym(nwa, sym)
+return site (nothing) getExits Ret(nwa, call, ret) getCallPredecessors(nwa, sym, ret)
+or getCalls Ret(nwa, sym, c)| |
+return site (nothing) (nothing) getExits Ret(nwa, ret) getCallPredecessors(nwa, ret)
+or getCalls Ret(nwa, ret)1getReturnSym Ret(nwa, ret) or
+getCalls Ret(nwa, ret)1|
+1Returns a set of pairs (a symbol with one of the states, in the order of the raw transition).
+49
