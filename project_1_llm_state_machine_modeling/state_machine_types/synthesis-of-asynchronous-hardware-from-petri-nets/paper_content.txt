@@ -1,0 +1,2965 @@
+--- Page 1 ---
+Synthesis ofAsync hronous Hardw arefromPetri
+Nets
+Josep Carmona1,Jordi Cortadella1,Victor Khomenk o2andAlexYakovlev2
+1Universitat Politecnica deCatalun ya,Barcelona, Spain
+jcarmona@ac.upc.es, jordicf@lsi.upc.es
+2UniversityofNewcastle, Newcastle uponTyneNE17RU,UK
+fVictor.Khomenko,Alex.Yakovlev g@ncl.ac.uk
+Abstract. Assemiconductor technology strides towardsbillions oftran-
+sistors onasingle die,problems concerned withdeepsub-micron process
+features anddesign productivit ycallfornewapproac hesintheareaofbe-
+havioural models.Thispaperfocusesonsomeofrecentdevelopmen tsand
+newopportunities forPetrinetsindesigning asynchronous circuits such
+assynthesis ofasynchronous controlcircuits fromlarge Petrinetsgen-
+erated fromfront-end specications inhardw aredescription languages.
+These newmetho dsavoidusing fullreachabilit ystatespace forlogicsyn-
+thesis. They include direct mapping ofPetrinetstocircuits, structural
+metho dswithlinear programming, andsynthesis fromunfolding prexes
+using SATsolvers.
+1Introduction
+1.1Semiconductor Technology Progress
+TheInternational Technology Roadmap forSemiconductors (ITRS) [1]predicts
+theendofthisdecade willbemarkedbytheappearance ofaSystem-on-a-Chip
+(SoC) containing fourbillion 50-nm transistors thatwillrunat10GHz. With
+asteady growthofabout60%inthenumberoftransistors perchipperyear,
+followingthefamous Moore'slaw,thefunctionalit yofachipdoubles every1.5
+to2years.SuchaSoCwillinevitably consist ofmanyseparately timed comm u-
+nicating domains, regardless ofwhether theyareinternally clockedornot[1].
+Built atthedeepsub-micron level,where theeectiv eimpact ofinterconnects
+onperformance, powerandreliabilit ywillcontinuetoincrease, suchsystems
+presen taformidable challenge fordesign andtestmetho dsandtools.
+Thekeypointraised intheITRS isthatdesign costisthegreatest threat to
+thecontinuedphenomenal progress inmicroelectronics. Theonlywaytoover-
+come thisthreat isthrough impro vingtheproductivit yandeciency ofthede-
+signprocess,particularly bymeans ofdesign automation andcomponentreuse.
+Thecostofdesign andverication ofprocessing engines hasreachedthepoint
+where thousands ofman-y earsarespenttoasingle design, yetprocessors reach
+themarketwithhundreds ofbugs[1].
+
+--- Page 2 ---
+2 Carmona, Cortadella, Khomenk o,Yakovlev
+1.2Self-timed systems anddesign tools
+Getting ridofglobal clockinginSoCs oers potentialadded values, tradition-
+allyquoted intheliterature [60]:greater operational robustness, powersavings,
+electro-magnetic compatibilit yandself-checking.While theasynchronous design
+comm unitycontinuesitsbattle forthedemonstration ofthese features tothe
+semiconductor industry investors, theissueofdesign productivit ymaysuddenly
+turnthedietotherightsideforasynchronous design. Why?
+Oneoftheimportantsub-problems oftheproductivit yandreuse problem
+forglobally clockedsystems isthatoftiming closure. Thisissue arises when
+theoverallSoCisassem bledfromexisting parts, called Intellectual Property
+(IP)cores, where eachparthasbeendesigned separately (perhaps evenbya
+dieren tmanufacturer) foracertain clockperiod,assuming thattheclocksignal
+isdeliveredaccurately ,atthesametime, toallparts ofthesystem. Finding the
+common clockingmodeforSoCs thatarebuiltfrommultiple IPcores isavery
+dicult problem toresolv e.
+Self-timed systems, orlessradical, globally asynchronous locallysynchronous
+(GALS) systems [11,70],areincreasingly seenbyindustry asanatural way
+ofcomposing systems frompredesigned componentswithout thenecessit yto
+solvethetiming closure problem initsfullcomplexit y.Asaconsequence, self-
+timed systems highligh tapromising route tosolving theproductivit yproblem as
+companies begintorealise. Buttheyalsobegintorealise thatwithout investing
+intodesign andverication toolsforasynchronous design theabovepromise will
+notmaterialise. Forexample, Philips, whose products arecritical tothetime-
+to-mark etdemands, isnowtheworldleader intheexploitation ofasynchronous
+design principles [27].Other microelectronics giantssuchasIntel,Sun,IBM
+andInneon, followthetrend andgradually allowsome oftheirnewproducts
+involveasynchronous parts. Asmaller `mark etniche'compan yTheseus Logic
+hasbeensuccessful indown-streaming theresults oftheirrecentinvestmen tin
+asynchronous design metho ds(Null-Con ventionLogic) [26].
+1.3Design owproblem
+Themajorobstacle nowistheabsence ofaexible andecien tdesign ow,
+whichmustbecompatible withcommercial CAD tools,suchasforexample the
+Cadence toolkit. Alargepartofsuchadesign owwouldbetypically concerned
+withmapping thelogiccircuit (orsometimes macro-cell) netlist ontosilicon
+areausing place androute tools.Although hugely importantthispartisoutside
+ourpresen tscopeofinterest, asitisessentially thesame asinthetraditional
+design ow.What weareconcerned withisthestage inwhichthebehavioural
+specication ofacircuit isconverted intothelogicnetlist implemen tation.
+Thepragmatic approac htothisstage suggests thatthespecication should
+appearintheformofahigh-lev elHardw areDescription Language (HDL). Ex-
+amples ofsuchlanguages arethewidely knownVhdl andVerilog ,aswellas
+Tangram [2]orBalsa [22]thataremorespecicforasynchronous design. The
+
+--- Page 3 ---
+Hardw areSynthesis withPetriNets 3
+latter arebased ontheconcepts ofprocesses, channels andvariables, similar to
+Hoare's CSP.
+Wecaninprinciple bemotivatedbythesuccess ofbehavioural synthesis
+achievedbysynchronous design inthe90s.However,forsynchronous design the
+taskoftranslating anHDLspecication tologic(see,e.g.,[47])isfairly dieren t
+fromwhat wemayexpectintheasynchronous case.
+Itsrstpartwasconcerned withtheso-called architectural synthesis, whose
+goalwastheconstruction ofaregister-transfer level(RTL)description. This
+required extracting acontrolanddataowgraph (CDFG)fromtheHDL, and
+performing scheduling andallocation ofdataoperations tofunctional datapath
+units inorder toproduceanFSM foracontroller orsequencer. TheFSMwas
+thenconstructed using standard synchronous FSM synthesis, whichgenerated
+combinational logicandrowsoflatches.
+Although some parts ofarchitectural synthesis, suchasCDFGextraction,
+scheduling andallocation, mightstayunchanged forself-timed circuits, thede-
+velopmen toftheintermediate level,anRTLmodelofasequencer, anditssub-
+sequen tcircuit implemen tation, wouldbequite dieren t.
+1.4HowcanPetrinethelp?
+Twocritical questions ariseatthispoint.Firstly ,what isthemost adequate
+formal language fortheintermediate (stillbehavioural) leveldescription? Sec-
+ondly,whatshould betheprocedure forderiving logicimplemen tation fromsuch
+adescription?
+Thepresen tlevelofdevelopmen tofasynchronous design owsuggests the
+followingoptions toanswerthose questions:
+(1)Avoid(!)answering them altogether. Instead, followasyntax-driv en
+translation oftheHDL directly intoanetlist ofhardw arecomponents,called
+handshak ecircuits. Thissortofsilicon-compilation approac hwaspursued at
+Philips withtheTangram ow[2].Manycomputationally hardproblems in-
+volving global optimisation oflogicwerealsoavoided. Some local`peephole'
+optimisation wasintroduced atthelevelofhandshak ecircuit description. Petri
+netswereusedforthatintheformofSignal Transition Graphs (STGs) andtheir
+composition, withsubsequen tsynthesis using thePetrify tool[52,18].Similar
+sortofapproac hiscurren tlyfollowedbythedesigners oftheBalsa ow,where
+theroleofpeephole optimisation toolsisplayedbytheFSM-based synthesis
+toolMinimalist [12].Theproblem withthisapproac histhat,while beingvery
+attractiv efromtheproductivit ypointofview, itsuers fromthelackofglobal
+optimisation, especially forhigh-sp eedrequiremen ts,because direct mapping of
+theparsing treeintoacircuit structure mayproduceveryslowcontrolcircuits.
+(2)Translate theHDLspecication intoaSTGforcontroller partandthen
+synthesise thisitusingPetrify .Thisapproac hwasemplo yedin[4],where the
+HDL wasVerilog .Thisoption wasattractiv ebecause thetranslation ofthe
+Verilog constructs preserv edthenatural seman ticalexecution order between
+operations (notthesyntaxstructure!) andPetrify could apply logicoptimisa-
+tionatafairly global level.Ifthelogicsynthesis stage wasnotconstrained by
+
+--- Page 4 ---
+4 Carmona, Cortadella, Khomenk o,Yakovlev
+thestate space explosion inheren tinPetrify ,thiswouldhavebeenanideal
+situation.
+However,thestatespace explosion becomes arealspanner intheworks,be-
+cause thecapabilit yofPetrify tosolvethelogicsynthesis problem islimited
+bythenumberoflogicsignals inthespecication. STGs involving 40{50 binary
+variables cantakehours ofCPUtime. Thesizeofthemodeliscritical notonly
+forlogicminimisation but,more importantly,forsolving stateassignmen tand
+logicdecomp osition problems. Thestateassignmen tproblem often arises when
+theSTGspecication isextracted automatically fromanHDL. ThisforcesPet-
+rifyintosolving Complete State Coding(CSC)using computationally intensiv e
+procedures involving calculation ofregions inthereachabilit ygraph.
+While thelogicsynthesis powersofPetrify should notbeunderestimated,
+oneshould berealistic wheretheycanbeapplied ecien tly.Thusthesolution lies
+where thedesign productivit ysimilar tothatof(1)canbeachievedtogether with
+thecircuit optimalit yoered by(2).Webelievethatthewaytosuchasolution
+isthrough nding moreecien twaysoflogicsynthesis intheframew orkofthe
+design owshowninFig.1.
+HDL Specification
+Control/data splitting
+Datapath Spec
+Data logic synthesis
+Data Logic
+Control & data interfacing
+HDL ImplementationPresent FocusPN to circuit synthesis Signal RefinementControl Spec (Petri net)
+ Control Logic
+Fig.1.Design FlowwithLogic Synthesis fromPetrinets.
+Theoriginal HDL specication issyntactically andseman tically analysed,
+giving risetocontrolanddatapathspecications. Datapathcanbesynthesised
+using standard RTL-based (synchronous) design ow,applied tothemainfrag-
+mentsofthedatapath, namely combinational logicandregisters. There exist
+metho dsofconverting suchlogictoself-timed implemen tations, e.g.,[43].This
+aspectofdesign isoutside ourscopehere.Thecontrolspecication isassumed
+
+--- Page 5 ---
+Hardw areSynthesis withPetriNets 5
+tobeextracted fromtheHDL intheformofaPetrinet,whichwillthusact
+astheintermediate behavioural represen tation. Suchanextraction isingen-
+eralnon-trivial andrelies onrigorous seman ticrelationship betweencontrol-o w
+constructs usedintypical behavioural HDLs andtheirequivalentsinPetrinets.
+Forexample, ifoneusesBalsa ,suchconstructs basically include sequencing,
+parallelisation, two-wayandmulti-w ayselection, arbitration and(forev er,while
+andfor)loops,aswellasmacro andprocedure calls. Those canbetranslated
+intoPetrinetsquiteecien tlyasdoneforexample inPEP[3]forthetranslation
+ofbasic high-lev elprogramming language notation, B(PN)2,intoPetrinets.
+1.5Metho dsforLogic Synthesis fromPetrinets
+Thequestion ofwhatkindofPetrinetsisappropriate forsubsequen tlogicsyn-
+thesis ofcontroldependsonthemetho dusedforsynthesis. Roughly ,synthesis
+metho dsaresplitintotwomain categories. Therstcategory comprises tech-
+niques ofdirect mapping ofPetrinetconstructs tologic. Invarious forms it
+appeared in[51,20,32,68,74,6,58].Intheframew orkof1-safe Petrinetsand
+speed-indep enden tcircuits thisproblem wassolvedin[68],howeveronlyforau-
+tonomous (noinputs) specication where alloperations wereinitiated bythe
+controllogicspecied byalabelledPetrinet.Another limitation wasthatthe
+technique didnotcovernetswitharbitrary dynamic conicts. Hollaar's one-hot
+encodingmetho d[32]allowedexplicit interfacing withtheenvironmen tbutre-
+quired fundamen talmodetiming conditions, useofinternal state variables as
+outputs andcould notdealwithconicts andarbitration inthespecications.
+Patil'smetho d[51]worksforthewhole classof1-safe nets.However,itproduces
+controlcircuits whose operation uses2-phase (non-return-to-zero) signalling.
+Thisresults inlowerperformance thanwhatcanbeachievedfor4-phase circuits
+usedin[68].
+Thesecond category considers theSignal Transition Graph renemen tofthe
+Petrinetcontrolspecication. These metho dsusually perform anexplicit logic
+synthesis, byderiving Boolean equations fortheoutput signals ofthecontroller
+using thenotion ofnextstatefunctions obtained fromtheSTG[14,18].Itshould
+benoted thatsometimes theSTGspecication forcontrolcanbeobtained di-
+rectly fromtheoriginal specications, e.g.,ifthose areprovided intheformof
+Timing Diagrams.
+Inthispaperwewillnotconcen trateontheproblem ofsynthesis ofPetrinets
+forlogicsynthesis ofcontrollers andreferthereader tomost recentliterature,
+suchas[4].
+Ourfocuswillbeonthemostrecentadvances inlogicsynthesis fromPetri
+netsandSignal Transition Graphs. These metho dstrytoavoidusing thestate
+space generated bythePetrinetmodeldirectly .They followtwopossible ap-
+proaches.Therstone,called astructur alapproac h,performs graph-based trans-
+formations ontheSTGanddeals withtheapproximated statespace bymeans
+oflinear algebraic represen tations. Thesecond one,called anunfolding-b ased
+metho d,represen tsthestatespace intheformoftrueconcurrency (orpartial
+order) seman ticsprovided byPetrinetunfoldings.
+
+--- Page 6 ---
+6 Carmona, Cortadella, Khomenk o,Yakovlev
+y:=0;
+loop
+x:=READ (IN);
+WRITE (OUT, (x+y)=2);
+y:=x;
+endloopAinRin
+AoutRoutOUT
+filterIN
+Fig.2.High-lev elspecication ofalter.
+Theremaining structure ofthepaperisasfollows.Section 2introduces the
+problem ofsynthesis ofcontrolcircuits fromPetrinetbased specications. Itwill
+doitinaninformal waybyconsidering twocharacteristic examples ofcontrol
+logictobedesigned bythissortofmetho dology .Section 3providesanoverview
+ofthetraditional state-based synthesis, whichiscurren tlyimplemen tedinthe
+Petrify tool.Section 4describ esstructural metho dsanduseofinteger linear
+programming inlogicsynthesis. Section 5presen tshowPetrinetsunfoldings
+andBoolean satisabilit yproblem (SAT)solverscanbeusedinthesynthesis
+ofasynchronous controllogic. Section 6briey overviews some other related
+metho dologies andoutlines theimportantcurren tandfuture researc hdirections.
+2Synthesis Problem: Simple Examples andSignal
+Transition Graph Denition
+Weshallintroducetheproblem ofsynthesis ofcontrolcircuits fromPetrinets
+specications using twosimple butrealistic design examples. Thiswillalsohelp
+ustopresen tthetwomaintypesofcontrolhardw arethatcanbedesigned with
+themetho dsdescrib edinthispaper.Therstexample, asimple dataprocessing
+controller, willillustrate thedesign owstarting from analgorithmic, HDL-
+based, specication. Thesecond one,aninterface controller, willshowthedesign
+starting fromawaveform, Timing Diagram based, specication. Algorithmic and
+waveform specications aremostpopular forms ofbehavioural notation amongst
+hardw aredesigners. While describing thesecond example wewillintroduceour
+main specication model,Signal Transition Graph (STG).
+2.1Asimple ltercontroller
+Weillustrate atypical design owbymeans oftheexample showninFig.2.The
+algorithm describ esasimple lterthatreads dataitems fromaninput channel
+(IN)andwrites theltered dataintoanoutput channel (OUT) byaveraging
+thelasttwosamples, xandy.(Note thattherstoutput valueinthiscasemay
+beinvalidandshould beignored bytheenvironmen t.)Theinteraction withthe
+environmen tisasynchronous, using afour-phase protocolimplemen tedbyapair
+ofhRequest,Acknow ledgeisignals, asshowninFig.3.
+Oneofthepossible implemen tations ofthelter isdepicted intheblock
+diagram ofFig.4.Itcontainstwolevel-sensitiv elatches,xandy,andoneadder
+
+--- Page 7 ---
+Hardw areSynthesis withPetriNets 7
+DATA
+Req
+Ackitem  i item  i+1
+Fig.3.Four-phase handshak eprotocol.
+(theaveraging ofxandyisachievedsimply byaone-bit rightshiftofthebits
+ofthesumx+y).Eachofthecomponentsoperates according toafour-phase
+protocolasfollows:
+{Thelatchesaretransparen twhen Rishighandopaque when low.Abeing
+highindicates thatthedatatransfer through thelatchhasbeencompleted.
+{Theadder starts itsoperation when Rgoeshigh. After acertain delay,
+signal Awillbeasserted, indicating thattheaddition hasbeennished and
+theoutput isvalid.After that,RandAgolowtocomplete thefour-phase
+protocol.
+RinAinAxRxRyAyRaAa
+AoutRout+
+x y
+controlINOUT
+Fig.4.Blockdiagram forthelter.
+Theacknowledge signals ofthelatchesandtheadder canbeimplemen ted
+inmanydieren tways,depending onhowtheblocksaredesigned. Oneway
+ofdoing thatisbysimply inserting adelaybetweenRandAthatmimics the
+worst-case delayofthecorresp onding block,astypically doneforbundled-data
+componentsinmicropip elines [64].
+Thesignals hRin;AiniandhRout;Aoutiperform thesynchronisation ofthe
+INandOUT channels, respectively.Rinindicates thevalidityofIN.After Ain
+goeshigh,theenvironmen tisallowedtomodifyIN.Ontheother side,Routand
+Aoutshould beabletocontrolalevel-sensitiv elatchinasimilar wayasdescrib ed
+aboveforthelatchesxandy.
+Synthesis ofcontrolThesynchronisation ofthefunctional units depicted in
+Fig.4isperformed bythecontrolblock,whichisresponsible forcirculating the
+dataitems inthedata-path insuchawaythattherequired computations are
+performed asspecied bythealgorithm.
+Inthispaper,weuseaspecially interpreted Petrinets,called Signal Transi-
+tionGraphs (STGs), tospecifythebehaviour ofasynchronous controllers. The
+
+--- Page 8 ---
+8 Carmona, Cortadella, Khomenk o,Yakovlev
+Ain+Rin+
+Rin−
+Ain−Rx+
+Ax−Rx−Ax+Ry+
+Ay−Ry−Ay+Ra+
+Aa−Ra−Aa+Rout+
+Aout+
+Rout−
+Aout−
+Fig.5.Behavioural specication ofthecontrol.
+transitions represen tsignal events(i.e.,rising orfalling edges ofsignals), whereas
+thearcsandplaces represen tthecausalit yrelations among theevents.
+Fig.5describ esonepossible behaviour ofthecontrolthatresults inacorrect
+operation ofthecircuit. Inthiscases, thebehaviour canbedescrib edbya
+markedgraph,asubclassofPetrinetswithout choice. Markedgraphs areoften
+represen tedbyomitting theplaces betweentransitions.
+Eachpairofreq/ac ksignals commit afour-phase protocol,determined by
+thearcsR+!A+!R!A!R+.Therestofthearcsaretheonesthat
+dene howdataitems movealong thedata-path. Forthesakeofbrevit y,onlya
+couple ofthem arediscussed.
+ThearcR+
+in!R+
+xindicates thatthelatchxcanbecome transparen twhen
+there issomevaliddataattheINchannel. Moreo ver,thedatacanonlyberead
+oncethelatchyhascaptured theprevious datafromx.Thisisguaran teedby
+thearcA
+y!R+
+x.
+Ontheother hand, theadder willstartanewoperation everytimethelatch
+xhasacquired newdata. Thisisindicated bythearcA+
+x!R+
+a.Theresult will
+besenttotheOUT channel when theaddition hascompleted (arcA+
+a!R+
+out).
+C Ain
+inRRout
+AoutRxAxAyRy RaAa
+Fig.6.Async hronous controller forthelter.
+Fromthespecication ofthecontrol,alogiccircuit canbesynthesised. The
+circuit showninFig.6hasbeenobtained bythePetrify tool.
+2.2VME buscontroller
+Oursecond example isafragmen tofaVME busslaveinterface [75].Itwill
+helpustoillustrate howtheSTGspecication ofanasynchronous controller
+
+--- Page 9 ---
+Hardw areSynthesis withPetriNets 9
+canbederivedfromitsoriginal Timing Diagram specication. Fig.7(a)depicts
+theinterface ofacircuit thatcontrolsdatatransfers betweenaVME busand
+adevice. Themain taskofthebuscontroller istoopenandclose thedata
+transceiv erthrough signal daccording toagivenprotocoltoread/write data
+from/to thedevice.
+VME Bus
+ControllerTransceiverData
+dsr
+dsw
+dtacklds
+ldtackdDeviceBus
+(a)dsr
+lds
+ldtack
+d
+dtack
+(b)lds+
+d+
+dtack+ lds-
+dsr-
+d-dtack-dsr+ldtack+ ldtack-
+(c)
+Fig.7.VME buscontroller: interface (a),thetiming diagram forthereadcycle(b)
+andtheSTGforthereadcycle(c).
+Theinput andoutput signals ofthebuscontroller areasfollows:
+{dsranddswareinput signals thatrequest todoareadorwrite operation,
+respectively.
+{dtack isanoutput signal thatindicates thattherequested operation isready
+tobeperformed.
+{ldsisanoutput signal torequest thedevice toperform adatatransfer.
+{ldtack isaninput signal coming fromthedevice indicating thatthedevice
+isready toperform therequested datatransfer.
+{disanoutput signal thatenables thedatatransceiv er.When high,thedata
+transceiv erconnects thedevice withthebus.Thedirection ofthetransfer
+(read orwrite) isdened bythehighorlowlevelofaspecial(RW)signal,
+whichispartoftheaddress/data bundle.
+Fig.7(b)showsatiming diagram ofthereadcycle. Inthiscase,signal dsw
+isalwayslowandnotdepicted inthediagram. Thebehaviour ofthecontroller
+isasfollows:arequest toreadfromthedevice isreceiv edbysignal dsr.The
+controller transfers thisrequest tothedevice byasserting signal lds.When the
+device hasthedataready (ldtack high), thecontroller opensthetransceiv er
+totransfer datatothebus(dhigh). Once datahasbeentransferred, dsrwill
+become lowindicating thatthetransaction mustbenished. Immediately after,
+thecontroller willlowersignal dtoisolate thedevice fromthebus.After that,
+thetransaction willbecompleted byareturn-to-zero ofallinterface signals,
+seeking foramaxim umparallelism betweenthebusandthedevice operations.
+
+--- Page 10 ---
+10 Carmona, Cortadella, Khomenk o,Yakovlev
+Ourcontroller alsosupportsawrite cyclewithaslightlydieren tbehaviour.
+Forthesakeofsimplicit y,wehavedescrib edindetail onlythereadcycle.
+Themodelthatwillbeusedtospecifyasynchronous controllers isbased on
+Petrinets[53,49].Itiscalled Signal Transition Graph(STG)[55,13].Roughly
+speaking, anSTGisaformal modelfortiming diagrams.Nowweexplain how
+toderiveanSTGfromatiming diagram.
+FromTiming DiagramstoSignal Transition GraphsAtiming diagram species
+theevents(signal transitions) ofabehaviour andtheircausalit yrelations. An
+STGisaformal modelforthistypeofspecications. Initssimplest form, anSTG
+canbeconsidered asacausalit ygraph inwhicheachnoderepresen tsanevent
+andeacharcacausalit yrelation. AnSTGrepresen tingthebehaviour oftheread
+cyclefortheVME busisshowninFig.7(c).Rising andfalling transitions ofa
+signal arerepresen tedbythesuperscripts +and,respectively.
+Additionally ,anSTGcanalsomodelallpossible dynamic behaviours ofthe
+system. Thisisther^oleofthetokensheldbysome ofthecausalit yarcs.An
+eventisenabledwhen ithasatleastonetokenoneachinput arc.Anenabled
+eventcanre,whichmeans thattheeventoccurs. When aneventres,atoken
+isremovedfromeachinput arcandatokenisputoneachoutput arc.Thus,
+thering ofaneventproduces theenabling ofanother event.Thetokensinthe
+specication represen ttheinitial stateofthesystem.
+Theinitial stateinthespecication ofFig.7(c)isdened bythetokenson
+thearcsdtack!dsr+andldtack!lds+.Inthisstate, there isonlyone
+eventenabled, viz.dsr+.Itisaneventonaninput signal thatmustbeproduced
+bytheenvironmen t.Theoccurrence ofdsr+removesatokenfromitsinput arc
+andputsatokenonitsoutput arc.Inthatstate, theeventlds+isenabled. In
+thiscase,itisaneventonanoutput signal, thatmustbeproduced bythecircuit
+modelled bythisspecication.
+After ring thesequence ofeventsldtack+,d+,dtack+,dsrandd,two
+tokensareplaced onthearcsd!dtackandd!lds.Inthissituation,
+twoeventsareenabled andcanreinanyorder independen tlyfromeachother,
+i.e.,these eventsareconcurr ent,whichisnaturally modelled bytheSTG.
+ChoiceinSignal Transition Graphs Insome cases, alternativ ebehaviours, or
+modes,canoccurdepending onhowtheenvironmen tinteracts withthesys-
+tem.Inourexample, thesystem willreactdieren tlydepending onwhether the
+environmen tissues arequest toreadorarequest towrite.
+Typically ,dieren tbehavioural modesarerepresen tedbydieren ttiming
+diagrams. Forexample, Fig.8(a)and8(b)depict theSTGscorresp onding to
+thereadandwrite cycles, respectively.Inthese pictures, some arcshavebeen
+splitandcircles inserted inbetween.These circles represen tplacesthatcanhold
+tokens.Infact,eacharcgoing fromonetransition toanother hasanimplicit
+place thatholds thetokenslocated inthatarc.
+Bylooking attheinitial markings, onecanobserv ethatthetransition dsr+
+isenabled inthereadcycle, whereas dsw+isenabled inthewrite cycle. The
+
+--- Page 11 ---
+Hardw areSynthesis withPetriNets 11
+ldtack-
+lds-dsr+
+dtack+1
+dsr-dtack-
+lds+
+ldtack+
+d+
+d-
+(a)ldtack-dsw+
+dsw-dtack-
+d+
+lds+
+ldtack+
+d-
+dtack+lds-
+(b)ldtack-
+lds-dsr+
+lds+/1
+ldtack+/1
+d+/1
+dtack+1
+dsr-
+d-/1dsw+
+d+/2
+lds+/2
+ldtack+/2
+d-/2
+dtack+/2
+dsw-dtack-
+Read cycle Write cycle
+(b)
+Fig.8.VME buscontroller: readcycle(a),write cycle(b),readandwrite cycles(c).
+combination ofbothSTGsmodelsthefactthattheenvironmen tcannon-
+deterministically choosewhether tostartareadorawrite cycle.
+Thiscombination canbeexpressed byasingle STG withachoice place,
+asshowninFig.8(c).Intheinitial state, bothtransitions, dsr+anddsw+,
+areenabled. However,when oneofthem res,theother isdisabled sinceboth
+transitions arecompeting forthetokeninthechoice place. Thistypeofchoice
+iscalled freechoicebecause thetransitions, dsr+anddsw+,connected tothe
+choice place havenoother input places thatcould aect theprocessofchoice
+making.
+Hereiswhere onecanobserv eanimportantdierence betweentheexpres-
+siveness ofSTGsandtiming diagrams: theformer arecapable ofexpressing
+non-deterministic choices while thelatter arenot.
+2.3More formal denition ofSignal Transition Graphs
+Tobeabletointroducethemetho dsofsynthesis ofasynchronous circuits in
+subsequen tsections, wewillneedamoreformal denition ofanSTG.STGsare
+aparticular typeoflabelledPetrinets,where transitions areassociated withthe
+changes inthevalues ofbinary variables. These variables canforexample be
+associated withwires, when modelling interfaces betweenblocks,orwithinput,
+output andinternal signals inacontrolcircuit.
+
+--- Page 12 ---
+12 Carmona, Cortadella, Khomenk o,Yakovlev
+Anetisatriple Ndf=(P;T;F)suchthatPandTaredisjoin tsetsofrespec-
+tivelyplacesandtransitions ,andF(PT)[(TP)isaowrelation .A
+marking ofNisamultiset Mofplaces, i.e.,M:P!f0;1;2;:::g.Weadopt the
+standard rulesaboutrepresen tingnetsasdirected graphs, viz.places arerepre-
+sentedascircles, transitions asrectangles, theowrelation byarcs,andmarkings
+areshownbyplacing tokenswithin circles. Asusual,zdf=fyj(y;z)2Fgand
+zdf=fyj(z;y)2Fgdenote thepre-andpostset ofz2P[T.Wewillassume
+thatt6=;,foreveryt2T.Anetsystem isapairdf=(N;M0)comprising a
+nite netNandaninitial marking M0.Weassume thereader isfamiliar with
+thestandard notions ofthetheory ofPetrinets,suchastheenabledness and
+ring ofatransition andmarking reachability ,aswellasother standard notions
+andclassication associated withPetrinets[49].
+ASignal Transition Graph(STG)isaquadruple df=(N;M0;Z;),where
+{=(N;M0)isaPetrinet(PN)based onanetN=(P;T;F),
+{Zisanite setofbinary signals, whichgenerates anite alphab etZ=
+Zf+;gofsignal transitions
+{:T!Zisalabelling function.
+Labelling doesnotneedtobe1-to-1 (some signal transitions mayoccur
+severaltimes inthePN),anditmaybeextended toapartial function, inorder
+toallowsometransitions tobe\dumm y"ones(denoted by),thatistodenote
+\silentevents"thatdonotchange thestateofthecircuit.
+When talking aboutindividual signal transitions, thefollowingmeaning will
+beassociated withtheirlabels.Alabelx+isusedtodenote thetransition of
+signal xfrom0to1(rising edge), while xisusedfora1to0transition (falling
+edge). Inthefollowingitwilloften beconvenienttoassociateSTGtransitions
+directly withtheirlabels,\bypassing" theirPetrinetidentity.Insuchcasesifthe
+labelling isnot1-to-1 (socalled multiple labelling), wewillalsouseasubscript
+oranindex separated byslashdenoting theinstance numberofthex.
+Sometimes, when reasoning onapureevent-based level,itwillalsobecon-
+venienttohidethedirection ofaparticular edgeandusextodenote either a
+x+transition oranxtransition.
+AnSTGinherits thebasicoperational seman ticsfromthebehaviourofitsun-
+derlying Petrinet.Inparticular, thisincludes: (i)therulesfortransition enabling
+andring, (ii)thenotions ofreachable markings, traces, and(iii)thetempo-
+ralrelations betweentransitions (precedence, concurrency ,choice andconict).
+Likewise, STGsalsoinherit thevarious structural (mark edgraph, free-choice,
+etc.)andbehavioural properties (boundedness, liveness, persistency ,etc.), and
+thecorresp onding classication ofPNs.Namely:
+{Choice place. Aplace iscalled achoice (orconict) place ifithasmore
+thanoneoutput transition.
+{Markedgraph andState machine. APNiscalled amarkedgraph(MG)
+ifeachplace hasexactly oneinput andoneoutput transition. Dually ,aPN
+iscalled astatemachine (SM)ifeachtransition hasexactly oneinput and
+oneoutput place. MGshavenochoice. SafeSMshavenoconcurrency .
+
+--- Page 13 ---
+Hardw areSynthesis withPetriNets 13
+{Free-choice. Achoiceplaceiscalled free-choic eifeveryitsoutput transition
+hasonlyoneinput place. APNisfree-choic eifallitschoice places arefree-
+choice.
+{Persistency .Atransition t2Tiscalled non-persistent ifsome reachable
+marking enables ttogether withanother transition t0,andtbecomes disabled
+afterring t0.Non-p ersistency oftwithrespecttot0isalsocalled adirect
+conict betweentandt0.APNispersistent ifitdoesnotcontainanynon-
+persisten ttransition.
+{Boundedness andsafeness. APNk-boundedifforeveryreachable mark-
+ingthenumberoftokensinanyplace isnotgreater thank(aplace iscalled
+k-bounded ifforeveryreachable marking thenumberoftokensinitisnot
+greater thank).APNisbounded,ifthere isanite kforwhichitisk-
+bounded. APNissafeifitis1-bounded (a1-bounded place iscalled asafe
+place).
+{Liveness. APNisliveifforeverytransition tandeveryreachable marking
+Mthere isaring sequence thatleads toamarking M0enabling t.
+Thesignal transition labelling ofanSTGmaysometimes dieren tiatebe-
+tweeninput andnon-input signals, thusforming twodisjoin tsubsets, ZI(for
+inputs) andZO(fornon-inputs, orsimply outputs), suchthatZ=ZI[ZO.An
+STGiscalled autonomous ifithasnoinput signals (i.e.,ZI=;).
+Graphically ,anSTG caneither berepresen tedinthestandard formofa
+labelledPN,drawingtransitions asbarsorboxesandplaces ascircles, orin
+theso-called STGshorthand form. Thelatter, aswasrstshownintheabove
+examples, designates transitions directly bytheirlabelsandomits places that
+haveonlyoneinput andoneoutput transition.
+Examples ofSTGs,intheirshorthand notation, wereshowninFig.8,describ-
+ingasimple VME buscontroller example. Itwasassumed inthem thatZI=
+fdsr;dsw;ldtackgandZO=flds;dtack;dg.ThersttwoSTGs,inFig.8(a)
+and8(b),aremarkedgraphs (they donothavechoice onplaces). Thethirdone,
+inFig.8(c),modelling bothreadandwrite operation cycles, isnotamarked
+graph because itcontainsplaces withmultiple input andoutput transitions. It
+isnotafree-choice neteither, because oneofitschoice places, theinput to
+transitions lds+=1andlds+=2,isnotafree-choice place. Thelatter ishowever
+aunique choiceplacebecause whenev eroneoftheabovetwotransitions isen-
+abled theother isnot,whichisguaran teedbytheother choice place, whichisa
+free-choice one.Thus,behaviourally ,thisnetdoesnotleadtodynamic conicts
+(arbitration) orconfusion, asitisfreefromanyinterference betweenchoice and
+concurrency .
+3State-based Synthesis fromSignal Transition Graphs
+Themain purposeofthissection istopresen tastate-based metho dtodesign
+asynchronous controlcircuits, i.e.,those circuits thatsynchronise theoperations
+performed bythefunctional unitsofthedata-path through handshak eprotocols.
+Themetho dusestheSTGmodelofacircuit asitsinitial specication. Thekey
+
+--- Page 14 ---
+14 Carmona, Cortadella, Khomenk o,Yakovlev
+dsr+
+dsr+
+dsr+
+dtack+ dsr-d-dtack-dtack-dtack-
+ldtack- ldtack- ldtack-
+lds- lds- lds- ldtack+
+d+lds+
+(a)dsr+
+dsr+
+dsr+
+dtack+ dsr-d-dtack-dtack-dtack-
+ldtack- ldtack- ldtack-
+lds- lds- lds- ldtack+
+d+lds+LDS=0
+LDS=1
+(b)1010110101dsr+
+dsr+
+dsr+
+dtack+ dsr-d-dtack-dtack-dtack-
+ldtack- ldtack- ldtack-
+lds- lds- lds- ldtack+
+d+lds+10000
+10001
+10111 11111 0111101101011000100000000
+0010100100 10100
+(c)
+Fig.9.Reachabilit ygraph ofreadcycle(a),itsbinary partitioning forsignal lds(b),
+andtheencodings ofthereachable states (c).Theorder ofsignals inthebinary en-
+codings is:dsr;dtack;ldtack ;d;lds.
+steps inthismetho darethegeneration ofastate graph, whichisabinary
+encodedreachabilit ygraph oftheunderlying Petrinet,andderiving Boolean
+equations fortheoutput signals viatheirnextstatefunctions obtained fromthe
+state-graph. Thismetho dissurveyedhereverybriey andinformally ,using our
+VME buscontroller example. Formoredetails thereader isreferred tothebook
+andthePetrify tool[18].
+3.1State Graphs
+StateSpaceAnSTGisasuccinct represen tation ofthebehaviour ofanasyn-
+chronous controlcircuit thatdescrib esthecausalit yrelations among theevents.
+However,thestatespace ofthesystem mustbederivedbyexploring allpossible
+ring orders oftheevents.Suchexploration mayresult inastate space much
+larger thanthespecication.
+Unfortunately ,thesynthesis ofasynchronous circuits fromSTGsrequires an
+exhaustiv eexploration ofthestate space. Finding ecien trepresen tations of
+thestatespace isacrucial aspectinbuilding synthesis tools.Other techniques
+based ondirect translation ofPetriNetsintocircuits oronapproximations ofthe
+statespace exist[42,50],butusually producecircuits withareaandperformance
+penalty.
+Going backtoourexample oftheVME buscontroller, Fig.9(a)showsthe
+reachabilit ygraph corresp onding tothebehaviour ofthereadcycle. Theinitial
+stateisdepicted ingray.
+Forsimplicit y,thewritecyclewillbeignored intherestofthissection. Thus,
+wewillconsider thesynthesis ofabuscontroller thatonlyperforms readcycles.
+Binary Interpr etation Theeventsofanasynchronous circuit areinterpreted
+asrising andfalling transitions ofdigital signals. Arising (falling) transition
+represen tsaswitchfrom0(1)to1(0)ofthesignal value. Therefore, when
+considering eachsignal ofthesystem, abinary valuecanbeassigned toeach
+state forthatsignal. Allthose states visited afterarising (falling) transition
+
+--- Page 15 ---
+Hardw areSynthesis withPetriNets 15
+andbeforeafalling (rising) transition represen tsituations inwhichthesignal
+valueis1(0).
+Ingeneral, theeventsrepresen tingrising andfalling transitions ofasignal
+induce apartition ofthestate space. Asanexample, letustakesignal ldsof
+thebuscontroller. Fig.9(b)depicts thepartition ofstates. Eachtransition from
+LDS=0 toLDS=1 islabelledbylds+andeachtransition fromLDS=1 toLDS=0 is
+labelledbylds.
+Itisimportanttonotice thatrising andfalling transitions ofasignal must
+alternate. Thefactthatarising transition ofasignal isenabled when thesignal
+isat1isconsidered aspecication error. More formally ,aspecication with
+suchproblem issaidtohaveaninconsistent statecoding.
+After deriving thevalueofeachsignal, eachstatecanbeassigned abinary
+vector thatrepresen tsthevalueofallsignals inthatstate. Atransition system
+withabinary interpretation ofitssignals iscalled astategraph(SG).TheSG
+ofthebuscontroller readcycleisshowninFig.9(c).
+3.2Deriving Logic Equations
+Inthissection weexplain howanasynchronous circuit canbeautomatically ob-
+tained fromabehavioural description. Wehavealready distinguished twotypes
+ofsignals inaspecication: inputs andoutputs. Further, some oftheoutputs
+maybeobserv ableandsome internal. Typically ,observ ableoutputs corresp ond
+tothose included inthespecication, whereas internal outputs corresp ondto
+those inserted during synthesis andnotobserv ablebytheenvironmen t.Synthe-
+sising acircuit means providing animplemen tation fortheoutput signals ofthe
+system.
+Thissection givesanoverview ofthemetho dsusedforthesynthesis ofasyn-
+chronous circuits fromanSG.
+System Behaviour Thespecication ofasystem modelsaprotocolbetweenits
+inputs andoutputs. Atagivenstate, oneorseveralofthese twosituations may
+happen:
+{Thesystem iswaiting foraninput eventtooccur.Forexample, inthestate
+00000 ofFig.9(c),thesystem iswaiting fortheenvironmen ttoproducea
+rising transition onsignal dsr.
+{Thesystem isexpected toproduceanon-input (output orinternal) event.
+Forexample, theenvironmen tisexpecting thesystem toproducearising
+transition onsignal ldsinstate10000 .
+Inconcurren tsystems, severalofthese things mayoccursimultaneously .For
+example, instate00101 ,thesystem isexpecting theenvironmen ttoproduce
+dsr+,whereas theenvironmen tisexpecting thesystem toproducelds.In
+someother cases, suchasinstate01101 ,theenvironmen tmaybeexpecting the
+system toproduceseveraleventsconcurren tly,e.g.,dtackandlds.
+Theparticular order inwhichconcurren teventswilloccurwilldependonthe
+delaysofthecomponentsofthesystem. Mostofthesynthesis metho dsdiscussed
+
+--- Page 16 ---
+16 Carmona, Cortadella, Khomenk o,Yakovlev
+dsr+
+dsr+
+dsr+
+dtack+ dsr-d-dtack-dtack-dtack-
+ldtack- ldtack- ldtack-
+lds- lds- lds- ldtack+
+d+lds+10000
+10001
+10111 11111 0111101101011000100000000
+0010100100 10100
+10101
+10101ER(lds+)
+QR(lds-)
+ER(lds-)
+QR(lds+)
+(a)State curren t next
+region valueofldsvalueoflds
+ER(lds+) 0 1
+QR(lds+) 1 1
+ER(lds) 1 0
+QR(lds) 0 0
+(b)
+Fig.10.Excitation andquiescen tregions forsignal lds(a)andthecorresp onding
+next-state function (b).
+hereaimatsynthesising circuits whose correctness doesnotdependontheactual
+delaysofthecomponents.These circuits arecalled speed-indep endent .
+Acorrect implemen tation oftheoutput signals mustbeinsuchawaythat
+signal transitions onthose signals mustbegenerated ifandonlyiftheenviron-
+mentisexpecting them. Unexp ected signal transitions, ornotgenerating signal
+transitions when expected, mayproducecircuit malfunctions.
+Excitation andQuiescen tRegions Letustakeoneoftheoutput signals of
+thesystem, saylds.According tothespecication, thestates canbeclassied
+intofourregions:
+{Thepositive excitation region,ER(lds+),includes allthose states inwhicha
+rising transition ofldsisenabled.
+{Thenegative excitation region,ER(lds),includes allthose states inwhich
+afalling transition ofldsisenabled.
+{Thepositive quiescentregion,QR(lds+),includes allthose states inwhich
+signal ldsisat1andldsisnotenabled.
+{Thenegative quiescentregion,QR(lds),includes allthose states inwhich
+signal ldsisat0andlds+isnotenabled.
+Fig.10(a) depicts these regions forsignal lds.Itcanbeeasily deduced that
+ER(lds+)[QR(lds)andER(lds)[QR(lds+)arethesetsofstates inwhich
+signal ldsisat0and1,respectively.
+Next-state Functions Excitation andquiescen tregions represen tsetsofstates
+thatarebehaviourally equivalentfromthepointofviewofthesignal forwhich
+theyaredened. Theseman ticsofthese regions arethefollowing:
+{ER(lds+)isthesetofstates inwhichldsisat0andthesystem mustchange
+itto1.
+{ER(lds)isthesetofstates inwhichldsisat1andthesystem mustchange
+itto0.
+
+--- Page 17 ---
+Hardw areSynthesis withPetriNets 17
+{QR(lds+)isthesetofstates inwhichldsisat1andthesystem mustnot
+change it.
+{QR(lds)isthesetofstates inwhichldsisat0andthesystem mustnot
+change it.
+According tothisdenition, thebehaviour ofeachsignal canbedetermined
+bycalculating thenextvalue expected ateachstateoftheSG.Thisbehaviour
+canbemodelled byBoolean equations thatimplemen ttheso-called next-state
+functions (seeFig.10(b)).
+Letusconsider again thebuscontroller andtrytoderiveaBoolean equation
+fortheoutput signal lds.A5-variable Karnaugh mapforBoolean minimisation
+isdepicted inFig.11.Severalthings canbeobserv edinthattable. There are
+manycellsofthemapwithadon'tcare()value.These cellsrepresen tbinary
+encodings notassociated toanyofthestates oftheSG.Since thesystem will
+neverreachastate withthose encodings, thenext-state valueofthesignal is
+irrelev ant.
+00011110
+00
+01
+11
+10dsr,dtack
+ldtack,d 00011110
+00
+01
+11
+10dsr,dtack
+ldtack,dlds=0 lds=1
+0 00001
+----
+-----
+-1
+111
+001
+0---
+-
+----
+-CSC conflict
+Fig.11.Karnaugh mapfortheminimisation ofsignal lds.
+Theshadowedcellscorresp ondtostates intheexcitation regions ofthesignal.
+Therestofcellscorresp ondtostates insomeofthequiescen tregions. Ifwecall
+fldsthenext-state function forsignal lds,herearesome examples onthevalue
+offlds:
+flds(10000) =1 stateinER(lds+)
+flds(10111) =1 stateinQR(lds+)
+flds(00101) =0 stateinER(lds)
+flds(01000) =0 stateinQR(lds)
+3.3State Encoding
+Atthispoint,thereader musthavenoticed apeculiar situation forthevalueof
+thenext-state function forsignal ldsintwostates withthesamebinary encoding:
+10101. Thisbinary encodingisassigned totheshadowedstates inFig.9(c).
+Unfortunately ,thetwostates belong totwodieren tregions forsignal lds,
+namely toER(lds)andQR(lds+).Thismeans thatthebinary encodingof
+theSGsignals alone cannot determine thefuture behaviour oflds.Hence, an
+ambiguit yarises when trying todene thenext-state function. Thisambiguit y
+isillustrated intheKarnaugh mapofFig.11.
+
+--- Page 18 ---
+18 Carmona, Cortadella, Khomenk o,Yakovlev
+lds+
+d+
+dtack+ lds-
+dsr-dtack-dsr+ldtack+ ldtack-csc+
+d-csc-
+(a)dsr+
+dsr+
+dsr+
+dtack+ dsr-dtack-dtack-dtack-
+ldtack- ldtack- ldtack-
+lds- lds- lds- ldtack+
+d+100011
+101111 111111 011111011010011000010000000000
+001010001000 101000
+d-lds+csc+
+100000 100001
+011110101010101011
+csc-
+(b)
+Fig.12.AnSTG(a)anditsSG(b)satisfying theCSCproperty.
+lds=d+csc
+dtack =d
+d=ldtack csc
+csc=dsr(csc+ldtack )d
+ldtacklds
+dsrdtack
+csc
+Fig.13.Logic equations andimplemen tation oftheVME buscontroller.
+Roughly speaking, thisphenomenon appearswhen thesystem doesnothave
+enough memory to\remem ber"inwhichstateitis.When thisoccurs, thesystem
+issaidtoviolate theComplete StateCoding(CSC)property.Enforcing CSCis
+oneofthemostdicult problems inthesynthesis ofasynchronous circuits.
+Fig.12presen tsapossible solution fortheSGoftheVME buscontroller. It
+consists ofinserting anewsignal, csc,thataddsmore memory tothesystem.
+After theinsertion, thetwoconicting states aredisam biguated bythevalueof
+csc,whichisthelastvalueinthebinary vectors ofFig.12.
+NowBoolean minimisation canbeperformed andlogicequations canbeob-
+tained (seeFig.13).InthecontextofBoolean equations represen tinggates we
+shallliberally usethe\="signtodenote \assignmen t",rather thanmathemat-
+icalequalit y.Hence cscontheleft-hand sideofthelastequation stands for
+thenextvalueofsignal csc,whilecscontheright-hand sidecorresp ondstoits
+curren tvalue.Theresulting circuit containscycles: thecombinational feedbac ks
+playther^oleoflocalmemory inthesystem.
+
+--- Page 19 ---
+Hardw areSynthesis withPetriNets 19
+Thecircuit showninFig.13issaidtobespeed-indep enden t,i.e.,itworks
+correctly regardless ofthedelaysofitscomponents.Forthistobetrue,itis
+required thateachBoolean equation isimplemen tedasonecomplex gate.This
+roughly means thattheinternal delayswithin eachgatearenegligible anddo
+notproduceanyexternally observ ablespurious behaviour. However,theexternal
+delayofthegates canbearbitrarily long.
+Note thatsignal dtack ismerely implemen tedasabuer, andawireis
+enough topreserv ethatbehaviour. Butnotethatthespecication indicates
+thatthetransitions ofdtack mustoccuralwaysafter thetransitions ofd.For
+thisreason, theresulting equation isdtack =dandnotviceversa.Thus,the
+buer introduces therequired delaytoenforce thespecied causalit y.
+3.4Properties forimplemen tabilit y
+Inconclusion tothissection letussummarise themain properties required for
+theSTGspecication tobeimplemen table asaspeed-indep enden tcircuit [18]:
+{Bounde dness oftheSTGthatguaran teestheSGtobenite.
+{Consistency oftheSTG,thatensures thattherising andfalling transitions
+ofeachsignal alternate inallpossible runsofthespecication.
+{Completeness ofstateencoding(CSC)thatensures thatthere arenotwo
+dieren tstates withthesamesignal encodingbutdieren tbehaviour ofthe
+output orinternal signals.
+{Persistency ofsignal transitions insuchawaythatnosignal transition
+canbedisabled byanother signal transition, unless bothsignals areinputs.
+Thispropertyensures thatnoshort glitches,knownashazards,willappear
+atthedisabled signals. (Arbitration isimplemen tedby`factoring out'the
+arbiter intotheenvironmen tandusing aspecialcircuit abletoresolv emeta-
+stabilit y.)
+4Synthesis Using Structural Metho ds,Linear
+Programming andSTGDecomp osition
+4.1Rationale
+Structural metho dsprovideawaytoavoidthestatespace explosion problem,
+giventhattheyrelyonsuccinct represen tations ofthestate space. Themain
+benet ofusing structural metho dsistheabilitytodealwithlargeandhighly
+concurren tspecications, thatcannot betackledbystate-based metho ds.Onthe
+other hand, structural metho dsareusually conserv ativeandapproximate, and
+canonlybeexact when thebehaviour ofthespecications isrestricted insome
+sense. Forinstance, in[66]structural metho dsforthesynthesis ofasynchronous
+circuits arepresen tedfortheclassofmarkedgraphs,averyrestricted classof
+Petrinetswhere choices arenotallowed.Inthissection wepresen tstructural
+metho dstosolvesome ofthemain problems inthesynthesis ofasynchronous
+controlcircuits fromwell-formed specications.
+
+--- Page 20 ---
+20 Carmona, Cortadella, Khomenk o,Yakovlev
+Asitwasexplained inprevious sections, thesynthesis ofasynchronous cir-
+cuitsfromanSTGcanbeseparated intotwosteps[18]:(i)checkingand(possi-
+bly)enforcing implemen tabilit yconditions and(ii)deriving thenext-state func-
+tionforeachsignal generated bythesystem. Most oftheexisting CAD tools
+forsynthesis perform steps (i)and(ii)attheunderlying stategraph level,thus
+suering fromthestatespace explosion problem.
+Inorder toavoidthestateexplosion problem, structural metho dsforsteps(i)
+and(ii)havebeenproposedintheliterature. Approac hesliketheonespresen ted
+in[66,50,9,8]canbeconsidered purely structural. Among themetho dsapplied
+bythese approac hes,graph theoretic-based andlinear algebraic aretheessential
+techniques. Theworkpresen tedinthissection usesbothlinear algebraic metho ds
+andgraph theoretic-based metho ds.
+Regarding step(i),inthissection anencodingtechnique toensure imple-
+mentabilit yispresen ted.Itisinspired bytheworkofReneDavid[20].Themain
+ideaistoinsert anewsetofsignals intheinitial specication inawaythat
+unique encodingisguaran teedinthetransformed specication.
+Tothebestofourknowledge, theresults reported in[38,29]aretherst
+onesthatuselinear algebraic techniques toapproac htheencodingproblem. In
+theformer approac h,acomplete characterisation oftheencodingproblem is
+presen ted,provided that,likeinSection 5,unfoldings areusedtorepresen tthe
+underlying statespace ofthenet.Linear algebraic metho dstoverifytheencod-
+ingarepresen tedinthissection, where thecomputation oftheunfolding isnot
+performed, attheexpenseofcheckingonlysucien tconditions forsynthesis.
+However,theexperimen talresults indicate thatthisapproac hishighly accu-
+rateandoften provides asignican tspeed-up compared with[38,39].Onecan
+imagine adesign owwhere themetho dspresen tedinthissection areusedto
+pre-pro cessthespecications, andcomplete metho dsliketheonespresen tedin
+Section 5areonlyusedwhen purely structural metho dsfail.
+Another alternativ etoalleviate thestatespace explosion problem isbyus-
+ingdecomp osition techniques. Weapply them when performing step(ii).More
+specically ,inthissection analgorithm forcomputing thesetofsignals needed
+tosynthesise agivensignal ispresen ted,whichalsouseslinear algebraic tech-
+niques. Thisallowstoprojectthebehaviour intothatsetofsignals andperform
+thesynthesis ontheprojection.
+Insummary ,thissection coversthetwoimportantsteps (i)and(ii)inthe
+synthesis ofasynchronous circuits: itproposespowerfulmetho dsforchecking
+CSC/USCandametho dfordecomp osing thespecication intosmaller ones
+whilepreserving theimplementability conditions .
+4.2Structural technique toensure acorrect encoding
+Therstexample ofuseofstructural metho dsispresen tedinthissection. The
+technique isinspired byprevious workonusing aspecialtypeofcells, called
+David cells.Thistypeofcells,rstintroduced in[20],wereusedin[69]tomimic
+thetokenowofaPetrinet.Fig.14depicts averysimple example onhow
+
+--- Page 21 ---
+Hardw areSynthesis withPetriNets 21
+these cellscanbeabutted tobuild adistributor thatcontrolsthepropagation
+ofactivities along aring.
+ai ^ai
+ci ci1
+Fig.14.Distributor builtfromDavidcells[42].
+Thebehaviour ofoneofthecellsinthedistributor canbesummarised by
+thefollowingsequence ofevents:
+! c
+i1|{z}
+i-thcell
+excitation! a+
+i!^a
+i| {z }
+i-thcellsetting!
+!^a+
+i1!a
+i1!c+
+i1| {z }
+(i1)-th cellresetting! c
+i|{z}
+(i+1)-th cell
+excitation!
+Letusexplain howonecanuseDavidCellstoensure acorrect encodingofthe
+system specied byagivenSTG.Themainideaistoaddanewsignal foreach
+place oftheoriginal net.Theseman ticsofthenewsignal inserted istomimic
+thetokenowofthecorresp onding place intheoriginal net.Thetechnique is
+showninFig.15.
+Forinstance placep4induces thecreation ofsignal sp4.Moreo ver,provided
+thatwhen transition dtack+isenabled, itaddsatokentop4,inthetransformed
+netitwillinduce thatnear(preceding) dtack+there mustbeansp+
+4.Asimilar
+reason makestohavesp
+4near(following) dsr.Newtransitions areinserted
+inaspecialway:internal signal transitions mustnotbeinserted infrontofan
+input signal transition. Thereason forthatistotrytopreserv etheI/Ointerface
+(seemoreonthisin[7]).
+ThederivedSTGisguaran teedtohaveacorrect encoding(intheexample,
+therightSTGisguaran teedtosatisfy theUSCproperty).Thetheory underlying
+thetechnique canbefound in[9].Itcanbeapplied foranySTG withthe
+underlying free-choice liveandsafePetrinet(FCLSPN ).
+4.3ILPmodelsforfastencodingverication
+Themaindrawbackofthistechnique isthatacorrect encodingisensured atthe
+expenseofinserting alotofnewsignals intothenet,andthusthenalimple-
+mentation canbeveryinecien tinterms ofareaand/or performance. Therefore
+
+--- Page 22 ---
+22 Carmona, Cortadella, Khomenk o,Yakovlev
+lds+
+ldtack+
+sp2+
+sp1−
+sp3+
+sp2−
+d+
+sp4+
+sp3−
+dtack+
+dsr−
+sp5+
+sp4−
+sp9+ sp6+
+sp5−
+d−sp11− sp8−sp1+
+sp10+sp9−lds−ldtack−sp11+sp10−
+sp7+sp6−dtack−dsr+sp8+sp7−p8
+p7p1
+p2
+p3
+p4
+p5p6 p9p11
+p10
+ENCODING RULElds+
+d+
+dtack+ lds−
+d−dtack−dsr+ ldtack+ ldtack−
+dsr−
+Fig.15.Encodingruleapplied totheVME BusController example.
+itwouldbenicetohaveanoraclethatcould telluswhen theapplication ofthe
+encodingtechnique isneeded, provided thatthecomputation ofthestatespace
+andsubsequen tcheckingcannot bedoneforthespecication athand dueto
+eciency reasons.
+Thissection presen tsInteger Linear Programming (ILP)modelsasoracles
+thatwecanusetoverifytheencodinginanSTG.Thegoodnewsisthatwhen
+wequery suchoracles, usually ittakesshort timeforthem toanswer,evenfor
+verylargeSTGs.Thebadnewsisthattheyarenotperfect oracles: wecanonly
+trustthem when theysay\Yes,yourSTGiscorrectly encoded".
+Inthissection weassume somebasicknowledge ofLinearProgramming (see,
+e.g.,[56]).Therestofthissection hasthreemainparts: rstitisshownhowtouse
+linear algebraic techniques fordeciding whether agivenmarking Misreachable
+inaPetrinet.Second, using thistechnique, modelsfornding encodingconicts
+arepresen ted,andthird, experimen talresults areshown.
+Approximation oftheReachability SetofaPNComputing thereachabilit ygraph
+fromagivenPNisaveryhardproblem, because thesizeofthereachabilit ygraph
+maygrowexponentially withrespecttothesizeofthePN,oritevencanbe
+innite. Themain reason isthattheconcurrency inthePNleads toablowup
+inthereachabilit ygraph. Thereader canndin[65]anin-depth discussion on
+ther^oleofconcurrency inrelation tothesizeofthereachabilit ygraph.
+
+--- Page 23 ---
+Hardw areSynthesis withPetriNets 23
+p5t2p4
+t1p1t5 t6p3 p2t3 t4
+(a)1
+0
+0
+0
+0−1
++1
++1−1
+−1
++1
++1+1
+−1+1
+−1−1
+−1−1
+−1+1+1
+0
+000
+0000
+0
+000
+03
+2
+0
+0
+1
+1σ
++0
+0
+0
+2
+0=0 m   =  m    +                   N                         
+(b)
+10000
+01100
+00011
+01001 00101t3 t4
+t3t4 t3t4
+t1
+t2
+t4
+t5 t6t30101000002
+00110
+0020000020
+02000
+(c)
+Fig.16.APetrinet(a),aspurious solution M=(00020)T(b),andthepotential
+reachabilit ygraph(c).
+Therefore, itisinteresting toapproac htheproblem ofreachabilit yusing other
+modelsortechniques. Inthissection wedescrib ehowtouseILPtechniques to
+compute approximations ofreachable markings ofaPN.
+Givenaring sequence M0!MofaPNN,thenumberoftokensforeach
+place pinMisequal tothenumberoftokensofpinM0plusthenumber
+oftokensadded bytheinput transitions ofpappearing inminusthetokens
+removedbytheoutput transitions ofpappearing in,whichcanbeexpressed
+asthefollowingtoken conservation equation:
+M(p)=M0(p)+X
+t2p#(;t)F(t;p)X
+t2p#(;t)F(p;t):
+Denition 1(Incidence matrix ofaPN).Thematrix N2f1;0;1gjPjjTj
+denedbyN(p;t)df=F(p;t)F(t;p)iscalledtheincidence matrix ofN.
+Denition 2(Parikh vector). Letbeafeasible sequenceofN.Thevector
+df=(#(;t1);:::;#(;tn))iscalledtheParikh vectorof.
+Using theprevious denitions, thetokenconserv ation equations forallthe
+places inthenetcanbewritten inthefollowingmatrix form:
+M=M0+N:
+
+--- Page 24 ---
+24 Carmona, Cortadella, Khomenk o,Yakovlev
+Thisequation allowstoapproximate thereachabilit ysetofaPetrinetbymeans
+ofanILP:
+Denition 3(Marking Equation). Ifamarking Misreachable fromM0,
+thenthereexists asequencesuchthatM0!M,andthemarking equation
+M=M0+NX
+hasatleastonesolution X2NjTj.
+Notethatthemarking equation providesonlyanecessary condition forreach-
+ability.Ifthemarking equation isinfeasible, thenMisnotreachable fromM0,
+buttheinversedoesnotholdingeneral: there aremarkings satisfying themark-
+ingequation whicharenotreachable. Those markings aresaidtobespuri-
+ous[59].Fig.16(a,b,c) presen tsanexample ofspurious marking: theParikh
+vector =(320011) andthemarking M=(00020) areasolution ofthemark-
+ingequation showninFig.16(b) forthePetrinetinFig.16(a)1.However,
+Misnotreachable: onlysequences visiting negative markings canleadtoM.
+Fig.16(c) depicts thegraph containing thereachable markings andthespurious
+markings (shado wed).Thisgraph iscalled thepotential reachability graph.The
+initial marking isrepresen tedbythestate(10000).
+ILPmodelstondencodingconicts Letusexplain withtheexample ofthe
+VME BusController howtoderiveanILPformulation thatdetects USC/CSC
+conicts inagivenSTG.
+Theincidence matrix oftheSTGcorresp onding totheVME example isas
+asfollows:
+lds+dsr+ldtack+ldtackd+dtackdtack+ldsdrsd
+p1+10-1 000 0000
+p200+1 0-10 0000
+p300 0 0+1 0 -1 000
+p400 0 000+1 0-10
+p500 0 000 00+1-1
+p600 0 00-1 000+1
+p70-1 0 00+1 0000
+p8-1+1 0 000 0000
+p900 0 000 0-10+1
+p1000 0 -100 0+100
+p11-10 0 +1 00 0000
+Theinitial marking oftheunderlying PetrinetisM0df=(00000010001), andthe
+vectorx=(1110000000) isasolution ofthemarking equation (M1=M0+Nx).
+Itmeans thatthesequence oftransitions corresp onding totheParikh vector x
+isreable atM0,anditleadstoM1,where M1=(01000000000). FromM1,the
+1Bothinthegure andtheexplanation, weabuse thenotation andskipthecommas
+inthedenition ofParikh vectors andmarkings.
+
+--- Page 25 ---
+Hardw areSynthesis withPetriNets 25
+vectorz=(0100111011) isasolution ofthemarking equation, (M2=M1+Nz),
+where M2=(00000001100) 6=M1.Thenon-zero positions ofvectorzcorresp ond
+totransitions d+,dtack+,dsr,d,dtackanddsr+.Looking atvectorz,one
+canrealise thatforeachsignal appearing init,thesame numberofrising and
+falling transitions ofthesignal appear(forinstance, d+anddoccuronce).
+Thistypeofsequences arecalled complementary sequences.Theimportance
+ofnding complemen tarysequences isduetothefactthattheyconnect two
+markings (M1andM2intheexample) thathavethesameencoding,sincethat
+eachsignal appearing inthesequence endsupwiththesamevaluethatithad
+atthebeginning .Thereader canassign anymeaningful valuetoeachsignal in
+marking M1andcheckthatM2willhavethesame encoding.
+So,according tothemarking equation, there aretwodieren tmarkings, M1
+andM2,suchthatM2isreachable fromM1byring acomplemen tarysequence,
+i.e.,bothmarkings havethesame encoding. Wefound anUSCconict. The
+corresp onding ILPmodelis:
+ILPmodelforUSCchecking:
+Reachabilit yconditions:
+M1=M0+Nx
+M2=M1+Nz
+M1;M2;x;z0;x;z2ZjTj
+ziscomplementary seq.
+M16=M2(1)
+Note, thatasitwassaidintheprevious section, themarking equation pro-
+vides onlysucien tconditions foramarking tobereachable. Therefore the
+markings M1andM2,thataresolution formodel(1),canindeed bespurious,
+andthecorresp onding modelwillincorrectly usethem asexample ofencoding
+conicts. Thisiswhyintheintroduction wesaidthatourILPmodelsarenon-
+perfect oracles: onlywhen themodelndsnosolution (aconict betweentwo
+markings) onecanbesurethattheSTGisfreeofconicts. Onthecontrary,
+when theyndaconict, onlyforveryrestricted classes ofnets(mark edgraphs
+orlive,safeandcyclic free-choice nets[21])onecanbesurethattheconict is
+arealone.
+NowletusshowhowtondCSCconicts using ILPtechniques. Informally ,
+foragivensignal aoftheSTG,aCSCconict exists foraifthefollowing
+conditions hold: leta
+ibeatransition ofsignal a.Then, aCSCconict exists
+if:(i)M2isreachable fromM1,(ii)M1andM2havethesame code,(iii)a
+iis
+enabled inM1and(iv)foreverytransition a
+jofsignal a,a
+jisnotenabled in
+M2.Forsafesystems, theenabledness ofatransition xatamarking Mcanbe
+characterised bythesumoftokensoftheplaces inxatM:xisenabled atM
+ifandonlyifthesumoftokensoftheplaces inxisequal tothenumberof
+places inx:
+
+--- Page 26 ---
+26 Carmona, Cortadella, Khomenk o,Yakovlev
+ILPmodelforCSCchecking:
+(i)Reachabilit yconditions (same asin(1))
+(ii)ziscomplementary seq.
+(iii)P
+p2a
+iM1(p)=ja
+ij
+(iv)8a
+j:P
+p2a
+jM2(p)<ja
+jj(2)
+Note thattheconstrain tM16=M2isnotneeded in(2).Ifwecontinue
+withtheexample oftheVME BusController, itcanbeshownthattheUSC
+conict describ edintheprevious section isalsoaCSCconict forsignal d.
+Giventhatithasbeenshownbeforethattheassignmen tsx=(1110000000) and
+z=(0100111011) satisfy thersttwoconstrain ts,nowweshowthatconstrain ts
+(iii)and(iv)arealsosatised byxandz.Theformer constrain tissatised
+because X
+p2d+M1(p)=M1(p2)=1=jfp2gj=jd+j;
+andconstrain t(iv)isalsosatised since
+X
+p2d+M2(p)=M2(p2)=0<1=jfp2gj=jd+j:
+Notethatconstrain t(iv)isnotveried fortransition d,because theconsistency
+oftheSTGisassumed. Thus,aCSCconict hasbeendetected intheVME Bus
+Controller example.
+Experimen talresults onusing ILPtoverify theencoding TheILP
+metho dspresen tedhavebeenimplemen tedinMoebius ,atoolforthesyn-
+thesis ofspeed-indep enden tcircuits. Theexperimen tshavebeenperformed on
+aPentiumTM4/2.53 GHzand512M RAM.
+Theexperimen tsforCSC/USCdetection arepresen tedinTables 1and2.
+Eachtable reportstheCPU timeofeachapproac hinseconds. Weuse`time'
+and`mem' toindicate thatthealgorithm hadnotcompleted within 10hours or
+produced amemory overow,respectively.Thefollowingtoolswerecompared:
+{CLP: theapproac hpresen tedin[38]fortheverication ofUSC/CSC.Ituses
+non-linear integer programming metho dsandworksonSTGunfolding.
+{SAT:theapproac hpresen tedin[39]fortheverication ofCSC2.Itusesa
+satisabilit ysolverandworksonSTGunfolding.
+{ILP:theapproac hpresen tedinthissection.
+Fromtheresults onecanconclude, asitwasexpected, thatcheckingUSC
+iseasier thancheckingCSC,giventhedieren tnature ofthetwoproblems: for
+verifying USConlyoneILPmodelisneeded tobesolved,whereas forverifying
+CSCnmodelsareneeded, where nisthenumberofnon-input signals inthe
+2CheckingforUSCisnotimplemen tedinourversion ofSAT
+
+--- Page 27 ---
+Hardw areSynthesis withPetriNets 27
+Benchmark jPjjTjjZjCLPSATILP
+PpWk (2,9) 713819<1<1<1
+PpWk (2,12) 955025<1<1<1
+PpWkCsc (2,9) 723819 3<1<1
+PpWkCsc (2,12) 965025246 1<1
+PpWk (3,6) 703819<1<1<1
+PpWk (3,9) 106 562811<1<1
+PpWk (3,12) 142 7437933 <1<1
+PpWkCsc (3,6) 723819 3<1<1
+PpWkCsc (3,9) 108 56282075 <1<1
+PpWkCsc (3,12) 144 7437time 1<1
+PpArb (2,9) 864823<1<1<1
+PpArb (2,12) 110 6029<1<1<1
+PpArbCsc (2,9) 88482341<1<1
+PpArbCsc (2,12) 112 60291022 16 <1
+PpArb (3,6) 925425<1<1<1
+PpArb (3,9) 128 7234<1<1<1
+PpArb (3,12) 164 9043<1<1<1
+PpArbCsc (3,6) 95542561<1<1
+PpArbCsc (3,9) 131 7234time 2<1
+PpArbCsc (3,12) 167 9043time 16 1
+TangramCsc (3,2) 142 9238<1<1 1
+TangramCsc (4,3) 321202 83<1<1 9
+Art(10,9) 216198 99<1<1<1
+Art(20,9) 436398199 510 <1
+Art(30,9) 656598299 3882 <1
+Art(40,9) 876798399138265 <1
+Art(50,9) 1096 998499377630 1
+ArtCsc(10,9) 752630315time 861 182
+ArtCsc(20,9) 15321270 635timemem 1623
+ArtCsc(30,9) 23121910 955timemem 5413
+ArtCsc(40,9) 309225501275timemem12602
+ArtCsc(50,9) 387231901595timemem25210
+Table1.CSCdetection forwell-structured STGs.
+STG.Moreo ver,when someencodingconict exists, theILPsolvercannditin
+short time. Thisisexplained bythefactthatprovingtheabsence ofencoding
+conicts requires anexhaustiv eexploration ofthebranch-and-b ound treevisited
+byILPsolvers.
+Thespeed-up shownbyILPwithrespecttotheunfolding approac hofSAT
+orCLParebecause inILPapproximations ofthestatespace areused, whereas
+SATorCLP(aswillbeexplained inthenextsection) areexact. However,our
+conserv ativeapproac hhasproventobehighly accurate intheexperimen tal
+results.
+4.4Computing thenecessary supportforagivensignal
+Inthissection wearegoing toadapt model(2)toderiveadecomp osition metho d
+forthesynthesis ofagivensignal. Themain ideaistotrytocompute those
+signals intheSTGthatareneeded toensure thatagivensignal willbefreeof
+encodingconicts, ifweabstract awayoftherestoftheSTG.Wewillcallsuch
+asetofsignals asupport.
+Letususeasexample theSTG showninFig.12(a), where anewsignal
+(csc)hasbeeninserted intheoriginal STGoftheVME BusController tosolve
+theencodingconict. Apossible supportforsignal disfldtack ;cscg.Fig.17(a)
+showstheprojection induced bythissupport,andthenalimplemen tation of
+
+--- Page 28 ---
+28 Carmona, Cortadella, Khomenk o,Yakovlev
+Benchmark jPjjTjjZjCLPILP
+PpWk (3,9) 106 562810<1
+PpWk (3,12) 142 7437876 <1
+PpWkCsc (3,9) 108 56282002 <1
+PpWkCsc (3,12) 144 7437time 1
+PpArb (3,9) 128 7234<1<1
+PpArb (3,12) 164 9043<1<1
+PpArbCsc (3,9) 131 7234time 1
+PpArbCsc (3,12) 167 9043time 1
+Tangram (3,2) 142 9238<11
+Tangram (4,3) 321202 83<16
+Art(40,9) 876798399146 1
+Art(50,9) 1096 998499328 2
+ArtCsc(40,9) 309225501275time 851
+ArtCsc(50,9) 387231901575time1387
+Table2.USCdetection forwell-structured STGs.
+disshowninFig.17(b). Therestofthissection isdevotedtoexplaining how
+tocompute ecien tlyasupportforagivenoutput signal a.
+ldtack−csc+
+d−csc−d+ldtack+
+(a)ldtack
+cscd
+(b)
+Fig.17.Projection oftheSTG inFig.12forsignal d(a)andacircuit implemen-
+tingd(b).
+Thecomputation ofasupportcanbeperformed iterativ ely:starting froman
+initial assignmen t,ILPtechniques canbeusedtoguide thesearch.Supposewe
+haveaninitial candidate setofsignals Z0Z,candidate tobeasupportofa
+givensignal a.Awayofdetermining whether Z0isasupportforsignal aisby
+solving thefollowingILPproblem:
+ILPmodelforcheckingsupport:
+(i),(iii)and(iv)from(2)
+ziscomplementary seq.forsignals inZ0(3)
+If(3)isinfeasible, thenZ0isenough forimplemen tinga.Otherwise theset
+Z0mustbeaugmen ted(from signals inZnZ0)withmore signals until(3)is
+infeasible. Moreo verif(3)isfeasible, adding acomplemen tedsignal bfromZnZ0
+willnotturntheproblem infeasible because zisstillacomplemen tarysequence
+forsignals inZ0[fbg.Onthecontrary,adding auncomplemen tedsignal will
+assign adieren tcodetomarkings M1andM2of(3).Therefore, theuncomple-
+mentedsignals inzwillbethecandidates tobeadded toZ0.Thealgorithm for
+
+--- Page 29 ---
+Hardw areSynthesis withPetriNets 29
+lds+
+ldtack+
+sp2+
+sp3+
+sp2-
+d+
+sp4+
+sp3-
+dtack+
+dsr-
+sp5+
+sp4-
+sp9+ sp6+
+sp5-
+d-sp11- sp8-
+sp10+sp9-lds-ldtack-sp11+sp10-
+sp7+sp6-dtack-dsr+sp8+sp7-sp1+
+sp1-
+d+
+sp4+
+sp3-
+dtack+
+dsr-
+sp5+
+sp4-
+sp9+ sp6+
+sp5-
+d-sp10+sp9-lds-ldtack-
+sp7+sp6-dtack-dsr+sp8+sp7-
+sp10- sp3+ldtack+lds+sp8-
+sp3+
+sp2-
+d+
+sp4+
+sp3-
+dtack+
+dsr-
+sp5+
+sp4-
+sp9+ sp6+
+sp5-
+d-sp10+sp9-lds-ldtack-sp11+sp10-
+sp7+sp6-dtack-dsr+sp8+(3) infeasible
+sp7-lds+
+ldtack+
+sp2+sp11- sp8-
+sp3+
+sp2-
+d+
+sp4+
+sp3-
+dtack+
+dsr-
+sp5+
+sp4-
+sp9+ sp6+
+sp5-
+d-sp10+sp9-lds-ldtack-
+sp7+sp6-dtack-dsr+sp8+sp7-lds+
+ldtack+
+sp2+sp8-
+sp10-
+d+
+sp4+ldtack+lds+
+dtack+
+dsr-
+sp5+
+sp4-
+sp9+ sp6+
+sp5-
+d-sp10+sp9-lds-ldtack-
+sp7+sp6-dtack-dsr+sp8+sp7-
+sp10-sp8-
+dtack+
+dsr-
+sp5+ldtack+lds+
+d+
+sp9+ sp6+
+sp5-
+d-sp10+sp9-lds-ldtack-
+sp7+sp6-dtack-dsr+sp8+ sp10-
+sp8-sp7-Remove sp1, model 
+(3) infeasible Remove sp11, model 
+(3) infeasible
+Remove sp2, model 
+(3) infeasible
+Remove sp3, model 
+(3) infeasible
+Remove sp4, model 
+Fig.18.Greedy removalofsignals sp1,sp11,sp2,sp3andsp4.
+nding asupportsetforanon-input signal aisthefollowing:
+Algorithm forthecalculation ofsupport:
+Support(STGS,Signal a)returns supportofa
+Z0:=Trig(a)[fag
+while (3)isinfeasible do
+Letbbeanuncomplemen tedsignal inz
+Z0:=Z0[fbg
+endwhile
+return Z0
+where Trig(a)isthesetofsignals thatdirectly cause theswitchingofsignal a.
+Inthenextsection wearegoing topresen tanexample ofusing thisalgorithm
+forthesynthesis oftheVME BusController STGspecication.
+4.5Synthesis oftheVME BusController using structural metho ds
+Letusshowhowtousethestructural metho dstosynthesise theVME example.
+Inaddition tothemetho dspresen tedinthissection, weusePetrinettransfor-
+mations forstepwisetransformation andprojection. Foraformal presen tation
+ofthekitoftransformations usedintheexample, see[9].
+First, asshowninSection 4.3,wecanusetheILPmodel(1)torealise thatthe
+original STGoftheVME Buscontroller hasencodingconicts. Consequen tly
+weapply theencodingtechnique presen tedinSection 4.2toenforce CSC.
+Afterw ards,inorder toderiveaecien timplemen tation, wecantrytoelimi-
+nateasmanysignals inserted bytheencodingtechnique aspossible, while keep-
+
+--- Page 30 ---
+30 Carmona, Cortadella, Khomenk o,Yakovlev
+dtack+d+
+d-dtack-
+{ldtack, sp9, sp10, d}CSC-support for d:
+{sp10, sp9, dsr, lds}CSC-support for lds:
+d+
+d-dsr-sp10+sp9-
+sp9+sp10-
+dsr+{dsr, d, sp10, sp9}CSC-support for sp9:
+ldtack+
+d+sp10-
+sp10+sp9-ldtack-
+d-sp9+lds+sp10-
+sp10+sp9-lds- dsr+
+dsr-
+sp9+ldtack+
+d+
+d-ldtack+lds+
+d+
+dtack+
+dsr-sp10+sp9-lds-ldtack-
+sp9+dtack-dsr+sp10-CSC-support for dtack:
+{d, dtack}
+{ldtack, d, sp9, sp10}CSC-support for sp10:sp10+
+sp9+
+d-sp9-ldtack-sp10-
+Fig.19.Supportcomputation andprojection fortheVME BusController example.
+ingacorrect encoding. Theideaistoeliminate asignal andonlyaccept the
+removalifthetransformed STGstillhasacorrect encoding.Fig.18showshow
+theremovaloftherstvesignals isdone, using theUSCILPmodel(1)asan
+oracle.
+Theprocesscanbeiterated untilnomoresignals canberemoved.Thenal
+STGisshowninthecentreofFig.19.FromthatSTG,thealgorithm forsupport
+computation isrunforeveryoutput signal, andthecorresp onding projection is
+found. ThisisshownalsoinFig.19.
+Andnally ,fromeachprojection thecorresp onding circuit isobtained. Given
+thattheprojections areusually small (thesupportforagivensignal isoftenvery
+small inpractice, andthecorresp onding projections areusually quite small),
+state-based algorithms forsynthesis introduced inSection 3canbeapplied. The
+nalsynthesis ofeachprojection isshowninFig.20.
+Table3showstheresults ofexperimen tsonsynthesis tocheckthequalit y
+ofthegenerated circuits. Thecolumn 'Lit'reportsthenumberofliterals, in
+factored form, ofthenetlist. Theresults arecompared withthecircuits ob-
+tained byPetrify [18],astate-based synthesis tool,onthesame controllers.
+Fromthereported CPU time, thetimeneeded forcomputing asupportand
+thecorresp onding projection wasnegligible compared withthetimeneeded for
+deriving logicequations. Table3showsthatthequalit yofthecircuits obtained
+
+--- Page 31 ---
+Hardw areSynthesis withPetriNets 31
+sp10+sp9-lds- dsr+
+dsr-
+sp9+dtack+d+
+d-dtack-
+IMPLEMENTATIONsp10+
+d-sp9-ldtack-
+ldtack+
+d+
+sp9+sp10-
+d
+lds
+sp9sp10
+IMPLEMENTATIONdsrIMPLEMENTATION
+lds+sp10-dtackd
+sp10sp9ldtack
+Fig.20.Speed-indep enden tsynthesis oftheVME BusController.
+bytheILP-based technique iscomparable tothatofthecircuits obtained by
+Petrify .Moreo veritisclearthatthestructural approac hcandealwithlarger
+specications.
+4.6Conclusions
+Severalexamples ofusing structural metho dsarepresen tedinthissection. We
+havegivenintuition onhowthese metho dsareusedfortheproblem ofsynthesis
+ofcontrolcircuits fromSTG specications. Although insome cases theycan
+provideonlysucien tconditions, ingeneral those metho dsarehighly accurate
+andprovideasignican tspeed-up withrespecttoother approac hes,ashasbeen
+demonstrated bytheexperimen talresults shownfortheproblem ofverifying the
+encoding.
+Inconclusion, structural metho dsarenecessary forbeingabletohandle
+largeandconcurren tspecications. Weadvocatefortheiruse,either isolated or
+incombination withapproac hesliketheonepresen tedinthenextsection.
+5Synthesis Using PetrinetUnfoldings
+While thestate-based approac hisrelativ elysimple andwell-studied, theissueof
+computational complexit yforhighly concurren tSTGsisquiteserious duetothe
+statespace explosion problem. Thisputspractical bounds onthesizeofcontrol
+circuits thatcanbesynthesised using suchtechniques, whichareoftenrestrictiv e,
+
+--- Page 32 ---
+32 Carmona, Cortadella, Khomenk o,Yakovlev
+benchmark states jPjjTjjZjLit. CPU
+PfyILP PfyILP
+PPWKCSC(2,6) 8192 4726195757 51
+PPWKCSC(2,9) 524.288 7138198787 49 2
+PPWKCSC(3,9) 2:71071065628mem 130mem 3
+PPWKCSC(3,12) 2:210111427437time117time 3
+PPARBCSC(2,6) 61440 6236177777 2183
+PPARBCSC(2,9) 3:91061106029107107 185 59
+PPARBCSC(3,9) 3:3109131723416316510336 289
+PPARBCSC(3,12) 1:710121679043time210time 608
+TANGRAM CSC(3,2) 426 142923897103 56146
+TANGRAM CSC(4,3) 9258 32120283mem 247mem7206
+Table3.Supportcomputation, projection andsynthesis compared tostate-based ap-
+proach.
+especially iftheSTGmodelsarenotconstructed manually byadesigner but
+rather generated automatically fromhigh-lev elhardw aredescriptions.
+Inorder toalleviate thisproblem, Petrinetanalysis techniques based on
+causal partial order seman tics,intheformofPetrinetunfoldings, areapplied to
+circuit synthesis. Inparticular, thefollowingtasks areaddressed: (i)detection
+ofencodingconicts; (ii)resolution ofencodingconicts; and(iii)derivation
+ofBoolean equations foroutput signals. Weshowthatthenotion ofanencod-
+ingconict canbecharacterised interms ofsatisabilit yofaBoolean formula
+(SAT),andtheresulting algorithms solving tasks (i)and(iii)achievesignican t
+speedups compared withmetho dsbased onstategraphs. Moreo ver,weproposea
+framew orkforresolution ofencodingconicts (task (ii))based onconict cores.
+5.1STGunfoldings
+Anite andcomplete unfolding prexofanSTG isanite acyclic net
+whichimplicitly represen tsallthereachable states oftogether withtransitions
+enabled atthose states. Intuitively,itcanbeobtained through unfolding ,by
+successiv erings oftransition, under thefollowing assumptions: (a)foreach
+newring afreshtransition (called anevent)isgenerated; (b)foreachnewly
+produced tokenafreshplace (called acondition )isgenerated. Theunfolding is
+innite whenev erhasaninnite run;however,ifhasnitely manyreachable
+states thentheunfolding eventually starts torepeatitselfandcanbetruncated
+(byidentifying asetofcut-o events)without lossofinformation, yielding
+anite andcomplete prex. Wedenote byB,EandEcutEthesetsof
+conditions, eventsandcut-o eventsoftheprex, respectively.Fig.21(b) shows
+anite andcomplete unfolding prex (with theonlycut-o eventisdepicted as
+adouble box)oftheSTGshowninFig.21(a).
+Ecien talgorithms existforbuilding suchprexes [25,31,36,37],whichen-
+surethatthenumberofnon-cut-o eventsinacomplete prex canneverexceed
+
+--- Page 33 ---
+Hardw areSynthesis withPetriNets 33
+thenumberofreachable states of.However,complete prexes areoften ex-
+ponentially smaller thanthecorresp onding state graphs, especially forhighly
+concurren tPetrinets,because theyrepresen tconcurrency directly rather than
+bymultidimensional `diamonds' asitisdoneinstategraphs. Forexample, ifthe
+original Petrinetconsists of100transitions whichcanreonceinparallel, the
+state graph willbea100-dimensional hypercubewith2100nodes,whereas the
+complete prex willcoincide withthenetitself.
+Duetoitsstructural properties (suchasacyclicit y),thereachable markings of
+canberepresen tedusingcongur ations of.Aconguration Cisadownward-
+closed setofevents(beingdownward-closed means thatife2Candfisacausal
+predecessor ofe,thenf2C)without structural conicts (i.e.,foralldistinct
+eventse;f2C,e\f=;).Intuitively,aconguration isapartial-order
+execution, i.e.,anexecution where theorder ofring ofconcurren teventsisnot
+important.
+After starting fromtheimplicit initial marking (whereb yoneputsasingle
+tokenineachcondition whichdoesnothaveanincoming arc)andexecuting
+alltheeventsinC,onereachesthemarking denoted byCut(C).Wedenote by
+Mark(C)thecorresp onding marking of,reachedbyring atransition sequence
+corresp onding totheeventsinC.Itisremark ablethateachreachable marking
+ofisMark(C)forsome conguration C,and,conversely,eachconguration
+Cgenerates areachable marking Mark(C).Thispropertyisaprimary reason
+whyvarious behavioural properties ofcanbere-stated asthecorresp onding
+properties of,andthenchecked,often muchmore ecien tly(inparticular,
+onecaneasily checktheconsistency anddeadlo ck-freeness of[57,35]).The
+experimen talresults inTable4demonstrate thathighlevelsofcompression are
+indeed achievedinpractice.
+Fortheunfolding ofaconsisten tSTG wedene byCodez(C)thevalue
+(0or1)corresp onding tosignal zintheencodingofthestateMark(C);we
+alsodene Outz(C)tobe1ifz2Out(M)and0otherwise, andNxtz(C)df=
+Codez(C)Outz(C),where `'isthe`exclusiv eor'operation.
+5.2Visualisation andresolution ofstateencodingconicts
+Anumberofmetho dsforresolution ofCSCconicts havebeenproposedsofar
+(see,e.g.,[16]forabriefreview). Thetechniques in[67,75]introduceconstrain ts
+within anSTG,called lockrelation andcouplednessrelation ,whichprovidesome
+guidance. These techniques recognise thatifallpairsofsignals intheSTGare
+`locked'using achainofhandshaking pairs thentheSTG satises theCSC
+property.Thesynthesis toolPetrify usesthetheory ofregions [16]forthis
+purpose.
+Theabovetechniques workreasonably well.However,theymayproduce
+sub-optimal circuits orfailtosolvetheproblem incertain cases, e.g.,when
+acontroller specication isdened inacompact wayusing asmall number
+ofsignals. Suchspecications often haveCSCconicts thatareclassied as
+irreducible byPetrify .Therefore, manualdesign mayberequired fornding
+
+--- Page 34 ---
+34 Carmona, Cortadella, Khomenk o,Yakovlev
+dtack−
+dsr+
+lds−d− ldtack−
+csc− csc+ldtack+lds+ dtack+ dsr− d+
+(a)1e2e4e5e6e7e3e8e10e
+9e11ee12
+lds+ d+ dtack+ dsr− d− dsr+ ldtack+core
+lds−dtack− dsr+
+lds+
+csc−ldtack−
+csc+C'C''
+(b)
+inputs: dsr;ldtack ;outputs: lds;d;dtack;internal: csc
+Fig.21.VME buscontroller: STGforthereadcycle, withthedotted linesappearing
+inthenalSTGsatisfying theCSCproperty(a)andunfolding prex withaconict
+pairofcongurations andanewsignal cscresolving theCSCconict (b).Theorder
+ofsignals inthebinary encodings is:dsr;dtack;lds;ldtack ;d.
+goodsynthesis solutions, particularly inconstructing interface controllers, where
+thequalit yofthesolution iscritical forthesystem's performance.
+According toapractising designer [54],thesynthesis toolshould oeraway
+fortheusertounderstand thecharacteristic patterns ofacircuit's behaviour and
+thecause ofeachencodingconict andallowonetointeractiv elymanipulate
+themodelbychoosing where inthespecication toinsert newsignals. The
+visualisation metho dpresen tedhereisaimed atfacilitating amanualrenemen t
+ofanSTGwithCSCconicts, andworksonthelevelofunfolding prexes. In
+order toavoidtheexplicit enumeration ofencodingconicts, theyarevisualised
+ascores,i.e.,setsoftransitions `causing' oneormore ofthem. Allsuchcores
+musteventually beeliminated byadding newsignals thatresolv etheencoding
+conicts toyieldanSTGsatisfying theCSCproperty.Optionally ,ourmetho d
+canalsoworkinacompletely automatic orsemi-automatic manner, making it
+possible forthedesigner toseewhat isgoing onandinterveneatanystage
+during theprocessofCSCconict resolution.
+5.3Encodingconicts inaprex
+ACSCconict canberepresen tedasanunordered conict pairofcongura-
+tionshC0;C00iwhose nalstates areinCSCconict, asshownifFig.21(b).
+InSection 5.6aSAT-based technique fordetecting CSCconicts isdescrib ed.
+Essentially,itallowsforecien tlynding suchconict pairsinSTGunfolding
+prexes.
+Note thatthesetofallconict pairs maybequite large, e.g.,duetothe
+following`propagation' eect: ifC0andC00canbeexpanded bythesameevente
+thenhC0[feg;C00[fegiisalsoaconict pair(unless these twocongurations
+enable thesame setofoutput signals). Therefore, itisdesirable toreduce the
+numberofpairsneeded tobeconsidered, e.g.,asfollows.Aconict pairhC0;C00i
+iscalled concurr entifC0*C00,C00*C0andC0[C0isaconguration.
+Proposition 1([45]). LethC0;C00ibeaconcurr entCSCconict pair.Then
+Cdf=C0\C00issuchthateither hC;C0iorhC;C00iisaCSCconict pair.
+
+--- Page 35 ---
+Hardw areSynthesis withPetriNets 35
+Thusconcurren tconict pairs are`redundan t'andshould notbeconsidered.
+Theremaining conict pairscanbeclassied asfollows:
+Conicts oftypeIaresuchthatC1C2(Fig.21(b) illustrates thistypeof
+CSCconicts).
+Conicts oftypeIIaresuchthatC1nC26=;6=C2nC1andthere exist
+e02C1nC2ande002C2nC1suchthate0#e00.
+Thefollowingnotion iscrucial fortheproposedapproac h:
+Denition 4.LethC0;C00ibeaconict pair.Thecorresponding complemen-
+tarysetisdenedasCSdf=C04C00,where4denotes thesymmetric setdier-
+ence.CSisacoreifitcannot berepresentedastheunion ofseveraldisjoint
+complementary sets.Acomplementary setisoftypeI/IIifthecorresponding
+conict pairisoftypeI/II,respectively. 
+Forexample, thecorecorresp onding totheconict pairshowninFig.21(b)
+isfe4;:::;e8;e10g(note thatforaconict pairhC0;C00ioftypeI,suchthat
+C0C00,thecorresp onding coreissimply C00nC0).
+Onecanshowthateverycomplemen tarysetCScanbepartitioned into
+C1nC2andC2nC1,where hC0;C00iisaconict paircorresp onding toCS.
+Moreo ver,ifCSisoftypeIthenoneofthese parts isempty,while theother is
+CSitself. Animportantpropertyofcomplemen tarysetsisthatforeachsignal
+z2Z,thedierence betweenthenumbersofz+{andz{labelledeventsin
+CSisthesame inthese twoparts (andis0ifCSisoftypeI).Thissuggests
+thatacomplemen tarysetcanbeeliminated byintroduction ofanewinternal
+signal andinsertion ofitstransition intothisset,asthiswouldviolate thestated
+property.
+Itisoftenthecasethatthesamecomplemen tarysetcorresp ondstodieren t
+conict pairs, sothedesigner cansavetimebyanalysing thecores rather than
+thefulllistofCSCconicts, whichcanbemuchlonger.
+5.4Framew orkforvisualisation andresolution ofencodingconicts
+Thevisualisation isbased onshowingthedesigner thecores intheSTG'sun-
+folding prex. Since everyelemen tofacoreisaninstance oftheSTG'stransi-
+tion,thecores caneasily bemappedfromtheprex totheSTG.Forexample,
+thecorefe4;:::;e8;e10ginFig.21(b) canbemappedtothesetoftransitions
+fd+;dtack+;dsr;d;dtack;dsr+goftheoriginal STGshowninFig.21(a).
+Cores areimportantforresolution ofencodingconicts. Byintroducing an
+additional internal signal andinsertion ofitstransition, saycsc+,onecande-
+stroyacoreeliminating thusthecorresp onding encodingconicts. Topreserv e
+theconsistency oftheSTG,thesignal transition's counterpart, csc,mustalso
+beadded tothespecication outside thecore,insuchawaythatitisneither
+concurren ttonorinstructural conict withcsc+.Itissometimes possible to
+insert cscintoanother corethuseliminating italso,asshowninFig.22(b).
+Another restriction isthataninserted signal transitions cannot trigger aninput
+
+--- Page 36 ---
+36 Carmona, Cortadella, Khomenk o,Yakovlev
+signal transition (thereason isthatthiswouldimposeconstrain tsontheenvi-
+ronmen twhichwerenotpresen tintheoriginal STG,making it`wait'forthe
+newly inserted signal). More abouttheformal requiremen tsforthecorrectness
+ofinserting anewtransition canbefound in[18].
+ThecoreinFig.21(b) canbeeliminated byinserting anewsignal, csc+,
+somewhere inthecore,e.g.,concurren tlytoe5ande6betweene4ande7,and
+byinserting itscomplemen toutside thecore,e.g.,concurren tlytoe11between
+e9ande12.(Note thatconcurren tinsertion ofthese twotransitions avoidsan
+increase inthelatency ofthecircuit, where eachtransition isassumed tocon-
+tribute aunitdelay.)ThenalSTGsatisfying theCSCpropertyisshownin
+Fig.21(a) withdotted linestakenintoaccoun t.
+Itisoften thecasethatcores overlap. Inorder tominimise thenumberof
+inserted signals, andthustheareaandlatency ofthecircuit, itisadvantageous
+toinsert asignal insuchawaythatasmanycores aspossible areeliminated
+byit.That is,asignal should beinserted intotheinterse ctionofseveralcores
+whenev erpossible.
+Toassist thedesigner inexploiting coreoverlaps, another keyfeature ofour
+metho d,viz.theheight mapshowingthequantitativ edistribution ofthecores,
+isemplo yedinthevisualisation process.Theeventslocated inconict coresare
+highligh tedbyshades ofcolours. Theshade dependsonthealtitude ofanevent,
+i.e.,onthenumberofcoresitbelongs to.(Theanalogy withatopographical map
+showingthealtitudes maybehelpful here.) Thegreater thealtitude, thedarker
+theshade. `Peaks'withthehighest altitude aregoodcandidates forinsertion of
+anewsignal, sincetheycorresp ondtotheintersection ofmaxim umnumberof
+cores.
+Using thisrepresen tation, thedesigner canselect anareaforinsertion ofa
+newsignal andobtain alocal,moredetailed description ofthecoresoverlapping
+withtheselection. When anappropriate corecluster ischosen, thedesigner can
+decide howtoinsert anewsignal transition optimally ,taking intoaccoun tthe
+design constrain tsandhis/her knowledge ofthesystem beingdeveloped.
+Theoverview oftheprocessofresolution ofCSCconicts isshowninFig.22(a).
+GivenanSTG,anite andcomplete prex ofitsunfolding isconstructed, and
+thecores arecomputed. Ifthere arenone, theprocessstops. Otherwise, the
+heightmapisshowntothedesigner, whochoosesasetofoverlapping cores. In
+phases oneandtwo,anadditional signal transition splitting thecoreisinserted
+together withitscounterpart. Theinserted transitions arethentransferred to
+theSTG,andtheprocessisrepeated. Depending onthenumberofconict cores,
+theresolution processmayinvolveseveralcycles.
+After completion ofphase one,theheightmapisupdated. Thealtitudes of
+theeventsinthecorecluster where thenewsignal transition hasbeeninserted
+aremade negativ e,toprompt thedesigner thatifthecounterpart transition is
+inserted there, someofthecoresinthecluster willreappear.Moreo ver,inorder
+toensure thattheinsertion ofthecounterpart transition preserv esconsistency ,
+theareas where itcannot beinserted (inparticular, theeventsconcurren ttoor
+instructural conict withthistransition) arefaded out.
+
+--- Page 37 ---
+Hardw areSynthesis withPetriNets 37
+height mapshow the
+select a peakcompute coresunfold and
+stoptransfer
+signals to
+the STG
+show the
+height map
+updateselect a peak
+insert new
+transitionCSC?
+noSTG
+yes
+phase 1phase 2
+show cores
+comprising
+the peakshow cores
+the peakcomprisinginsert the
+transition's
+complement
+(a)csc−
+csc+
+csc−
+(b)fork
+joincsc−
+csc−
+csc−
+csc−csc− csc+
+(c)choice
+merge mergecsc−
+csc−
+csc−csc+csc−
+csc−
+(d)
+Fig.22.Theprocessofresolution ofencodingconicts (a)andstrategies forelimi-
+nating conict cores(b{d) .Severalpossibilities areshownforinsertion ofcsc,but
+onlyoneofthem should beused. (Thepositions where cscisnotallowedareshown
+astransitions thatarecrossed out.)
+Typical casesinSTGspecications areschematically illustrated inFig.22(b{
+d).Cores `insequence', canbeeliminated ina`one-hot' manner asdepicted in
+Fig.22(b). Eachcoreiseliminated byonesignal transition, anditscomplemen t
+isinserted outside thecore,preferably ,intoanother non-adjacen tone.3
+AnSTGthathasacoreinoneoftheconcurren tbranchescanalsobetackled
+ina`one-hot' way,asshowninFig.22(c). Notethatinorder topreserv ethe
+consistency thetransition's counterpart cannot beinserted intotheconcurren t
+branch,butcanbeinserted beforetheforktransition orafterthejoinone.In
+abranchwhichisinastructural conict withanother branch,thetransition's
+counterparts mustbeinserted inthesamebranchsomewhere betweenthechoice
+andthemerge points,asshowninFig.22(d).
+Obviously ,thedescrib edcases donotcoverallpossible situations andall
+possible insertions (e.g.,onecansometimes insert anewsignal transition before
+thechoice pointanditscounterparts intoeachbranch,etc.), butwehopethey
+dogiveanideahowthecores canbeeliminated. [45]presen tsthismetho dof
+resolution ofCSCconicts using STGunfoldings inmore detail.
+5.5Boolean satisabilit y
+Boolean satisabilit yproblem (SAT)hasgreat theoretical interest asthecanon-
+icalNP-complete problem. Though itisveryunlikelythatitcanbesolvedin
+polynomial time, there arealgorithms whichcansolvemanyinteresting SATin-
+stances quiteecien tly.SATsolvershavebeensuccessfully applied tomanyprac-
+ticalproblems suchasAIplanning, ATPG, modelchecking,etc.Theresearc hin
+3Theunion oftwoadjacen tcores isusually acomplemen tarysetwhichwillnotbe
+destro yedifboththetransition anditscounterpart areinserted intoit.
+
+--- Page 38 ---
+38 Carmona, Cortadella, Khomenk o,Yakovlev
+SAThasledtoalgorithms whichroutinely solveSATinstances generated from
+industrial applications withtensofthousands orevenmillions variables [78].
+Thusitisoften advantageous tore-state theproblem athand interms of
+SAT,andthenapply anexisting SATsolver.Inthispaper,theSATapproac hwill
+beusedfordetection ofCSCconicts inSection 5.6andderivation ofequations
+forlogicgates ofthecircuit inSection 5.7.
+TheBooleansatisability problem (SAT)consists innding asatisfying as-
+signment ,i.e.,amapping A:Var'!f0;1gdened onthesetofvariables
+Var'occurring inagivenBoolean expression 'suchthat'evaluates to1.This
+expression isoften assumed tobegivenintheconjunctive normal form(CNF)Vn
+i=1W
+l2Lil,i.e.,itisrepresen tedasaconjunction ofclauses ,whicharedis-
+junctions ofliterals,eachliteral lbeingeither avariable orthenegation ofa
+variable. Itisassumed thatnotwoliterals inthesameclause corresp ondtothe
+same variable.
+Some oftheleading SATsolvers,e.g.,zChaff [48],canbeusedintheincre-
+mental mode,i.e.,aftersolving aparticular SATinstance theusercanmodify
+it(e.g., byadding and/or removingasmall numberofclauses) andexecute
+thesolveragain. Thisisoften muchmore ecien tthansolving these related
+instances asindependen tproblems, because onthesubsequen trunsthesolver
+canusesome oftheuseful information (e.g., learntclauses, see[78])collected
+sofar.Inparticular, suchanapproac hcanbeusedtocompute projections of
+assignmen tssatisfying agivenformula,asdescrib edinsequel.
+LetVVar'beanon-empt ysetofvariables occurring inaformula',and
+Proj'
+Vbethesetofallrestricted assignmen ts(orprojections) AjVsuchthatAis
+asatisfying assignmen tof'.Using theincremen talSATapproac hitispossible
+tocompute Proj'
+V,asfollows.
+Step0:A:=;.
+Step1:RuntheSATsolverfor'.
+Step2:If'isunsatisable thenreturn Aandterminate.
+Step3:AddAjVtoA,where Aisthecomputed satisfying assignmen t.
+Step4:Appendto'anewclauseW
+v2V^A(v)=1:v_W
+v2V^A(v)=0v.
+Step5:GobacktoStep1.
+Supposenowthatweareinterested innding onlytheminimal elemen tsof
+Proj'
+V,assuming thatAjVA0jVif(AjV)(v)(A0jV)(v),forallv2V.The
+aboveprocedure canthenbemodied bychanging Step4to:
+Step4':Appendto'anewclauseW
+v2V^A(v)=1:v.
+Similarly ,ifwewereinterested innding allthemaximal elemen tsofProj'
+V,
+thenonecould change Step4to:
+Step4":Appendto'anewclauseW
+v2V^A(v)=0v.
+Moreo ver,inthelatter twocases, beforeterminating anadditional passoverthe
+elemen tsstored inAshould bemade inorder toeliminate anynon-minimal (or
+non-maximal) projections.
+
+--- Page 39 ---
+Hardw areSynthesis withPetriNets 39
+5.6Detection ofstateencodingconicts using SAT
+LetC0andC00betwocongurations oftheunfolding ofaconsisten tSTGandz
+beanoutput signal. C0andC00areinComplete StateCodingconict forz(CSCz
+conict) ifCodex(C0)=Codex(C00)forallx2ZandNxtz(C0)6=Nxtz(C00).
+Thisnotion isverysimilar tothenotion ofaCSCconict; inparticular, each
+CSCzconict isaCSCconict, andeachCSCconict isaCSCzconict forsome
+output signal z,i.e.,theproblem ofdetection ofCSCconicts iseasily reducible
+totheproblem ofdetection ofCSCzconicts, andwewillmostly concen trate
+onthelatter problem. ACSCzconict canberepresen tedasanunordered
+conict pairofcongurations hC0;C00iwhose nalstates areinCSCzconict;
+forexample, theconict pairofcongurations showninFig.21(b) isinCSClds
+andCSCdconict.
+Constructing aSATinstance Weadopt thefollowingnaming conventions.
+Thevariable names areinthelowercaseandnames offormulaeareintheupper
+case. Names withasingle prime (e.g., conf0
+eandCONF0)arerelated toC0,
+andoneswithdouble prime (e.g.,conf00
+e)arerelated toC00.Ifthere isnoprime
+thenthename isrelated tobothC0andC00.Ifaformulaname hasasingle
+prime thentheformuladoesnotcontainoccurrences ofvariables withdouble
+primes, andthecounterpart double prime formulacanbeobtained fromitby
+adding another prime toeveryvariable withasingle prime. Thesubscript ofa
+variable pointstowhichelemen toftheSTGortheprex thevariable isrelated,
+e.g.,conf0
+eandconf00
+earebothrelated totheeventeoftheprex. Byaname
+without asubscript wedenote thelistofallvariables forallpossible values of
+thesubscript, e.g.,conf0denotes thelistofvariables conf0
+e,where erunsthrough
+thesetEnEcut.
+ThefollowingBoolean variables willbeusedintheproposedtranslations:
+{Foreachevente2EnEcut,wecreate twoBoolean variables, conf0
+eand
+conf00
+e,tracing whether e2C0ande2C00respectively.
+{Foreachsignal x2Z,wecreate avariable codextotrace thevalueofx.
+Since thevaluesofallthesignals mustmatchatthenalstates ofC0andC00,
+weusethesame setofvariables forbothcongurations.
+{Foreachcondition b2BnE
+cutwhichisaninstance ofaplace fromP1
+Z
+(dened later), wecreate twoBoolean variables, cut0
+bandcut00
+b,tracing
+whether b2Cut(C0)andb2Cut(C00)respectively.
+{Foreachevente2Ewhichisaninstance oftheoutput signal zforwhich
+theCSCzcondition isbeingchecked,wecreate twoBoolean variables, en0
+e
+anden00
+e,tracing whether eis`enabled' byC0andC00respectively.Notethat
+unlikeconf0andconf00,suchvariables arealsocreated forthecut-o events.
+Ouraimistobuild aBoolean formulaCSCzsuchthat:(i)CSCzissatisable
+ithere isaCSCzconict; and(ii)foreverysatisfying assignmen t,thetwosets
+ofnon-cut-o eventsoftheprex, C0df=fe2EnEcutjconf0
+e=1gandC00df=
+fe2EnEcutjconf00
+e=1g,constitute aconict pairhC0;C00iofcongurations.
+CSCzwillbetheconjunction ofconstrain tsdescrib edbelow.
+
+--- Page 40 ---
+40 Carmona, Cortadella, Khomenk o,Yakovlev
+Forexample, these variables willassume thefollowingvalues fortheCSCd
+conict depicted inFig.21(b) (theorder ofsignals inthebinary codesis:dsr,
+dtack,lds,ldtack ,d):conf0=111000000000, conf00=111111110100, code=
+10110, en0
+e4=1,en0
+e7=0,anden00
+e4=en00
+e7=0(thevalues ofcut0andcut00are
+notshown).
+Congur ationconstraints Theroleofrsttwoconstrain ts,CONF0andCONF00,
+istoensure thatC0andC00arebothlegalcongurations oftheprex (notjust
+arbitrary setsofevents).CONF0isdened astheconjunction oftheformulae
+^
+e2EnEcut^
+f2(e)(conf0
+e)conf0
+f)and^
+e2EnEcut^
+f2Ee:(conf0
+e^conf0
+f);
+where Eedf=((e)nfeg)nEcut.Theformer formulaensures thatife2C0then
+allthedirect causal predecessors ofearealsoinC0,whichinturnensures that
+C0isadownwardclosed setofevents.Thelatter oneensures thatC0containsno
+structural conicts. (Oneshould becareful toavoidduplication ofclauses when
+generating thisformula.)CONF00isdened similarly .
+CONF0andCONF00canbetransformed intotheCNFbyapplying therules
+x)y:x_yand:(x^y):x_:y.
+EncodingconstraintFirstwedescrib eanimportantSTGtransformation allow-
+ingtocapture thecurren tvalueofeachsignal intheSTG'smarking. Foreach
+signal z2Z,apairofcomplemen taryplaces, p0
+zandp1
+z,tracing thevalueofz
+isadded asfollows.Foreachz+{labelledtransition t,p0
+z2tandp1
+z2t,and
+foreachz{labelledtransition t0,p1
+z2t0andp0
+z2t0.Exactly oneofthese two
+places ismarkedattheinitial state, accordingly totheinitial valueofsignal z.
+Onecanshowthatatanyreachable stateofanSTGaugmen tedwithsuchplaces,
+p0
+z(respectively,p1
+z)ismarkedithevalueofzis0(respectively,1).Thus,ifa
+transition labelledbyz+(respectively,z)isenabled thenthevalueofzis0(re-
+spectively,1),whichinturnguaran teestheconsistency oftheaugmen tedSTG.
+Suchatransformation canbedone completely automatically (onecaneasily
+determine theinitial values ofallthesignals fromtheunfolding prex). Fora
+consisten tSTG,itdoesnotrestrict thebehaviour andyields anSTGwithan
+isomorphic stategraph; foranon-consisten tSTG,thetransformation restricts
+thebehaviour andmayleadto(new) deadlo cks.Inwhat follows,weassume
+thatthetracing places arepresen tintheSTG,anddenote P0
+Zdf=fp0
+zjz2Zg,
+P1
+Zdf=fp1
+zjz2Zg,andPZdf=P0
+Z[P1
+Z.
+Theroleofencodingconstrain ts,CODE0andCODE00,istoensure thatthe
+signal codesofthenalmarkings ofcongurations C0andC00areequal. Tobuild
+aformulaestablishing thevaluecodezofeachsignal z2Zatthenalstateof
+C0,weobserv ethatcodez=1ip1
+z2Mark(C0),i.e.,ib2Cut(C0)forsome
+p1
+z{labelledcondition b(note thattheplaces inPZcannot containmore than
+onetoken).Thelatter canbecaptured bytheconstrain t:
+^
+z2Z(codez()_
+b2Bzcut0
+b);
+
+--- Page 41 ---
+Hardw areSynthesis withPetriNets 41
+where Bzdf=fBnE
+cutjbisaninstance ofp1
+zg.Wethendene CODE0asthe
+conjunction ofthelastformulaand
+^
+z2Z^
+b2Bz(cut0
+b()^
+e2bconf0
+e^^
+e2bnEcut:conf0
+e);
+whichensures thatb2Cut(C0)itheevent`producing' bhasred,butnoevent
+`consuming' bhasred. (Note thatsincejbj1,V
+e2bconf einthisformulais
+either theconstan t1orasingle variable.) OnecanseethatifC0isaconguration
+andCODE0issatised thenthevalueofsignal zatthenalstateofC0isgiven
+bycodez.CODE00isdened similarly .
+Theuseofthesamevariables codeinbothCODE0andCODE00ensures that
+theencodings ofthenalstates ofC0andC00arethesame, ifbothconstrain ts
+aresatised.
+Itisstraigh tforwardtobuild theCNFofCODE0:
+^
+z2Z 
+(:codez__
+b2Bzcut0
+b)^^
+b2Bz(codez_:cut0
+b)^
+^
+b2Bz^
+e2b(:cut0
+b_conf0
+e)^^
+e2bnEcut(:cut0
+b_:conf0
+e)^(cut0
+b__
+e2b:conf0
+e__
+e2bnEcutconf0
+e)1
+A;
+andtheCNFofCODE00canbebuiltsimilarly .
+Next-state constraintTheroleofthisconstrain tistoensure thatNxtz(C0)6=
+Nxtz(C00).Since alltheother constrain tsaresymmetric w.r.t. C0andC00,one
+canrewrite itasNxtz(C0)=0^Nxtz(C00)=1.Moreo ver,itfollowsfromthe
+denition ofNxtzthatNxtz(C):Codez(C)()Outz(C),andsothenext-
+stateconstrain tcanberewritten astheconjunction ofCodez(C0)()Outz(C0)
+and:Codez(C00)()Outz(C00).
+Weobserv ethatanoutput signal zisenabled byMark(C0)ithere isa
+z+-orz{labelledevente=2C0`enabled' byC0,i.e.,suchthatC0[fegisa
+conguration (note thatecanbeacut-o event).Wethendene theformula
+NEXTZERO0,ensuring thatNxtz(C0)=0,astheconjunction of
+code0
+z()_
+e2Ezen0
+eand^
+e2Ez(en0
+e()^
+f2(e)conf0
+f^^
+f2(e)nEcut:conf0
+f);
+where Ezdf=fe2Ejeisaninstance ofzg.Theformer conjunct ensures that
+Codez(C0)()Outz(C)(ittakesintoaccoun tthatzisenabled bythenal
+stateofC0iatleastoneitsinstance isenabled byC0)andthelatter onestates
+foreachinstance eofzthateisenabled byC0ialltheevents`producing'
+tokensineareinC0butnoevents`consuming' tokensfrome(including e
+itself)areinC0.
+TheformulaNEXTONE00,ensuring thatNxtz(C00)=1,isdened asthe
+conjunction of
+:code00
+z()_
+e2Ezen00
+e
+
+--- Page 42 ---
+42 Carmona, Cortadella, Khomenk o,Yakovlev
+andaconstrain t`computing' en00
+e,whichissimilar tothatforNEXTZERO0.
+Nowthenext-state constrain tcanbeexpressed asNEXTZERO0^NEXTONE00.
+TheCNFofNEXTZERO0is
+(:code0
+z__
+e2Ezen0
+e)^^
+e2Ez(code0
+z_:en0
+e)^
+^
+e2Ez^
+f2(e)(:en0
+e_conf0
+f)^^
+f2(e)nEcut(:en0
+e_:conf0
+f)^(en0
+e__
+f2(e):conf0
+f__
+f2(e)nEcutconf0
+f)
+;
+andtheCNFofNEXTONE00canbebuiltsimilarly .
+Translation toSATFinally ,theproblem ofdetection ofCSCzconicts canbe
+formulated astheSATproblem fortheformula
+CSCzdf=CONF0^CONF00^CODE0^CODE00^NEXTZERO0^NEXTONE00;
+andtheCSCproblem isreduced tocheckingtheCSCzcondition foreachoutput
+signal z.Inprinciple, theCSCproblem canalsobereduced toasingle SAT
+instance [39],butaccording toourexperimen tsthemetho dpresen tedheretends
+tobemoreecien t.
+Computing allcores Themetho dforresolution ofCSCconicts describ edin
+Section 5.2requires tocompute allconict cores. Thiscanbedonebycomput-
+ingallthesolutions ofCSCzforalloutput signals zusing theincremen talSAT
+approac h.However,asthesame complemen tarysetcancorresp ondtomultiple
+conict pairs, thisapproac hisunnecessarily expensive.Abetterapproac hwould
+betoeliminate allthesolutions corresp onding toanewly computed complemen-
+tarysetCSeachtimeitiscomputed, byappending newclauses totheformula.
+Thiscanbedoneasfollows.Foreachevente2EnEcutwecreate avariable
+cse,andthefollowingconstrain tisadded totheformula:
+ ^
+e2EnEcut
+cse()(conf0
+econf0
+e)!
+^_
+e2EnEcut:cseife2CS
+cseotherwise :
+Note thattherstpartofthisconstrain tisthesame forallthecomputed
+complemen tarysets,andthuscanbegenerated justonce. TheCNF ofthis
+constrain tis
+(:conf0
+e_conf00
+e_cse)^(conf0
+e_:conf00
+e_cse)^
+(conf0
+e_conf00
+e_:cse)^(:conf0
+e_:conf00
+e_:cse)^_
+e2EnEcut
+:csife2CS
+csotherwise :
+
+--- Page 43 ---
+Hardw areSynthesis withPetriNets 43
+Thecaseofprexes without structural conicts Inmanycasestheperfor-
+mance oftheproposedmetho dcanbeimpro vedbyexploiting specicproperties
+ofthePetrinetunderlying anSTG.Forinstance, ifisfreefromdynamic
+choices (inparticular, thisisthecaseformarkedgraphs) thentheunion ofany
+twocongurations ofitsunfolding isalsoaconguration. Thisobserv ation can
+beusedtoreduce thesearchspace. Indeed, according toProposition 2below,it
+isthenenough tolookonlyforthose cases when thecongurations C0andC00
+beingtested areordered intheset-theoretical sense.
+Proposition 2([39]). LethC0;C00ibeaconict pairofcongur ations inthe
+unfolding ofaconsistent STGsatisfying C0*C00,C00*C0andC0[C00is
+acongur ation. Then Cdf=C0\C00issuchthateither hC;C0iorhC;C00iisa
+conict pair.
+Notethatfreeness fromstructural conicts caneasily bedetected: itisenough
+tocheckthatjbj1,forallconditions boftheprex.
+Since wedonotknowinadvancewhether C0C00orC00C0(andtheorder
+doesmatter because thesuggested implemen tation ofthenext-state constrain t
+breaks thesymmetry), anewBoolean variable, v,isintroduced. Ifitsvalueis1
+thentheformer possibilit yischecked,otherwise thelatter possibilit yistriedout.
+Thisiscaptured bytheconstrain t
+^
+e2EnEcut
+(v!(conf0
+e!conf00
+e))^(:v!(conf00
+e!conf0
+e))
+;
+whichshould beadded totheformula.Notethatitcaneasily betransformed
+intotheCNFbyapplying therulex!y:x_y.
+Experimen talresults Weimplemen tedourmetho dusing thezChaff SAT
+solver[48].Alltheexperimen tswereconducted onaPCwithaPentiumTM
+IV/2.8GHz processor and512M RAM.
+Afewclasses ofbenchmarks havebeenattempted (theSTGswithnames
+containing theoccurrence of`Csc'satisfy theCSCproperty,theothers exhibit
+CSCconicts). Therstgroup ofexamples comes fromtherealdesign practice.
+They areasfollows:
+{LazyRing andRing |Async hronous TokenRingAdapters describ edin[10,
+44].LazyRingCsc andRingCsc havebeenobtained byresolving CSCcon-
+ictsinthese testcases.
+{Dup4ph ,Dup4phCsc ,Dup4phMtr ,Dup4phMtrCsc ,DupMtrMod ,
+DupMtrModUtg ,andDupMtrModCsc |controlcircuits forthePo-
+wer-Ecien tDuplex Comm unication System describ edin[28].
+{CfSymCscA ,CfSymCscB ,CfSymCscC ,CfSymCscD ,CfAsymCscA ,
+andCfAsymCscB |controlcircuits fortheCounterowPipelineProcessor
+describ edin[72].
+Some ofthese STGs,although builtbyhand, arequite largeinsize.Theresults
+forthisgroup aresummarised intherstpartofTable4.Twoother groups,
+
+--- Page 44 ---
+44 Carmona, Cortadella, Khomenk o,Yakovlev
+Problem Net States Prex Time, [s]
+jSjjTjIn/Out jBjjEjjEcutjPfy Clp Sat
+Real-Life STGs
+LazyRing 3532 5/6 160 87 66 5 1 <1<1
+LazyRingCsc 4237 5/7 187 88 71 5 1 <1<1
+Ring 147127 11/17 16508 763 498 59 694 <1<1
+RingCsc 185172 11/18 16320 650 484 55 837 15<1
+Dup4ph 133123 12/15 169 144 123 11 13 <1<1
+Dup4phCsc 135123 12/15 171 146 123 11 13 <1<1
+Dup4phMtr 109 9610/12 121 117 96 8 8 <1<1
+Dup4phMtrCsc 114105 10/16 149 122 105 8 9 <1<1
+DupMtrMod 129100 10/11 345 199 132 10 89 <1<1
+DupMtrModUtg 116165 10/11 323 344 218 65 286 <1<1
+DupMtrModCsc 152115 10/17 321 228 149 13 116 <1<1
+CfSymCscA 8560 8/14 6672 1341 720 56 153 16 2
+CfSymCscB 5532 8/8 690 160 71 6 6 <1<1
+CfSymCscC 5936 8/10 2416 286 137 10 11 <1<1
+CfSymCscD 4528 4/10 414 120 54 6 3 <1<1
+CfAsymCscA 128112 8/26 147684 1808 1234 621551 439 11
+CfAsymCscB 128112 8/24 147684 1816 1238 622602 471 10
+Marke dGraphs
+PpWk (2,3) 2314 0/7 525=160 41 23 1 <1 <1<1
+PpWk (2,6) 4726 0/13 525=10240 119 62 1 5 <1<1
+PpWk (2,9) 7138 0/19 525>6105233 119 1 43 <1<1
+PpWk (2,12) 9550 0/25 525>4107383 194 1494 1<1
+PpWkCsc (2,3) 2414 0/7 27=128 38 20 1 <1 <1<1
+PpWkCsc (2,6) 4826 0/13 213=8192 110 56 1 4 <1<1
+PpWkCsc (2,9) 7238 0/19 219>5105218 110 1 43 3<1
+PpWkCsc (2,12) 9650 0/25 225>3107362 182 12076 264 <1
+PpWk (3,3) 3420 0/10 1327=1664 63 35 1 1 <1<1
+PpWk (3,6) 7038 0/19 13216>8105183 95 1103 <1<1
+PpWk (3,9) 106 56 0/28 13225>4108357 182 12121 12<1
+PpWk (3,12) 142 74 0/37 13234>21011585 296 1mem 1031 <1
+PpWkCsc (3,3) 3620 0/10 210=1024 57 29 1 1 <1<1
+PpWkCsc (3,6) 7238 0/19 219>5105165 83 1 44 3<1
+PpWkCsc (3,9) 108 56 0/28 228>2108327 164 17936 2285 <1
+PpWkCsc (3,12) 144 74 0/37 237>1011543 272 1mem time <1
+STGswithArbitration
+PpArb (2,3) 4832 2/13 29124=4656 110 66 2 7 <1<1
+PpArb (2,6) 7244 2/19 291210>2105218 120 2 57 <1<1
+PpArb (2,9) 9656 2/25 291216>107362 192 21726 <1<1
+PpArb (2,12) 120 68 2/31 291222>109542 282 211493 <1<1
+PpArbCsc (2,3) 4832 2/13 20724=3312 110 66 2 3 <1<1
+PpArbCsc (2,6) 7244 2/19 207210>2105218 120 2 41 2<1
+PpArbCsc (2,9) 9656 2/25 207216>107362 192 2316 153 <1
+PpArbCsc (2,12) 120 68 2/31 207222>8108542 282 2mem 12745 <1
+PpArb (3,3) 7148 3/19 164726>105188 114 3 97 <1<1
+PpArb (3,6) 107 66 3/28 1647215>5107368 204 31726 <1<1
+PpArb (3,9) 143 84 3/37 1647224>21010602 321 3mem <1<1
+PpArb (3,12) 179102 3/46 1647233>1013890 465 3mem <1<1
+PpArbCsc (3,3) 7148 3/19 29728=76032 118 114 3 43 1<1
+PpArbCsc (3,6) 107 66 3/28 297217>3107368 204 31186 379 <1
+PpArbCsc (3,9) 143 84 3/37 297226>1010602 321 327512 time <1
+PpArbCsc (3,12) 179102 3/46 297235>1013890 465 3mem time <1
+Table4.Experimen talresults: checkingCSC.
+
+--- Page 45 ---
+Hardw areSynthesis withPetriNets 45
+PpWk (m;n)andPpArb (m;n),containscalable examples ofSTGsmodelling m
+pipelines weakly synchronised without arbitration (inPpWk (m;n))andwith
+arbitration (inPpArb (m;n)).(See[40]foramore detailed description.) The
+former oers thepossibilit yofstudying theeect oftheoptimisation describ ed
+inSection 5.6(allSTGsinthePpWk (m;n)series aremarkedgraphs, and
+sotheir prexes containnostructural conicts). These benchmarks come in
+pairs: foreachtestcasesatisfying theCSCpropertythere isaverysimilar
+oneexhibiting CSCconicts. Thisallowedustotestthealgorithm onalmost
+identicalspecications withandwithout encodingconicts. Theresults forthese
+twogroups aresummarised inthelasttwoparts ofTable4.
+Themeaning ofthecolumns isasfollows(from lefttoright):thename of
+theproblem; thenumberofplaces, transitions, andinput andoutput signals
+intheoriginal STG;thenumberofconditions, eventsandcut-o eventsinthe
+complete prex; thenumberofreachable states intheSTG;thetimespentby
+aspecialversion ofthePetrify tool,whichdidnotattempt toresolv ethe
+encodingconicts ithadidentied; thetimespentbytheinteger programming
+algorithm proposedin[38];andthetimespentbytheproposedmetho d.Weuse
+`mem' ifthere wasamemory overowand`time' toindicate thatthetesthad
+notstoppedafter15hours. Wehavenotincluded inthetable thetimeneeded
+tobuild complete prexes, sinceitdidnotexceed 0:1secforalltheattempted
+STGs.
+Although performed testing waslimited inscope,onecandrawsomeconclu-
+sionsabouttheperformance oftheproposedalgorithm. Inallcasestheproposed
+metho dsolvedtheproblem relativ elyeasily,evenwhen itwasintractable forthe
+other approac hes.Insome cases, itwasfaster byseveralorders ofmagnitude.
+Thetimespentonallofthese benchmarks wasquite satisfactory |ittookjust
+11seconds tosolvethehardest one.Overall, theproposedapproac hwasthe
+best,especially forhardproblem instances.
+5.7Logic synthesis based onunfolding prexes
+InSection 5.6,theCSCconict detection problem wassolvedbyreducing itto
+SAT.More precisely ,givenanite andcomplete prex ofanSTG'sunfolding,
+onecanbuildforeachoutput signal zaformulaCSCzwhichissatisable ithere
+isaCSCzconict. Herewemodifythatconstruction inthewaydescrib edbelow.
+Weassume agivenconsisten tSTGsatisfying theCSCproperty,andconsider in
+turneachoutput signal z.
+LetC0andC00betwocongurations oftheunfolding ofaconsisten tSTG,z
+beanoutput signal, andXissomesetofsignals. C0andC00areinComplete State
+Codingconict forzw.r.t. X(CSCz
+Xconict) ifCodex(C0)=Codex(C00)forall
+x2XandNxtz(C0)6=Nxtz(C00).Thenotion ofCSCz
+Xisageneralisation ofthe
+notion ofCSCzconict (indeed, thelatter canbeobtained fromtheformer by
+choosing Xtobethesetofallsignals intheSTG).Xisasupportofanoutput
+signal zifnotwocongurations oftheunfolding areinCSCz
+Xconict. Insuch
+acasethenext-state valueofzateachreachable stateoftheSTGisdetermined
+without ambiguit ybytheencodingofthisstate restricted toX,i.e.,zcanbe
+
+--- Page 46 ---
+46 Carmona, Cortadella, Khomenk o,Yakovlev
+implemen tedasagatewiththesupportX.AsupportXofzisminimal ifnoset
+X0Xisasupportofz.Ingeneral, asignal canhaveseveraldistinct minimal
+supports.
+Thestarting pointoftheproposedapproac histoconsider thesetNSUPPz
+ofallsetsofsignals whicharenon-supp ortsofz.Within theBoolean formula
+CSCz
+nsupp,whichwearegoing toconstruct, non-supp ortsarerepresen tedbyvari-
+ables nsuppdf=fnsuppxjx2Zg,and,foragivenassignmen tA,thesetof
+signals X=fxjA(nsuppx)=1gisidentied withtheprojection Ajnsupp.
+ThekeypropertyofCSCz
+nsuppisthatNSUPPz=ProjCSCz
+nsupp
+nsupp ,andsoitis
+possible tousetheincremen talSATapproac htocompute NSUPPz.How-
+ever,forourpurposesitwillbeenough tocompute themaximal non-supp orts
+NSUPPz
+maxdf=max NSUPPzwhichcanthenbeusedforcomputing theset
+SUPPz
+mindf=minfXZjX6X0,forallX02NSUPPz
+maxg
+ofalltheminimal supportsofz(another incremen talSATrunwillbeneeded
+forthis).
+SUPPz
+mincaptures thesetofallpossible supportsofz,inthesense thatany
+supportisanextension ofsomeminimal support,andviceversa,anyextension
+ofanyminimal supportisasupport.However,thesimplest equation isusually
+obtained forsome minimal support,andthisapproac hwasadopted inourex-
+perimen ts.Yet,thisisnotalimitation ofourmetho dasonecanalsoexplore
+some orallofthenon-minimal supports,whichcanbeadvantageous, e.g.,for
+small circuits and/or when thesynthesis timeisnotofparamoun timportance
+(thiswouldsometimes allowtondasimpler equation). Ontheother hand, not
+allminimal supportshavetobeexplored: ifsome minimal supporthasmany
+moresignals compared withanother one,thecorresp onding equation willalmost
+certainly bemorecomplicated, andsotoolargesupportscansafely bediscarded.
+Thus,asusual, there isatrade-o betweentheexecution timeandthedegree
+ofdesign space exploration, andourmetho dallowsonetochooseanacceptable
+compromise. Typically ,several`most promising' supportsareselected, theequa-
+tionsexpressing Nxtzasafunction ofsignals inthese supportsareobtained (as
+describ edbelow),andthesimplest among them isimplemen tedasalogicgate.
+SupposenowthatXisoneofthechosen supportsofz.Inorder toderivean
+equation expressing Nxtzasafunction ofthesignals inX,webuild aBoolean
+formulaEQNz
+Xwhichhasavariable codexforeachsignal x2Xandissat-
+isable ithese variables canbeassigned values insuchawaythatthere isa
+conguration Cintheprex suchthatCodex(C)=codex,forallx2X.Now,
+using theincremen talSATapproac honecancompute theprojection oftheset
+ofreachable encodings ontoX(dieren tiating thestored solutions according to
+thevalueofthenext-state function forz),andfeedtheresult toaBoolean
+minimiser.
+Tosummarise, theproposedmetho disexecuted separately foreachoutput
+signal zandhasthreemainstages: (I)computing thesetNSUPPz
+maxofmaximal
+non-supp ortsofz;(II)computing thesetSUPPz
+minofminimal supportsofz;
+
+--- Page 47 ---
+Hardw areSynthesis withPetriNets 47
+8 7e6 e ee
+e e9e
+11e10
+5 4e12
+e1 2
+13e3 e14e
+e
+d−
+lds−dsr+
+csc+ lds+ ldtack+ d+ dtack+ dsr− csc−dtack−
+dsr+
+ldtack−csc+
+C' C''
+inputs: dsr;ldtack ;outputs: lds;d;dtack;internal: csc
+Fig.23.AnSTGunfolding illustrating aCSCcsc
+fdsr;ldtack gconict betweencongura-
+tions C0andC00.Note thate14isnotenabled byC00(since e1362C00),andthus
+Nxtcsc(C0)=16=Nxtcsc(C00)=0.Theorder ofsignals inthebinary encodings is:dsr,
+ldtack, dtack, lds,d,csc.
+and(III)deriving anequation forachosen supportXofz.Inthesequel, we
+describ eeachofthese three stages inmore detail.
+Itshould benoted thatthesizeofthetruth table forBoolean minimisa-
+tionandthenumberoftimes aSATsolverisexecuted inourmetho dcanbe
+exponentialinthenumberofsignals inthesupport.Thus,itiscrucial forthe
+performance oftheproposedalgorithm thatthesupportofeachsignal isrela-
+tivelysmall. However,inpractice itisanywaydicult toimplemen tasanatomic
+logicgateaBoolean expression depending onmore than, say,eightvariables.
+(Atomic behaviour oflogicgates isessentialforthespeed-indep endence ofthe
+circuit, andaviolation ofthisrequiremen tcanleadtohazards [14,18].)This
+means thatifanoutput signal hasonly`large' supportsthenthespecication
+mustbechanged (e.g., byadding newinternal signals) tointroduce`smaller'
+supports.Suchtransformations arerelated tothetechnolo gymapping stepin
+thedesign cycle forasynchronous circuits (see,e.g.,[18]); wedonotconsider
+them here.
+Computing maximal non-supp ortsSupposethatwewanttocompute the
+setofallmaximal non-supp ortsofanoutput signal z.Atthelevelofabranching
+process,aCSCz
+Xconict canberepresen tedasanunordered conict pairof
+congurations hC0;C00iwhose nalstates areinCSCz
+Xconict, asshownin
+Fig.23.
+Asalready mentioned, ouraimistobuild aBoolean formulaCSCz
+nsuppsuch
+thatProjCSCz
+nsupp
+nsupp =NSUPPz,i.e.,afterassigning arbitrary values tothevari-
+ablesnsupp,theresulting formulaissatisable ithereisaCSCz
+Xconict, where
+Xdf=fxjnsuppx=1g.
+Thetarget formulaCSCz
+nsuppisverysimilar totheformulaCSCzbuilt in
+Section 5.6,withthefollowingchanges. Foreachsignal x2Z,instead ofavari-
+ablecodexwecreate twoBoolean variables, code0
+xandcode00
+x,tracing thevalues
+ofCodex(C0)andCodex(C00)respectively;CODE0andCODE00areamended ac-
+cordingly .Moreo ver,wecreate foreachsignal x2Zavariable nsuppxindicating
+whether xbelongs toanon-supp ort.
+
+--- Page 48 ---
+48 Carmona, Cortadella, Khomenk o,Yakovlev
+Nowweneedaensure thatcode0
+x=code00
+xwhenev ernsuppx=1.Thiscan
+beexpressed bythefollowingconstrain t:
+^
+x2Z
+nsuppx)(code0
+x()code00
+x)
+;
+withtheCNF
+^
+x2Z
+(:code0
+x_code00
+x_:nsuppx)^(code0
+x_:code00
+x_:nsuppx)
+:
+Thiscompletes theconstruction ofCSCz
+nsupp.Forexample, itssatisfying assign-
+ment(except thevariables cut0andcut00)fortheCSCcsc
+fdsr;ldtack gconict de-
+picted inFig.23isasfollows:conf0=1111000000000 ,conf00=1111111111110,
+code0=110101, code00=110000, nsupp =110000, en0
+e2=en0
+e8=en0
+e14=0,
+en00
+e2=en00
+e8=en00
+e14=0.
+Nowtheproblem ofcomputing thesetNSUPPz
+maxofmaximal non-supp orts
+ofzcannowbeformulated asaproblem ofnding themaximal elemen tsofthe
+projection ProjCSCz
+nsupp
+nsupp .Itcanbesolvedusing theincremen talSATapproac h,as
+describ edinSection 5.5.
+Computing minimal supportsLetNSUPPz
+maxbethesetofmaximal non-
+supportscomputed intherststageofthemetho d.Nowweneedtocompute the
+setSUPPz
+minoftheminimal supportsofz.Thiscanbeachievedbycomputing
+thesetofminimal assignmen tsfortheBoolean formula
+^
+nsupp2NSUPPz
+max_
+x2Z:nsuppx=0suppx
+;
+whichissatised byanassignmen tAiforallmaximal non-supp ortsnsupp
+inNSUPPz
+max,A
+nsupp.Thisagain canbedone using theincremen tal
+SATapproac h,asdescrib edinSection 5.5.NotethatthisBoolean formulais
+muchsmaller thanthatfortherststage ofthemetho d(itcontains atmost
+jZjvariables), andthusthecorresp onding incremen talSATproblem ismuch
+simpler.
+Deriving anequation SupposethatXisa(notnecessarily minimal) support
+ofz.Weneedtoexpress NxtzasaBoolean function ofsignals inX.Thiscan
+bedonebygenerating atruth tableforzasaBoolean function ofsignals inX,
+andthenapplying Boolean minimisation.
+Thesetofencodings appearing intherstcolumn ofthetruth tablecoincides
+withtheprojections oftheformula
+EQNz
+Xdf=CONF0^CODE0
+X
+
+--- Page 49 ---
+Hardw areSynthesis withPetriNets 49
+ontothesetofvariables fcodexjx2Xg,where CODE0
+XisCODE0restricted to
+thesetofsignals X(i.e.,alltheconjunctions oftheformV
+x2Z:::arereplaced
+byV
+x2X:::).Italsocanbecomputed using theincremen talSATapproac h,as
+describ edinSection 5.5.Notethatateachstepofthiscomputation, theSAT
+solverreturns information notonlyaboutthenextelemen toftheprojection, but
+alsothevalues ofalltheother variables intheformula.That is,along withthe
+restriction ofsome reachable encodingontothesetXwehaveaninformation
+aboutaconguration Cviawhichitcanbereached.Thus,thevalueofNxtz
+onthiselemen toftheprojection canbecomputed simply asNxtz(C).This
+essentially completes thedescription ofourmetho d.
+Optimisations In[40]wedescrib eoptimisations whichcansignican tlyre-
+ducethecomputation eort required byourmetho d.Inparticular, wesuggest
+aheuristic helping tocompute apartofasignal's supportwithout running the
+SATsolver,based onthefactthatanysupportforanoutput zmustinclude all
+thetriggers ofz,i.e.,those signals whose ring canenable z.(Theinformation
+abouttriggers canbederivedfromthenite andcomplete prex.) Moreo ver,
+onecanspeedupthecomputation inthecaseofprexes without structural
+conicts, asdescrib edinSection 5.6.
+Experimen talresults Weimplemen tedourmetho dusing thezChaff SAT
+solver[48]andtheEspresso Boolean minimiser [5],andthebenchmarks from
+Section 5.6satisfying theCSCpropertywereattempted. Alltheexperimen ts
+wereconducted onaPCwithaPentiumTMIV/2.8GHz processor and512M
+RAM.
+Theexperimen talresults aresummarised inTable5,where themeaning
+ofthecolumns isasfollows:thetotal numberofequations obtained byour
+metho d(thisisequal tothetotalnumberofminimal supportsforalltheoutput
+signals andgivesarough ideaoftheexplored design space); thetimespentby
+thePetrify tool;andthetimespentbytheproposedmetho d.Weuse`mem' if
+therewasamemory overowand`time' toindicate thatthetesthadnotstopped
+after15hours. (Table4provides additional dataaboutthebenchmarks.)
+Although theperformed testing waslimited inscope,onecandrawsomecon-
+clusions abouttheperformance oftheproposedalgorithm. Inallcases thepro-
+posedmetho dsolvedtheproblem relativ elyeasily,evenwhen itwasintractable
+forPetrify .Insome cases, itwasfaster byseveralorders ofmagnitude. The
+timespentonallthese benchmarks wasquite satisfactory |ittooklessthan
+50seconds tosolvethehardest one(CfAsymCscA );notehowever,thatinthat
+caseatotal of450equations wereobtained, i.e.,more than9equations per
+second.
+Itisimportanttonotethatthese impro vementsinmemory andrunning
+timecomewithout anyreduction inquality ofthesolutions. Infact,ourmetho d
+iscomplete ,i.e.,itcanproduceallthevalidcomplex-gate implemen tations of
+eachsignal. However,inourimplemen tation werestricted thealgorithm toonly
+minimal supports.Nevertheless, theexplored design space wasquitesatisfactory:
+
+--- Page 50 ---
+50 Carmona, Cortadella, Khomenk o,Yakovlev
+Real-Life STGs
+Problem Eqns Time, [s]
+(SAT)PfySat
+LazyRingCsc 14 1<1
+RingCsc 63850 3
+Dup4phCsc 4820<1
+Dup4phMtrCsc 4613<1
+DupMtrModCsc 165125 1
+CfSymCscA 60163 16
+CfSymCscB 3410<1
+CfSymCscC 1813<1
+CfSymCscD 16 3<1
+CfAsymCscA 4501448 48
+CfAsymCscB 932323 17
+Marke dGraphs
+Problem Eqns Time, [s]
+(SAT)PfySat
+PpWkCsc (2,3) 7<1<1
+PpWkCsc (2,6) 13 4<1
+PpWkCsc (2,9) 1944<1
+PpWkCsc (2,12) 252082 <1
+PpWkCsc (3,3) 10 1<1
+PpWkCsc (3,6) 1943<1
+PpWkCsc (3,9) 287380 <1
+PpWkCsc (3,12) 37time 1STGswithArbitration
+Problem Eqns Time, [s]
+(SAT)PfySat
+PpArbCsc (2,3) 18 4<1
+PpArbCsc (2,6) 24 42<1
+PpArbCsc (2,9) 30315<1
+PpArbCsc (2,12) 363840 1
+PpArbCsc (3,3) 29 45<1
+PpArbCsc (3,6) 381001 <1
+PpArbCsc (3,9) 4724941 1
+PpArbCsc (3,12) 56mem 2
+Table5.Experimen talresults.
+asthe`Eqns' column inTable5shows,inmanycases ourmetho dproposed
+quite afewalternativ eimplemen tations forsignals. Infact,among thelistof
+solutions produced byourtooltherewasalwaysasolution produced byPetrify
+(with, perhaps, onlyminor dierences duetothenon-uniqueness oftheresult of
+Boolean minimisation). Overall,theproposedapproac hturned outtobeclearly
+superior, especially forhardproblem instances.
+5.8Conclusion andfuture work
+Wehaveproposedacomplex-gate design owforasynchronous circuits based on
+STGunfolding prexes comprising: (i)aSAT-based algorithm fordetection of
+encodingconicts; (ii)aframew orkforvisualisation andresolution ofencoding
+conicts; and(iii)analgorithm forderivation ofBoolean equations forthegates
+implemen tingthecircuit based ontheincremen talSATapproac h.
+Notethatinallthetestcases(Table4)thesizeofthecomplete prex wasrel-
+ativelysmall. Thiscanbeexplained bythefactthatSTGsusually containalot
+
+--- Page 51 ---
+Hardw areSynthesis withPetriNets 51
+ofconcurrency butrelativ elyfewchoices, andthustheprexes areinmanycases
+notmuchbigger thentheSTGsthemselv es.Forthescalable benchmarks, one
+canobserv ethatthecomplete prexes exhibited polynomial (infact,quadratic)
+growth,whereas thenumberofreachable states grew exponentially.Asare-
+sult,theunfolding-based metho dhadaclearadvantageoverthatbased onstate
+graphs, bothinterms ofmemory usage andrunning time. Theexperimen tal
+results demonstrated thatthedevised algorithms could handle quitelargespeci-
+cations inrelativ elyshort time, obtaining high-qualit ysolutions. Moreo ver,the
+proposedapproac hisapplicable toallbounded Petrinets,without anystructural
+restrictions suchasMarkedGraph ofFree-Choice constrain t.
+Animportantobserv ation onecanmakeisthatthecombination `unfolder &
+solver'turns outtobequite powerful. Ithasalready beenusedinanumberof
+papers(see,e.g.,[30,38]).Most of`interesting' problems forsafePetrinetsare
+PSPACE-complete [23],andunfolding suchanetallowstoreduce thiscomplex-
+ityclassdowntoNP(orevenPforsomeproblems, e.g.,checkingconsistency).
+Though intheworstcasethesizeofaniteandcomplete unfolding prex canbe
+exponentialinthesizeoftheoriginal Petrinet,inpractice itisoften relativ ely
+small. Inparticular, according toourexperimen ts,thisisalmost alwaysthecase
+forSTGs.Aproblem formulated foraprex canusually betranslated intosome
+canonical problem, e.g.,anintegerprogramming one[38],aproblem ofnding a
+stable modelofalogicprogram [30],orSATashere.Then anappropriate solver
+canbeusedforecien tlysolving it.
+Thepresen tedframew orkforinteractiv erenemen taimed atresolution of
+encodingconicts isbased onthevisualisation ofconict cores, whicharesets
+oftransitions `causing' state encodingconicts. Cores arerepresen tedatthe
+leveloftheunfolding prex, whichisaconvenientmodelforunderstanding the
+behaviour ofthesystem duetoitssimple branchingstructure andacyclicit y.
+Theadvantageofusing cores isthatonlythose parts ofSTGswhichcause
+encodingconicts, rather thanthecomplete listofCSCconicts, areconsidered.
+Since thenumberofcores isusually muchsmaller thanthenumberofencod-
+ingconicts, thisapproac hsavesthedesigner fromanalysing largeamoun tsof
+information. Resolution ofencodingconicts requires theelimination ofcores
+byintroducing additional signals intotheSTG.Therenemen tcontainsseveral
+interactiv esteps aimed athelping thedesigner toobtain acustomised solution.
+Thecasestudies demonstrate thepositivefeatures oftheinteractiv erenemen t
+process.
+Heuristics forsignal insertion based ontheheightmapandexploiting the
+intersections ofcoresusethemostessentialinformation aboutencodingconicts,
+andthusshould bequite ecien t.Infact,theconict resolution procedure can
+beautomated either partially orcompletely .However,inorder toobtain an
+optimal solution, asemi-automated resolution processshould beemplo yed.For
+example, thetoolmightsuggest theareas forinsertion ofnewsignal transitions,
+whicharetobeusedasguidelines. Yet,thedesigner isfreetointerveneatany
+stage andchooseanalternativ elocation, inorder totakeintoaccoun tthedesign
+constrain ts.
+
+--- Page 52 ---
+52 Carmona, Cortadella, Khomenk o,Yakovlev
+Weviewtheseresults asencouraging. Infuture workweintendtoinclude also
+thetechnology mapping stepintothedescrib eddesign ow,aswellasincorp o-
+rateother metho dsforresolving encodingconicts (concurrency reduction [17],
+timing assumption [18],etc.)intotheproposedframew orkforvisualisation and
+resolution ofencodingconicts.
+6Other Related WorkandFuture Directions
+There hasbeenalargeamoun tofresearc hinhardw aredesign using Petrinets
+inthelastfewyears.Thischapter hascoveredonlythemain advances made
+recentlyinlogicsynthesis fromSTGs, andsome ofthem, suchasthetopic of
+STGdecomp osition, onlybriey .
+Thereader ishoweverencouraged tolookbroader andforthatwebriey list
+hereanumberofrelevantandinteresting developmen ts.
+{STGdecomp osition. Theideaofreducing complexit yinlogicsynthe-
+sisfromSTGbySTGdecomp osition isnotnew.Forexample, in[14]the
+contraction metho dwasintroduced inwhichthelogicequations foroutput
+signal werederivedfromtheprojections ofthestategraph onthesetofrele-
+vantsignals forming thesupportofthederivedfunction. Thisideahasbeen
+recentlydevelopedfurther in[71],inorder removesome restrictions onthe
+classoftheSTG(liveandsafefreechoice). Italsoapproac hesthedecomp o-
+sition problem inapowerfulequivalence framew ork,whichisabisimulation
+withangelic nondeterminism. Another attempt inthisdirection, perhaps in
+amorepractical contextoftheHDL-based design owwasrecentlyreported
+in[77].
+{Implemen tabilit ycheckinginpolynomial time. Another important
+source ofcomplexit yreduction isasearchforpolynomial algorithms for
+various stages inasynchronous logicsynthesis forrestricted STGclasses, in
+particular forfree-choicenets.Suchanalgorithm hasbeendevelopedin[24].
+{Optimisation indirect mapping from STG.Theadvantages ofthe
+direct mapping ofPetrinetstocircuits canbeexploited intheSTGlevel,
+although atextra costincircuit area.Thedirect mapping doesnothowever
+aect performance negativ ely.Infactinmanycases, direct mapping oers
+solutions where thelatency betweeninput andoutput signal transitions is
+minimal. Newtechniques oftranslating STGsintocircuits using Davidcells,
+structured into`tracker'and`bouncer', alsoinclude optimisation ofthelogic
+size[61].
+{Synthesis fromSTGsinrestricted bases. While logicsynthesis ofspeed-
+independen tcircuits incomplex gates provides asatisfactory solution for
+modernCMOS design technologies, inthefuture itmaynotbereliable
+enough toguaran teecorrect operation. Theeects ofdelaysinwires and
+parametric instabilities mayrequire amuchmore conserv ativeapproac hto
+theimplemen tation ofcontrolcircuits. Inthisrespect,advances inthesyn-
+thesis ofcircuits thataremonotonic [62],i.e.,havingno\zero-dela y"invert-
+ersontheinputs, andfreefromisochronic forks[63]areimportant.
+
+--- Page 53 ---
+Hardw areSynthesis withPetriNets 53
+{Synthesis withrelativ etiming assumptions. Unliketheabove,some-
+times designing circuits under conserv ativeassumptions canleadtosigni-
+cantwastage ofarea,speedandpower.More optimistic considerations can
+bemade aboutdelaysinthesystem, forexample based ontheknowledge of
+actual delaysinthedatapathorintheenvironmen t,orduetoinformation
+aboutrelativ espeedsofsystem components.Useofrelativ etiming hasbeen
+investigated under thenotion oflazytransition systems [15].
+{Synthesis fromDelay-Insensitiv eProcessSpecications. Apotential
+waytoautomatic compilation ofHDLs based oncomm unicating processes
+toasynchronous circuits maybeviaanimportantseman ticallinkbetween
+delay-insensitiv e(DI)processalgebras andPetrinets.Suchalinkhasbeen
+established anddevelopedtotheleveloftoolsupportin[33].Aparticularly
+interesting contribution hasbeenthedenition oftheDIprocessdecom-
+position whichhelps avoiding CSCconicts intheSTGthatisconstructed
+automatically fromaprocess-algebraic specication [34].
+Acknowledgemen tsWewouldliketothank AlexBystro v,MichaelKishinev-
+sky,AlexKondrat yev,Maciej Koutn y,Luciano Lavagno andAgnes Madalin-
+skiforcontributing tothisresearc hatvarious stages. Thisresearc hwaspar-
+tially supported byEUFramew ork5ACiD-W GandEpsrcgrantsGR/M99293,
+GR/M94366 (Movie)andGR/R16754 (Besst ).
+References
+1.A.Allan, et.al.,2001Technology Roadmap forSemiconductors, Computer ,Jan-
+uary2002, pp.42-53.
+2.K.vanBerkel.Handshake Circuits: anAsynchr onous ArchitectureforVLSI Pro-
+gramming ,volume 5ofInternational Series onParallel Computation. Cambridge
+UniversityPress, 1993.
+3.E.BestandB.Grahlmann. PEP|morethanaPetriNetTool.Proc.ofToolsand
+Algorithms fortheConstruction andAnalysis ofSystems (TACAS'96) ,Springer-
+Verlag, Lecture Notes inComputer Science 1055, Springer-V erlag(1996) 397-401.
+4.I.Blunno andL.Lavagno. Automated synthesis ofmicro-pip elines frombehav-
+ioralVerilog HDL, Proc.ofIEEE Symp. onAdv.Res.inAsync. Cir.andSyst.
+(ASYNC 2000),IEEE CSPress, pp.84{92.
+5.R.Brayton, G.Hachtel,C.McMullen andA.Sangio vanni-Vincen telli:LogicMin-
+imisation Algorithms forVLSISynthesis .KluwerAcademic Publishers (1984).
+6.A.Bystro vandA.Yakovlev.Async hronous Circuit Synthesis byDirect Mapping:
+Interfacing toEnvironmen t,Proc.ASYNC'02 ,Manchester, April 2002.
+7.J.Carmona andJ.Cortadella. Input/Output Compatibilit yofReactiv eSystems.
+InFourthInternational Confer enceonFormal MethodsinComputer-A idedDesign
+(FMCAD) ,Portland, Oregon, USA, November2002. Springer-V erlag.
+8.J.Carmona andJ.Cortadella. ILPModelsfortheSynthesis ofAsync hronous
+ControlCircuits. InProc.International Conf. Computer-A idedDesign (ICCAD) ,
+SanJose,California, USA, November2003.
+9.J.Carmona, J.Cortadella, andE.Pastor. Astructural encodingtechnique for
+thesynthesis ofasynchronous circuits. Fundamenta Informatic ae,pages 135{154,
+April 2001.
+
+--- Page 54 ---
+54 Carmona, Cortadella, Khomenk o,Yakovlev
+10.C.Carrion andA.Yakovlev:Design andEvaluation ofTwoAsync hronous Token
+RingAdapters. Tech.Rep.CS-TR-562, SchoolofComp. Sci.,Univ. ofNewcastle
+(1996).
+11.Daniel M.Chapiro, Globally-Asynchr onous Locally-Synchr onous Systems .PhD
+thesis, Stanford University,Octob er1984.
+12.T.Chelcea, A.Bardsley ,D.EdwardsandS.M.Nowick.Aburst-mo deoriented
+back-end fortheBalsa synthesis system, Proc.ofDesign, Automation andTest
+inEurope(DATE'02) ,IEEE CSPress, pp.330-337.
+13.T.-A. Chu,C.K.C.Leung, andT.S.Wanuga.Adesign metho dology forconcur-
+rentVLSI systems. InProc.International Conf. Computer Design (ICCD) ,pages
+407-410. IEEE Computer SocietyPress, 1985.
+14.T.-A.Chu:Synthesis ofSelf-Time dVLSICircuitsfromGraph-The oreticSpecica-
+tions.PhDThesis, MIT/LCS/TR-393 (1987).
+15.J.Cortadella, M.Kishinevsky ,S.M. Burns, K.S. Stevens,A.Kondrat yev,L.
+Lavagno, A.Taubin, A.Yakovlev.LazyTransition Systems andAsynhronous Cir-
+cuitSynthesis withRelativ eTiming Assumptions. IEEE Trans.ofCAD,Vol.21,
+No.2,Feb.2002, pages 109-130.
+16.J.Cortadella, M.Kishinevsky ,A.Kondrat yev,L.Lavagno andA.Yakovlev: A
+Region-Based Theory forState Assignmen tinSpeed-Indep enden tCircuits. IEEE
+Transactions onComputer-A idedDesign ofIntegratedCircuitsandSystems 16(8)
+(1997) 793{812.
+17.J.Cortadella, M.Kishinevsky ,A.Kondrat yev,L.LavagnoandA.Yakovlev:Auto-
+matic Handshak eExpansion andReshuing Using Concurrency Reduction. Proc.
+ofHWPN'98 ,(1998) 86{110.
+18.J.Cortadella, M.Kishinevsky ,A.Kondrat yev,L.Lavagno, andA.Yakovlev:Logic
+Synthesis ofAsynchr onous ControllersandInterfac es.Springer Verlag(2002).
+19.W.J.Dally andJ.W.Poulton: Digital Systems Engine ering.Cambridge University
+Press (1998).
+20.R.David. Modular design ofasynchronous circuits dened bygraphs. IEEE
+Transactions onComputers ,26(8):727{737, August 1977.
+21.J.Desel andJ.Esparza. Reachabilit yincyclic extended free-choice systems. TCS
+114,Elsevier Scienc ePublishers B.V.,1993.
+22.D.EdwardsandA.Bardsley .Balsa :Anasynchronous hardw aresynthesis lan-
+guage. TheComputer Journal ,45(1):12-18, 2002.
+23.J.Esparza: Decidabilit yandComplexit yofPetriNetProblems |anIntroduction.
+In:LecturesonPetriNetsI:Basic Models,W.Reisig andG.Rozen berg(Eds.).
+LNCS 1491(1998) 374{428.
+24.J.Esparza. APolynomial-Time Algorithm forCheckingConsistency ofFree-Choice
+Signal Transition Graphs, Proc.ofthe3rdInt.Conf. Applications ofConcurrency
+toSystem Design (ACSD'03), IEEE CSPress, June2003, pp.61-70.
+25.J.Esparza, S.Romer andW.Vogler: AnImpro vementofMcMillan's Unfolding
+Algorithm. FMSD 20(3) (2002) 285{310.
+26.D.Ferguson andM.Hagedorn, TheApplication ofNULL ConventionLogic to
+Micro controller/Micro converter Product, Second ACiD-W GWorkshop, Munic h,
+2002. URL:http://www.scism.sbu.ac.uk/ccsv/ACiD-WG/Workshop2FP5/P rogramme /.
+27.S.Furber,Industrial take-upofasynchronous design, Keynote talkattheSecond
+ACiD-W GWorkshop, Munic h,2002. URL:http://www.scism.sbu.ac.uk/ccsv/ACiD-WG/
+Workshop2FP5/Programme/.
+28.S.B.Furber,A.Efthymiou, andM.Singh: APower-Efcien tDuplex Comm unica-
+tionSystem. Proc.ofAINT'00 ,TUDelft, TheNetherlands (2000) 145{150.
+
+--- Page 55 ---
+Hardw areSynthesis withPetriNets 55
+29.F.GarcaVallesandJ.M.Colom. Structural analysis ofsignal transition graphs. In
+D.Holdt InB.FarwerandM.O. Stehr, editors, ProceedingsoftheWorkshop Petri
+NetsinSystem Engine ering(PNSE?97). Modelling,VericationandValidation ,
+pages 123{134, Hamburg(German y).Septem ber25{26, Septem ber1997. Published
+asreportn205oftheComputer Science Departmen toftheUniversityofHamburg.
+30.K.Heljank o:Using Logic Programs withStable ModelSeman ticstoSolveDeadlo ck
+andReachabilit yProblems for1-Safe PetriNets.Fundamentae Informatic ae37(3)
+(1999) 247{268.
+31.K.Heljank o,V.Khomenk o,andM.Koutn y:Parallelization ofthePetriNetUn-
+folding Algorithm. Proc.ofTACAS'2002 ,LNCS 2280(2002) 371{385.
+32.L.A.Hollaar. Direct implemen tation ofasynchronous controlunits. IEEE Trans-
+actions onComputers ,C-31(12):1133{1141, Decem ber1982.
+33.H.K.Kapoor,M.B.Josephs andD.P.Furey: Verication andImplemen tation of
+Delay-Insensitiv eProcesses inRestrictiv eEnvironmen ts.Proc.ofICACSD'04 ,
+IEEE Comp. Soc.Press (2004) toappear.
+34.H.K.KapoorandM.B.Josephs: Automatically decomp osing specications with
+concurren toutputs toresolv estatecodingconicts inasynchronous logicsynthesis.
+Proc.ofDAC'04,2004(toappear)
+.
+35.V.Khomenk oandM.Koutn y:LPDeadlo ckCheckingUsing Partial Order Depen-
+dencies. Proc.ofCONCUR'2000 ,LNCS 1877(2000) 410{425.
+36.V.Khomenk oandM.Koutn y:TowardsAnEcien tAlgorithm forUnfolding Petri
+Nets. Proc.ofCONCUR'2001 ,LNCS 2154(2001) 366{380.
+37.V.Khomenk o,M.Koutn y,andV.Vogler: Canonical Prexes ofPetriNetUnfold-
+ings.Proc.ofCAV'2002 ,LNCS 2404(2002) 582{595. Fullversion: ActaInformatica
+40(2) (2003) 95-118.
+38.V.Khomenk o,M.Koutn yandA.Yakovlev: Detecting State CodingConicts in
+STGs Using Integer Programming. Proc.ofDATE'02 ,IEEE Comp. Soc.Press
+(2002) 338{345.
+39.V.Khomenk o,M.Koutn y,andA.Yakovlev:Detecting State CodingConicts in
+STGUnfoldings Using SAT.Proc.ofICACSD'03 ,IEEE Comp. Soc.Press (2003)
+51{60. Fullversion: toappearinSpecialIssueonBestPapersfromICACSD'2003,
+Fundamen taInformaticae.
+40.V.Khomenk o,M.Koutn y,andA.Yakovlev:Logic Synthesis Avoiding State Space
+Explosion. Proc.ofICACSD'04 ,IEEE Comp. Soc.Press (2004) toappear.Full
+version: Tech.Rep.CS-TR-813, SchoolofComp. Science, Univ. ofNewcastle.
+URL:http://homepages.cs.ncl.ac.uk/victor.khomenko/home .formal/ papers/p apers.ht ml.
+41.D.J.Kinnimen t,B.Gao,A.YakovlevandF.Xia:Towardsasynchronous A-Dcon-
+version. Proc.ofASYNC'00 ,IEEE Comp. Soc.Press (2000) 206{215.
+42.MichaelKishinevsky ,AlexKondrat yev,Alexander Taubin, andVictor Varshavsky.
+Concurr entHardware:TheTheoryandPracticeofSelf-Time dDesign .Series in
+Parallel Computing. JohnWiley &Sons, 1994.
+43.A.Kondrat yevandK.Lwin. Design ofasynchronous circuits using synchronous
+CAD tools.IEEE Design andTestofComputers ,19(4):107-117, 2002.
+44.K.S.LowandA.Yakovlev: TokenRing Arbiters: anExercise inAsync hronous
+Logic Design withPetriNets. Tech.Rep.CS-TR-537, SchoolofComp. Sci.,Univ.
+ofNewcastle (1995).
+45.A.Madalinski, A.Bystro v,V.Khomenk o,andA.Yakovlev:Visualisation andRes-
+olution ofCodingConicts inAsync hronous Circuit Design. Proc.ofDATE'03 ,
+
+--- Page 56 ---
+56 Carmona, Cortadella, Khomenk o,Yakovlev
+IEEE Comp. Soc.Press (2003) 926{931. Fullversion: SpecialIssue onBestPa-
+persfromDATE'2003, IEEProceedings: Computers &Digital Techniques 150(5)
+(2003) 285{293.
+46.K.L.McMillan: Using Unfoldings toAvoidState Explosion Problem intheVeri-
+cation ofAsync hronous Circuits. Proc.ofCAV'92,LNCS 663(1992) 164{174.
+47.G.DeMicheli.Synthesis andOptimisation ofDigital Circuits,McGra w-Hill, 1994.
+48.S.Moskewicz, C.Madigan, Y.Zhao, L.Zhang andS.Malik: Chaff :Engineering an
+Ecien tSATSolver.Proc.ofDAC'01,ASME Technical Publishing (2001) 530{
+535.
+49.T.Murata. Petri Nets: Properties, analysis andapplications. Proceedingsofthe
+IEEE,pages 541{580, April 1989.
+50.E.Pastor, J.Cortadella, A.Kondrat yev,andO.Roig. Structural metho dsforthe
+synthesis ofspeed-indep enden tcircuits. IEEE Transactions onComputer-A ided
+Design ,17(11):1108{1129, November1998.
+51.S.S.PatilandJ.B.Dennis. Thedescription andrealization ofdigital systems. In
+ProceedingsoftheIEEE COMPCON ,pages 223{226, 1972.
+52.M.A. Pe~naandJ.Cortadella, Combining processalgebras andPetrinetsforthe
+specication andsynthesis ofasynchronous circuits, Proc.ofIEEE Symp. onAdv.
+Res.inAsync. Cir.andSyst.(ASYNC'96) ,IEEE CSPress, pp.222-232.
+53.C.A.Petri. Kommunikation mitAutomaten .PhD thesis, Bonn, Institut fur
+Instrumen telleMathematik, 1962. (technical reportSchriften desIIMNr.3).
+54.P.Riocreux: Private communic ation.UKAsync hronous Forum (2002).
+55.L.Y.Rosen blum andA.V.Yakovlev. Signal graphs: fromself-timed totimed
+ones. InProceedingsofInternational Workshop onTimedPetriNets,pages 199{
+207,Torino, Italy,July1985. IEEE Computer SocietyPress.
+56.A.Schrijver.TheoryofLinearandIntegerProgramming .John Wiley &Sons,
+1998.
+57.A.Semeno v:Verication andSynthesis ofAsynchr onous ControlCircuitsUsing
+PetriNetUnfolding .PhDThesis, UniversityofNewcastle uponTyne(1997).
+58.D.Shang, F.XiaandA.Yakovlev. Async hronous Circuit Synthesis viaDirect
+Translation, Proc.Int.Symp. onCir.andSyst.(ISCAS'02) ,Scottsdale, Arizona,
+May2002.
+59.ManuelSilva,Enrique Teruel, andJoseManuelColom. Linear algebraic andlinear
+programming techniques fortheanalysis ofplace/transition netsystems. Lecture
+Notes inComputer Scienc e:LecturesonPetriNetsI:Basic Models,1491:309{373,
+1998.
+60.J.Spars andS.Furber,Edt.,Principles ofAsynchr onous CircuitDesign: ASys-
+temsPerspective. KluwerAcademic Publishers, 2001
+61.D.Sokolov,A.Bystro vandA.Yakovlev.STGoptimisation inthedirect mapping
+ofasynchronous circuits, Proc.Design andTestinEurop e(DATE),March2003,
+932-937.
+62.N.Starodoubtsev, S.Bystro v,M.Goncharov,I.KlotchkovandA.Smirno v.To-
+wardsSynthesis ofMonotonic Circuits fromSTGs, InProc.of2ndd Int.Conf.
+Applications ofConcurrency toSystem Design (ACSD'01), IEEE CSPress, June
+2001, pp.179-180.
+63.N.Starodoubtsev, S.Bystro v,andA.Yakovlev.Monotonic circuits withcomplete
+acknowledgemen t,Proc.ofASYNC'03, Vancouv er,IEEE CSPress, pp.98-108.
+64.IvanE.Sutherland. Micropip elines. Communic ations oftheACM,32(6):720-738,
+June1989.
+65.A.Valmari. Astubbornattackonstate explosion. Formal MethodsinSystem
+Design ,1(4):297{322, 1992.
+
+--- Page 57 ---
+Hardw areSynthesis withPetriNets 57
+66.P.Vanbekbergen. Synthesis ofAsynchr onous ControlCircuitsfromGraph-
+TheoreticSpecications .PhDthesis, Catholic UniversityofLeuven,1993.
+67.P.Vanbekbergen, F.Cattho or,G.Goossens andH.DeMan: Optimised Synthesis
+ofAsync hronous ControlCircuits formGraph-Theoretic Specications. Proc.of
+ICCAD'90 ,IEEE Comp. Soc.Press (1990) 184{187.
+68.V.I.VarshavskyandV.B.Marakho vsky.Async hronous controldevice design by
+netmodelbehaviorsimulation. InJ.Billington andW.Reisig, editors, Applic ation
+andTheoryofPetriNets1996,volume 1091ofLectureNotes inComputer Scienc e,
+pages 497{515. Springer-V erlag, June1996.
+69.V.I.Varshavsky,editor. Self-Time dControlofConcurr entProcesses: TheDesign
+ofAperiodicLogicalCircuitsinComputers andDiscreteSystems .KluwerAcademic
+Publishers, Dordrec ht,TheNetherlands, 1990.
+70.Thomas Villiger, HubertKslin, FrankK.Grkaynak, Stephan Oetiker,andWolf-
+gangFichtner.Self-timed ringforglobally-async hronous locally-sync hronous sys-
+tems. Proc.International Symposium onAdvancedResearchinAsynchr onous Cir-
+cuitsandSystems ,pp.141-150. IEEE Computer SocietyPress, May2003.
+71.W.Vogler andR.Wollowski. Decomp osition inasynchronous circuit design. In
+J.Cortadella, A.Yakovlev,andG.Rozen berg,editors, Concurr encyandHard-
+wareDesign ,volume 2549ofLectureNotes inComputer Scienc e,pages 152-190.
+Springer-V erlag, 2002.
+72.A.Yakovlev: Designing ControlLogic forCounterowPipelineProcessor Using
+Petrinets.FMSD 12(1) (1998) 39{71.
+73.A.Yakovlev,S.FurberandR.Krenz, Design, Analysis andImplemen tation ofa
+Self-timed Duplex Comm unication System, CS-TR-761, Dept. Computing Science,
+Univ. ofNewcastle uponTyne,March2002. URL:http://www.cs.ncl.ac.uk/people/
+alex.yakovlev/home.informal/some papers/duplex-TR.ps.
+74.A.YakovlevandA.Koelmans. PetrinetsandDigital Hardw areDesign Lectures
+onPetriNetsII:Applic ations. AdvancesinPetriNets,LectureNotes inComputer
+Scienc e,vol.1492, Springer-V erlag, 1998, pp.154-236.
+75.A.YakovlevandA.Petrov:PetriNetsandAsync hronous BusController Design.
+Proc.ofICATPN'90 ,(1990) 244{262.
+76.A.Yakovlev,V.Varshavsky,V.Marakho vskyandA.Semeno v.Designing anasyn-
+chronous pipelinetokenringinterface, Proc.of2ndWorking Confer enceonAsyn-
+chronous Design Methdolo gies,London, May1995,IEEE Comp. SocietyPress,
+N.Y., 1995, pp.32-41.
+77.T.Yoneda andC.Myers.Synthesis ofSpeedIndep enden tCircuits based onDe-
+composition, Proceedings ofASYNC 2004, Heraklion, Greece, IEEE CSPress,
+April 2004.
+78.L.Zhang andS.Malik: TheQuest forEcien tBoolean Satisabilit ySolvers.Proc.
+ofCAV'02,LNCS 2404(2002) 17{36.
