@@ -1,0 +1,1871 @@
+--- Page 1 ---
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Control System Design of     
+Water Filter Test Bench  
+ 
+Juuso Sahamies  
+ 
+BACHELOR’S  THESIS  
+Januar y 2022 
+ 
+Mechanical Engineering  
+Machine Automation  
+ 
+ 
+ 
+ 
+
+--- Page 2 ---
+ 
+ABSTRACT  
+Tampereen ammattikorkeakoulu  
+Tampere  University of Applied Sciences  
+Degree Programme in Mechanical Engineering  
+Machine Automation  
+ 
+SAHAMIES, JUUSO : 
+Control System Design of Water Filter Test Bench  
+ 
+Bachelor's thesis 80 pages, appendices 13 pages  
+January  2022  
+Hydraulic filters are installed to hydraulic systems to decrease the amount of dirt 
+particles. These filters are tested in test benches according to measuring stand-
+ards. Test results will give better understanding of filters properties, such as fil-
+tration ratio and pressure drop. This information can be used for a product devel-
+opment and as an info for the costumers.  
+ 
+A new  water filter  test bench is to be built for Parker.  A well -designed control 
+system will be in key role for the use of the test bench an d for the success of 
+measuring events. The first model of test bench’s control system was created in 
+this thesis. The control system was modelled in Unified Modelling Language’s 
+state machine diagrams, which can be utilized later in the creation of the PLC  
+program. This work can be seen as constructive research and it was commis-
+sioned by Parker Hannifin Manufacturing Finland Oy.  
+ 
+The work part started by designing the hydraulic circuit. After the hydraulic circuit 
+was complete and all the needed components of the control system were defined, 
+control system design began. Main states of the control system were modelled 
+first. These s tates defined which of the components could be actuated during 
+each state and which sensor/state data would be shown to the user by the Hu-
+man-machine interface. Components’ state machine diagrams were modelled af-
+ter this. These diagrams defined every possi ble scenario where a certain compo-
+nent could be used. The actuations were possible only if the set conditions for 
+the action were true. These guards were set for the state changes so that the 
+system would be safe to use, and unwanted action wouldn’t occur.  Confidential 
+parts of this thesis w ere omitted from this public version.  
+ 
+The result of this study was a model of a control system. It can be seen as the 
+first prototype where all the critical functions of the control are defined. Several 
+ideas for furthe r development of the water filter test bench appeared during the 
+work and they are explained in the discussion. Next step for this project would be 
+the creation of a PLC program and its simulation. There the functionalities of the 
+control system designed i n this thesis could be tested and fixed if needed.  
+ 
+Key words : control system , state machine diagram, filtration  
+
+--- Page 3 ---
+3 
+CONTENTS  
+1 INTRODUCTION  ................................ ................................ ..................  6 
+2 THEORY  ................................ ................................ ...............................  8 
+2.1 Government Decree on the Safe Use and Inspection of Work 
+Equipment 12.6.2008/403  ................................ ..............................  8 
+2.2 Government Decree on the Safety of Machinery 12.6.2008/400  ... 8 
+2.2.1  Control devices  ................................ ................................ ..... 9 
+2.2.2  Start  ................................ ................................ ....................  10 
+2.2.3  Stop ................................ ................................ ....................  10 
+2.2.4  Selection of control and operating modes  ..........................  11 
+2.2.5  Special requirements for safety devices  .............................  12 
+2.2.6  Warning devices  ................................ ................................ . 12 
+2.3 Multi -pass ISO 16889  ................................ ................................ ... 13 
+2.3.1  Multi -pass test system example ................................ ..........  13 
+2.3.2  Preliminary preparations  ................................ .....................  14 
+2.3.3  Filter performance test  ................................ ........................  15 
+2.4 Evaluation of differential pressure versus flow ISO 3968  .............  15 
+2.4.1  Differential pressure versus flow ex ample test system  ....... 16 
+2.5 Unified Modelling Language  ................................ .........................  17 
+2.5.1  Object -oriented programming  ................................ .............  18 
+2.5.2  Sequence diagram  ................................ .............................  20 
+2.5.3  State machine diagram  ................................ .......................  22 
+3 TEST BENCH CASE  ................................ ................................ ..........  24 
+3.1 Introduction  ................................ ................................ ..................  24 
+3.2 Specification of requirements  ................................ .......................  24 
+3.3 Hydraulic diagram design and system’s components  ..................  25 
+4 TEST BENCH CONTROL SYSTEMS DESIGN  ................................ .. 26 
+4.1 Introduction  ................................ ................................ ..................  26 
+4.2 Risk spotting  ................................ ................................ ................  26 
+4.3 Control system’s safety  ................................ ................................  27 
+4.3.1  Required performance level  ................................ ...............  28 
+4.3.2  Safety integrity level  ................................ ...........................  29 
+4.4 Test bench’s sensors and control devices  ................................ ... 29 
+4.5 State machine diagrams  ................................ ..............................  32 
+4.5.1  General notes  ................................ ................................ ..... 32 
+4.5.2  Main states  ................................ ................................ .........  34 
+4.5.3  Valves  ................................ ................................ .................  37 
+
+--- Page 4 ---
+4 
+4.5.4  Pumps  ................................ ................................ ................  54 
+4.5.5  Inner states  ................................ ................................ .........  59 
+4.6 HMI outline  ................................ ................................ ...................  60 
+5 DISCUSSION  ................................ ................................ .....................  62 
+REFERENCES  ................................ ................................ ........................  64 
+APPENDICES  ................................ ................................ ..........................  65 
+Appendix 1. Example hydraulic circuit of multi -pass system (ISO 
+16889:2008)  ................................ ................................ .................  65 
+Appendix 2. Example state machine diagram of a larm clocks control 
+object (Koskimies 2000)  ................................ ...............................  66 
+Appendix 3. Hydraulic circuit diagram of water filter test bench  ..........  67 
+Appendix 4. Control system components  ................................ ............  68 
+Appendix 5. ΔP Measurement state machine diagram  .......................  69 
+Appendix 6. Multi -pass measurement state machine diagram  ............  70 
+Appendix 7. Manual control state machine diagram  ...........................  73 
+Appendix 8. Throttle valve B.TV.1 state machine diagram.  ................  75 
+Appendix 9 . Throttle valve B.TV.2 state machine diagram.  ................  76 
+Appendix 10. Pump A.PM.1 state machine diagram.  ..........................  77 
+Appendix 11. Pump B.PM.1 state machine diagram.  ..........................  78 
+Appendix 12. Pump B.PM.2 state machine diagram.  ..........................  79 
+Appendix 13. Pump B.PM.3 state machine diagram.  ..........................  80 
+ 
+
+--- Page 5 ---
+5 
+GLOSSARY  
+ 
+E/E/PE  Electrical/ electronic/ programmable elec-
+tronic  
+Gravimetric level   Contaminant content  
+HMI   Human -machine interface   
+PLC  Programmable logic controller  
+
+--- Page 6 ---
+6 
+1 INTRODUCTION  
+ 
+Parker Hannifin Manufacturing Finland  Oy is part of global Parker Hannifin Cor-
+poration , Filtration Group  and Hydraulic and Industrial Process Filtration  Division 
+EMEA . It is mainly focused on production and design of hydraulic filters.  Till today , 
+these filters have mainly been  for oil.  Until now , a new need for water filters has 
+risen.  
+ 
+To test filters and their properties  such as filtration ratio and pressure drop , a test 
+bench system is needed . Test bench es and measuring  events are defined in  dif-
+ferent standards. To research and develop water filtration, a new test bench must 
+be made.  This test bench will be controlled with a control system  which  prelimi-
+nary designing is the topic of this thesis.  
+ 
+Test bench project is  still on its early stages.  Components or software to be used 
+are not  yet decided. Therefore,  the model of the  control  system to be designed  
+must be univers al. Unified Modeling Language offers a great tool for this:  a state 
+machine diagram.  
+ 
+Theory part of th is thesis aims to give all the needed  instruments  for safe and 
+easily understandable modelling of the test bench control system . It will delve into 
+the laws and safety regulations of control system’s functions , explain the Unified 
+Modelling Language and open  up the measuring standards ISO 16889  and ISO 
+3968, which are to be followed in the test bench  design process.   
+ 
+This work  doesn’t aim to offer a ready to be used control system, but a model, a 
+first prototype where all the cr itical control functions are  determined. This model 
+strives  to divide the system into different  logical  main states , where control of 
+certain components are made possible . On a deeper level, a state machine dia-
+gram is to be created for every component of the con trol system . These diagrams  
+define  every possible scenario where a certain component can be actuated and 
+what conditions needs to be fulfilled so that the actuation would be  safe and al-
+lowed .  
+ 
+
+--- Page 7 ---
+7 
+This work aims to give  a model after which the PLC program can be made  and 
+to point  out certain questions that need s to be  considered during  the creation of 
+the final control system . 
+
+--- Page 8 ---
+8 
+2 THEORY  
+ 
+ 
+2.1 Government Decree on the Safe Use and Inspection of Work Equip-
+ment 12.6.2008/403  
+ 
+There are many laws and regulations to be followed when designing a new ma-
+chine or a system.  In the following two chapter s two decrees are looked into. 
+These decrees contain a lot of general safety regulations for machinery, but only 
+the par ts that consider regulations for control systems , and especially control sys-
+tems software,  are examined.  
+ 
+The Government Decree on the Safe Use and Inspection of Work Equipment is 
+applied for  use and inspection of a machine, an equipment  and other technica l 
+device or their combination at work.  Safeness of control systems  is also included 
+into this.  
+ 
+It is stated in the decree  that control system and safety devices must work flaw-
+lessly. Also , the control ling systems must be reliable , and must be  secur ed where 
+possible  that a flaw in system  or a change in  its energy state won ’t cause any 
+danger.   Control system must be chosen and designed s o that in planned usage, 
+possible flaws, disturbances and restrictions  are considered . (Valtioneuvoston 
+asetus työvälineiden turvallisesta käytöstä ja tarkastamisesta  2008/403 .) 
+ 
+ 
+2.2 Government Decree on the Safety of Machinery 12.6.2008/400  
+ 
+Minimum safety levels for commercial machines  are defined in  the Government 
+Decree on Safety of Machiner y (Valtioneuvoston asetus koneiden turvallisuud-
+esta 2008/400 ). The parts of the decree where control systems  safety and relia-
+bility are conside red, are looked into  in this chapter . Even though the water filter 
+test bench will not be a commercial product , it must fulfil all the obligations set 
+out in the Government Decree on the Safety of Machinery  (European Commis-
+sion, 2019) .  
+ 
+
+--- Page 9 ---
+9 
+Control system s must  be designed and built so that  it prevent s any danger  to 
+occur . They  must be designed and built so that:  
+-intended operating use and outer influences  are handled  
+-errors in control systems hardware or software will not cause any 
+danger  
+-errors in a control systems logic will not cause any danger  
+-reasonable and predictable human error on use will not cause  any 
+danger . 
+ 
+The following things in control system must be dealt with extra care:  
+ -Machine cannot start unexpectedly . 
+-Machines  parameters cannot change uncontrollably if this sort of 
+change can cause any danger . 
+-Stop of machine cannot be cancelled  if a stop command is given . 
+-None of machines moving part s or parts that it is holding cannot fall 
+or dart.  
+-Automatically  or manuall y operated stop of machine ’s moving part 
+cannot be cancelled .  
+-Safety devices must be functional or t hey must  give a stop com-
+mand.   
+-Automatic stop of a machine has to  happen if the connection is lost 
+to its wireless controller . 
+(Valtioneuvoston asetus koneiden turvallisuudesta 2008/400.)  
+ 
+ 
+2.2.1  Control devices  
+ 
+If there are more than one control place, control system must be designed so that  
+usage of one control place bloc ks the usage of others. Stops and emergency 
+stops devices are exception s. 
+ 
+User must be able to make sure from the control place that no one is in the danger 
+zone . If that is not possible,  the control system must be designed so that start will 
+be blocked if someone  is in the danger zone.  If neither of the previous  are possi-
+ble, an alarm sound or light must be given before the machine can start.  Adequate  
+
+--- Page 10 ---
+10 
+time must be given to persons to exit  the danger zone or to block the start of a 
+machine. (Valtioneuvoston asetus koneiden turvallisuudesta 2008/400 .) 
+ 
+ 
+2.2.2  Start  
+ 
+The start of a machine can only be possible when a control device is purposely 
+used. The same demand goes  when a machine is being restarted by the user 
+after a stop . Though,  restart or change of operating conditions can happen by 
+using purposely another device than a control device meant for this purpose , if it 
+won’t cause any danger.  If a machine is in an automatic state , it may start , restart  
+or its operating condition can change  by itself,  if it won’t cause any danger.  If a 
+machine ha s several controllers for a start  command  and users might jeopardize 
+each other, an extra  device  for safety must be installed.  Also, if a start or a stop 
+must be done in exact order, correct order must be ensured with extra devices. 
+(Valtioneuvoston asetus koneiden turvallisuudesta 2008/400 .) 
+ 
+ 
+2.2.3  Stop  
+ 
+In a normal stop, m achines stop command must be primary to its start command.  
+When a machine or its dangerous functions have been stopped, energy supply 
+to competent actuators must be shut off.  If a functional stop is needed w here 
+supply of energy is not shut off, it has to be supervised and maintained.  
+ 
+There must be at least one or more emergency stops in a machin e so that real 
+or threatening danger s can be prevented. This rule can be deviated in machines 
+where risk of danger w ould not be lowered by emergency sto p, because stop time 
+would not be reduced , or because  some actions for safety would be impossible 
+to be execute d.  
+ 
+Dangerous process es must be stopped by e mergency stop device  as soon as 
+possible. Also, certain protective manoeuvres  must be executed or their start 
+have to be allowed if necessary.  
+ 
+
+--- Page 11 ---
+11 
+The stop command executed by emergency stop device must stay on and locked  
+until it is released with a special operation.  Locking of  an emergency stop device 
+cannot be possible without a stop command.  Locking of  an emergency stop de-
+vice can only be opened with intended action  and the machine cannot be turned 
+on by this same action , only the option of rest art is made possible. Possibility of 
+emergency stop function must always be available and functional regardless on 
+the mode of operation. Emergency stop devices must be an additional way of 
+protection with other safety operation s and not their substituent.   
+ 
+In a combination of machines , every part that is connected to a part  which  is 
+under the influence of stop command has to stop, if otherwise their action would 
+cause a danger.  (Valtioneuvoston asetus koneiden turvallisuudesta 2008/400.)  
+ 
+ 
+2.2.4  Selection of control and operating modes 
+ 
+The chosen control mode must  be primary  compared  to other operations and 
+ways of control , except for emergency stop . If a machine can be controlled with 
+different control devices or modes of operations, it has to have a switch to select 
+the wanted  operation mode . This is a must in operation mode s that requires 
+safety measures . Switch has to be so that it can be locked to  its current position . 
+Also,  every position has to be easily recognizable and they must answer to one 
+operation mode  only. Switch can be replaced  with other selection method s if they 
+fill the same requirements for safety . 
+ 
+If for some occasion, safeguard has to be moved or taken off , or a safety device 
+has to be removed  from a system , control or operation mode switch has to  sim-
+ultaneously : 
+ -disable all other control and operation mod es 
+-allow dangerous functions and their execution only for control de-
+vices that are constantly under an influence  
+-allow dangerous operations only under the circumstances  of re-
+duced risk , while  preventing r isks occurring from  related  operation 
+periods  
+
+--- Page 12 ---
+12 
+-prevent dangerous functions that intentional or unintentional effect 
+on machines sensor can cause.  
+ 
+If these four abovesaid rules cannot be fulfilled simultaneously , choosing of con-
+trol or operation mode must  activate other safety measu res. These safety 
+measures must  be designed and built so that they cover the void in the safety  
+zone . Manual control of action s that user is working with , must be possible at the 
+working area.  (Valtioneuvoston asetus koneiden turvallisuudesta 2008/400.)  
+ 
+ 
+2.2.5  Special requirements for s afety devices  
+ 
+Safety devices must be planned and connected to a control system so that mov-
+ing parts cannot turn on when they are within the reach of  a user.  Persons cannot 
+reach to moving parts when they are moving. Single fault or lack of a component 
+in safety devices must block start or stop moving parts.  Safety devices must be 
+adjustable only with appropriate  operation.  
+ 
+Action connected  openable safeguards must have an action connected  device, 
+that blocks dangerous function from turning on until safeguard is close d. Also, 
+stop command must be given when the safeguard is not attached anymore.  
+(Valtioneuvoston asetus koneiden turvallisuudesta 2008/400 .) 
+ 
+ 
+2.2.6  Warning devices  
+ 
+If a fault of  a machine that is not under  a supervision, jeopardize s a person’s  
+health or security , that machine must be equipped so that it gives a proper sound 
+or light sign as a warning.  (Valtioneuvoston asetus koneiden turvallisuudesta 
+2008/400 .) 
+ 
+ 
+ 
+ 
+
+--- Page 13 ---
+13 
+2.3 Multi -pass ISO 16889  
+ 
+The main reason for faults in hydraulic fluid power systems is  a wear caused by 
+a contaminat ed hydraulic fluid.  To decrease the amount of dirt particles within the 
+fluid, h ydraulic filters are installed to hydraulic system s. 
+ 
+Multi -pass ISO 16889 standard has been made for repeatable and standardized 
+testing of hydraulic filter s’ properties . (ISO 16889 :2008 .) The water filter test  
+bench will be designed  to follow  this multi-pass standard . In this chapter,  stand-
+ard’s  requirements for the  system ’s components, hydraulic circuit  and measuring 
+event  are viewed . The aforesaid  information is crucial for the control system de-
+sign process,  and it is important to  follow the standard precisely . When the water 
+filter test bench will be  built, it must be validated according to the ISO 16889 
+standard.  Only the parts of the standard that affect to the control system design 
+is looked into in this chapter.  
+ 
+ 
+2.3.1  Multi -pass test system  example  
+ 
+Multi -pass standard provides guidelines for the required  test system. An example  
+of multi -pass system’s  hydraulic circuit is shown in the ISO 16889 standard  (ap-
+pendix  1). All the necessary components  for the multi -pass test are shown  in the 
+diagram  and t he keys for  the hydrau lic circuit are following : 
+ 
+A. contaminant injection system  
+B. filter test system  
+1. reservoir  
+2. pump  
+3. test filter  
+4. particle counting system  
+5. flow control valve  
+6. clean-up filter  
+7. flow meter  
+8. temperature controller  
+9. temperature sensor  
+
+--- Page 14 ---
+14 
+10. sampling valve  
+11. differential pressure indicator  
+12. pressure gauge  
+13. diffuser  
+14. shut-off valve  
+15. non-return (check) valve  
+16. optional return to reservoir  
+17. back pressure valve  
+18. optional bypass section .  
+ 
+As can be seen, the system consists of two different circuits, contaminant injec-
+tion system and filter test system.  In contaminant injection system, the contami-
+nant is added in the reservoir and there it is mixed and injected to the filter test 
+system.  This d irty fluid is pumped thr ough the test filter  while  two of the filter’s  
+properties are measured , the amount of  dirt particles and their size  before and 
+after the filter  and pressure drop over the filter . There are also one cleaning filter 
+for both of the  circuits , so that the fluid can be cleaned after and before each 
+measuring event.   
+ 
+Temperature controllers are installed to  the circuit to ensure the wanted kinematic 
+viscosity within the fluid . ISO 16889 recommends an  installation of  option al by-
+pass section , so that the pump can be driven at a higher speed while  flow rate  is 
+lower . This eliminates  overheating of the pump and high -flow ripples.   
+ 
+Multi -pass standard defines flow rates for injecti on flow and test flow.  Therefore,  
+there must  be a flowmeter in both circuits . (ISO 16889:2008.)  
+ 
+ 
+2.3.2  Preliminary preparations  
+ 
+Before the final test, p redicted test time,  gravimetric level, quantity of contami-
+nant,  minimum injection system  volume and  flow rate  must be  calculated.  (ISO 
+16889:2008.) For the control system design, this means that test time and the 
+pump volume flow must be adjustable . Other s aforesaid calculations  and meas-
+urements can be ignored  in the design  process .  
+
+--- Page 15 ---
+15 
+2.3.3  Filter performance test  
+ 
+Test flow rate and test temperature is to be established so that they maintain 
+fluid’s kinematic viscosity at 15 𝑚𝑚2
+𝑠 ± 1,00 𝑚𝑚2
+𝑠 during the test.  Clean test assem-
+bly differential pressure is to be me asured . The t est filter  element’s  differential 
+pressure is calculated by subtracting the housing differential pressure  from the 
+clean assembly differential pressure . 
+ 
+Initial system contamination level is to  be measured and recorded  by using on -
+line particle counting  upstream of the filter element.  If the contamination level is 
+higher than allowed, fluid must be circulated through the cleaning filter until it  is 
+less than specified  in the standard.  A sample is to be obtained from the  contam-
+inant injection system  as an initial injection gravimetric sampl e. Injection system 
+flowrate is to be measured and verified , and it shall be continuously monitored 
+through the test  so that it stays between the  specified tolerances.  
+ 
+Test can be init iated by starting the timer and allowing the contaminant injection 
+flow to  enter the filter test system reservoir . (ISO 16889:2008.)  
+ 
+ 
+2.4 Evaluation of differential pressure versus flow  ISO 3968  
+ 
+Fluid flowing through a filter meets resistance because of kinetic and viscous ef-
+fects.  The pressure required to overcome these effects is known as differential 
+pressure. The d ifferential pressure is the total pressure difference between filters 
+inlet and outlets ports.  It represents the pressure losses in the housing and  in the  
+filter element.  ISO 3968 gives standardized tools to measure differential pressure 
+in a hydraulic filter.  (ISO 3968 :2017 .) It is wanted  that the water filter test bench 
+will be able to  execute  this measuring method . This will create requirements  for 
+the control system  and therefore it must be opened up in this chapter.  Though, 
+the standard is introduced only shortly . 
+ 
+The ISO 3968 test is simple:  clean fluid is r un through a filt er while its  volume flow 
+is raised step by step and the differential pressure  versus flow  is measured  over 
+
+--- Page 16 ---
+16 
+the filter . These results  are documented and a graph is drawn  where the relation 
+between volume flow and differential pressure can be seen . (ISO 3968 :2017.)  
+ 
+ 
+2.4.1  Differential pressure versus flow example  test system  
+ 
+Differential pressure versus flow  standard provides guidelines for the required 
+test system. An example of system’s hydraulic circuit is shown in the ISO 3968 
+standard ( figure  1).  
+ 
+FIGURE 1. Example hydraulic circuit for ISO 3968  measurement (ISO 
+3968:2017).  
+ 
+All the necessary component s for the test are shown in the diagram  above  and 
+the keys for the hydraulic circuit are following:  
+ 
+1. reservoir  
+2. variable flow pump  
+3. clean -up filter  
+
+
+--- Page 17 ---
+17 
+4. sampling valve  
+5. thermometer  
+6. filter under test  
+7. absolute pressure transducer  
+8. differential pressure transducer or two single pressure transducers 
+to measure the differential pressure  
+9. flowmeter  
+10. counter pressure regulating valve  
+11. heat exchanger  
+12. bypass flow regulating valve  
+13. differential pressure transducer or two single pressure transducers 
+to measure the differential pressure across the spin -on filter -element  
+(ISO 3968:2017).  
+ 
+They key elements of this hydraulic circuit must be brought to the water filter test 
+bench.  From the control system’s point of view , the re quirements are simple: vol-
+ume flow  and throttle valve s must be adjustable , valves  must be control lable and 
+certain sensor data must be shown to the user.   
+ 
+ 
+2.5 Unified Modelling Language  
+ 
+When something new is being designed, there is an idea  of how the end product 
+should be like. A model  of its  wanted  features, such as productivity, reliability, 
+functionality and look, is being made .  
+ 
+Nowadays t here are countless amount of programmable languages  and t hey 
+each have their own features and special ities. (Erikkson & Penker 2002 .) This 
+same  issue  applies in  the field of industrial automation, where different manufac-
+tures provide their own control system s and  software . Many complex systems 
+can be constructed from several different logics and programmable language s.  
+ 
+Many tools for the design process  have been made , but most  of them are incom-
+plete or hard to understand. The problem  is, how to create a uniform model to 
+describe a system that can be understood and used by everyone.  Standardized  
+
+--- Page 18 ---
+18 
+Unified Modelling Language  ISO/IEC 19505 -2:2012 , also known as UML, was 
+designed to solve  this issue . (Erikkson & Penker 2002 .) UML  offers excellent tools 
+for many  modeling  purposes . Its diagrams made  for dynamic modeling of a sys-
+tem will be  used  later o n for the control system modelling  of the water filter test 
+bench.  
+ 
+ 
+2.5.1  Object -oriente d programming   
+ 
+In a traditional top -down software design, design process is started from the high-
+est level of system. Design is continued into smaller and more detailed parts , and 
+in the end the actual code is created . This hierarchy  is presented roughly in figure 
+2, where  circles  describe the different depths of the system and the matrix  on the 
+right side present s the final code.  This type of design has many pro blems. For 
+example, small changes in higher levels might have large scale effects to the 
+whole system, software is hard to maintain and most of software cannot be re-
+used. Top -down software design is well suited for small systems, but unlike ob-
+ject-oriented  software design, it has severe problems with large and complex sys-
+tems.  
+ 
+ 
+FIGURE  2. Top-down  software structure  (Koskimies 2000) . 
+ 
+
+
+--- Page 19 ---
+19 
+Unified Modeling Language  is based on object -oriented design . This paradigm  
+has to be understood, if one wants to understand  the principles of UML  (Erikkson 
+& Penker 2002 .) Object -oriented thinking is introduced only briefly  in this thesis . 
+ 
+An object in object -oriented programming is the basic unit of structuring and it 
+has the  four following attributes:  
+ 
+1. It is able to execute a command that is typical for its characteris-
+tics. Each operation has its own name and possible parameters 
+and a structure that defines its actions.  
+2. Object can record information into its data fields. These data 
+fields are called attributes. Different combinations of attributes 
+are called as objects states.  
+3. Each object has its own reference that identifies it. Two objects 
+cannot have the same reference,  even if they would be copies of 
+each other.  
+4. Object is protecte d whole and its usage is limited to certain forms. 
+Normally, only some of its characteristics are accessible from  its 
+outside .  
+ 
+Objects features are normally defined in objects class. Objects attributes and op-
+erations are told by its class , which is always  is unambiguous . Every object that 
+is made from the same class owns the same attributes and operations, though 
+the values of the  attributes can change.  
+ 
+Modelling a system  based on object -oriented thinking  gives many benefits.  
+Changes are easier to be made in  object -oriented programs . Changes in objects 
+data are usually local and their effect  is relative to the size of change.  This is 
+because  object -oriented software simulates applications real world or abstract 
+events.  Software creation process becomes systematic, controllable process 
+where applications actual code  is derived from conceptual analysis . Also, r eusa-
+ble codes are easier to be made because  code is divided into separate parts . It 
+can be said that object -oriented planning has the largest common factor among 
+all applications . That is why on a concept level , it is the most optimal method for 
+describing  a software.  
+
+--- Page 20 ---
+20 
+Figure 3 of an object -oriented structure  points out what were said in the para-
+graph  above. In the figure , classes are demonstrated as grey squares. Same 
+classes  (same code)  can be used by different applications , as can be seen . Pro-
+portional relation between  parts of applications concept world and classes are 
+presented as arrows.  (Koskimies 2000.)  
+ 
+ 
+ 
+ 
+FIGURE 3. Object -oriented structure  (Koskimies 2000) . 
+ 
+ 
+2.5.2  Sequence diagram  
+ 
+Sequence diagram is an UML tool to describ e how group of objects cooperates  
+with each other  in example cases.  Although sequence diagram is not used in th is 
+thesis, it is important to understand the relation between it and state machine 
+diagram.  Test bench’s measuring events c an be modeled  with sequence dia-
+grams . 
+ 
+
+
+--- Page 21 ---
+21 
+A simple e xample  of alarm clocks  sequence diagram can be seen in figure  4. 
+Objects  of the system  are located  on the top edge . Time is on the vertical axis 
+and interaction between objects are shown as black arrows.  The time  an object 
+is affected is shown as an activation bar.  
+ 
+ 
+FIGURE  4. Example  of an alarm clocks sequence diagram  (Koskimies 200 0). 
+ 
+The system above has an object for control, alarm sound and light , which also is 
+the wake -up mode. Control object is being affected  from its HMI by a user (figure 
+5). Time  is always shown to a user by the control  object, as can be seen from the 
+figure 4. When  the alarm button is pressed, a light is appeared to the HMI  and 
+the wake -up mode is activated . Alarm sound turns  on when the set ring time is 
+reached  and i t stays  activated until the alarm button is being pressed again.  One 
+more press to the alarm button  will turn off  the light  and the wake -up mode.  
+ 
+ 
+FIGURE 5. Alarm clocks HMI  (Koskimies 200 0). 
+ 
+ 
+
+
+--- Page 22 ---
+22 
+2.5.3  State machine diagram  
+ 
+Objects  change of behavior , when it’s affected by its environment , is described 
+by state machine diagram . State machine diagram can be used for classes of 
+which objects are on clearly identified states during their lifetime . Such classes 
+are called state -oriented.  
+ 
+State machine diagram can have an end or a start point.  An object is created 
+from a start point and it dies at the end point.  There are no inputs to a start point 
+and no outputs from the end point.   
+ 
+Each state can, but not must have a name, actions, activities, internal transitions, 
+deferred events and sub -modes.  
+ 
+Actions occur either when state is entered (entry  action ) or left (exit  action ). Time 
+is not spent during actions, because they are thought as instant s.  
+ 
+Unlike actions, a ctivities  (do/ command ) spen d time during state. An activity is 
+ended w hen its task is executed or when it is interrupted by  a state transition . 
+Entry and exit action s will be executed by activities.  
+ 
+Objects reacti on to a certain event without l eaving its state is possible with  time 
+dependent  internal transition  (event) . Entry or exit action s will not be executed by 
+it. An act ion can be added to an internal transition  and it  occurs during its transi-
+tion. Events  can have conditions that must be true, if  the internal transaction is to 
+be executed.  
+ 
+Events that are not executed during their current state, but are saved for later on 
+event buffer, are called as d eferred events . Such events are being handled in the 
+first state  that does not include this saved event in it.    
+ 
+Transition between different states is occurred  when the current state is on its 
+end state and  condition s set by the trigger are true or there is none.  Timers can 
+be set as trigger s conditions and triggers can be branch ed. 
+ 
+
+--- Page 23 ---
+23 
+States are able to have consecutive  and parallel sub states. In consecutive  sub 
+state, a n object is in one  sub state  at a time, while in parallel sub state , an object 
+is on each of its sub state s at the same time.   Consecutive  sub states are partic-
+ularly good, when system has states with the same trigger and target state.   
+ 
+State machine diagram and sequence diagram are strongly depend ent on each 
+other. For that reason, they must always be equivalent . This means  the following: 
+if a class X object is appeared in  a sequence diagram , and a state machine dia-
+gram has been given to class X, horizontal line of an object X in sequence dia-
+gram must  equate one path in state machine diagram.  If object X ’s horizontal  line 
+is followed from top to bottom in sequence diagram,  each incoming message 
+must correspond an out going  message in state machine diagram  and each out-
+going message from objects horizonta l line must correspond either entry, exit  or 
+transfer action , start or end of an activity  in state machine diagram.  
+ 
+This similarity  between the two diagrams  that w as stated in the paragraph abov e 
+is demonstrated by alarm clocks control objects state machine diagram (a ppendix  
+2). If it is compare d to the sequence diagram ( figure 4) given  in chapter 2. 5.2, it 
+can be seen that they are equal. By using sequence and state machine diagrams , 
+systems dynamic behavior can be  modeled in  illustrative  and logical way.  
+ 
+The state machine diagrams are used in this thesis due their modular and uni-
+versal nature. They can easily  be modified and they can be utilized in almost 
+every software ’s design . (Koskimies 2000).   
+
+--- Page 24 ---
+24 
+3 TEST BENCH CASE   
+ 
+ 
+3.1 Introdu ction  
+ 
+A new water filter test bench is to be designed . A preliminary sketch of its 3D 
+layout can be seen in the figure 6 below . The figure  gives a slight idea of the 
+system ’s look and size. It is important to notice, that the  figure  is based on the  
+first sketch of the system,  and it is not up to date . 
+ 
+ 
+FIGURE 6. Test bench’s 3D layout sketch . 
+ 
+In this chapter, system’s specification of requirements  is done  and its main com-
+ponents are defined . Note that some parts of this chapter  are hidden due the 
+secrecy reasons . 
+ 
+ 
+3.2 Specification of requirements  
+ 
+It is a must to define and understand the  process before the control system design 
+can be started, therefore the first thing to do is to specify the requirements for the 
+system . 
+
+
+--- Page 25 ---
+25 
+ 
+For a copyright reasons, only the most important parts of the standard s are intro-
+duced in this thesis theory section. It is important to note that the requirements 
+for the system are set by the complete standards.  
+ 
+The system needs to have a user -friendly human -machine interface with clear 
+controls , so that  working with the test bench will be safe and easy.  A user must 
+be able to control all of the components  from the HMI, expect city water inlet 
+valve, city water outlet valve and the two sampling valves  shown in appendix 3. 
+ 
+System must be safe. The safeness of the control system is to be ensured with 
+precise risk evaluation , safe design  and by following the Government Decree on 
+the Safe Use and Inspection of Work Equipment and Government Decree on the 
+Safety of Machinery  in the control system des ign process .  
+ 
+ 
+3.3 Hydraulic diagram  design  and system’s components  
+ 
+This chapter is hidden due the secrecy reasons . 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 26 ---
+26 
+4 TEST BENCH CONTROL SYSTEMS DESIGN  
+ 
+ 
+4.1 Introduction  
+ 
+In this chapter,  the preliminary control system  model  of the water filter test bench 
+is being  designed . Some of the functions are designed together with Parker’s 
+R&D laboratory tea m.  
+ 
+Control  system ’s hardware or test bench ’s components are not  yet chosen and 
+therefore  it is not possi ble to design  a finished control system. For example, the 
+safeness of the system is a combination of built hardware and programmed con-
+trol system. It is also impossible to secure that the control system will work as 
+wanted , without t esting it in the  physical world . There fore, the system model de-
+signed in this thesis will be a prototype  and it will most likely need a lot of adjust-
+ments and changes before it is ready to be used  in the final system . It is important 
+to understand that  the ongoing project and its demands might change after th is 
+control system design process, which might  also affect on its relevance.   
+ 
+ 
+4.2 Risk spotting  
+ 
+Before the design of the control system can be started, a risk spotting  must be 
+made . This is to recognise  the possible dangers  in the  upcoming  system. It is 
+critical ly important  to spot the possible dangers , so they can be considered  during  
+the control system  design  process . Note that this chapter is not a  proper  risk 
+assessment  and one must be made for the test bench as soon as the system is 
+known  in more detail . 
+ 
+The system includes several  pumps that generates volume flow and pressure to 
+the system. Volume flow and pressure can cause several hazards. If a hydraulic 
+circuit of  an operating pump is blocked, a pressure in the system  can rise dan-
+gerously fast  and system ’s components  might  fail. In the worst case, t his can 
+cause  spraying of  high pressurise d water , an explosion  of a component  or a whip 
+
+--- Page 27 ---
+27 
+alike effect of a broken piping . Therefore,  pressure is the number on e hazard in 
+the system.  
+ 
+Faulty  hardware and buggy software can cause major dangers  and their effects 
+are unpredictable . Broken  valves and  control valves  can create blocks in the hy-
+draulic circuit . Faulty s ensors  can cause severe  problems  for the control system ’s 
+safety  functionalities  and therefor for the whole system itself. For example, if a 
+pressure gauge is broken, the pressu re might be able to rise  over the allowed 
+limits.  
+ 
+If a possibility of human -error is left to the control system , it is likely that at one 
+point it will event . Therefor e, the control system must be designed so that it’s safe 
+to use in every scenario.  
+ 
+Bad or sloppy design  or program  in the control system  or wrong  connections in 
+the hardware  are also likely reason s for danger . If the system is not tested  thor-
+ough ly accidents may occur.   
+ 
+ 
+4.3 Control s ystem ’s safety 
+ 
+Control systems safety is a complex whole , and it is only viewed superficially  in 
+this thesis. This chapter is a practical approach to the safeness of control func-
+tionalities in the test bench system.  
+ 
+After spotting the possible risks  that can be affected by the control system , gen-
+eral rules must be made to ensure th at such risk s are minimized by a safe control 
+system design.   
+ 
+Pumps must be stopped by the control system when  emergency stop is pressed,  
+the pressure in the system rises too high, a valve is closed  and it blocks the  
+streaming of water in a circuit where a pump is turned on or when a reservoir 
+before the active pump runs out of water. Pumps cannot be turned on if the emer-
+gency stop is not rese t, their hydraulic circuit is blocked by a closed valve, the 
+pressure in the  system is over the allowed limit or if the water in the reservoir is 
+
+--- Page 28 ---
+28 
+below the allowed limit. Pumps cannot be turned on and they must shut off if the 
+water temperature in its reservoir rises too high.  
+ 
+Valves cannot be closed in a  circuit where a pump is on  if this would block the 
+flow of water , or if the closing is allowed, doing so must first shut off the pump.  
+The control system must ensure that the reservoirs cannot drain over  or run out 
+of water .  
+ 
+Only one of the systems four main states can be active at a time.  Only those 
+controls  can be visible and can be actuated from the HMI that are meant to be 
+used in the current state.  Going to a normal state from another main state  can 
+only be possible  if no pumps  and no measuring even ts are on. 
+ 
+Control system state change triggered by a safety state activation must always 
+be prior and possible. Pumps cannot be turned on if  the system is not in a safe 
+state .  
+ 
+Government Decree on the Safe Use and Inspection of Work Equipment and 
+Gover nment Decree on the Safety of Machinery  must be followed in the control 
+system design  process . 
+ 
+ 
+4.3.1  Required performance level 
+ 
+For e ach component of the control system that is responsible for safety, must be 
+defined their required performance level , also known as PLr . Performance level 
+indicates  of how common and  how critical is the risk  of danger that safety com-
+ponent  must prevent.  Defined  PLr value sets certain requirements  for the safety 
+feature and its execut ion. Before performance level evaluation  can be done, a 
+proper risk assessment must be made. (ISO 13849 -1:2015.)  Note that PLr values 
+are not defined in this thesis.  
+ 
+In water filter test bench , PLr evaluation must be made for  emergency stop . Then 
+if needed  for each pressure sensor  that is responsible for shutting down the 
+pumps if the pressure is risen too high , if this is described as safety function . In 
+
+--- Page 29 ---
+29 
+the current system  this would m ean defining PLr value for pressure sensors B.P.1 
+and B.P.2.   
+ 
+ISO 13850:2015 is a standard  for emergency stop functions.  It is an addition for 
+the ISO 13849 -1, and must be noted that  it states that minimum required perfor-
+mance level for emergency stop is PLr c.  (ISO 13850:2015.)   
+ 
+ 
+4.3.2  Safety integrity level  
+ 
+Safety integrity level, also known as SIL, is for defining  the safety integrity re-
+quirements  of the safety functions alloc ated to  the E/E/PE systems.  SIL and PLr 
+values are related to each other . 
+ 
+If a safety related control function is to be designed by u sing one or more safety 
+related parts of the control system, each of them must be designed according to 
+standard 13849  (PLr)  or according to IEC 62061/IEC 61508  (SIL) . (ISO 13849 -
+1:2015.)  
+ 
+ 
+4.4 Test bench ’s sensors  and control devices  
+ 
+The components that can be controlled or read by the control system are named 
+in appendix 4.  As can be seen, each component is given a  unique symbol to 
+separate it from the others. These components create two tables, one for  the 
+sensors (table 1) and one for the control devices  (table 2).  
+ 
+The first letter of the symbol refers to which par t of the system the component 
+belongs to. Letter A refers to contaminant injection system and letter B refers to 
+filter test system.  The second letter or letters refers to the type of  component and 
+the last number specifies the component  of a certain type.  
+ 
+ 
+ 
+ 
+
+--- Page 30 ---
+30 
+TABLE 1. Hardware’s  sensors . 
+Sensors  
+Symbol  Specification  
+A.W.1 Water level sensor  
+A.T.1  Temperature sensor  
+A.DP.1  Differential pressure sensor  
+A.F.1  Flow meter  
+B.W.1  Water level sensor (small tank)  
+B.W.2  Water level sensor (large tank)  
+B.W.3  Water level sensor (reservoir system)  
+B.T.1  Temperature sensor (small tank)  
+B.T.2  Temperature sensor (large tank)  
+B.P.1  Pressure indicator  
+B.P.2  Pressure indicator   
+B.P.2 Pressure indicator  (upstream ) 
+B.P.3  Pressure indicator (downstream)  
+B.DP.1  Differential pressure indicator  (test filter)  
+B.DP.2  Differential pressure indicator  (clean -up filter)  
+B.PCS.1  Particle counter  
+B.F.1  Flowmeter  
+B.F.2  Flowmeter  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 31 ---
+31 
+TABLE 2. Hardware’s  control devices . 
+Control devices  
+Symbol  Specification  
+A.V.1  Valve  (3-way)  
+A.V.2  Valve  (3-way)  
+A.V.3  Valve  
+A.PM.1  Variable pump  
+A.PM.2  Mixing pump  
+B.V.1  Valve  
+B.V.2  Valve  
+B.V.3  Valve  
+B.V.4  Valve  
+B.V.5  Valve  
+B.V.6  Valve  
+B.V.7  Valve  
+B.V.8  Valve  
+B.V.9  Valve  
+B.V.10  Valve (3 -way)  
+B.V.11  Valve  
+B.V.12  Valve (3 -way)  
+B.V.13  Valve  
+B.V.14  Valve  
+B.TV.1  Throttle Valve (electrical)  
+B.TV.2  Throttle Valve (electrical)  
+B.PM.1  Variable pump (small)  
+B.PM.2  Variable pump (large)  
+B.PM.3  Variable pump (reservoir system)  
+B.PM.4  Pump ( reservoir system  emptying )  
+B.SP.1 Upstream  sensor pump  
+B.SP.2 Downs tream  sensor pump  
+Emergency stop   (1 or more, not visible in annex 4) 
+ 
+ 
+
+--- Page 32 ---
+32 
+4.5 State machine diagram s 
+ 
+ 
+4.5.1  General not es 
+ 
+Transitions between states are indicated with a rrows (figure 7). Transitions  may 
+have conditions that needs to be fulfilled if the transition is to be triggered. These 
+conditions are called as guards.  If there are several  guards, they might be num-
+bered  for clearance . If the conditions are fulfilled, transitions may trigger by them-
+selves, or they need an event to occur.  If a transition is successfully triggered it 
+may have some actions to be executed. An example of a transition can be seen 
+below. Note that the movement from a state to another is always one act and it 
+is not always m entioned if its destination can be seen from the state machine 
+diagram. Also note that the current state  from which the arrow is leaving,  must 
+also always be true in order to execute the transition, even though it is not shown 
+in guards . 
+ 
+ 
+ 
+FIGURE 7. An example  of transition.  
+ 
+Push buttons are shown as a bolded text  in the state machine diagrams to come . 
+Most of the internal transitions push buttons don’t have any conditions shown in 
+the main states. The conditions are mainly defined in components state machine 
+diagrams to make the main states less complex. In fig ure 8, the red rectangle  
+borders the push button. The blue rectangle  borders the action to come if all the 
+conditions set for the action are fulfilled , when the push button is  being pressed. 
+In other words, red rectangle equals event and blue rectangle equals act. Guards 
+are defined in components state machine diagram.   
+ 
+
+
+--- Page 33 ---
+33 
+ 
+FIGURE 8. Example  of pushbutton and its action.  
+ 
+The state machine diagrams used  in this thesis are simplifie d due states for 
+movement are missing . Therefore, one might  not be able to copy them straight to 
+the actual PLC program . For example, 3 -way and 2 -way valve’s state machine 
+diagrams  have two states open and closed or right and left. In reality the se valves 
+don’t  turn instantly  open  or closed  between  the two  states , there is always a de-
+lay. An example of a complete state machine diagram of a 2-way valve can be 
+seen below (f igure 9). The blue rectangles represent the parts that are currently 
+missing: a guard that ensures that the valve is open or closed before the 1 or 0 
+state can  become  true. If the valves don’t have positions sensors , which they 
+most likely don’t,  this could  be made wi th a delay.  If the actuation time of the 
+component  is short enough  or it doesn’t  affect to the operation of the system  
+negatively , these states for movement are unnecessary . 
+ 
+ 
+FIGUR E 9. Movement  states example.  
+ 
+The word command in act’s describes the action to be executed, but it doesn’t 
+define  how the action is to be executed. This is something that has to be decided 
+later when the system is better known.   
+ 
+None  of the limit  values  set as guards, acts and events in the state machine dia-
+grams to come are defined  due the system’s details are unknown , therefore 
+they’re presented as X . These values has to be set l ater. 
+ 
+
+
+--- Page 34 ---
+34 
+4.5.2  Main states  
+ 
+The system is divided i nto 4 main states  (figure 10). Normal  state is the basic 
+state of the system . From the normal  state, a user can choo se which  other  main 
+state  to enter. Options  are two different measuring  states  ISO 16689 and ISO 
+3968  and a manual control  state. A user can return  to the normal state  from the 
+other main states  when certain conditions  are fulfille d and a return button is 
+pressed . Purpose of main states  are to define w hen and w hich components can 
+be actuated from the HMI  and what information is shown to the user . 
+ 
+FIGURE 10. Systems  main s tates . 
+ 
+When the power is turned on  to the system the  components are set into their 
+initial states  (figure 11). Inputs  to and outputs  from the normal state are numbered 
+so that they can be linked to the other  main  states . Route E.1 is a stop feature, 
+that triggers when system parameters are over or under the ir allowed  limits  or 
+when the emergency stop is pressed . E.1 can be entered from  every state of the 
+system .  
+ 
+
+
+--- Page 35 ---
+35 
+ 
+FIGURE  11. Normal  state s State Machine D iagram . 
+ 
+ΔP Measurement  has only one state and it is called Lobby1  (appen dix 5). When 
+the state is entered, valves  are set into initial states  suited for the ΔP measure-
+ment . In lobby1 a user can control pump B.PM.2, Throttle valves B.TV.1 and 
+B.TV2 , valve B.V.12 for cleaning the system  and test filter bypass . All the neces-
+sary component states an d sensor data for ΔP measurement  are shown  in HMI 
+when  lobby1  is active . There is no automatic  testing state  because  it is wanted 
+that the measuring  and documenting  is done manually. When the pump B.PM.2 
+is not on, a  user can return  to the normal state by pressing the Return1 button  in 
+Lobby1.  The bypass button has to be so, that when it’s pressed, the valves have 
+enough time to turn to their new positions before the bypass button can be 
+pressed again . 
+
+
+--- Page 36 ---
+36 
+Multi -pass measurement ’s state machine diagram can be seen in appendix 6.  It 
+is divided into three parts due its size. When the state  is entered, a lobby2 state 
+becomes active and systems valves are set into their initial multi -pass states.  
+There the user can control all the necessary c omponents of the  multi -pass test.  
+Test and sample values, particle sizes , counter and report and TEST2 states are 
+not determined in this thesis.  
+ 
+When one wants to start the multi -pass test , pumps A.PM.1, B.PM.1, B.PM.3 and 
+A.PM.2 has to be on , sensor pump s must be off, valve A.V.2 must be right, valve 
+B.V.12 must be left and bypass must be active.  Starting the test will trigger the 
+following events: dirt feed is turned into the filter test system, extra water is being 
+collected by the reservoir system  so that the volume in the filter test system stays 
+the same  (a user is responsible  that the volume of injected dirt water is the same 
+as the volume of water collected to the reservoir system) , sensor pumps are 
+turned  on and all the neede d counters for the multi -pass  test are turned on and 
+their data are being gathered. The user is able to control freque ncies of the active 
+pumps during the test.  
+ 
+The test ends  when the test is finished, when stop2 is pressed or when automatic 
+stop1 state or safety stop2 become s active.  Last three  of the four options men-
+tioned will stop every pump of the system  and also en ds the measuring event . 
+When the test is finished, the system turns  on the  bypass , turns the valve A.V.1 
+back to the contaminant injection system, activates the contaminant injection sys-
+tem’s and filter test system ’s cleaning by turning the valve s A.V.2 to left and 
+B.V.12 to right  and also shuts off the pump B.PM.3.  A user can move back to the 
+normal state from the lobby2  when Return2 is pressed while every pump is  in off 
+state.  
+ 
+Working principle of the manual contro l system is simple.  There, a user can con-
+trol every control device  of the system  and see all the available sensor  and sta te 
+data (appendix 7) . Like the measuring states, it can be entered from the normal 
+state. However, lobby3 is also entered when automatic stop1 or safety stop2 state 
+becomes active . When one of the  aforesaid  stop states become s active, one or 
+several parameters of the system are out their allowed limits  or emergency stop 
+is pressed.  The idea is that by entering the manual control s tate, the user can 
+
+--- Page 37 ---
+37 
+identify the problem because all the possible information of the systems  current  
+status is available.  Also, the user can affect to the system ’s state  by controlling 
+the valves or pumps  even  when automatic stop1 is active . For example, if  the 
+automatic stop1 would trigger a stop event because system’s cleaning filter’s dif-
+ferential pressure sensor reading would be too high due a plugged filter, a user 
+could change  the 3 -way valves state in the manual control state and change the 
+filter to a new one.  Note that when safety stop2 is active, pumps cannot be used  
+because system ’s pressure is dangerously high or emergency stop is pressed.  
+ 
+ 
+4.5.3  Valves  
+ 
+There are three types  of valves to be controlled with the control system, 3 -way, 
+2-way, and throttle valves. 3 -Way valves state machine diagrams have two states 
+right and left. State right means that control valve is in a state where the flow of 
+water is guided right and state  left means that the control valve is in a state where 
+the water is guided left , seen  from the direction of fl ow (figure 12).  
+ 
+FIGUR E 12. Example  of a 3 -way valve.  
+ 
+On 2 -way valves the logic is similar, state 1 means that the control val ve is in a 
+state where the hydraulic  valve is open and state 0 means that the control valve 
+is in a state where the hydraulic  valve is closed. Both 3 -way and 2 -way valves 
+control valves could be type 4/2. It is recommended that the control valves are 
+actuated by solenoid coils. The reason for this is that the valves stay in the same 
+positions for long er periods. This way, the control valve needs to be actuated  only 
+for a short time  and relatively rarely . Also, if the system would become powerless, 
+the valves would stay in their current positions . This would increase safety be-
+cause the system ’s state would be known . Example of a possible control valve 
+Left Right  
+
+--- Page 38 ---
+38 
+can be seen below (fig ure 13). The commands in  3-way and 2 -way valves state 
+machine diagrams  represents an activation of solenoid Y1 or Y2.  
+ 
+ 
+FIGURE 13. Example  of a 4/2 control valve.  
+ 
+3-way and 2 -way valve ’s control valves solenoids are actuated only for a short 
+period. During this period, control valve will change its position  to its other end  
+and after the actuation is ended, the control valve will stay in that position . 
+ 
+A.V.1 valve is a 3 -way valve ( figure 14). Its initial  state is left. It can be  turned  to 
+right in manual control lobby 3 if reservoir B.W.1 is not full  and a button  A.V.1  is 
+pressed . It will be turned right  when the multi -pass test is started , note that the 
+guards here must be  the same as to start the multi -pass test .  
+ 
+Valve A.V.1  can be turned to left in manual control lobby3 by pressing  the A.V.1  
+button . Control valve is turned back to left when multi -pass measurement or ΔP 
+measurement is pressed in  the normal state , multi -pass test ( TEST2 ) is finished 
+or if reservoir of B.W.1 sensor is full.  
+ 
+
+
+--- Page 39 ---
+39 
+ 
+FIGURE 14.  Valve  A.V.1 state machine diagram.  
+ 
+A.V.2 valve is also a 3-way valve (figure 15). Its initial state is right.  It can be 
+turned  to left when A.V.2 button is pressed in multi -pass measurem ent lobby 2 
+or in manual control lobby 3. When multi -pass test is finished  (TEST2), it will au-
+tomatically turn to left to  start the clean ing of  the contaminant injection system . 
+ 
+It can be turned back to right by pressing A.V.2 button in multi -pass measure-
+ment  lobby2  or in manual control lobby 3 or when multi -pass measurement or 
+ΔP measurement  button  is pressed in the normal state.   
+
+
+--- Page 40 ---
+40 
+ 
+FIGURE 15.  Valve  A.V.2 state machine diagram.  
+ 
+A.V.3 valve is a 2 -way valve (figure 16). Its initial  state is 0. Its state can  be 
+change d between 0 and 1 in manual control lobby 3 by pressing A.V.3 button.  The 
+valve cannot be opened if either of the pumps A.PM.1 or A.PM.2 is on.  When 
+multi -pass measurement or ΔP measurement button is pressed in a normal state 
+the valve will go to the state 0.  
+ 
+
+
+--- Page 41 ---
+41 
+ 
+FIGURE 16.  Valve  A.V.3 state machine diagram.  
+ 
+B.V.1 valve is a 2 -way valve (figure 17). Its initial  state is 0.  Its state can be 
+changed between 0 and 1 in manual contr ol lobby3 by pressing B.V.1 button. 
+When multi -pass measurement or ΔP measurement button is pressed in a nor-
+mal state the valve will go to the state 0.  
+ 
+ 
+FIGURE 17.  Valve  B.V.1 state machine diagram.  
+ 
+
+
+--- Page 42 ---
+42 
+B.V.2 valve is a 2 -way va lve (figure 18). Its initial  state is 1.  The v alve is closed 
+when ΔP measurement is being entered  or when B.V.2 button is pressed in man-
+ual control lobby 3, note that the pump B.PM.1 cannot be on in order to  do so .  
+ 
+The v alve is opened when multi -pass measurement is being entered from the 
+normal state or when B.V.2 is pressed in manual control lobby 3. 
+ 
+ 
+FIGURE 18.  Valve  B.V.2 state machine diagram.  
+ 
+B.V.3 valve is a 2 -way valve (figu re 19). Its initial state is 0.  The v alve is opened 
+when ΔP measurement is being entered f rom the normal state or when B.V.3 is 
+pressed in manual control lobby 3. 
+ 
+The v alve is closed when multi -pass measurement is being entered or when 
+B.V.2 button is pressed in manual control lobby 3, note that the pump B.PM. 2 
+cannot be on in order to  do so.  
+ 
+ 
+
+
+--- Page 43 ---
+43 
+ 
+FIGURE 19.  Valve  B.V.3 state machine diagram.  
+ 
+B.V.4 valve is a 2 -way valve (fig ure 20). Its initial  state is 1. It works with the 
+same logic as valve B.V.2.  
+ 
+ 
+FIGU RE 20.  Valve  B.V.4 state machine diagram.  
+ 
+
+
+--- Page 44 ---
+44 
+B.V.5 valve is a 2 -way valve (figu re 21). Its initial state is 0. It works with the 
+same logic as valve B.V.3.  
+ 
+ 
+FIGURE 21.  Valve  B.V.5 state machine diagram.  
+ 
+B.V.6 valve is a 2 -way valve (fi gure 22). Its initial state  is 0. The v alve can only 
+be opened  in manual control  lobby3 when pump B.PM.1 is not on . It is closed 
+during other main  states.  
+ 
+ 
+FIGU RE 22.  Valve B.V.6 state machine diagram.  
+
+
+--- Page 45 ---
+45 
+ 
+B.V.7 valve is a 2 -way va lve (figure 23). Its initial state is 0. It works with the 
+same logic as valve B.V.6, except the  guard  pump is different for opening the 
+valve .  
+ 
+ 
+FIGURE 23.  Valve  B.V.7 state machine diagram.  
+ 
+B.V.8 valve is a 2 -way valve (figure 24). Its initial state is 1. It works w ith the 
+same logic as valve B.V.2.  
+ 
+
+
+--- Page 46 ---
+46 
+ 
+FIGURE 24.  Valve B.V.8 state machine diagram.  
+ 
+B.V.9 valve is a 2 -way valve ( figure 25). Its initial  state is 0. It works with the 
+same logic as valve B.V. 3. 
+ 
+ 
+FIGURE 25.  Valve B.V.9 state machine diagram.  
+ 
+
+
+--- Page 47 ---
+47 
+B.V.10 valve is a 3 -way valve ( figure 26). Its initial  state is right . Control of B.V.10 
+and B.V.11 valves are the most complex of the valves in the system.  These 
+valves belong to test filter bypass system and it is critical to ensure that valves 
+change th eir positions synchronously.  
+ 
+B.V.10 valve can be turned left  manually  in lobby1, lobby2 and lobby3 by pressing 
+bypass button , or by pressing  B.V.10 button  in lobby3  when valve B.V.11 is open 
+or when it is closed and pumps B.PM.1 and B.PM.2 are not on.  Note that there is 
+a delay added before t he turn left command . This is to ensure that the valve 
+B.V.11 will have enough  time to open before the flow is guided to the te st filter 
+line. Start  of the multi -pass test will also change the valves position to left.  
+ 
+B.V.10 can be turned right manually in manual control lobby3 by pressing  B.V.10  
+or by pressing bypass in lobby1, lobby2 or lobby3. The v alve will automatically 
+turn to right when ΔP measurement state or multi -pass measurement state is 
+being entered  or when  multi -pass test  (TEST2 ) is finished.  
+ 
+
+--- Page 48 ---
+48 
+ 
+FIGURE 26.  Valve  B.V.10 state machine diagram.    
+ 
+B.V.11 valve is a 2-way valve  (figure 28 ). Valves  initial state is 0. The v alve can 
+be turned to state 1 by starting the multi -pass test (TEST2) , pressing bypass but-
+ton in lobby1, lobby2 or lobby3  when B.V.10 state is right  or by pressing B.V.1 
+button in lobby3.  
+ 
+
+
+--- Page 49 ---
+49 
+If bypass is pressed in lobby3 when B.V.10 state is left  and B.V.11 state is 0 , 
+valve B.V.1 1 state stays  0 and valve B.V.10 state is changed to right (figure 27). 
+The reason for this is simple. Pressing a bypass but ton should always open the 
+bypass line while closing the test filter line or ope n the test filter line while closing 
+the bypass line.  If the valves are  in asynchronous  state , pressing a bypass button 
+will synchronize the valves . The aforesaid  scenario should  only be possible  in 
+manual control state.   
+ 
+ 
+FIGU RE 27. Example  of bypass synchroniz ation.   
+ 
+Valve B.V.11 initial state is 0. It can be turned right by pressing the bypass button 
+in lobby1, lobby2 or lobby3 or by pressing the B.V.11 button in lobby3. Starting 
+the multi -pass test will also trigger the valve to move  to state 1.  
+ 
+Valve B.V.11 can be turned back to state 0 by pressin g B.V.11 in manual control 
+lobby3 when valve B.V.10 is right or when it’s left and pumps B.PM.1 and B.PM.2 
+are not on.  Also, by pressing the bypass in states lobby1, lobby2 or lobby3 when 
+B.V.10 is left will change the valve B.V.11 state  to 0. Note that th ere is  a delay  
+set as a guard. This is needed to ensure, that the valve B.V.10 is turned right 
+before valve B.V.11 will be closed.  If the valve B.V.10 is not left when bypass is 
+pressed  in lobby3 , bypass will get synchronized  and valve B.V.11 will stay  in state  
+
+
+--- Page 50 ---
+50 
+1. Entering  ΔP measurement  state  or multi -pass measurement state or when 
+multi -pass test i s finished  will trigger  the valve  to change its  state  to closed .  
+ 
+ 
+FIGURE 28.  Valve  B.V.11 state machine diagram . 
+
+
+--- Page 51 ---
+51 
+B.V.1 2 valve is a 3 -way valve ( figure 29). Its initial state is left. It can be turned 
+right when B.V.12 button is pressed  lobby1,  lobby2 or lobby3. When multi -pass 
+test is finished (TEST2), it will automatically turn to right to start the cleaning of 
+the filter test system . 
+ 
+B.V.1 2 can be turned to  state  left by pressing B.V.12 button in ΔP measurement 
+lobby1, multi -pass measurement lobby2  or in manual control lobby3 or when 
+multi -pass measurement or ΔP measurement states are being entered  from the 
+normal state.  
+ 
+ 
+FIGURE 29.  Valve  B.V.12 state machine diagram.  
+ 
+Valve B.V.13 is a 2 -way valve and its initial state is 0 ( figure 30). B.V.13 and 
+B.V.14 valves are mainly controlled by controlling the pumps next to  them. 
+B.V.13 can be turned to state 1 by pressing B.V.13 button in manual control 
+lobby3 , when pump B.PM.3 is off . It can also be turned to state 1 by pressing 
+B.PM.3 in lobby2  or lobby3, when the pump B.PM.3 is in the state off and the 
+
+
+--- Page 52 ---
+52 
+safety stop2 is not active.  In order to do this, either pump B.PM.1 or pump 
+B.PM.2 has to be on , because the guards here are the same as to turn on the 
+pump B.PM.3 . Valve  will be open ed automatically when the pump B.PM.3 is be-
+ing started and the user don’t have to open the valve separately.  
+ 
+The valve will also be closed when  the pump B.PM.3 is off and is stopped dur-
+ing lobby2.  B.V.13 will also close automatically when multi -pass measure ment 
+or ΔP measurement states are being entered.  A user can close the valve manu-
+ally by pressing  B.V.13 button  during lobby3 , when  the pump B.PM.3 is off. 
+ 
+ 
+FIGU RE 30.  Valve  B.V.13 state machine diagram.  
+ 
+Valve B.V.14 is a 2 -way valve  and its initial state is 0 (figure 31). B.V.14  works 
+exactly the same way as the previous B.V.13 valve, but the pump s in transition s 
+
+
+--- Page 53 ---
+53 
+are changed to B.PM.4 from B.PM.3 , and the push button s are  changed to B.V.14 
+from B.V.13.  Also, an extra guard has to be added . Due the valve will change its 
+state when the pump B.PM.4 is being turned on, the guards ha ve to be the same.  
+Therefore, the water level in the reservoir B.W.3 cannot be below a certain limit  
+when B.PM.4 button is pressed .  
+ 
+ 
+FIGURE 31.  Valve  B.V.14 state machine diagram.  
+ 
+Throttle valves are always open. A throttle valve can be opened completely but 
+for closing,  a certain limit must be se t. This limit must be so, that it is impossible 
+to shrink  the size of the throttle , if that would cause the system pressure to rise 
+over the allowed.  Throttle valve B.TV.1 can be affected during ΔP measurement 
+and manual control lobbie s (appendix  8). When  the system is turned on or when 
+
+
+--- Page 54 ---
+54 
+ΔP measurement lobby1 is being entered, a certain initial st ate is given for the 
+throttle valve B.TV.1 . The precision needed for the throttle valve s adjust  depends 
+on the pump B.PM.2’s volume flow ’s adjustability . Certain requirements  are set 
+for the volume flow in ISO 3968  to achieve the wanted  test opening pressure . 
+ 
+Throttle valve B.TV.2 can be actuated manually in lobby1, lobby2  and lobby3  
+(appendix 9). When the  system is turned on, when ΔP measurement lobby1 is 
+being entered or wh en multi -pass measurement lobby2 is being entered, a cer-
+tain initial state is given for the throttle valve B.TV. 2.  
+ 
+ 
+4.5.4  Pumps  
+ 
+Every pump ’s initial state is off . Pumps can never be turned on when safety stop2 
+state is active and they must always  be turned off when automatic  stop1 state or 
+safety stop2  state  becomes active.  When a pump with frequency converter  is 
+turned on, a certain initial frequency /rpm is given and the pump is turned on.  
+When the pump is on, its  frequency can be increased  from the HMI  when its 
+maximum frequency condition is not exceeded . Also, p umps frequency can be 
+lowered f rom the HMI when its minimum  frequency condition is not  passed un-
+derneath . When pumps power s are  turned  off they will enter slow down  state  first, 
+and then after a delay, they enter the state off from which the pump can be turned 
+on again.  This delay between states slow down  and off is needed to ensure that 
+the pump has stopped completely before  it can be turned on again . This delay 
+could be replace d with frequency converters information  of when the  pumps  mo-
+tor is stopped . Also, e nergy supply to pumps motors must be shut off  after the 
+command off is given . Government Decree on the Safety of Machinery  demands 
+these two previously mentioned  features  and therefor  they must  be obeyed .  
+ 
+Pump  A.PM.1 can be turned on from its off state when button A.PM.1 is pressed 
+in lobby3 or lobby 2 (appendix 10). If A.PM.1 is  to be  turned on in lobby3  state, 
+valve A.V.3 cannot be open.  A.PM.1  will shut off  when A.PM.1 is pressed in 
+lobby3 or lobby2.  Also, by pressing stop2 in multi -pass test will shut off the  pump . 
+It is wanted, that the pump will stay on after the multi -pass test, so that the con-
+tamin ant injection system will start cleaning itself automatically.  
+
+--- Page 55 ---
+55 
+Pump A.PM.2 can be turned on and off with the same conditions as pump A.PM.2 
+except the push buttons name is different  (figure 32). A.PM .2’s frequency cannot 
+be controlled.  It is wanted, that t he pump will stay on after the multi -pass test, so 
+that the contaminant injection system will start cleaning itself automatically.  
+ 
+ 
+FIGURE 32.  Pump  A.PM.2  state machine diagra m.  
+ 
+Pump B.PM.1  can be turned on in lobby 3 by pressing button B.PM.1 , when valves 
+B.V.2, B.V.4 and B.V.8 are open , B.V.6 is closed,  and bypass is either open or 
+close d (appe ndix 11). It can be turned on in lobby2 by pressing the button 
+B.PM.1.  The pump will shut off when the previously mentioned button is re-
+pressed during lobby2 and lobby3 . Pressing stop2 during the multi -pass meas-
+urement test will also shut off the pump.  
+ 
+Pump B.PM.2 can be turned on in lobby3 by pressing button B.PM.1, when v alves 
+B.V.3, B.V.5 and B.V.9 are open, B.V.7 is closed,  and bypass is either open or 
+closed (appe ndix 12). It can be turned on in lobby1 by pressing the button 
+B.PM.2.  The pump will shut off when B.PM.2 is pressed in lobby3 or Lobby1.  
+
+
+--- Page 56 ---
+56 
+Pump B.PM. 3 can be tu rned on in lobby3  or lobby2  by pressing B.PM.3 button, 
+but either pump B.PM.1 or pump B.PM.2 must be  on (appe ndix 13). Pump  
+B.PM.3 will always turn on with a delay, due it controls the valve B.V.13. This 
+delay ensures that when B.PM.3 is about to turn on,  the valve B.V.13 will be open 
+first. Pump B.PM.3 will turn off when the B.PM.3  button is repressed in lobby2 or 
+lobby3.  Also, when dirt feeding is  ended during multi -pass test and valve A.V.1  is 
+turned left, the pump B.PM.3 will shut off . This is to ensure that the volume of 
+water stays the same in the multi -pass syste m. In the current state machine dia-
+gram this is shown as TEST2 finished guard, this might be a faulty trigger due 
+the dirt feed might end earlier.  Pressing stop2 during the multi -pass measurement 
+test will also shut off the pump. It is particularly important  that the delay set be-
+tween the states slow down and off  and delay and on , is long enough for the 
+pumps B.PM.3 and B.PM.4 , because the pumps control the valves.  
+ 
+Pump B.PM.4 can be turned on in lobby 2 or in lobby 3, when the water level in 
+the reservoir  B.W.3 is above certain limit  (figure 33). Like B.PM.3, B.PM.4 turns 
+on with a dela y. The reason for this is the same as for B.PM.3.  The p ump must 
+be shut  if the reservoir before it runs out of water . It can be manually closed  by 
+press ing B.PM.4 in Lobby3 or Lobby2.  Starting the multi -pass test will close the 
+pump, due the reservoir has to start collecting the water.  
+ 
+
+--- Page 57 ---
+57 
+ 
+FIGU RE 33.  Pump  B.PM.4 state machine diagram.  
+ 
+The two sensor pumps B. SP.1 and B. SP.2 are controlled at the same time (figure 
+34). Pumps  can be turned on by starting the multi -pass test  or by pressing sensor 
+pumps button in lobby2 or lobby3. If the pumps are  to be  turned on, either pump 
+B.PM.1 or B.PM.2 must be on.  
+ 
+Sensor pumps will turn of when multi -pass test is finished, stop2 is  pressed during 
+multi -pass test or when sensor pumps button is pressed during lobby2 or lobby3. 
+
+
+--- Page 58 ---
+58 
+Also, if neither of the pumps B.PM.1 or B.PM.2 are on, the sensor pumps will be 
+shut off  automatically . 
+ 
+ 
+FIGURE 34.  Pump  B.SP.1  and B.SP.2  state machine diag ram. 
+
+
+--- Page 59 ---
+59 
+4.5.5  Inner states  
+  
+There are two different states that will trigger the stop of the pumps in the system  
+automatically . Both will also interrupt all the measuring events and calculators.  
+The first one is an automatic stop 1 state,  that acts as a warning if something is 
+not correct  (figure 35) . Even the pumps are turned off  by this state , they can still 
+be turned on  afterwards . This state will be activated if one  or several  of the sys-
+tem’s parameters are over their allowed limits. It will move the system to the man-
+ual control state, where the problem can be looked more closely  and it can be 
+affected . This automatic  stop state can be left when system parameters are back 
+to normal and reset is pressed.  It must be kept in mind that this  state is not a 
+safety feature.   
+ 
+ 
+FIGURE 35.  Automatic  stop’s state machine diagram  
+ 
+
+
+--- Page 60 ---
+60 
+Safety stop 2 state is a safety feature.  It will have the value 1 when emergency 
+stop is being pressed or when one of the pressure sensors that are classified as 
+safety features , has a pressure reading that is over the critical  allowed  limit. When 
+safety stop state is active, pumps in the system  cannot be turned on.  If the state 
+is to be left, reset must be pressed while the system ’s pressure is normalized and 
+emergency stop is not pressed . 
+ 
+ 
+FIGU RE 36.  Safety  stop2 state machine diagram  
+ 
+ 
+4.6 HMI outline  
+ 
+The control system modelled  in this thesis is designed to be controlled from a 
+single HMI. The buttons  to be used are  defined  in main states ’ state machine 
+diagrams .  
+ 
+Each main state ’s HMI view and functionalities should be done so, that they fit to 
+the states purpose. Only the needed sensor data should be shown and only the 
+needed buttons should be available.  This is to reduce the amount of unnecessary 
+information.  To increase the HMI’s user friendliness , there should be a visual in-
+dicator in addi tion to the numerical value for each sensor  reading , excluding the 
+sensors that are used for saving the measurement event data . The view in each 
+main state should be so, that  the used part of the  hydraulic circuit  and control 
+
+
+--- Page 61 ---
+61 
+components  are shown  in the sc reen on  their correct places . Sensor readings 
+should be places near the sensors in the  HMI view . The visuality would hel p the 
+user to understand the current status of the system faster  and with less effort.   
+ 
+There should also be warning pop -up windows, if the user would try an actuation 
+of a component when it would not be possible , or when the system parameters 
+would be out  or close of being out from  their allowed limits.  
+ 
+ 
+ 
+
+--- Page 62 ---
+62 
+5 DISCUSSION  
+ 
+This thesis was able to produce a prototype of a control sy stem for the water filter 
+test bench.  State machine diagram s were created for each component and HMI ’s 
+state. From that view, it can be seen as a success. Though the level of this work’s 
+usefulness will be seen when the actual software is programmed based on the 
+state machine diagrams done in this thesis. How well the program will answer to 
+the demands and needs o f the commissioning company, will tell how successful 
+this control system model  actually was.  
+ 
+Even though hydraulic circuit design was not originally meant  to be in this thesis , 
+it was something that had to be done before the control system design could be 
+started.   
+ 
+Few development proposals  rose during the  control system design process . Cur-
+rently, there are no safety features in the reservoir circuit.  If the pressure would 
+rise above  or under  the allowed limits, the system  or user  would  not be informed . 
+Pressure sensors could be added between the pump B.PM.3 and valve B.V.13 
+to monitor vacuum pressure  and between pump B.PM.4 and valve B.V.14 to mon-
+itor excess pressure . Also, one pressure sensor could be added after the pump 
+A.PM.3 for the same reason.  If these three pressure sensors would be classified 
+as a safety feature s, they would have to be added to the safety stop state as 
+triggering factors  and their required performance level would have to be evalu-
+ated.   
+ 
+Also, if the reservoir of B.W.3 sensor wo uld be lifted on top of the reservoir of 
+B.W.1  sensor , the pump B.PM.4 could be removed.  The water could be run 
+straight to the B.W.1 reservoir by only opening the valve B.V.14. This would sim-
+plify the working of  the reservoir system significantly . When the volume flow of 
+B.PM.3 would be adjusted before the start of multi -pass test, valve B.V.14 could 
+be open  and the water could  be returned straight back to the filter test system.  
+When multi -pass test would start, it would close the va lve B.V.14 and the reser-
+voir system would start collecting the water so that volume in the test system 
+would stay the same. Another option would be setting sensors  for the high and 
+
+--- Page 63 ---
+63 
+low limits of the water level  in the reservoir , and control the pump by exp loiting 
+these. The control of the B.PM.4  pump  is currently manual and a bit tricky.  
+ 
+Because water level sensors’  types had not yet been chosen, it was uncertain 
+how they could be utilized in the control system. For example, will they only inform 
+when a reservoir is full or empty or are they able the recognize the volume in the 
+tank. Currently it is thought that A.W. 1, B.W.1 and B.W.2 recognize the high limit 
+and B.W.3 recognizes the low limit of water level in tank.  
+ 
+As told, t his thesis is the first prototype of  the water filter test bench  control sys-
+tem. Next step would be to  creat e the actual PLC program  and drive  it in a  simu-
+lation . There , all the needed functions and safety features could  be tested.  If 
+needed the program could  be adjusted and fixed  based on results of the simula-
+tion. After the simulation of the control system  would  work as wanted, it could be 
+driven into to the hardware.  
+ 
+Writer of this thesis w as familiar with two different PLC software  during this work , 
+LOGO! and SIMATIC STEP 7. LOGO! cannot be considered  as a software  for the 
+test bench  due the complexity of the system , while STEP 7 is a flexible and sys-
+tematic software that is well suited for large and complex  control  systems.  It would 
+serve well for t he test bench’s purpose s. It is good to remember that t here are 
+many other options in the market  and STEP7 is  only one option  among many 
+others.  
+ 
+ 
+
+--- Page 64 ---
+64 
+REFERENCES  
+Eriksson, H. & Penker, M. 2002. UML.  3rd edition . Jyväskylä: Gummerus Kirja-
+paino Oy.  
+European Commission. Guide to application of the Machinery Directive 
+2006/42/EC . 2019. 2.2 . Edition. Read 24.1.2022. https://ec.eu-
+ropa.eu/docsroom/documents/38022  
+ISO 3968:2017.  Hydraulic fluid power – Filters – Evaluation of differential pres-
+sure versus flow. 3rd edition.  
+ISO 138491 -1:2015. Safety of machinery  - Safety -related parts of control sys-
+tems  - Part 1: General principles for design . 3rd e dition.  
+ 
+ISO 13850:2015. Safety of machinery  - Emergency stop function  - Principles for 
+design . 3rd e dition.  
+ISO 16889:2008. Hydraulic fluid p ower – Filters – Multi -pass method for evalu-
+ating filtration performance of a filter element. 2nd edition. Quotation s of this 
+standard ha s been made with the permission of Finnish Standards Association 
+SFS ry . 
+Koskimies, K. 2000. Oliokirja. 2 nd edition . Jyväskylä: Gummerus Kirjapaino Oy.  
+ 
+Valtioneuvoston asetus koneiden turvallisuudesta  2008/400 . Read 27.10.2021. 
+https://finlex.fi/fi/laki/ajantasa/2008/20080400?search%5Btype%5D=pika&searc
+h%5Bpika%5D=s%C3%A4hk%C3%B6  
+Valtioneuvoston asetus työvälineiden turva llisesta käytöstä ja tarkastamisesta  
+2008/403 . Read  28.10.2021.  
+https://www.finlex.fi/fi/laki/ajantasa/2008/20080403?search%5Btype%5D=pika&
+search%5Bpika%5D=turvallisuus  
+ 
+ 
+ 
+ 
+
+--- Page 65 ---
+65 
+APPENDICES  
+Appendix 1. Example hydraulic circuit of multi -pass system (ISO 16889 :2008)  
+ 
+ 
+
+
+--- Page 66 ---
+66 
+ 
+Appendix  2. Example state  machine  diagram of alarm clocks control object 
+(Koskimies 2000)  
+ 
+
+
+--- Page 67 ---
+67 
+Appendix  3. Hydraulic circuit diagram  of water filter test bench  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+HIDDEN  
+DUE T HE 
+SECRECY RESONS  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+                        
+
+--- Page 68 ---
+68 
+Appendix  4. Control system components  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+HIDDEN  
+DUE T HE 
+SECRECY RESONS  
+ 
+
+--- Page 69 ---
+69 
+Appendix 5. ΔP Measurement s tate machine diagram  
+ 
+
+
+--- Page 70 ---
+70 
+Appendix 6. Multi -pass measurement state m achine diagram   
+ 
+1 (3) 
+
+--- Page 71 ---
+71 
+2/3) 
+ 
+ 
+
+
+--- Page 72 ---
+72 
+3 (3) 
+ 
+
+
+--- Page 73 ---
+73 
+Appendix 7. Manual control state m achine diagram     
+ 
+1 (2) 
+
+--- Page 74 ---
+74 
+2 (2) 
+ 
+
+
+--- Page 75 ---
+75 
+Appendix 8. Throttle valve  B.TV.1 state machine diagram.  
+ 
+
+
+--- Page 76 ---
+76 
+Appendix 9. Throttle  valve  B.TV.2 state machine diagram.  
+ 
+
+
+--- Page 77 ---
+77 
+Appendix 10. Pump  A.PM.1 state machine diagram.  
+ 
+
+
+--- Page 78 ---
+78 
+Appendix 11. Pump B.PM. 1 state machine diagram.  
+ 
+
+
+--- Page 79 ---
+79 
+Appendix 12. Pump B.PM .2 state machine diagram.  
+ 
+
+
+--- Page 80 ---
+80 
+Appendix 13. Pump B.PM.3 state machine diagram.  
+ 
+
