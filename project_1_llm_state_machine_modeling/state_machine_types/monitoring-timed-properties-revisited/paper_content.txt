@@ -1,0 +1,1548 @@
+--- Page 1 ---
+Monitoring Timed Properties (Revisited)
+Thomas Møller Grosen1*, Sean Kauffman2,
+Kim Guldstrand Larsen1, Martin Zimmermann1
+1Aalborg University, Aalborg, Denmark.
+2Queens University, Kingston, Ontario, Canada.
+*Corresponding author(s). E-mail(s): tmgr@cs.aau.dk;
+Contributing authors: sean.k@queensu.ca; kgl@cs.aau.dk; mzi@cs.aau.dk;
+Abstract
+In this paper we study monitoring of real-time systems with respect to properties
+expressed either in Metric Interval Temporal Logic or as Timed Büchi Automata.
+We offer efficient symbolic online monitoring algorithms in a number of settings,
+exploiting so-called zones well-known from efficient model checking of Timed
+Automata. Our contributions include a new, much simplified treatment of time
+divergence and monitoring under timing uncertainty. The online monitoring pro-
+cedure that handles time divergence, as well as uncertain timing, is implemented
+in the tool MoniTAal , and shown to effectively monitor properties over long
+traces.
+Keywords: Monitoring, Timed Automata, Metric Temporal Logic
+1 Introduction
+Runtime monitoring has gained acceptance as a method for formally verifying the
+correctness of executing systems. Monitoring means to test a sequence of observations
+ofasystemagainstaspecification,oftenwritteninaformallogic.Monitoringcontrasts
+with static verification methods, like model checking, in that it is computationally
+easier due to only testing a single system execution. Runtime monitoring may also be
+applied to black-box systems where details about the environment and design of the
+monitored system are not required to be known in advance.
+Many systems have so-called “extra-functional” requirements that must be
+expressed with respect to time. These systems, generally called real-time systems,
+are pervasive in modern life as the controllers of cyber-physical systems. To express
+1arXiv:2206.14590v4  [cs.FL]  27 Sep 2025
+
+--- Page 2 ---
+requirements with time components, logics such as Metric Temporal Logic (MTL)
+and derivatives like Metric Interval Temporal Logic (MITL) have been developed that
+extend the more classical Linear Temporal Logic (LTL) with timing constraints [1, 2].
+Finite Automata have also been extended with time to form Timed Automata [3].
+These formalisms allow the expression of notions such as that “a response should occur
+within 20 milliseconds of a request.”
+Monitoring timed properties is possible and several solutions have been proposed,
+each with their own advantages and drawbacks. In this work, we introduce an efficient
+solution to the online monitoring problem for timed properties under time divergence.
+Given a property expressed in MITL and a finite timed sequence, our method deter-
+mines if the property is guaranteed to be satisfied or violated by any continuation of
+that finite sequence. Additionally, the eventual satisfaction or violation of a property
+considersthatanyfuturetimingconstraintswilleventuallybesettled.Notethatonline
+monitoring here contrasts with offline monitoring, where the system is assumed to
+have terminated and timed properties are interpreted with finite semantics. In online
+monitoring, liveness properties (e.g., “eventually, plaid shirts will be popular”) cannot
+be violated since there will always be more symbols, while they can be violated in
+offline monitoring, since the entire sequence is known.
+In this paper we study the monitoring of real-time properties expressed in the
+logic MITL. In particular, we offer efficient symbolic online monitoring algorithms
+for a number of settings. The symbolic approach exploits the fact that properties in
+MITL may be translated into Timed Büchi Automata (TBA) [4] under a point-wise
+semantics.Oursymbolicapproachexploitsso-calledzones1,whichareusedforefficient
+model checking of Timed Automata [5]. In fact, zones have been exploited in the tool
+Uppaal TRON [6] for on-line testing that the behavior of a real-time system conforms
+to a Timed Automata specification.
+In the first setting, we offer a new much simplified way of dealing with time diver-
+gence. Time divergence means that, during the infinite behavior of a real-time system,
+time progresses beyond any finite bound. Time divergence is stated as an assumption
+by most works in the area because it reflects reality. However, the algorithmic support
+for time divergence in earlier work seems somewhat underdeveloped.
+To understand how time divergence impacts monitor verdicts, consider the prop-
+erty“nothingshouldbeobservedafteranhour.” Itshouldbeclearthattimedivergence
+guarantees that no infinite sequence will satisfy this property. Because we are inter-
+ested in online monitoring of properties over infinite timed sequences, the language of
+the property is empty, and its monitor should evaluate any finite prefix to be in vio-
+lation of it. Conversely, a monitor that does not compensate for time divergence will
+register an unknown verdict for finite prefixes that do not include observations past
+the hour mark, as time can converge before an hour has passed.
+Then, we deal with timing uncertainty, i.e., a setting where the real-valued time-
+points of events can only be observed up to a given precision. We show that our
+symbolic monitoring algorithm can easily be adapted to handle timing uncertainty.
+1Also known as DBMs: Difference Bounded Matrices.
+2
+
+--- Page 3 ---
+This work is an extended version of an invited contribution presented at FOR-
+MATS 2022 [7]. Here, we additionally present more detailed explanations, full proofs,
+and a prototype implementation.
+2 Related Work
+Many techniques to monitor timed properties have focused on monitoring logics
+with finite-word semantics. The first work to introduce timed property monitor-
+ing is by Roşu et al. focusing on discrete-time finite-word MTL [8]. Basin et al.
+proposed algorithms for monitoring real-time finite-word properties in [9] and com-
+pared the differences between different time models. Ulus et al. described monitoring
+Timed Regular Expressions (TREs) for finite words using a union of two-dimensional
+zones [10, 11].
+The most closely related work to ours is that by Bauer et al. in which the
+authors introduced the classical Three-value LTL (LTL 3) monitor construction and
+then showed how a similar construction can be used for Timed LTL (TLTL) [12].
+Their method transforms a TLTL formula to event-clock automata which are strictly
+less expressive than Timed Büchi Automata (TBAs), which we support. Their algo-
+rithm also differs from ours in being based on the so-called region automata. Though
+this construction doesprovide a principled monitoring algorithm, the performance of
+zone-based monitoring algorithms provides an order of magnitude improvement (see,
+e.g., [13]). Finally, their monitoring algorithm does not readily seem to support time
+divergence.
+Two more recent works have proposed solutions to the problem of monitoring
+timed languages specified in MTL. Baldor et al. showed how to construct a monitor
+for a dense-time MITL formula by constructing a tree of timed transducers [14]. They
+showed how subsets of MITL could be used to limit the complexity of their technique
+which requires linear space in the size of the input for the full fragment. Ho et al.
+split unbounded and bounded parts of a dense-time MITL formula for monitoring,
+using traditional LTL monitoring for the unbounded parts and permitting a simpler
+construction for the (finite-word) bounded parts [15]. Unlike the work by Baldor et al.,
+their method is size independent of the input. However, it does require non-elementary
+blowup of the formula to ensure no unbounded operators appear in the context of a
+bounded operator. They also monitor bounded parts using a dynamic programming
+formulation that relies on a maximum bound for the number of events in a time span.
+Neither the solution by Baldor et al. or Ho et al. address time-divergence.
+Crucially, none of the previously mentioned works implement their solutions.
+On the other hand, some tools have been released for monitoring other timed log-
+ics. Basin et al. implemented MonPoly, which can monitor an expressive finite-word
+(safety) fragment of Metric First-Order Temporal Logic (MFOTL) using discrete time
+semantics [16].Bulychevet al.implemented arewrite-based monitoringalgorithm sim-
+ilar to the one proposed by Roşu et al. [8] for Weighted MTL in the Uppaal Statistical
+Model Checking (SMC) tool [17]. R2U2 is a tool for generating monitors for Field
+Programmable Gate Arrays (FPGAs) developed by Moosbrugger et al. that supports
+finite-word MITL properties [18]. Much more recently, Chattopadhyay and Mamouras
+3
+
+--- Page 4 ---
+presented a verified monitor for discrete, past-time (finite word) MITL with quanti-
+tative semantics [19]. Some tools also exist to convert timed logics to automata which
+we will cover in the next section.
+The topic of monitorability has recently been studied in the timed setting [20, 21].
+Monitorability of a property refers to whether or not the property can effectively be
+monitored i.e., the possibility of deciding satisfaction or violation from a finite prefix.
+After the publication of the conference version [7] of this work, the monitoring
+approach presented here has been extended to a setting with delayed observations [22]
+and a setting with assumptions and incomplete observations [23].
+3 Preliminaries
+We first define some notation used throughout the paper. The set of natural numbers
+(excluding zero) is N, we define N0=N∪ {0}, the set of rational numbers is Q, the
+set of non-negative rational numbers is Q≥0, the set of real numbers is R, and the
+set of non-negative real numbers is R≥0. The three-valued set of monitor verdicts is
+B3={⊤,?,⊥}.Givenaset Sthesetofallitssubsetsisdenoted 2S.Thecrossproduct
+of two sets SandTisS×T. Given a sequence σ,σidenotes the element at the ith
+position of σ(where one is the first position) and σidenotes the suffix of σstarting
+at index i. Given two sequences sandt, we write s·tto denote their concatenation.
+A timed word over a finite alphabet Σis a pair ρ= (σ, τ)where σis an untimed
+word over Σand and τis a sequence of non-decreasing non-negative real numbers of
+the same length as σ. Timed words may be finite or infinite where the set of finite
+timed words is TΣ∗and the set of infinite timed words is TΣω. We also represent
+a timed word as a sequence (σ1, τ1),(σ2, τ2), . . .of pairs of letters and non-negative
+reals. If ρ= (σ1, τ1),(σ2, τ2), . . .(σn, τn)is a finite timed word, we denote by τ(ρ)the
+total time duration of ρ, i.e., τn(with the convention τ(ε) = 0).
+Ifρ1= ( σ1
+1, τ1
+1),(σ1
+2, τ1
+2), . . . , (σ1
+n, τ1
+n)is a finite timed word and ρ2=
+(σ2
+1, τ2
+1),(σ2
+2, τ2
+2), . . .a finite or infinite timed word and t∈R≥0then the timed
+word concatenation ρ1·tρ2is defined iff t≥τ(ρ1). Then, we define ρ1·tρ2=
+(σ1, τ1),(σ2, τ2), . . .such that
+σi=(
+σ1
+iifi≤n,
+σ2
+i−nelse,and τi=(
+τ1
+i ifi≤n,
+τ2
+i−n+telse.
+3.1 Metric Interval Temporal Logic
+We use the Metric Interval Temporal Logic, MITL, in this work to formalize examples
+because we can translate it into the TBAs that we use in our monitoring algo-
+rithm. Brihaye et al. developed the tool MightyL to translate MITL formulas to
+TBAs in a compositional manner [4]. Some earlier work implemented algorithms to
+translate subsets of MITL to TBAs as well. Li et al. proposed and implemented
+Casaal, a tool to construct deterministic approximations of TBAs from MTL 0,∞
+formulas [24, 25]. Geilen and Dams implemented an algorithm to produce a deter-
+ministic Timed Automaton (TA) for dense-time MITL ≤(a subset of MTL 0,∞)
+using an on-the-fly tableau construction that discretizes the time domain and only
+4
+
+--- Page 5 ---
+supports an upper bound [26]. Note that some other works exist that provide algo-
+rithms for the translation of MITL or related logics to TBAs, but without providing
+implementations [27, 28].
+LetΣbe a finite alphabet. The syntax of MITL formulas over Σis given by the
+grammar
+φ::=p| ¬φ|φ∨φ|XIφ|φ UIφ
+where p∈ΣandIis a non-singular interval over R≥0with endpoints in N0∪ {+∞}.
+We often write ∼nforI={d∈R:d∼n}where ∼∈ {<,≤,≥, >}, and n∈N0.
+The semantics of MITL is defined over infinite timed words. Given such a timed
+word ρ= (σ1, τ1),(σ2, τ2), . . .∈TΣω, a position i≥1, and an MITL formula φ, we
+inductively define the satisfaction relation ρ, i|=φas follows:
+ρ, i|=pifp=σi
+ρ, i|=¬φifρ, i̸|=φ
+ρ, i|=φ∨ψifρ, i|=φorρ, i|=ψ
+ρ, i|=XIφifρ,(i+ 1)|=φandτi+1−τi∈I
+ρ, i|=φ UIψif∃k≥i.ρ, k|=ψ, τk−τi∈Iand∀j.i≤j < k.ρ, j|=φ
+We write ρ|=φwhenever ρ,1|=φ, and say that ρsatisfies φ. Given an an MITL
+formula φ, its language L(φ)is the set of all infinite timed words that satisfy φ.
+We also define the standard syntactic sugar true=p∨ ¬p,false =¬true,φ∧ψ=
+¬(¬φ∨ ¬ψ),φ→ψ=¬φ∨ψ,FIφ=trueUIφ, and GIφ=¬FI¬φ.
+3.2 Timed Automata
+A TBA Ais a six-tuple (Q, Q 0,Σ,X,∆,F), where Σis a finite alphabet, Qis a
+finite set of locations, Q0⊆Qis a set of initial locations, Xis a finite set of clocks,
+∆⊆Q×Q×Σ×2X×G(X)is a finite set of transitions with G(X)being the sets of
+constraintsover X,andF ⊆Qisasetofacceptinglocations.Atransition (q, q′, α, λ, g )
+is an edge from qtoq′on input symbol αwhere λis the set of clocks to reset and g
+is a clock constraint over X. A clock constraint is a conjunction of atomic constraints
+of the form x∼n, where xis a clock, n∈N0, and ∼ ∈ { <,≤,=,≥, >}. A state of
+a TBA is a pair (q, v)where qis a location in Qandv:X → R≥0is a valuation
+mapping clocks to their values. We say that for any d∈R≥0,v+dis the valuation
+where dis added to all clock values in v.
+A run of Afrom a state (q0, v0)is a sequence of steps over an infinite timed
+word (σ, τ)∈TΣωof the form
+(q0, v0)(σ1,t1)− − − − → (q1, v1)(σ2,t2)− − − − → (q2, v2)(σ3,t3)− − − − → ···
+where for all i≥1there is a transition (qi−1, qi, σi, λi, gi)such that vi(x) = 0for
+allxinλiandvi−1(x) + (ti−ti−1)otherwise, and gis satisfied by the valuation
+vi−1+ (ti−ti−1), where we use t0= 0. Given a run r, we denote the set of locations
+visited infinitely many times by rasinf(r). A run rofAis accepting if inf(r)∩F ̸=∅.
+The language of Afrom a starting state (q, v), denoted L(A,(q, v)), is the set of all
+timed words with an accepting run in Astarting from (q, v). We define the language
+ofA, written L(A), to beS
+qL(A,(q, v0)), where qranges over all locations in Q0and
+where v0(x) = 0for all x∈ X.
+5
+
+--- Page 6 ---
+Theorem 1 ([2, 4]).For each MITL formula φthere exists a TBA AwithL(φ) =
+L(A).
+Given two TBAs A= (Q, Q 0,Σ,X,∆,F)andA′= (Q′, Q′
+0,Σ,X′,∆′,F′), their
+intersection is denoted A ⊗ A′= (Q⊗, Q⊗
+0,Σ,X⊗,∆⊗,F⊗), where
+•Q⊗=Q×Q′× {1,2},
+•Q⊗
+0=Q0×Q′
+0× {1},
+•X⊗=X ∪ X′(we assume they are disjoint),
+•∆⊗= ∆⊗
+1∪∆⊗
+2with
+∆⊗
+1={((q1, q′
+1,1),(q2, q′
+2, i), α, λ∪λ′, g∧g′) : ( q1, q2, α, λ, g )∈∆and
+(q′
+1, q′
+2, α, λ′, g′)∈∆′andi= 2ifq1∈ Felsei= 1}and
+∆⊗
+2={((q1, q′
+1,2),(q2, q′
+2, i), α, λ∪λ′, g∧g′) : ( q1, q2, α, λ, g )∈∆and
+(q′
+1, q′
+2, α, λ′, g′)∈∆′andi= 1ifq′
+1∈ F′elsei= 2},
+•andF⊗=Q× F′× {2}.
+Lemma 1 ([3]).L(A ⊗ A′) =L(A)∩ L(A′).
+4 Monitoring in a Timed Setting
+In this section, we describe monitoring and show how it applies in the timed setting.
+To this end, we first, and briefly, introduce monitoring in the untimed case and then
+extend it to the timed case, following the approach of Bauer et al. [12].
+Traditionally in Runtime Verification (RV), properties are specified using a tempo-
+ral logic such as LTL and a monitor is constructed from those properties. A monitor is
+a kind of program that takes a finite word as an input and returns a verdictdepend-
+ing on the relationship between the input and the property from which the monitor is
+constructed. Verdicts are usually of the form accept(⊤),reject(⊥), orunknown (?),
+although larger verdict domains exist to provide more information.
+In online monitoring (our interest), the properties specify behaviors over infinite
+sequences of symbols, or words, while the monitor must interpret those specifications
+over an ever-growing finite prefix of such an infinite word. The most prevalent solution
+to this problem is to use a monitor semantics where acceptance or rejection means that
+the finite word determines the property and no future suffix can alter the verdict. In
+the case where the finite prefix does not determine the property, the monitor outputs
+anunknown verdict and continues.
+Monitoring languages of timed infinite words works in much the same way as in
+the untimed setting. A finite prefix of an infinite timed word is checked to see if it
+determines the property. If all possible infinite extensions of the prefix result in a word
+thatisincludedinthemonitoredproperty,thenthemonitorreturnsthe ⊤verdict.Ifno
+possible infinite extensions lead to a word that is included in the monitored property,
+then the monitor returns the ⊥verdict. If extensions exist that could lead to either
+outcome, then the monitor returns ?and continues monitoring. In the timed setting,
+we also need to know at what time point the prefix ends and when the extension
+starts. Intuitively, this concatenation time point represents knowledge about the time
+that has passed since the last observation of the prefix.
+Definition 1 (Monitor verdicts for timed languages) .Given a language of infinite
+timed words ϕ⊆TΣω, a finite timed word ρ∈TΣ∗, and a time-point t∈R≥0such
+6
+
+--- Page 7 ---
+thatt≥τ(ρ), the function V: 2TΣω→(TΣ∗×R≥0)→B3evaluates to a verdict with
+the following definition:
+V(ϕ)(ρ, t) =
+
+⊤ifρ·tµ∈ϕfor all µ∈TΣω,
+⊥ifρ·tµ /∈ϕfor all µ∈TΣω,
+?otherwise .
+Ift < τ (ρ), then V(ϕ)(ρ, t)is undefined.
+Example1. Consider the bounded response property “whenever ais observed, bshould
+be observed within 30 time units” that is specified by the MITL formula φ=G≥0(a→
+F≤30b)where Σ ={a, b, c}. This property corresponds to the TBA shown in Figure 1.
+This type of bounded response property is very common for real-time systems [29]. It
+states that some trigger ais followed by a reaction bbefore the deadline elapses. Note
+that we draw the “sink” state q3here for illustrative purposes as we will return to this
+example later in the paper, but it can be omitted without changing the language of the
+automaton.
+q1 q2 q3b, ca
+x:= 0a, c
+x≤30
+b
+x≤30a, b, c
+x >30a, b, c
+Fig. 1: TBA corresponding to G≥0(a→F≤30b)
+Now consider the finite timed prefix ρ= (b,10),(a,20). The verdict in this case is
+V(L(φ))(ρ, t) =(
+?ift≤50,
+⊥otherwise.
+Fort≤50there are infinite extensions of the prefix that satisfy the property and those
+that violate it, e.g., we have
+ρ·40(b,0),(b,10),(b,20), . . .= (b,10),(a,20)(b,40),(b,50),(b,60), . . .∈ L(φ)
+and
+ρ·40(b,20),(b,30),(b,40), . . .= (b,10),(a,20)(b,60),(b,70),(b,80), . . . /∈ L(φ).
+When t >50, then there are no accepting extensions as the aat time 20has not been
+followed by a bwithin 30time units.
+7
+
+--- Page 8 ---
+This property demonstrates a way in which timed monitoring differs from the
+untimed setting. If we remove the time constraint and consider the (unbounded)
+response property G(a→Fb), no finite prefix could ever determine the property and
+so the only possible verdict would be ?. This is a classic example of what is called an
+unmonitorable property [30–32].
+5 Time Divergence
+Note that Definition 1 does not take time divergence into account, i.e., a verdict can
+be based on convergent extensions of a given prefix. As we will see in Example 2, this
+leads to invalid verdicts. In this section, we consider the monitoring problem in the
+presence of time divergence and show how it affects the verdicts from monitors for
+timed languages. Time divergence entails that time will always progress beyond any
+given time-bound.
+We begin by defining the set of infinite time-divergent words. These are the
+only timed words that will occur in practice, since time always diverges. Mathe-
+matically, however, the set TΣωincludes words that are not time divergent, e.g.,
+(α,1
+2),(α,3
+4),(α,7
+8), . . .. The definition states that time-divergent words are those
+wherethetimesequenceisunbounded.Notethatwedonotconsider finitetimedwords
+either divergent or convergent even though their time sequences technically converge.
+Definition 2. The set of all time-divergent words TDΣω⊆TΣωis the set of all timed
+words (σ1, τ1),(σ2, τ2). . .such that limi→∞τi= +∞.
+We now use the set of time-divergent words to define a verdict function that
+accounts for time divergence. Crucially, the properties that we monitor may include
+non-time-divergentwords.Inthatcase,theverdictreturnedbytheevaluationfunction
+under time divergence VDmay differ from the verdict returned by V.
+Definition 3 (Monitor verdicts under time divergence) .Given a language of infinite
+timed words ϕ⊆TΣω, a finite timed word ρ∈TΣ∗, and a time-point t∈R≥0such
+thatt≥τ(ρ), the function VD: 2TΣω→(TΣ∗×R≥0)→B3evaluates to a verdict
+with the following definition:
+VD(ϕ)(ρ, t) =
+
+⊤ifρ·tµ∈ϕfor all µ∈TDΣω,
+⊥ifρ·tµ /∈ϕfor all µ∈TDΣω,
+?otherwise .
+Ift < τ (ρ), then VD(ϕ)(ρ, t)is undefined.
+Example 2. Consider the property “the system will continue past 20 time units”
+represented by the MITL formula φ=F≥20a, where Σ ={a}. This property is captured
+by the TBA shown in Figure 2.
+If this property is monitored, the verdict may change depending on whether time
+divergence is accounted for. Under time divergence, this property is clearly a tautol-
+ogy since all infinite time-divergent words must eventually reach time 20 and thus
+location q2. However, if time divergence is not assumed as in Definition 1, then it is
+possible for an infinite timed word to never pass time 20 and therefore stay in location
+q1.
+8
+
+--- Page 9 ---
+q1 q2a
+a
+x≥20a
+Fig. 2: TBA corresponding to F≥20a
+Suppose, for example, the finite timed prefix ρ= (a,10). Since φis a
+tautology under time divergence, VD(L(φ))(ρ, t) = ⊤for all time points t.
+However, V(L(φ))(ρ, t) = ?for all t < 20, since TΣωcontains time-
+convergent words µsuch that ρ·tµis not in the language of φ, e.g., for
+t= 10and µ= ( a,9),(a,9.9),(a,9.99),(a,9.999), . . .we have ρ·tµ=
+(a,10)(a,19),(a,19.9),(a,19.99),(a,19.999), . . . /∈ L(φ).
+To ensure that verdicts are correct for all properties, we monitor an intersection
+of the given automata with a special TBA that only accepts time-divergent words.
+This TBA, which we will call AD, is shown in Figure 3. The automaton must visit the
+left location infinitely often to accept and it can only visit this location once time has
+passed a threshold of one time unit. Note that the exact threshold is arbitrary and
+could be any number; the purpose is to ensure that the language of the automaton is
+exactly the language of time-divergent words.
+A BΣ
+z:= 0
+Σ
+z <1
+Σ
+z≥1
+Fig. 3: TBA ADcapturing time divergence
+Remark 1. The language of ADis exactly the set of all time-divergent words.
+We will use the automaton ADto restrict the possible extensions of an observation
+to divergent words.
+Example 3. We now consider the complement property to Example 2 that is captured
+by the MITL formula φ=G≥20false. Note that, since we use symbols in our MITL
+formulas and not propositions, we cannot write ¬ahere but must use its complement
+Σ\{a}=∅which is equivalent to falsein our MITL syntax. The TBA for φis shown
+in Figure 4.
+q1a
+y <20
+Fig. 4: TBA corresponding to G≥20false
+9
+
+--- Page 10 ---
+Now we want to intersect this TBA with ADto restrict its language to only time-
+divergent words. The result of this operation is shown in Figure 5.
+(q1, A,1) (q1, B,1)
+(q1, A,2) (q1, B,2)a
+y <20
+z <1
+a
+y <20
+z≥1a
+y <20
+z:= 0a
+y <20
+z:= 0
+a
+y <20
+z <1a
+y <20
+z≥1
+Fig. 5: TBA for the intersection of the TBA from Figure 4 (corresponding to
+G≥20false) and ADfrom Figure 3 (state names are as described in the construction
+above Lemma 1)
+In this TBA, an accepting run must visit (the only accepting) location (q1, A,2)
+infinitely often. The only transition leaving (q1, A,2)resets the clock zand all transi-
+tions leading to (q1, A,2)have the guard z≥1. Hence, at least one unit of time has
+to pass between any two visits to (q1, A,2). However, the clock yis never reset and
+each transition has the guard y <20. Hence, there cannot be an accepting run and the
+product automaton has an empty language.
+6 A Symbolic Method for Monitoring
+In this section, we describe an algorithm to monitor languages of infinite timed words
+that correctly accounts for time divergence. Our algorithm is loosely based on the
+classical constructions for monitoring LTL 3and TLTL by Bauer et al. [12], but with
+alterations to address the many differences between the timed and untimed domains.
+Our solution requires that properties are specified as two TBAs - one for the
+property and one for its complement. Although TBAs are not closed under comple-
+mentation, we consider this requirement to not be too much of a limitation. This is
+because we expect a property to be expressed by a user in MITL, which, along with its
+negation, can be converted to TBAs using one of the methods described in Section 3.
+Before we address the monitoring algorithm, we first introduce the notions of states
+of a TBA with a non-empty language and reach-sets. Given a TBA A, a state (q, v)
+has a non-empty language when it has an accepting run starting in (q, v), i.e., if
+L(A,(q, v))̸=∅.
+Definition4. Given a TBA A= (Q, Q 0,Σ,X,∆,F), the set of states with non-empty
+language is Sne
+A={(q, v) :q∈Q, v∈ X → R≥0.L(A,(q, v))̸=∅}.
+10
+
+--- Page 11 ---
+In the following definition, we write (q0, v0)ρ− →A(qn, vn)for a finite timed word ρ=
+(σ, τ)∈TΣ∗to denote the existence of a finite sequence
+(q0, v0)(σ1,t1)− − − − → (q1, v1)(σ2,t2)− − − − → ···(σn,tn)− − − − − → (qn, vn)
+of states where for all 1≤i≤nthere is a transition (qi−1, qi, σi, λi, gi)such that
+vi(x) = 0for all xinλiandvi−1(x) + (ti−ti−1)otherwise, and gis satisfied by the
+valuation vi−1+(ti−ti−1), where we use t0= 0. Note that this definition is analogous
+to the definition of infinite runs in Section 3.
+Definition5. Given a TBA A, a finite timed word ρ∈TΣ∗, and a time-point t∈R≥0
+witht≥τ(ρ), the reach-set of Aover ρat time t, the set of possible states a run over
+ρstarting from initial states of Acan end in after time thas passed, is given by
+TA(ρ, t) ={(q, v+ (t−τ(ρ))) : ( q0, v0)ρ− →A(q, v)
+where q0∈Q0andv0(x) = 0for all x∈ X} .
+Remark 2. The reach-set TA(ρ, t)is always a finite set of states of A.
+We can now define a function for a monitor verdict using Definitions 4 and 5. To
+determine the verdict for a language ϕ⊆TΣω, the function requires both a TBA A
+such that L(A) =ϕand its complement, A. Definition 6 states that a finite timed
+word ρ∈TΣ∗positively (negatively) determines the property under time divergence
+if the states of A ⊗ A D(A ⊗ A D) with non-empty languages are disjoint from the
+reach-set of A ⊗ A D(A ⊗ A D) over ρ.
+Definition 6 (Monitoring TBAs under time divergence) .Given a TBA A, its com-
+plement A(L(A) =TΣω\ L(A)), the automaton ADsuch that L(AD) =TDΣω, a
+finite timed word ρ∈TΣ∗, and a time-point t∈R≥0such that t≥τ(ρ), the func-
+tionM:A×A→(TΣ∗×R≥0)→B3(where Adenotes the set of TBAs) computes a
+verdict with the following definition:
+M(A,A)(ρ, t) =
+
+⊤ifTA⊗A D(ρ, t)∩Sne
+A⊗A D=∅,
+⊥ifTA⊗A D(ρ, t)∩Sne
+A⊗A D=∅,
+?otherwise.
+Ift < τ (ρ), then M(A,A)(ρ, t)is undefined.
+The following theorem shows that the symbolic definition of Mcoincides with the
+definition of VDin Definition 3.
+Theorem 2. M(A,A)(ρ, t) =VD(L(A))(ρ, t)for all ρ∈TΣ∗and all t∈R≥0such
+thatt≥τ(ρ).
+Proof.LetA′be an arbitrary TBA. We will show that TA′(ρ, t)∩Sne
+A′is nonempty iff
+there exists a µ∈TΣω(not necessarily time divergent) with ρ·tµ∈ L(A′). Then, we
+obtain
+•M(A,A)(ρ, t) =⊤iffVD(L(A))(ρ, t) =⊤by instantiating the equivalence for
+A′=A ⊗ A D, and
+11
+
+--- Page 12 ---
+•M(A,A)(ρ, t) =⊥iffVD(L(A))(ρ, t) =⊥by instantiating the equivalence for
+A′=A ⊗ A D.
+Thiscompletestheproof,asbothfunctionsonlyhavethreeelementsintheircodomain
+and we have shown that two of them have the same preimage w.r.t. both functions.
+So, let TA′(ρ, t)∩Sne
+A′̸=∅. Then, by definition, there is a state (q, v′)ofA′such that
+•(q0, v0)ρ− →A′(q, v)for some q0∈Q0and for v0with v0(x) = 0for all xsuch that
+v′=v+ (t−τ(ρ)), and
+•there is an accepting infinite run of A′starting in (q, v′)that processes some
+µ∈TΣω.
+Letρ= (σ1, t1)···(σn, tn), which satisfies tn=τ(ρ)≤t. Then, due to (q0, v0)ρ− →A′
+(q, v), there is a run prefix
+(q0, v0)(σ1,t1)− − − − → (q1, v1)(σ2,t2)− − − − → ···(σn,tn)− − − − − → (q, v).
+Also, let µ= (σn+1, tn+1)(σn+2, tn+2)···and let
+(q, v′)(σn+1,tn+1)− − − − − − − − → (qn+1, vn+1)(σn+2,tn+2)− − − − − − − − → (qn+2, vn+2)(σn+3,tn+3)− − − − − − − − → ···
+be the accepting run A′onµ.
+These two runs can be combined into the run
+(q0, v0)(σ1,t1)− − − − → (q1, v1)(σ2,t2)− − − − → ···(σn,tn)− − − − − → (q, v)(σn+1,tn+1+t)− − − − − − − − − →
+(qn+1, vn+1)(σn+2,tn+2+t)− − − − − − − − − → (qn+2, vn+2)(σn+3,tn+3+t)− − − − − − − − − → ···
+ofA′, which starts in (q0, v0), processes ρ·tµ, and is accepting. Hence, L(A′)is
+nonempty as required.
+Conversely, let there be a µ∈TΣωwith ρ·tµ∈ L(A′). Then, there exists an
+accepting run
+(q0, v0)(σ1,t1)− − − − → (q1, v1)(σ2,t2)− − − − → (q2, v2)(σ3,t3)− − − − → ···
+ofA′starting in some state (q0, v0)that processes ρ·tµ, where q0∈Q0and with
+v0(x) = 0for all x. By definition of concatenation, there is an n≥0with tn≤tand
+tn+1≥t(where we use t0= 0to allow n= 0) such that ρ= (σ1, t1)···(σ1, tn)and
+µ= (σn+1, tn+1−t)(σn+2, tn+2−t)···. The run can be split into two parts:
+•The first part is
+(q0, v0)(σ1,t1)− − − − → (q1, v1)(σ2,t2)− − − − → ···(σn,tn)− − − − − → (qn, vn),
+which witnesses (q0, v0)ρ− →A′(qn, vn). Thus, (qn, vn+ (t−tn))∈ TA′(t).
+•The second part is
+(qn, v+ (t−tn))(σn+1,tn+1−t)− − − − − − − − − → (qn+1, vn+1)(σn+2,tn+2−t)− − − − − − − − − →
+(qn+2, vn+2)(σn+3,tn+3−t)− − − − − − − − − → ··· ,
+12
+
+--- Page 13 ---
+which is an accepting infinite run of A′starting in (q, v′)that processes µ.
+Hence, (qn, v+(t−tn))∈ TA′(ρ, t)∩Sne
+A′, which is therefore, as required, nonempty.
+Sofar,thisconstructionisverysimilartothetheclassicalprocedureformonitoring
+LTL 3with the addition of ADto account for time divergence. However, the set of
+states with non-empty languages of a TBA is likely to be infinite, and its reach-set
+over a symbolic trace (see Section 7) may be as well. We now present a symbolic online
+algorithm to compute these infinite sets and their intersections in an efficient manner.
+6.1 Monitoring Algorithm
+We assume that the language ϕwe will monitor and its complement ϕare given
+as TBAs AϕandAϕ, where L(Aϕ) =ϕandL(Aϕ) =ϕ. We begin by computing
+the intersection of both automata with AD(we hereafter refer to these intersection
+automata as AandA). We continue by finding the states of the automata with non-
+empty languages, also called the non-empty states from Definition 4. We then compute
+theintersectionofthenon-emptystateswiththereach-set(fromDefinition5)of Aand
+Aoverρ. If one of the intersections is empty, then we can output ⊤or⊥, otherwise,
+we output ?.
+Wecancalculatetheset Sne
+Aasafixpointusingabackwardsreachabilityalgorithm.
+In order to practically work with the states of a TBA we use a symbolic representation
+of the clock valuations, namely zones. A symbolic state (q, Z)is a pair of a location q
+and a zone Z. A zone is a finite conjunction of clock constraints on the form x1∼nor
+x1−x2∼n, where x1, x2are clocks, ∼∈ { <,≤,=,≥, >}, and n∈Q≥0. Such a zone
+describes a convex set of clock valuations.
+To compare observed time points with clock constraints in the zones, we add a
+globalclock xGthatwillneverbereset.Additionallyweonlyconsiderrationalvaluesas
+inputs and in clock constraints, as we now discuss the implementation of our symbolic
+algorithm. However, let us stress that a zone still includes all valuations satisfying the
+constraints,includingreal-valuedclockvaluations.Zonesmaybeefficientlyrepresented
+using so-called Difference Bounded Matrices (DBMs) [5].
+We now define several zone operations that we will need.
+Definition7. Given a zone Zover a set of clocks Xincluding the global clock time xG,
+a set of clocks λ⊆ X, an interval I= [t1, t2]between two positive rational numbers,
+and a clock constraint g, we define the following operations on zones:
+•freeλ(Z) ={v:∃v′∈Z.∀x∈ X.v(x) =v′(x)ifx /∈λ}
+•Zfree=freeX(Z)
+•Z[λ] ={v:∃v′∈Z∀x∈ X.v(x) = 0ifx∈λotherwise v(x) =v′(x)}
+•Z↗={v:∃v′∈Z.v=v′+dfor some d∈R≥0}
+•Z↙={v:∃v′∈Z.v=v′−dfor some d∈R≥0}
+•Z↗I=Z↗∧xG∈I
+•Z∧g={v:v∈Zandv|=g}
+•Z0={v:∀x∈ X.v(x) = 0}
+Given a set Sof symbolic states, S↗I={(q, Z↗I) : (q, Z)∈S}is obtained by applying
+the zone operation ↗Ito all zones in the set S.
+13
+
+--- Page 14 ---
+All of the above operations on zones can be efficiently implemented using the DBM
+data-structure [5].
+We now proceed to develop the online zone-based procedure we use to monitor
+real-time properties specified by TBAs. PredA(q, Z)(computed by Algorithm 1) is
+the set of symbolic states that can, by a single transition and delay, reach the state
+(q, Z)ofA, i.e.,
+PredA(q, Z) ={(q′, Z′) : (q′, q, α, λ, g )∈∆andZ′=freeλ(Z↙∧^
+x∈λx= 0)∧g}
+Algorithm 1 Find the predecessors (single transition) of a state
+Input:a TBA A= (Q, Q 0,Σ,X,∆,F)and a symbolic state (q, Z)
+Output: PredA(q, Z)
+Predecessors ←∅
+for(q′, q, α, λ, g )∈∆do
+Z′=freeλ(Z↙∧V
+x∈λx= 0)∧g
+Predecessors ←Predecessors ∪ {(q′, Z′)}
+end for
+returnPredecessors
+Reach A(S)(computed by Algorithm 2 implementing a classical backwards analysis
+(see, e.g., [33])) is the set
+Reach A(S) ={(q, v) : (q, v)ρ− →(q′, v′)s.t.(q′, v′)∈Sandρis nonempty }
+of symbolic states that can, by at least one transition, reach a state in S.
+Algorithm 3 computes the limit set Sn=Sn−1where
+S0={(q, Zfree) :q∈Q′}
+is the set of symbolic states whose location is in Q′, and where
+Si=Reach A(Si−1∩S0)
+fori >0is the set of states that can reach Si−1∩S0with at least one transition.
+Thus, from states in the limit Sn, there is an infinite run that infinitely many times
+reaches a location in Q′.
+We can use this to calculate the set of states, from which there is an accepting run:
+Given a TBA A, we write Reach∞
+Aas a shorthand for Reach∞
+A(F), where Fis the set
+of accepting locations of A.
+Theorem 3. Given a TBA A. Then Reach∞
+A=Sne
+A.
+14
+
+--- Page 15 ---
+Algorithm 2 Compute the states that can reach the given states with at least one
+transition
+Input:a TBA Aand a set of symbolic states S
+Output: Reach A(S)
+Waiting ←∅
+Passed ←∅
+fors∈Sdo
+Waiting ←Waiting ∪PredA(s)
+end for
+whileWaiting ̸=∅do
+s←Pop(Waiting)
+ifs /∈Passedthen
+Waiting ←Waiting ∪PredA(s)
+Passed ←Passed ∪ {s}
+end if
+end while
+return Passed
+Algorithm 3 Calculate the set of states that can infinitely often reach a location in Q′
+Input:a TBA Aand a set Q′of locations of A
+Output: Reach∞
+A(Q′)
+SQ′←∅
+forq∈Q′do
+SQ′←SQ′∪ {(q, Zfree)}
+end for
+Sa←SQ′
+Sb←∅
+while Sa̸=Sbdo
+Sb←Sa
+Sa←Reach A(Sa∩SQ′)
+end while
+return Sa
+Proof.Consider a TBA with accepting states SF(i.e., those states with accepting
+locations) and let AccPred A(S) =Reach A(S)∩SFbe the function mapping a set S
+of states to its accepting predecessors, i.e., to the set of accepting states that can, by
+oneormore transitions, reach a state in S.
+Notice that for any set Sof states we have AccPred A(S)⊆S. The iterative process
+given by S0=SFandSn=AccPred A(Sn−1)represents part of the transformation
+in the final loop of Algorithm 3 if Fis given as the parameter. It will converge after
+a finite number of steps to a greatest fixed point S∗. This holds when using zones for
+the continuous part of the state space, as zones are finite unions of regions [3], which
+can only be reduced a finite number of times before becoming empty.
+15
+
+--- Page 16 ---
+The set S∗contains all the states in SFthat can reach a state in S∗by one or more
+transitions. Thus, we have that S∗is the set of accepting states that can infinitely
+often visit an accepting state.
+Then,Reach A(S∗)is the set of all states (not necessarily accepting) that can reach
+accepting states infinitely often, meaning Reach A(S∗) =Sne
+A.
+Using this fixpoint, we can implement online monitoring given AandAby storing
+the reach-set given by a finite timed word over AandA, while continuously checking
+if the reach-sets still overlap with Sne
+AandSne
+Arespectively. If both reach-sets still
+have non-empty languages, then the verdict is ?, but if all the states in the reach-set
+ofA(ofA) have empty languages, then the verdict is ⊥(⊤, respectively).
+Algorithm 4 Get the set of possible successor states from Safter an input (α, t)
+Input:a TBA A= (Q, Q 0,Σ,X,∆,F), a set of symbolic states S, and a timed
+input (σ, τ)∈Σ×Q≥0
+Output: SuccS
+A(σ, τ)
+Successors ←∅
+for(q, Z)∈Sdo
+for(q, q′, σ, λ, g )∈∆do
+ifZ↗[τ,τ]|=gthen
+Successors ←Successors ∪ {(q′,(Z↗[τ,τ]∧g)[λ])}
+end if
+end for
+end for
+returnSuccessors
+Given the procedure SuccAdescribed in Algorithm 4 we can compute the reach-
+set of Aover a finite rational-timed word ρ= (σ1, τ1),(σ2, τ2), . . .(σn, τn)∈TΣ∗
+delayed up to a time-point t∈Q≥0. IfS0is the set of initial states and Si=
+SuccSi−1
+A(αi, ti−ti−1), then TA(ρ, t) ={(q, Z↗[t−τ(ρ),t−τ(ρ)]) : (q, Z)∈Sn}is the
+reach-set after observing ρand time passing up to t.
+Termination of Algorithm 1 and Algorithm 4 is straight forward, since they only
+contain bounded loops. Algorithm 2 is essentially backwards reachability, for which
+termination is well known (see, e.g., [33]). Termination of Algorithm 3 can be proven
+because the set Sawill shrink for every iteration after the first. For any two sets of
+states SandS′of a a TBA A, we have that S∩S′⊆S′, and thus Reach A(S∩S′)⊆
+Reach A(S′). Hence, in Algorithm 3, we have that the transformation results in a
+smaller set between each step:
+Reach A(SQ′)⊇Reach A(Reach A(SQ′)∩SQ′)⊇ ··· .
+Because a set of states is a finite collection of locations paired with finite unions of
+clock regions, it will always have a finite number of subsets. Thus, the transformation
+will arrive at a greatest fixed point and then the algorithm will terminate.
+16
+
+--- Page 17 ---
+Algorithm 5 Online monitoring procedure given AϕandAϕ. Gives a verdict ⊤,⊥
+or?after each input
+A ← A ϕ⊗ A D
+A ← Aϕ⊗ A D
+S← {(q, Z0) :qis an initial location of A}
+S← {(q, Z0) :qis an initial location of A}
+loop
+Receive new input: i∈(Σ×Q≥0)∪Q≥0
+ifi= (σ, τ)∈Σ×Q≥0then
+S←SuccS
+A(σ, τ)
+S←SuccS
+A(σ, τ)
+else if i=t∈Q≥0then
+S←S↗[t,t]
+S←S↗[t,t]
+end if
+ifS∩Reach∞
+A=∅then
+output ⊥
+else if S∩Reach∞
+A=∅then
+output ⊤
+else
+output ?
+end if
+end loop
+Theorem 4. Algorithm 5 computes VDin the following sense: Given a non-empty
+sequence of inputs in ∈Σ×Q≥0∪Q≥0such that all time points in the sequence are
+non-decreasing, let ρbe the projection of the input sequence to Σ×Q≥0, which is a
+timed word. Algorithm 5 returns
+•VD(L(A))(ρ, τ(ρ)), if the input sequence ends with an input from Σ×Q≥0, and
+•VD(L(A))(ρ, t), if the input sequence ends with t∈Q≥0.
+Proof.Letρ= (σ1, τ1), . . . , (σn, τn). An induction shows that when Algorithm 5
+is given inputs (σ1, τ1), . . . , (σn, τn)step-by-step, then Sis equal to the reach-
+setTA(ρ, τ(ρ))andSis equal to the reach-set TA(ρ, τ(ρ)). Thus, when then given
+the input t,Sis equal to TA(ρ, t)andSis equal to TA(ρ, t). Hence, Theorem 3 and
+Theorem 2 yield the desired result.
+An overview of the online monitoring procedure (see Algorithm 5) with Aϕand
+Aϕis as follows. First we define AandAas the intersection of each input automaton
+withAD. We then use the backwards reachability algorithm to compute the set of
+states that have a non-empty language (in each TBA). While continuously receiving
+inputs, we compute the symbolic successor states from the initial states. After each
+input, we check if there is an overlap between the states with a non-empty language,
+and the reach-sets and output a verdict. The verdict is either ⊤or⊥when one of the
+reach-sets falls outside the set of states with a non-empty language and ?otherwise.
+17
+
+--- Page 18 ---
+A
+(σ1, τ1)
+(σ2, τ2)
+(σ3, τ3)A
+(σ1, τ1)(σ2, τ2)
+(σ3, τ3)
+Fig. 6: Evolution of the reach-sets (depicted as circles) in A(left) and A(right) after
+0,1,2, and 3observations. The grey areas are the states with non-empty language,
+i.e.,Reach∞
+AandReach∞
+A.
+Figure 6 shows an example of the state spaces of TBAs AandA, with
+their non-empty states marked as grey and the reach-sets TA((σ1, τ1), . . . , (σi, τi))
+and TA((σ1, τ1), . . . , (σi, τi))depicted as black circles. As long as
+both TA((σ1, τ1), . . . , (σi, τi))and TA((σ1, τ1), . . . , (σi, τi))contain a (grey)
+state with non-empty language, the verdict is ?. After three observations,
+TA((σ1, τ1), . . . , (σ3, τ3))contains no states with non-empty language, i.e., the verdict
+is⊤.
+Example 4. Consider the MITL formula φ=G≥0(a→F≤30b)from Example 1. We
+are given the TBA Ain Figure 1 and its complement A, the TBA for φ=F≥0(a∧
+G≤30¬b)shown in Figure 7. As before, we draw the sink state q4here for illustrative
+purposes. If we were to monitor L(φ), the first step would be to take the intersections
+A ⊗ A DandA ⊗ A D, but we skip this step here because of the size of the resulting
+automata.
+q1 q2q3
+q4a, b, c
+a
+y:= 0a, ca, b, c
+y >30
+b
+y≤30a, b, c
+a, b, c
+Fig. 7: TBA corresponding to F≥0(a∧G≤30¬b)
+First we compute the sets of non-empty language states Sne
+AandSne
+Aas:
+•Sne
+A={(q1,true),(q2, x≤30)}.
+•Sne
+A={(q1,true),(q2,true),(q3,true)}.
+18
+
+--- Page 19 ---
+Now suppose the finite prefix ρ= (b,10),(a,20)as seen in Example 1. We compute
+the reach-set at time point 25 for AandAas:
+•TA(ρ,25) = {(q2, x= 5∧xG= 25) }.
+•TA(ρ,25) = {(q1, y= 25∧xG= 25) ,(q2, y= 5∧xG= 25) }.
+Note that although our algorithm uses a symbolic representation for the reach-sets, for
+a concrete input the clock constraints are equalities. Also note that, for A, there are
+two possible states for ρsinceAis non-deterministic.
+Both these reach-sets intersect with the non-empty language states, which means
+there exist infinite extensions satisfying both properties. However, this is not true if
+we use a time point greater than 50. For example, the reach-set TA(ρ,51) = {(q2, x=
+31∧xG= 51) }has an empty intersection with Sne
+A, thus the verdict would be ⊥.
+7 Timing Uncertainty
+So far, we have assumed that inputs have rational- rather than real-valued time-
+points, but in reality it can be real-valued time-points with arbitrary mathematical
+precision. Instead of approximating a real-valued time-point τias a rational value, we
+canassumethatthetime-pointsareobservedwithacertainprecision.Moreaccurately,
+we assume that we observe some interval Iicontaining τi, e.g., [⌊τi⌋,⌈τi⌉]. In related
+settings, concrete timing information may be missing for many reasons, particularly
+when monitoring distributed systems [34–36]. The problem we consider is also closely
+related to the robustness of TA [37] as well as work on monitoring over unreliable
+channels [32, 38].
+We assume that during monitoring, we observe a symbolic timed word of the
+form ρs= (σ, υ), where σis a finite word over the symbol alphabet Σandυis a
+sequence I1, I2, . . . , I nof time intervals of the same length as σ. Each time interval Iiis
+a closed interval [li, ui]with integer end-points representing a lower and upper bound
+of the real-valued time-point at which the symbol σioccurred. We require li≤li+1for
+alli < n. The set of finite symbolic timed words is denoted TSΣ∗. Note that, as we are
+concerned with an algorithmic solution, we limit bounds in symbolic timed words to
+natural numbers (which is equivalent to supporting rationals with a fixed granularity).
+We define the concatenation of symbolic timed words ρ1andρ2at time point t
+where ρ1= (σ1
+1,[l1
+1, u1
+1]),(σ1
+2,[l1
+2, u1
+2]), ...,(σ1
+n,[l1
+n, u1
+n])is a finite word with l1
+n≤t,
+and ρ2= (σ2
+1,[l2
+1, u2
+1]),(σ2
+2,[l2
+2, u2
+2]), ...is a finite or infinite word, as ρ1·tρ2=
+(σ1,[l1, u1]),(σ2,[l2, u2]), ...such that
+σi=(
+σ1
+iifi≤n,
+σ2
+i−nelse,and [li, ui] =(
+[l1
+i, u1
+i] ifi≤n,
+[l2
+i−n+t, u2
+i−n+t]else.
+Semantically, a symbolic timed word ρs= (σ, I1, I2, . . . , I n)encodes all timed
+words (σ, τ)of length nwhere τi∈Ii. In this case, we write ρ⊑ρs.
+Remark 3. As we require the lower bounds liof a symbolic timed word to be non-
+decreasing, each symbolic timed word (σ, I1, I2, . . . , I n)encodes at least one concrete
+timed word, i.e., the word (σ1, l1), . . . , (σn, ln).
+19
+
+--- Page 20 ---
+Also, whenever ρs= (σ, I1, I2, . . . , I n)andρ′
+s= (σ, J1, J2, . . . , J n)are two symbolic
+timed words, we write ρs⊑ρ′
+sifIi⊆Jifor all i= 1. . . n.
+Example 5. Consider then symbolic timed word ρs= (b,[1,2]),(a,[5,6]),(c,[7,8]).
+Then we have ρ= (b,1.2),(a,5.4),(c,7.3)⊑ρs.
+Monitoring a language of timed infinite words in the setting of timing uncertainty
+refines timed monitoring in the following way. Given a finite symbolic prefix, it is
+checked whether all concrete realizations of this prefix determine the property. That
+is whether all possible infinite extensions of such a concrete realization are included
+in the monitored property.
+Definition 8 (Monitoring with timing uncertainty) .Given a language of infinite
+timed words ϕ⊆TΣω, a finite symbolic timed word ρs∈TSΣ∗ending in (σ,[l, u]), and
+at∈R≥0such that u≤t, the function VU: 2TΣω→TSΣ∗×R≥0→B3evaluates to
+a verdict with the following definition:
+VU(ϕ)(ρs, t) =
+
+⊤ifρ·tµ∈ϕfor all ρ⊑ρsand all µ∈TDΣω,
+⊥ifρ·tµ /∈ϕfor all ρ⊑ρsand all µ∈TDΣω,
+?otherwise .
+Ifu > t, then VU(ϕ)(ρs, t)is undefined.
+Remark 4. Ifρs⊑ρ′
+sthenVU(ϕ)(ρs, t)⪰ VU(ϕ)(ρ′
+s, t), where we define the partial
+order ⪰over the set {⊤,?,⊥}such that ⊤ ⪰?and⊥ ⪰?, but⊤and⊥are incom-
+parable. Intuitively, ⪰captures that definitive verdicts are more informative than the
+inconclusive verdict ?.
+Example 6. Consider the MITL property F[5,6]a, and the concrete timed word
+ρ= (b,1.2),(a,5.4),(c,7.3). Assume that we observe time-points as integer-bounded
+intervals of length one respectively length two reflected by the following two symbolic
+timed words
+ρ1
+s= (b,[1,2]),(a,[5,6]),(c,[7,8])
+and
+ρ2
+s= (b,[1,3]),(a,[5,7]),(c,[7,9]).
+Then, we have VD(L(F[5,6])a))(ρ,8) = ⊤as well as VU(L(F[5,6])a))(ρ1
+s,8) = ⊤,
+whereas VU(L(F[5,6])a))(ρ2
+s,8) = ?, as there are concrete timed words encoded by ρ2
+s
+that have an ain the interval [5,6]and there are concrete timed words encoded by ρ2
+s
+that do not have an ain the interval [5,6], e.g., if the aoccurs at time 7.
+To obtain a monitoring algorithm for monitoring under timing uncertainty it
+merely suffices to extend the symbolic successor computation in Algorithm 4 to
+pairs (α, I)where Iis an integer-bounded interval. Since we defined the delay oper-
+ation for intervals the only necessary change is to replace Z↗[τ,τ]with Z↗Iin the
+innermost if-statement of Algorithm 4. Thus, the monitoring procedure (Algorithm 5)
+can easily be extended to support timing uncertainty.
+Theorem 5. There is an online algorithm that computes VU.
+20
+
+--- Page 21 ---
+8 Tool Implementation: MoniTAal
+To implement the monitoring algorithms presented in Sections 6 and 7, we developed
+the tool MoniTAal2. The tool takes two TBAs as input. Each TBA has to be the
+negationoftheother.Theusercantheneithermonitoralogofobservations,orinclude
+the monitor as a library in their own software, and monitor observations in an online
+fashion. A verdict ( ⊤,⊥, or?) is output after each observation.
+In this section we demonstrate and benchmark the tool. We primarily monitor
+properties from a verified gear controller model developed in collaboration between
+Lindahl et al. [39] and an automotive software company.
+MoniTAal follows the online monitoring procedure described in Algorithm 5 by
+first computing the non-empty language states of each input automaton and then in
+an online fashion, for each observation, updating the reach-set and giving a verdict in
+{⊤,⊥,?}. When a verdict ⊤or⊥is given, the monitoring procedure stops (since no
+further observations can change the verdict).
+8.1 The DBM Library Pardibaal
+Computing the non-empty language states, as well as the reach-sets from interval-
+timed traces, requires handling states symbolically using zones. To do this, we
+implemented the DBM library Pardibaal3to handle operations on zones. The exist-
+ing DBM library UDBM4is very efficient and currently used by the model checker
+Uppaal, but complex to maintain and released under the GPLv3 license. We imple-
+mented Pardibaal to have a DBM library under the LGPL licence, permitting
+inclusion in proprietary applications, as well as to have a modern implementation that
+is easier to maintain.
+Pardibaal implements all standard DBM operations [5] and additional function-
+ality such as subtraction, intersection, and specialized delay operations. In practice,
+we work with sets of symbolic states and therefore have multiple DBMs (zones). Most
+of the basic operations are trivially extended to finite unions of zones (i.e., finite sets
+of DBMs) called federations. Equality or inclusion checking is more complicated using
+federations, since a single zone could be a subset of a union of multiple zones, without
+being a subset of any one of them on their own. An exact implementation requires an
+expensive difference/subtraction operation between DBMs. One way to approximate
+the relation between federations is to combine the relation between all pairs of DBMs.
+The subtraction operation is also important in the backwards analysis part used to
+compute the set of non-empty language states.
+8.2 Demonstration of MoniTAal
+Consider the property
+φa=F≤10(a)∧G≥0(a→F]0,10](a)).
+2https://github.com/DEIS-Tools/MoniTAal
+3https://github.com/DEIS-Tools/PARDIBAAL
+4https://github.com/UPPAALModelChecker/UDBM
+21
+
+--- Page 22 ---
+φarequires ato be observed infinitely often, with the first abeing observed before
+time point 10, and then the time between two consecutive observations of ais no more
+than 10. Thus, this property is monitorable [20], i.e., when ahas not been observed
+for more than ten units of time, then the verdict ⊥can be given. On the other hand,
+the verdict ⊤will never be given when monitoring φa.
+Now, consider the property
+φb=F≥0(G≥0(¬b)).
+φbrequires that “from some point onwards, we will never see bagain”. φbis not
+monitorable, meaning that monitoring this property will never result in a ⊤or⊥
+verdict, since there is always an infinite extension satisfying the property and another
+one that does not.
+In the following example we monitor the property:
+φab=φa∧φb.
+The property φabis also monitorable, as one again obtains the verdict ⊥when ahas
+not been observed for more than ten units of time, but the verdict ⊤is never given.
+The TBAs accepting the languages of φaband¬φabare shown in Figure 8.
+p1 p2
+ba
+x≤10
+x:= 0a
+x≤10
+x:= 0a
+x≤10
+x:= 0
+n1 n2
+n3a
+x≤10
+x:= 0
+b
+a
+x >10b
+a
+x≤10
+x:= 0 a
+x >10
+a, b
+Fig. 8: TBAs accepting the languages of φab(left) and ¬φab(right).
+During monitoring, the reach-sets are represented as
+lists [(q1, Z1),(q2, Z2), . . . , (qk, Zk)]of symbolic states where, for all i∈[1, k],qiis
+a location and Ziis a zone. In our experiments, we want to evaluate the size of
+the representation of the reach-sets (corresponding to the k). When monitoring a
+concrete trace (a trace where observation times are singular intervals), each Ziin the
+22
+
+--- Page 23 ---
+symbolic state encodes a single clock valuation. In addition, if the monitored TBA
+is deterministic then kwill always be 1. Note that in the case of non-determinism
+and/or uncertain traces (traces where observation times are intervals) the size of the
+representation of the reach-set can increase. As previously mentioned, we represent
+zones as DBMs, but when monitoring concrete traces we represent the clock valuation
+as a list of assignments rather than a DBM.
+We say that the reach-set representation [(q1, Z1),(q2, Z2), . . . , (qk, Zk)]is reduced
+w.r.t. zone-inclusion, if whenever qi=qjfori̸=j, then Zi̸⊆ZjandZj̸⊆Zi.
+Example 7. Let us monitor the automata from Figure 8 over a concrete trace ρ=
+(σ1, τ1),(σ2, τ2), . . . , (σn, τn)containing a series of a’s and b’s using the reduced state
+space representation. Looking at just the automaton for φab, the reach-set TAφab(ρ, τn)
+has one of the following three forms:
+1.∅if the distance between two a’s is greater than 10, or
+2.{(p0,{x= 0, xG=τn}),(p1,{x= 0, xG=τn})}ifσn=a, or
+3.{(p0,{x=τn−τn−1, xG=τn})}ifσn=b.
+Now we will demonstrate MoniTAal monitoring φabover short traces. Figure 9
+shows an execution of the trace (a,0),(a,4),(b,20). The trace is entered incrementally
+onlines9,18,and27.Theoutputsbetweentheinputsarethereach-sets(aslongasthe
+verdict is ?) or a definitive verdict is given, at which point the algorithm terminates.
+The “positive” and “negative” reach-sets refer to the reach-set of the TBA accepting
+the language of the monitored property and its negation. The representation of the
+reach-set is printed as a location with a valuation for all clocks where 0is the zero
+clock and globalis the global clock previously referred to as xG.
+We see that the reach-sets of the two automata together contain three symbolic
+states after observing (a,0)on line 9, which is the maximum size of these sets in this
+execution. After observing (b,20)on line 27 the property can no longer be satisfied,
+so the monitoring ends with a ⊥verdict printed as NEGATIVE .
+Figure 10 is a similar example, except that the trace has uncertain timing. The
+trace monitored here is (a,[0,10]),(a,[1,11]),(b,[30,30]). The clock values are now
+handled symbolically as zones, instead of just as single valuations. A zone here is
+printed as a DBM, where rows and columns refer to clocks. The first row and column
+is the zero clock (the value of which is always zero), the second is the clock xfrom the
+automaton, and the third is the global clock ( global/xG). An entry (≺, n)on row i
+and column jof a DBM is interpreted as the contraint xi−xj≺nwhere ≺∈ { <,≤}
+andnis an integer. For example, on line 26 one can see that the two first entries of
+that row indicate the following constraints: xG−0≤10andxG−x≤10.
+Noticethatafterobserving (a,[20,30])thenegativereach-setincludestwosymbolic
+statesin n2,wherethedifferencebetweenthemareclockconstraintson x.Itisactually
+unnecessary to store clock constraints on xin this location, since the value of xwill
+at no point in the future be checked by a guard. Because of this, we could ignore the
+value of this clock, so that all states in n2become equivalent.
+This is an application of the inactive clock-abstraction by Daws and Yovine [40].
+By analysing the automaton, we can find the set of active clocks for each location. A
+clock is active if there is a path where the clock appears in a guard before being reset.
+If a clock is not active, it can be ignored. This allows us to prune some symbolic states
+23
+
+--- Page 24 ---
+1$ ./ monitaal - bin <... >
+2
+3Positive reach - set:
+4p0 : 0 = 0, x = 0, global = 0
+5
+6Negative reach - set:
+7n0 : 0 = 0, x = 0, global = 0
+8
+9Next event : @0 a
+10
+11Positive reach - set:
+12p0 : 0 = 0, x = 0, global = 0
+13p1 : 0 = 0, x = 0, global = 0
+14
+15Negative reach - set:
+16n0 : 0 = 0, x = 0, global = 0
+17
+18Next event : @4 a
+19
+20Positive reach - set:
+21p0 : 0 = 0, x = 0, global = 4
+22p1 : 0 = 0, x = 0, global = 4
+23
+24Negative reach - set:
+25n0 : 0 = 0, x = 0, global = 4
+26
+27Next event : @20 b
+28Monitoring ended , verdict is: NEGATIVE
+29Monitored 3 events
+Fig. 9: Example of monitoring the property φabover the concrete timed trace
+(a,0),(a,4),(b,20).
+that, even though they have different clock constraints, will not impact the result.
+Note that we can never ignore the zero or global clock, because they are actively used
+in the procedure.
+Following the example, it is obvious that the complexity highly depends on the
+monitored property (and how concise the property automaton is constructed) as well
+as the observations. For the simple response property seen in Example 1, the time
+and memory usage per observation is negligible (below 100 microseconds). This is
+mainly because the property automata are small, and the inactive clock-abstraction
+implies an upper bound on the size of the representation of the reach-sets in those
+cases. Since we are doing online monitoring, the previous observations do not take
+up space in memory. The response time between verdicts can increase more when the
+representation of the reach-set becomes large. We say that the response time is the
+time it takes between providing an observation to receiving a verdict.
+24
+
+--- Page 25 ---
+1$ ./ monitaal - bin <... >
+2
+3Positive reach - set:
+4p0
+5<<<<<<
+6<=0 <=0 <=0
+7<=0 <=0 <=0
+8<=0 <=0 <=0
+9>>>>>>
+10
+11Negative reach - set:
+12n0
+13<<<<<<
+14<=0 <=0 <=0
+15<=0 <=0 <=0
+16<=0 <=0 <=0
+17>>>>>>
+18
+19Next event : @[0, 15] a
+20
+21Positive reach - set:
+22p0
+23<<<<<<
+24<=0 <=0 <=0
+25<=0 <=0 <=0
+26 <=10 <=10 <=0
+27>>>>>>
+28p1
+29<<<<<<
+30<=0 <=0 <=0
+31<=0 <=0 <=0
+32 <=10 <=10 <=0
+33>>>>>>
+34
+35Negative reach - set:
+36n2
+37<<<<<<
+38<=0 <-10 <-10
+39 <=15 <=0 <=0
+40 <=15 <=0 <=0
+41>>>>>>
+42n0
+43<<<<<<44<=0 <=0 <=0
+45<=0 <=0 <=0
+46 <=10 <=10 <=0
+47>>>>>>
+48
+49Next event : @[20 , 30] a
+50
+51Positive reach - set:
+52p0
+53<<<<<<
+54<=0 <=0 <= -20
+55<=0 <=0 <= -20
+56 <=20 <=20 <=0
+57>>>>>>
+58p1
+59<<<<<<
+60<=0 <=0 <= -20
+61<=0 <=0 <= -20
+62 <=20 <=20 <=0
+63>>>>>>
+64
+65Negative reach - set:
+66n2
+67<<<<<<
+68<=0 <= -20 <=-20
+69 <=30 <=0 <=0
+70 <=30 <=0 <=0
+71>>>>>>
+72n2
+73<<<<<<
+74<=0 <-10 <=-20
+75 <=30 <=0 <=0
+76 <=30 <=10 <=0
+77>>>>>>
+78n0
+79<<<<<<
+80<=0 <=0 <= -20
+81<=0 <=0 <= -20
+82 <=20 <=20 <=0
+83>>>>>>
+84
+85Next event : @[41 , 45] b
+86Monitoring ended , verdict is: NEGATIVE
+87Monitored 3 events
+Fig. 10 : Monitoring the property φabover the uncertain timed trace
+(a,[0,15]),(a,[20,30]),(b,[41,45]).
+To demonstrate monitoring properties and providing verdicts in a more realistic
+scenario we will examine the gear controller model by [39].
+The gear controller model is separated into several components, one of which is
+the interface. The interface sends requests ReqNewGear after which the gear controller
+changes the gear and sends a response NewGear . The expected time it takes to change
+gear depends on whether or not the gear is being changed to or from neutral, and
+if some non-critical failures are observed in the engine. To describe this we take the
+conjunction of two properties that distinguish between gear-change requests between
+neutral and non-neutral gears. The request ReqNewGearneuis used when the gear
+change is to or from neutral, while ReqNewGearkis used otherwise. error 1anderror 2
+refer to observations in the engine signaling problems with matching torque and speed.
+25
+
+--- Page 26 ---
+φgear-neu =G≥0(ReqNewGearneu→(X[150,900](NewGear ))
+∨(X[150,900](error 1)∧F[550,1055[(NewGear ))
+∨(X[150,900](error 2)∧F[450,1205](NewGear )))
+φgear-k =G≥0(ReqNewGeark→(X[400,900](NewGear ))
+∨(X[150,900](error 1)∧F[700,1055[(NewGear ))
+∨(X[150,900](error 2)∧F[750,1205](NewGear )))
+The combined property φgear=φgear-neu ∧φgear-kdescribes the timing guarantees
+of the gear controller when changing gears. To monitor the property, we simulate the
+behavior of the gear controller. Starting in neutral, a request is sent to change the
+gear up or down. A response is observed at some time point, depending on whether
+or not a non-critical error occurred.
+For this demonstration we simulate a gear controller that can change gears 150
+time units earlier or later than the specification allows. The simulation selects the
+timingofthegearchangeuniformly.Otherthanthetiming,thegearcontrollerbehaves
+correctly. Furthermore, the behavior is observed with a timing uncertainty, meaning
+that all timing information of observations are intervals of 100 time units. Note that
+the simulation of the faulty gear controller is not guaranteed to exhibit a faulty gear
+change at any point.
+Fig. 11 shows a histogram reporting how many times a gear change was observed,
+before an error was detected, across 1000 simulations of the faulty gear controller. As
+expected, the chance of no error occurring decreases. The verdict given in all these
+cases are simply ⊥, since satisfaction of the property φgearcannot be determined by
+a finite prefix. The demonstration shows that in all 1000 cases an error was detected.
+The longest trace showed an error after 65 gear changes.
+8.3 Performance
+We run experiments of MoniTAal on the property φabdescribed above, as well as the
+gear controller property φgeartaken from [39]. For these experiments the properties
+φgearandφabare monitored over traces of three different lengths, and are monitored
+with combinations of timing uncertainty and under time divergence.
+Table1showstheexperimentalresultsformonitoringtheproperty φab.Theresults
+are shown for two different traces of (parametric) length k:
+1.ρc= (a,1),(a,2), . . . , (a, k−1),(b,30 + k)
+2.ρu= (a[0,10]),(a,[1,11]), . . . , (a,[k−1, k+ 9]),(b,[k+ 30, k+ 30])
+ρcis a concrete trace while ρuis an uncertain trace.
+The results show us that we, in all cases, obtain a bound on the size of the reach-
+set. This is very useful, since the size of the reach-set is what primarily determines
+the response time. However, the maximum number of different symbolic states is
+26
+
+--- Page 27 ---
+0 10 20 30 40 50 60020406080100Observations
+Fig. 11: Histogram of the number of gear changes observed before a fault was detected
+over 1000 runs.
+determined by the construction of the TBAs. This can be observed by looking at the
+impact of monitoring under time divergence in the case of uncertain timing. When
+monitoring under time divergence we use TBA-intersection, resulting in much larger
+TBAs, thus increasing the maximum number of possible symbolic states.
+The observed trace can also affect the size of the reach-set, because observations
+can enable a different number of transitions. This can either be because of non-
+determinism, or because of uncertain timing as seen in the difference between the
+result of ρcandρu.
+Table 2 shows the results of monitoring the gear controller properties in scenar-
+ios similar to the φabexperiment. In this case the maximum reach-set size does not
+change when monitoring a concrete trace under time divergence. This is because both
+the property automata and the time divergence automaton are deterministic. Thus
+under intersection, the automaton is still deterministic. Monitoring a deterministic
+automaton with precise/concrete observations will always result in a singleton reach-
+set. However timing uncertainty does increase the size of the reach-set, and even more
+so when also combined with time divergence.
+8.4 Time Divergence
+Running the tool on the property F≥20afrom Example 2 illustrates how intersec-
+tion with the time divergence automaton can give an immediate verdict. Figure 12
+shows MoniTAal being run with and without time divergence (using option --div
+<alphabet> ). As expected, a verdict is provided instantly only when time divergence
+is taken into account.
+27
+
+--- Page 28 ---
+# Observations ·103Total time Max response Max Size
+ρc
+25 43.0 ±0.6 ms 25.9 ±8.1µs 3
+50 86.0 ±0.9 ms 31.1 ±9.0µs 3
+100 172.3 ±3.1 ms 33.2 ±7.7µs 3
+200 343.4 ±2.0 ms 38.2 ±5.2µs 3
+ρcw. time divergence
+25 105.8 ±0.9 ms 25.2 ±6.6µs 4
+50 211.8 ±2.8 ms 30.3 ±11.2 µs 4
+100 423.1 ±4.0 ms 30.4 ±8.4µs 4
+200 849.1 ±11.2 ms 33.5 ±7.0µs 4
+ρu
+25 150.9 ±0.6 ms 31.3 ±7.8µs 3
+50 301.8 ±1.9 ms 30.3 ±7.2µs 3
+100 605.0 ±5.9 ms 33.9 ±5.4µs 3
+200 1,208.0 ±4.3 ms 36.3 ±7.8µs 3
+ρuw. time divergence
+25 2,959.2 ±16.9 ms 166.8 ±6.4µs 16
+50 5,926.7 ±40.6 ms 170.6 ±8.0µs 16
+100 11,861.5 ±47.0 ms 170.8 ±5.5µs 16
+200 23,760.1 ±123.8 ms 173.2 ±8.1µs 16
+Table 1 : Results for monitoring φab. Here, “Total time” refers to to
+the overall runtime of the algorithm, “Max response” refers to the max-
+imal time between a new observation and the corresponding verdict,
+and “Max Size” refers to the maximal size of the reach-sets of both
+automata together. The results are the mean values of 50 runs.
+9 Conclusion
+In this work, we have studied the online monitoring problem for timed properties.
+We presented an efficient online monitoring algorithm for languages of infinite timed
+words.WerequirethelanguageanditscomplementtobeexpressedasTBAs,arequire-
+ment that is, for example, satisfied for languages specified in the logic MITL. Hence
+our method is applicable in many realistic scenarios. In particular, we showed how to
+account for time divergence which prior work did not readily seem to support.
+We also considered an extension of our method supporting timing uncertainty in
+the time sequence observed by the monitor. By supporting timing uncertainty in the
+observed input, we account for real-world systems where the real-valued time-points
+of events can only be observed up to a given precision. This limits the soundness of
+verdicts from monitors that support only concrete timed traces.
+The monitoring algorithms for both concrete and uncertain traces has been imple-
+mented in the tool MoniTAal . The tool facilitates intersecting TBAs (also with the
+time divergence automaton), computing the non-empty language states, reading timed
+words, and online monitoring. We aim to exploit the symbolic monitoring engine of
+MoniTAal to replace the current rewrite-based Weighted MTL implementation [17]
+ofUppaal SMC [41], as this only supports a fragment of MITL.
+28
+
+--- Page 29 ---
+# Observations ·103Total time Max response Max Size
+Gear Controller
+1 4.1 ±0.0 ms 14.9 ±9.3µs 2
+5 20.4 ±0.5 ms 21.4 ±9.2µs 2
+10 40.4 ±0.5 ms 20.7 ±5.3µs 2
+Gear Controller w. time divergence
+1 9.8 ±0.1 ms 25.3 ±7.6µs 2
+5 49.0 ±0.8 ms 28.8 ±6.7µs 2
+10 97.6 ±0.6 ms 30.3 ±6.6µs 2
+Gear Controller w. uncertainty
+1 6.8 ±0.1 ms 18.8 ±6.7µs 3
+5 34.0 ±0.3 ms 22.6 ±4.7µs 3
+10 68.1 ±0.6 ms 22.5 ±5.7µs 3
+Gear Controller w. uncertainty and time divergence
+1 41.2 ±0.4 ms 81.1 ±2.9µs 12
+5 209.5 ±1.9 ms 87.5 ±6.1µs 13
+10 421.4 ±4.9 ms 88.2 ±5.4µs 13
+Table 2 : Results for monitoring the φgearover a simulation of
+the gear controller model from [39]. Here, “Total time” refers to to
+the overall runtime of the algorithm, “Max response” refers to the
+maximal time between a new observation and the corresponding
+verdict, and “Max Size” refers to the maximal size of the reach-
+sets of both automata together. The results are the mean values
+of 50 runs.
+Further improvements to our monitoring algorithm include improved support for
+uncertainties in the input and additional analysis of timed properties. One direction in
+which we plan to extend the work is to support unobservable symbols in the monitor
+alphabet. This can be logically extended to consider arbitrary mutations to an input
+sequence modeled in the form of a TA.
+Supplementary information. The tool implementing the algorithms presented
+here is freely available at https://github.com/DEIS-Tools/MoniTAal.
+Acknowledgments. T.M. Grosen, K.G. Larsen, and M. Zimmermann have been
+supported by DIREC - Digital Research Centre Denmark. T.M. Grosen has been
+supported by Mitacs. S. Kauffman has been supported by NSERC - Natural Sciences
+and Engineering Research Council of Canada.
+Declarations
+The authors have no competing interests to declare that are relevant to the content
+of this article.
+29
+
+--- Page 30 ---
+1$ ./ MoniTAal - bin <... >
+2
+3Positive reach - set:
+4q1 : 0 = 0, x = 0, global = 0
+5
+6Negative reach - set:
+7q1 : 0 = 0, x = 0, global = 0
+8
+9Next event : @20 a
+10Monitoring ended , verdict is: POSITIVE
+11Monitored 1 events
+12--------------------------------
+13$ ./ MoniTAal - bin <... > --div a
+14
+15Monitoring ended , verdict is: POSITIVE
+16Monitored 0 events
+Fig. 12: Example of monitoring property from Example 2 ( F≥20a) with and without
+time divergence
+References
+[1] Koymans, R.: Specifying real-time properties with metric temporal logic. Real-
+Time Systems 2(4), 255–299 (1990) https://doi.org/10.1007/BF01995674
+[2] Alur,R.,Feder,T.,Henzinger,T.A.:Thebenefitsofrelaxingpunctuality.J.ACM
+43(1), 116–146 (1996) https://doi.org/10.1145/227595.227602
+[3] Alur, R., Dill, D.L.: A theory of timed automata. Theoretical Computer Science
+126(2), 183–235 (1994) https://doi.org/10.1016/0304-3975(94)90010-8
+[4] Brihaye, T., Geeraerts, G., Ho, H., Monmege, B.: MightyL: A compositional
+translation from MITL to timed automata. In: Majumdar, R., Kuncak, V. (eds.)
+CAV 2017, Part I. LNCS, vol. 10426, pp. 421–440. Springer, Cham (2017).
+https://doi.org/10.1007/978-3-319-63387-9_21
+[5] Bengtsson, J., Yi, W.: Timed automata: Semantics, algorithms and tools. In:
+Desel, J., Reisig, W., Rozenberg, G. (eds.) Lectures on Concurrency and Petri
+Nets, Advances in Petri Nets. LNCS, vol. 3098, pp. 87–124. Springer, Cham
+(2003). https://doi.org/10.1007/978-3-540-27755-2_3
+[6] Larsen, K.G., Mikucionis, M., Nielsen, B.: Online testing of real-time systems
+using Uppaal. In: FATES 2004. LNCS, vol. 3395, pp. 79–94. Springer, Cham
+(2004). https://doi.org/10.1007/978-3-540-31848-4_6
+[7] Grosen, T.M., Kauffman, S., Larsen, K.G., Zimmermann, M.: Monitoring timed
+properties (revisited). In: Bogomolov, S., Parker, D. (eds.) FORMATS 2022.
+30
+
+--- Page 31 ---
+LNCS, vol. 13465, pp. 43–62. Springer, Cham (2022). https://doi.org/10.1007/
+978-3-031-15839-1_3
+[8] Thati, P., Rosu, G.: Monitoring algorithms for metric temporal logic specifica-
+tions. In: Havelund, K., Rosu, G. (eds.) RV 2004. ENTCS, vol. 113, pp. 145–162.
+Elsevier, (2004). https://doi.org/10.1016/J.ENTCS.2004.01.029
+[9] Basin, D.A., Klaedtke, F., Zalinescu, E.: Algorithms for monitoring real-time
+properties. Acta Informatica 55(4), 309–338 (2018) https://doi.org/10.1007/
+S00236-017-0295-4
+[10] Ulus, D., Ferrère, T., Asarin, E., Maler, O.: Timed pattern matching. In: Legay,
+A., Bozga, M. (eds.) FORMATS 2014. LNCS, vol. 8711, pp. 222–236. Springer,
+Cham (2014). https://doi.org/10.1007/978-3-319-10512-3_16
+[11] Ulus, D., Ferrère, T., Asarin, E., Maler, O.: Online timed pattern matching using
+derivatives. In: Chechik, M., Raskin, J. (eds.) TACAS 2016. LNCS, vol. 9636, pp.
+736–751. Springer, cham (2016). https://doi.org/10.1007/978-3-662-49674-9_47
+[12] Bauer, A., Leucker, M., Schallhart, C.: Monitoring of real-time properties. In:
+Arun-Kumar, S., Garg, N. (eds.) FSTTCS 2006. LNCS, vol. 4337, pp. 260–272.
+Springer, Cham (2006). https://doi.org/10.1007/11944836_25
+[13] Larsen, K.G., Pettersson, P., Yi, W.: Model-checking for real-time systems. In:
+Reichel, H. (ed.) FCT 1995. LNCS, vol. 965, pp. 62–88. Springer, ??? (1995).
+https://doi.org/10.1007/3-540-60249-6_41
+[14] Baldor, K., Niu, J.: Monitoring dense-time, continuous-semantics, metric tempo-
+ral logic. In: Qadeer, S., Tasiran, S. (eds.) RV 2012. LNCS, vol. 7687, pp. 245–259.
+Springer, Cham (2012). https://doi.org/10.1007/978-3-642-35632-2_24
+[15] Ho, H., Ouaknine, J., Worrell, J.: Online monitoring of metric temporal logic. In:
+Bonakdarpour, B., Smolka, S.A. (eds.) RV 2014. LNCS, vol. 8734, pp. 178–192.
+Springer, Cham (2014). https://doi.org/10.1007/978-3-319-11164-3_15
+[16] Basin, D.A., Klaedtke, F., Müller, S., Pfitzmann, B.: Runtime monitoring of
+metric first-order temporal properties. In: Hariharan, R., Mukund, M., Vinay,
+V. (eds.) FSTTCS 2008. LIPIcs, vol. 2, pp. 49–60. Schloss Dagstuhl - Leibniz-
+Zentrum für Informatik, Dagstuhl, Germany (2008). https://doi.org/10.4230/
+LIPICS.FSTTCS.2008.1740
+[17] Bulychev,P.E.,David,A.,Larsen,K.G.,Legay,A.,Li,G.,Poulsen,D.B.:Rewrite-
+based statistical model checking of WMTL. In: Qadeer, S., Tasiran, S. (eds.) RV
+2012. LNCS, vol. 7687, pp. 260–275. Springer, cham (2012). https://doi.org/10.
+1007/978-3-642-35632-2_25
+[18] Moosbrugger, P., Rozier, K.Y., Schumann, J.: R2U2: monitoring and diagnosis of
+31
+
+--- Page 32 ---
+security threats for unmanned aerial systems. Formal Methods in System Design
+51(1), 31–61 (2017) https://doi.org/10.1007/S10703-017-0275-X
+[19] Chattopadhyay, A., Mamouras, K.: A verified online monitor for metric temporal
+logic with quantitative semantics. In: Deshmukh, J., Nickovic, D. (eds.) RV 2020.
+LNCS, vol. 12399, pp. 383–403. Springer, Cham (2020). https://doi.org/10.1007/
+978-3-030-60508-7_21
+[20] Grosen, T.M., Kauffman, S., Larsen, K.G., Zimmermann, M.: Time for Timed
+Monitorability.AcceptedforpublicationatCONCUR2025.(2025).https://arxiv.
+org/abs/2504.10008
+[21] Amara, M., Bernardi, G., Foughali, M., Francalanza, A.: A theory of (linear-time)
+timed monitors. In: 39th European Conference on Object-Oriented Program-
+ming (ECOOP 2025), vol. 333. Bergen (NO), Norway (2025). https://hal.science/
+hal-05043055
+[22] Fränzle, M., Grosen, T.M., Larsen, K.G., Zimmermann, M.: Monitoring real-
+time systems under parametric delay. In: Kosmatov, N., Kovács, L. (eds.) IFM
+2024. LNCS, vol. 15234, pp. 194–213. Springer, (2024). https://doi.org/10.1007/
+978-3-031-76554-4_11
+[23] Cimatti, A., Grosen, T.M., Larsen, K.G., Tonetta, S., Zimmermann, M.: Exploit-
+ing assumptions for effective monitoring of real-time properties under partial
+observability. In: Madeira, A., Knapp, A. (eds.) SEFM 2024. LNCS, vol. 15280,
+pp. 70–88. Springer, (2024). https://doi.org/10.1007/978-3-031-77382-2_5
+[24] Li, G., Jensen, P.G., Larsen, K.G., Legay, A., Poulsen, D.B.: Practical controller
+synthesis for MTL 0,∞. In: Erdogmus, H., Havelund, K. (eds.) SPIN 2017, pp.
+102–111. ACM, New York, NY, USA (2017). https://doi.org/10.1145/3092282.
+3092303
+[25] Bulychev, P.E., David, A., Larsen, K.G., Legay, A., Li, G., Poulsen, D.B., Stainer,
+A.: Monitor-based statistical model checking for weighted metric temporal logic.
+In: Bjørner, N.S., Voronkov, A. (eds.) LPAR 2018. LNCS, vol. 7180, pp. 168–182.
+Springer, Cham (2012). https://doi.org/10.1007/978-3-642-28717-6_15
+[26] Geilen, M., Dams, D.: An on-the-fly tableau construction for a real-time temporal
+logic.In:Joseph,M.(ed.)FTRTFT2000.LNCS,vol.1926,pp.276–290.Springer,
+Cham (2000). https://doi.org/10.1007/3-540-45352-0_23
+[27] Finkbeiner, B., Kuhtz, L.: Monitor circuits for LTL with bounded and unbounded
+future. In: Bensalem, S., Peled, D.A. (eds.) RV 2009. LNCS, vol. 5779, pp. 60–75.
+Springer, Cham (2009). https://doi.org/10.1007/978-3-642-04694-0_5
+[28] Nickovic, D., Piterman, N.: From MTL to deterministic timed automata. In:
+Chatterjee, K., Henzinger, T.A. (eds.) FORMATS 2010. LNCS, vol. 6246, pp.
+32
+
+--- Page 33 ---
+152–167.Springer,Cham(2010).https://doi.org/10.1007/978-3-642-15297-9_13
+[29] Lindahl, M., Pettersson, P., Yi, W.: Formal design and analysis of a gear con-
+troller. In: Steffen, B. (ed.) TACAS 1998. LNCS, vol. 1384, pp. 281–297. Springer,
+Cham (1998). https://doi.org/10.1007/BFB0054178
+[30] Pnueli, A., Zaks, A.: PSL model checking and run-time verification via testers.
+In: Misra, J., Nipkow, T., Sekerinski, E. (eds.) FM 2006. LNCS, vol. 4085, pp.
+573–586. Springer, Cham (2006). https://doi.org/10.1007/11813040_38
+[31] Bauer, A., Leucker, M., Schallhart, C.: Runtime verification for LTL and TLTL.
+ACM Transactions on Software Engineering and Methodology 20(4), 14–11464
+(2011) https://doi.org/10.1145/2000799.2000800
+[32] Kauffman, S., Havelund, K., Fischmeister, S.: What can we monitor over unreli-
+able channels? International Journal on Software Tools for Technology Transfer
+23, 579–600 (2021) https://doi.org/10.1007/s10009-021-00625-z
+[33] Bouyer, P., Laroussinie, F.: 4. Model Checking Timed Automata, pp. 111–140.
+John Wiley & Sons, Ltd, (2008). https://doi.org/10.1002/9780470611012.ch4 .
+https://onlinelibrary.wiley.com/doi/abs/10.1002/9780470611012.ch4
+[34] Jahanian, F., Rajkumar, R., Raju, S.C.V.: Runtime monitoring of timing con-
+straintsindistributedreal-timesystems.Real-TimeSystems 7(3),247–273(1994)
+https://doi.org/10.1007/BF01088521
+[35] Rushby, J.: Systematic formal verification for fault-tolerant time-triggered algo-
+rithms. IEEE Transactions on Software Engineering 25(5), 651–660 (1999) https:
+//doi.org/10.1109/32.815324
+[36] Pike,L.:AnoteoninconsistentaxiomsinRushby’s“systematicformalverification
+for fault-tolerant time-triggered algorithms”. IEEE Trans. Software Eng. 32(5),
+347–348 (2006) https://doi.org/10.1109/TSE.2006.41
+[37] De Wulf, M., Doyen, L., Markey, N., Raskin, J.-F.: Robust safety of timed
+automata. Formal Methods in System Design 33(1), 45–84 (2008) https://doi.
+org/10.1007/s10703-008-0056-7
+[38] Kauffman,S.,Havelund,K.,Fischmeister,S.:Monitorabilityoverunreliablechan-
+nels. In: Finkbeiner, B., Mariani, L. (eds.) RV 2019. LNCS, vol. 11757, pp.
+256–272.Springer,Cham(2019).https://doi.org/10.1007/978-3-030-32079-9_15
+[39] Lindahl, M., Pettersson, P., Yi, W.: Formal Design and Analysis of a Gear-
+box Controller. Springer International Journal of Software Tools for Technology
+Transfer (STTT) 3(3), 353–368 (2001)
+[40] Daws, C., Yovine, S.: Reducing the number of clock variables of timed automata.
+33
+
+--- Page 34 ---
+In: (RTSS 1996, pp. 73–81. IEEE Computer Society, (1996). https://doi.org/10.
+1109/REAL.1996.563702
+[41] David, A., Larsen, K.G., Legay, A., Mikucionis, M., Wang, Z.: Time for statistical
+model checking of real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.)
+CAV 2011. LNCS, vol. 6806, pp. 349–355. Springer, Cham (2011). https://doi.
+org/10.1007/978-3-642-22110-1_27
+34

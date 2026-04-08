@@ -1,0 +1,1317 @@
+--- Page 1 ---
+Innovations in Systems and Software Engineering (2022) 18:523–541
+https://doi.org/10.1007/s11334-021-00416-4
+S.I. : DETECT 2020
+Formal veriﬁcation and validation of run-to-completion style state
+charts using Event-B
+K. Morris1·C. Snook2·T. S. Hoang2·G. Hulette1·R. Armstrong1·M. Butler2
+Received: 5 January 2021 / Accepted: 15 August 2021 / Published online: 4 March 2022
+© National Technology & Engineering Solutions of Sandia, LLC 2022
+Abstract
+State chart notations with ‘run to completion’ semantics are popular with engineers for designing controllers that react to
+environment events with a sequence of state transitions but lack formal reﬁnement and rigorous veriﬁcation methods. State
+chart models are typically used to design complex control systems that respond to environmental triggers with a sequentialprocess. The model is usually constructed at a concrete level and veriﬁed and validated using animation techniques relying
+on human judgement. Event-B, on the other hand, is based on reﬁnement from an initial abstraction and is designed to make
+formal veriﬁcation by automatic theorem provers feasible. Abstraction and formal veriﬁcation provide greater assurance thatcritical (e.g. safety or security) properties are not violated by the control system. In this paper, we introduce a notion of
+reﬁnement into a ‘run to completion’ state chart modelling notation and leverage Event-B’s tool support for theorem proving.
+We describe the difﬁculties in translating ‘run to completion’ semantics into Event-B reﬁnements and suggest a solution.We illustrate our approach and show how models can be validated at different reﬁnement levels using our scenario checkeranimation tools. We show how critical invariant properties can be veriﬁed by proof despite the reactive nature of the system
+and how behavioural aspects of the system can be veriﬁed by testing the expected reactions using a temporal logic, model
+checking approach. To verify liveness, we outline a proof that the run to completion is deadlock-free and converges to completethe run.
+Keywords Run to completion ·State charts ·Reﬁnement ·Event-B
+BK. Morris
+knmorri@sandia.gov
+C. Snook
+cfs@soton.ac.uk
+T. S. Hoang
+t.s.hoang@soton.ac.uk
+G. Hulette
+ghulett@sandia.gov
+R. Armstrong
+rob@sandia.gov
+M. Butler
+mjb@soton.ac.uk
+1Sandia National Laboratories, 7011 East Avenue Livermore,
+California 94550, USA
+2ECS, University of Southampton, Southampton SO17 1BJ,
+UK1 Introduction
+Reactive State charts are open systems capable of receiv-
+ing potentially non-deterministic input. State charts provide
+a graphical language, generalised from state machines,
+that is popular with engineers. Variants appear in MAT-LAB Simulink/Stateﬂow [ 13] and the ANSYS tools. It is
+particularly attractive, to provide accessibility to abstrac-
+tion/reﬁnement via Rodin/Event-B which has an intuitivemetaphor in the State chart semantics [ 15–17]. The hope is
+that engineers can better understand the origin of proof obli-
+gations in reﬁnements and achieve formal guarantees earlier
+in their designs where it is most tractable. Our approach isfocused on a mapping to Event-B where safety properties
+preservation is key. In our version of State chart semantics,
+reﬁnement means a subset of traces from an abstraction. Thishas the beneﬁcial effect of preserving safety properties from
+abstraction to reﬁnement and permits proofs to be discharged
+at the highest tractable level of abstraction where they are theeasiest to discharge.
+123
+
+--- Page 2 ---
+524 K. Morris et al.
+This manuscript is structure as follows: Sect. 2discusses
+related work on reﬁnement and what are the different types.Section 3provides background material. Section 4discusses
+the State chart concept of ‘run to completion’ and how it
+can be speciﬁed in Event-B. Section 5states the different
+state chart reﬁnement rules we use to construct models. Sec-tion 6introduces our example case study: a drone. Section 7
+gives an outline of our translation from State Chart XML
+(SCXML) to Event-B via UML-B. Section 8describes the
+use of UML-B animation and Scenario Checking tools to
+validate translated SCXMLmodels. Section 9illustrates our
+approach to verifying safety invariant properties. Section 10
+illustrates our approach to verifying control responses, and
+Sect. 11concludes.
+2 Related work
+Many incompatible deﬁnitions of reﬁnement have been
+posed by others [ 12,20] and that can lead to confusion.
+Though these separate reﬁnements have different goals, allof which may be attractive to systems designers in different
+ways, they will not always preserve safety properties. From
+the Event-B vernacular, it might be better to relabel theseother approaches not as methods of model ‘reﬁnement’, but
+rather methods of model ‘elaboration’. Preservation of safety
+properties across reﬁnement requires only a few restric-tions to the original [ 5] State charts (e.g. transitions cannot
+cross containment boundaries arbitrarily), but still allows
+for both parallel and hierarchical composition. With theserestrictions, composition becomes a reﬁnement, but not allreﬁnements are compositions. Such a uniﬁcation of compo-
+sition and reﬁnement can lead, not only to code reuse, but
+reuse of proofs.
+If an Event-B model Bcan be shown (via the construction
+rules of the Event-B language as well as the proof obligations)
+to reﬁne another Event-B model A, then we know that every
+behaviour of Bis also a behaviour of A. This deﬁnition yields
+a useful principle of preservation of safety—if we can show
+that a bad thing never happens in A, then we can add detail
+via reﬁnements in B, knowing that the bad thing will continue
+to never happen in B. That is, Event-B reﬁnements preserve
+safety properties in the sense adopted by Lamport [ 10]. This
+makes reﬁnement a useful technique in developing safety-critical systems: one can analyse a simpler abstract model
+for critical safety properties and then add detail to the model
+via reﬁnements, secure in the knowledge that the safety prop-erties will be preserved. While Event-B reﬁnements have also
+been shown to preserve some liveness properties under cer-
+tain conditions [ 7], there are not yet efﬁcient supporting tools
+for the technique. Instead, we can express the property in lin-ear temporal logic (LTL) and use the ProB
+1model checker
+to verify it, as we have shown in previous work [ 16]. In this
+paper, we outline a proof of liveness properties that relies on
+reasoning about deadlock-freeness and event convergence.
+A method that is closely related to Event-B and also
+supports reasoning about safety and liveness properties isTLA+ [ 11]. TLA+ is supported by the TLA+ Toolbox [ 9].
+On the one hand, temporal properties (both safety and live-
+ness) are explicitly stated as properties of the TLA+ models
+and reasoning about them often requires applying proof rules
+related to properties of traces. On the other hand, Event-
+B deﬁnes proof obligations based on the underlying tracesemantics [ 1,7,8], and hence, reasoning about implicit tem-
+poral properties in Event-B simply involves discharging the
+relevant proof obligations. Furthermore, at the time of writ-ing, the TLA+ Proof System (part of the TLA+ Toolbox) doesnot fully support the reasoning with many temporal opera-
+tors.
+2
+3 Background
+3.1 Event-B
+Event-B [ 1,6] is a formal method for system design. It uses
+reﬁnement to introduce system details gradually into the for-
+mal model. An Event-B model contains two parts: contexts
+andmachines . Contexts contain carrier sets ,constants , and
+axioms constraining the carrier sets and constants. Machines
+contain variables v,invariants I(v) constraining the variables,
+andevents . An event consists of a guard denoting its enabled
+condition and an action deﬁning the value of variables afterthe event is executed. In general, an event ehas the form:
+anytwhereG(t,v)thenS(t,v)end wheretare the event
+parameters, G(t,v) is the guard of the event, and S(t,v)i s
+the action of the event.
+Machines can be reﬁned by adding more details. Reﬁne-
+ment can be done by extending the machine to include
+additional variables ( superposition reﬁnement ) representing
+new features of the system, or by replacing some (abstract)
+variables by new (concrete) variables ( data reﬁnement ).
+Reﬁnement in Event-B is reasoned on an event basis. A (con-crete) event freﬁnes an (abstract) event eif whenever fis
+enabled, then eis also enabled (guard strengthening), and
+the action of fis the same or equivalent to e(where equiva-
+lence is given by some relationship deﬁned in the invariants).New events are said to reﬁne ‘skip’ (an implicit abstract event
+that did nothing) and therefore do not alter abstract vari-
+1ProB is an animator, constraint solver and model checker for the B-
+Method. https://www3.hhu.de/stups/prob .
+2http://tla.msr-inria.inria.fr/tlaps/content/Documentation/
+Unsupported_features.html (accessed June 2021).
+123
+
+--- Page 3 ---
+Formal veriﬁcation and validation of run-to-completion… 525
+ables. More information about Event-B reﬁnement can be
+found in [ 1]. Event-B is supported by the Rodin Platform
+(Rodin3)[2].
+Proof obligations are generated to ensure the consistency
+of Event-B models. An important proof obligation in Event-B is invariant preservation to prove that safety properties(encoded as invariants of the models) will not be violated for
+any reachable states. In this paper, we also make use of other
+proof obligations in Event-B such as (relative) deadlock-freeness and (conditional) event convergence to construct
+our proof of liveness properties under some fairness assump-
+tions.
+For the trace semantics corresponding to Event-B machines
+and the interpretation of LTL properties over traces, we refer
+the readers to [ 7]. Here, we recall the notation for fair-
+ness assumptions underlying event-based formalisms such asEvent-B [ 8,10] .G i v e na ne v e n t e, a weak-fairness assump-
+tionWF(e) states that if eis enabled continually, then it must
+occur inﬁnitely often. Similarly, a strong-fairness assumptionSF(e) states that if eis enabled inﬁnitely often, then it must
+occur inﬁnitely often. Formally,
+WF(a)⇔(FGenabled (e)⇒GF[e]) , and
+SF(a)⇔(GFenabled (e)⇒GF[e]) ,
+whereGandFare the temporal operators denoting globally ,
+andﬁnally , respectively, and enabled (e) denotes that event
+eis enabled and [ e] denotes an occurrence of event e.
+3.2 UML-B State machines
+UML-B [ 18] provides a diagrammatic modelling notation for
+Event-B in the form of state machines and class diagrams.
+The diagrammatic models relate to an Event-B machine and
+generate or contribute to parts of it. For example, a statemachine will automatically generate the Event-B data ele-
+ments (sets, constants, axioms, variables, and invariants) to
+implement the states. Transitions contribute further guardsand actions representing their state change, to the events thatthey elaborate. State machines are typically reﬁned by adding
+nested state machines to states. Each state is encoded as a
+Boolean variable, and the current state is indicated by oneof the Boolean variables being set to TRUE . An invariant
+ensures that only one state is set to TRUE at a time. Events
+change the values of state variables to move the TRUE value
+according to the transitions in the state machine. While the
+UML-B translation deals with the basic data formalisation
+of state machines, it differs signiﬁcantly from the seman-tics discussed in this manuscript. UML-B adopts Event-B’s
+3An extensible toolkit which includes facilities for modelling, ver-
+ifying the consistency of models using theorem proving and modelchecking techniques, and validating models with simulation-basedapproaches.simple guarded action semantics and does not have a con-
+cept of triggers and run to completion. Here, we make use ofUML-B’s state machine translation but provide a completely
+different semantic by generating a behaviour into the under-
+lying Event-B events that are linked to the generated UML-Btransitions.
+3.3 SCXML
+SCXMLis a modelling language based on Harel state charts
+with facilities for adding data elements that are modiﬁed by
+transition actions and used in conditions for their ﬁring [ 21].
+SCXMLfollows a ‘run to completion’ semantics, where trig-ger events
+4may be needed to enable transitions. Trigger
+events are queued when they are raised, and then, one is
+de-queued and consumed by ﬁring all the transitions that itenables, followed by ﬁring the untriggered transitions that
+become enabled due to the change of state caused by the
+initial transition ﬁring. This is repeated until no transitionsare enabled, and then, the next trigger is de-queued and con-
+sumed. Note that the enabledness of transitions is calculated
+batch-wise at each step, not after each and every transition.Hence, the set of parallel transitions that are enabled by a trig-ger is calculated and then only those are ﬁred, irrespective
+of whether ﬁring one may disable or enable another. Sim-
+ilarly, the set of parallel untriggered transitions to be ﬁredis calculated at each iteration before any is ﬁred. There are
+two kinds of triggers: internal triggers are raised by tran-
+sitions, and external triggers are raised by the environment(non-deterministically for the purpose of our analysis). An
+external trigger may only be consumed when the internal
+trigger queue has been emptied.
+State charts, with ‘run to completion’ semantics, are con-
+sidered to be a synchronous language in the sense that
+the external triggering event waits for the behaviour that
+it enables to complete before making any further progress.In contrast, Event-B has an asynchronous semantics due to
+the non-deterministic selection of events to ﬁre. Of course,
+synchronous behaviour can be explicitly modelled by theaddition of control variables that deﬁne the enabledness of
+events (i.e. remove the non-determinism). This is how we
+can deﬁne the translation suggested in this paper. UML-Bstate machines constrain the ﬁring of transitions to someextent but, like Event-B, do not have an underlying fully
+synchronous semantics. The advantage of an asynchronous
+semantics is its ﬂexibility. However, when we wish to modelprocesses that are essentially synchronous in nature, the need
+to explicitly add the synchronous semantics to each model
+becomes a burden, obscuring the particular problem beingmodelled. Since many components (e.g. controllers) used
+4In SCXML, the triggers are called ‘events’; however, we refer to them
+as ‘triggers’ to avoid confusion with Event-B.
+123
+
+--- Page 4 ---
+526 K. Morris et al.
+in a system are based on synchronous behaviour, we are
+interested in adapting a modelling language with run-to-completion semantics to support Event-B style reﬁnement.
+We chose SCXMLas our source language because it is
+relatively simple compared to some run-to-completion mod-elling languages yet has a well-deﬁned action language andsimulation tool support.
+1while running:
+2while completion = false
+3 ifuntriggered_enabled
+4 execute(untriggered())
+5 elseif IQ/negationslash=∅
+6 execute(IQ.dequeue)
+7 else
+8 completion = true
+9 endif
+10endwhile
+11ifEQ/negationslash=∅
+12 execute(EQ.dequeue)
+13 completion = false
+14endif
+15endwhile
+Listing 1 Pseudocode for ’run to completion’
+Listing 1 shows a pseudocode representation of the run-
+to-completion semantics as deﬁned within the latest W3C
+recommendation document [ 21]. Here, IQ and EQ are the
+triggers present in the internal and external queues, respec-
+tively. We adopt the commonly used terminology where a
+single transition is called a micro-step and a complete run
+(between de-queueing external triggers) is referred to as a
+macro-step .
+SCXMLdoes not contain any notion of reﬁnement. A sin-
+gle model contains all details to the ﬁnest level, hence makingit difﬁcult to verify and validate that the model behaves safely
+and as intended. Our aim in this work is to support for-
+mal reﬁnement of SCXMLmodels so that veriﬁcation canbe carried out at abstract levels before all details are present.
+However, applying the reﬁnement rules in the presence of
+the run-to-completion semantics is not straightforward. Forexample, if we apply Rule A (see Sect. 5) to a transition, it is
+more easily disabled causing the run to complete earlier (i.e.
+completion has a weaker guard), breaking Rule A.
+4 Run to completion
+The run-to-completion semantics is speciﬁed via an abstract
+basis that is extended by the model [ 15,17]. Figure 1shows a
+state chart representation of how the basis enforces the run-to-completion semantics on the model transitions.The speciﬁcation of this basis consists of an Event-B con-
+textandmachine that are the same for all input models and
+are reﬁned by the speciﬁc output of the translation. The basis
+context, shown in Listing 2, introduces a set of all pos-
+sible triggers, SCXML \_TRIGGER which is partitioned into
+internal and external triggers (e.g. FutureInternalTrigger and
+FutureExternalTrigger , respectively), some of which will be
+introduced in future reﬁnements. At each reﬁnement, these
+trigger sets are further partitioned to introduce more concretetriggers, leaving a new abstract set to represent the remaining
+triggers yet to be introduced.
+The context also models sequences of triggers as a data
+type to be used for the trigger queues. Our initial work mod-
+elled queues abstractly as sets of triggers which was adequate
+for most veriﬁcation purposes but does not enforce fairnesson trigger consumption [ 15–17]. Hence, we were forced to
+introduce fairness assumptions regarding trigger consump-
+tion in order to verify liveness properties. In this paper, we
+introduce sequences to properly model the trigger queueswhich are an implementation of this fairness property. Note
+that the queue also enables the same trigger to be raised twice
+in the queue which was not possible in a set. The constant Seq
+returns the set of all possible sequences of a given subset of
+triggers and is deﬁned using lambda calculus. Constant func-
+tions are also deﬁned for the usual operations on sequences:length of a given sequence, append a trigger to the end of a
+sequence to give a new sequence, concat enate two sequences
+to give a new sequence, return the trigger at the head of a
+sequence, return the sequence that makes up the tailof a
+sequence, and return the content (set of triggers) involved in
+a sequence. The basis context also deﬁnes several theorem
+properties about sequences that are needed to discharge proofobligations. These are omitted from Listing 2for brevity.
+Each of the transitions in the basis (see Fig. 1) repre-
+sents an abstract event of the basis machine (Listing 3) that
+describes the generic behaviour of models under a run-to-completion semantics. These events provide an abstraction
+that deﬁnes the altering of trigger queues and completion
+ﬂag. Event-B reﬁnement rules prohibit new events frommodifying abstract variables (i.e. new events reﬁne ‘skip’).
+Hence, since SCXMLtransitions need to modify the trigger
+queues, etc., used to capture the SCXMLrun-to-completionsemantics, all events generated by translation of the spe-
+ciﬁc SCXMLmodel must reﬁne abstract events introduced
+for this purpose in the basis. The basis machine also declaresvariables that correspond to the currently de-queued trigger,dt, the queue of internal triggers raised by actions within
+the model, iQ, the queue of external triggers raised by the
+environment, eQ, and a ﬂag, uc, that signals when a run-to-
+completion macro-step has been completed. (No untriggered
+transitions are enabled.) Note that, for convenience, the cur-
+rently de-queued trigger, dt, is modelled as a singleton set
+123
+
+--- Page 5 ---
+Formal veriﬁcation and validation of run-to-completion… 527
+Fig. 1 Abstract representation of run-to-completion basis
+which may be empty (i.e. consumed) or contain the single
+trigger to be consumed.
+The trigger queues and de-queued trigger are
+initialised to empty and ucis set toFALSE so that any enabled
+untriggered transitions are dealt with via thefutureUntriggeredTransitionSet event when the system ﬁrst
+starts (see Listing 1). This will subsequently enable com-
+pletion and reset the ucﬂag toTRUE . The abstract event
+futureRaiseExternalTrigger represents the raising of an
+external trigger (not shown in Fig. 1). After completion, a
+queued trigger can be prepared for consumption by mov-ing it to the de-queued trigger, dt. Internal triggers have a
+higher priority, since the external trigger queue is only de-
+queued if the iQis empty (see dequeueExternalTriggered
+anddequeueInternalTriggered in Fig. 1). The abstract event
+futureTriggeredTransitionSet represents a combination of
+parallel transitions that may be simultaneously triggered by
+the de-queued trigger, dt. When the actual example SCXM-
+Lis translated, a separate reﬁnement of this abstract event will
+be generated for each subset of the set of parallel transitions
+that could ﬁre in parallel in order to cater for all possibili-ties of enablement; however, as the model is reﬁned, some
+combinations may be eliminated as the guards are strength-
+ened. This approach to generating an event for each possiblecombination of each set of transitions that could ﬁre in par-allel is needed because of the batch enabling semantics of
+the SCXML run to completion (see Sect. 3.3). The actions of
+these transitions may also raise triggers of their own in the
+internal trigger queue iQ.
+Completion of triggered and untriggered transitions may
+be non-deterministically premature to allow future reﬁne-
+ments to strengthen the guards of transitions (i.e. to disable
+them resulting in an earlier completion). In the processof reﬁning a model, a designer takes advantage of this
+non-determinism in the abstraction by adding nested sub-
+states and explicit guards to transitions. When a reﬁne-ment level is reached where the designer wants to enforce
+a requirement (i.e. prevent it being bypassed by a non-
+deterministic completion), the model needs to be ﬁnalised
+(see Sect. 7for more on ﬁnalisation). The SCXMLtrans-
+lation tool will then automatically strengthen the guards
+of events noTriggeredTransitionsEnabled and
+noUntriggeredTransitionsEnabled , to ensure that the run-
+to-completion sequence is not interrupted by non-determini-
+stic behaviour. To do this, we need to guard completion
+so that it cannot happen, while any relevant transition isstill enabled. To ﬁnalise a triggered transition, the guard of
+noTriggeredTransitionsEnabled is strengthened by adding
+the conjunction of the negated guards of all transitionsthat can ﬁre in parallel with the transition being ﬁnalised.
+123
+
+--- Page 6 ---
+528 K. Morris et al.
+1context
+2basis_c
+// (generated for SCXML)
+3sets
+4SCXML_TRIGGER
+// all possible triggers
+5constants
+6FutureInternalTrigger
+// all possible internal triggers
+7FutureExternalTrigger
+// all possible external triggers
+8Seq
+// return all possible sequences of given set of triggers
+9length
+// return the length of a sequence of triggers
+10append
+// return the result of appending trigger to a sequence
+11concat
+// return the concatenation of two sequences of triggers
+12head
+// return the trigger at head of a sequence of triggers
+13tail
+// return the sequence at tail of a sequence of triggers
+14content
+// return the set of triggers in a sequence of triggers
+15InternalQueueType
+// type of internal queues
+16ExternalQueueType
+// type of external queues
+17
+18axioms
+19partition (SCXML_TRIGGER ,FutureInternalTrigger ,FutureExternalTrigger )
+20Seq=(λT.T⊆SCXML_TRIGGER |{n,s.n∈N∧s∈0..n−1→T|s})
+21length =(λs.s∈Seq(SCXML_TRIGGER )|card (s))
+22append =(λs/mapsto→t.s∈Seq(SCXML_TRIGGER )∧t∈SCXML_TRIGGER |
+23 {i/mapsto→v|i∈0..length (s)∧(i<length (s)⇒v=s(i))∧(i=length (s)⇒v=t)})
+24concat =(λs1/mapsto→s2.s1∈Seq(SCXML_TRIGGER )∧s2∈Seq(SCXML_TRIGGER )
+|
+25 {i/mapsto→v|i∈0..length (s1)+length (s2)−1∧(i<length (s1)⇒
+26 v=s1(i))∧(i≥length (s1)⇒v=s2(i−length (s1))) } )
+27head=(λs.s∈Seq(SCXML_TRIGGER )∧s/negationslash=∅|s(0))
+28tail=(λs.s∈Seq(SCXML_TRIGGER )∧s/negationslash=∅|{i/mapsto→v|i∈0..length (s)−2∧v=s(i+
+1)} )
+29content =(λs.s∈Seq(SCXML_TRIGGER )|ran(s))
+30InternalQueueType =Seq(FutureInternalTrigger )
+31ExternalQueueType =Seq(FutureExternalTrigger )
+32end
+33
+Listing 2 Abstract basis context
+Similarly, to ﬁnalise an untriggered transition, the guard
+ofnoUntriggeredTransitionsEnabled is strengthened by
+adding the conjunction of the negated guards of all untrig-gered transitions that can ﬁre in parallel. It may seem
+that ﬁnalisation could cause an unmanageable explosion of
+guards. However, to ﬁre in parallel, transitions must be con-tained in parallel regions and also be enabled by the same
+trigger (or be untriggered). In practice, since most systems do
+not contain many parallel regions, the number of transitionsthat can ﬁre in parallel is limited. Transition ﬁnalisation canbe left until it is needed for the proof of a particular property
+and does not generate any new proof obligations since adding
+guards is a trivial reﬁnement step. Finalisation is also neededin order to remove non-deterministic behaviours when the
+model is animated for validation purposes.
+1MACHINE basis
+// (generated for SCXML)
+2SEESbasis_ctx
+3VARIABLES
+4iQ
+// internal trigger queue
+5eQ
+// external trigger queue6uc
+// run to completion ﬂag
+7dt
+// dequeued trigger for this run
+8INVARIANTS
+9iQ∈InternalQueueType
+// internal queue
+10eQ∈ExternalQueueType
+// external queue
+11uc∈BOOL
+// completion ﬂag
+12dt⊆SCXML_TRIGGER
+// dequeued trigger
+13dt/negationslash=∅⇒(∃t.dt={t})
+// at most one dequeued trigger
+14EVENTS
+15INITIALISATION
+// queues empty, completion false, no dequeued triggers
+16iQ,eQ,uc,dt:=∅,∅,FALSE ,∅
+17 END
+18
+19futureRaiseExternalTrigger
+//basis of future event to raise an external trigger
+20 ANYraisedTrigger WHEREraisedTrigger ∈FutureExternalTrigger
+21 THENeQ:=append (eQ/mapsto→raisedTrigger )
+22 END
+23
+24dequeueInternalTriggered
+//event to dequeue an internal trigger
+25 WHENiQ/negationslash=∅∧dt=∅∧uc=TRUE
+26 THENdt,iQ,uc:={head (iQ)},tail(iQ),FALSE
+27 END
+28
+29dequeueExternalTriggered
+//event to dequeue an external trigger
+30 WHENeQ/negationslash=∅∧dt=∅∧uc=TRUE∧iqQ∅
+31 THENdt,eQ,uc:={head (eQ)},tail(eQ),FALSE
+32 END
+33
+34futureTriggeredTransitionSet
+//basis of future event representing triggered transitions
+35 ANYtrigger ,raisedTriggers WHERE
+36trigger ∈dt∧uc=FALSE ∧raisedTriggers ∈Seq(FutureInternalTrigger )
+37 THENdt,iQ:=∅,concat (iQ/mapsto→raisedTriggers )
+38 END
+39
+40noTriggeredTransitionsEnabled
+//event to ﬁre when no triggered transitions enabled
+41 WHENuc=FALSE ∧dt/negationslash=∅
+42 THENdt:=∅
+43 END
+44
+45futureUntriggeredTransitionSet
+//basis of future event representing untriggered transitions
+46 ANYraisedTriggers WHEREuc=FALSE ∧dt=∅∧raisedTriggers ∈Seq(
+FutureInternalTrigger )
+47 THENiQ:=concat (iQ/mapsto→raisedTriggers )
+48 END
+49
+50noUntriggeredTransitionsEnabled
+//event ﬁred when no untriggered transitions enabled
+51 WHENuc=FALSE ∧dt=∅
+52 THENuc:=TRUE
+53 END
+54END
+55
+Listing 3 Abstract basis machine
+5 State chart reﬁnement
+The work presented here includes three reﬁnement rules.
+1.Rule A: Guard conditions on a transition can be strength-
+ened (but not weakened); this can be done by adding
+textual guards to the transition, or changing the source ofthe transition to a nested state.
+123
+
+--- Page 7 ---
+Formal veriﬁcation and validation of run-to-completion… 529
+Fig. 2 State chart reﬁnement
+rules
+2.Rule B: Transitions can have additional actions, provided
+they do not modify variables appearing in the abstraction;
+this can be accomplished by adding textual action to the
+transition or by changing the target to nested state.
+3.Rule C: A state chart can be embedded within a state of
+another state chart—sometimes called hierarchical com-
+position or hierarchical reﬁnement.
+The application of these rules is illustrated in Fig. 2.Rule
+Ais applied to reﬁne the abstract transition from SAtoSB
+after adding child states SCandSD. The reﬁnement strength-
+ens the guard of the transition by restricting it to SD.O n
+the other hand, Rule B reﬁnes the abstraction by introduc-
+ing a new concrete variable, x, into the model. The abstract
+transition is reﬁned by the actions associated with this new
+variable. Finally, Rule C constructs a reﬁnement introduc-
+ing state charts SC,SDandSG,SHthrough hierarchical and
+parallel composition, respectively.
+Via the translation explained in Sect. 7, these rules rely
+on the usual Event-B proof obligations to ensure that they doindeed yield reﬁnements in the Event-B semantics.
+6 Description of the sample application
+To illustrate the development and analysis process of a design
+using the previously described state chart semantics, we
+will discuss a quadrotor helicopter or quadrotor applicationsimilar to the one presented by Syriani et al. [ 20]. The appli-
+cation will focus on the incremental design of some of the
+drone’s required functionality. The constructed model mustobey state chart reﬁnement rules listed in Sect. 5, and these
+rules are proven within the Rodin tool. The structure of the
+state chart for this model at each subsequent abstraction levelrestricts further the development of the model to reﬁnementsthat obey the rules. This will allow us to prove properties of
+the model in a very strategic fashion, as properties proven
+of early abstraction levels are preserved in later reﬁnements.
+Unlike other case studies previously presented [ 14,15,17],
+this drone example illustrated the model construction andanalysis of a more complex system with several parallel com-
+ponents and reﬁnement levels.
+The initial abstraction and ﬁrst reﬁnement of the model,
+shown in Fig. 3, capture the basic functionality of the drone.
+The abstract model is shown in blue; the model’s initial state
+isOFF and as a result of the onandtoTakeoﬀ external trig-
+gers it transitions to the START andOPERATIONAL states,
+respectively.
+5The drone reacts to the oﬀexternal trigger
+by shutting down and subsequently transitioning to the OFF
+state. The ﬁrst reﬁnement is constructed using Rule C , which
+adds details within the OPERATIONAL state (grey states in
+Fig. 3). Within the OPERATIONAL state, the drone will tran-
+sition to FLY orDESCEND after the internal trigger toFly
+ortoLand is raised, respectively. In reﬁnement level one,
+these internal triggers are raised non-deterministically in the
+system by functionality not currently deﬁned. As additionaldetails are incorporated into the model in later reﬁnements,
+some of that non-determinism is removed and replaced by
+transitions with actions that raised the previously deﬁnedinternal triggers. A further external trigger, landed , directs
+the system to progress to the LANDED state. It should be noted
+that this abstraction of the drone model includes a transition
+fromTAKEOFF toDESCEND (dashed transition in Fig. 3).
+This allows for the drone to respond to a toLand trigger if it
+encounters some problems while in the TAKEOFF state. Syr-
+iani et al. [ 20] introduce this transition in later reﬁnements
+5Transitions in Figs. 3and 4are labelled with trigger names (e.g.
+toTakeoff, toFly) not with event names as it is in UML-B.
+123
+
+--- Page 8 ---
+530 K. Morris et al.
+Fig. 3 State chart of drone application. Abstract level including only generic start/shutdown behaviour (shown in blue). The ﬁrst reﬁnement
+introducing main operational sub-states is shown in grey
+under Rule 8 path reﬁnement rule . This rule is inconsistent
+with our rules of reﬁnement as it results in a concrete event
+with no corresponding behaviour in the abstraction.
+Figure 4builds in Fig. 3to show three more reﬁnements
+to the drone model. The second reﬁnement (shown in greenin Fig. 4) extends the capabilities within OPERATIONAL by
+using Rule C to make it a parallel state that controls ﬂying and
+battery related functionality. This is the same as Rule 4 and-
+state rule deﬁned by Syriani et al. [ 20]. The charge within the
+drone battery is monitored by the parallel BATTERYOP state.
+A new ancillary variable, charge , is introduced to keep track
+of the amount of charge left in the drone. It is decreased by a
+self-transition on state BATTERYOK in response to an exter-
+nal trigger decreaseCharge . If the battery monitor works
+correctly, we would expect the battery charge to have at least20% capacity while in the state BATTERYOK . This can be
+expressed as an invariant property:
+(BATTERYOK =TRUE )⇒charge >20% .
+When the monitored charge drops to 20% or less, the
+BATTERY state chart raises the internal trigger toLand , which
+will cause a reaction in the FLYOP start chart to bring it out of
+TAKEOFF orFLYand intoDESCEND (hence removing some
+of the non-determinism concerning where toLand is raised).
+While in the TAKEOFF state, we would expect the battery
+m o n i t o rt ob ei nt h e BATTERYOK state or to have raised a
+toLand trigger.
+(TAKEOFF =TRUE )⇒(BATTERYOK =TRUE∨toLand ).
+To ensure the drone only enters TAKEOFF orFLY with
+enough battery power, we strengthen the guards of transitions
+to theFLYandTAKEOFF states ( Rule A ). We will discuss how
+these state-invariant properties are veriﬁed in Sect. 9.
+The third reﬁnement of the model (shown in beige) reﬁnes
+the stateTAKEOFF by applying Rule B and C . Under these
+rules, we introduce child states and new model variables,similar to Rule 2 basic-to-or state rule deﬁned by Syriani etal. [20] As part of this reﬁnement, we introduced an untrig-
+gered transition responsible for raising the toFly internal
+trigger and therefore removed some of the non-determinisms
+concerning this trigger.
+The fourth reﬁnement of the drone model (shown in lilac)
+uses Rule C to introduce additional implementation details to
+allow a take-off to be cancelled in response to an external trig-
+gercancel . If the trigger is raised, the climbing process must
+be aborted and the drone descending sequence shall start.
+This reﬁnement level is done differently to Syriani et al. [ 20],
+which follows Rule 7 state extension rule . The aforemen-
+tioned rule requires a data remapping of the abstract states
+TAKEOFF ,CLIMB , andHOVER , which should be distinct from
+the states in this reﬁnement, as the state ABORT is introduced.
+In contrast, we implement this reﬁnement using a rule similarto Syriani et al.’s Rule 2 basic-to-or state rule , which intro-
+duces the concrete states CLIMB2 andABORT to the abstract
+stateCLIMB .
+Although the autonomous drone example in this paper
+is based on the example described in [ 20], the deﬁnition of
+reﬁnement used in that work is quite different from our own.This forces some differences in our reﬁnement rules, and
+consequently, the way the example is developed. In [ 20],
+‘reﬁnement’ is a transformation of the model which pre-serves reachability of a state with respect to sequences ofinputs. However, this also allows the possibility of introduc-
+ing new behaviours in the concrete model that the abstraction
+does not exhibit. While this notion of reﬁnement seems use-ful in certain contexts, unlike reﬁnement in Event-B it does
+not guarantee preservation of safety properties. Therefore, it
+should be considered less suited to development of safety-critical systems.
+123
+
+--- Page 9 ---
+Formal veriﬁcation and validation of run-to-completion… 531
+Fig. 4 State chart of drone application. Second reﬁnement for battery monitoring functionality (shown in green). Third reﬁnement introducing
+details for take-off (shown in beige). Fourth reﬁnement level to allow cancelling during take-off (shown in lilac)
+7 SCXMLtranslation to UML-B/Event-B
+The translation of a speciﬁc SCXMLmodel to UML-B and
+Event-B comprises the following stages:
+– Firstly, a basis machine and context are created to embody
+the semantics of the SCXMLlanguage (as described inSect. 4). The basis provides variables and events to model
+the queue of triggers as well as abstract versions of events
+to model transitions ﬁring. The basis is independent of the
+particular SCXMLmodel which is added in subsequentreﬁnements. Hence, it is not necessary to re-prove any of
+the proof obligations associated with this basis.
+– Secondly, all possible combinations of each set of transi-
+tions that can ﬁre together are calculated and correspond-
+ing events are generated, at appropriate reﬁnement levels
+(given by the reﬁnement annotations embedded in theSCXMLmodel) that reﬁne the abstract basis events. Thetransitions that can ﬁre together are those that are trig-
+gered by the same trigger (or are both untriggered) and
+are in different parallel (‘and’) sub-states. For example,the untriggered transitions shown in the parallel states
+FLYOP andBATTERYOP of Fig. 4are combined into
+an event in the Event-B representation of the model,through a conjunction of the guards and actions of
+each of the transitions. If these transitions raise internal
+triggers, a guard, { i1,i2,...}⊆content (raisedTriggers )
+(wherei1,i2,... have been added to the internal triggersset), is introduced to deﬁne the raised triggers parameter.
+The subset used in the guard retains non-determinism to
+allow more triggers to be raised in later reﬁnements. Fortriggered transitions, the trigger is speciﬁed by a guard
+that deﬁnes the value of the trigger parameter.
+– Thirdly, at each reﬁnement level, the SCXMLstate chart
+is translated into a corresponding UML-B state machine
+whose transitions elaborate (i.e. add state change details
+to) the transition combination events that the transitionmay be involved in. A transition may ﬁre in parallel withtransitions of parallel nested state machines that have the
+same (possibly null) trigger.
+– Finally, the UML-B state machine is translated into
+Event-B by programmatically invoking the UML-B
+translator.
+A previous version of the translator was described in [ 15,
+16]. New features of the translation added since [ 15,16]a r e
+as follows:
+Trigger queues in basis: The encoding of trigger queues in
+the abstract basis context and machine has been improved
+so that a queue is properly modelled as a sequence of
+triggers. This more accurately reﬂects the SCXMLse-mantics.
+De-queuing triggers from queues: The abstract basis
+machine has been improved so that triggers are properlyde-queued before potential use, which allows triggers to
+123
+
+--- Page 10 ---
+532 K. Morris et al.
+Fig. 5 Generated UML-B state machine for drone reﬁnement level 2
+be discarded if the controller cannot respond to them.
+This more accurately reﬂects the SCXMLsemantics andwas necessary in order to model the new drone case study
+properly.
+Finalisation: Transitions can be ﬂagged as ﬁnalised whichmeans their guards can not be strengthened in subsequentreﬁnements. This allows them to ‘enforced’ when they
+are enabled (i.e. completion cannot occur until they have
+ﬁred) which is needed for veriﬁcation.Restricted raising of internal triggers: Once a trigger is
+introduced, it must immediately be raised at that reﬁne-
+ment level by any transitions that wish to do so. It cannotbe raised in later reﬁnements except by newly introduced
+transitions. This restriction was necessary to make simu-
+lation more useful by removing non-deterministic raisingof triggers in anticipation of reﬁnements.Context instantiation: The axioms of the basis context,
+that allow future triggers to be added, have been improved
+so that ProB
+6can automatically create an instantiation.
+A tool to automatically translate SCXMLsource mod-
+els into UML-B has been produced. The tool is based
+on the Eclipse Modelling Framework (EMF) and uses an
+6ProB is an animator, constraint solver and model checker for the B-
+Method. https://www3.hhu.de/stups/prob .SCXMLmeta-model provided by Sirius [ 4] which has good
+support for extensibility. The UML-B state machine is sub-sequently translated into Event-B using the standard UML-B
+translation which provides variables to model the current
+state and guards and actions to model the state changes thattransitions perform.
+Figure 5shows the UML-B model of the drone at reﬁne-
+ment level 2 (equivalent to Fig. 4without the detail inside
+TAKEOFF). The structure of the state machine is similar tothe SCXMLversion with purple shading indicating the pre-
+viously added states and light blue shading indicating the
+detail added at this reﬁnement level. State invariants (prop-erties that should hold while that state is active) are shown in
+TAKEOFF ,FLYandBATTERYOK . Veriﬁcation of these invari-
+ants is discussed in Sect. 9.
+8 Validation
+One of the attractions of ‘run to completion’ style modelling
+languages such as SCXMLis their execution semantics which
+provides a method for animating models to validate their
+behaviour. Our approach to SCXMLreﬁnement results in asingle SCXMLﬁnal model which can be animated using the
+existing SCXMLanimation tools. However, we would like to
+validate the developing UML-B model at intermediate reﬁne-ment levels.
+123
+
+--- Page 11 ---
+Formal veriﬁcation and validation of run-to-completion… 533
+Fig. 6 Using Scenario Checker to validate behaviour of reﬁnement 1—recording
+In previous work [ 19], we have developed a scenario-
+based approach to formal modelling using abstract scenarios
+to validate abstract models. The method is supported by a
+‘Scenario Checker’ tool, based on the ProB model checker,that allows scenarios to be recorded and then replayed tocheck that important state has not changed since the original
+run of the scenario. The Scenario Checker supports the con-
+cept of a controller executing a process in response to changesin the environment which is similar to the run-to-completion
+concept addressed in our work here. Events may be annotated
+asinternal to indicate that, when enabled, they should be ﬁred
+automatically until none remain. Internal events may also be
+prioritised to give a simple representation of process order
+in the controller (even if it is left non-deterministic in themodel). The user only has to select external events that triggerthe controllers responses. Since our SCXMLderived models
+already contain an implementation of run to completion, the
+support provided by the Scenario Checker is sufﬁcient tovalidate this behaviour. If desired, internal variables that rep-
+resent the controllers processing (e.g. the variables that model
+the SCXMLrun-to-completion variables) can be annotated asprivate so that only the application state is checked during
+replay. To help visualise the state of the model, the gener-
+ated UML-B state machine is animated during the scenariovalidation.
+Figure 6shows a scenario being recorded. The main (top
+left) editing view shows the state machine being animated;
+the model is currently in the DESCEND state. The bottom
+left view is the scenario checker control panel where exter-
+nal events can be ﬁred to start a run to completion. In our
+model, only the external-trigger-raising events (representingthe environment) are enabled. The main button to be used
+is the Big Step button which ﬁres the selected external eventand then automatically ﬁres internal events until none are
+enabled. The right-hand view shows the scenario checker
+console, listing each big step and its run to completion in
+terms of internal events. The bottom centre view shows thestate of the system at the end of the last run.
+Figure 7shows the recorded scenario being played back.
+In the control panel, external events are greyed out as they are
+being selected from the recording each time the Big Step but-
+ton is pressed. The state view shows a discrepancy from when
+the scenario was recorded, and the state machine is in the FLY
+state instead of the DESCEND state. Comparing the history
+in the console panels reveals that cause: an internal trigger,
+toLand , was non-deterministically raised during recording
+but not during playback. This is because the model allowsfor future raising of internal triggers in later reﬁnements.
+Figure 8shows the scenario being played back at a later
+reﬁnement where the raising of the toFly andtoLand internal
+triggers has been deﬁned. While the scenario checker allowsus to animate that the main expected run-to-completion
+behaviour is possible, recall that unless the transitions have
+all been ﬁnalised (i.e. no further reﬁnement is permitted),other behaviours are possible due to the non-deterministic
+completion incorporated in case transition guards are later
+strengthened.
+9 Veriﬁcation of safety properties
+In a state chart model, we naturally wish to verify propertiesof the form; a property Pthat is expected to hold true in a
+particular state S. Hence, all of the safety properties that we
+consider are captured as invariants of the form: S=TRUE⇒P
+where the antecedent is implicit from the containment of P
+123
+
+--- Page 12 ---
+534 K. Morris et al.
+Fig. 7 Using Scenario Checker to validate behaviour of reﬁnement 1—playback
+Fig. 8 Using Scenario Checker to validate behaviour of reﬁnement 3—playback
+withinS. There are two kinds of properties that we might want
+to verify in an SCXMLstate chart: 1) properties concerningthe values of auxiliary data maintained by the system and
+2) constraints about the state of another parallel state chart
+region. SCXMLmodels represent components that react toreceived triggers and cannot be perfectly synchronised withchanges to the monitored properties. Hence, Pmay be tem-
+porarily violated until the system reacts by leaving the stateSin which the property is expected to hold. To cater for this,
+we express Pin a modiﬁed form P’ that allows time for the
+reaction to take place. There are two forms of reaction that
+can be used to exit S: a) an untriggered transition or b) a tran-
+sition that is triggered by an internally raised trigger. For a),the modiﬁed property P’ becomes P∨untriggered transi-
+tions are not complete , and for b), P’ becomes P∨triggert
+is in the internal queue or de-queued (wheretis the internal
+123
+
+--- Page 13 ---
+Formal veriﬁcation and validation of run-to-completion… 535
+trigger raised when the violation of Pis detected). Hence, P
+is checked only in stable states that are reachable accordingto the run-to-completion semantics.
+In this section, we illustrate a typical example of the type
+of properties that we imagine could be veriﬁed in a reactiveSCXMLsystem. All of the proof obligations are automat-ically discharged for our example.
+7Since our models are
+strictly structured and proof obligations will always have this
+common form, we are optimistic that proofs will always dis-charge automatically. We model the safety property features
+at an early level of reﬁnement where the models are rela-
+tively simple, so that the validity of veriﬁcation conditionsis clear. Detail is then added in later reﬁnements which are
+proven (automatically) to preserve the previously veriﬁed
+safety properties. In our example, some auxiliary data aremonitored by one state chart region, while a parallel regionrefers to the state of the monitoring region. Hence, the reac-
+tion consists of an untriggered transition in the monitoring
+region which sends an internal trigger to the other regionwhen it leaves the desired monitor state.
+For our drone model, the safety property that we wish to
+verify is that the control system does not continue to take offor ﬂy if the battery charge drops below a certain threshold
+(say 21%). By reﬁnement level 1, we have developed the
+drone’s state to the point where we distinguish the TAKEOFF
+andFLY states (Fig. 3). In reﬁnement level 2, we therefore
+introduce the battery charge monitoring function along with
+the associated safety properties. A parallel state chart region,
+with sub-states BATTERYOK andBATTERYLOW , is added to
+the stateOPERATIONAL (Fig. 4). TheBATTERYOK sub-state
+is used in the safety invariant of the TAKEOFF andFLYstates.
+Thus, we split the veriﬁcation into two parts: a type b proof to
+show that the system reacts to the battery charge decreasing
+below 21% (an external event) by leaving the BATTERYOK
+sub-state and a type a proof to show that when the system
+leaves the BATTERYOK state, it subsequently (within the run
+to completion) leaves the FLYorTAKEOFF states. Both parts
+are described in more detail as follows.
+System Reacts to the Low Battery Charge An external trig-
+ger indicates that the battery charge has dropped by 10% and
+this is used by a self-transition to decrement the controllersdata value for charge. The BATTERYOK state is supposed to
+indicate that the battery charge is ok ( >20%) and to ensure
+that it does, we add a state invariant to this effect (charge >20).
+When charge decreases to 20 (or less), an untriggered transi-tion immediately reacts by switching to the BATTERYLOW
+state. To ensure that this reaction is not bypassed by the
+non-determinism that we incorporated to allow for futurereﬁnement, we ﬂag it as ﬁnalised at reﬁnement level 2. Final-
+7We use a strong prover conﬁguration including AtelierB provers and
+SMT solvers.isation means that we cannot strengthen its guards in future
+reﬁnements as is normally permitted, since its reaction isneeded to ensure the invariant is preserved. If the user for-
+goes the ﬁnalisation, the property would not be veriﬁable at
+that reﬁnement level and it will need to be veriﬁed in laterreﬁnements. After translation to Event-B via UML-B, theinvariant in state BATTERYOK is
+(BATTERYOK =TRUE )⇒(uc=FALSE ∨charge >20) .
+The only events that can break this invariant are ones
+that make the antecedent become true or the consequent
+become false and we deal with these as follows: the tran-
+sitions that enter state OPERATIONAL and initialise the
+BATTERY region by entering BATTERYOK (hence making the
+antecedent become true) contain the guard that charge >50
+(since we do not allow the drone to take off unless the bat-
+tery is well charged) and hence the invariant is satisﬁed.The self-transition that decreases charge (and hence could
+potentially falsify the consequent) is guarded by uc=FALSE
+since it is a triggered transition, and hence, the disjunctionin the consequent ensures it remains true. The comple-
+tion event NoUntriggeredTransitionsEnabled of the basis
+machine resets uc=TRUE to indicate completion of the
+cycle and hence could potentially break the invariant. How-ever, ﬁnalising the transition BATTERYOK_BATTERYLOW
+(that leaves BATTERYOK whencharge >20 becomes false)
+means that the negation of its guard is added to the comple-tion event by the translation. Since this transition ﬁres when
+BATTERYOK =TRUE (i.e. its source state) and charge ≤20,
+the completion event is guarded by ¬(BATTERYOK =TRUE∧
+charge ≤20) which means that it does not ﬁre when it could
+break the invariant (i.e. forcing the untriggered reaction to
+ﬁre ﬁrst).
+System Subsequently Leaves the FLY or TAKEOFF States
+The safety property of the TAKEOFF andFLYstates can now
+be simply stated as BATTERYOK =TRUE . However, since this
+relies on a particular internal trigger ( toLand ) to make the
+appropriate reaction, we also need to specify that trigger as
+an attribute of the invariant in the SCXMLmodel. After trans-
+lation to Event-B via UML-B, the invariant in state TAKEOFF
+becomes
+(TAKEOFF =TRUE )
+⇒
+(toLand ∈content (iQ)∨toLand ∈dt∨BATTERYOK =TRUE ).
+The invariant for the FLYstate is similar with a correspond-
+ing antecedent. The transitions that enter TAKEOFF (which
+make the antecedent true) simultaneously enter BATTERYOK
+ensuring the consequent is true. The only transition that enters
+FLY (which makes the antecedent of the FLY invariant true)
+comes from the TAKEOFF state and hence the consequent is
+123
+
+--- Page 14 ---
+536 K. Morris et al.
+already true. The transition that leaves BATTERYOK (making
+the last disjunct of the consequent false) raises the toLand
+trigger making the ﬁrst disjunct true. Some transitions leave
+the superstates of BATTERYOK , but these either simultane-
+ously leave OPERATIONAL (the superstate of TAKEOFF and
+FLY), or re-enter BATTERYOK . The basis contains an event
+to de-queue the internal triggers which preserves the over-
+all consequent because it establishes the second conjunct as
+it falsiﬁes the ﬁrst (i.e. it removes toLand from the iQbut
+simultaneously adds it to dt). The only events that falsify
+the second conjunct are the transitions triggered by toLand
+which leave the TAKEOFF orFLYstates making the antecedent
+false.
+Hence, invariant properties that follow these suggested
+patterns are automatically proven due to simple logic aboutthe changes in state.
+10 Veriﬁcation of control responses
+A model that has been proven to satisfy some safety (e.g.invariant) properties may still not behave in a useful way.
+Therefore, as well as verifying invariant properties, we would
+like to verify the system’s liveness (e.g. responsive) proper-ties. That is, we want to ensure that the controller responds
+to external triggers and makes appropriate modiﬁcations to
+the system variables. These kind of liveness properties aredifﬁcult to prove via invariant preservation since they are
+temporal properties. In this section, we present our approach
+to verify the responsive properties of the system.
+We ﬁrst start with some generic properties of our gener-
+ated Event-B model and the fairness assumption about the
+executions of the events. We then discuss the proof for ter-
+mination of responses for external triggers in Sect. 10.1 and
+correctness of the responses for external triggers in Sect. 10.2.
+Event Categories. In our Event-B model, the events can be
+separated into the following categories.
+–External events : These events raise external triggers.
+–System events : Events other than external events are
+called system events. They are the events by which the
+system responds to the external triggers (by creating dif-ferent runs or simulation paths). These events can be seenin Fig. 1and are further categorised as follows.
+•Future system events : These events might raise
+internal triggers, i.e. futureTriggeredTransitionSet ,
+andfutureUntriggeredTransitionSet . The purpose
+of these events is to enable future introduction of moresystem details via reﬁnement.•The de-queue external trigger event (i.e.dequeue
+ExternalTriggered ): These events de-queue the exter-
+nal trigger queue and will start a run.
+•Internal system events : These events belong to the
+internal behaviour of the system to accommodate theruns for external triggers. These events can be seenin different groups as in Fig. 1.
+•The de-queue internal trigger event (i.e.dequeue
+InternalTriggered ): These events de-queue the
+internal triggers queue and will start a run.
+•Triggered events : The events corresponding to
+the event ﬁred by (external or internal) triggers.
+•The discard trigger event (i.e.noTriggered
+TransitionsEnabled ): This event will move the
+system from the FIRINGTRIGGERED s t a t et ot h e
+FIRINGUNTRIGGERED state in the case where no
+triggered transition events are enabled.
+•Untriggered events : These are all the untriggered
+events in the systems.
+•The completion event (i.e.noUntriggered
+TransitionsEnabled ): This event will move the
+system from FIRINGUNTRIGGERED s t a t et ot h e
+READYTODE −QUEUE state in the case where
+no untriggered transition events are enabled.
+Events from different categories have different roles in our
+reasoning about responsive properties.
+We now present a theorem and a corollary related to (rela-
+tive) deadlock-freeness properties for a different set of events.
+Theorem 1 (Internal System Events are Relative Deadlock-
+Free) Under the condition that iQ
+/negationslash=∅∨uc=FALSE ∨dt/negationslash=∅,
+the internal system events are deadlock-free, i.e. there mustbe one internal system event enabled.
+Proof This is based on the generation of our Event-B
+model (according to the basis structure as shown in Fig. 1).
+In particular, we consider the different cases correspond-
+ing to the different ‘states’, i.e. READYTODE −QUEUE ,
+FIRINGTRIGGERED , andFIRINGUNTRIGGERED .
+– When the system is in the READYTODE −QUEUE state,
+we know that uc=TRUE∧dt=∅. According to our
+assumption, we then have iQ/negationslash=∅, hence dequeue
+InternalTriggered event is enabled.
+– When the system is in the FIRINGTRIGGERED state,
+either one of the triggered events is enabled or the
+noTriggeredTransitionsEnabled event is enabled.
+– Similarly, when the system is in the FIRINGUNTRIGGERED
+state, either one of the untriggered events is enabled or
+thenoUntriggeredTransitionsEnabled event is enabled.
+/intersectionsq/unionsq
+123
+
+--- Page 15 ---
+Formal veriﬁcation and validation of run-to-completion… 537
+Corollary 1 (System Events are Relative Deadlock-Free)
+Under the condition that eQ/negationslash=∅∨iQ/negationslash=∅∨uc=FALSE ∨
+dt/negationslash=∅, the system events are deadlock-free, i.e. there must
+be one system event enabled.
+Proof This is based on the generation of our Event-B model
+(according to the basis structure as shown in Fig. 1) and
+Theorem 1.
+– In the case where iQ/negationslash=∅∨uc=FALSE ∨dt/negationslash=∅, accord-
+ing to Theorem 1, one of the internal events is enabled.
+– Otherwise, i.e. iQ=∅∧uc=TRUE∧dt=∅, according
+to our assumption, eQ/negationslash=∅. In this case, the dequeue
+ExternalTriggered event is enabled.
+/intersectionsq/unionsq
+In order to reason about any liveness properties for an
+event system, we have to make assumptions about how often
+events will be ﬁred. Here, we assume that all the systemevents are strongly fair.
+Assumption 1 (Fair System Events) We assume that all
+internal system event eis strongly fair, i.e. SF(e) ; and
+the de-queue external trigger event is weakly fair, i.e.
+WF(dequeueExternalTriggered ).
+This assumption will ensure that the system will response
+no matter how often the external triggers are raised by the
+external events.
+10.1 Termination of responses for external triggers
+We ﬁrst deﬁne the notion of event convergence and event
+anticipation.
+Deﬁnition 1 (Event Convergence) A set of events is said to
+be convergent if they all decrease a variant according to some
+well-founded order.
+Deﬁnition 2 (Event Anticipation) Given a set of convergent
+events with respect to a variant, another set of events is antic-
+ipated with respect to the same variant if they do not increase
+the variant.
+Note that the anticipated events augment the set of con-
+vergent events and respect the variant used to prove the
+convergence property.
+We start ﬁrst by stating the main theorem about termina-
+tion of responses for external triggers: it is always the case
+that the system will come back to the READYTODE −QUEUE
+state andiQ=∅, i.e. the system is ready to de-queue an exter-
+nal trigger (if any). This is stated as the following theorem.
+Theorem 2 (Termination of Internal System Events) Given
+that the internal events are convergent and the external eventsare anticipated, the system’s internal queue is always even-
+tually empty and the system transitions to the Ready to
+De-queue state, i.e.
+GF(iQ=∅∧uc=TRUE∧dt=∅).
+Proof Assuming that the properties are not satisﬁed, i.e.
+eventually, it is always the case that iQ/negationslash=∅∨uc=FALSE ∨
+dt/negationslash=∅. This can be formalised as follows.
+FG(iQ/negationslash=∅∨uc=FALSE ∨dt/negationslash=∅).
+Observe that in the states satisfying this condition, the
+dequeueExternalTriggered event is disabled. Furthermore,
+according to Theorem 1, the internal events will always be
+deadlock-free, and as a result, at least one of the internal
+event is enabled inﬁnitely often, hence under Assumption 1,
+this event occurs inﬁnitely often. According to Deﬁnition 1,
+the variant will be decreased inﬁnitely which violate the con-
+dition that the variant is deﬁned on an well-founded order.
+Here, the external events are anticipated to ensure that the
+variant does not increase and hence does not interfere with
+the convergence of the internal events. /intersectionsq/unionsq
+Note that Theorem 2relies on convergence of internal
+events and anticipation of external events, which we willprove later.
+Theorem 3 (Responsiveness to External Triggers) If an
+external trigger is raised, then eventually, it will be de-
+queued.
+G([externalTrigger .t]⇒F([dequeueExternalTriggered .t])) ,
+w h e r ew eu s e externalTrigger .t(resp. [dequeueExternal
+Triggered .t]) to denote the occurrence of externalTrigger
+(resp.dequeueExternalTriggered ) with parameter t.
+Proof Assuming that [ externalTrigger .t] hencet∈content
+(eQ), i.e.eQ/negationslash=∅. According to Theorem 2, we have that
+dequeueExternalTriggered is enabled inﬁnitely often. Since
+dequeueExternalTriggered is weakly fair (Assumption 1),
+it is taken inﬁnitely. We have two cases.
+–I ft=head (eQ), it means we have [ dequeueExternal
+Triggered .t]
+–I ft/negationslash=head (eQ), an occurrence of dequeueExternal
+Triggered will move tcloser to be the head of the exter-
+nal queue eQand eventually it will become the head of
+the queue and subsequently be processed eventually.
+/intersectionsq/unionsq
+10.1.1 Proof of convergence and anticipation
+The responsiveness to external triggers presented in Theo-
+rem
+3relies on Theorem 2, which in turn relies on the proof
+123
+
+--- Page 16 ---
+538 K. Morris et al.
+of convergence for internal system events and anticipation for
+external events. These proof will need to be done for eachindividual SCXML state chart as they do not hold a priori. We
+present a systematic approach to reason about the proof of
+convergence and anticipation relying on lexicographic orderas follow.
+A variant in Event-B can be a natural number (bounded
+bellow by 0) or a ﬁnite set (bounded below by the empty
+set∅). Moreover, for a set of events, the variants V
+1,V2,...
+are combined into a lexicographic variant, i.e. (V1,V2,...)
+with V1has a higher priority than V2, etc. An event is said
+to decrease this lexicographic variant if it either decreases
+V1or if it keeps V1the same and decreases V2, so on and
+so forth. Lexicographic variants are supported in the latest
+Rodin (version 3.5).
+Our generic approach to construct a lexicographic variant
+is according to the following order and the rule for each
+variant.
+1.VexternalTrigger =dt∩ExternalTrigger . This variant is
+used to prove the convergence for any externally triggered
+events (i.e. triggered event by some external trigger).These event remove the external trigger from dtand
+hence ‘decrease’ dtto the empty set.
+2. Variants based on the state machine to prove the con-
+vergence of internally triggered events and untriggeredevents. This depends on the SCXML diagram, and we
+will illustrate this on the example later.
+3.V
+dequeueInternalTriggered =length (iQ). This variant is
+used to prove the convergence of the dequeueInternal
+Triggered event. Since this event removes the head of
+theiQ, it decreases the length of the iQtrivially, while
+other events might increase iQ, by raising new internal
+triggers. However, these events should have been proved
+to converge using higher-priority variants.
+4.VnoTriggeredTransitionsEnabled =dt. This variant is used
+to prove the convergence of the noTriggeredTransitions
+Enabled event. The event discards the trigger in dtand
+hence ‘decreases’ dtto the empty set.
+5.VnoUntriggeredTranstitionsEnabled ={uc,TRUE }. This vari-
+ant is used to prove the convergence of the noUntriggered
+TransitionsEnabled event. The event changes ucﬂag
+fromFALSE toTRUE and hence ‘decreases’ the variant
+from {FALSE ,TRUE }t o{TRUE }.
+Note that except for the variant related to the internally
+triggered events and untriggered events, i.e. ( 2), all other
+variants, i.e. VexternalTrigger ,VdequeueInternalTriggered ,
+VnoTriggeredTransitionsEnabled , and
+VnoUntriggeredTranstitionsEnabled are generic according to the
+underlying run-to-completion semantics.
+The external events are anticipated according to the above
+variants trivially since they only modify the external queueeQ. Note that we do not attempt to prove the convergence
+of any future events here. Instead, we assume that thesefuture events will be proved to be convergent later. While
+these future events raise new internal triggers (hence will
+increase variant V
+dequeueInternalTriggered ), ultimately, they
+will be converted to internal triggered and untriggered events.These events will need to be proved to be convergent by
+state machine-based variants which has higher priority than
+V
+dequeueInternalTriggered . At the moment, we do not have the
+notation of anticipation for a subset of a lexicographic vari-
+ant. This can be introduced into Event-B in the future.
+We now discuss the speciﬁc variants for the Drone exam-
+ple based on the actual state chart as shown in Fig. 4.T h e
+variants are for the internally triggered events and untrig-
+gered events. The lexicographic order of the variant use isto prove the convergence of the events depending (1) on thenested structure of the state chart and (2) on the order of
+the transitions with the same state chart. For example, the
+variant for proving the convergence for the transition fromSHUTDOWN toOFF will have a higher priority than the one
+for the transition from TAKEOFF toFLY, and this variant sub-
+sequently has higher priority than the one for the transitionfromCLIMB toHOVER . Furthermore, the variant for proving
+the convergence for the transition from TAKEOFF toFLYhas
+higher priority than the one for the transition from FLY to
+DESCEND .
+The translation of SCXML state chart into UML-B/Event-
+B represents each state by a Boolean variable, TRUE if the
+system in that state and FALSE otherwise. As a result, the
+variant for proving the convergence of an event going out
+of a state Scan be {S,FALSE }: the transition ‘decreases’ the
+value of the variant from { TRUE ,FALSE }t oFALSE .
+Based on the above analysis, the variants that we used for
+proving the convergence of the internally triggered events
+and untriggered events in the Drone example are.
+–{SHUTDOWN ,FALSE }
+–{TAKEOFF ,FALSE }
+–{FLY,FALSE }
+–{BATTERYOK ,FALSE }
+–{CLIMB ,FALSE }
+–{CLIMB2 ,FALSE }
+This variant proof is available in the Rodin archive at
+https://tinyurl.com/ISSE-Drone .
+10.2 Correct responses to external triggers
+In the previous section, we illustrate the reasoning about the
+responsiveness of the system to external triggers. However,
+we also need to prove that the response to the external triggersis correct. In our conference paper [ 16], we illustrate the use
+123
+
+--- Page 17 ---
+Formal veriﬁcation and validation of run-to-completion… 539
+of ProB model checker to reason about such a property. Here,
+we show how we can prove such a property.
+Once again, we assume that the system events are strongly
+fair as in Assumption 1. In general, our correct-response
+properties will have the following form:
+G([external_trigger_event ]⇒F{predicate }) ,
+where the predicate concerns variables vthat the system
+maintains, and may refer to old values old(v) that existed
+when the external trigger occurred. The translator generates a
+separate ‘branch’ reﬁnement for each LTLproperty to be ver-iﬁed. In this special reﬁnement, history variables are added to
+record the value at the state when the external trigger occurs,
+of any variables that are referenced as ‘old’ values.
+We illustrate the method with an example of a temporal
+property that we expect to hold in the drone SCXMLsystem.
+The liveness property that we wish to verify is that, after an
+external trigger event decreaseCharge , the battery charge
+value should decrease in value, i.e.
+G([ExternalTriggerEvent_decreaseCharge ]⇒F{charge <old(charge )}) .
+As discussed in [ 16], this above property is too strong and
+does not hold for the SCXML drone model. We have to
+weaken the property to state that the expected behaviour is
+only achieved if the external trigger is raised at the right time,speciﬁed as { BATTERYOK =TRUE∧charge >20}, and there
+are no external conﬂict triggers, here oﬀ, in processing or
+that has been raised, i.e. oﬀ/∈dt∪content {eQ}. The prop-
+erty can be formalised as follows
+G([ExternalTriggerEvent_decreaseCharge ]∧
+{BATTERYOK =TRUE∧charge >20∧oﬀ/∈dt∧oﬀ/∈content (eQ)}
+⇒F{charge <old(charge )}) .
+In order to prove the above property, we ﬁrst recall the deﬁ-
+nition of unless property [ 3,8].
+Deﬁnition 3 (Unless Properties) An unless property of the
+following form
+PunlessQ
+means that if Pholds, then it will hold continuously unless
+Qhold.
+We restate the Unless rule (Theorem 1 in [ 8]) here.
+Theorem 4 An event system satisﬁes the unless property P
+unlessQ, if for every event, if it starts in a state satisfying
+P∧¬Q, it will reach a state satisfying P∨Q.Coming back to our example, we ﬁrst prove that the Event-
+B model satisﬁes the following important unless property.
+Theorem 5 The drone system satisﬁes the following unless
+property.
+BATTERYOK =TRUE∧charge >20∧decreaseCharge
+∈content (eQ)∧oﬀ/∈dt∧
+(∀i∈dom (eQ).eQ(i)=oﬀ⇒(∃j∈dom (eQ).eQ(j)
+=decreaseCharge ∧j<i))
+unless
+BATTERYOK =TRUE∧charge >20∧dt={decreaseCharge }
+Proof (Sketch) The proof relies on Theorem 4, i.e. reasoning
+per event. The encoding of the proof obligations is available
+from the Rodin archive. We informally explain why this prop-erty holds for different class of events below.
+–External events : The external events raise a new exter-
+nal trigger and append the new trigger to eQ. Given that
+decreaseCharge is already in eQ, even if the new trig-
+ger isoﬀ, this trigger cannot over take decreaseCharge
+in the queue, i.e. it is always behind decreaseCharge .
+These external events therefore maintain the left-handside of the unless property.
+–De-queue external trigger : If the de-queued external trig-
+ger isdecreaseCharge , we will have dt={decrease
+Charge }, and hence, we establish the right-hand side of
+the unless property. If it is not decreaseCharge (that is
+decreaseCharge is still in the queue), the de-queued trig-
+ger also cannot be oﬀ(as anyoﬀtrigger in eQhas to be
+behind adecreaseCharge trigger). As a result, the condi-
+tion thatoﬀis behind decreaseCharge in the remaining
+queue is maintained and oﬀcannot be in dtafter the event
+execution.
+–Internal system events : For the internal systems events,
+we separate them into those that are outside the BATTERY
+state and those that are inside of the BATTERY state.
+•For those that are outside the BATTERY state, they
+maintain the left-hand side of the unless propertytrivially (by leaving external queue unchanged and
+123
+
+--- Page 18 ---
+540 K. Morris et al.
+does not alter the relevant state, i.e. BATTERY or the
+charge ).
+•For the self-transition which is triggered by decrease
+Charge inside the BATTERY state, the proof of the
+unless property is trivial, since we assume the nega-tion of the right-hand side of the unless property,including that that decreaseCharge is not indt.F o r
+the transition from BATTERYOK toBATTERYLOW ,
+the proof of the unless property is also trivial, sincewe assume the left-hand side of the unless property,
+including that charge >20.
+/intersectionsq/unionsq
+Theorem 5means that the system will continuously satisfy
+the following conditions:
+–i n t h eBATTERYOK state ,
+–charge is more than 20 ,
+–decreaseCharge is in the external queue eQ.
+–oﬀis not indt.
+–i foﬀis in the external queue eQthen it is behind a
+decreaseCharge trigger .
+unless it reaches a state satisfying the following conditions:
+–i n t h eBATTERYOK state ,
+–charge is more than 20 ,
+–decreaseCharge is indt.
+Coming back to the proof for our correct-response
+property, assume that the system is at the right time
+and the [ExternalTriggerEvent_decreaseCharge ] event hap-
+pens. Notice that at that particular moment, the left-handside of the progress property in Theorem 5is also satis-
+ﬁed. According to Theorem 3, eventually, [ dequeueExternal
+Triggered .decreaseCharge ]i sﬁ r e d( a n d dt={decrease
+Charge }), i.e.decreaseCharge is de-queued from the eQinto
+dt. And at that time, according to Theorem 5,w ea l s oh a v e
+BATTERYOK =
+TRUE andcharge >20. That ensures the trig-
+gered transition event for decreaseCharge is enabled (and
+it is the only internal event enabled) and will be eventually
+taken and hence decrease the charge ’s value accordingly.
+11 Conclusion
+Reactive State charts are useful and widely used by engineers
+for modelling the design of control systems. Event-B pro-vides an effective language for formally verifying properties
+via incremental reﬁnements. However, it is not straightfor-
+ward to apply the latter to the former. We have demonstrated atechnique for introducing reﬁnement of reactive State chartsthat can be translated to Event-B for veriﬁcation. Invariant
+properties about the expected coordination of states can beadded and are interpreted with additional allowance for the
+reactions to take place. That is, they hold only after the reac-
+tion has taken place. Such invariants prove automatically withthe existing Rodin theorem provers. We also demonstrate acomplementary process for verifying expected reactions to
+environmental triggers that uses the LTLmodel checker. We
+show how liveness can be veriﬁed to show that the ‘run’ con-verges to completion, i.e. transition loops and raised internal
+triggers do not introduce endless live-lock, but eventually
+terminate to allow the next external trigger to be consumed.This convergence proof uses lexicographic variants which
+(at our suggestion) have recently been added to the Rodin
+toolset for Event-B. These veriﬁcations do not validate thatthe model behaviour is useful. For this, the SCXML modelshould be animated so that its behaviour can be observed by
+a domain expert. Elsewhere [ 19] we have developed a ‘Sce-
+nario Checker’ tool and methods for animating pre-deﬁneddomain speciﬁc scenarios at various levels of abstraction. We
+demonstrate the use of this tool for automatically executing
+the run to completion in order to validate that the expectedbehaviour is emerging and is useful.
+In future work, we intend to formalise the semantics of
+our extended SCXMLnotation in order to deﬁne its notion ofreﬁnement and correspondence to Event-B.
+All data supporting this study are openly available at
+https://tinyurl.com/ISSE-Drone .
+Acknowledgements Sandia National Laboratories is a multimission
+laboratory managed and operated by National Technology & Engineer-ing Solutions of Sandia, LLC, a wholly owned subsidiary of HoneywellInternational Inc., for the US Department of Energy’s National NuclearSecurity Administration under contract DE-NA0003525.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds the
+permitted use, you will need to obtain permission directly from the copy-
+right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+References
+1. Abrial JR (2010) Modeling in Event-B: system and software engi-
+neering. Cambridge University Press, Cambridge
+2. Abrial JR, Butler M, Hallerstede S, Hoang T, Mehta F, V oisin
+L (2010) Rodin: an open toolset for modelling and reasoning inEvent-B. Softw Tools Technol Transf 12(6):447–466
+123
+
+--- Page 19 ---
+Formal veriﬁcation and validation of run-to-completion… 541
+3. Chandy KM, Misra J (1989) Parallel program design: a foundation.
+Addison-Wesley, New York
+4. Eclipse Foundation: Sirius project website. https://eclipse.org/
+sirius/overview.html (2016)
+5. Harel D (1987) Statecharts: a visual formalism for complex sys-
+tems. Sci Comput Program 8(3):231–274. https://doi.org/10.1016/
+0167-6423(87)90035-9
+6. Hoang, T.S.: An introduction to the Event-B modelling method. In:
+Industrial deployment of system engineering methods. Springer, pp211–236 (2013)
+7. Hoang TS, Schneider S, Treharne H, Williams D (2016) Founda-
+tions for using linear temporal logic in event-b reﬁnement. FormAsp Comput. https://doi.org/10.1007/s00165-016-0376-0
+8. Hudon S, Hoang TS, Ostroff JS (2016) The Unit-B method: reﬁne-
+ment guided by progress concerns. Softw Syst Model 15(4):1091–1116. https://doi.org/10.1007/s10270-015-0456-2
+9. Kuppe MA, Lamport L, Ricketts D (2019) The TLA+ toolbox. In:
+Monahan R, Prevosto V , Proença J (eds) Proceedings ﬁfth work-shop on formal integrated development environment, F-IDE@FM2019, Porto, Portugal, 7th October 2019. EPTCS, vol 310, pp 50–62.https://doi.org/10.4204/EPTCS.310.6
+10. Lamport L (1977) Proving the correctness of multiprocess pro-
+grams. IEEE Trans Softw Eng 2:125–143
+11. Lamport L (2002) Specifying systems, the TLA+ language and
+tools for hardware and software engineers. Addison-Wesley, NewYork
+12. Maraninchi, F.: The Argos language: graphical representation of
+automata and description of reactive systems. In: IEEE workshopon visual languages (1991)
+13. MATLAB: 9.7.0.1190202 (R2019b). The MathWorks Inc., Natick,
+Massachusetts
+14. Morris K, Snook C (2016) Reconciling SCXML statechart repre-
+sentations and Event-B lower level semantics. In: HCCV: workshopon high-consequence control veriﬁcation. http://www.sandia.gov/
+hccv/_assets/documents/HCCV_2016_Morris.pdf15. Morris K, Snook C, Hoang TS, Armstrong R, Butler M (2019)
+Reﬁnement of statecharts with run-to-completion semantics. In:Artho C, Ölveczky PC (eds) Formal techniques for safety-criticalsystems. Springer, Cham, pp 121–138
+16. Morris K, Snook C, Hoang TS, Hulette G, Armstrong R, Butler,
+M.: Formal veriﬁcation of run-to-completion style statecharts usingevent-b. In: Muccini H (ed) Software architecture. ECSA 2020.Communications in computer and information science, vol 1269.Springer, Cham. https://doi.org/10.1007/978-3-030-59155-7_24
+17. Morris K, Snook C, Hoang TS, Hulette G, Armstrong R, Butler
+M (2020) Reﬁnement and veriﬁcation of responsive control sys-tems. In: Raschke A, Méry D, Houdek F (eds) Rigorous state-basedmethods. Springer, Cham, pp 272–277
+18. Snook C, Butler M (2006) UML-B: Formal modeling and design
+aided by UML. ACM Trans Softw Eng Methodol 15(1):92–122.https://doi.org/10.1145/1125808.1125811
+19. Snook C, Hoang TS, Dghaym D, Fathabadi AS, Butler M (2020)
+Domain-speciﬁc scenarios for reﬁnement-based methods. ( to be
+published in )JS y s tA r c h i t
+20. Syriani E, Sousa V , Lúcio L (2019) Structure and behavior preserv-
+ing statecharts reﬁnements. Sci Comput Program 170(15):45–79.https://doi.org/10.1016/j.scico.2018.10.005
+21. W3C (2015) State chart XML SCXML: state machine notation for
+control abstraction. http://www.w3.org/TR/scxml/
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123
