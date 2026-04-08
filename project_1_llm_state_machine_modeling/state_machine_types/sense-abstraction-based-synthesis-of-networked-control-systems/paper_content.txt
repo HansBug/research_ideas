@@ -1,0 +1,592 @@
+--- Page 1 ---
+Simon Bliudze and Saddek Bensalem (Eds):
+Methods and Tools for Rigorous System Design (MeTRiD 2018)
+EPTCS 272, 2018, pp. 65–78, doi:10.4204/EPTCS.272.6cM. Khaled, M. Rungger & M. Zamani
+This work is licensed under the
+Creative Commons Attribution License.SENSE: Abstraction-Based Synthesis of Networked Control
+Systems
+Mahmoud Khaled
+Technical University of Munich
+Munich, Germany
+khaled.mahmoud@tum.deMatthias Rungger
+Technical University of Munich
+Munich, Germany
+matthias.rungger@tum.deMajid Zamani
+Technical University of Munich
+Munich, Germany
+zamani@tum.de
+While many studies and tools target the basic stabilizability problem of networked control systems
+(NCS), nowadays modern systems require more sophisticated objectives such as those expressed
+as formulae in linear temporal logic or as automata on inﬁnite strings. One general technique to
+achieve this is based on so-called symbolic models, where complex systems are approximated by
+ﬁnite abstractions, and then, correct-by-construction controllers are automatically synthesized for
+them. We present tool SENSE for the construction of ﬁnite abstractions for NCS and the automated
+synthesis of controllers. Constructed controllers enforce complex speciﬁcations over plants in NCS
+by taking into account several non-idealities of the communication channels.
+Given a symbolic model of the plant and network parameters, SENSE can efﬁciently construct a
+symbolic model of the NCS, by employing operations on binary decision diagrams (BDDs). Then,
+it synthesizes symbolic controllers satisfying a class of speciﬁcations. It has interfaces for the sim-
+ulation and the visualization of the resulting closed-loop systems using OMNeT++ andMATLAB .
+Additionally, SENSE can generate ready-to-implement VHDL/Verilog or C/C++ codes from the syn-
+thesized controllers.
+1 Introduction
+Networked control systems (NCS) combine physical components, computing devices, and communica-
+tion networks all in one system forming a complex and heterogeneous class of so-called cyber-physical
+systems (CPS). NCS have attracted signiﬁcant attention in the past decade due to their ﬂexibility of
+deployment and maintenance (especially when using wireless communications). However, numerous
+technical challenges are present due to the wide range of uncertainties within NCS, introduced by their
+unreliable communication channels. This includes time-varying communication delays, packet dropouts,
+time-varying sampling/transmission intervals, and communication constraints (e.g. scheduling proto-
+cols).
+Many studies deal with subsets of the previously mentioned imperfections targeting the basic stabiliz-
+ability problem of NCS [3, 2, 16, 7]. However, nowadays CPS require more sophisticated speciﬁcations,
+including objectives and constraints given, for example, by formulae in linear temporal logic (LTL) or
+omega-regular languages [1].
+A well-known approach to synthesize controllers enforcing such complex speciﬁcations is based on
+so-called symbolic models (a.k.a. discrete abstractions) [13, 5, 19, 10]. A given plant (i.e. a physical
+process described by a set of differential equations) is approximated by a symbolic model, i.e., a system
+with ﬁnite state and input sets. As the model is ﬁnite, algorithmic techniques from computer science [14,
+6] are applicable to automatically synthesize discrete controllers enforcing complex logic speciﬁcations
+This work was supported in part by the German Research Foundation (DFG) through the grant ZA 873/1-1.
+
+--- Page 2 ---
+66 SENSE: Abstraction-Based Synthesis of Networked Control Systems
+NCSgΣ
+Σ:_ξ=f(ξ;v)Control Systemv(t)
+ZOH
+ukSamplerξ(t)τ
+Unreliable Network ∆ca
+k ∆sc
+kxk
+Symbolic Controller^xkQuantizer
+Figure 1: Structure of the NCS and the symbolic controller.
+over symbolic models. Finally, those discrete controllers (a.k.a. symbolic controllers) can be reﬁned to
+hybrid ones enforcing the same properties over original concrete systems.
+In this paper, we present SENSE , a tool for the automated synthesis of controllers for NCS. It au-
+tomatizes the construction of symbolic models of NCS, given symbolic models of plants in them and the
+network parameters, and then synthesizes controllers enforcing a class of temporal logic speciﬁcations
+over them. Additionally, it generates automatically C/C++ or VHDL/Verilog codes that are ready for
+implementation and, thus, providing an end-to-end automated synthesis approach for NCS.
+2 Symbolic models and controller synthesis for NCS
+Figure 1 depicts the structure of NCS supported in the tool SENSE , which follows the general NCS
+structure reported in [16] and [17]. The NCS eSconsists of the following components: (1) a control
+system, often referred to as plant, representing a physical process to be controlled; (2) two non-ideal
+communication channels transferring state information and control inputs from/to the plant; and (3) a
+remote digital (symbolic) controller enforcing some complex speciﬁcations on the plant by taking into
+account the imperfections of the communication channels.
+The general (possibly nonlinear) control systems Sis usually modeled by a differential equation
+of the form˙x(t) = f(x(t);u(t))whose state x(t)2Rnis measured, every sampling period t, by a
+sensor/sampler, that is followed by a quantizer. The input signal ubelongs to the set U, which is a
+subset of the set of all functions of time from ]a;b[RtoRm. We denote by xxu(t)the state reached at
+time tunder the input uand started from the initial condition x=xxu(0). We denote by xkthe sampled
+and quantized state, and k2N0is an index referring to the sampling time kt. Additionally, a zero-order-
+hold (ZOH) helps sustaining an inter-sampling continuous-time constant control input u(t).
+A communication network connects the plant to a symbolic controller and introduces the time-
+varying sensor-to-controller and controller-to-actuator delays Dsc
+kandDca
+k, respectively. A formal def-
+inition of symbolic controllers is given in [10]. We consider the delays to be bounded and to take
+the form of integer multiples of the sampling time t, meaning Dsc
+k:=Nsc
+ktandDca
+k:=Nca
+kt, where
+Nsc
+k2[Nsc
+min;Nsc
+max]N,Nca
+k2[Nca
+min;Nca
+max]N, and Nsc
+min;Nsc
+max;Nca
+min;Nca
+max2N.
+Having a quantizer before the network as in Figure 1 and considering time-varying communication
+delays with upper and lower bounds, as showed in [4, 18, 17, and references therein], one can readily
+
+--- Page 3 ---
+M. Khaled, M. Rungger & M. Zamani 67
+consider four types of network non-idealities: (i) quantization errors; (ii) limited bandwidth; (iii) time-
+varying communication delays; and (iv) packet dropouts as long as the maximum number of consecutive
+dropouts over the network is bounded [3].
+2.1 Symbolic Control of NCS
+We use the symbolic approach to design controllers enforcing given logic speciﬁcations over the plants
+in NCS while taking the network imperfections into account. Here, we use a notion of system, which is
+introduced in [13], as a uniﬁed modeling framework for both continuous systems as well as their ﬁnite
+abstractions. A system is a tuple S= (X;X0;U;F)that consists of a state set X; a set of initial states
+X0X; an input set U; and a transition relation FXUX. We also use Fas a map to denote the
+set of post-states of xwhich is F(x;u) =fx02Xj(x;u;x0)2Fg.
+LetSt(S) = (Rn;Rn;Ut;Ft)denote the system that captures the evolution of Sat each sampling
+timet. Set Ut=fu:[0;t[!Rmju(0)2Rm, and u(t) =u(0);for all 0t<tgis a an input set of
+constant curves over intervals of length t. A transition (xt;ut;x0
+t)belongs to Ftif and only if there exists
+a trajectory xxtut:[0;t]!RninSsuch that xxtut(t) =x0
+t.
+LetSq(S) = ( Xq;Xq;0;Uq;Fq), where Xqis a ﬁnite cover of XtandUqis a ﬁnite subset of Ut, denotes
+the symbolic model of St(S)if there exists a feedback reﬁnement relation (FRR) QXtXqfrom St(S)
+toSq(S). Interested readers can ﬁnd more details about FRR and the construction of Fqin [10]. System
+Sq(S)can then be used to synthesize controllers to enforce given logic speciﬁcations over S.
+For NCS, one can follow the same methodology. A system eSt(S), representing St(S)in the network
+environment with the network imperfections, is derived from St(S). Then,eSq(S), which represents a
+symbolic model of the overall NCS, is constructed from eSt(S)such that there exists a FRR eQfromeSt(S)
+toeSq(S). The process of constructing eSq(S)directly fromeSt(S)is rather very complex since eSt(S)
+is a high-dimensional representation of St(S)that includes network imperfections. Instead, SENSE
+employs the results in [4, Theorem 4.1] to construct eSq(S)directly from Sq(S)while preserving some
+FRR, without going through the construction of eSt(S). This construction is achieved by leveraging an
+operator LtoSq(S)as introduced in [4, 5]. More speciﬁcally, eSq(S):= (eXq;eXq;0;Uq;eFq)is derived as
+eSq(S) =L(Sq(S);Nsc
+min;Nsc
+max;Nca
+min;Nca
+max), where
+eXq=fXq[qgNsc
+maxUNca
+maxq[Nsc
+min;Nsc
+max]Nsc
+max[Nca
+min;Nca
+max]Nca
+max, where qis a dummy symbol rep-
+resenting the lack of state due to channel initialization;
+eXq;0=f(x0;q;:::; q;u0;:::; u0;Nsc
+max;:::; Nsc
+max;Nca
+max;:::; Nca
+max)s.t.x02Xq;0andu02Utg;
+A transition ((x1;:::; xNscmax;u1;:::; uNcamax;eN1;:::;eNNscmax;bN1;:::;bNNcamax);u;
+(x0;x1;:::; xNscmax 1;u;u1;:::; uNcamax 1;eN;eN1;:::;eNNscmax 1;bN;bN1;:::;bNNcamax 1))belongs toeFq, for all
+eN2[Nsc
+min;Nsc
+max]and for allbN2[Nca
+max;Nca
+max], if there exists a transition x0uNcamax j !
+tx0inFq, where
+jis a time-shifting index deﬁned in [4].
+Symbolic controllers are generally ﬁnite systems that accept states ˆ xkas inputs and produce ukas
+outputs to enforce a given speciﬁcation over the plants in NCS. The tool SENSE natively supports safety,
+reachability, persistence, and recurrence speciﬁcations given as the LTL formulae jS,3jT,3jS,
+3jT, respectively, where jTandjSare the predicates deﬁning, respectively, some target and safe sets
+TandS. In the next section, we introduce three main modules inside SENSE :
+(1) The symbolic model construction engine: it is responsible for constructing the symbolic model of
+the NCS from a symbolic model of the plant in it;
+
+--- Page 4 ---
+68 SENSE: Abstraction-Based Synthesis of Networked Control Systems
+(2) The ﬁxed-point operations engine: it is responsible for synthesizing correct-by-construction sym-
+bolic controllers enforcing the aforementioned LTL properties over the NCS;
+(3) Various tools to analyze and simulate the closed-loop NCS, and to automatically generate code of
+the synthesized control software.
+3 Structure of the tool SENSE
+The tool SENSE is an open-source extensible framework that provides a base for further research on the
+modeling, abstraction, and controller synthesis of NCS. The research on the symbolic control for NCS
+is still ongoing [17, 4] and the tool is developed to help researchers interested in automated synthesis of
+NCS.
+For the construction of symbolic models of NCS, SENSE has a software engine that supervises the
+construction procedure. The engine follows certain customizable construction rules that describe how the
+symbolic model of the NCS is constructed from the symbolic model of the plant. The construction rules
+depend on the sensor-to-controller and controller-to-actuator delays Dsc
+kandDca
+k, respectively. Construc-
+tion rules (implemented in terms of C++ classes) can be readily provided for any class of NCS. However,
+due to the imposed restriction in the implementation phase of the synthesized controllers, following the
+existing theory in [4, 17], tool SENSE is currently available with only the construction rules for a class of
+NCS called prolonged-delay NCS (introduced later). Nevertheless, due to the modular design of SENSE ,
+it is straightforward to deﬁne extra construction rules, e.g. taking time-varying delays into account, once
+the theory behind them is available.
+The tool SENSE provides ready-to-use ﬁxed-point routines that operate on the constructed symbolic
+models to synthesize controllers enforcing any of those speciﬁcations introduced in Section 2. It is also
+equipped with two interfaces to access the synthesized controllers. The ﬁrst one is via MATLAB and
+allows accessing the synthesized controller as well as performing closed-loop simulations, in which, the
+plant is being remotely controlled by the synthesized controller over the network. We include a second
+interface using OMNeT++ [8] that provides a powerful visualization-framework and realistic network
+models. The interface of OMNeT++ allows accessing the synthesized controller to perform realistic
+network simulations as well as visualizing the closed-loop behavior.
+Along with the core engines in SENSE , a rich set of helper tools is developed and made available for
+users to analyze and simulate the resulting symbolic models and the synthesized symbolic controllers.
+One of those tools allows for code generation of the synthesized controllers as C/C++ or VHDL/Verilog
+codes to cover both software and hardware implementations and provide an end-to-end solution.
+3.1 The symbolic model construction engine
+A straightforward implementation of L-operator can be achieved using element-by-element expansion
+of the state set of Sq(S). However, this is computationally inefﬁcient and consumes a large amount of
+memory.
+Symbolic models, which can be considered as labeled transition systems, are easily represented by
+boolean functions and encoded inside BDDs. Tool SENSE expands the BDD representing Sq(S)to
+construct a BDD representing eSq(S). Symbolic operations on BDDs play the major role in order to
+construct symbolic models of NCS from those of their plants. Using the CUDD library [12], SENSE
+employs such operations to efﬁciently handle computation/memory complexities when implementing
+theL-operator.
+
+--- Page 5 ---
+M. Khaled, M. Rungger & M. Zamani 69
+constructSymbolic Model Engine for NCS
+Plant's 
+Symbolic 
+Model
+Symbolic Model Manager Delay
+Bounds
+BDD-Based NCS 
+Transition Relation
+.bdd
+.nbddSymbolic Model
+      for NCSBDD
+Managerinput:input:
+output:NCS Setting:
+Transition Relation
+Configuration
+Figure 2: Structure of the engine for constructing symbolic models of NCS.
+Figure 2 depicts the structure of the engine for constructing symbolic models of NCS. The engine
+takes the symbolic model of the plant as its input. Users can construct such models using the existing tool
+SCOTS [11], which is provided as a library inside the tool SENSE . The constructed model is then given
+to the engine in the form of a BDD ﬁle (i.e., a ﬁle storing the BDD). The delay bounds within the NCS
+should also be provided. The engine then starts expanding the symbolic model of the plant. Speciﬁcally,
+the transition relation of eSq(S)is crafted by Cartesian-product-like expansion of the transition relation of
+Sq(S). This is done with the help of a BDD-Manager provided by the CUDD library as follows:
+(1) adding extra binary variables to accommodate for the traveling state and input packets through the
+communication channels, and their delays;
+(2) to construct eXq,SENSE expands Xqwith the dummy symbol qand then performs Cartesian prod-
+ucts with Uqand the set of delays in both channels;
+(3) to construct eFq,SENSE performs BDD operations on Fqusing the provided construction rules
+described as C++ classes.
+3.1.1 The prolonged-delay NCS
+Note that for constructing symbolic models of any NCS (using the operator L) and synthesizing sym-
+bolic controllers enforcing any of the properties introduced in Section 2 over them, we only require the
+delays in both channels of the network to be integer multiples of the sampling period twith some lower
+and upper bounds; see [4, 17] for more details.
+The tool SENSE can handle the construction of symbolic models and the synthesis of their controllers
+for any class of NCS. However, in order to reﬁne the controllers and apply them to the concrete NCS, the
+current theory proposed in [17] requires that the upper and lower bounds of the delays to be equal at each
+channel. This implies that, in each channel, all packets are delayed by the same amount of time. This
+can be practically achieved by performing extra prolongation (if needed) of the delays suffered by the
+packets. For the sensor-to-controller branch of the network, this can be readily done inside the controller.
+The controller needs to have a buffer to hold arriving packets and keep them in the buffer until their
+delays reach the maximum. For the controller-to-actuator channel, the same needs to be implemented
+
+--- Page 6 ---
+70 SENSE: Abstraction-Based Synthesis of Networked Control Systems
+inside the ZOH. Interestingly, this prolongation results in less conservativeness in terms of the existence
+of symbolic controllers; see [17, Lemma 6.1] for more details.
+Additionally, to reﬁne the synthesized symbolic controllers, it is also required that Sq(S)is deter-
+ministic. This can be fulﬁlled for a wide class of physical systems [13] having some stability properties,
+and it does not require eSq(S)to be deterministic. Nevertheless, the support of controller reﬁnement for
+non-deterministic symbolic models of the plants is currently under development and will be incorporated
+inSENSE .
+3.2 Fixed-point computation for controller synthesis
+The tool SENSE implements ﬁxed-point algorithms for synthesizing controllers that enforce those spec-
+iﬁcations introduced in Section 2. Tool SENSE uses a customized version of the controller synthesis
+engine provided in SCOTS [11]. In order to synthesize controllers that enforce any of the four spec-
+iﬁcations, the engine implements ﬁxed-point algorithms that employ a Pre-operation over state-input
+pairs ofeSq(S). More speciﬁcally, given a symbolic model of the NCS eSq(S)and a set ZeXqUq,
+thePre-operation ofeXqis deﬁned by pre(Z) =f(x;u)2eXqUqj/ 06=eFq(x;u)peXq(Z)g, where peXq
+is a projection map deﬁned as peXq(Z) =fx2eXqj9u2Uq(x;u)2Zg. Interested readers can ﬁnd more
+details in [11, 13, 10]. All steps in the algorithms, as well as the Pre-operation, are implemented by
+BDD operations. Users can employ the four main algorithms to describe different LTL speciﬁcations
+and to synthesize (possibly dynamic) symbolic controllers. We demonstrate this, with examples, for two
+different LTL speciﬁcations later in Section 4.
+The target set Tand safe set Sare to be given as atomic propositions over the state space of the
+plant. Such sets can be generated using SCOTS and they are provided as BDD ﬁles. SENSE takes care
+of expanding those sets to be compatible with the symbolic model of the NCS. Then, it synthesizes
+controllers to enforce the speciﬁcations over the original plants in NCS. Controllers are, by construction,
+BDD objects and they are saved as BDD ﬁles.
+3.3 Simulation, analysis and code generation
+The tool SENSE provides two different interfaces to access the controllers, using MATLAB andOMNeT++ .
+For both interfaces, it provides a common C++ layer to read the BDD-based synthesized controllers.
+ForMATLAB , anm-script uses the C++ layer to access the controllers while providing a set of m-script
+functions and classes to interface the synthesized controllers. For almost all examples, m-scripts are pro-
+vided to simulate the closed-loop behavior of the NCS. This includes simulating the plant’s differential
+equation, and the network evolution.
+In the interface for OMNeT++ , communication channels are modeled as random-delay channels for
+realistic simulations. Visualizations up to 3 dimensions are supported in the visualization engine of
+OMNeT++ .
+SENSE comes equipped with the following tools that help analyzing the symbolic models as well as
+the synthesized controllers:
+bdd2implement : a tool to automatically generate C/C++ or VHDL/Verilog codes from the
+synthesized BDD-based controllers;
+bdd2fsm : a tool to generate ﬁles following the FSM data format [15] or the comma-separated
+format of the transition relation of symbolic models. Such representation is used by many software
+
+--- Page 7 ---
+M. Khaled, M. Rungger & M. Zamani 71
+packages to visualize graphs (e.g., the tool StateVis[9]). Users can use the tool to analyze or
+understand, visually, how the symbolic model behaves;
+bddDump : a tool to extract the meta-data information stored inside the generated BDD ﬁles.
+This helps inspecting the original information about the plant such as sampling time, quantization
+parameters, or the binary variables;
+contCoverage : a tool to provide fast terminal-based ASCII-art visualization of the coverage of
+the synthesized controllers. It is only possible up to 2 dimensions. To visualize the coverage of
+controllers with 3 dimensional inputs, users can still use MATLAB .
+sysExplorer : a tool to help testing the expanded transition relation or the synthesized con-
+trollers. It handles the BDD as IN-OUT box. Users can request information about speciﬁc transi-
+tions in the transition relation by providing the initial state and a sequence of inputs, and the tool
+responds with the post-states. The tool can be used to test the controller by providing some states
+to check their corresponding generated control inputs.
+3.3.1 Automated code generation of synthesized controllers
+InSENSE , the helper tool bdd2implement is provided to automatically generate codes, targeting
+hardware and software implementations, of the synthesized controllers. It starts by determinizing the
+symbolic controller, in case it is not deterministic, by simply selecting the ﬁrst available input, for each
+state of the system. Then, it converts the multi-output boolean function, representing the controller and
+encoded as a BDD, to many single-output functions. Each single-output boolean function represents one
+bit of the binary-encoded output of the controller. Then,
+for C/C++ code generation, the boolean functions are dumped as C++ functions with bool return
+values along with another function that collects and constructs the output of the controller. The
+C/C++ target-speciﬁc compiler takes care of converting such boolean functions to machine codes,
+implying that the controller is encoded as instructions of the target microprocessor. This, how-
+ever, might violate the real-time requirements for some applications in which the time required to
+compute the control output, by executing the instructions, exceeds the real-time deadline. A more
+time-efﬁcient (but not memory-efﬁcient) implementation is to store the controller as a lookup-table
+in the memory of the target hardware and access it directly. The latter is straightforward but it is
+not currently added to the tool since most of the symbolic controllers of NCS have large sizes.
+for VHDL/Verilog code generation, the boolean functions are directly written as register transfer
+level (RTL) codes. An electronic design automation (EDA) tool takes care of converting the RTL
+code to a technology-mapped netlist. Then, a vendor-speciﬁc software ﬁnds the suitable mapping
+of logic-gates inside the target chip, in an operation called place-and-route.
+3.4 The work ﬂow inside SENSE
+Figure 3 depicts the complete structure and the work-ﬂow of SENSE . As an input, the engine takes the
+symbolic model of the plant, the delay bounds within the NCS, and the speciﬁcation. Then, BDD ﬁles of
+the symbolic model of the NCS, following the construction rules, and its controller are generated. The
+ﬁles are used by the helper tools for the analysis and code generation purposes. The steps taken by the
+user to use SENSE are summarized as follows:
+1. The user computes a symbolic model of the plant as a BDD ﬁle using the included library SCOTS ;
+
+--- Page 8 ---
+72 SENSE: Abstraction-Based Synthesis of Networked Control Systems
+BDD-based NCSSENSE Engine
+NCS Construction
+Rules
+Network
+DelaysInput:
+Construction ManagerInput:
+Symbolic
+Model
+BDD
+ManagerBDD-based NCS
+Transition Relationexpand
+BDD-based Fixed
+Point Operationscompute
+controller
+write
+Symbolic Controller
+Interface
+write
+readSpeciﬁcationsInput:
+L
+Helper Tools:
+Analysis / Codegen
+FPGA
+VHDL Code
+MicrocontrollerC/C++ Code
+Figure 3: Work ﬂow inside SENSE : from speciﬁcations to ready-to-implement source codes.
+2. The user can extract information of the BDD ﬁle using the helper tool bddDump ;
+3. The user can also visualize the transition relation of the symbolic model via the tool bdd2fsm
+and a graph visualizing tool (e.g. StateVis);
+4. The user passes the BDD ﬁle representing the plant’s symbolic model to SENSE , along with the
+network delays and the speciﬁcation;
+5. The tool SENSE generates BDD ﬁles for the symbolic model of the NCS and the controller;
+6. The user can beneﬁt from the tools sysExplorer andcontCoverage to test the symbolic
+model of the NCS and its synthesized controller;
+7. The user can use the provided interfaces in SENSE , in combination with MATLAB and/or OMNeT++ ,
+to simulate and visualize the closed-loop behavior of the NCS;
+8. The user can use the tool bdd2implement to generate the ﬁnal controller for implementation.
+4SENSE in action: results and examples
+We present several case studies where we construct symbolic models of NCS, namely, eSq(S)from the
+symbolic models of their plants, namely, Sq(S). We also provide two examples where dynamic con-
+trollers are synthesized. The closed-loop is simulated using the interfaces with MATLAB andOMNeT++
+inSENSE . Code generation is achieved using the tool bdd2implement inSENSE . All examples are
+done in a PC (Intel Xeon-E5-1620 3.5GHz 256GB RAM). Users can ﬁnd the download links of SENSE ,
+the manual, a quick-start guide at www.hcs.ei.tum.de .
+
+--- Page 9 ---
+M. Khaled, M. Rungger & M. Zamani 73
+Table 1: Results for constructing symbolic models of prolonged-delay NCS using those of their plants.
+Case StudyjSq(S)j (2,2) (2,3) (2,4) (2,5) (3,2) (3,3) (3,4) (3,5) (4,2) (4,3)
+DI 2039jeSq(S)j 14096 56336 225296 901136 22832 91184 364592 1.45 10638340 152964
+Time (sec) <1 <1 <1 <1 <1 <1 <1 <1 <1 <1
+Memory (KB) 2.0 2.4 3.1 2.9 3.0 2.9 3.1 3.2 5.2 4.3
+Robot 29280jeSq(S)j 4.11066.51071.041091.6710103.41075.41088.71091.410112.81084.6109
+Time (sec) <1 <1 <1 <1 <1 <1 <1 <1 1.4 1.6
+Memory (KB) 15 14 17 16 16 21 22 19 35 33
+Jet 9:0105jeSq(S)j 1.510111.010136.510144.210167.210124.610142.910161.910193.310142.11016
+Time (sec) 1970 1637 1674 2172 3408 1772 2111 7107 4011 2854
+Memory (KB) 4323.3 2374.2 2389.1 2392.6 3683.2 4098.2 3317.2 3582.6 5894.3 4784.5
+DC-DC 3:8106jeSq(S)j 8.91071.81083.61087.11085.21081.01092.01094.11093.01096.0109
+Time (sec) 672 681 530 1131 13690 10114 9791 10084 139693 137648
+Memory (KB) 3347.2 3145.0 3176.7 2784.8 10875.2 11543.8 11572.0 11592.1 34169.2 37852.6
+Vehi 1:9107jeSq(S)j 4.210122.710141.710161.110182.310141.410169.310175.910191.310167.941017
+Time (sec) 273.3 285 238.4 173 22344 54919 27667 36467 39065 145390
+Memory (KB) 1638.4 1945.6 1843.2 1945.6 23040 40652.8 30208 22425.6 21094.4 36556.3
+Inver 4:3108jeSq(S)j 2.410141.510161.010186.510194.610162.910181.910201.210229.210165.81020
+Time (sec) 361.4 349.1 340.9 347.8 942 793 1218 910 58411 57110
+Memory (KB) 723.1 808.4 349.6 1012.7 2958 2840 3104 2898 35907 35628
+4.1 Construction of symbolic models of NCS
+First, symbolic models of the plants in NCS are constructed and stored as BDD ﬁles. The BDD ﬁles are
+fed as inputs to the engine of SENSE along with NCS delay bounds to construct symbolic models of NCS.
+Table 1 summarizes the results for different case studies (left-side column) and different network delays
+(top row) given as pairs (a;b), where the delay of the sensor-to-controller channel is upper bounded by
+atand the delay of the controller-to-actuator channel is upper bounded by bt. For each case study, we
+show the size of the symbolic model of the plant (i.e. number of transitions and denoted by jSq(S)j).
+Then, for each network delay, we show the size of the resulting symbolic model of NCS (denoted by
+jeSq(S)j), the time in seconds required to construct it, and the memory in KB used to store it.
+In Table 1, we consider several different dynamics for the plants in the NCS: a double integrator
+(denoted by DI), a fully actuated robot (denoted by Robot ), a jet engine (denoted by Jet), a Boost DC-
+DC Converter (denoted by DC-DC ), a vehicle dynamic (denoted by Vehi ), and an inverted pendulum
+system (denoted by Inver ).
+4.2 Controller synthesis example: a remotely-controlled robot
+For controller synthesis, we consider the Robot case reported in Table 1. We consider delay parameters
+of the network to be (2;2). The plant dynamic is described by the following differential equation:
+˙x1
+˙x2
+=u1
+u2
+;
+where (x1;x2)2XR2denotes the position of the robot in the bounded 2D arena X, and (u1;u2)
+represents a steering input. We use the following state and input sets: set of states is [0;64][0;64], state
+quantization parameters are (1;1), input set is [ 1;1][ 1;1], and input quantization parameters are
+(1;1). The control objective is described by the following LTL formula:
+y=9^
+i=1(:Obstacle i)
+^3(Target 1)^3(Target 2);
+where the atomic propositions Target 1,Target 2, and Obstacle i,i2f1;:::; 9g, are some hyper-intervals
+over X, as depicted in Figure 5.
+
+--- Page 10 ---
+74 SENSE: Abstraction-Based Synthesis of Networked Control Systems
+Figure 4: Visualization of the transition relation of the robot example. In this example, obstacles in the
+state set are considered by removing any transitions to or from them.
+(a)MATLAB
+ (b)OMNeT++
+Figure 5: Closed-loop simulation of the robot in MATLAB and in OMNeT++ . Two target sets are repre-
+sented by red boxes. Nine obstacle sets are represented by blue boxes.
+
+--- Page 11 ---
+M. Khaled, M. Rungger & M. Zamani 75
+Figure 6: Code snippet from the generated VHDL code.
+The library SCOTS constructs the symbolic model of the plant in 0.23 seconds. Then, the transition
+relation is exported using the tool bdd2fsm . Figure 4 depicts the visualized transition relation using the
+generated FSM ﬁle and the tool StateVis. The blank spaces in the state set represent obstacles.
+The NCS construction engine of SENSE constructs the symbolic model of the NCS in 0.26 seconds.
+The ﬁxed-point operations engine in SENSE synthesizes the controller in 8 seconds. The resulting con-
+troller is a dynamic controller with two discrete states, each corresponds to one static controller, that
+enforces a reachability speciﬁcation for one of the target sets. Figure 5a (resp. 5b) shows the closed-loop
+simulation in MATLAB (resp. OMNeT++ ). We make use of the animation capabilities of OMNeT++ to
+visualize both packet transfers over the network as well as the movement of the robot in the arena. The
+target sets are indicated with red boxes and the obstacles are indicated with blue boxes. The initial state
+of the system is (10;10).
+The tool bdd2implement is used to generate VHDL and C/C++ codes that are ready for imple-
+mentations. Figure 6 shows a code-snippet of the generated VHDL code for one of the static reachability
+controllers of the Robot example.
+4.3 Controller synthesis example: collision-free deployment of two robots
+We use two instances of the same dynamic from the previous example to represent two different robots.
+The dynamics are augmented to form a system of higher dimension (i.e. 4-dimensional state set and
+
+--- Page 12 ---
+76 SENSE: Abstraction-Based Synthesis of Networked Control Systems
+4-dimensional input set). The system is now described by the following differential equation:
+2
+6664˙x1
+˙x2
+˙x3
+˙x43
+7775=2
+664u1
+u2
+u3
+u43
+775:
+We use the following state and input sets: set of states is [0;15][0;15][0;15][0;15], state quan-
+tization parameters are (1;1;1;1), input set is [ 1;1][ 1;1][ 1;1][ 1;1], and input quantization
+parameters are (1;1;1;1). The objective of this example is to synthesize a controller that enforces the
+following two speciﬁcations simultaneously:
+1. For the ﬁrst robot:
+y1=5^
+i=1(:Obstacle1
+i)
+^15;15^
+i=0;j=0(:Crash i;j)
+^3(Target 1)^3(Target 2);
+2. For the second robot:
+y2=5^
+i=1(:Obstacle2
+i)
+^15;15^
+i=0;j=0(:Crash i;j)
+^3(Target 3)^3(Target 4);
+where Target 1,Target 2,Target 3andTarget 4are atomic propositions over the state set and deﬁned by the
+hyper-rectangles: [2;3][2;3][0;15][0;15],[12;13][12;13][0;15][0;15],[0;15][0;15]
+[2;3][12;13], and[0;15][0;15][12;13][2;3], respectively. Crash i;j,8i;j2f0;1;:::; 15g, repre-
+sent the points in the state set where the two robots collide and are deﬁned as follows:
+Crash i;j= [i j i j]T:
+Obstacle1
+i,8i2f0;1;:::; 5g, are obstacles and are deﬁned by the hyper-rectangle: [6;9][6;9]
+[0;15][0;15],[11;14][7;8][0;15][0;15],[1;4][7;8][0;15][0;15],[7;8][1;4][0;15]
+[0;15], and [7;8][11;14][0;15][0;15], respectively. Obstacle2
+i,8i2f0;1;:::; 5g, are obstacles
+and are deﬁned by the hyper-rectangle: [0;15][0;15][6;9][6;9],[0;15][0;15][11;14][7;8],
+[0;15][0;15][1;4][7;8],[0;15][0;15][7;8][1;4],[0;15][0;15][7;8][11;14], respec-
+tively.
+The controller is synthesized and simulated as presented in the previous example. The symbolic
+model of the plant is constructed in 56 seconds. For delay parameters of (2;2),SENSE constructs the
+symbolic model of the NCS in 29 seconds. Remark that the construction of the symbolic model of the
+plant in SCOTS is affected by the increase in the dimension more than in SENSE . This is due to the
+nature of SCOTS which operates element-by-element on the state set to construct an over-approximation
+of the reachable sets while constructing the ﬁnite abstraction of the plant. On the other hand, SENSE
+implements the L-operator as operations on the BDD representing the symbolic model of the plant
+which is computationally efﬁcient. The tool SENSE synthesizes the controller in 75883 seconds. Figure
+7 shows the closed-loop simulation in MATLAB . The initial state of the system is (7;15;15;7).
+
+--- Page 13 ---
+M. Khaled, M. Rungger & M. Zamani 77
+Figure 7: Closed loop simulation of the two robots example in MATLAB .
+References
+[1] C. Baier & J. P. Katoen (April 2008): Principles of model checking . The MIT Press.
+[2] M. B. G. Cloosterman, N. van de Wouw, W. P. M. H. Heemels & H. Nijmeijer (2009): Stability of Networked
+Control Systems With Uncertain Time-Varying Delays .IEEE Transactions on Automatic Control 54(7), pp.
+1575–1580, doi:10.1109/TAC.2009.2015543.
+[3] W. P. M. H. Heemels & N. van de Wouw (2010): Stability and Stabilization of Networked Control Systems .
+In Alberto Bemporad, Maurice Heemels & Mikael Johansson, editors: Networked Control Systems , Springer
+London, London, pp. 203–253, doi:10.1007/978-0-85729-033-5 7.
+[4] M. Khaled, M. Rungger & M. Zamani (2016): Symbolic models of networked control systems: A feedback
+reﬁnement relation approach . In: 54th Annual Allerton Conference on Communication, Control, and Com-
+puting (Allerton) , pp. 187–193, doi:10.1109/ALLERTON.2016.7852228.
+[5] R. Majumdar & M. Zamani (2012): Approximately Bisimilar Symbolic Models for Digital Control Systems .
+In P. Madhusudan & Sanjit A. Seshia, editors: Computer Aided Veriﬁcation , Springer Berlin Heidelberg,
+Berlin, Heidelberg, pp. 362–377, doi:10.1007/978-3-642-31424-7 28.
+[6] O. Maler, A. Pnueli & J. Sifakis (1995): On the synthesis of discrete controllers for timed systems . In
+Ernst W. Mayr & Claude Puech, editors: 12th Annual Symposium on Theoretical Aspects of Computer Sci-
+ence (STACS 95) , Springer Berlin Heidelberg, Berlin, Heidelberg, pp. 229–242, doi:10.1007/3-540-59042-
+076.
+[7] D. Nesic & D. Liberzon (2009): A Uniﬁed Framework for Design and Analysis of Networked
+and Quantized Control Systems . IEEE Transactions on Automatic Control 54(4), pp. 732–747,
+doi:10.1109/TAC.2009.2014930.
+[8] OpenSim-Ltd.: OMNeT++, a Discrete Event Simulator . Available at https://omnetpp.org .
+[9] A. J. Pretorius & J. J. van Wijk: StateVis, Multidimensional visualization of transition systems . Available at
+http://www.win.tue.nl/vis1/home/apretori/statevis/ .
+[10] G. Reissig, A. Weber & M. Rungger (April 2017): Feedback Reﬁnement Relations for the Syn-
+thesis of Symbolic Controllers .IEEE Transactions on Automatic Control 62(4), pp. 1781–1796,
+doi:10.1109/TAC.2016.2593947.
+
+--- Page 14 ---
+78 SENSE: Abstraction-Based Synthesis of Networked Control Systems
+[11] M. Rungger & M. Zamani (2016): SCOTS: A Tool for the Synthesis of Symbolic Controllers . In: Proceedings
+of the 19th International Conference on Hybrid Systems: Computation and Control , HSCC ’16, ACM, New
+York, NY , USA, pp. 99–104, doi:10.1145/2883817.2883834.
+[12] F. Somenzi (2015): CUDD: CU Decision Diagram Package , 3.0.0 edition. Available at http://vlsi.
+colorado.edu/ ˜fabio/CUDD/cudd.pdf .
+[13] P. Tabuada (2009): Veriﬁcation and control of hybrid systems, A symbolic approach . Springer US,
+doi:10.1007/978-1-4419-0224-5.
+[14] W. Thomas (1995): On the synthesis of strategies in inﬁnite games . In Ernst W. Mayr & Claude Puech,
+editors: 12th Annual Symposium on Theoretical Aspects of Computer Science (STACS 95) , Springer Berlin
+Heidelberg, pp. 1–13, doi:10.1007/3-540-59042-0 57.
+[15] Netherlands TU/e Technische Universiteit Eindhoven: A short note on the FSM data format . Available at
+http://www.win.tue.nl/vis1/home/apretori/data/fsm.html .
+[16] N. van de Wouw, D. Ne ˇsi´c & W.P.M.H. Heemels (2012): A discrete-time framework for sta-
+bility analysis of nonlinear networked control systems . Automatica 48(6), pp. 1144 – 1153,
+doi:10.1016/j.automatica.2012.03.005.
+[17] M. Zamani, M. Mazo Jr, M. Khaled & A. Abate (accepted, to appear): Symbolic Abstractions of Networked
+Control Systems .IEEE Transactions on Control of Network Systems , doi:10.1109/TCNS.2017.2739645.
+Available at https://arxiv.org/abs/1401.6396 .
+[18] M. Zamani, M. Mazo & A. Abate (2014): Finite abstractions of networked control systems . In: 53rd IEEE
+Conference on Decision and Control , pp. 95–100, doi:10.1109/CDC.2014.7039365.
+[19] M. Zamani, G. Pola, M. Mazo Jr. & P. Tabuada (2012): Symbolic Models for Nonlinear Control Sys-
+tems Without Stability Assumptions .IEEE Transactions on Automatic Control 57(7), pp. 1804–1809,
+doi:10.1109/TAC.2011.2176409.

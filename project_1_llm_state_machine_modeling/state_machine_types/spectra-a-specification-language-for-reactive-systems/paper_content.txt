@@ -1,0 +1,2421 @@
+--- Page 1 ---
+Software and Systems Modeling (2021) 20:1553–1586
+https://doi.org/10.1007/s10270-021-00868-z
+REGULAR PAPER
+Spectra: a speciﬁcation language for reactive systems
+Shahar Maoz1·Jan Oliver Ringert2
+Received: 16 February 2020 / Revised: 23 September 2020 / Accepted: 14 December 2020 / Published online: 14 April 2021
+© The Author(s) 2021
+Abstract
+We introduce Spectra, a new speciﬁcation language for reactive systems, speciﬁcally tailored for the context of reactivesynthesis. The meaning of Spectra is deﬁned by a translation to a kernel language. Spectra comes with the Spectra Tools,
+a set of analyses, including a synthesizer to obtain a correct-by-construction implementation, several means for executing
+the resulting controller, and additional analyses aimed at helping engineers write higher-quality speciﬁcations. We presentthe language in detail and give an overview of its tool set. Together with the language and its tool set, we present four
+collections of many, non-trivial, large speciﬁcations, written by undergraduate computer science students for the development
+of autonomous Lego robots and additional example reactive systems. The collected speciﬁcations can serve as benchmarks forfuture studies on reactive synthesis. We present the speciﬁcations, with observations and lessons learned about the potentialuse of reactive synthesis by software engineers.
+Keywords Reactive synthesis ·GR(1) ·Speciﬁcation language
+1 Introduction
+Reactive synthesis is an automated procedure to obtain a
+correct-by-construction reactive system from its temporal
+logic speciﬁcation [ 66]. Rather than manually constructing
+an implementation and using model-checking or testing toverify it against a speciﬁcation, see Fig. 1top, synthesis offers
+an approach where a correct implementation of the system
+is automatically obtained for a given speciﬁcation, see Fig. 1
+bottom, if such an implementation exists.
+As the correct-by-construction promise is attractive, much
+research effort has been invested and much progress has
+been achieved over the last two decades on reactive synthesistheory, algorithms, and tools. These include, e.g., the identi-
+ﬁcation of expressive fragments of temporal logics that have
+efﬁcient, symbolic synthesis solutions [ 10,41,42], various
+kinds of compositional synthesis [ 46], controller synthesis
+for probabilistic systems [ 20,44], support for the addition of
+quantitative criteria [ 5], bounded synthesis [ 26], and tools
+Communicated by Antonio Vallecillo.
+B Shahar Maoz
+maoz@cs.tau.ac.il
+1School of Computer Science, Tel Aviv University, TelAviv-Yafo, Israel
+2School of Informatics, University of Leicester, Leicester, UKsuch as RATSY [ 6], and Slugs [ 22], to list a few. Still, major
+challenges remain on the way to bringing the correct-by-
+construction promise to software engineering practice.
+Some of these challenges are at the level of the speciﬁca-
+tion language, i.e., the syntax, semantics, and expressiveness
+of reactive speciﬁcations. First, the language should havefeatures that are speciﬁc to its use in the context of reactive
+synthesis, such as the explicit distinction between system and
+environment variables, and the explicit distinction betweenguarantees and assumptions. Second, careful balance shouldbe found between the language’s usability to engineers, in
+writing and reading, on the one hand, and its formal expres-
+sive power, on the other hand. Finally, the language alone maynot be enough to address all challenges. Rather, a set of analy-
+ses and tools, beyond synthesis itself, speciﬁcally tailored for
+the new language and its use in an end-to-end reactive syn-thesis environment, is required, for example, in debugging
+speciﬁcations and in executing the synthesized controllers.
+In this paper we describe the results of our research effortsover the last ﬁve years, to start developing such language andtool set.
+We introduce Spectra, a new speciﬁcation language for
+reactive systems, speciﬁcally tailored for the context ofreactive synthesis. The meaning of Spectra is deﬁned by
+a translation to a kernel language. Importantly, beyond the
+kernel, Spectra includes advanced language features like
+123
+
+--- Page 2 ---
+1554 S. Maoz, J. O. Ringert
+Fig. 1 A high-level contrast of inputs (left) and outputs (right) for tradi-
+tional veriﬁcation or testing (top) and the synthesis approach (bottom)
+parametric predicates, monitors, bounded integers and arith-
+metic operations, a library of patterns and means to deﬁne
+new patterns, bounded counters, and quantiﬁed arrays. These
+advanced language features, some of which are unique toSpectra, are meant to enable and encourage reuse and supportspeciﬁcations’ readability and maintainability by engineers.
+Spectra comes with the Spectra Tools, a set of analyses,
+including not only a synthesizer to obtain a correct-by-construction implementation, but also several means for exe-
+cuting the resulting controller. It further includes additional
+analyses aimed at helping engineers write higher-qualityspeciﬁcations, including, e.g., several means to dealing with
+unrealizable and non-well-separated speciﬁcations.
+To date, Spectra has been used by small teams of under-
+graduate computer science students for the development ofautonomous Lego robots and additional example reactive
+systems in four-semester long project classes we have taught
+at Tel Aviv University, in 2015, 2017, 2019, and 2020. Fromthese classes, we have collected over 320 versions of speci-
+ﬁcations of about 10 different Lego robots and 14 additional
+systems, all written by these students as they worked ontheir projects for several months. Thus, together with the lan-
+guage and the tool set, we present four collections of many,
+non-trivial, large speciﬁcations. The collections can serveas benchmarks for future studies on reactive synthesis. Wepresent the speciﬁcations the students wrote, with observa-
+tions and lessons learned about the potential use of reactive
+synthesis by software engineers.
+It is important to note that Spectra is designed for gen-
+eral purpose reactive systems speciﬁcations rather than for
+the particular domain of robotics (as, e.g., in the case ofLTLMop [ 27]). Spectra is also not to be confused for an
+architecture modeling language for robotic systems (as,
+e.g., RoboChart [ 60] or MontiArcAutomaton [ 69]). Spectra
+can and has been used in combination with C&C model-ing languages for code generation and the deployment of
+synthesized controller on robots [ 50,52], but, as already
+demonstrated in the SYNTECH collection of speciﬁcations,
+this is only one of the use cases of Spectra.
+Finally, currently, Spectra is not about speciﬁcations that
+cover probabilistic, timed, or other quantitative requirements.Many other works, including some by the authors of the
+present paper, have discussed various extensions of synthesis
+to handle speciﬁcations with these objectives [ 2,5,11,16,36,
+48]. We believe that adding language elements for expressing
+these and similar objectives, and extending Spectra Tools to
+support them, is possible; however, it is outside the scope ofour current work.
+A number of logics and languages exist for the spec-
+iﬁcation of reactive systems. These include linear tem-poral logic (LTL) [ 65], Property Speciﬁcation Language
+(PSL) [ 23], SMV—the input language of the NuSMV
+tool [ 15], TLA
++[45] (Temporal Logic of Actions), and the
+Temporal Logic Synthesis Format (TLSF) [ 35]. Moreover, a
+number of speciﬁcation languages for reactive synthesis have
+been developed on top of GR(1), with related synthesis tools,
+including ApsectLTL [ 54], LTLMop (Linear Temporal Logic
+MissiOn Planning) [ 27], SGR(1) [ 12,17], Slugs (SmalL bUt
+Complete GROne Synthesizer) [ 22], Open Promela [ 25],
+Tulip [ 24,76], and RATSY [ 6]. As we show, Spectra has
+unique language features, unique supporting analyses andexecution mechanisms, and a large set of benchmark spec-
+iﬁcations, not available for these other languages and tools.
+We discuss the above languages and tools and compare themto Spectra in Sect. 8.
+The contributions of this paper are as follows:
+– We present the Spectra language deﬁnition, including
+formal syntax and semantics of its unique constructs.
+While a few previous papers have already used smallexample speciﬁcations written in Spectra, in the lim-
+ited context of presenting a speciﬁc new analysis (e.g.,
+for non-well-separation [ 51], for unrealizability [ 43,53],
+for vacuity [ 57]), the syntax and semantics of the lan-
+guage were not presented before. Moreover, several of
+the unique and powerful constructs of the language,beyond the kernel, including monitors, PastLTL oper-ators, bounded counters, and quantiﬁed arrays, did not
+appear in any previous publication.
+– We present an overview of Spectra Tools. While speciﬁc
+tools have been individually presented in previous pub-
+lications (e.g., for dealing with unrealizability [ 43]), an
+overview of the Spectra Tools architecture and tool set didnot appear before. All tools we report on in our overview
+have been implemented and already used by the under-
+graduate students who participated in our project classesand created the speciﬁcations in the four collections.
+123
+
+--- Page 3 ---
+Spectra: a speciﬁcation language for reactive systems 1555
+– We present four collections of speciﬁcations, all writ-
+ten by undergraduate students in project classes we havetaught. Together, the collections include over 320 ver-
+sions of speciﬁcations of about 10 different Lego robots
+and 14 additional systems. The collections are larger andmore complex than all previous collections of reactivesystems speciﬁcations published in the context of syn-
+thesis, and can thus serve as new benchmarks for future
+studies in the ﬁeld.
+– We present a discussion of design decisions, observa-
+tions, and lessons we have learned from the development
+of Spectra and Spectra Tools and from our experiencewith it so far. The discussion covers topics such as the dif-
+ﬁculty of writing speciﬁcations, the necessity of internal
+symbolic representations, the fundamental design deci-sion of choosing GR(1) as kernel for Spectra, the decisionto implement our own synthesizer, and the decision to
+make Spectra domain agnostic.
+Spectra and Spectra Tools aim to advance the state of the
+art in reactive synthesis. For engineers who develop reac-
+tive systems, they provide a novel and friendly languageand environment to experience writing formal speciﬁcations,
+examine the idea of reactive synthesis, and start considering
+whether and how it may be applicable to the systems theydevelop. For researchers, they provide a testbed and bench-
+mark data for future research on speciﬁcation languages
+and reactive synthesis development environments. We makeSpectra, Spectra Tools, and all speciﬁcations we report aboutpublicly available for inspection and further use by engineers
+and researchers.
+1.1 Paper structure
+The paper is structured as follows. Section 2provides nec-
+essary background on linear temporal logic and its GR(1)
+fragment, which are required for the formal deﬁnition of
+Spectra semantics. Section 3introduces a small language
+kernel of Spectra and deﬁnes the semantics of a speciﬁcation
+as a GR(1) synthesis problem. This section also introduces
+an example speciﬁcation that serves as a running examplethroughout the paper. Section 4covers the language elements
+Spectra provides and deﬁnes their semantics via translations
+to the kernel. In Sect. 5we give an overview of Spectra
+Tools. We describe our preliminary experience with Spectrain Sect. 6, which is mainly based on observations from the
+project classes we have taught over the ﬁve years where stu-
+dents have used Spectra and Spectra Tools to develop about10 different autonomous Lego robots and several additional
+systems. In Sect. 7we discuss lessons learned about Spectra,
+Spectra Tools, and our design decisions. We discuss relatedwork in Sect. 8and conclude in Sect. 9.2 Background
+We provide background on linear temporal logic and syn-
+thesis, which is required for the deﬁnition of Spectra syntax
+and semantics. We continue with the notation that we use todeﬁne the grammar of Spectra.
+2.1 Linear temporal logic and synthesis
+We repeat some of the standard deﬁnitions of linear temporal
+logic (LTL), e.g., as found in [ 10], a modal temporal logic
+with modalities referring to time [ 65]. The syntax of LTL for-
+mulas is typically deﬁned over a set of atomic propositions
+APwith the future temporal operators X(next) and U(until).
+Intuitively, an atomic proposition is similar to a Boolean vari-able. If the variable is true, the atomic proposition is present;if the variable is false, the atomic proposition is absent.
+Deﬁnition 1 The syntax of LTL formulas over APis
+ϕ::= p|¬ϕ|ϕ∨ϕ|Xϕ|ϕUϕforp∈AP.
+For/Sigma1=2
+AP, a computation u=u0u1..∈/Sigma1ωis a
+sequence where uiis the set of atomic propositions that hold
+at the i-th position. For position iwe use u,i|/equal1ϕto denote
+thatϕholds at position i, inductively deﬁned as:
+–u,i|/equal1piffp∈ui;
+–u,i|/equal1 ¬ϕiffu,i/negationslash|/equal1ϕ;
+–u,i|/equal1ϕ1∨ϕ2iffu,i|/equal1ϕ1oru,i|/equal1ϕ2;
+–u,i|/equal1Xϕiffu,i+1|/equal1ϕ;
+–u,i|/equal1ϕ1Uϕ2iff∃k≥i:u,k|/equal1ϕ2and∀j,i≤j<
+k:u,j|/equal1ϕ1.
+We denote u,0|/equal1ϕbyu|/equal1ϕ. We use additional LTL
+operators F(ﬁnally) where Fϕ:=trueUϕandG(globally),
+where Gϕ:= ¬F¬ϕ.
+Finally, we also use PastLTL [ 29] operators Y(previously,
+dual of X) and S(since, dual of U):
+•u,i|/equal1Yϕiffi>0∧u,(i−1)|/equal1ϕ;
+•u,i|/equal1ϕ1Sϕ2iff∃k≤i:u,k|/equal1ϕ2and∀j,k<j≤
+i:u,j|/equal1ϕ1.
+We use additional PastLTL operators O(once), where
+Oϕ:=true Sϕ, andH(historically), where Hϕ:= ¬O¬ϕ.
+LTL formulas can be used as speciﬁcations of reactive sys-
+tems where atomic propositions are represented by Booleanvariables. The set of variables representing atomic propo-
+sitions is partitioned into Boolean environment (input) and
+system (output) variables. An assignment to all variables iscalled a state.
+A strategy for an LTL speciﬁcation ϕprescribes the
+outputs of a system that from its winning states for allenvironment choices lead to computations that satisfy ϕ.A
+123
+
+--- Page 4 ---
+1556 S. Maoz, J. O. Ringert
+speciﬁcation ϕis called realizable if a strategy exists such
+that for all initial environment choices the initial states arewinning states. The goal of LTL synthesis is, given an LTL
+speciﬁcation, to ﬁnd a strategy that realizes it, if one exists.
+To illustrate the difference between LTL model-checking
+and LTL synthesis in Fig. 1, we could replace speciﬁcation
+by LTL formula and implementation by controller (a formal-
+ization of a strategy).
+2.2 Generalized reactivity of rank 1 (GR(1))
+LTL synthesis is computationally expensive. Thus, authors
+have suggested fragments of LTL that have efﬁcient synthesis
+algorithms.
+GR(1) is a fragment of LTL that has an efﬁcient symbolic
+synthesis algorithm [ 10,64] and whose expressive power cov-
+ers most of the well-known LTL speciﬁcation patterns of
+Dwyer et al. [ 21,49]. GR(1) speciﬁcations include assump-
+tions and guarantees about what needs to hold on all initialstates, on all states and transitions (safety), and inﬁnitely
+often on every run (justice). A GR(1) synthesis problem con-
+sists of the following elements [ 10]:
+–Xis a set of Boolean input variables controlled by the
+environment;
+–Yis a set of Boolean output variables controlled by the
+system;
+–θ
+eis an assertion, i.e., a propositional logic formula, over
+Xcharacterizing initial environment states;
+–θsis an assertion over X∪Ycharacterizing initial system
+states;
+–ρe(X,Y,X/prime)represents constraints on the transition
+relation of the environment, where X/primedenotes a primed
+copy of variables X, i.e., given a current state, ρerestricts
+the next input;
+–ρs(X,Y,X/prime,Y/prime)represents constraints on the transition
+relation of the system, where X/primeand Y/primedenote primed
+copies of variables Xand Y, i.e., given a current state
+and next input, ρsrestricts the next output;
+–Je
+i∈1..nis a set of assertions over X∪Yfor the environment
+to satisfy inﬁnitely often (called justice assumptions);
+–Js
+j∈1..mis a set of assertions over X∪Yfor the system
+to satisfy inﬁnitely often (called justice guarantees).
+A GR(1) synthesis problem is strictly realizable1iff the
+following LTL formula is realizable:
+1Note that many authors, including us, sometime present the simpler
+and more intuitive formula for implication realizability rather than theone for strict realizability. For a comparison of strict realizability andimplication realizability and a reduction between the two, see [ 10,38].
+Spectra supports strict realizability.ϕsr=(θe→θs)∧
+(θe→G((Hρe)→ρs))∧
+(θe∧Gρe→(/logicalanddisplay
+i∈1..nGFJe
+i→/logicalanddisplay
+j∈1..mGFJs
+j))
+Speciﬁcations for GR(1) synthesis have to be expressible
+in the above structure and thus do not cover the complete
+LTL. Efﬁcient symbolic algorithms for GR(1) realizability
+checking and controller synthesis have been presented in [ 10,
+64].
+As an example, consider a GR(1) synthesis problem to
+synthesize the controller for the trafﬁc light of a simple junc-
+tion with a main street and a side street (this example isillustrated in Fig. 3and further explained in Sect. 3.1):
+•X={cm,cs}represents information about a car on the
+main street ( cm) and on the side street ( cs);
+•Y={gm,gs}represents control over a green light on
+the main street ( gm) and on the side street ( gs);
+•θ
+e=¬ cm∧¬cs, i.e., initially there is no car on the main
+street nor the side street;
+•θs=/latticetop , i.e., no restriction on initial outputs;
+•ρe=/latticetop , i.e., no safety assumptions;
+•ρs=¬(gm∧gs), i.e., the main street and side street
+never have a green light at the same time;
+•Je={cm,cs}, i.e., cars are always eventually appearing
+on the main street and on the side street;
+•Js={gm,gs}, i.e., the light must always eventually turn
+green on the main street and on the side street.
+This example GR(1) synthesis problem is realizable iff this
+LTL formula is realizable:
+((¬cm∧¬cs)→/latticetop)∧
+((¬cm∧¬cs)→G(H(/latticetop)→¬(gm∧gs)))∧
+((¬cm∧¬cs)∧G(/latticetop)→
+((GF(cm)∧GF(cs))→(GF(gm)∧GF(gs))))
+An example strategy that satisﬁes this GR(1) synthesis
+problem could alternate between output gs∧¬gmand output
+¬gs∧gm, which ensures that the lights are never green
+at the same time and that always eventually each light willturn green. The goal of reactive synthesis is to compute such
+strategies automatically.
+GR(1) synthesis has been used and extended in differ-
+ent contexts and for different application domains, includ-
+ing robotics [ 40,47,52], scenario-based speciﬁcations [ 55],
+aspect languages [ 54], event-based behavior models [ 18],
+hybrid systems [
+24], and device drivers [ 74], to name a few.
+123
+
+--- Page 5 ---
+Spectra: a speciﬁcation language for reactive systems 1557
+2.3 Extended notation for context-free grammars
+The Spectra language is deﬁned by a context-free grammar.
+We now describe the grammar notation that we use through-
+out this paper. Our notation is based on common conceptsknown from language workbenches, e.g., MontiCore [ 33]
+and XText [ 77]. An excerpt of the Spectra grammar is shown
+in Fig. 2.
+Production rules are enclosed in brackets and printed bold.
+As an example, the production rule for symbol /angbracketleftspecElem /angbracketright
+is deﬁned in Fig. 2, l. 5 and referenced in l. 3 inside the def-
+inition of the production rule for symbol /angbracketleftspec/angbracketright.W eu s e
+common multiplicity symbols for deﬁning the number of
+repetitions of elements, where ∗denotes zero or more repeti-
+tions,+denotes at least one repetition, and ? denotes zero or
+one repetitions, i.e., the element is optional. As an example,the declaration of speciﬁcation elements ( /angbracketleftspecElem /angbracketright,l .3 )
+is repeated at least once. Terminals of the grammar that are
+also keywords of Spectra are printed in blue, e.g., the key-words spec ,sys, and env. Other terminals are printed in gray,
+e.g., the semicolon ( ;, l. 7) after a variable declaration.
+Grammar extensions For readability and modular language
+deﬁnition, we introduce two extensions to the grammar
+notation. First, we introduce internal names for produced
+symbols, e.g., the name elems for the list of /angbracketleftspecElem /angbracketright
+in Fig. 2, l. 3. We refer to these internal names when we
+describe well-formedness rules of Spectra documents. Sec-
+ond, we introduce the grammar-level keyword extends to
+denote the extension of production rules. As an example, theproduction /angbracketleftmonitor /angbracketrightextends /angbracketleftspecElem /angbracketrightin Fig. 2,l .9 .
+As a result of the extension, the symbol /angbracketleftmonitor /angbracketrightcan
+replace any occurrence of the symbol /angbracketleftspecElem /angbracketright.N o t e
+the difference between /angbracketleftvarDec /angbracketrightand/angbracketleftmonitor /angbracketrightwhich
+are both alternatives for /angbracketleftspecElem /angbracketright. The difference is that
+production rule /angbracketleft
+varDec /angbracketrightwas included in the deﬁnition of
+/angbracketleftspecElem /angbracketright, while the production rule /angbracketleftmonitor /angbracketrightwas
+added later. We use this extension mechanism when we add
+new language features. Finally, we introduce the grammar-
+Fig. 2 Excerpt of the Spectra grammar to demonstrate our extended
+notation for context-free grammarslevel keyword replaces to denote that a new production
+rule replaces an existing production rule. As an example,the production /angbracketleftspecWithImports /angbracketrightreplaces /angbracketleftspec/angbracketrightin
+Sect. 4.10 ,F i g . 13, l. 1. As a result of the replacement, the
+symbol /angbracketleftspecWithImports /angbracketrightreplaces any occurrence of
+the symbol /angbracketleftspec/angbracketright.
+Special productions We make use of three standard, prim-
+itive productions that we do not deﬁne in any production
+rule. These are /angbracketleftfile/angbracketrightfor ﬁle names, /angbracketleftname/angbracketrightfor names of
+elements, and /angbracketleftint/angbracketrightfor integers.
+Simpliﬁcation The parts of the Spectra grammar we show in
+Sects. 3and 4, present a simpliﬁed version of the grammar
+that we use in the implementation of Spectra Tools, describedin Sect. 5. For the purpose of presentation, we have simpliﬁed
+the production rules. As an example, it is common to encode
+operator precedence directly into production rules in order to
+simplify the parsing of speciﬁcations. This implementationrelated formulation blows up the grammar of expressions as
+every operator might require a separate production rule. We
+present a simpliﬁed version of the grammar and deﬁne oper-ator precedence when we describe each language element.
+3 Spectra kernel
+Spectra is based on a small kernel language for writing spec-iﬁcations. The Spectra kernel contains only the essential
+elements to formulate GR(1) synthesis problems. Specif-
+ically, these language elements are Boolean environmentvariable declarations, Boolean system variable declarations,
+assumptions, and guarantees. We now introduce the syntax
+of the Spectra kernel and then give the semantics of speci-ﬁcations as GR(1) synthesis problems. We will extend andmodify the example as we introduce new language elements
+throughout Sect. 4.
+3.1 Example
+Consider a trafﬁc light on a simple junction as shown in Fig. 3.
+A team of engineers speciﬁed this system in Lst. 1using only
+language elements of the Spectra kernel.
+As a ﬁrst step, the engineers identify the environment and
+system controlled variables by determining the inputs and
+outputs of the system. Two Boolean environment variables
+carMain andcarSide (Lst. 1, ll. 3–4) model sensors
+to notify whether there is trafﬁc on the main street or on
+the side street, respectively. The system controls two traf-
+ﬁc lights through the Boolean variables greenMain and
+greenSide (Lst. 1, ll. 6–7).
+Next, the engineers deﬁne assumptions, which character-
+ize environment behavior, and guarantees, which express therequired system behavior. The team assumes that initially
+123
+
+--- Page 6 ---
+1558 S. Maoz, J. O. Ringert
+Fig. 3 A junction of a side street connecting to a main street. The ﬁgure
+shows the environment controlled variables carMain andcarSide
+representing sensors for detecting trafﬁc on each street, and the systemcontrolled variables greenMain andgreenSide for controlling the
+trafﬁc lights
+there is no trafﬁc and that always eventually there is traf-
+ﬁc on each of the streets (Lst. 1, ll. 9–11). The system has
+to guarantee that trafﬁc passage at the same time on both
+streets never occurs (Lst. 1, l. 13). In addition, the system
+has to guarantee to always eventually allow trafﬁc passage
+on each of the streets (Lst. 1, ll. 14–15).
+Finally, the engineers check whether the speciﬁcation
+is realizable and synthesize an implementation. In casean implementation cannot be found, the engineers update
+the speciﬁcation by weakening guarantees or strengthening
+assumptions. The Spectra speciﬁcation shown in Lst. 1is
+realizable. A simple, possible implementation keeps one traf-
+ﬁc light green until a car arrives and passes, and then repeats
+the same for the other street.
+Spectra
+1spec TrafficLight
+2
+3env boolean carMain;
+4env boolean carSide;
+5
+6sys boolean greenMain;
+7sys boolean greenSide;
+8
+9asm ini carMain= false & carSide= false ;
+10asm alwEv carMain;
+11asm alwEv carSide;
+12
+13gar alw !(greenMain & greenSide);
+14gar alwEv carMain & greenMain;
+15gar alwEv carSide & greenSide;
+Listing 1 A speciﬁcation –expressed in the Spectra kernel language–
+for a simple trafﬁc light controller consisting of environment variablesenv , system variables sys , environment assumptions asm , and system
+guarantees gar .
+Fig. 4 Grammar of the Spectra kernel
+3.2 Syntax
+A grammar of the Spectra kernel is shown in Fig. 4.E v e r y
+valid speciﬁcation can be produced from the production rule/angbracketleftspec/angbracketrightof the kernel grammar (and its extensions we present
+in Sect. 4).
+Every speciﬁcation starts with the keyword spec and a
+name. The name of a speciﬁcation is only informative and has
+no technical meaning. A speciﬁcation contains one or more
+speciﬁcation elements /angbracketleftspecElem /angbracketright. Speciﬁcation elements
+of the Spectra kernel are variable declarations (Fig. 4,l .7 ) ,
+assumptions (Fig. 4, l. 11), and guarantees (Fig. 4,l .1 6 ) .
+Variable declarations introduce variables controlled by the
+environment (keyword env) or by the system (keyword sys).
+Variables have a type and a name. The only type available in
+the kernel is boolean (Fig. 4,l .9 ) .
+Assumptions have an optional name and can be of three
+kinds. They are either initial assumptions (keyword ini ),
+safety assumptions (keyword alw ), or justice assumptions
+(keyword alwEv ).
+2All assumption kinds are formulated by
+2Other GR(1)-based speciﬁcation languages use the LTL operator G
+foralw andGFforalwEv . This leads to confusion as their semantics
+123
+
+--- Page 7 ---
+Spectra: a speciﬁcation language for reactive systems 1559
+expressions /angbracketleftexp/angbracketright(Fig. 4, l. 21). Expressions follow standard
+deﬁnitions of propositional expressions. The unary operatorsof expressions are negation and next , the binary operators
+are standard Boolean operators and equality, and the pri-
+mary expressions are true ,false , and references to variables
+(Fig. 4, l. 30). The precedence of operators in expressions
+from strongest binding to weakest is !,next ,=,&,|,<->,
+->. As usual, binary operators associate from left to right.
+Guarantees are deﬁned analogously to assumptions, with
+the exceptions of the keyword gar instead of asm and dif-
+ferences in well-formedness rules.
+Well-formedness rules The names of variables, assumptions,
+and guarantees have to be unique. An initial assumption can-
+not reference system variables. A safety assumption cannot
+nest references to system variables in the scope of the next
+operator. A next operator cannot be (transitively) nested
+inside a next operator.
+Scopes The Spectra kernel contains three kinds of named
+elements: variables, assumptions, and guarantees. The scopeof variable names is global, i.e., the names of variables have
+to be unique and variables can be referenced from anywhere
+in the speciﬁcation. The scope of names of assumptions andguarantees is also global but they cannot be referenced from
+anywhere inside the speciﬁcation.
+3.3 Semantics
+The semantic domain of the Spectra kernel language is GR(1)synthesis problems. We deﬁne the semantics of the Spectra
+kernel by translating every well-formed speciﬁcation to aGR(1) synthesis problem.
+Given a Spectra speciﬁcation m, its semantics is deﬁned
+by the following GR(1) synthesis problem:
+–Xis the set of all variables declared in mwith the keyword
+env;
+–Yis the set of all variables declared in mwith the keyword
+sys;
+–θ
+eis the conjunction of the semantics of all initial
+assumptions (with keyword ini);
+–θsis the conjunction of the semantics of all initial guar-
+antees (with keyword ini);
+–ρe(X∪Y,X/prime)is the conjunction of the semantics of all
+safety assumptions (with keyword alw);
+–ρs(X∪Y,X/prime∪Y/prime)is the conjunction of the semantics
+of all safety guarantees (with keyword alw);
+–Je
+i∈1..nis the set of the semantics of all justice assumptions
+(with keyword alwEv );
+–Js
+j∈1..mis the set of the semantics of all justice guarantees
+(with keyword alwEv ).
+usually does not match the LTL semantics. We discuss this further in
+Sect. 7.3.To obtain the semantics of assumptions and guarantees, we
+translate their expression /angbracketleftexp/angbracketrightto assertions in the GR(1)
+synthesis problem. This translation is straightforward on
+the structures of /angbracketleftexp/angbracketright. The symbols of Boolean opera-
+tors of /angbracketleftunaryOp /angbracketrightand/angbracketleftbinaryOp /angbracketrightare translated to their
+counterparts in assertions. The keywords false andtrue of
+/angbracketleftprimExp /angbracketrightare translated to a contradiction and a tautology,
+respectively. A variable reference of /angbracketleftprimExp /angbracketrightis trans-
+lated to an assertion over a Boolean variable from Xand Y
+with the referenced name. Finally, the unary operator next
+substitutes all variables from Xand Yin its scope with cor-
+responding primed variables from X/primeand Y/prime.
+To illustrate the semantics, note that the speciﬁcation
+shown in Lst. 1corresponds to the GR(1) synthesis prob-
+lem example presented at the end of Sect. 2.2. The envi-
+ronment variables carMain andcarSide correspond
+to atomic propositions cmand cs. The assumption ini
+carMain= false & carSide= false from Lst. 1,l .9
+is translated to θe=¬ cm∧¬csin Sect. 2.2.
+4 Spectra language elements
+We now present the Spectra language elements beyond
+the kernel language. The language elements we presentinclude enumerations and bounded integers (Sect. 4.1),
+deﬁnes and type deﬁnitions with arrays (Sect. 4.2), state
+invariants (Sect. 4.3), PastLTL operators (Sect. 4.4), pred-
+icates (Sect. 4.5), monitors (Sect. 4.6), counters (Sect. 4.7),
+patterns (Sect. 4.8), quantiﬁcation (Sect. 4.9), and imports
+(Sect. 4.10 ).
+For each language element we (1) discuss the motivation
+to have it in the language (including an example in the context
+of the junction from Lst. 1– a complete example of most lan-
+guage elements in one speciﬁcation is shown in App. B), (2)present its syntax as a grammar that extends the Spectra ker-nel, (3) list well-formedness rules of the extended language,
+(4) discuss the scope of newly introduced named elements,
+and ﬁnally (5) present the semantics of new elements.
+Note that we deﬁne the semantics of Spectra language ele-
+ments by a translation to Spectra without the new language
+element. A direct translation to the Spectra kernel would bepossible but often more complicated because all combina-
+tions of language elements would have to be considered in the
+translation, e.g., references to deﬁnes can appear in param-eters of predicates. Instead, we present modular translationsthat allow for the combination of any subset of Spectra lan-
+guage elements. The application of all semantics deﬁning
+translations will result in a speciﬁcation in the Spectra ker-nel language. This design also ensures that extensions of the
+123
+
+--- Page 8 ---
+1560 S. Maoz, J. O. Ringert
+Spectra kernel beyond GR(1) will directly support the new
+Spectra language elements.3
+4.1 Enumerations and bounded integers
+4.1.1 Motivation
+The Spectra kernel contains only Boolean variables. How-
+ever, in many cases it is more convenient to use enumerationsof values to deﬁne the type of a multi-valued variable. As an
+example, system variable goin Lst. 2, l. 6 has values MAIN ,
+SIDE , and NONE . In expressions, these values can be used
+and compared to each other and to variables of the same type.
+Similarly, some values are best modeled using integers.
+Spectra supports a bounded integer type with lower and upperbounds. An example appears in Lst. 2where the variables
+carsMain andcarsSide are of integer type with values
+from 0 to 10 and 0 to 6, respectively. Bounded integers canbe compared to integer literals, arithmetic expressions, andother integer variables (see Lst. 2, ll. 9-11) even when their
+bounds are different.
+Spectra
+1spec TrafficLightEnumIntegers
+2
+3env Int(0..10) carsMain;
+4env Int(0..6) carsSide;
+5
+6sys {MAIN, SIDE, NONE} go;
+7
+8gar ini go=NONE;
+9gar alw carsMain >= carsSide ->
+10 next (go=MAIN);
+11gar alw carsSide > carsMain ->
+12 next (go=SIDE);
+Listing 2 An example of declaring an enumeration variable goand
+integer variables for comparing numbers of cars in a guarantee.
+4.1.2 Syntax
+The syntax of enumerations and bounded integers is shown
+in Fig. 5. Enumerations are deﬁned by production rule
+/angbracketleftenumType /angbracketrightand consist of a list of names enclosed in curly
+brackets {,}. Names of enumeration values can be referenced
+as primary expressions (Fig. 5, ll. 5–6), e.g., they can also be
+used in expressions.
+Bounded integer types in Spectra start with Int, followed
+by lower and upper bounds in parenthesis (Fig. 5, ll. 9–10).
+We also add arithmetic operators for addition, subtraction,
+multiplication, division, and modulo to Spectra, together withinequalities in Fig. 5, l. 12–13. The inequalities bind with the
+same priority as equality, and the arithmetic operators bind
+3Examples of extensions are GR(k) speciﬁcations [ 63], cooperative
+synthesis [ 7], or GR(1)* [ 3].
+Fig. 5 Syntax of enumeration types and bounded integers
+stronger than all previously introduced operators. Finally,
+we add arithmetic negation as a unary operator and integer
+constants as primary expressions in Fig. 5, ll. 15–19.
+Well-formedness rules The names of enumeration values
+must be unique and different from variable names. Equal-
+ity is the only comparison allowed for enumeration values
+and variables of enumeration type and Boolean type. Theupper bound upper of a bounded integer must be strictly
+greater than its lower bound lower. The new operators
+/angbracketleftintBinaryOp /angbracketrightand/angbracketleftintUnaryOp /angbracketrightcan only be used
+in arithmetic expressions constructed from these operators,
+primitive values /angbracketleftintVal /angbracketright, and references to integer vari-
+ables (alternative var Ref of/angbracketleftprimRef /angbracketright).
+4.1.3 Semantics
+We deﬁne the semantics of enumerations and bounded inte-
+gers by a translation into Spectra without enumerations and
+bounded integers. We translate every variable of an enumer-
+ation type with n=|vals|values to ⌈log
+2(n)⌉Boolean
+variables. To every value in vals, we assign one combina-
+tion of values of the new variables. We add initial and safety
+constraints to the speciﬁcation so that the new variables repre-sent one of the deﬁned values (important for 2
+⌈log2(n)⌉>n).
+We translate every equality expression involving enumera-
+tions to equivalent expressions over the Boolean variables
+that encode them.
+Similarly, we translate every bounded integer variable to
+⌈log2(upper −lower)⌉Boolean variables. For the trans-
+lation of bounded arithmetic expressions, we employ anencoding inspired by Bartzis and Bultan [ 4].
+123
+
+--- Page 9 ---
+Spectra: a speciﬁcation language for reactive systems 1561
+4.2 Defines and type definitions with arrays
+4.2.1 Motivation
+Speciﬁcations often contain sub-expressions that reoccur
+multiple times. In the example of the trafﬁc light, one mightexpect that many constraints refer to empty streets, for-
+mally carSide=false & carMain=false . If these
+reoccurring expressions get longer and more complicated,the overall speciﬁcation becomes harder to read and difﬁ-
+cult to maintain, e.g., when updating a condition. To support
+more concise speciﬁcations and to simplify the maintenanceof reoccurring sub-expressions, Spectra introduces deﬁnes.
+In the trafﬁc light example, we might introduce the name
+streetsEmpty for the expression carSide=false &
+carMain=false s h o w ni nL s t . 3, ll. 1-2. Assumptions and
+guarantees may then use streetsEmpty as a reference to
+the deﬁne (ll. 4-6).
+Spectra
+1define streetsEmpty :=
+2 carSide= false & carMain= false ;
+3
+4asm ini streetsEmpty;
+5gar alw streetsEmpty ->
+6 !greenMain & !greenSide;
+Listing 3 An example of a deﬁne that is used in an assumption and a
+guarantee.
+Similarly, several variables in a speciﬁcation may be of
+the same type. Here, to support more concise speciﬁcationsand to simplify the maintenance of reoccurring types, Spectra
+introduces type deﬁnitions. In Lst. 4, the enumeration type
+Item is deﬁned by a type deﬁnition in l. 1 and referenced as
+the type of a system variable in l. 4.
+Finally, the readability of some speciﬁcations beneﬁts
+from using array types rather than many individual variables.
+As an example, we deﬁne a two-dimensional array of typeItem in Lst. 4, l. 4 with both dimensions of size 10, i.e., an
+array with 100 ﬁelds. The initial guarantee in Lst. 4, l. 6 ref-
+erences a ﬁeld of the array and states that its value is ROBOT
+of the array’s type Item .
+Spectra
+1type {EMPTY, OBSTACLE , BASE, ROBOT} Item;
+2
+3// 10 by 10 map of a workspa ce of items
+4sys Item [10][10] map;
+5
+6gar ini map[0][0]=ROBOT;
+Listing 4 An example deﬁnition of type Item and a two-dimensional
+(e.g., x and y coordinates) array of items.4.2.2 Syntax
+The syntax of deﬁnes and type deﬁnitions is shown in Fig. 6.
+Deﬁnes are speciﬁcation elements and thus appear as top
+level elements inside speciﬁcations. Deﬁnes have a name andan expression. References to deﬁnes /angbracketleftdefRef /angbracketrightare primary
+expressions (Fig. 6,l .4 ) .
+Type deﬁnitions (Fig. 6, l. 8) are also speciﬁcation
+elements and thus appear as top level elements inside speci-ﬁcations. Type deﬁnitions have a name and a type.
+References to type deﬁnitions /angbracketlefttypeRef /angbracketrightare treated as
+types (Fig. 6, l. 13). We introduce array declarations in the
+same rule as references to type deﬁnitions. Array declarations
+reference a type deﬁnition and deﬁne any number of dimen-
+sions of the array. Array ﬁelds are accessed in the same wayas any other variable (Fig. 6, l. 17): a variable reference is
+followed by the coordinates of the speciﬁc ﬁeld.
+Well-formedness rules The names of deﬁnes and type deﬁni-
+tions must be unique names of elements of the speciﬁcation.Deﬁnes with the operator next may not be used in expres-
+sions where next is not allowed, e.g., deﬁnes with the
+operator next may not be nested inside the operator next .
+Note that the expression of a deﬁne is not required to evaluate
+to a Boolean value. However, the semantics of a speciﬁca-
+tion with deﬁnes and type deﬁnitions has to be a well-formedspeciﬁcation.
+Fig. 6 Syntax of deﬁnes and type deﬁnitions with arrays
+123
+
+--- Page 10 ---
+1562 S. Maoz, J. O. Ringert
+Finally, each dimension of an array needs to be positive.
+All references to array ﬁelds need to have the same numberof coordinates as the referenced array has dimensions.
+4All
+coordinates in a ﬁeld reference need to be smaller than the
+corresponding dimension of that array.Scopes The names of deﬁnes and type deﬁnitions have the
+same scope as the names of environment and system variables
+deﬁned in the Spectra kernel. The names of deﬁnes are visible
+to other deﬁnes.
+4.2.3 Semantics
+We deﬁne the semantics of deﬁnes and type deﬁnitions with
+arrays by a translation into Spectra without deﬁnes and type
+deﬁnitions. Every reference to a deﬁne is replaced by theexpression of the deﬁne. Then, we expand any variable orparameter declarations that include array declarations into
+multiple variable or parameter declarations that still include
+references to type deﬁnitions but no further array declara-tions, e.g., the array-type variable declaration in Lst. 4,l .4i s
+translated into 100 variable declarations of type Item with
+fresh names (one for each ﬁeld of the array). All references toarray ﬁelds are replaced by a reference to the corresponding,
+expanded variable or parameter. Finally, every reference to a
+type deﬁnition is replaced by the type of the type deﬁnition.
+4.3 State invariants
+4.3.1 Motivation
+Some constraints should hold in all states, e.g., the guaran-
+tee that green lights on the side and main street never occurtogether (Lst. 1, l. 13). These assumptions and guarantees
+could be expressed as combinations of initial and safety con-
+straints; however, we chose to introduce a special handlingfor state invariants to make speciﬁcations easier to read and
+write.
+5
+4.3.2 Syntax
+The syntax of state invariants is a subset of safety constraints
+from the kernel, speciﬁcally, the subset of /angbracketlefttempConstra-
+int/angbracketrightwith keyword alw where the following expression
+does not contain the operator next . If the following expres-
+sion includes the operator next , then the safety constraint is
+4Note that this does not allow for partial evaluation of a multi-
+dimensional array to a lower-dimensional array. For this task and otheruse cases Spectra provides quantiﬁcation, see Sect. 4.9.
+5Note that the common keyword Gused for alw in other GR(1) spec-
+iﬁcation languages is often confused for deﬁning state invariants (asthe LTL semantics would suggest), leading to problems we discuss inSect. 7.3.not a state invariant and will directly be interpreted as part of
+the GR(1) kernel.
+Note that this language extension does not add new syntax
+to Spectra and is implemented on the level of the semantics
+of operator alw , see Sect. 7.3.
+Well-formedness rules The expression /angbracketleftexp/angbracketrightof a state invari-
+ant may not contain the operator next . A state invariant of
+the environment, i.e., used in an assumption, may not contain
+system variables.
+4.3.3 Semantics
+We deﬁne the semantics of state invariants by a translation
+of state invariants to Spectra without state invariants. Everystate invariant is translated into an initial constraint with the
+same expression /angbracketleftexp/angbracketrightand a safety constraint (with keyword
+alw ) with the expression /angbracketleftexp/angbracketrightnested inside the operator
+next . Together, the two constraints ensure that the invariant
+holds in the initial state and in every successor state.
+4.4 PastLTL
+4.4.1 Motivation
+Assumptions and guarantees deﬁne constraints on reactive
+behavior by relating the inputs and outputs of the currentstate to those of the next state. However, in some situations
+the restriction to only current and next inputs and outputs
+becomes limiting. As an example, consider the assumptionthat a car appears on the side street at least once in every
+run. This assumption cannot directly be expressed in terms
+of current and next inputs and outputs, and also not directly asa justice assumption that would have to hold inﬁnitely often.However, this assumption is easily formalized using PastLTL
+operators supported by Spectra inside a justice assumption:
+alwEv ONCE carSide .
+4.4.2 Syntax
+We show the syntax of PastLTL expressions in Fig. 7. Spec-
+tra supports three unary PastLTL operators and one binaryPastLTL operator. For all operators Spectra also provides
+a one letter abbreviation (preceding the operator name in
+Fig. 7).
+Well-formedness rules All operands of PastLTL operators
+must evaluate to Boolean values (all PastLTL expressions
+evaluate to Boolean values).
+4.4.3 Semantics
+We deﬁne the semantics of PastLTL by a translation of
+PastLTL to Spectra without PastLTL. Recall from the pre-liminaries that the two operators PREV andSINCE provide
+123
+
+--- Page 11 ---
+Spectra: a speciﬁcation language for reactive systems 1563
+Fig. 7 PastLTL operators introduced as extensions of unary and binary
+operators
+full expressiveness of PastLTL; all other PastLTL operators
+can be deﬁned in terms of these two, e.g., the operator ONCE
+ϕused in our example is deﬁned as true SINCE ϕ. We will
+show the translation for the operators PREV andSINCE .
+Given the PastLTL expression PREV ϕ,w ec r e a t ea
+Boolean system variable aux with a fresh name. We then
+add the initial guarantee ini!aux and the safety guarantee
+alw next (aux) <=> ϕ. Technically, the variable aux
+stores the previous valuation of ϕ. Finally, we replace all
+occurrences of PREV ϕwith a reference to the new variable
+aux .
+Given a PastLTL expression ϕSINCE ψ, we create a
+Boolean system variable aux with a fresh name. We then add
+the initial guarantee iniaux <=> ψand the safety guaran-
+teealw next (aux) <=> (aux & next (ϕ)|next (ψ)).
+The variable aux is true if ψholds or if aux was true before
+andϕholds, i.e., if ϕholds since ψwas true in the past.
+Finally, we replace all occurrences of ϕSINCE ψwith a
+reference to the new variable aux .
+4.5 Predicates
+4.5.1 Motivation
+Sometimes, repeating parts that appear in speciﬁcations dif-
+fer in sub-expressions. In these cases, deﬁnes from Sect. 4.2
+cannot be used to avoid repetition. Instead, for these cases, weintroduce predicates, which can instantiate sub-expressions
+with their parameters.
+As an example, consider an extension of the trafﬁc light
+with pedestrian crossing, as shown in Lst. 5. Similar to a
+green light on the main street, a green light for pedestrians
+should also mutually exclude a green light on the side street.
+To avoid repetition and manual errors, we can extract theexpression for mutual exclusion into a predicate with two
+parameters as shown in Lst. 5, ll. 5-6. The predicate can then
+be instantiated, e.g., in a guarantee as shown in l. 8.Spectra
+1sys boolean greenMain;
+2sys boolean greenSide;
+3sys boolean greenPedestrian;
+4
+5predicate excl( boolean p,boolean q):
+6 !(p & q);
+7
+8gar alw excl(greenMain , greenSide) &
+9 excl( greenPedestrian , greenSide);
+Listing 5 An example of a predicate deﬁnition and predicate instances
+in a guarantee.
+4.5.2 Syntax
+We show the syntax of predicate deﬁnitions and predicate
+instantiations in Fig. 8. The grammar starts with the syntax
+for predicate deﬁnitions /angbracketleftpredicate /angbracketright, which are speciﬁ-
+cation elements and thus appear as top level elements insidespeciﬁcations. Predicate deﬁnitions have a name, followed
+by a list of typed parameters /angbracketlefttypedParam /angbracketright. The body of
+a predicate deﬁnition is an expression.
+Predicate instances /angbracketleftpredInst /angbracketright(Fig. 8, ll. 11–12) are
+primary expressions. Instances reference the name of a pred-
+icate and provide expressions for each parameter of thepredicate.
+Well-formedness rules All parameters of predicate instances
+must be expressions that evaluate to the type declared in thepredicate deﬁnition. The body of the predicate must be anexpression that evaluates to Boolean. The body of a predicate
+cannot (also not transitively, e.g., through predicate instances
+or deﬁnes) contain an instance of the predicate itself.
+Fig. 8 Syntax of predicates with names, parameters, and a predicate
+body over parameters
+123
+
+--- Page 12 ---
+1564 S. Maoz, J. O. Ringert
+Scopes The names of predicates have the same scope as the
+names of environment and system variables deﬁned in theSpectra kernel. As a result, the names of predicates are visible
+to other predicates. The names of parameters of the predicate
+are only visible inside the body of the predicate.
+4.5.3 Semantics
+We deﬁne the semantics of predicate instantiations and pred-
+icates by a translation into Spectra without predicates. Every
+predicate instance is translated into a Boolean expression.
+Technically, we replace a predicate instance by a copy of thebody of the predicate. In the copy, we replace references to
+predicate parameters by the expressions provided for each
+parameter.
+4.6 Monitors
+4.6.1 Motivation
+Assumptions and guarantees deﬁne constraints on reactive
+behavior by relating the inputs and outputs of the current stateto those of the next state. However, in some situations, the
+restriction of referencing only inputs and outputs becomes
+limiting. As an example, consider an extension of the trafﬁclight with a button for pedestrians to press. The system shouldguarantee that all button presses eventually lead to a green
+light for pedestrians. Yet, in our example, there is no variable
+indicating whether a request has already been served. As asolution, Spectra introduces monitors, which come with a
+deﬁnition of how their value is updated at every execution
+step. As an example, the monitor needGreenMain (Lst. 6,
+l. 6–12) is of type boolean and its value is updated on button
+presses not followed by green lights. This monitor is used in
+a guarantee (Lst. 6, l. 4) to ensure that requests are always
+eventually handled.
+Spectra
+1env boolean pedestrianBtn;
+2sys boolean greenPedestrian;
+3
+4gar alwEv !needGreenMain;
+5
+6monitor boolean needGreenMain {
+7 ini needGreenMain =
+8 (pedestrianBtn & !greenPedestrian);
+9 alw next (needGreenMain) =
+10 ((needGreenMain | pedestrianBtn) &
+11 !greenPedestrian);
+12}
+Listing 6 An example of a monitor and referencing it inside a justice
+guarantee.
+Fig. 9 Syntax of monitors with types, names, and monitor constraints
+4.6.2 Syntax
+The syntax of monitors is shown in Fig. 9. Monitors are
+speciﬁcation elements and thus appear as top level elements
+inside speciﬁcations. Monitors have a type and a name. Thebody of a monitor consists of initial and safety constraints.
+References to monitors /angbracketleftmonRef /angbracketrightare primary expres-
+sions (Fig. 9, l. 8), i.e., monitors can be referenced in the
+same way as variables.
+Well-formedness rules The names of monitors must be unique
+names of elements of the speciﬁcation. The body of a monitormay not contain justice constraints. The expression /angbracketleftexp/angbracketright
+of an initial constraint may not include the unary operator
+next . The semantics of the constraints in the body of the
+monitor must assign a unique value to the monitor in anystep, and it must not restrict any other variable (when seen
+as an automaton with the monitor variable as states and all
+other variables as input, the deﬁned automaton has to bedeterministic and complete).
+6
+Scopes The names of monitors have the same scope as the
+names of environment and system variables deﬁned in theSpectra kernel. Importantly, the name of a monitor is visiblein the constraints of the monitor.
+4.6.3 Semantics
+We deﬁne the semantics of monitors by a translation of
+monitors to Spectra without monitors. For every monitor def-inition, we create a system variable with the name and type
+of the monitor. All monitor constraints become guarantees.
+All references to the monitor become references to the newsystem variable with the same name and type.
+6This property is difﬁcult to check or ensure syntactically. See also
+Sect. 7.
+123
+
+--- Page 13 ---
+Spectra: a speciﬁcation language for reactive systems 1565
+4.7 Counters
+4.7.1 Motivation
+Some constraints require to keep track of number of occur-
+rences of cases, events, or actions, e.g., for the trafﬁc light wemight want to limit the number of steps that an ambulance on
+the main street has to wait before the light turns green. Spec-
+tra provides bounded integers and arithmetic operations (seeSect. 4.1), which in principle allow one to formulate count-
+ing. However, using them for expressing counting, based on
+explicit safety constraints, may be tedious and error prone.
+As a solution, Spectra introduces counters, which come
+with a deﬁnition of how their value is increased, decreased,
+or reset at an execution step. For example, Lst. 7shows
+a bounded counter ambulanceWait from 0 to 5 that
+increases when an ambulance waits on the main street (Lst. 7,
+l. 2). The counter is reset once the main street light is green. In
+case of overﬂows the counter’s current value is kept (Lst. 7,
+l. 4). The counter in the example is referenced in a guarantee
+that asserts that the number of steps that an ambulance waits
+is below 5.
+Using a counter, counting is encapsulated in a dedicated
+speciﬁcation element, tailored to counting related deﬁnitions.
+This hides the complexity of using safety constraints to deﬁnecounting, and makes it easier to correctly deﬁne and use vari-ables that serve as counters.
+Spectra
+1counter ambulanceWait (0..5) {
+2 inc: ambulanceMain & !greenMain;
+3 reset : greenMain;
+4 overflow : keep;
+5}
+6
+7gar alw ambulanceWait < 5;
+Listing 7 An example of a counter to count ambulance wait and a
+guarantee referencing the counter in an arithmetic expression.
+4.7.2 Syntax
+The syntax of counters is shown in Fig. 10. Counters are spec-
+iﬁcation elements and thus appear as top level elements insidespeciﬁcations. Counters have a range and a name. The body
+of a counter contains optional initial ( ini ), increment ( inc),
+decrement ( dec), and reset ( reset ) constraints. As all counters
+are bounded, a counter may declare overﬂow and underﬂow
+methods, where false means that an over-/underﬂow may not
+happen, keep preserves current counter values, and modulo
+sets the counter to the opposite bound.
+References to counters /angbracketleftctrRef /angbracketrightare primary expres-
+sions (Fig. 10, l. 8), i.e., counters can be referenced in the
+same way as variables.
+Fig. 10 Syntax of bounded counters with names, and constraints
+Well-formedness rules The names of counters must be unique
+names of elements of the speciﬁcation. The body of a countermay not contain justice constraints. The expression /angbracketleftexp/angbracketrightof
+an initial constraint ( ini ) may not include the unary operator
+next . The semantics of any inc,dec,o rreset constraints
+of the counter must be exclusive, i.e., a counter cannot be
+increased, decreased, or reset at the same time. (Spectra Tools
+checks this and reports relevant problems if found.) Countersmay only be referenced in arithmetic expressions.Scopes The names of counters have the same scope as the
+names of environment and system variables deﬁned in the
+Spectra kernel. Importantly, the name of a counter is visiblein the constraints of the counter.
+4.7.3 Semantics
+We deﬁne the semantics of counters by a translation of coun-
+ters to Spectra without counters. For every counter deﬁnition,we create a system variable of integer type with the size
+and the name of the counter. The initial counter constraint
+becomes an initial guarantee. Any inc,dec,o r reset con-
+straint of the counter becomes a safety guarantee that impliescorrect increase, decrease, or reset (to lower bound) of the
+counter variable value with respect to the chosen overﬂow
+semantics. The default underﬂow andoverﬂow methods are
+false .
+– For overﬂow type false , the guarantees for inc and
+decconstraints are expressed without checking over- or
+underﬂows, i.e., these would lead to safety guarantee vio-
+lations.
+– For overﬂow type keep , we add a case distinction to the
+guarantees for incand dec constraints to handle over-
+ﬂows and underﬂows by preserving the current countervalues.
+123
+
+--- Page 14 ---
+1566 S. Maoz, J. O. Ringert
+– For overﬂow type modulo , we add a case distinction to
+the guarantees for incconstraints to set the counter at the
+upper bound to its lower bound. Respectively, for dec
+constraints we set a counter at the lower bound to its
+upper bound.
+Finally, we add a safety guarantee where the conjunction
+of the negations of all inc,dec, and reset constraints implies
+that the counter variable does not change its value. All ref-erences to the counter become references to the new system
+variable with the same name and bounded integer type.
+4.8 Patterns
+4.8.1 Motivation
+Speciﬁcations of reactive systems require engineers to
+express complex temporal relations between environment
+and system variables. LTL provides great expressiveness fortemporal relations. However, some relations, if expressed
+directly in LTL, lead to long formulas, which might be com-
+plicated to read, challenging to write, or simply not withinthe restricted syntax of GR(1). As an example, consider the
+popular response pattern that a car on the main street even-
+tually leads to a green light. This guarantee can be expressedin LTL as follows
+7:
+G(carMain -> FgreenMain)
+Note that even this simple LTL formula is not in the GR(1)
+fragment.
+Dwyer et al. [ 21] have identiﬁed 55 LTL speciﬁcation pat-
+terns that are common in industrial speciﬁcations. They havesuggested a classiﬁcation and natural language descriptionsfor the identiﬁed patterns. The example above is one of their
+patterns and would be transcribed as:
+greenMain responds to carMain
+We have investigated patterns for GR(1) synthesis in [ 49].
+We have shown that 52 of these 55 LTL speciﬁcation patternscan be supported as assumptions and guarantees for GR(1)
+synthesis.
+8In Spectra, the example guarantee is formulated
+as a pattern deﬁnition (Spectra comes with a catalog of patterndeﬁnitions for all 52 supported LTL speciﬁcation patterns,e.g., the one shown in Lst. 8) and the pattern instantiation
+shown in Lst. 9,l .1 .
+7LTL formula taken from the patterns catalog of Dwyer et al. [ 21].
+There might be multiple ways to express an equivalent guarantee.
+8The three patterns that cannot be supported, number 23, 50, and 55,
+are among the least frequently used patterns according to the surveyreported in [ 21].Spectra
+1/**
+2* Kind: Response: s responds to p
+3* Scope : Globally
+4*L T L :G( p- >Fs )
+5*
+6* @param p triggers the response
+7* @param s is the response
+8*/
+9pattern pRespondsToS(p, s) {
+10 var { S0, S1} state;
+11 ini state=S0;
+12 alw ((state=S0 & ((!p) | (p&s)) &
+13 next (state=S0)) |
+14 (state=S0 & (p&!s) & next (state=S1)) |
+15 (state=S1 & (s) & next (state=S0)) |
+16 (state=S1 & (!s) & next (state=S1 )));
+17 alwEv (state=S0);
+18}
+Listing 8 Deﬁnition of the response pattern of Dwyer et al. [ 21]a s
+instantiated in Lst. 9. This deﬁnition was automatically generated as
+described in [ 49].
+Spectra
+1gar pRespondsToS( carMain, greenMain);
+2gar pRespondsToS( carSide, greenSide);
+Listing 9 An example instantiation of the response pattern of Dwyer et
+al. [21] as supported by Spectra.
+Note that the response pattern expresses the requirement
+of letting cars pass much better than the justice guarantee
+used in Lst. 1, l. 14, as the latter required the now unnecessary
+assumption in Lst. 1, l. 10, that always eventually cars will
+be on the main street.
+Note that Spectra patterns are not limited to the 52 patterns
+deﬁned in the catalog. Spectra provides engineers with means
+to deﬁne and reference their own patterns.
+4.8.2 Syntax
+The syntax of patterns is shown in Fig. 11. The grammar starts
+with the syntax for pattern deﬁnitions /angbracketleftpattern /angbracketright, which are
+speciﬁcation elements and thus appear as top level elements
+inside speciﬁcations. Pattern deﬁnitions have a name, fol-lowed by a list of parameter names. The body of a patterndeﬁnition can declare variables local to the pattern and tem-
+poral constraints. A pattern may contain any number of initial
+and safety constraints, but it must contain exactly one justiceconstraint.
+Pattern instances /angbracketleftpatInst /angbracketright(Fig. 11, ll. 12–13) are tem-
+poral constraints. Instances reference the name of a patternand provide expressions for each parameter of the pattern.
+Well-formedness rules The body of a pattern contains exactly
+one justice constraint. The expression /angbracketleftexp/angbracketrightof an initial
+or justice constraint may not include the unary operator
+123
+
+--- Page 15 ---
+Spectra: a speciﬁcation language for reactive systems 1567
+Fig. 11 Syntax of patterns with names, parameters, auxiliary variables,
+and pattern constraints over auxiliary variables and parameters
+next . The expression /angbracketleftexp/angbracketrightof a safety constraint may only
+include references to pattern variables vars in the scope of
+the operator next . The semantics of the initial and the safety
+constraints must assign a unique value to all pattern variables
+in any step and must not restrict any other variable (whenseen as an automaton with the pattern variables as states andall other variables as input, the deﬁned automaton has to be
+deterministic and complete).
+9
+The production /angbracketleftpatInst /angbracketrightmay only appear exclusively
+as a temporal constraint in assumptions or guarantees, i.e., it
+can appear neither inside another expression nor in any other
+place in a speciﬁcation.Scopes The names of pattern parameters params , and the
+names of pattern variables vars, are only visible inside the
+body of the pattern, delimited by/braceleftbig/bracerightbig
+, The names of pat-
+terns are visible beyond speciﬁcation ﬁles and thus can beimported, Sect. 4.10 . This is important for the ability to
+reuse patterns across speciﬁcations.
+4.8.3 Semantics
+We deﬁne the semantics of patterns by a translation of pat-
+tern instances and patterns to Spectra without patterns. For
+every pattern instance, we create a copy of all pattern vari-
+ables as system variables with a fresh name and the sametype. We instantiate pattern constraints by replacing refer-ences to pattern variables with references to the fresh names
+and by replacing references to variable names with copies of
+the corresponding expression of the parameter values from
+pVals .
+9This property is difﬁcult to check syntactically. See also Sect. 7.Instantiated initial pattern constraints become initial guar-
+antees; instantiated safety pattern constraints become safetyguarantees; the instantiated justice constraint becomes a jus-
+tice assumption if the pattern instance is contained inside an
+assumption; and the instantiated justice constraint becomesa justice guarantee if the pattern instance is contained insidea guarantee (the formal translation appears in [ 49]).
+4.9 Quantification
+4.9.1 Motivation
+Arrays, integers, and counters allow for very succinct speci-
+ﬁcations. However, some constraints apply to ﬁelds of arrays
+or for speciﬁc values of integer variables. Writing these con-
+straints could become very repetitive. To ensure that thiskind of repetitive constraints can be written succinctly inSpectra, we introduce universal and existential quantiﬁca-
+tion. Consider the example shown in Lst. 10. The universal
+quantiﬁcation in l. 5 states that either the current value ofpos ispor active pickup requests at position pstay active.
+Spectra
+1type Position = Int(0..5);
+2env Position pos; // current position pos
+3env boolean [5] reqPickUp; // pickup
+requests at positions
+4
+5gar alw forall pinPosition. pos = p | (
+reqPickUp[p] -> next (reqPickUp[p]));
+Listing 10 An example of a universal quantiﬁcation over an integer
+type used inside a comparison with another integer variable and foraddressing the ﬁelds of a Boolean array
+4.9.2 Syntax
+The syntax for quantiﬁcation is shown in Fig. 12.A
+quantiﬁed expression /angbracketleftquantExp /angbracketrightstarts either with the
+universal quantiﬁer forall or with the existential quantiﬁer
+exists . The quantiﬁer is followed by a variable name and its
+domain. Finally, a quantiﬁed expression contains an expres-
+sion/angbracketleftexp/angbracketright.
+Fig. 12 Grammar for universal and existential quantiﬁcation in Spectra
+123
+
+--- Page 16 ---
+1568 S. Maoz, J. O. Ringert
+We also extend the syntax of references to array ﬁelds.
+Array ﬁelds can be indexed by names of quantiﬁed variablesin addition to integer literals (as shown in Fig. 6).
+Well-formedness rules Replacing the quantiﬁed variable by
+any literal from its domain makes the quantiﬁed expressionwell-formed. Only quantiﬁed variables of integer types mayindex ﬁelds of arrays.
+Scopes The names of quantiﬁed variables are visible inside
+the quantiﬁed expression.
+4.9.3 Semantics
+We deﬁne the semantics of quantiﬁcation by a translation
+of quantiﬁcation to Spectra without quantiﬁcation. Start-
+ing from inner-most quantiﬁed expressions, every universalquantiﬁcation is replaced by a conjunction of copies of the
+quantiﬁed expression, where every occurrence of the quanti-
+ﬁed variable is replaced by a different value from its domain.Similarly, every existential quantiﬁcation is replaced by adisjunction.
+4.10 Imports
+4.10.1 Motivation
+We have motivated many language features of Spectra based
+on reuse. In all cases, a reuse within a single speciﬁcation
+makes sense. In some cases, a reuse across speciﬁcations isalso desirable. As an example, patterns, e.g., from the cata-
+log of Dwyer et al. [ 21] or domain-speciﬁc pattern collections
+for mobile robots [ 59], are general and should be useful for
+many different speciﬁcations. Thus, to support reuse acrossspeciﬁcations, we have added an import mechanism to Spec-
+tra. A speciﬁcation can import other speciﬁcations and thus
+use their patterns and predicate deﬁnitions (see Sect. 4.5and
+Sect. 4.8).
+4.10.2 Syntax
+The syntax of imports is shown in Fig. 13. We extend speciﬁ-
+cations with import statements. Each import statement startswith the keyword import , contains a ﬁlename in quotation
+marks, and ends with a semicolon.
+Fig. 13 Grammar for imports in SpectraWell-formedness rules The names of patterns and predicates
+in all imported and in the current Spectra ﬁles must be unique.The bodies of all (transitively) imported predicates may only
+contain references to other predicates and their parameters
+(e.g., they may not reference system or environment variablesor deﬁnes from other speciﬁcations
+10).
+4.10.3 Semantics
+We deﬁne the semantics of imports by a translation of imports
+to Spectra without imports. Given a Spectra ﬁle with imports,
+we copy all (transitively) referenced patterns of the importedﬁles into the current ﬁle. We also copy all (transitively) refer-enced predicates into the current ﬁle and remove the import
+statements.
+5 Spectra Tools
+Spectra comes with Spectra Tools, a set of analyses and tools
+packaged as an extensible set of Eclipse plug-ins. A rich
+Eclipse editor for Spectra is implemented using XText [ 77].
+All symbolic representations and operations are carried outusing a BDD library (several libraries can be used, including,
+e.g., CUDD [ 72]).
+Spectra Tools is available from [ 73], together with a user
+guide and many example speciﬁcations. Beyond the SYN-
+TECH speciﬁcations we describe in Sect. 6, the examples on
+the Spectra website include speciﬁcations and simulationsfor some classic problems, such as the Towers of Hanoi,Cinderella and her stepmother, moving obstacle evasion, etc.
+We encourage the interested reader to try them out.
+We now give an overview of the architecture of Spectra
+Tools and how it supports language extensions, including the
+ones presented in Sect. 4.
+5.1 Spectra Tools Architecture
+We have built Spectra Tools in a modular way that supports
+separation of concerns and reduces technological depen-dencies. The main concerns of Spectra Tools are the input
+language syntax, the deﬁnition of semantics of language con-
+structs in terms of the Spectra kernel, a representation of thesemantics of Spectra at the BDD level, analyses and tools that
+operate on this BDD-based representation, and a UI layer.
+These concerns (shown as gray, rounded boxes) are reﬂectedin a set of components shown in Fig. 14.
+Spectra Tools deﬁnes a rich abstract syntax representation
+of Spectra including its kernel and all language elements
+10Note that these references from predicates are allowed in general
+(see Sect. 4.5) and are very convenient to use.
+123
+
+--- Page 17 ---
+Spectra: a speciﬁcation language for reactive systems 1569
+Fig. 14 A component diagram of Spectra Tools showing main compo-
+nents and their /lessmuchuses/greatermuchrelations
+inside component GameInput . The semantics of all lan-
+guage elements as presented in Sect. 4is deﬁned by transfor-
+mations of the abstract syntax. All these transformations are
+implemented in component GameInputTrans , e.g., the
+component contains a class CounterTranslator , which
+implements the translation described in Sect. 4.7.3 , a class
+QuantifierTranslator , which implements the trans-
+lation described in Sect. 4.9.3 ,e t c .11
+Component BddGenerator takes the abstract syntax of
+the Spectra kernel and translates it into a BDD-based repre-
+sentation deﬁned by component GameModel . Importantly,
+this representation is completely independent of any con-
+crete or abstract syntax of Spectra. Together with component
+Games , a structure that encodes the Spectra kernel semantics
+as described in Sect. 3.3is provided.
+GR(1) synthesis, implemented in component GR1 , and
+additional more advanced analyses, e.g., componentWellSeparation (see Sect. 5.6), rely on the represen-
+tation provided by component GameModel . We describe
+some of the different analyses and tools in the following sub-
+sections below.
+Finally, Spectra Tools provides a UI integrated into Eclipse
+that enables engineers to apply analyses to speciﬁcations. The
+component SpectraToolsUI in Fig. 14implements the
+UI. It has dependencies that go all the way up to the level of
+the input language, as the UI orchestrates the execution of
+the parser, the translations, and the analyses chosen by theengineer.
+11A single exception is translation of bounded integers and arithmetic
+operations, which is implemented in component BddGenerator for
+performance considerations following [ 4].Two main advantages of the Spectra Tools architecture,
+as we show in Fig. 14, are (1) its separation of technolog-
+ical and representation concerns and (2) its modularity. As
+an example, the separation of technological concerns allows
+for replacing XText by other language workbenches or anAPI-based use of Spectra Tools (indeed, in addition to theEclipse-based plug-ins, we provide a command line inter-
+face that is independent of Eclipse). As another example, the
+modular semantics deﬁnition per language element insidecomponent GameInputTrans leads to small and easily
+testable translations implementing the semantics of each of
+the language elements described Sect. 4.
+We now give an overview of the different analyses and
+tools. All the features described below are implemented in
+Spectra Tools.
+5.2 Realizability checking
+First and foremost, Spectra Tools provides means to check
+whether a speciﬁcation is realizable, i.e., whether there exists
+a controller that can ensure all guarantees given that allassumptions hold. The check is implemented as part ofcomponents GR1 and made available through component
+SpectraToolsUI shown in Fig. 14.
+As an example, Spectra tools returns a positive result when
+checking realizability for the speciﬁcation from Lst. 1.T h e
+value of checking realizability without construction a con-
+troller is that this check is usually much faster than controllerconstruction.
+The algorithm for realizability checking follows [ 10], but,
+importantly, incorporates a number of performance heuris-tics from [ 28]. We have implemented heuristics in two levels.
+At the BDD and controlled predecessors computation level,
+we use grouping of variables and their primed copies, com-
+bined conjunction and existential abstraction, and the use ofa partitioned transition relation. At the algorithmic level, we
+use early detection of ﬁxed-point, early detection of unreal-
+izability, and ﬁxed-point recycling.
+As empirically shown in [ 28], the combination of all these
+heuristics provides improvements in realizability checking
+running times. Moreover, the greatest improvement is forspeciﬁcations that have slower original running times. Thisis a positive result, as these speciﬁcations are the ones it is
+most important to address in order to make reactive synthesis
+more useful and applicable in practice.
+Finally, the evaluation in [ 28] also shows that thanks
+to these heuristics, Spectra outperforms two previously
+published tools, RATSY [ 6] and Slugs [ 22], on large spec-
+iﬁcations. While for small speciﬁcations, the other tools
+running times for realizability checking are better than Spec-
+tra’s, the larger the speciﬁcation, the faster Spectra becomesrelative to the two other tools.
+123
+
+--- Page 18 ---
+1570 S. Maoz, J. O. Ringert
+For details about these heuristics and their evaluation,
+including the details of the comparison against RATSY andSlugs on speciﬁcations from the literature, we refer the reader
+to [28].
+5.3 Synthesis of concrete and symbolic controllers
+Beyond realizability checking, Spectra Tools includes two
+synthesis features, which take the speciﬁcation as input and
+output a correct-by-construction controller, if one exists.
+After a series of basic checks and translations, synthesis isperformed symbolically following the algorithms describedin [10], with performance heuristics adapted from [ 28] (see
+above in Sect. 5.2).
+As an example, for the speciﬁcation from Lst. 1Spectra
+Tools computes a controller that waits for a car to appear on
+the side street, gives a green light to that car, waits for a car
+to appear on the main street, gives a green light to that car,and repeats this process indeﬁnitely.
+The engineer can choose the form of the synthesis output.
+First, the output may be a concrete controller, which is fur-ther presented in the console or used for application-speciﬁccode generation. As the concrete controller is complete for
+the environment and deterministic for the system, i.e., in
+every state it accepts all inputs from the environment anddeterministically responds with an assignment to the system
+variables, it allows for straightforward application-speciﬁc
+code generation.
+Second, the output may be a symbolic controller, follow-
+ing ideas from [ 10]. Roughly, the symbolic controller consists
+of two functions, represented using BDDs. The ﬁrst BDDdescribes the set of allowed initial states, while the seconddescribes the controller’s allowed transitions. The engineer
+can save it and execute it, see below in Sect. 5.4.
+One advantage of the concrete controller output is that it
+enables direct code generation. When it is very small, it is
+also simple to read and inspect. In our experience however,
+the concrete representation does not even scale to systemslike the autonomous Lego robots we describe in Sect. 6.I t s
+generation is slow, due to the need to enumerate all states, and
+its size is beyond what any engineer can manually inspect.Moreover, sometimes the size of straightforward generatedcode prohibits compilation.
+12All these disadvantages moti-
+vated us to design and implement the symbolic controller.
+Finally, we have recently presented just-in-time reactive
+synthesis (JITS) [ 58], and implemented it in Spectra Tools.
+JITS accelerates synthesis time signiﬁcantly, as it skips the
+symbolic controller construction all together. Instead, nextstates are computed at the controller’s execution time, only
+12As an example, a code generator for Java generating if-statements to
+check all inputs easily creates methods larger than 64kB, which is thesize limit for the Java compiler.when they are required. JITS itself is symbolic, and takes
+advantage of the symbolic representation of the results ofrealizability checking.
+5.4 Controller execution
+Spectra Tools provides several different means to execute and
+simulate the synthesized controller, concrete or symbolic.
+This functionality is implemented as part of components GR1
+andControllerRunner shown in Fig. 14.
+First is code generation from concrete controllers. The
+concrete controller is directly translated to a simple imple-
+mentation of a state machine. We currently have application-speciﬁc Java code generation tailored to run on Lego NXT
+robots.
+Second is an execution API for symbolic controllers. The
+symbolic controller is loaded and iteratively called, at run-
+time, with the current inputs from the environment, to provide
+the next outputs (assignment to system variables). This run-time environment requires a BDD library; however, its useis limited to single calls to extract a satisfying assignment.
+Our students have used this API to execute their Lego robots
+(where the actual execution runs on a Raspberry Pi) and todevelop some small example standalone Java applications.
+Third is a simulation environment, inside Eclipse, we call
+Controller Walker. The Walker uses the execution API forsymbolic controllers. It shows the engineer the current state
+of the controller (values of environment and system vari-
+ables) and allows her to ‘walk’, step by step, forward andbackward, on its transition system. It serves as the main toolfor closely inspecting the behavior of the synthesized con-
+troller.
+5.5 Analyses of unrealizability
+One of the challenges of writing speciﬁcations for synthesis
+is unrealizability. Spectra Tools provides several means todeal with unrealizable speciﬁcations.
+As an example for an unrealizable speciﬁcation, consider
+the speciﬁcation from Lst. 1where the two assumptions
+alwEv carSide andalwEv carMain are replaced by
+a single, similar assumption:
+alwEv carSide |carMain
+Identifying unrealizability and computing an unrealizable
+core When synthesis fails due to unrealizability, the engi-
+neer receives an appropriate message. Then, she can ask to
+compute an unrealizable core, i.e., a locally minimal subset ofthe speciﬁcation’s guarantees, which already makes it unre-
+alizable. Spectra Tools computes the core using DDmin [ 79],
+following ideas described in [ 39] and with heuristics inves-
+tigated in [ 28]. The core guarantees are highlighted on the
+123
+
+--- Page 19 ---
+Spectra: a speciﬁcation language for reactive systems 1571
+speciﬁcation (using Eclipse standard editor markers). The
+user guide in [ 73] includes example screenshots.
+In the example above, Spectra Tools highlights the guar-
+antee alwEv carMain &greenMain as an unrealizable
+core (the other justice guarantee in Lst. 1equally constitutes
+another unrealizable core).Computing a concrete counter-strategy Given an unreal-
+izable speciﬁcation, the engineer can generate a concrete
+counter-strategy, which speciﬁes one strategy for the envi-ronment to force any system to violate the speciﬁcation. The
+counter-strategy is computed by playing a Rabin game, fol-
+lowing the algorithm from [ 39,56]. The counter-strategy can
+be presented in simple textual format on the console. It can
+also be interactively simulated, together with the JVTS, see
+next.
+In the example above, Spectra Tools computes a strat-
+egy for the environment that satisﬁes the modiﬁed justice
+assumption always by setting carSide to true but con-
+stantly setting carMain to false. This makes it impossible
+for any controller to satisfy the justice guarantee alwEv
+carMain &greenMain .
+Computing a JVTS As concrete counter-strategies may be
+very large and difﬁcult to understand, we have recently pre-
+sented the Justice Violations Transition System (JVTS), a
+symbolic representation of a counter-strategy [ 43]. The JVTS
+is much smaller and simpler than its corresponding concretecounter-strategy. Moreover, it is annotated with invariants
+that explain how the counter-strategy forces the system to
+violate the speciﬁcation. We compute the JVTS symbolically,and thus more efﬁciently, without the expensive enumeration
+of concrete states. We provide the JVTS with an on-demand
+interactive concrete and symbolic play. See [ 43]. The JVTS
+computation is implemented as part of component JVTS
+shown in Fig. 14.
+Suggestions of repairs for unrealizable speciﬁcations Given
+an unrealizable speciﬁcation, a repair is a set of assumptionsthat one may add to the original speciﬁcation in order to
+make it realizable. Spectra Tools implements two symbolic
+algorithms for computing repairs, one based on the JVTS,which may suggest many possible repairs but is incomplete,
+and a second algorithm, which is sound and complete but
+only computes a single repair, if one exists. See [ 53]. This
+repair functionality is implemented as part of components
+Repair andRepairUI shown in Fig. 14, and depends on
+component JVTS .
+In the example above, Spectra Tools suggests the interest-
+ing repair alwcarMain =carSide .
+5.6 Analyses of non-well-separation
+One way a controller may satisfy a speciﬁcation is by pre-
+venting the environment from satisfying the assumptions,without satisfying the guarantees. Although valid, this solu-tion is usually undesired. Speciﬁcations that allow it are
+called non-well-separated [ 38]. In [ 51] we have shown that
+non-well-separation is a common problem in speciﬁcations.
+The well-separation check is implemented as part of compo-
+nentWellSeparation shown in Fig. 14, which depends
+on component GR1 .
+As an example, consider the speciﬁcation from Lst. 1with
+the additional assumption alwEv carSide &greenSide .
+While Spectra Tools conﬁrms that the original speciﬁcationis well-separated, it ﬁnds that the modiﬁed version is not.
+The reason for non-well-separation is that the system could
+always set greenSide to false and thus force the environ-
+ment to violate the new assumption.
+13
+Spectra Tools provides means to identify and investigate
+non-well-separation. The engineer can check her speciﬁ-cation for well-separation. If the speciﬁcation is not well-separated, information about the speciﬁc type of non-well-
+separation found is displayed. Furthermore, the engineer
+can ask to compute a strategy that shows how the envi-ronment can be forced to violate its assumptions. Finally, a
+non-well-separation core, a minimal set of assumptions that
+leads to non-well-separation, can be computed (again, usingDDmin [ 79]), and highlighted on the speciﬁcation (using
+Eclipse standard editor markers). See [ 51].
+5.7 Additional analyses
+Spectra Tools provides several additional analyses that aim
+at helping engineers write higher-quality speciﬁcations. We
+give some examples below.
+First, some assumptions and guarantees may be trivially
+false or trivially true. Clearly, such assumptions or guaran-tees point to a problem in the quality of the speciﬁcation,
+even when they are just redundant. We provide a basic anal-
+ysis that looks for such trivial assumptions and guaranteesand highlights them to the engineer. Furthermore, we have
+recently presented a more general and comprehensive work
+on detecting inherent vacuities [ 57]. Intuitively, a speciﬁ-
+cation is inherently vacuous if one or more of its elements
+is logically redundant, i.e., removing it will not change the
+semantics of the speciﬁcation. We deﬁne and detect severalkinds of vacuities, as well as a vacuity core, which localizesthe cause of vacuity. All these analyses are implemented in
+Spectra Tools.
+Second, some Spectra language elements are not easy to
+write correctly. For example, monitors contain constraints
+inside their body that should only restrict the monitor variable
+itself. However, it is easy to mistakenly write constraints thatare contradicting or constraining other variables. These mal-
+13Note though, that in many cases, Spectra Tools does not exploit non-
+well-separation, e.g., in our example, it again computes the controllerdescribed in Sect. 5.3.
+123
+
+--- Page 20 ---
+1572 S. Maoz, J. O. Ringert
+formed monitors might lead to unrealizability of the whole
+speciﬁcation. Spectra Tools implements checks and high-lighting for monitors to rule out this reason for unrealizability.
+Finally, as one would expect from an engineer-friendly
+editor for writing and reading speciﬁcations, Spectra Toolseditor provides an outline, syntax coloring, type checks, andspeciﬁcation completion. These are implemented by taking
+advantage of the rich XText [ 77]A P I s .
+6 Collections of Spectra speciﬁcations
+Over the last ﬁve years (in 2015, 2017, 2019, and 2020),
+small teams of 3rd year Computer Science undergraduate
+students from Tel Aviv University, have used Spectra and
+Spectra Tools in four-semester long project classes we havetaught. In the ﬁrst two project classes, in 2015 and in 2017, the
+students have developed about 10 different autonomous Lego
+robots, which they wrote the speciﬁcations for, and actuallybuilt and run.
+14In the third and fourth project classes, in
+2019 and 2020, the students have developed several example
+systems with a PC-based simulation. From these classes, wehave collected over 320 versions of speciﬁcations, all writtenby these students as they worked on their projects for several
+months.
+In the ﬁrst two instances of the class, our choice of Lego as
+the underlying robotics technology for initial experience with
+Spectra was motivated by its relatively low cost and its mod-
+ularity, allowing us to gain experience from several differentrobots, e.g., a robot sorting Lego pieces by color, an elevator
+servicing different ﬂoors, a self-parking Lego car, each per-
+forming very different tasks. Furthermore, although differentin detail and scale, the use of the Lego robots provided us withconcrete examples of some of the challenges one expects to
+encounter with real-world robotic technologies, such as the
+inaccuracy of sensor readings, and the limitations in termsof battery, memory, and computation power. In the 2019 and
+2020 classes we have decided to extend our experience with
+systems outside the autonomous robots domain, and there-fore suggested other target systems for the students to specify
+and develop simulations for.
+From this experience, we have learned a lot about the
+challenges of writing speciﬁcations for synthesis and using itin practice. We developed some of the tools described above
+as a result of what we learned when guiding the students
+through the projects in the four classes.
+Thus, the SYNTECH15, SYNTECH17, SYNTECH19,
+and SYNTECH20 collections of speciﬁcations we describe
+below, (SYNTECH for short), were notcreated speciﬁcally
+for the evaluation in our paper but as part of the ordinary
+14More information including short videos are available from http://
+smlab.cs.tau.ac.il/syntech/lego .work of the students in the project class. In total, we have
+collected 327 ( =78+149+27+73) speciﬁcations. We
+consider these speciﬁcations to be the most realistic and rel-
+evant examples one could ﬁnd for the purpose of learning
+about the challenges of using reactive synthesis in practice.We made them available for download in [ 73].
+It is important to note the background of the students
+and what we have taught them. All students were third-year
+computer science undergrads at Tel Aviv University. All hadlearned Python, Java, and C++ in other classes. All have com-
+pleted basic classes on data structures, computer architecture,
+and algorithms. Some had limited industry experience assoftware developers. None had knowledge of formal methods
+or any experience with formal veriﬁcation tools. We taught
+them the syntax and semantics of Spectra, while coveringonly the very basic syntax and semantics of LTL required,i.e., we taught them the semantics of GandGF, but did not
+teach the syntax and semantics of the LTL U(until) opera-
+tor and the fact that temporal operators can be nested. Weshowed them a few example systems that we have created.
+We did not teach them anything about the inner workings of
+GR(1) synthesis, BDDs, ﬁxed-point algorithms, etc.
+Thus, it is also important to discuss the quality of the
+speciﬁcations in the four collections. All speciﬁcations were
+written by teams of 2-5 third-year students. They wrote thespeciﬁcations in order to get their robots and systems runningand working correctly—as they did eventually, satisfying an
+initial set of high-level requirements one may expect from
+such robots and systems. They wrote them neither in orderto make best use of the language features of Spectra, nor
+to look for its advantages or challenges, nor to create high-
+quality examples of great speciﬁcations. One team gave upin the middle of the project, not for any reason related to the
+project itself (Elevator project in SYNTECH15 collection).
+We still include the speciﬁcations they wrote in the collection.
+We consider the above characteristics to be both a strength
+and a weakness of these speciﬁcations. A weakness, because
+they cannot be used to demonstrate Spectra best-practices,
+reusable solutions, etc., they may include all kinds of redun-dancies, use of inconsistent or misleading variable and value
+names, partial or inaccurate documentation, etc. A strength,
+because they provide a ﬁrst example of speciﬁcations, soft-ware engineers may write when given a synthesis-based
+development environment for reactive systems in order to
+make the systems they develop work.
+In the remainder of this section, we present the SYNTECH
+collections with an overview of each collection. We conclude
+with aggregated statistics that give a rough idea about the size
+and complexity of the speciﬁcations that the students wrote.
+123
+
+--- Page 21 ---
+Spectra: a speciﬁcation language for reactive systems 1573
+6.1 Collection SYNTECH15
+In the class we taught in 2015, the students have cre-
+ated the following robots: ColorSort—a robot sorting Lego
+bricks by color; Elevator—an elevator servicing differentﬂoors (incomplete); Humanoid—a mobile robot of humanoidshape; PCar—a self-parking car; Gyro—a robot with self-
+balancing capabilities; and SPCar—a second project of a
+self-parking car.
+We call this set of speciﬁcations SYNTECH15. The set
+consists of 78 speciﬁcations of which 61 are realizable and
+17 are unrealizable.
+6.2 Collection SYNTECH17
+We have re-taught a similar project class two years later
+with an improved set of tools that implemented some of
+the analyses described in Sect. 5(i.e., including analysis
+of non-well-separation, but excluding JVTS and repair). Inthis class, the students have created the following robots:
+APShuttle—a shuttle car that moves passengers between
+several stations and returns to a designated station for mainte-nance; ConvoyCar—a robot car driving in a convoy following
+a line and evading obstacles; Elevator—an elevator with auto-
+matic doors and several modes of operation; RobotArm—arobotic arm that moves objects; and SimpleCar—a self-
+parking car.
+We call this set of speciﬁcations SYNTECH17. The set
+consists of 149 speciﬁcations of which 123 are realizableand 26 are unrealizable.
+6.3 Collection SYNTECH19
+We have re-taught a similar project class in 2019, in whichthe students were able to use an improved set of toolsthat implemented all of the analyses described in Sect. 5
+(except repairing of unrealizable speciﬁcations, which we
+made available in Spectra Tools only after the class ended)as well as new language features including arrays and counter
+deﬁnitions. Spectra Tools was also, by then, more stable (with
+less bugs), faster (already employing some of the heuristicspresented in [ 28]), and better documented for its users.
+In this class, the students were divided into 6 teams. Two
+teams developed a controller for the trafﬁc lights of a 4-way
+junction. Three teams developed a controller for an automaticteller machine (ATM). One team developed a controller for an
+irrigation system. All wrote a speciﬁcation and a correspond-
+ing Java simulation with interactive GUI that allows one toexecute and play with the synthesized (symbolic) controller.
+We call this set of speciﬁcations SYNTECH19. The set
+consists of a total of 27 speciﬁcations, including the ﬁnalversion that the students have submitted, some additionalvariants that the students have submitted, and other speciﬁ-
+cations from the version control of the projects.
+6.4 Collection SYNTECH20
+Finally, we have re-taught a similar project class in 2020, inwhich the students were able to use an improved documen-
+tation and improved set of tools that implemented all of the
+analyses described in Sect. 5.
+In this class, the students were divided into 8 teams. Three
+teams chose to develop a smarthome system. The other teams
+developed a controller for a smart neighborhood simulation,for an airport control tower, for a parking lot managementsystem, and for an elevator. All wrote a speciﬁcation and
+a corresponding Java simulation with interactive GUI that
+allows one to execute and play with the synthesized (sym-bolic) controller.
+We call this set of speciﬁcations SYNTECH20. The set
+consists of a total of 73 speciﬁcations, including the ﬁnalversion that the students have submitted, some additional
+variants that the students have submitted, and other speciﬁ-
+cations from the version control of the projects.
+6.5 Statistics for SYNTECH collections
+Table 1presents statistics about the speciﬁcations in the SYN-
+TECH15, SYNTECH17, SYNTECH19, and SYNTECH20
+collections. The data give a rough idea about the size and
+complexity of the speciﬁcations that the students wrote andactually used to run their systems. While in all collections
+we have several versions of speciﬁcations for each system
+(between 4 and 45 versions per speciﬁcation, most realiz-able, some unrealizable), we show here only the statistics forthe last speciﬁcation submitted by each students team, which
+is, as one would expect, realizable.
+For each speciﬁcation, the table shows the number of lines
+of speciﬁcation including comments (lines of spec); number
+of environment (# env var decls) and system (# sys var decls)
+variable declarations—of variables of any type, e.g., integeror enumeration types (also, an array of any size is counted
+as one variable declaration); number of environment (# bool
+env vars), system (# bool sys vars), auxiliary (# bool auxvars) variables, as well as total number of variables (# booltotal vars)—these numbers refer to Boolean variables, i.e.,
+the variable count after the translation to the Spectra kernel;
+number of initial assumptions and guarantees (# ini asm/gar),number of safety assumptions and guarantees (# safety asm/-
+gar), number of justice assumptions and guarantees (# justice
+asm/gar)—excluding any assumptions or guarantees createdby translations; number of pattern instances (# pattern inst),
+as well as total number of assumptions and guarantees (# total
+asm/gar)—including pattern instances; number of PastLTLoperators (# past operators), number of deﬁnes (# deﬁnes),
+123
+
+--- Page 22 ---
+1574 S. Maoz, J. O. RingertTable 1 Statistics for the last speciﬁcations submitted by the students in SYNTECH15, SYNTECH17, SYNTECH19, and SYNTECH20 collections
+Speciﬁcation # lines of
+spec#e n vv a r
+decls#s y sv a r
+decls# bool env
+vars# bool sys
+vars# bool aux
+vars# bool
+total vars# ini asm # ini gar # safety
+asm#s a f e t y
+gar
+SYNTECH15 ColorSort 176 8 10 12 14 6 32 0 4 2 28
+E l e v a t o r 3 2 1122040110G y r o 1 2 1 42654 1 53219Humanoid 257 4 7 5 18 10 33 1 4 3 30P C a r 2 2 65 4 81 11 02 9 1 1 33 8S P C a r 5 5 8 367 1 58 3 0010 4 9
+Median 201 4 5 6.5 12.5 7.0 29.5 0.5 1.5 1.5 29.0
+SYNTECH17 APShuttle 471 15 5 16 6 23 45 1 1 9 17
+Elevator 414 8 4 12 6 15 33 4 1 12 26RobotArm 602 8 6 24 10 18 52 4 5 14 21SimpleCar 267 7 4 14 12 19 45 1 1 11 42C o n v o y C a r 1 0 6 3367 1 0 2 3010 1 0
+Median 414 8 4 14 7 18 45 1 1 11 21
+SYNTECH19 Junction I 228 5 2 25 8 11 44 0 0 13 5
+Junction II 404 10 8 34 20 22 76 0 0 20 14Irrigation 159 9 2 50 4 2 56 2 0 11 51A T M I 1 2 3 63933 1 511 1 79A T M I I1 3 0 45773 1 7129 1 2ATM III 179 5 8 10 13 5 28 1 1 12 15
+Median 169 5.5 4 17.5 7.5 4 36 1 0.5 12.5 13
+SYNTECH20 S. Neighborhood 213 5 5 19 14 11 44 3 4 10 24
+A i r t r a f ﬁ c2 4 491 7 91 7 93 5 1 3 22 3P a r k i n g I8 8 44884 2 00137SmartHome I 199 5 8 13 10 2 25 5 0 25 12SmartHome II 220 8 15 12 19 23 54 5 10 19 61SmartHome III 273 16 22 29 45 13 87 1 3 12 37A V 155 6 4 18 7 1 26 0 0 0 40Elevator 227 6 4 27 16 0 43 6 3 8 32
+Median 216.5 6 6.5 15.5 15 6.5 39 2 3 9 28
+123
+
+--- Page 23 ---
+Spectra: a speciﬁcation language for reactive systems 1575Table 1 continued
+Speciﬁcation # justice
+asm#j u s t i c e
+gar# pattern
+inst#t o t a l
+asm/gar#p a s t
+operators# deﬁnes # predi-
+cates# monitors # pattern
+defs# counter
+defs# array
+defs
+SYNTECH15 ColorSort 3 1 4 42 2 3
+E l e v a t o r 030 5 00G y r o 1242 2 03Humanoid 0 1 4 43 7 0P C a r 2114 7 1 40S P C a r 0175 8 1 2 2
+Median 0.5 1.0 4.0 42.5 1.5 1.5
+SYNTECH17 APShuttle 1 5 5 39 1 13 1 15 0
+E l e v a t o r 0455 2 4 2 9070RobotArm 0 4 0 48 0 17 9 0 0S i m p l e C a r 41 1 47 4 1 06000C o n v o y C a r 0341 8 0 2 1010
+Median 0 4 5 48 1 17 0 1 0
+SYNTECH19 Junction I 6 0 8 32 3 1 4 0 0 0 6
+Junction II 2 8 12 56 0 6 8 10 0 0 16Irrigation 1 0 1 64 0 6 0 0 0 0 0A T M I 0002 7 0 1 4010 1 0A T M I I 0002 3 01000 1 0A T M I I I 1113 1 0 2 6020 1 0
+Median 1 0 1 31.5 0 6 0 1 0 0.5 0
+SYNTECH20 S. Neighborhood 11 8 0 60 0 9 8 0 0 0 4
+A i r t r a f ﬁ c 1 0925 0 0 1 2000 2 0P a r k i n g I7001 8 02100 1 2SmartHome I 21 3 0 66 0 0 7 0 0 0 0S m a r t H o m e I I 442 1 0 5 1 68000 2 0S m a r t H o m e I I I 8006 1 07500 3 0A V 5214 8 02 1 000 0 4Elevator 0 17 0 66 0 1 0 0 0 0 10
+Median 7.5 3.5 0 60.5 0 4.5 3 0 0 0.5 1
+123
+
+--- Page 24 ---
+1576 S. Maoz, J. O. Ringert
+number of predicate deﬁnitions that are used at least once
+(# predicates), number of monitors (# monitors), number ofpattern deﬁnitions beyond the Dwyer et al. patterns (# pat-
+tern defs), number of counter deﬁnitions (# counter defs),
+and number of array deﬁnitions (# array defs).
+We provide the following preliminary observations from
+the data in the table. First, note that the speciﬁcations are not
+very small and are not trivial. For example, in SYNTECH15
+to SYNTECH20, number of lines of speciﬁcation (includ-ing comments) ranges from 32 to 602 (medians 201, 414,
+169, 216.5 resp.). The total number of Boolean variables, i.e.,
+the variable count after the translation to the Spectra kernel,ranges from 4 to 87 (medians 29.5, 45, 36, and 39 resp.).
+The total number of assumptions and guarantees, excluding
+any assumptions or guarantees created by translations, rangesfrom 5 to 105 (medians 42.5, 48, 31.5, 60.5 resp.).
+Second, note some use of advanced language features
+beyond pure GR(1), e.g., PastLTL, monitors, patterns, coun-
+ters, or arrays; however, the use of these advanced featuresvaries much between speciﬁcations and is not pervasive. A
+possible explanation for this phenomenon is that the students
+had not enough documentation and examples available tothem (as they were using our language and tool set while we
+were developing and documenting it, i.e., they did not have
+the complete version of the user guide we now made avail-able), resulting in problems in understanding, leading to lackof conﬁdence in using the more advanced language feature.
+Finally, note larger and more complex speciﬁcations from
+SYNTECH17 to SYNTECH20 compared to SYNTECH15.We believe this is due to the additional language constructs
+and better tool set available to the students. Predicates, moni-
+tors, and pattern deﬁnitions, were not available to the studentsof the SYNTECH15. Moreover, starting from SYNTECH17
+our students had faster realizability checking (due in part
+to the heuristics we described in [ 28]), faster synthesis (due
+to ability to output a symbolic rather than a concrete con-troller), and ability to execute the symbolic controller (and
+not the generated code from the concrete one) on the robots.
+The slight drop in sizes of speciﬁcations from SYNTECH17to SYNTECH19 and SYNTECH20 might be due to the
+different target of the latter. While speciﬁcations of SYN-
+TECH15 and SYNTECH17 capture the behavior of roboticsystems, speciﬁcations of SYNTECH19 and SYNTECH20
+capture behavior integrated in a software system or simula-
+tion. Moreover, naturally, the use of deﬁnes, predicates, andarrays makes it easier to write more concise speciﬁcations.
+7 Discussion
+We now discuss more general design decisions, observations,and lessons we have learned from the development of Spectraand Spectra Tools and from our experience with it so far.
+15
+The discussion covers the following topics: the difﬁculty of
+writing speciﬁcations, the necessity of internal symbolic rep-
+resentations, the use of alw vs.G, the fundamental design
+decision of choosing GR(1) as kernel for Spectra, the deci-sion to implement our own synthesizer, the decision to makeSpectra domain agnostic, and the use of the SYNTECH col-
+lections as benchmarks.
+7.1 Difficulty of writing specifications
+Many authors have discussed the difﬁculty of writing formalspeciﬁcations, in particular in LTL, see, e.g., [ 70]. Indeed,
+one important lesson we have learned from our preliminaryexperience with Spectra is the difﬁculty of writing speciﬁca-tions.
+Each assumption and guarantee alone, thanks to the inten-
+tionally limited syntax (e.g., no nesting of LTL operators), isrelatively easy to write and read. The use of enumerations,
+deﬁnes, and arrays, further makes it easier to write and read
+speciﬁcations.
+Yet, at the level of a complete speciﬁcation, consisting
+of many assumptions and guarantees, writing and reading is
+difﬁcult. It is very easy to unintentionally write unrealizableor non-well-separated speciﬁcations, and ﬁxing these prob-lems is difﬁcult. Spectra Tools support for dealing with these
+problems and others, as we described in Sect. 5, helps, but
+there is still much room for improvement in this regard.
+Moreover, some students tended to translate an impera-
+tive way of thinking, which they are used to from traditional
+programming languages they know, into too-detailed safetyguarantees, rather than writing higher-level assumptions and
+guarantees, and letting the synthesizer solve the dependen-
+cies and complete the details.
+Consider the following as a negative example for the use of
+an imperative style inspired by the forklift example from [ 50].
+An engineer could specify that a forklift should go forward
+to ﬁnd cargo, e.g., alw !cargo -> next(forward) .
+To ensure that the forklift does not hit obstacles, the engi-
+neer might add alw obstacle -> next(turn) ,b u t
+would also have to add an exception to the previous guar-antee, e.g., change it to alw!cargo & !obstacle ->
+next(forward) . Finally, adding an emergency stop feature
+would again require updating both guarantees with excep-tions. In contrast, our example speciﬁcation in [ 50]s h o w sa
+declarative way of expressing similar behavior in the guaran-
+tees. In our experience, the imperative style is more natural to
+students but often leads to unrealizability, while a declarative
+15In a recent short workshop paper, we listed software engineering
+challenges of applying reactive synthesis to robotics [ 52]. The discus-
+sion here is broader and is not limited to the robotics domain.
+123
+
+--- Page 25 ---
+Spectra: a speciﬁcation language for reactive systems 1577
+style is less natural to students but is easier to maintain and
+evolve.
+7.2 Necessity of symbolic controller and execution
+mechanism
+Another lesson one can learn from our experience is the
+necessity to use a symbolic representation for execution.
+Very soon after the students started writing the speciﬁca-
+tions for SYNTECH15, the size of the generated concrete
+controllers we saw prohibited their use for straightforwardcode generation. Speciﬁcally, synthesis often produced con-
+trollers with thousands of states, which prohibits straightfor-
+ward code generation due to size limits of the Java compiler.Thus, we were forced to quickly implement and let the stu-
+dents use the symbolic execution mechanism described in
+Sect. 5. With the symbolic execution mechanism, the students
+were able to execute controllers with up to 2
+70states.16Based
+on our experience in the SYNTECH projects, with the use
+of the symbolic mechanism, execution of large controllers
+becomes feasible.
+7.3 Always versus G
+Spectra, as most other GR(1) tools, has previously used thekeyword Ginstead of alw for safety constraints in assump-
+tions and guarantees. However, this use of the keyword G
+instead of alw is different than LTL- Gin most GR(1) tools.
+This has lead to some cases of confusion (for ourselves, our
+students, and users of other tools, see below), speciﬁcally inthe context of non-well-separation and for the execution of
+controllers.
+As an example, consider the simple speciﬁcation in Lst. 11
+where the environment maintains a counter of loaded pack-
+ages from 0 to 3. If the system sets variable load to true
+when loadedPackages=3 , the environment has to vio-
+late its assumption as it cannot further increase the boundedinteger. An engineer intended to ﬁx this problem by adding
+the guarantee G(loadedPackages = 3 -> !load) .
+However, this intended ﬁx does not work
+17: Although it
+uses the confusing operator G, the guarantee is an assertion
+over current and next state, and so a transition to a state
+withloadedPackages = 3 andload is allowed. The
+guarantee only asserts that such a state would not have any
+possible successors (but at that point the environment already
+had to violate its assumption).
+16The size of the state-space is estimated based on the number of
+Boolean variables after translation to the kernel, as we are not able toenumerate the reachable states of controllers this size.
+17It works neither in the strict nor in the implication semantics of
+GR(1) [ 10].Spectra
+1env Int(0..3) loadedPackages;
+2sys boolean load;
+3
+4asm alw load -> next (loadedPackages) =
+loadedPackages + 1;
+5
+6// "G" is not Spectra syntax!! only for
+illustration
+7gar G(loadedPackages = 3 -> ! load);
+Listing 11 An example where the operator G, often used in GR(1)
+speciﬁcations, has a confusing meaning.
+As an example from another GR(1) synthesis tool, a
+bug/issue18has been reported for Slugs [ 22], where Ghas
+the syntax []. In the report, a user writes “the environ-
+ment is seemingly allowed to falsify one of its own safety
+requirements, speciﬁcally the mutex statement: [] (s1
+<-> !s2) ”. The user further notes that “The issue is
+resolved if the env safety is written in the “next” tense:
+[](next(s1) <-> next(!s2)) ”.
+An informal discussion with one the authors of RATSY [ 6]
+reveals an implementation of the same semantics of Gin
+GR(1), which they, however, reported had not led to problems
+so far.
+We have decided to address this confusion at the language
+level and avoid it by replacing the GR(1)- Gby the new key-
+word alw .19
+7.4 Choice of GR(1) as kernel
+A fundamental language design decision we have made early
+on was to use GR(1) as a kernel for Spectra. Our choiceof GR(1) was motivated by its performance and expressivepower. In retrospect, ﬁve years into the development and use
+of Spectra, we believe that we have made the right decision.
+From the synthesis performance perspective, given our
+efﬁcient symbolic implementation following [ 10], with some
+of the additional heuristics investigated in [ 28], our experi-
+ence shows that synthesis computation time is not negligiblebut at the same time not necessarily the main challenge for
+engineers’ effective use of reactive synthesis. In our four
+project classes, the students used their own ordinary laptopcomputers for synthesis, from within Eclipse. While we didnot systematically collect synthesis performance data, we
+have experienced synthesis times ranging from less than ﬁve
+seconds to up to a minute. We did not hear complaints ormuch negative feedback from the students about the perfor-
+mance of checking realizability or synthesizing a symbolic
+controller.
+18See the report and discussion at https://github.com/Veriﬁable
+Robotics/slugs/issues/5 .
+19For backward compatibility, we still allow the use of G, and interpret
+it as the GR(1)- G.
+123
+
+--- Page 26 ---
+1578 S. Maoz, J. O. Ringert
+From the expressive power perspective, on the one hand,
+we have shown that the expressive power of GR(1) synthesisis enough to support most LTL speciﬁcation patterns [ 21,49].
+On the other hand, our experience shows that writing speciﬁ-
+cations is difﬁcult and using more expressive languages, e.g.,full LTL, with nested temporal operators, might anyways bevery challenging for engineers. Thus, the expressive power
+of GR(1) seems well suited for our purpose.
+Still, we have work in progress toward enriching Spec-
+tra with additional language constructs and expressiveness,
+beyond LTL. As an example, we have work in progress on
+adding regular expressions and a variant of the rich triggersoperator of PSL [ 23]. As another example, we have work in
+progress on adding a quantitative aspect to Spectra synthesis
+using the notion of energy, which corresponds with the accu-mulation and consumption of a ﬁnite resource such as poweror memory. There, synthesis becomes the problem of gener-
+ating an implementation that not only meets the pure GR(1)
+speciﬁcation but also guarantees that the resource is neverover consumed, if such an implementation exists. Finally,
+on this front of enriching Spectra, we have recently pre-
+sented GR(1)* [ 3], a fragment of CTL* that extends GR(1)
+with existential guarantees that are not expressible in LTL.
+Importantly, yet, in comparison to GR(1), GR(1)* remains
+efﬁcient, and induces only a minor additional cost in termsof time complexity, proportional to the extended length ofthe formula.
+7.5 Implementing our own synthesizer
+Given the above fundamental choice to use GR(1) as a kernelfor Spectra, one may suggest that we could have implementedSpectra Tools on top of an existing GR(1) synthesizer. Indeed,several open-source GR(1) synthesizers are available, e.g.,
+RATSY [ 6] and Slugs [ 22]. Why should we make the invest-
+ment and implement yet another one?
+The decision to implement our own new synthesizer was
+due to two main reasons. The ﬁrst reason is performance.
+Our early experience showed that existing synthesizers (then,only RATSY), may not give us the performance required
+for the size of speciﬁcations we aimed to handle. Building
+our own synthesizer allowed us to optimize the code, useencoding inspired by Bartzis and Bultan [ 4] for arithmetic
+operations, and further integrate performance heuristics at the
+BDD level as well as at the ﬁxed-point algorithms level [ 28].
+As we show in [ 28], these proved to be very effective in
+improving the performance of GR(1) realizability checking
+compared to RATSY and Slugs, speciﬁcally for large speci-
+ﬁcations.
+The second reason is ﬂexibility in developing analyses
+beyond realizability checking and synthesis. Implementing
+our own synthesizer allowed us the complete ﬂexibilityto choose an architecture that will enable the indepen-dent implementation of related algorithms, e.g., for dealing
+with non-well-separation and unrealizability (core, counter-strategy, JVTS, repair), see Sect. 5.1. We continue to take
+advantage of this ﬂexibility for additional new analyses that
+we are currently developing.
+Finally, note that while we have implemented our own
+synthesizer, we did not start the implementation from noth-
+ing. Our implementation started from infrastructure provided
+by JTLV [ 67]. Moreover, we did not implement our own
+BDD library but rely on existing ones. Currently, the user of
+Spectra Tools can choose between (our own slightly modi-
+ﬁed versions of) CUDD [ 72] library and JTLV’s pure Java
+library.
+7.6 Decision to make Spectra domain agnostic
+Another design decision we have made early on was to
+deﬁne Spectra as a general purpose speciﬁcation language,
+not limited or tied to a speciﬁc application domain of reactivesystems. Thus, we kept the language and the analyses domain
+agnostic, completely separated from the application-speciﬁc
+implementation required for the execution of the synthesizedcontroller in speciﬁc environments.
+We have already taken advantage of this separation, in
+that we have implemented two independent execution envi-
+ronments, for Lego NXT robots and for stand-alone Javaapplications, as demonstrated in the SYNTECH collections.
+Thanks to this separation and based on our experience, we
+expect that in the future one can relatively easily extend theexecution end of Spectra Tools to additional domains and
+execution environments.
+7.7 The SYNTECH collections as benchmarks
+Finally, in Sect. 6we gave an overview of the four SYNTECH
+collections of Spectra speciﬁcations. We described how weobtained these collections, and presented an overview of the
+speciﬁcations and various metrics in Table 1, such as the
+number of assumptions and guarantees in each speciﬁcation,etc. Finally, we have also discussed their quality character-
+istics, their strengths and weaknesses. All these are relevant
+when considering the use of these collections as benchmarks.
+Sim et al. [ 71] formulated a theory of benchmarking
+within scientiﬁc disciplines and challenge software engi-
+neering research to become more scientiﬁc and cohesive
+by working as a community to deﬁne benchmarks. To date,benchmark speciﬁcations for GR(1) synthesis have been very
+limited. Most if not all works used only a handful of speciﬁ-
+cations, mainly the ARM AMBA AHB Arbiter (AMBA) [ 8]
+and a Generalized Buffer from an IBM tutorial (GenBuf) [ 9],
+which were created by researchers for the speciﬁc purpose
+of evaluating the performance of GR(1) synthesis tools.One advantage of these two speciﬁcations, is that they are
+123
+
+--- Page 27 ---
+Spectra: a speciﬁcation language for reactive systems 1579
+parametric. This makes them suitable for evaluating scala-
+bility. They are, however, very systematic and very carefullydesigned. They may not adequately represent speciﬁcations
+that engineers may write in practice.
+We made Spectra versions of AMBA and GenBuf, as well
+as of additional parametric speciﬁcations of some classicproblems (e.g., Towers of Hanoi, Dining Philosophers, Cin-
+derella and her stepmother) available on the Spectra website.
+Since all are parametric, they are indeed suitable for evalu-ating scalability, but, as argued above, may not adequately
+represent speciﬁcations that engineers may write in practice.
+As described in Sect. 6, the SYNTECH speciﬁcations are
+different. In this sense, we believe they provide new valuable
+benchmarks for reactive synthesis related research. Indeed,
+we have already used SYNTECH15 and SYNTECH17 asbenchmarks to examine the motivation for and the efﬁciencyand effectiveness of various analyses, e.g., [ 28,43,51,53].
+Others have also already used them, e.g., [ 14,59]. As we
+make these collections publicly available, we hope they willserve to advance reactive synthesis research and its future
+use in practice.
+8 Related work
+We review work related to Spectra and Spectra Tools fromdifferent perspectives. First, we discuss related speciﬁcation
+languages. Second, we discuss GR(1) speciﬁcation lan-guages and synthesis tools.
+8.1 Related specification languages
+A number of logics and languages exist for the speciﬁca-
+tion of reactive systems. Most fundamental, linear temporal
+logic (LTL) [ 65], a modal temporal logic with modalities
+referring to time, was introduced for the speciﬁcation of
+reactive behavior and is probably the most commonly used
+speciﬁcation language for model-checking today. The timecomplexity of synthesis from LTL is double-exponential in
+the length of the formula [ 66]. Nevertheless, some tools pro-
+vide implementations of LTL synthesis (see an overviewin [34]). These tools either suffer from scalability problems
+or provide only bounded solutions. We are not aware of any
+larger LTL speciﬁcations successfully used for reactive syn-
+thesis. Spectra is based on GR(1), a fragment of LTL withmore efﬁcient synthesis algorithms. When teaching Spectra
+to the undergraduate students who participated in our four
+project classes, we have deliberately avoided teaching LTL,so that the students use Spectra based on the intuitions of
+always andalwaysEventually , instead of the some-
+times complicated semantics of LTL formulas with nestedtemporal operators.Property Speciﬁcation Language (PSL) [ 23] is an exten-
+sion of LTL with many operators that were introduced tohelp engineers write speciﬁcations more concisely. PSL has
+become an IEEE standard in 2005. While the expressiveness
+of PSL extends the one of LTL (and GR(1)), we believe thatsome of its language constructs, e.g., the trigger operator, areinteresting language features with which to extend Spectra
+in the future. The main use of PSL speciﬁcations is veriﬁca-
+tion of reactive systems. PSL has been suggested for reactivesynthesis in [ 8], with a case study of synthesizing an AMBA
+AHB bus controller. Importantly, however, despite its title,
+the PSL language constructs appearing in [ 8] are limited to
+those directly expressible in GR(1), and it is unclear whether
+their translation has been automated. Moreover, support for
+the trigger operator is not discussed in [ 8]. PSL includes nei-
+ther a distinction between environment and system variables,nor any operators similar to Spectra’s advanced constructs of
+monitors, patterns, and counters.
+SMV is the input language of the NuSMV tool [ 15]f o r
+symbolic model-checking [ 13]. The SMV language consists
+of a part for declaratively describing ﬁnite-state machines
+from variables and transitions, and of another part for spec-iﬁcations written in LTL or CTL. SMV has inﬂuenced the
+input languages of JTLV [ 67] and the design of Spectra.
+The declaration of variables, types, and deﬁnitions in Spec-tra is similar to that of SMV . A major difference betweenSpectra and SMV is, however, Spectra’s built-in distinction
+between environment and system variables. In addition, the
+advanced language constructs of parametric predicates, mon-itors, patterns, counters, and quantiﬁed arrays are also unique
+to Spectra.
+TLA
++[45] (Temporal Logic of Actions) is a versatile
+speciﬁcation language for software systems. TLA+includes
+language constructs for the structural deﬁnition of closed
+and open (reactive) systems. Behavior in TLA+can be
+speciﬁed using temporal operators. Analyses of TLA+spec-
+iﬁcations are supported by the TLC model-checker [ 78]. The
+TLA+language is too expressive for model-checking to be
+fully automated and only subsets of the language are sup-ported. TLA
++has been successfully applied in industrial
+settings [ 61]. We believe that in the future, Spectra could ben-
+eﬁt from composition mechanisms for speciﬁcations, similarto the ones provided by TLA
++.
+The Temporal Logic Synthesis Format (TLSF) [ 35] has
+been designed as a high-level description language for LTLsynthesis problems. TLSF is used as an exchange formatfor LTL speciﬁcations in the SYNTCOMP competition [ 34].
+TLSF is not speciﬁc to GR(1) and incorporates some fea-
+tures similar to the ones of PSL [ 23] for quantiﬁcation and
+parametrization for the purpose of compact expression of
+repetitive constraints. TLSF does not provide advanced lan-
+guage features like monitors, counters, or patterns. To thebest of our knowledge, existing speciﬁcations written in
+123
+
+--- Page 28 ---
+1580 S. Maoz, J. O. Ringert
+TLSF have been translated from other languages and thus
+the experience of developing speciﬁcations directly in TLSFis limited.
+8.2 Related GR(1) specification languages and tools
+A number of speciﬁcation languages and tools for reactive
+synthesis have been developed on top of GR(1).
+ApsectLTL [ 54] is an aspect-oriented speciﬁcation lan-
+guage for reactive synthesis where speciﬁcations consist
+of a base and a set of aspects. An AspectLTL base con-
+sists of variable declarations and guarantees. AspectLTLaspects deﬁne new variables and advice in terms of addi-tional guarantees over variables of aspects and the base. The
+AspectLTL language provides support for bounded integers,
+arrays, enumeration types, deﬁnes, and PastLTL. However, itlacks support for assumptions and does not include advanced
+language features like monitors, patterns, parametrized pred-
+icates, and counters. AspectLTL comes with rich Eclipseeditors and tools for debugging and tracing of speciﬁca-
+tions [ 56]. The available body of AspectLTL speciﬁcations
+is limited to small examples created by the authors. It mightbe interesting to consider an aspect language based on Spec-tra. However, this would require the identiﬁcation of suitable
+pointcuts for the new language constructs.
+LTLMop (Linear Temporal Logic MissiOn Planning) [ 27]
+is a software for specifying and synthesizing robot missions
+on 2D maps. The tool comes with a graphical map editor and
+allows speciﬁcations to be expressed in the GR(1) subset ofLTL or structured English [ 37]. LTLMop supports different
+GR(1) synthesizers (including JTLV [ 67] and Slugs [ 22]) and
+various output formats of synthesized controllers with sup-port for deployment on the ROS middleware [ 75]. The tool
+supports various analyses of unrealizable speciﬁcations [ 68].
+Some speciﬁcations created by the authors are available for
+examples presented in LTLMop’s research papers. Comparedto Spectra, LTLMop has a very specialized focus for mission
+planning on a 2D map. To the best of our knowledge, the
+speciﬁcation language does not provide advanced languagefeatures beyond those contained in the Spectra kernel.
+A version of the Modal Transition System Analyzer
+(MTSA) [ 19] has been extended with synthesis for SGR(1)
+[12,17], which is a variant of GR(1) that is specialized to
+the context of event-based models. MTSA models systems
+as Finite State Processes (FSP), a language for the composi-
+tional deﬁnition of Labeled Transition Systems (LTS) [ 19],
+and expresses speciﬁcations in Fluent Linear Temporal Logic
+(FLTL) [ 30]. An SGR(1) synthesis problem consists of an
+LTS modeled in FSP, and justice assumptions and guaranteesspeciﬁed as assertions over ﬂuents [ 17]. A major difference
+between MTSA and SGR(1), and all other GR(1) languages
+and tools that we review in this section, including Spectra,is that MTSA and SGR(1) are event-based, i.e., the systemand environment communicate via a single event per step,
+instead of by assigning values to multiple variables. MTSAhas been extended with a check for non-well-separation:
+D’Ippolito et al. [ 18] (indirectly) refer to non-well-separation
+by characterizing the possible controllers that force assump-tion violations as anomalous . To the best of our knowledge,
+non-well-separation is only checked but unlike in Spectra
+Tools, no additional well-separation analyses (strategies or
+cores as in [ 51], see Sect. 5.6), are provided by MTSA.
+Moreover, to the best of our knowledge, analyses related
+to unrealizability have not been applied to SGR(1), unlike
+Spectra Tools, which provides various means to deal withunrealizable speciﬁcations, see Sect. 5.5. Finally, synthesis of
+SGR(1) follows a concrete rather than a symbolic algorithm,
+and has been applied only to very small example systemsdesigned by the authors of [ 12,17].
+Slugs (SmalL bUt Complete GROne Synthesizer) [ 22]i s
+an implementation and extensible tool for GR(1) synthesis.
+Slugs comes with plug-ins that implement analyses of unre-alizability [ 68], synthesis for weighted speciﬁcations [ 36],
+and various modiﬁcations of the original GR(1) algorithm
+(see Sect. 3 in [ 22
+]). The input format of Slugs is limited
+to Boolean variables and GR(1) constraints. Note that the
+input of Slugs corresponds to the Spectra kernel, and thus
+it does not include advanced constructs corresponding toSpectra’s monitors, parametrized predicates, counters, etc.Structured Slugs is an alternative format that provides support
+for bounded non-negative integers with comparison and addi-
+tion. In contrast, Spectra supports bounded integers (not onlynon-negative) with more arithmetic operations, including
+addition, subtraction, multiplication, division, and modulo
+(see Sect. 4.1). Structured Slugs can automatically be trans-
+lated to Slugs input format. Note, however, that the arithmetic
+translation from Structured Slugs to Slugs input is done at the
+syntax level, while our translation in Spectra is implementedat the BDD level with potential performance beneﬁts relatedto variable order [ 4]. Slugs has been used as a platform for
+various research papers. However, we are not aware of doc-
+umented experience of using Slugs for synthesis except forsmall examples in research papers. Finally, in [ 28], the per-
+formance of realizability checking in Slugs is systematically
+compared against the performance of realizability checkingin Spectra, using two well-known families of speciﬁcations
+from the literature. The comparison shows that Spectra, with
+all the heuristics of [ 28] employed, outperforms Slugs on
+large speciﬁcations. While for small speciﬁcations Slugs run-ning times for realizability checking are better than Spectra’s,
+the larger the speciﬁcation, the faster Spectra becomes rela-
+tive to Slugs.
+Open Promela [ 25] is a multi-paradigm speciﬁcation lan-
+guage for synthesis deﬁned as an extension of the syntax
+of Promela. The semantics of Open Promela is differentfrom Promela and is deﬁned by a translation to GR(1).
+123
+
+--- Page 29 ---
+Spectra: a speciﬁcation language for reactive systems 1581
+The term “multi-paradigm” refers to the mix of imperative
+and declarative language elements. In addition to declara-tive assertions, the language introduces imperative variables
+andprocesses . Intuitively, the value of an imperative variable
+remains unchanged unless it appears in an assignment. Pro-cesses control assignments to variables, e.g., for describingpossible transitions. Synthesis from Open Promela speci-
+ﬁcations is supported by a translation to the input format
+of Slugs [ 22]. Imperative language elements are expressed
+by adding constraints to variables. The language of Open
+Promela is demonstrated on a variant of the GR(1) AMBA
+speciﬁcation [ 8]. We are not aware of tools for analyzing
+Open Promela speciﬁcations, their unrealizability, or their
+non-well-separation. To the best of our knowledge, the body
+of available Open Promela speciﬁcations is limited to fewexamples.
+Tulip [ 24,76] is a toolbox for the synthesis of hybrid sys-
+tems. It combines GR(1) synthesis with automated abstrac-
+tions of continuous dynamics. The syntax of Tulip expres-sions and operators is inspired by TLA
++[45] while speci-
+ﬁcations appear to be built programmatically.20We are not
+aware of Tulip’s support beyond synthesis itself, for analyz-ing speciﬁcations, unrealizability, or non-well-separation. Its
+input language does not include advanced constructs similar
+to Spectra’s monitors, counters, and patterns. To the best ofour knowledge, the collected experience of writing speciﬁ-cations in Tulip is limited to few examples.
+RATSY [ 6] has been developed as a requirement analysis
+tool that includes GR(1) synthesis. The tool has a graphicaluser interface to draw Buchi automata that serve as GR(1)
+assumptions or guarantees. Execution traces are visualized
+and RATSY implements algorithms for exploring counter-strategies in case of unrealizability [ 39]. RATSY does not
+support constructs similar to Spectra’s advanced language
+constructs such as monitors, patterns, and counters. Inter-estingly, RATSY’s user-manual presents an example of howto use RATSY to specify a bounded counter, by listing the
+different (safety) requirements one needs to specify.
+21One
+may contrast this with the simplicity of Spectra’s counterconstruct, which hides the complexity and encapsulates the
+concept of counting into a single speciﬁcation element. The
+focus of RATSY on requirements and its graphical userinterface differs from that of Spectra where the syntax of
+speciﬁcations is text-based. However, we believe that some
+analyses may beneﬁt from visualizations of transition sys-tems and we have integrated some of these into SpectraTools, speciﬁcally visualizing both concrete and symbolic
+representations of counter-strategies [ 43]. Finally, in [ 28], the
+20See examples available from https://github.com/tulip-control/tulip-
+control/tree/master/examples .
+21http://rat.fbk.eu/ratsy/uploads/Main/RatsyManual_v2.1.pdf ,d o w n -
+loaded July 2019, pages 9 to 13.performance of realizability checking in RATSY is system-
+atically compared against the performance of realizabilitychecking in Spectra, using two well-known families of spec-
+iﬁcations from the literature. The comparison shows that
+Spectra, with all the heuristics of [ 28] employed, outperforms
+RATSY on large speciﬁcations. While for small speciﬁca-tions, RATSY running times for realizability checking are
+better than Spectra’s, the larger the speciﬁcation, the faster
+Spectra becomes relative to RATSY (similarly to Slugs, seeabove).
+Finally, some scenario-based speciﬁcation languages and
+tools, as well as event-based modeling tools, make use of atranslation to GR(1) or variants thereof. These include, e.g.,
+PlayGo [ 32], which uses the translation described in [ 55],
+ScenarioTools [ 31], and SGR(1) [ 18] (discussed above).
+Some of these use a visual language while others use a tex-tual language. Some of these provide tools for execution
+and debugging. None includes support for language features
+such as Spectra’s monitors, parametrized predicates, quanti-ﬁed arrays, patterns, and counters. It may be interesting to
+extend Spectra with an event-based idiom and scenario-like
+language constructs.
+9 Conclusion and future work
+The deﬁnition and development of Spectra and Spectra Toolsare part of the SYNTECH project,
+22which aims at bridging
+the gap between the theory and algorithms of reactive synthe-
+sis, on the one hand, and software engineering practice, onthe other. We use the language and tool set to learn about the
+challenges in bridging this gap and to develop and evaluate
+possible means to address them. An overview of the SYN-TECH project was recently presented in an invited keynote
+by the ﬁrst listed author at FormaliSE’20.
+23
+In this paper we presented the Spectra language. Spec-
+tra provides means to specify assumptions and guaranteesfor a reactive system, using high-level constructs such as
+patterns, monitors, and counters. We further presented an
+overview of Spectra Tools, a set of analyses and tools provid-ing synthesis into correct-by-construction controllers, means
+to execute and simulate the synthesized controllers, and
+additional analyses aimed at helping engineers write higher-quality speciﬁcations. Finally, we presented statistics and
+observations based on four collections of speciﬁcations and
+on our early experience with Spectra.
+We consider future work on different fronts. First, on
+the language front, we are working on enriching Spectra
+with additional language constructs, e.g., powerful temporal
+22SYNTECH: http://smlab.cs.tau.ac.il/syntech/ .
+23FormaliSE’20 keynote about SYNTECH: https://youtu.be/
+ig8_PbkGito .
+123
+
+--- Page 30 ---
+1582 S. Maoz, J. O. Ringert
+constructs, such as the triggers operator of PSL [ 23]. We fur-
+ther consider the development of additional pattern libraries,beyond the one covering the patterns of Dwyer et al., which
+already comes with the language. For example, a set of spec-
+iﬁcation patterns for robotic missions was presented in [ 59];
+we have work in progress on adding a library of these patternsto Spectra.
+Second, on the tools front, we have work in progress on
+an improved simulation, testing, and debugging environmentfor the synthesized controller. This includes, for example,
+the ability to set breakpoints using propositions, to check
+whether a state that satisﬁes a certain proposition is reachablefrom the current state, etc.
+Third, on the application domain front, we are looking to
+expand to other domains beyond autonomous Lego robotsand the example systems we had so far. We are speciﬁcallyexamining case studies in the medical devices and network
+protocols domains, together with two industry partner com-
+panies.
+Finally, we are looking into performing broader and more
+systematic evaluations of Spectra and Spectra Tools. We have
+already shared it with colleagues in other universities whomay use it in teaching. We have also shared it with potential
+industrial collaborators. To broaden the evaluation, we plan
+to collect data about the experience in using Spectra in addi-tional application domains. To make it more systematic, wewill consider controlled experiments where, for example, dif-
+ferent teams of students are instructed to do the same project
+with and without the availability of speciﬁc language con-structs or analyses. We hope all these will generate additional
+data and insights into the potential applicability of reactive
+synthesis to software engineering.
+Acknowledgements We thank the 67 undergraduate students who par-
+ticipated in our four project classes. We thank Elizabeth Firman, Aviv
+Kuvent, Or Pistiner, Raﬁ Shalom, Ilia Shevrin, Keren Solodkin, and
+Yoni Wolbe for their contribution to the implementation of SpectraTools.
+This project has received funding from the European Research
+Council (ERC) under the European Union’s Horizon 2020 researchand innovation program (grant agreement No 638049, SYNTECH).
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-
+tation, distribution and reproduction in any medium or format, as
+long as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .A Spectra grammar
+We show a combination of the grammars of the Spectra kernel
+from Fig. 4and of all extensions from Sect. 4in Fig. 15.A s
+mentioned in Sect. 2.3, this grammar includes simpliﬁcations
+for readability and in order to ﬁt it on a single page.
+Spectra provides more verbose alternative to most key-
+words shown in Table 2. We have decided to use the shorter
+keywords in Sects. 3and4as they seem to be preferred when
+writing speciﬁcations.
+B Complete extended example
+Listing 12shows our initial example from Lst. 1and all its
+extensions mentioned in Sect. 4. The extensions include enu-
+merations and integer variables from Lst. 2, the deﬁne and its
+use from Lst. 3, state invariants as described in Sect. 4.3,t h e
+PastLTL example from Sect. 4.4, the predicate from Lst. 5,
+the monitor from Lst. 6, the counter from Lst. 7, the pattern
+instances from Lst. 9, and an import as described in Sect. 4.10
+to import the pattern deﬁnition shown in Lst. 8.
+The lines of the different listings are rearranged in Lst. 12
+to deﬁne all system and environment variables at the top of
+the speciﬁcation. The body of the deﬁne from Lst. 3has been
+extended to include variable ambulanceMain . With this
+inclusion the complete speciﬁcation as shown in Lst. 12is
+realizable.
+Table 2 Overview of Spectra keywords that have more verbose alter-
+natives (in alphabetical order)
+Keyword Alternative
+alw always
+alwEv alwaysEventually
+asm assumptionenv input
+gar guarantee
+H HISTORICALLYini initially
+O ONCES SINCEsys outputYP R E V
+123
+
+--- Page 31 ---
+Spectra: a speciﬁcation language for reactive systems 1583
+Fig. 15 Grammar of Spectra including the Spectra kernel from Fig. 4
+and all extensions from Sect. 4Spectra
+1import "DwyerPatterns. spectra"
+2spec TrafficLight
+3
+4env boolean carMain;
+5env boolean carSide;
+6env Int(0..10) carsMain;
+7env Int(0..6) carsSide;
+8env boolean pedestrianBtn;
+9env boolean ambulanceMain;
+10
+11sys {MAIN, SIDE, NONE} go;
+12sys boolean greenMain;
+13sys boolean greenSide;
+14sys boolean greenPedestrian;
+15
+16predicate excl( boolean p,boolean q):
+17 ! ( p&q ) ;
+18
+19gar alw excl(greenMain , greenSide) &
+20 excl( greenPedestrian , greenSide);
+21
+22define streetsEmpty :=
+23 !carSide & !carMain & !ambulanceMain;
+24
+25asm ini streetsEmpty;
+26asm ini carSide= false & carMain= false ;
+27asm alwEv carSide;
+28asm alwEv carMain;
+29asm alwEv ONCE carSide;
+30
+31gar ini go=NONE;
+32gar alw carsMain >= carsSide implies
+33 next (go=MAIN);
+34gar alw carsSide > carsMain implies
+35 next (go=SIDE);
+36gar alw streetsEmpty implies
+37 !greenMain & !greenSide;
+38gar alw !(greenMain & greenSide);
+39gar alwEv carSide & greenSide;
+40gar alwEv carMain & greenMain;
+41
+42monitor boolean needGreenMain {
+43 ini needGreenMain =
+44 (pedestrianBtn & !greenPedestrian);
+45 trans next (needGreenMain) =
+46 ((needGreenMain | pedestrianBtn) &
+47 !greenPedestrian);
+48}
+49gar alwEv !needGreenMain;
+50
+51counter ambulanceWait (0..5) {
+52 inc: ambulanceMain & !greenMain;
+53 reset : greenMain;
+54 overflow : keep;
+55}
+56gar alw ambulanceWait < 5;
+57
+58gar pRespondsToS( carMain , greenMain);
+59gar pRespondsToS( carSide , greenSide);
+Listing 12 The example from Lst. 1with all extensions from Sect. 4.
+123
+
+--- Page 32 ---
+1584 S. Maoz, J. O. Ringert
+References
+1. 2013 IEEE/RSJ International Conference on Intelligent Robots and
+Systems, Tokyo, Japan, November 3–7, 2013, IEEE (2013)
+2. Almagor, S., Kupferman, O., Ringert, J.O., Velner, Y .: Quanti-
+tative assume guarantee synthesis. In: Majumdar, R., Kuncak,V . (eds.) Computer Aided Veriﬁcation—29th International Con-ference, CA V 2017, Heidelberg, Germany, July 24–28, 2017,Proceedings, Part II, volume 10427 of Lecture Notes in ComputerScience, pp. 353–374, Springer (2017)
+3. Amram, G., Maoz, S., Pistiner, O.: GR(1)*: GR(1) speciﬁcations
+extended with existential guarantees. In: ter Beek, M.H., McIver,A., Oliveira, J.N. (eds.) Formal Methods—The Next 30 Years—Third World Congress, FM 2019, Porto, Portugal, October 7–11,2019, Proceedings, volume 11800 of Lecture Notes in Computer
+Science, pp. 83–100, Springer (2019)
+4. Bartzis, C., Bultan, T.: Efﬁcient BDDs for bounded arithmetic con-
+straints. STTT 8(1), 26–36 (2006)
+5. Bloem, R., Chatterjee, K., Henzinger, T.A., Jobstmann, B.: Better
+quality in synthesis through quantitative objectives. In: Bouajjani,A., Maler, O., (eds.) Computer Aided Veriﬁcation, 21st Interna-tional Conference, CA V 2009, Grenoble, France, June 26–July 2,2009. Proceedings, volume 5643 of Lecture Notes in ComputerScience, pp. 140–156. Springer (2009)
+6. Bloem, R., Cimatti, A., Greimel, K., Hofferek, G., Könighofer, R.,
+Roveri, M., Schuppan, V ., Seeber, R.: RATSY—a new requirementsanalysis tool with synthesis. In: CA V , volume 6174 of LNCS, pp.425–429. Springer (2010)
+7. Bloem, R., Ehlers, R., Könighofer, R.: Cooperative reactive syn-
+thesis. In: Finkbeiner, B., Pu, G., Zhang, L. (eds.) AutomatedTechnology for Veriﬁcation and Analysis—13th InternationalSymposium, ATV A 2015, Shanghai, China, October 12–15, 2015,Proceedings, volume 9364 of Lecture Notes in Computer Science,pp. 394–410. Springer (2015)
+8. Bloem, R., Galler, S.J., Jobstmann, B., Piterman, N., Pnueli,
+A., Weiglhofer, M.: Interactive presentation: Automatic hardwaresynthesis from speciﬁcations: a case study. In: Lauwereins, R.,Madsen, J. (eds.) 2007 Design. Automation and Test in EuropeConference and Exposition, DATE 2007, Nice, France, April 16–20, 2007, pp. 1188–1193. EDA Consortium, San Jose, CA, USA
+(2007)
+9. Bloem, R., Galler, S.J., Jobstmann, B., Piterman, N., Pnueli, A.,
+Weiglhofer, M.: Specify, compile, run: hardware from PSL. Electr.Notes Theor. Comput. Sci. 190(4), 3–16 (2007)
+10. Bloem, R., Jobstmann, B., Piterman, N., Pnueli, A., Sa’ar, Y .: Syn-
+thesis of Reactive(1) Designs. J. Comput. Syst. Sci. 78(3), 911–938
+(2012)
+11. Bohy, A., Bruyère, V ., Filiot, E., Raskin, J.: Synthesis from
+LTL speciﬁcations with mean-payoff objectives. In: Piterman, N.,Smolka, S.A. (eds.) Tools and Algorithms for the Constructionand Analysis of Systems—19th International Conference, TACAS2013, Held as Part of the European Joint Conferences on Theoryand Practice of Software, ETAPS 2013, Rome, Italy, March 16–24, 2013. Proceedings, volume 7795 of Lecture Notes in ComputerScience, pp. 169–184. Springer (2013)
+12. Braberman, V .A., D’Ippolito, N., Piterman, N., Sykes, D., Uchitel,
+S.: Controller synthesis: from modelling to enactment. In: Notkin,D., Cheng, B.H.C., Pohl, K. (eds.) 35th International Conferenceon Software Engineering, ICSE ’13, San Francisco, CA, USA, May18–26, 2013, pp. 1347–1350. IEEE Computer Society (2013)
+13. Burch, J.R., Clarke, E.M., McMillan, K.L., Dill, D.L., Hwang, L.J.:
+Symbolic model checking: 10 ˆ20 states and beyond. In: Proceed-
+ings of the Fifth Annual Symposium on Logic in Computer Science(LICS ’90), Philadelphia, Pennsylvania, USA, June 4–7, 1990, pp.428–439. IEEE Computer Society (1990)14. Cavezza, D.G., Alrajeh, D., György, A.: Minimal assumptions
+reﬁnement for GR(1) speciﬁcations. CoRR, arXiv:1910.05558
+(2019)
+15. Cimatti, A., Clarke, E.M., Giunchiglia, E., Giunchiglia, F., Pistore,
+M., Roveri, M., Sebastiani, R., Tacchella, A.: NuSMV 2: An Open-Source Tool for Symbolic Model Checking. In: CA V , volume 2404of LNCS, pp. 359–364. Springer (2002)
+16. David, A., Jensen, P.G., Larsen, K.G., Mikucionis, M., Taankvist,
+J.H.: Uppaal stratego. In: Baier, C., Tinelli, C. (eds.) Tools andAlgorithms for the Construction and Analysis of Systems - 21stInternational Conference, TACAS 2015, Held as Part of the Euro-pean Joint Conferences on Theory and Practice of Software, ETAPS2015, London, UK, April 11–18, 2015. Proceedings, volume 9035of Lecture Notes in Computer Science, pp. 206–211. Springer(2015)
+17. D’Ippolito, N., Braberman, V .A., Piterman, N., Uchitel, S.: Syn-
+thesis of live behaviour models for fallible domains. In: ICSE, pp.211–220 (2011)
+18. D’Ippolito, N., Braberman, V .A., Piterman, N., Uchitel, S.: Syn-
+thesizing nonanomalous event-based controllers for liveness goals.ACM Trans. Softw. Eng. Methodol. 22(1), 9 (2013)
+19. D’Ippolito, N., Fischbein, D., Chechik, M., Uchitel, S.: MTSA:
+the modal transition system analyser. In: 23rd IEEE/ACM Inter-
+national Conference on Automated Software Engineering (ASE2008), 15–19 September 2008, L’Aquila, Italy, pp. 475–476. IEEEComputer Society (2008)
+20. Dräger, K., Forejt, V ., Kwiatkowska, M.Z., Parker, D., Ujma,
+M.: Permissive controller synthesis for probabilistic systems. In:TACAS, volume 8413 of LNCS, pp. 531–546. Springer (2014)
+21. Dwyer, M.B., Avrunin, G.S., Corbett, J.C.: Patterns in property
+speciﬁcations for ﬁnite-state veriﬁcation. In: ICSE, pp. 411–420.ACM (1999)
+22. Ehlers, R., Raman, V .: Slugs: Extensible GR(1) synthesis. In: CA V ,
+volume 9780 of LNCS, pp. 333–339. Springer (2016)
+23. Eisner, C., Fisman, D.: A Practical Introduction to PSL. Springer,
+Series on Integrated Circuits and Systems (2006)
+24. Filippidis, I., Dathathri, S., Livingston, S.C., Ozay, N., Murray,
+R.M.: Control design for hybrid systems with tulip: the tempo-ral logic planning toolbox. In: 2016 IEEE Conference on ControlApplications, CCA 2016, Buenos Aires, Argentina, September 19–22, 2016, pp. 1030–1041. IEEE (2016)
+25. Filippidis, I., Murray, R.M., Holzmann, G.J.: A multi-paradigm
+language for reactive synthesis. In: P. Cerný, V . Kuncak, and P.Madhusudan, editors, Proceedings Fourth Workshop on Synthesis,SYNT 2015, San Francisco, CA, USA, 18th July 2015., volume202 of EPTCS, pp. 73–97 (2015)
+26. Finkbeiner, B., Schewe, S.: Bounded synthesis. STTT 15(5–6),
+519–539 (2013)
+27. Finucane, C., Jing, G., Kress-Gazit, H.: Ltlmop: Experimenting
+with language, temporal logic and robot control. In: 2010 IEEE/RSJInternational Conference on Intelligent Robots and Systems, Octo-ber 18–22, 2010, Taipei, Taiwan, pp. 1988–1993. IEEE (2010)
+28. Firman, E., Maoz, S., Ringert, J.O.: Performance heuristics for
+GR(1) synthesis and related algorithms. Acta Inform. 57(1–2) , 37–
+79 (2020)
+29. Gabbay, D.M.: The declarative past and imperative future: Exe-
+cutable temporal logic for interactive systems. In: Banieqbal, B.,Barringer, H., Pnueli, A. (eds.) Temporal Logic in Speciﬁcation,Altrincham, UK, April 8–10, 1987, Proceedings, volume 398 ofLecture Notes in Computer Science, pp. 409–448. Springer (1987)
+30. Giannakopoulou, D., Magee, J.: Fluent model checking for event-
+based systems. In: Paakki, J., Inverardi, P., (eds.) Proceedingsof the 11th ACM SIGSOFT Symposium on Foundations ofSoftware Engineering 2003 held jointly with 9th European Soft-ware Engineering Conference, ESEC/FSE 2003, Helsinki, Finland,September 1–5, 2003, pp. 257–266. ACM (2003)
+123
+
+--- Page 33 ---
+Spectra: a speciﬁcation language for reactive systems 1585
+31. Greenyer, J., Gritzner, D., Gutjahr, T., König, F., Glade, N., Marron,
+A., Katz, G.: Scenariotools—a tool suite for the scenario-basedmodeling and analysis of reactive systems. Sci. Comput. Program.149, 15–27 (2017)
+32. Harel, D., Maoz, S., Szekely, S., Barkan, D.: Playgo: towards a com-
+prehensive tool for scenario based programming. In: Pecheur, C.,Andrews, J., Nitto, E.D. (eds.) ASE 2010, 25th IEEE/ACM Interna-tional Conference on Automated Software Engineering, Antwerp,Belgium, September 20–24, 2010, pp. 359–360. ACM (2010)
+33. Hölldobler, K., Rumpe, B.: MontiCore 5 Language Workbench
+Edition 2017. Aachener Informatik-Berichte, Software Engineer-ing, Band 32. Shaker Verlag, December (2017)
+34. Jacobs, S., Basset, N., Bloem, R., Brenguier, R., Colange, M., Fay-
+monville, P., Finkbeiner, B., Khalimov, A., Klein, F., Michaud, T.,Pérez, G.A., Raskin, J., Sankur, O., Tentrup, L.: The 4th reactivesynthesis competition (SYNTCOMP 2017): Benchmarks, partic-ipants & results. In: Fisman, D., Jacobs, S. (eds.) ProceedingsSixth Workshop on Synthesis, SYNT@CA V 2017, Heidelberg,Germany, 22nd July 2017., volume 260 of EPTCS, pp. 116–143(2017)
+35. Jacobs, S., Klein, F., Schirmer, S.: A high-level LTL synthesis for-
+mat: TLSF v1.1. In: Piskac and Dimitrova [62], pp. 112–132
+36. Jing, G., Ehlers, R., Kress-Gazit, H.: Shortcut through an evil
+door: optimality of correct-by-construction controllers in adver-sarial environments. In: 2013 IEEE/RSJ International Conferenceon Intelligent Robots and Systems, Tokyo, Japan, November 3–7,[1], pp. 4796–4802 (2013)
+37. Jing, G., Finucane, C., Raman, V ., Kress-Gazit, H.: Correct high-
+level robot control from structured english. In: IEEE InternationalConference on Robotics and Automation, ICRA 2012, 14-18 May,2012, St. Paul, Minnesota, USA, pp. 3543–3544. IEEE (2012)
+38. Klein, U., Pnueli, A.: Revisiting synthesis of GR(1) speciﬁcations.
+In: Haifa Veriﬁcation Conference (HVC), volume 6504 of LNCS,pp. 161–181. Springer (2010)
+39. Könighofer, R., Hofferek, G., Bloem, R.: Debugging formal spec-
+iﬁcations: a practical approach using model-based diagnosis andcounterstrategies. STTT 15(5–6), 563–583 (2013)
+40. Kress-Gazit, H., Fainekos, G.E., Pappas, G.J.: Temporal-logic-
+based reactive mission and motion planning. IEEE Trans. Robot.25(6), 1370–1381 (2009)
+41. Kupferman, O., Lustig, Y ., Vardi, M.Y ., Yannakakis, M.: Temporal
+synthesis for bounded systems and environments. In: Schwentick,T., Dürr, C. (eds.) 28th International Symposium on TheoreticalAspects of Computer Science, STACS 2011, March 10–12, 2011,Dortmund, Germany, volume 9 of LIPIcs, pp. 615–626. SchlossDagstuhl-Leibniz-Zentrum fuer Informatik (2011)
+42. Kupferman, O., Vardi, M.Y .: Synthesis of trigger properties. In:
+LPAR, volume 6355 of LNCS, pp. 312–331. Springer (2010)
+43. Kuvent, A., Maoz, S., Ringert, J.O.: A symbolic justice viola-
+tions transition system for unrealizable GR(1) speciﬁcations. In:Bodden, E., Schäfer, W., van Deursen, A., Zisman, A. (eds.),Proceedings of the 2017 11th Joint Meeting on Foundations ofSoftware Engineering, ESEC/FSE 2017, Paderborn, Germany,September 4–8, 2017, pp. 362–372. ACM (2017)
+44. Kwiatkowska, M.Z., Parker, D.: Automated veriﬁcation and strat-
+egy synthesis for probabilistic systems. In: Hung D.V ., Ogawa, M.(eds.), Automated Technology for Veriﬁcation and Analysis—11thInternational Symposium, ATV A 2013, Hanoi, Vietnam, October15-18, 2013. Proceedings, volume 8172 of Lecture Notes in Com-puter Science, pp. 5–22. Springer (2013)
+45. Lamport, L.: Specifying Systems. Addison–Wesley, The TLA+
+Language and Tools for Hardware and Software Engineers (2002)
+46. Lustig, Y ., Vardi, M.Y .: Synthesis from component libraries. STTT
+15(5–6), 603–618 (2013)
+47. Maniatopoulos, S., Schillinger, P., Pong, V ., Conner, D.C., Kress-
+Gazit, H.: Reactive high-level behavior synthesis for an atlashumanoid robot. In: Kragic, D., Bicchi, A., Luca, A.D. (eds.)
+2016 IEEE International Conference on Robotics and Automation,ICRA 2016, Stockholm, Sweden, May 16–21, 2016, pp. 4192–4199. IEEE (2016)
+48. Maoz, S., Pistiner, O., Ringert, J.O.: Symbolic BDD and ADD
+algorithms for energy games. In: Piskac and Dimitrova [62], pp.35–54
+49. Maoz, S., Ringert, J.O.: GR(1) synthesis for LTL speciﬁcation pat-
+terns. In: ESEC/FSE, pp. 96–106. ACM (2015)
+50. Maoz, S., Ringert, J.O.: Synthesizing a Lego Forklift Controller
+in GR(1): A Case Study. In: Proceedings of the 4th Workshop onSynthesis, SYNT 2015 colocated with CA V 2015, volume 202 ofEPTCS, pp. 58–72 (2015)
+51. Maoz, S., Ringert, J.O.: On well-separation of GR(1) speciﬁca-
+tions. In: FSE, pp. 362–372. ACM (2016)
+52. Maoz, S., Ringert, J.O.: On the Software Engineering Challenges
+of Applying Reactive Synthesis to Robotics. In: Proceedings of the1st Int. Workshop on Robotics Software Engineering, RoSE 2018colocated with ICSE 2018 (2018)
+53. Maoz, S., Ringert, J.O., Shalom, R.: Symbolic repairs for GR(1)
+speciﬁcations. In: Mussbacher, G., Atlee, J.M., Bultan, T. (eds.)Proceedings of the 41st International Conference on Software Engi-
+neering, ICSE 2019, Montreal, QC, Canada, May 25–31, 2019, pp.
+1016–1026. IEEE/ACM (2019)
+54. Maoz, S., Sa’ar, Y .: AspectLTL: an aspect language for LTL spec-
+iﬁcations. In: AOSD, pp. 19–30. ACM (2011)
+55. Maoz, S., Sa’ar, Y .: Assume-guarantee scenarios: Semantics and
+synthesis. In: MODELS, volume 7590 of LNCS, pp. 335–351.Springer (2012)
+56. Maoz, S., Sa’ar, Y .: Two-way traceability and conﬂict debugging
+for aspectltl programs. Trans. Aspect-Oriented Softw. Dev. 10, 39–
+72 (2013)
+57. Maoz, S., Shalom, R.: Inherent vacuity for GR(1) speciﬁcations.
+In: ESEC/FSE, pp. 99–110. ACM (2020)
+58. Maoz, S., Shevrin, I.: Just-in-time reactive synthesis. In: ASE, pp.
+635–646. IEEE (2020)
+59. Menghi, C., Tsigkanos, C., Pelliccione, P., Ghezzi, C.,
+Berger, T.: Speciﬁcation patterns for robotic missions. CoRR,arXiv:1901.02077 (2019)
+60. Miyazawa, A., Ribeiro, P., Li, W., Cavalcanti, A., Timmis, J.,
+Woodcock, J.: Robochart: modelling and veriﬁcation of the func-tional behaviour of robotic applications. Softw. Syst. Model. 18(5),
+3097–3149 (2019)
+61. Newcombe, C., Rath, T., Zhang, F., Munteanu, B., Brooker, M.,
+Deardeuff, M.: How amazon web services uses formal methods.Commun. ACM 58(4), 66–73 (2015)
+62. Piskac, R., Dimitrova, R., (eds.): Proceedings Fifth Workshop on
+Synthesis, SYNT@CA V 2016, Toronto, Canada, July 17–18, 2016,
+volume 229 of EPTCS (2016)
+63. Piterman, N., Pnueli, A.: Faster solutions of rabin and streett games.
+In: 21th IEEE Symposium on Logic in Computer Science (LICS2006), 12–15 August 2006, Seattle, W A, USA, Proceedings, pp.275–284. IEEE Computer Society (2006)
+64. Piterman, N., Pnueli, A., Sa’ar, Y .: Synthesis of reactive(1) designs.
+In: VMCAI, volume 3855 of LNCS, pp. 364–380. Springer (2006)
+65. Pnueli, A.: The temporal logic of programs. In: 18th Annual Sym-
+posium on Foundations of Computer Science, Providence, RhodeIsland, USA, 31 October–1 November 1977, pp. 46–57. IEEE Com-puter Society (1977)
+66. Pnueli, A., Rosner, R.: On the Synthesis of a Reactive Module. In:
+POPL, pp. 179–190. ACM Press (1989)
+67. Pnueli, A., Sa’ar, Y ., Zuck, L.D.: JTLV: a framework for developing
+veriﬁcation algorithms. In: CA V , volume 6174 of LNCS, pp. 171–174. Springer (2010)
+68. Raman, V .: Kress-Gazit, H.: Analyzing unsynthesizable speciﬁ-
+cations for high-level robot behavior using ltlmop. In: Gopalakr-
+123
+
+--- Page 34 ---
+1586 S. Maoz, J. O. Ringert
+ishnan G., Qadeer, S. (eds.) Computer Aided Veriﬁcation—23rd
+International Conference, CA V 2011, Snowbird, UT, USA, July14–20, 2011. Proceedings, volume 6806 of Lecture Notes in Com-puter Science, pp. 663–668. Springer (2011)
+69. Ringert, J.O., Roth, A., Rumpe, B., Wortmann, A.: Language
+and code generator composition for model-driven engineering ofrobotics component & connector systems. J. Softw. Eng. Robot. 6,
+33–57 (2015)
+70. Rozier, K.Y .: Speciﬁcation: the biggest bottleneck in formal meth-
+ods and autonomy. In: VSTTE, volume 9971 of LNCS, pp. 8–26(2016)
+71. Sim, S.E., Easterbrook, S.M., Holt, R.C.: Using benchmarking to
+advance research: a challenge to software engineering. In: Clarke,L.A., Dillon, L., Tichy, W.F. (eds.) Proceedings of the 25th Inter-national Conference on Software Engineering, May 3–10, 2003,Portland, Oregon, USA, pp. 74–83. IEEE Computer Society (2003)
+72. Somenzi, F.: CUDD: BDD package, University of Colorado, Boul-
+der.http://vlsi.colorado.edu/~fabio/CUDD/cudd.pdf
+73. Spectra Website. http://smlab.cs.tau.ac.il/syntech/spectra/
+74. Walker, A., Ryzhyk, L.: Predicate abstraction for reactive synthesis.
+In: Formal Methods in Computer-Aided Design, FMCAD 2014,Lausanne, Switzerland, October 21–24, 2014, pp. 219–226. IEEE
+(2014)
+75. Wong, K.W., Finucane, C., Kress-Gazit, H.: Provably-correct robot
+control with ltlmop, OMPL and ROS. In: 2013 IEEE/RSJ Interna-tional Conference on Intelligent Robots and Systems, Tokyo, Japan,November 3–7 [1], p. 2073 (2013)
+76. Wongpiromsarn, T., Topcu, U., Ozay, N., Xu, H., Murray, R.M.:
+TuLiP: A Software Toolbox for Receding Horizon Temporal LogicPlanning. In: Proceedings of the 14th International Conference onHybrid Systems: Computation and Control, HSCC ’11, pp. 313–314. New York, NY , USA, ACM (2011)
+77. Xtext. Xtext. https://www.eclipse.org/Xtext/
+78. Yu, Y ., Manolios, P., Lamport, L.: Model checking tla
++speciﬁca-
+tions. In: L. Pierre and T. Kropf, editors, Correct Hardware Designand Veriﬁcation Methods, 10th IFIP WG 10.5 Advanced ResearchWorking Conference, CHARME ’99, Bad Herrenalb, Germany,September 27–29, 1999, Proceedings, volume 1703 of LectureNotes in Computer Science, pp. 54–66. Springer (1999)
+79. Zeller, A.: Yesterday, my program worked. today, it does not. why?
+In: ESEC/FSE, volume 1687 of LNCS, pp. 253–267. Springer(1999)
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+S. Maoz is an Associate Pro-
+fessor at the School of ComputerScience in Tel Aviv University,where he heads the Software Mod-eling Laboratory. Shahar has BScand MSc computer science degreesfrom Tel Aviv University, and aPhD from the Weizmann Insti-tute, Israel. From 2010 to 2012he was a postdoc research fel-low in RWTH Aachen University,Germany, with a fellowship from
+the Minerva Foundation. In 2015–
+2016, he spent a sabbatical at MITCSAIL. Shahar’s research inter-
+ests are in software engineering, speciﬁcally in the use of models andformal methods for software evolution, model inference, testing, andsynthesis. His work has been published in top software engineeringand modeling conferences and journals. He has served multiple timeson the program committees of ASE, ESEC/FSE, ICSE, and MoDELSconferences, and will be PC co-Chair for ASE’22. He is a recipient ofan ERC Starting Grant for the development of synthesis technologies(project SYNTECH: http://smlab.cs.tau.ac.il/syntech/ ).
+J. O. Ringert is a Lecturer at
+the School of Informatics at Uni-versity of Leicester. Jan has aDiploma from Technical Univer-sity of Brunswick and a PhD fromRWTH Aachen University. From2013 to 2015, he was a postdocresearch fellow in Tel Aviv Uni-versity, with a fellowship from theMinerva Foundation. From 2015to 2018, his postdoc research wasfunded through the SYNTECHproject. Jan’s research interests arein using formal methods for model-based software engineering with
+applications to autonomous systems. His work has been published intop software engineering and modeling conferences and journals. Janhas co-developed and taught classes on synthesis using Spectra at TelAviv University. He was lead developer of the Spectra Tools from2014 to 2018. He obtained Fellowship status from the Higher Educa-tion Academy in 2020.
+123
