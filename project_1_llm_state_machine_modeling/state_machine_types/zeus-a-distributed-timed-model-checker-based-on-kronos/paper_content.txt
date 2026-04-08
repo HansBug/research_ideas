@@ -1,0 +1,1446 @@
+--- Page 1 ---
+Electronic Notes in Theoretical Computer Science 68 No. 4 (2002)
+URL: http://www.elsevier.nl/locate/entcs/volume68.html 20 pages
+Zeus: A Distributed Timed Model-Checker
+Based on Kronos
+V. Brabermana,1,4, A. Oliverob,2,5,F .S c h a p a c h n i ka,3
+aComputer Science Department, FCEyN,
+Universidad de Buenos Aires, Buenos Aires, Argentina
+bDepartment of Information Technology, FIyCE,
+Universidad Argentina de la Empresa, Buenos Aires, Argentina
+Abstract
+In this work we present Zeus , a Distributed Model-Checker that evolves from the
+toolKronos [8] and that currently can handle backwards computation of TCTL-
+reachability properties [1] over timed-automata [2].
+Zeus was developed following a software architecture centric approach. It intro-
+duces some interesting features such as ap r i o r i graph partitioning, a sophisticated
+machinery to reach optimum performance (communication piggybacking and de-
+layed messaging) and dead-time utilization, where every processor uses time inter-vals of inactivity to perform auxiliary, time-consuming tasks that will later speedup the rest of the computation.
+Although some good results have been obtained, early experiments pinpointed
+the diﬃculties of getting speedups using a parallel asynchronous version. We alsopropose some paths to overcome those obstacles.
+1 Introduction
+Research in Model-Checking is focused on increasing the size of the problems
+tools can deal with. The ultimate wave has been the use of Distributed-
+Computing, where a cluster of computers work together to solve the prob-
+lem [16,4,20].
+The usefulness of a distributed strategy is often measured by the “speedup”
+gained. Speedup with nprocessors is computed ast1
+tnwhere tiis the time it
+1Research supported by UBACyT grants X156 and X094.
+2Research supported by UADE grant PSI.2.2002.
+3Email:fschapac@dc.uba.ar
+4Email:vbraber@dc.uba.ar
+5Email:aolivero@uade.edu.ar
+c/circlecopyrt2002 Published by Elsevier Science B. V. Open access under CC BY-NC-ND license.
+
+--- Page 2 ---
+Braberman, Olivero and Schapachnik
+takes to ﬁnish the veriﬁcation with iprocessors. The goal is usually to get lin-
+ear speedups, although verifying cases where the sequential version exhausted
+its memory is also considered a success.
+Much successful work has been done to distribute untimed model check-
+ers [20,16,3,11,18,5,12,14], etc. However, except for the work of Behrmann,
+Hune and Vaandrager on a distributed version of UPPAAL [4], not much have
+been done about parallelizing or distributing Timed Model-Checkers.
+In this work we present Zeus, a Distributed Model-Checker that evolves
+from the tool Kronos [8] and that currently can handle backwards compu-
+tation of TCTL-reachability properties [1] over timed-automata [2].
+The rest of the paper is organized as follows: in section 2 we describe the
+Kronos tools from which ours evolves. Section 3 presents the most interesting
+points of our Distributed Model Checker. Section 4 shows the performance
+on a couple of conﬁgurations for a version of the Train-Gate-Controller casestudy and section 5 presents the lessons learned, as well as paths to be taken
+in research to be.
+2 The Kronos tool
+The tool Kronos [8] formally checks whether a real-time system meets its
+requirements. It is founded on the theory of timed automata [2] and timed
+temporal logics, like TCTL [1].
+Although being successfully used in real world applications [17,21,9] it
+fails to cope with the same state explosion problem that harvest most ofthe other tools. Main problems are storage exhaustion and inability to use
+multiprocessor equipment when available.
+Even though a deep technical knowledge of Kronos formalisms and algo-
+rithms is not required to understand this paper, we will introduce the main
+concepts and will refer the interested reader to the ample ﬁeld’s literature
+(e.g., [2,8], etc.).
+Timed automata is a real-time formalism that incorporates positive real
+valued clocks to automata notation. Clocks record the time elapsed between
+events. All clocks are synchronized, that is, they all advance at the same pace.When a transition is taken, clocks are allowed to be reset to zero. Transitions
+are associated with a guard which is a predicate over the clocks. The guard
+determines when a transition can be taken.
+The inclusion of clocks generates an inﬁnite state space (control locations
+plus clock valuations). Fortunately, this does not imply undecidability of
+many interesting problems such us reachability. To deal with inﬁnite state
+manipulation, tools like Kronos representconvex set s of clock valuat ions as
+conjunctions of inequalities involving one clock or the diﬀerence between two
+clocks (e.g., 1 ≤x≤5∧x−y>8). A data structure called Diﬀerence Bound
+Matrices (DBM) [10] is typically used to manipulate such kind information.Non-convex sets are represented as union of convex sets. Kronos performs
+2
+
+--- Page 3 ---
+Braberman, Olivero and Schapachnik
+D: Fix Point
+Engine
+: Regions’ storage
+Fig. 1. Kronos architecture.
+reachability queries as a backwards propagation of non-convex sets over the
+graph of control locations. This propagation is a ﬁx point calculation of the
+appropriate precedence operators that starts from target states. The ﬁnalanswer is whether or not the initial states belong to the computed ﬁx point.
+Full TCTL veriﬁcation is mainly based on the previously explained algo-
+rithm [13].
+InKronos jargon, each convex setis called a zone, and a union of convex
+s e tsi sc a l l e da region (not to be confused with the region graph of [2]).
+From a conceptual standpoint, its architecture can be seen as a ﬁx-point
+engine that reads and writes its non-convex sets into a regions’ storage com-ponent, as depicted in ﬁgure 1.
+3 Distributing Kronos: Zeus
+To obtain a Distributed Timed Model-Checker a number of issues must bedealtwit h. As sine qua non requirement, the resulting architecture must be
+provable correct. A sketch of the correctness proof can be found in section
+3.1.
+On the performance side, a delicate balance should be established. On
+one hand maximum distribution is desired. On the other, minimum commu-
+nication between processors should be required. The rationale for requiringminimum communicat ion should notbe t houghtas net work lat ency, as com-
+monly referred in the literature, but as context switching. This is because the
+processor has to temporarily stop the proﬁtable ﬁx-point calculation to take
+care of the unavoidable message passing, often involving hardware interrupts
+and context switching at the operating system level.
+While extending Kronos we preserve the explicit representation of control
+graph and a symbolic representation of clock values. While most work in thearea uses an on-the-ﬂy construction of the control graph and a hashing function
+for its nodes (locations) that tries to balance the load between processing
+nodes, we introduce an ap r i o r i control graph partitioning which in the ﬁrst
+version is based on the tool M
+ETIS[15]. If mis the number of edges, METIS
+3
+
+--- Page 4 ---
+Braberman, Olivero and Schapachnik
+uses an O(m) heuristic approach to deal with the NP-complete problem of
+ﬁnding the minimum cut.
+Though an on-the-ﬂy construction of control graph is more appealing, par-
+ticularly when reachable nodes are a small subset of the control locations or
+when error locat ions are in factreachable, we believe t hatworking wit h t he
+whole control graph may oﬀer advantages over on-the-ﬂy construction when-
+ever feasible6:
+•It establishes a suitable testbed to experiment diﬀerent graph partitioningstrategies. The current version considerably reduces the number of edges
+that cross processor boundaries, thus minimizing communication require-ments and consequently context switching.
+•It establishes a suitable framework for dynamic node redistribution whenload balance is compromised due to huge diﬀerences on the number of sym-bolic regions that the processors are handling. Although the current version
+does not has the ability to migrate locations between processors, it is seen
+as a very promising research path (more about this on section 5).
+•Extensions to full TCTL are easy to achieve following Kronos algorithms.
+•Distribution partition and conﬁguration reuse is possible whenever onlytime constraints of the model are changed.
+Two other strategies were put in place to help reduce the message ex-
+change between processing nodes. An important decision that can largelyaﬀectperformance is t he use of eit her a pushschema, where nodes send each
+other regions that they will need, or a polling schema, where nodes explicitly
+request regions as they need them. Our ﬁrst decision was to use a mixed strat-egy based on message piggybacking. Processing nodes basically behave as in
+thepolling schema, butwhen a processor Aneeds a region located in another
+processor B, itwill requestall B’s regions that are of interest to A–notjust
+the one needed right now– and it will send all its regions that Bneeds. This
+mechanisms should reduce communication overhead, because fewer messages
+are exchanged.
+To further reduce communication, a state machine determines if a process-
+ing nodes really needs to ask for regions. It has three possible modes:
+“Low regions-demand, busy processing node” In this state the proces-
+sor is busy wit h t he ﬁx-pointcalculat ion and can go along wit houtrequest -
+ing newer regions from another processing node, thus leaving the chance
+that a future request will bring a larger region, due to the monotonicity of
+the calculus.
+“High regions-demand, idle processing node” In this state the process-
+ing node has reached a temporary ﬁx-point, so it is idle and its requests areimmediately delivered.
+6I.e., when the graph of control locations is not huge compared to the involved DBMs’
+quantity.
+4
+
+--- Page 5 ---
+Braberman, Olivero and Schapachnik
+: StorageC/D
+D: Fix Point
+Engine
+: Local regions’
+storage: Coordinator
+: Iterator
+: HelperC C
+D
+: Deltaaccumulator: Connector
+*D
+*C/D
+: Load
+AssessorD
+: Router
+DD: Remote regions’storage
+: Embassys*DDD
+C/
+D: Connector
+DkCapsule Capsule
+Fig. 2. Zeus architecture.
+“High regions-demand, busy processing node” This state serves the pur-
+pose of predicting the previous one. The processing node is not yet idle, but
+an heuristic7predicts that it will be soon, so its requests are send without
+delay.
+To handle all this design considerations, an architecture as shown in ﬁgure
+2 was built. Its apparent complexity obeys to a key design decision: separation
+of concerns. The architecture should serve as a testbed for experimenting with
+a family of design decisions concerning synchronization, region communication
+and load balance. Thus, we aimed ata loosely coupled solut ion where issues
+like ﬁxed point calculation and the use of polling orpushschema remains as
+independent as possible. This strategy lead us to the identiﬁcation of some
+aspects that were mapped into diﬀerent components.
+From an architectural point of view, a capsule is a setof component s and
+connectors associated to a processing node. Each partition is assigned to a
+processing node.
+TheFix-Point Engine of acapsule is in charge of computing, for the as-
+sociated partition, the set of states that can reach the target states. A key
+idea behind the architecture is to conceal from the Fix-Point Engine the fact
+that there is distribution. In order to achieve that, a storage componentis
+reﬁned into several pieces: a router componentis in charge of hiding which
+7The heuristic is the determination that the number of regions changed per iteration is
+decreasing below certain threshold.
+5
+
+--- Page 6 ---
+Braberman, Olivero and Schapachnik
+capsule each location is assigned to. During ﬁx-point computation if the Fix-
+Point Engine needs to read a region assigned to the same capsule ,th erouter
+will direct the petition to the local regions’ storage component. If the loca-
+tion resides in another capsule , its associated regions will be requested to the
+corresponding embassy .
+Within each capsule there is an embassy for each neighbor capsule .W h e n
+requested for a region, they immediately answer back if they have some “new”
+regions to provide8. When no new information has arrived, they forward
+the request to the connector , asking it to send a network message to the
+corresponding capsule . When the new regions arrive they became visible to
+theFix-Point Engine at the next iteration.
+Acapsule Ahas aconnector A,Biﬀ t here is atleastone edge bet ween a
+location in Aand a location in B.Connectors handle network communica-
+tion, but are also responsible for deciding when petitions are actually sent outto the network, thus implementing the delayed messaging strategy. To makethat decision, they query the load assessor component and ignore the petition
+if thecapsule is in “Low regions-demand” state. In fact, request forwarding
+happens only when the capsule is in “High regions-demand” and there is no
+answer pending. In this case, piggybacking has to take place, so the con-
+nector attaches every unsent region that is of interest to the target capsule
+toth er e q u e s t ( delta accumulator take a role in this, as explained later on).
+The receiving connectors immediately answer requests, regardless of their own
+capsule regions-demand.
+Thedelta accumulators serve as a repository of all new regions that are
+produced by the Fix-Point Engine and that must be eventually be visible to
+othercapsules . Again, the Fix-Point Engine is notaware of t he exist ence of
+thedelta accumulators ;i ti st h e router’s job to guarantee that written local
+regions also get there. Obviously, the load assessor componentis in charge of
+determining whether the capsule is idle or not and whether its regions-demand
+is high or low.
+Thehelper performs data representation compression (i.e., representing
+regions with less number of DBMs if possible) whenever the Fix-Point Engine
+reaches a temporary local ﬁx-point. Compression is applied in the local repos-
+itory and the delta accumulator . This leads to a “semantically harmless” dead
+time utilization that hopefully will make future computations and messaginglighter.
+Itis t heiterator responsibility to determine whether the control ﬂow will
+be att he Fix-Point Engine componentor att he helper component.
+Thecoordinator is in charge of starting the veriﬁcation, including par-
+tition management and distribution of work among capsules . During the
+model-checking phase, the coordinator sporadically receives from the capsules
+8For technical reasons special care is taken to exhibit the same information to every request
+belonging to the same Fix-Point Engine iteration.
+6
+
+--- Page 7 ---
+Braberman, Olivero and Schapachnik
+information about the existence of local ﬁx-points and data to estimate the
+number of messages ﬂowing through the network. Hence, the coordinator is
+the component that detects that ﬁx-point or initial states have been reached.
+For the interested reader, a more detailed description of the architecture
+is oﬀered as appendix 5.
+3.1 Sketch of a correctness proof.
+To avoid a big step, instead of straightly proving the correctness of Zeuswe
+have incrementally proved correctness of intermediate versions that resemble
+more to Kronos architecture (see ﬁgure 3). Two of them are of special in-
+terest: the ﬁrst one is what we called “na¨ ıve distribution”, which introduces
+distribution with very simple synchronous access to remote information, and
+the second consists in the introduction of sophisticated machinery like con-
+nectors, high/low regions-demand, piggybacking, etc. (see ﬁgure 3(e)). Toprove them correct we follow a common strategy in proofs of distributed algo-
+rithm by splitting the demo into two parts: (a) the semialgorithm described
+converges to the minimum ﬁx-point, and (b) the coordinator will eventually
+det ectﬁx-pointwhen ithappens.
+To address the ﬁrst issue we resort to the concept of “asynchronous itera-
+tions”, due to Cousot [7].
+Deﬁnition 3.1 Asynchronous Iterations
+Let(P,/subsetsqequal) be a complete lattice, na positive integer and F:P
+n→Pna
+monotonic operator.
+Let/angbracketleftcδ:δ∈Ord/angbracketrightbe a sequence of elements of IN n={1,...,n }such that:
+a) (∀δ∈Ord)(∀i∈INn)((∃α≥δ)(i=cα))
+Let/angbracketleftτδ:δ∈Ord/angbracketrightbe a sequence of elements of Ordnsuch that:
+b) (∀i∈INn)(∀δ∈Ord)(τδ
+i<δ)
+c) (∀δ∈Ord)(∀i∈INn)(∃β≥δ)((∀α≥β)(δ≤τα
+i)))
+d) (∀β,δ∈Ord)((βis a limitordinal ∧β<δ)=⇒((∀i∈INn)(β≤τδ
+i)))
+AnAsynchronous Iteration of the operator Fand the sequences /angbracketleftcδ:δ∈
+Ord/angbracketrightand/angbracketleftτδ:δ∈Ord/angbracketright, starting from D∈Pn,i sd e ﬁ n e da sf o l l o w s :
+x0=D
+xδ
+i=xδ−1
+i ∀successor ordinal δ∧∀i/negationslash=cδ
+xδi=Fi(xτδ
+1
+1,...,xτδ
+nn)∀successor ordinal δ∧∀i=cδ
+xδ
+i=/unionsqtext
+δ/prime≤δxδ/prime
+i ∀limitordinal δ
+In [7] it is proven that asynchronous iterations are stationary sequences
+and t heir limitis indeed t he leastﬁx pointof operat or Fstarting from D.
+7
+
+--- Page 8 ---
+Braberman, Olivero and Schapachnik
+D: Fix Point
+Engine
+: Regions’ storage
+(a) Step 0 ( Kronos ).C/D C/D
+D: Fix Point
+Engine
+: Regions’ storageD: Fix PointEngine
+: Regions’ storageDD: Coordinator
+(b) Step 1 (“na¨ ıve distri-
+bution”).C/D C/D
+D: Fix PointEngine
+: Regions’ storage: Coordinator
+: Iterator
+: HelperC C
+D D: Fix PointEngine
+: Regions’ storage: Iterator
+: HelperC C
+D
+(c) Step 2.
+C/D
+D: Fix PointEngine
+: Regions’ storage: Coordinator
+: Iterator
+: HelperC C
+D
+: Delta
+accumulator: Connector
+D
+*D
+*
+DC/D
+: Connector
+D
+(d) Step 3.C/D
+D: Fix Point
+Engine
+: Local regions’storage: Coordinator
+: Iterator
+: HelperC C
+D
+: Deltaaccumulator: Connector
+*D
+*C/D
+: LoadassessorD
+: Router
+DD: Remote regions’storage
+: Embassys*DDD
+C/
+D: Connector
+D
+(e) Step 4.
+Fig. 3. Architecture evolution.
+That is, asynchronous iterations provide a model of iterative computing
+that guarantees that if some hypothesis are met, then the minimum ﬁx-point
+will be reached even if the computation does not follow the standard order of
+ﬁx-point iterative calculus. In particular, during the computation described by
+this model, data from diﬀerent past instants might be used. This is the kind ofphenomenon that arises in distributed computation, where remote data used
+in a given calculus may have changed at the original site. Of course, some
+other hypothesis should hold, like fairness of computation (3.1.a). Among
+the non-trivial ones, roughly speaking, is the requirement that information
+produced in a given pointin t ime ata given processing node will event uallybe available to any other remote calculus that relies on it (3.1.c).
+For instance, to prove that these requirements hold for Zeus,w es h o w e d
+that (a) local ﬁx points are bound to happen, (b) consequently “high regions-
+demand” mode is entered, then (c) request will eventually be made, and thus
+(d) updated info will return as answers. Full proof of correctness can be found
+in [19].
+8
+
+--- Page 9 ---
+Braberman, Olivero and Schapachnik
+3.2 Implementation notes
+Zeus’ is written in about 7000 lines of modular ANSI C code. Ituses TCP/IP
+sockets for interprocess communication, wrapped in a communication library.
+Itrelies on Kronos andMETISlibraries for DBM computation and for
+location distribution, respectively.
+Itruns on mostUnix plat forms.
+4 Preliminary experimental results
+The example we take as our guiding case study is a version of the Train Gate
+Controller common in literature. The controller registers the status of trainsand actuates over the gate accordingly. The property to assess (expressed as
+a reachability problem over an observer) is whether or not a train can access
+the railway crossing while the gate is up or has just gone down.
+Table 1:Size of TGC case study.
+#Automaton
+ #Locations
+ #Transitions
+ #Clocks
+Each train
+ 3
+ 3
+ 1
+Gate
+ 4
+ 10
+ 1
+Controller (5 trains)
+ 18
+ 205
+ 1
+Controller (6 trains)
+ 21
+ 280
+ 1
+Observer
+ 5
+ 22
+ 1
+Composition (5 trains)
+ 4764
+ 27850
+ 8
+Composition (6 trains)
+ 14388
+ 90262
+ 9
+We deﬁned ttxas the total wall-clock time of a veriﬁcation run with x
+processors, tcxas the time it takes to copy the automata and related info
+to all the processors, and tixas the total idle time (over all the participant
+capsules ). We make a distinction because the copying process is suboptimal
+and can be enhanced. The Speedup function Sxis deﬁned as follows:
+fx=(ttx−tcx)
+t1
+Sx=1
+fx
+fxrepresents the fraction of time the run takes to ﬁnish with xprocessors,
+compared to just one processor. As can be seen, we consider a linear speedupas ideal.
+In our very ﬁrst experiments, done on an Intel cluster composed by 10
+9
+
+--- Page 10 ---
+Braberman, Olivero and Schapachnik
+Example
+ Environment
+ #procs
+ ttx(sec)
+ tcx(sec)
+ fx×100%
+ Sx
+TGC5,
+ Darwin
+ 1
+ 405
+ 0
+ 100%
+ 1
+reachable
+ 2
+ 77
+ 24
+ 13.09%
+ 7.64
+target state
+ 3
+ 130
+ 48
+ 20.25%
+ 4.94
+Speedy
+ 1
+ 248
+ 0
+ 100%
+ 1
+2
+ 25
+ 1
+ 9.68%
+ 10.33
+3
+ 129
+ 1
+ 51.61%
+ 1.94
+4
+ 37
+ 3
+ 13.71%
+ 7.29
+5
+ 202
+ 3
+ 80.24%
+ 1.25
+6
+ 28
+ 5
+ 9.27%
+ 10.78
+TGC5,
+ Darwin
+ 1
+ 889
+ 0
+ 100%
+ 1
+unreachable
+ 2
+ 5155
+ 25
+ 577.07%
+ 0.17
+target state
+ 3
+ 3625
+ 49
+ 402.25%
+ 0.25
+TGC6,
+ Darwin
+ 1
+ ∞
+ N/A
+ N/A
+ N/A
+reachable
+ 2
+ ∞
+ N/A
+ N/A
+ N/A
+target state
+ 3
+ 320
+ 146
+ N/A
+ N/A
+Speedy
+ 1
+ ∞
+ N/A
+ N/A
+ N/A
+2
+ ∞
+ N/A
+ N/A
+ N/A
+3
+ ∞
+ N/A
+ N/A
+ N/A
+4
+ 9199
+ 74
+ 100%
+ 4
+5
+ 1607
+ 77
+ 16.63%
+ 6.01
+6
+ 1659
+ 103
+ 16.91%
+ 5.91
+Table 2
+Results for TGC.
+nodes9, and on a Silicon Graphics IP27 with four 270 Mhz processors10and
+1 Gb RAM running IRIX64 6.5, we were indeed able to deal with bigger
+problems than the single processor version. Moreover, in many cases we also
+obtained important speedups (see table 2).
+However, in several cases the performance dropped when we increased the
+number of processors. Concerned by these unsatisfactory results we decided
+to refocus the experimental analysis. The ﬂexibility of Zeusallowed us to
+quickly code diﬀerent communication strategies:
+•The original pseudo-polling schema, where capsules requestinformat ion
+when they have a “high-regions demand”, and that features communica-
+tion piggybacking.
+•Apushschema, where nodes send the regions they produce to others that
+9All of them with 64 Mb of memory, Linux 2.2.15-4mdk kernel and 5 with Pentium III
+733 Mhz processor and the other 5 with AMD Athlon 940 Mhz connected through an 100
+Mbps Ethernet network. Only six of them were available. Due to diﬀerent processor speedson the cluster, faster processors where used ﬁrst, seeking to avoid assigning a speedup to
+certain conﬁguration when that would have been caused because of the introduction of a
+faster processor.
+10Only three of them were available.
+10
+
+--- Page 11 ---
+Braberman, Olivero and Schapachnik
+need them without delay. This model is similar to the one used in dis-
+tributed on-the-ﬂy reachability graph exploration [20].
+•Asubscription schema. This is a variation of the pseudo-polling schema
+that eliminates many unneeded messages. When two consecutive requestsfrom acapsule fail to bring back information, a subscription between the
+source of the petition and target capsule takes place. This means that no
+new requests are issued, to avoid ﬂooding the target. When the target
+generates new regions, it sends them to the subscribed requester, as in the
+pushschema.
+We also used several partition strategies to improve load balance:
+•Minimal Cut: using METIS, as described earlier.
+•TL-Weighted Minimal Cut: using METISfeatures to add weight information
+to locations. Locations with the property to be reached weight ten timesthe normal weight
+11.
+•OpL-Weighted Minimal Cut: using METISfeatures to add weight infor-
+mation to locations. That information comes from the metrics about thenumber of convexes that are operated in each location
+12during a previous
+veriﬁcation on a monoprocessor (see below). The idea is to see how an
+supposedly good distribution inﬂuences veriﬁcation times.
+•Random Distribution: an uniform distribution of control nodes with no
+locality preservation.
+The goal of the new set of experiments was getting answers about how some
+identiﬁed key issues aﬀect total times: distribution of locations among cap-
+sules, communication strategy and symbolic state space representation frag-
+mentation.
+We recorded several metrics, the most meaningful ones being: idle time of
+eachcapsule ,t i m es p e n ta tI / Oa te a c h capsule ,ti m es p e n t a t th e Fix-Point
+Engine (referred as “Time at fpe” in the tables), the number of interruptions
+that each capsule receives (referred as “#req. rcvd.” in the tables). As a
+metric to measure the load balance we took a time-demanding operation suchas the diﬀerence between symbolic states (see line 10 of algorithm 1). Then we
+accumulate for each node the product of the number of convexes that represent
+the symbolic states to be operated (it makes sense because, for a given set of
+clocks, this product approximately determines the computational complexityof the operation). We refer to this metric as “#ops.” in the tables.
+Looking at experimental data, there was a particularly bad case, which
+showed up on two processors and in which 90% of the work seems to fall into
+onecapsule . No doubtt here is a problem in balance, butone would expect
+times to be similar to the single processor version, yet they were up to almostseven times worse. Early experiments revealed the main problem was not
+11TL stands for Target Locations.
+12OpL stands for Operations per Location.
+11
+
+--- Page 12 ---
+Braberman, Olivero and Schapachnik
+I/O, as can be seen in table 4. We decided to run the experiments over the
+Silicon Graphics machine t o easily reason and pinpointwhatwas going on each
+capsule . These experiments are not meant to be conclusive since we are using
+justa single example and a low number of processors. Nevert heless, somephenomena might warn about challenges that make a good parallelization of
+backwards computation a non-trivial task.
+The following results were obtained over TGC5 with unreachable “ER-
+ROR” state; this means that all the state space that reaches the target loca-tions is generated (and the initial state doesn’t belong to that set).
+We observed that the subscription schema always performed a little better
+than the original pseudo-polling one, so we choose to only report on that one
+a n do nth e pushstrategy. On the other hand, we do not report new results
+based on pure minimal cut since the weighted versions seems to perform better.
+Also, as expected, random distribution of locations performed extremely bad
+and examples did not ﬁnish in 4 hours of wall-clock time. Unfortunately, thecurrent version of the tool logs metrics only after ﬁnishing, so we can not
+exhibit data. Let us add that the I/O time for capsule 0 also includes the
+I/O ofcoordinator , since in the current version the coordinator resides in that
+capsule .
+We structured the data per partition strategy. Along with each table, we
+provide partial conclusions on how diﬀerent versions performed.
+Table 3: Results for TGC5, unreachable target state, single processor version.
+1 processor
+tt(s)
+ tc(s)
+ ti(s)
+888
+ 0
+ 0
+Id l et i m e( s )
+ Time at fpe (s)
+ I/O (s)
+ #req. rcvd
+ #ops.
+Cap. 0
+ 0
+ 868
+ 0
+ 0
+ 3273740
+TL-Weighted Minimal Cut
+The partitioning is clearly unsatisfactory in terms of workload distribution.
+Thoughsubscription performs better than push, the drop of performance wrt.
+the monoprocessor version is remarkable due to a (probable) fragmentation
+problem. As it was reported by [6] and [4], changing the evaluation orderduring ﬁx point calculation may exacerbate the fragmentation in the repre-
+sentation of regions (i.e., the number of convexes needed to represent a region).
+Note that the number of operations increased and I/O time had little impact.See table 4.
+All the runs seems to indicate that the pushstrategy has some problem
+that is not captured by our current metrics, except for the total wall-clocktime.
+12
+
+--- Page 13 ---
+Braberman, Olivero and Schapachnik
+Table 4: Results for TGC5, unreachable target state, TL-Weighted Minimal Cut partition-
+ing.
+Comm.strate-
+gie
+2 processors
+ 3 processors
+Sub-
+scrip-tion
+tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+2962
+ 24
+ 2914
+ 2041
+ 49
+ 3944
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 2914
+ 3
+ 75
+ 1
+ 25734
+ 1971
+ 3
+ 55
+ 6
+ 67793
+Cap. 1
+ 0
+ 2916
+ 0
+ 2
+8596123
+ 0
+ 1994
+ 1
+ 17
+7905481
+Cap. 2
+ 1973
+ 0
+ 53
+ 3
+ 942
+Push
+ tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+5271
+ 24
+ 5222
+ 2194
+ 49
+ 4244
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd13
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 5222
+ 3
+ 146
+ 55
+ 25734
+ 2118
+ 3
+ 74
+ 132
+ 69306
+Cap. 1
+ 0
+ 5225
+ 0
+ 748
+ 8567574
+ 0
+ 2149
+ 0
+ 384
+ 8303893
+Cap. 2
+ 2126
+ 0
+ 74
+ 2
+ 942
+OpL-Weighted Minimal Cut
+In this case we obtained better results in terms of workload distribution,
+as we expected. As a consequence, the interchange of information increased.
+Fragmentation still exists, and explains why time is not reduced wrt. the
+monoprocessor version. An unpleasantfactis t hatneit her t he subscription
+schema, neither the pushschema ﬁnished with 3 processors. A possible expla-
+nation is an exacerbation of the fragmentation problem. See table 5.
+Table 5: Results for TGC5, unreachable target state, OpL-Weighted Minimal Cut parti-
+tioning.
+Comm.
+strate-
+gie
+2 processors
+ 3 processors
+Sub-scrip-
+tion
+tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+1650
+ 24
+ 1111
+ ∞
+ N/A
+ N/A
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 1110
+ 494
+ 102
+ 3
+2293082
+Cap. 1
+ 1
+ 1558
+ 55
+ 12
+2949683
+Cap. 2
+Push
+ tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+4252
+ 24
+ 4077
+ ∞
+ N/A
+ N/A
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 4077
+ 116
+ 91
+ 748
+ 704244
+Cap. 1
+ 0
+ 4207
+ 0
+ 666
+ 3962755
+Cap. 2
+13Please note that when using a push strategy “#req. rcvd” are really messages containing
+regions received, as there are no requests.
+13
+
+--- Page 14 ---
+Braberman, Olivero and Schapachnik
+As can be seen in tables 4 and 5, communication strategies did not inﬂuence
+the outcome of the experiments, maybe because the example is small and
+because hardware interrupts are not involved when communicating on a single
+machine. It must be noted that there seems to be a direct relationship between
+the previously mentioned metric (number of operations per location) and the
+time results.
+In order to mitigate the fragmentation problem, we decided to apply a
+conservative abstraction which consists in applying convex hull when a regionis going to be transported to another capsule . In whatfollows we reporton a
+couple of experiments using this idea.
+OpL-Weighted Minimal Cut, using convex hull
+Transmitting just one convex per region reduces the wall-clock time for the
+subscription schema but there is still too much idle time. The pushschema
+performance is far from being satisfactory, and we have no explanation for the
+phenomenon using the metrics proposed. See table 6.
+Table 6: Results for TGC5, unreachable target state, OpL-Weighted Minimal Cut parti-
+tioning, using convex-hull.
+Comm.
+strate-gie
+2 processors
+ 3 processors
+Sub-scrip-
+tion
+tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+932
+ 24
+ 893
+ 992
+ 49
+ 1673
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 494
+ 394
+ 1
+ 7
+1056302
+ 763
+ 162
+ 12
+ 26
+ 313815
+Cap. 1
+ 399
+ 488
+ 3
+ 4
+815933
+ 910
+ 38
+ 14
+ 6
+147286
+Cap. 2
+ 0
+ 923
+ 0
+ 45
+1204280
+Push
+ tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+3602
+ 24
+ 3288
+ 730
+ 49
+ 1152
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 3288
+ 271
+ 67
+ 730
+ 753880
+ 474
+ 189
+ 11
+ 485
+ 246701
+Cap. 1
+ 0
+ 3557
+ 0
+ 673
+ 2743298
+ 678
+ 8
+ 13
+ 709
+ 151443
+Cap. 2
+ 0
+ 661
+ 0
+ 480
+ 1021703
+TL-Weighted Minimal Cut, using convex hull
+In this case we have very good results for the case of three processors, and,
+surprisingly enough, have a poor performance on two. This shows that the
+fragmentation problem is not solved by the strategy of sending simpler regions
+betweencapsules or improving workload distribution. The phenomenon seems
+more complex and might depend on arrival times of regions or characteristics
+of partition strategies we have not yet identiﬁed. See table 7.
+13Didn’t ﬁnish in 4 wall-clock hours.
+13Also didn’t ﬁnish in 4 wall-clock hours.
+14
+
+--- Page 15 ---
+Braberman, Olivero and Schapachnik
+Table 7: Results for TGC5, unreachable target state, TL-Weighted Minimal Cut partition-
+ing, using convex hull.
+Comm.strat-
+egy
+2 processors
+ 3 processors
+Sub-
+scrip-tion
+tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+4861
+ 24
+ 4815
+ 452
+ 49
+ 766
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 4815
+ 3
+ 120
+ 1
+ 25734
+ 382
+ 2
+ 10
+ 4
+ 21662
+Cap. 1
+ 0
+ 4816
+ 0
+ 2
+11105518
+ 0
+ 407
+ 0
+ 15
+2310121
+Cap. 2
+ 384
+ 0
+ 10
+ 3
+ 942
+Push
+ tt(s)
+ tc(s)
+ ti(s)
+ tt(s)
+ tc(s)
+ ti
+4833
+ 24
+ 4789
+ 527
+ 49
+ 913
+Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+ Idle
+time
+(s)
+Time
+at fpe
+(s)
+I/O
+(s)
+#req.
+rcvd
+#ops.
+Cap. 0
+ 4798
+ 3
+ 136
+ 1
+ 25734
+ 456
+ 2
+ 14
+ 121
+ 22121
+Cap. 1
+ 0
+ 4799
+ 0
+ 33
+11105518
+ 0
+ 480
+ 0
+ 363
+ 2510605
+Cap. 2
+ 457
+ 0
+ 17
+ 2
+ 942
+5 Conclusions and future work
+Zeusis a Distributed Timed Model Checker based on the Kronos tool that
+was described and proved correct using software architectures. To the au-
+thors knowledge, it is the ﬁrst Distributed Model Checker for timed systemsbased on backwards reachability calculation. It was conceived as a testbed
+for a wide range of design decisions such as communication schema or type of
+synchronization. Our preliminary results for asynchronous versions, althoughshowing promising speedups in some cases, were surprisingly counterintuitive
+but justiﬁed the need for an open architecture to test alternative concepts.
+The irregular behavior seen in some cases might be associated to the sen-
+sitivity of the data structures to the ordering of operations. On one hand, it
+would desirable to do as much local work at a capsule as possible, without com-
+municating with the rest. Intuition told us that the pros of this asynchronousstrategy are: (a) good use of parallel processing resources, (b) avoidance ofan early propagation of regions that will eventually be included into another,
+thus reducing the number of propagations. On the other hand, when com-
+munication takes place this may lead to operations between “mature” regions
+with a large number of convexes. Also, breadth-ﬁrst traversal is not honored
+(which is reported as a good strategy to avoid fragmentation [4]).
+More research should be done to gain insight on these phenomena and
+propose solutions for the parallel setting. This might require the developmentofad hoc visualization techniques, something we are currently working on. A
+future direction to explore is improving the representation of regions in thesense of the number of convexes required to represent a given region.
+Another line of research we are currently exploring is the development of
+a synchronous version of Zeus, trying to mimic the order in which Kronos
+applies the operators in the sequential version. More precisely, this version
+15
+
+--- Page 16 ---
+Braberman, Olivero and Schapachnik
+would apply synchronically every ﬁx pointit erat ion ateach capsule . Thought
+it looses potential parallelism, it may be possible to keep the number of zone
+operations close to what Kronos performs on a monoprocessor. Therefore,
+if good load balance is achieved, this strategy may redound in importantspeedups.
+We also believe that dynamic balance could eventually be applied for a
+better usage of distributed resources. Fortunately, Zeusarchitecture seems
+to be an appealing starting point for location migration between neighbor
+capsules looking for a better load balance. This can be done as an architecture
+reconﬁguration were new links are established between processing capsules .
+A natural next step is the extension of Zeusto deal with full TCTL,
+mainly by adapting Kronos strategies to the distributed setting. Besides,
+forward calculation can be easily incorporated in this scenario, if required.
+Obtaining counterexample traces is also a relevant area or research (e.g., [4]).
+Acknowledgments
+We would like to thank Sergio Yovine for making Kronos libraries avail-
+able to us.
+References
+[1] Alur, R., C. Courcoubetis and D. L. Dill, Model-checking in dense real-time ,
+Information and Computation 104(1993), pp. 2–34.
+URLhttp://citeseer.nj.nec.com/alur93modelchecking.html
+[2] Alur, R. and D. L. Dill, A theory of timed automata , Theoretical Computer
+Science 126(1994), pp. 183–235.
+URLhttp://citeseer.nj.nec.com/alur94theory.html
+[3] Barnat, J., L. Brim and J. Str´ ıbˇrn´a,Distributed LTL model-checking in SPIN ,
+in:SPIN , 2001, pp. 200–216.
+URL http:
+//citeseer.nj.nec.com/article/barnat00distributed.html
+[4] Behrmann, G., T. Hune and F. W. Vaandrager, Distributing timed model
+checking - how the search order matters ,i n :Computer Aided Veriﬁcation ,L N C S
+1855 (2000), pp. 216–231.
+URL
+http://citeseer.nj.nec.com/behrmann00distributing.html
+[5] Ben-David, S., T. Heyman, O. Grumberg and A. Schuster, Scalable distributed
+on-the-ﬂy symbolic model checking ,i n :Formal Methods in Computer-Aided
+Design , 2000, pp. 390–404.
+URLhttp://citeseer.nj.nec.com/326863.html
+[6] Braberman, V., C. L´ opez Pombo and A. Olivero, On improving backwards
+veriﬁcation for timed automata ,i n :TPTS 2002, satellite event for the Joint
+16
+
+--- Page 17 ---
+Braberman, Olivero and Schapachnik
+European Conference on Theory and Practice of Software, ETAPS 2002 ,
+ENTCS 65(2002).
+URLhttp://www.elsevier.com/locate/entcs/volume65.html
+[7] Cousot, P., “Methodes Iteratives de Construction et D’Aproximation de
+Points Fixes D’Operateurs Monotones sur un Treillis, Analyse Semantique des
+Programmes,” Ph d. thesis, Universit´ e Scientiﬁque et M´ edicale de Grenoble,
+Institut National Polytechnique de Grenoble (1978).
+[8] Daws, C., A. Olivero, S. Tripakis and S. Yovine, The Tool KRONOS, in:
+Proceedings of Hybrid Systems III ,L N C S 1066 (1996), pp. 208–219.
+[9 ] D a w s ,C .a n dS .Y o v i n e , Two examples of veriﬁcation of multirate timed
+automata with kronos ,i n :Proceedings of the 16thIEEE Real-Time Systems
+Symposium (RTSS’95) (1995), pp. 66–75.
+URLhttp://citeseer.nj.nec.com/daws95two.html
+[10] Dill, D. L., Timing assumptions and veriﬁcation of ﬁnite-state concurrent
+systems. ,i n :International Workshop of Automatic Veriﬁcation Methods for
+Finite State Systems ,L N C S 407(1990), pp. 197–212.
+[11] Garavel, H., R. Mateescu and I. M. Smarandache, Parallel state space
+construction for model-checking ,i n :M .B .D w y e r ,e d i t o r , Proc. of the 8th
+International SPIN Workshop , Toronto, Canada, 2001, pp. 217–234.
+URLhttp://citeseer.nj.nec.com/474094.html
+[12] Grumberg, O., T. Heyman and A. Schuster, Distributed symbolic model checking
+forµ-calculus ,i n :Computer Aided Veriﬁcation , 2001, pp. 350–362.
+URLhttp://citeseer.nj.nec.com/473825.html
+[13] Henzinger, T. A., X. Nicollin, J. Sifakis and S. Yovine, Symbolic Model Checking
+for Real-Time Systems , Information and Computation 111(1994), pp. 193–244.
+[14] Heyman, T., D. Geist, O. Grumberg and A. Schuster, Achieving scalability in
+parallel reachability analysis of very large circuits , in: O. Grumberg, editor,
+Computer Aided Veriﬁcation, 12thInternational Conference ,L N C S 1855
+(2000), pp. 20–35.URLhttp://citeseer.nj.nec.com/heyman00achieving.html
+[15] Karypis, G. and V. Kumar, Parallel multilevel k-way partitioning scheme for
+irregular graphs , Technical report, University of Minnesota, Department of
+Computer Science / US Army HPC Research Center. Minneapolis, USA. (1998).
+[16] Lerda, F. and R. Sisto, Distributed-memory model checking with SPIN ,i n :Proc.
+of the 5
+thInternational SPIN Workshop ,L N C S 1680 (1999).
+URLhttp://citeseer.nj.nec.com/lerda99distributedmemory.
+html
+[17] M. Bozga, O. Maler, A. Pnueli and S. Yovine, Some progress in the symbolic
+veriﬁcation of timed automata , in: O. Grumberg, editor, Proceedings of the
+9thInternational Conference on Computer Aided Veriﬁcation (CAV’97) ,L N C S
+1254 (1997), pp. 179–190.
+URLhttp://citeseer.nj.nec.com/bozga97some.html
+17
+
+--- Page 18 ---
+Braberman, Olivero and Schapachnik
+[18] Ranjan, R., J. Sanghavi, R. Brayton and A. Sangiovanni-Vincentelli, Binary
+decision diagrams on network of workstations ,i n :International Conference on
+Computer Design , 1996, pp. 358–364.
+URLhttp://citeseer.nj.nec.com/ranjan96binary.html
+[19] Schapachnik, F., “Distributed and Parallel Veriﬁcation of Real-Time Systems,”
+Degree thesis, Departamento de Computaci´ on, Facultad de Ciencias Exactas y
+Naturales, Universidad de Buenos Aires (2002).
+URLhttp://www.cvi.com.ar/zeus/tesis_schapachnik.ps.gz
+[20] Stern, U. and D. L. Dill, Parallelizing the Mur ϕveriﬁer ,i n :Computer Aided
+Veriﬁcation ,L N C S 1254 (1997), pp. 256–278.
+URLhttp://citeseer.nj.nec.com/stern97parallelizing.html
+[21] Tripakis, S. and S. Yovine, Veriﬁcation of the fast reservation protocol with
+delayed transmission using the tool kronos ,i n :Proceedings of the 4thIEEE
+Real-Time Technology and Applications Symposium (RTAS’98) (1998), pp. 165–
+170.URLhttp://citeseer.nj.nec.com/186425.html
+Appendix A - Architecture description
+Each processor working in a distributed Zeuscomputation is called a capsule .
+We also call capsule to the processes running inside the processors and their
+associated data structures and components.
+Zeusarchitecture description can be more easily understood centering at
+theFix-Point Engine . This is t he componentt hatruns t he ﬁx-pointcalcula-
+tion, much as it does in Kronos (shown as algorithm 1). It reads and writes
+regions to the storage component. Each region belongs to a control location
+that might be assigned either to the current capsule or to some other. Because
+theFix-Point Engine is unaware of such distribution, it makes no diﬀerence
+between local and remote locations, except for the fact that it iterates writing
+only over the local ones. This is why there is a router componentinside t he
+storage .
+Upon reception of a readpetition from the Fix-Point Engine ,th erouter
+delivers regions from the local regions’ storage , if their location is local, or
+from the remote regions’ storage , if they are remote. In case of receiving a
+writerequest –which only happen for local regions– it stores them in the local
+regions’ storage and in adelta accumulator .T h e r ei sa delta accumulator for
+each local control location that should be visible from a remote capsule .T h e
+rationale for the existence of delta accumulators is that regions diﬀerence is
+very expensive, so it makes sense to duplicate what needs to be sent instead of
+having them in one place and wasting a lot of time for each transmission, actu-
+ally computing the diﬀerence. Delta accumulators are emptied when regions
+are sentt o ot her capsules .
+As well as there are delta accumulator to beneﬁt the sending phase of a
+regions’ exchange, there are embassys to beneﬁt the receiving phase. They
+18
+
+--- Page 19 ---
+Braberman, Olivero and Schapachnik
+function Fix
+Point
+Engine.iterate(): nat
+1:#changes := 0
+2:for all s∈storage.local
+ discrete
+ states()do
+3:Rs:=storage.get
+ region(s)
+4:PredE :=∅
+5:for all sucdiscrete successor of sdo
+6: Rsuc:=storage.get
+ dif
+region(suc)
+7: PredE :=PredE ∪pred e(Rsuc, inv(suc), reset
+ clocks(suc))
+8:end for
+9:PredT :=pred t(PredE )
+10:∆Rs:=PredT −Rs
+11:if¬∅?(∆Rs)then
+12: #changes ++
+13: storage.set
+ dif
+region(s,∆Rs)
+14: storage.set
+ region(s, R s∪PredT )
+15:end if
+16:end for
+17:storage.iteration
+ ended()
+18:return #changes
+Algorithm 1: Distributed reachability algorithm (runs inside the Fix-Point
+Engine ).
+are contained inside the remote regions’ storage . One can think that there is
+anembassy at the other end of every delta accumulator . They notonly st ore
+the regions that arrive through the network, but they also posses a small state
+machine that controls if the remote capsule needs to be asked for a region
+–i.e., if the embassy is asked for a region butis current ly empt y– or whet her
+the maximum possible region for a location has already been produced, thusavoiding extra requests. It is also responsible of showing the same content to
+every request during an iteration.
+When an embassy needs new regions from the remote capsule ,i t c o n ta c ts
+the appropriate connector .G i v e ntw o capsules ,AandB, there might be many
+edges in the control graph going from locations assigned to Ato locations
+assigned to B,c a l li t k. Although Ac a nh a v eu pto kdelta accumulators and
+kembassys , ithas only one connector handling bi-directional communication
+toB. The same happens at B.
+In a na¨ ıve approach, a connector merely proxies requestfrom a capsule
+to the other. However, a few twists were made for performance, i.e., forminimizing interruptions to the ﬁx-point calculation at the other end. First,
+connectors dopiggybacking : instead of asking for a particular locations’ region,
+they ask for the regions of the full set of locations they represent; also, to
+“compensate” the other capsule for the interruption, they send the regions of
+the full set of locations that are of interest to the capsule receiving the request.
+These regions come from the corresponding delta accumulators . Itshould be
+19
+
+--- Page 20 ---
+Braberman, Olivero and Schapachnik
+noted that, except for the piggybacking taking place, this is a polling schema,
+thus the name of pseudo-polling. Connectors perform another function also,
+that needs the description of the load assessor componentt o be explained.
+Load assessor establishes not only if the capsule is idle or working, butalso
+how bad itneeds new regions. Itis a key componentfor t he communicat ion
+model. Its full details were explained on section 3.
+When requested to send a petition, the connectors check with the load
+assessor to see if there is a “high regions-demand”, in which case they proceed,
+as explained before. However, if there is a “low regions-demand”, they willsilently drop the request.
+As was noted before, a capsule can be idle, meaning that global ﬁx-point
+is not yet reached because there is still work going on at other capsules , but
+a local ﬁx-point was established anyway. To take advantage of the idle time,a new component, the helper, is introduced. It performs auxiliary task, such
+as representation compaction of the regions at the delta accumulators and at
+thelocal regions’ storage .
+Finally, an iterator , is responsible of deciding to run either the Fix-Point
+Engine or thehelper based on the readings of the load assessor , and also of
+sending statistics to the coordinator .
+Thecoordinator starts the process, partitions the graph, distributes the
+workload and established whether global ﬁx-point has been reached or not.
+It also collects statistics. It receives information from the iterators on the
+capsules to make decisions.
+A more detailed description of the architecture including state machines
+and transducers can be found in [19].
+20
