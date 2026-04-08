@@ -1,0 +1,601 @@
+--- Page 1 ---
+A Real-Time System for Scheduling and
+Managing UA V Delivery in Urban Areas
+Han Liu, Tian Liu and Kai Huang
+Abstract— As urban logistics demand continues to grow,
+UA V delivery has become a key solution to improve delivery
+efficiency, reduce traffic congestion, and lower logistics costs.
+However, to fully leverage the potential of UA V delivery
+networks, efficient swarm scheduling and management are
+crucial. In this paper, we propose a real-time scheduling and
+management system based on the “Airport-Unloading Station”
+model, aiming to bridge the gap between high-level scheduling
+algorithms and low-level execution systems. This system,
+acting as middleware, accurately translates the requirements
+from the scheduling layer into specific execution instructions,
+ensuring that scheduling algorithms perform effectively in
+real-world environments. Additionally, we implement three
+collaborative scheduling schemes involving autonomous ground
+vehicles (AGVs), unmanned aerial vehicles (UA Vs), and ground
+staff to further optimize overall delivery efficiency. Through
+extensive experiments, this study demonstrates the rationality
+and feasibility of the proposed management system, providing
+a complete solution for urban UA V delivery.
+Code: https://github.com/chengji253/UA VDeliverySystem
+I. INTRODUCTION
+As urban logistics demand continues to grow, unmanned
+aerial vehicle (UA V) delivery has emerged as a promising
+solution to enhance delivery efficiency, alleviate traffic
+congestion, and reduce logistics costs. An increasing number
+of companies are deploying UA V delivery networks in urban
+areas, accelerating technological progress in this field. A
+crucial factor in achieving high delivery efficiency is the
+effective management and scheduling of multiple UA Vs,
+ensuring seamless coordination between aerial vehicles and
+ground personnel.
+There has been extensive research on improving the
+efficiency of UA V delivery systems [1], focusing on the
+following aspects: Firstly, optimizing from the perspective
+of scheduling strategies [2]–[5]. Secondly, reducing flight
+time and avoiding conflicts from a path planning perspective
+[6]–[9]. Additionally, improving energy efficiency is another
+critical direction [10]–[13]. Finally, the efficient use of
+airspace resources helps increase flight density and reduce
+conflicts [14]–[16]. Some companies have already made
+progress in this field, such as Google Wing [17], Flytrex
+[18], Amazon [19], Zipline [20] and Meituan [21].
+In the process of commercializing UA V delivery, the
+most commonly applied is the “Airport-Unloading Station”
+model. In cities, dedicated UA V airports are established as
+This work is supported by Ministry of Education Industry-University
+Collaborative Education Project under Grant 2408234204. H. Liu, T. Liu and
+K. Huang are with the School of Computer Science, Sun Yat-sen University,
+Guangzhou, China.(Corresponding author: Kai Huang)
+E-mail: liuh386@mail2.sysu.edu.cn, huangk36@mail.sysu.edu.cndistribution centers. UA Vs take off from the airport and
+fly directly to the unloading station to complete the entire
+delivery process. There are many directions to improve
+the efficiency of the airport model, including flight path
+planning, UA V swarm scheduling, and the collaboration
+between ground staff and UA Vs (such as takeoff, cargo
+loading, and battery replacement). To address this, we need
+to optimize the entire problem from an operations research
+perspective, establishing efficient scheduling algorithms to
+enhance delivery efficiency.
+However, applying scheduling algorithms to real-world
+scenarios still faces numerous challenges. Firstly, many
+algorithms often overlook the integration with the underlying
+execution infrastructure, and the problem modeling includes
+unrealistic simplifications. Additionally, many algorithms are
+designed for offline use, resulting in long calculation times,
+which are not suitable for real-time scheduling needs. In
+practice, we find that the scheduling layer often fails to
+accurately translate scheduling requirements into specific
+execution commands. Furthermore, the scheduling layer is
+unaware of the exact state of the underlying system and
+does not know whether the scheduling requirements are
+correctly executed. Therefore, there is an urgent need for a
+real-time management system that bridges the gap between
+scheduling algorithms and the execution system, providing
+an effective link for scheduling and execution, ensuring the
+smooth implementation of scheduling and transport tasks.
+To address these challenges, we propose a real-time
+scheduling and management system. This system serves as
+middleware for UA V delivery processes, connecting upper-
+level scheduling requirements with lower-level execution
+mechanisms, ensuring that scheduling algorithms can run
+effectively in real-world environments. Building on this
+management system, we have also implemented three
+collaborative scheduling solutions for ground Automated
+Guided Vehicles (AGVs) and UA Vs to ensure efficient
+coordination between AGVs, UA Vs, and ground staff,
+thereby optimizing overall delivery efficiency. The main
+contributions of this study are as follows:
+•We design a scheduling management system tailored
+to urban delivery demands, achieving efficient and
+dynamic UA V delivery scheduling.
+•Based on this management system, we implement three
+scheduling schemes for AGVs, UA Vs, and ground staff,
+optimizing the coordination between them.
+•The feasibility of the system is verified through
+experiments, and a practical commercial application
+solution is provided for drone urban delivery.arXiv:2412.11590v3  [cs.RO]  23 Mar 2026
+
+--- Page 2 ---
+Fig. 1: Delivery airport and unloading stations in urban.
+II.RELATED WORK
+Improving the efficiency of UA V delivery systems in urban
+environments can be achieved through various approaches,
+which can be broadly categorized as follows:
+Firstly, optimizing scheduling algorithms plays a signifi-
+cant role in enhancing overall performance. Sajidet al.[2]
+proposed a hybrid optimization framework that combines
+genetic algorithm and simulated annealing algorithm to
+solve the path planning and scheduling problems. Murray
+et al.[3] proposed a mathematical model to optimize the
+cooperative delivery of drones and traditional trucks, and
+improved the delivery efficiency by optimizing the delivery
+path and scheduling. Honget al.[4] proposed a two-
+stage optimization method to solve the scheduling problem
+of drones in urban last-mile delivery and improved task
+allocation and route planning. Daset al.[5] proposed a
+scheduling mechanism for synchronized drones and delivery
+trucks to optimize the multi-objective delivery problem.
+Second, path planning is another key aspect of optimizing
+delivery systems. Yan et al. [6] developed a service model
+that plans routes through an aerial channel network and
+employs reactive scheduling to handle failures. Xie et al. [7]
+proposed an AI-based 4D trajectory management system for
+real-time flight adjustment and airspace conflict resolution.
+Pei et al. [8] designed an exact algorithm for urban drone
+delivery considering time windows and spatial conflicts.
+Oliveira et al. [9] investigated UA V collision avoidance
+in urban environments and evaluated geometric avoidance
+strategies.
+Moreover, energy efficiency is another key factor in
+UA V delivery optimization. Dorling et al. [10] modeled
+the joint routing of drones and trucks considering energy
+and battery consumption. Park et al. [11] developed a
+deep reinforcement learning–based scheduling algorithm to
+improve multi-drone delivery efficiency while accounting for
+energy use. Cho et al. [12] proposed a coordinated strategy
+for hybrid electric trucks and drones to enhance overall
+energy efficiency. Huang et al. [13] addressed endurance
+limitations by introducing battery-swap drone stations for
+last-mile delivery.
+Lastly, airspace resource management is vital for scaling
+UA V delivery systems. Li et al. [14] developed a traffic
+management framework covering path planning, conflict
+detection, and resource allocation for low-altitude urban
+delivery. Pang et al. [15] introduced a chance-constrained
+optimization model to handle uncertainties such as delays
+Fig. 2: The framework of our system.
+and trajectory deviations. Safadi et al. [16] proposed a model-
+based control strategy to balance demand and supply in low-
+altitude urban airspace.
+III. PRELIMINARIES
+Our research is based on the “Airport–Unloading Station”
+model, where a centralized UA V delivery airport is
+established in the city. All UA Vs take off from the airport,
+deliver goods to the nearest unloading station, and return
+for reloading before starting the next delivery task. When a
+customer places an order, nearby merchants send the goods
+to the airport, where ground staff handle the loading. Each
+UA V follows a predefined flight route to an unloading station
+and then returns. We define the set of unloading stations as
+K={1, . . . , K}, with each station indexed byk. For each
+k∈ K, letRgo
+(k)andRback
+(k)denote the outbound and return
+routes, respectively. The layout of the airport is shown in
+Fig. 1, where the purple region represents the Ground Work
+(GW) area for operations like loading, battery replacement,
+and UA V recovery. The black section within the GW area is
+the workbench. The orange area denotes the Aviation Work
+(AW) zone, where UA Vs take off and land. To ensure ground
+staff safety, UA Vs do not enter the GW area directly. Instead,
+AGVs (green area) transfer UA Vs between the AW and GW
+areas. After landing, a UA V is transported by an AGV to the
+GW area for processing, then returned to the AW area for its
+next flight. The set of UA Vs is denoted byN={1, . . . , N}
+(indexed byn), and the set of AGVs isM={1, . . . , M}
+(indexed bym). The black circles in Fig. 1 represent the
+unloading stations in the city, where goods are unloaded and
+made available for customer pickup.
+IV. MANAGEMENT SYSTEM
+Our management system functions as middleware between
+the execution infrastructure and the high-level scheduling
+layer, as shown in Fig. 2. It comprises three core
+components—Master Management Node, AGV Management
+
+--- Page 3 ---
+Fig. 3: Illustration of UA V FSM and AGV FSM. The blue part indicates the state. The green part indicates the command. The yellow
+part indicates the condition.
+Node, and UA V Management Node—each operating as
+an independent real-time process and collaborating through
+information exchange.
+A. Management Nodes
+AGV Management Node: All AGVs are managed through
+a combination of multithreading and finite state machines
+(FSMs). Each AGV is controlled by an independent FSM
+thread that updates its state at a fixed frequency, ensuring
+precise and highly responsive control. The node receives
+commands from the master node, forwards them to the
+corresponding FSM, and continuously publishes standardized
+status information. UA V Management Node: Similarly, the
+UA V management node adopts multithreading and FSMs,
+with each UA V running independently to guarantee real-
+time and autonomous task execution. The node receives
+commands from the master node, relays them to the
+respective FSM, and continuously publishes UA V status
+updates. Master Management Node: As the core of the
+system, the master node connects the scheduling layer with
+the execution layer. It subscribes to AGV and UA V status
+updates, provides the aggregated information to the scheduler
+for decision-making, and distributes scheduling results to the
+corresponding management nodes for execution. The system
+adopts a distributed architecture in which each vehicle
+is managed by an independent thread, offering: (1) Fault
+Isolation: A failure in one vehicle does not affect others.
+(2) Real-Time Responsiveness: Continuous monitoring and
+dynamic task adjustment. (3) Scalability: New vehicles can
+be seamlessly added by assigning new threads.
+B. UAV Finite state machine
+Fig. 3 illustrates the state machine of the UA V . In the
+diagram, blue boxes represent states, green boxes indicate
+commands, and yellow boxes denote conditional checks. The
+UA V operates through six states:Ready, where it remains
+idle at the airport awaiting loading;On Car, indicating
+it has been mounted on an AGV;Waiting Go, where it
+awaits the takeoff command after loading cargo;Flying Go,
+when it is en route to the unloading station;Waiting Back,where it waits for the return command after unloading;
+andFlying Back, during which it flies back to the airport.
+The UA V responds to three main commands:Delivery,
+which triggers takeoff to the delivery point;Release Cargo,
+which initiates cargo unloading (only allowed when landed);
+andLoad Cargo, which loads goods onto the UA V . State
+transitions rely on four condition checks:Landedverifies
+if the UA V has landed,On Carchecks whether it is
+mounted on an AGV ,Get Cargoconfirms if cargo has been
+loaded, andRetrieveddetermines whether the UA V has been
+recovered.
+C. AGV Finite state machine
+The AGV is responsible for transporting UA Vs between
+the AW and GW areas, managing UA V takeoff and landing,
+and assisting with loading and unloading operations. To
+support these tasks, the AGV is designed with four working
+states and corresponding task commands. The four AGV
+working states are as follows:Waiting GoGWindicates the
+AGV is preparing to head to the GW area after receiving
+a landed UA V in the AW area;Waiting Pickuprefers to
+the state when the AGV is waiting in the AW area for a
+UA V to land, without a UA V onboard;Waiting Working
+occurs when the AGV , carrying a UA V , arrives at the GW
+area and awaits ground staff to perform operations such
+as cargo loading or battery replacement;Waiting GoAW
+follows task completion and indicates the AGV is ready to
+return to the AW area with the UA V . The AGV executes four
+main commands:UAV GetCargoinstructs the UA V to load
+cargo at the GW workbench;UAV Receivedirects the AGV
+to load the UA V upon arrival at the GW;UAV Retrieve
+removes the UA V from the AGV , returning it to idle; and
+UAV Chargeinitiates a battery replacement for the UA V .
+AGV state transitions depend on three condition checks:
+Have UAVverifies if the AGV currently carries a UA V;
+InGWchecks whether it is located in the GW area; and
+InAWdetermines if it is in the AW area.
+
+--- Page 4 ---
+Landing Point Take-off Point
+Loading point Hold PointLine1
+One cycleLine1
+Line2
+Two cycle
+Line1 Line2 Line3
+Three cycleAviation Work 
+(AW) areaGround Work 
+(GW) areaFig. 4: AGV scheduling process of three schemes
+D. State Transition Process
+We now describe a full delivery cycle using the UA V
+and AGV finite state machines. Initially, the UA V is in
+theReadystate and the AGV inWaiting Pickup. The
+AGV moves to the GW area and, upon receiving the
+UAV Receivecommand, loads the UA V , transitioning the
+UA V toOn Carand the AGV toWaiting Working. Next,
+both receive the cargo loading command. Once loading
+is complete, the UA V entersWaiting Go, and the AGV
+changes toWaiting GoAW. The AGV transports the UA V
+to the AW area, where it issues theDeliverycommand. The
+UA V takes off, flies to the unloading station, and upon arrival,
+receives the unload command and entersWaiting Back. The
+AGV then sends anotherDeliverycommand for the UA V to
+return. After landing back at the airport, the UA V re-enters
+OnCar, and the AGV transitions toWaiting GoGW. It
+carries the UA V to the GW area for reloading, completing
+one delivery cycle.
+V. SCHEDULING SYSTEM
+In commercial aviation, takeoff involves several co-
+ordinated steps—clearances for departure, taxiing, and
+takeoff, followed by post-takeoff coordination—managed
+by air traffic control. Inspired by this process, our
+system autonomously manages UA V delivery without human
+intervention. It employs two coordinated schedulers for
+ground and air traffic, supported by the previously introduced
+management framework, enabling flexible and efficient
+scheduling strategies. The following section presents the
+design of these schedulers.
+A. Ground traffic scheduler
+The ground traffic scheduler manages AGVs transporting
+UA Vs between the AW and GW areas. As shown in Fig. 4, it
+supports three scheduling schemes: One-Cycle, Two-Cycle,
+and Three-Cycle, each defining key nodes such as the Takeoff
+Point (yellow), Hold Point (blue), Loading Point (purple),
+and Landing Point (green). One-Cycle: All six AGVs operate
+in a single loop with one takeoff and one landing point.After loading, an AGV moves to the takeoff point, then
+cycles through hold points before reaching the landing point
+for UA V recovery. Two-Cycle: Two loops share one takeoff
+point and have two separate landing points, with three AGVs
+assigned to each loop. Three-Cycle: Three independent loops
+each have their own takeoff and landing points, with two
+AGVs per loop. All schemes follow an assembly line-like
+process, ensuring that while one AGV heads to the GW
+area, another is ready at the landing point. This cyclic design
+minimizes UA V wait times and ensures efficient handover
+between air and ground operations.
+B. Air traffic scheduler
+The air traffic scheduler determines whether a UA V can
+take off or return and issues corresponding flight route
+instructions. When an AGV transports a UA V to the takeoff
+point, the UA V sends a takeoff request. The scheduler then
+checks for approval and, if granted, assigns the outbound
+routeRgo
+(k). Similarly, upon reaching the unloading station,
+the UA V sends a return request. The scheduler then assigns
+the return routeRback
+(k)and a landing point. To approve a
+takeoff, the scheduler considers potential conflicts at the
+unloading station. LetTgoreq
+(n)be the time then-th UA V
+requests takeoff, andtgo
+(n)the estimated flight time to station
+k. Then the UA V’s arrival time is:Tarri
+(n)=Tgoreq
+(n)+tgo
+(n).
+LetNgo
+kbe the set of UA Vs en route to stationk. The takeoff
+is allowed only if:
+|Tarri
+(ni)−Tarri
+(nj)|> tgogap,∀n j∈ Ngo
+k(1)
+ensuring a minimum time gaptgogapbetween UA V arrivals.
+For returns, letTback req
+(n)be the request time andtback
+(n)the
+flight time. Then:Tland
+(n)=Tback req
+(n)+tback
+(n). A return is
+approved only if an AGV can arrive at the landing point
+before the UA V:
+Tland
+(m)< Tland
+(n) (2)
+The scheduler estimatesTland
+(m)based on the AGV’s current
+state. If multiple AGVs or lines satisfy the condition, the one
+with the fewest reservations is chosen.
+By dynamically evaluating UA V requests and AGV avail-
+ability, the scheduler ensures safe and efficient coordination
+of takeoff and landing operations.
+Remark: In the air traffic scheduler section, we assume
+the flight routesRgo
+(k)andRback
+(k)are predefined. In
+real urban delivery scenarios, planning safe and efficient
+UA V routes between airports and unloading stations is a
+complex problem involving airspace utilization and collision
+avoidance. As this is beyond the scope of our work, we
+simplify the study by assuming that feasible flight paths are
+pre-planned and available.
+VI. EXPERIMENTS
+This section presents the experimental analysis of our
+system. Our experiments were conducted on a PC with
+an Intel Core i7-12700 CPU and 32GB of RAM. The
+simulation platform comprises four functional Docker
+modules, each handling a specific task. The AGV Docker
+
+--- Page 5 ---
+Load cargo Take off Flying go Arrival at unloading station Flying back Back to the airportFig. 5: UA V delivery workflow: real-world and simulation visualization.
+simulates AGV low-level control, where each AGV runs an
+independent real-time controller. The UA V Docker manages
+UA V control using a PX4-like flight controller with MPC-
+based trajectory tracking. The Scenario Docker oversees
+the simulation environment, performing collision detection
+and coordinating interactions among UA Vs, airports, and
+unloading stations. The Scheduling Docker executes the
+proposed management system, responsible for global task
+allocation and coordination. All modules communicate
+through a Docker user-defined network using ROS for task
+publishing, state transmission, and system coordination. This
+modular design, with UA V and AGV controllers separated
+into distinct containers, provides better scalability and more
+realistic emulation of real-world operations.
+Fig. 5 illustrates the complete UA V delivery work-
+flow—from AGV transport and takeoff to delivery and return.
+Experimental parameters are as follows: Cargo loading: 10s;
+battery replacement: 10s; cargo unloading: 3s. Minimum
+distance: UA Vs 5m, AGVs 3m; max speeds: UA Vs 10 m/s,
+AGVs 1.5 m/s. Node frequencies: master 2 Hz AGV /UA V
+management 10 Hz; FSMs 10 Hz each.
+In terms of goods orders, we generated a delivery order
+list in advance. Each order has four time attributes: (1)
+OrderT: The time when the customer places the order. (2)
+FinishT: The time when the order is successfully delivered.
+(3)BetterT: The ideal delivery time, typically based on
+customer expectations or system optimization. (4)TimeOut:
+The maximum allowable delivery time; if exceeded, the order
+is considered overdue. We will give a score based on the time
+when the UA V delivers the goods. The scoring rules for the
+system are governed by the following piecewise function:
+
+
+100,ifOrderT≤FinishT≤BetterT,
+100×TimeOut−FinishT
+TimeOut−BetterT,ifBetterT<FinishT≤TimeOut,
+−100×FinishT−Timeout
+TimeOut−BetterT,ifFinishT>TimeOut.
+(3)
+If theFinishTfalls betweenOrderTandBetterT, the score is
+a fixed value of 100. If theFinishTfalls betweenBetterTand
+TimeOut, the score is calculated based on the Equ.(3), where
+earlier deliveries earn higher scores. If theFinishTexceeds
+TimeOut, the score is negative, and the later the delivery, the
+higher the penalty.
+In the experiment, we tested the impact of varying the
+5 10 15
+number of UAVs0.60.81.01.2number of delivered goods1e2
+Three cycle
+T wo cycle
+One cycle
+5 10 15
+number of UAVs0.40.60.81.01.2score1e4
+Three cycle
+T wo cycle
+One cycleFig. 6: The number of delivered goods and their corresponding
+scores w.r.t. to the number of UA Vs.
+5 10 15
+number of UAVs0.00.20.40.60.81.0ground staff busy ratioThree cycle
+T wo cycle
+One cycle
+5 10 15
+number of UAVs0.00.20.40.60.81.0AGV busy ratioThree cycle
+T wo cycle
+One cycle
+Fig. 7: Ground staff and AGV busy ratios w.r.t. to the number of
+UA Vs.
+number of UA Vs (4, 6, 8, 10, 12, 14, 16) on the system’s
+performance. For each configuration, the system was run for
+one hour, recording the number of deliveries and scores to
+evaluate system performance. Fig. 5 shows the scene diagram
+of the UA V delivery. We can see a demonstration of the
+cargo loading, taking off, departing, arriving at the unloading
+station, returning and finally landing at the airport. For a
+more detailed UA V delivery demonstration, please refer to
+our supplementary video.
+Fig. 6 shows the number of goods delivered and the scores
+obtained after a one-hour experiment using three different
+scheduling schemes with different numbers of drones. It can
+be observed that: (1) As the number of UA Vs increases,
+the number of deliveries and scores of the three scheduling
+schemes will increase. The Two-Cycle received the highest
+score, followed by the One cycle, and the Three-Cycle least.
+(2) Each time the number of UA Vs increases, the percentage
+of increase in the score will gradually decrease. This shows
+
+--- Page 6 ---
+that the increase in UA Vs will improve the efficiency of
+transportation, but the efficiency improvement has an upper
+limit. (3) The average delivery score is around 80 points,
+which means that many orders cannot be delivered before
+BetterT.
+We define the AGV as being in a “free” state when it
+is idle and waiting for instructions, while all other states
+are considered “busy.” The time proportions of AGVs and
+ground staff in different states within one hour were recorded
+accordingly. Fig. 7 illustrates the busy ratios of AGVs and
+ground staff under three scheduling schemes as the number
+of UA Vs increases. The results show that: (1) Increasing the
+number of UA Vs raises both AGV and ground staff busy
+ratios; (2) The Two-cycle scheme yields the highest ground
+staff busy ratio, while the AGV busy ratio is moderate;
+(3) The Three-cycle scheme results in the lowest ground
+staff busy ratio but the highest AGV busy ratio. This
+is because in the Three-cycle scheme each AGV spends
+more time traveling along its route, while the Two-cycle
+scheme achieves higher ground utilization with a lower AGV
+workload.
+Combining Fig. 6 and Fig. 7, we can draw the following
+conclusions: (1) The ranking of ground staff busy ratios
+aligns with the delivery scores, indicating that higher
+utilization means more cargo loaded and thus higher scores.
+(2) The Two-cycle scheme achieves the highest score with
+relatively low AGV utilization, making it the most efficient.
+(3) In the Three-cycle scheme, AGVs spend excessive time
+traveling, reducing overall efficiency. (4) The One-cycle
+scheme shows low AGV utilization due to long waiting
+times; although the Three-cycle scheme reduces waiting, its
+longer travel distance still leaves room for improvement.
+An efficient scheduling scheme should balance AGV
+and ground resource utilization through well-designed
+takeoff/landing points, waiting areas, and route planning.
+Precise coordination between UA V landings and ground
+operations is also crucial for smooth performance. Although
+we tested only three schemes, better designs are certainly
+possible.
+VII. CONCLUSION
+This paper presents a real-time scheduling and manage-
+ment system for urban UA V delivery, effectively bridging the
+gap between high-level scheduling algorithms and low-level
+execution systems. Through three collaborative scheduling
+schemes, the system optimizes the coordination of UA Vs,
+AGVs, and ground staff, improving delivery efficiency.
+Experimental results validate the system’s rationality and
+feasibility in urban logistics scenarios.
+VIII. ACKNOWLEDGMENTS
+We would like to thank Meituan Academy of Robotics
+Shenzhen for supporting this research.
+REFERENCES
+[1] J. Pasha, Z. Elmi, S. Purkayastha, A. M. Fathollahi-Fard, Y .-E. Ge,
+Y .-Y . Lau, and M. A. Dulebenets, “The drone scheduling problem: A
+systematic state-of-the-art review,”IEEE Transactions on Intelligent
+Transportation Systems, vol. 23, no. 9, pp. 14 224–14 247, 2022.[2] M. Sajid, H. Mittal, S. Pare, and M. Prasad,
+“Routing and scheduling optimization for uav assisted
+delivery system: A hybrid approach,”Applied Soft
+Computing, vol. 126, p. 109225, 2022. [Online]. Available:
+https://www.sciencedirect.com/science/article/pii/S1568494622004501
+[3] C. C. Murray and A. G. Chu, “The flying sidekick traveling
+salesman problem: Optimization of drone-assisted parcel delivery,”
+Transportation Research Part C: Emerging Technologies, vol. 54, pp.
+86–109, 2015.
+[4] F. Hong, G. Wu, Q. Luo, H. Liu, X. Fang, and W. Pedrycz,
+“Logistics in the sky: A two-phase optimization approach for the drone
+package pickup and delivery system,”IEEE Transactions on Intelligent
+Transportation Systems, vol. 24, no. 9, pp. 9175–9190, 2023.
+[5] D. N. Das, R. Sewani, J. Wang, and M. K. Tiwari, “Synchronized truck
+and drone routing in package delivery logistics,”IEEE Transactions
+on Intelligent Transportation Systems, vol. 22, no. 9, pp. 5772–5782,
+2020.
+[6] S. Yan, C.-S. Sun, and Y .-H. Chen, “Optimal routing and scheduling
+of unmanned aerial vehicles for delivery services,”Transportation
+Letters, vol. 16, no. 7, pp. 764–775, 2024.
+[7] Y . Xie, A. Gardi, M. Liang, and R. Sabatini, “Hybrid ai-based 4d
+trajectory management system for dense low altitude operations and
+urban air mobility,”Aerospace Science and Technology, vol. 153, p.
+109422, 2024.
+[8] Z. Pei, T. Fang, K. Weng, and W. Yi, “Urban on-demand delivery via
+autonomous aerial mobility: Formulation and exact algorithm,”IEEE
+Transactions on Automation Science and Engineering, vol. 20, no. 3,
+pp. 1675–1689, 2022.
+[9] F. M. de Oliveira, L. F. Bittencourt, R. A. Bianchi, and C. A.
+Kamienski, “Drones in the big city: Autonomous collision avoidance
+for aerial delivery services,”IEEE Transactions on Intelligent
+Transportation Systems, 2023.
+[10] K. Dorling, J. Heinrichs, G. G. Messier, and S. Magierowski, “Vehicle
+routing problems for drone delivery,”IEEE Transactions on Systems,
+Man, and Cybernetics: Systems, vol. 47, no. 1, pp. 70–85, 2016.
+[11] S. Park, C. Park, and J. Kim, “Learning-based cooperative mobility
+control for autonomous drone-delivery,”IEEE Transactions on
+Vehicular Technology, 2023.
+[12] Y . H. Cho, D. Baek, Y . Chen, M. J. Jung, S. Vinco, E. Macii,
+and M. Poncino, “Multi-criteria coordinated electric vehicle-drone
+hybrid delivery service planning,”IEEE Transactions on Vehicular
+Technology, vol. 72, no. 5, pp. 5892–5905, 2022.
+[13] C. Huang, Z. Ming, and H. Huang, “Drone stations-aided beyond-
+battery-lifetime flight planning for parcel delivery,”IEEE Transactions
+on Automation Science and Engineering, vol. 20, no. 4, pp. 2294–
+2304, 2022.
+[14] A. Li, M. Hansen, and B. Zou, “Traffic management and resource
+allocation for uav-based parcel delivery in low-altitude urban space,”
+Transportation Research Part C: Emerging Technologies, vol. 143, p.
+103808, 2022.
+[15] B. Pang, K. H. Low, and V . N. Duong, “Chance-constrained uam
+traffic flow optimization with fast disruption recovery under uncertain
+waypoint occupancy time,”Transportation Research Part C: Emerging
+Technologies, vol. 161, p. 104547, 2024.
+[16] Y . Safadi, N. Geroliminis, and J. Haddad, “Integrated departure
+and boundary control for low-altitude air city transport systems,”
+Transportation Research Part B: Methodological, vol. 189, p. 103020,
+2024.
+[17] Wing, “Wing - drone delivery,” 2024, accessed: 2024-12-05. [Online].
+Available: https://wing.com/
+[18] Flytrex, “Flytrex - drone delivery,” 2024, accessed: 2024-12-05.
+[Online]. Available: https://www.flytrex.com/
+[19] Amazon, “Amazon’s drone delivery is now delivering to
+customers in arizona,” 2024, accessed: 2024-12-05. [Online]. Avail-
+able: https://www.aboutamazon.com/news/transportation/amazon-
+drone-delivery-arizona
+[20] Zipline, “Zipline - pioneering global drone delivery,” 2024, accessed:
+2024-12-05. [Online]. Available: https://www.flyzipline.com/
+[21] Meituan, “Meituan technology,” 2024, accessed: 2024-12-05. [Online].
+Available: https://www.meituan.com/technology
