@@ -1,0 +1,1014 @@
+--- Page 1 ---
+arXiv:2203.05389v1 [cs.RO] 10 Mar 2022
+
+Flexible Behavior Trees: In search of the mythical HFSMBTH for
+Collaborative Autonomy in Robotics
+
+Joshua M. Zutell*
+
+Abstract—In recent years, the model of computation known
+as Behavior Trees (BT), first developed in the video game
+industry, has become more popular in the robotics community
+for defining discrete behavior switching. BTs are threatening
+to supplant the venerable Hierarchical Finite State Machine
+(HFSM) model. In this paper we contrast BT and HFSM,
+pointing out some potential issues with the BT form, and
+advocate for a hybrid model of computation that uses both BT
+and HFSM in ways that leverage their individual strengths.
+The work introduces a new open-source package for ROS 2
+that extends the Flexible Behavior Engine (FlexBE) to enable
+interaction with BT-based behaviors within a HFSM in a way
+that supports collaborative autonomy. Simulation and hardware
+demonstrations illustrate the concepts.
+
+I. INTRODUCTION
+
+This paper advocates for a hybrid model of computation
+that combines the strengths of the newer Behavior Trees
+(BT) with the venerable Hierarchical Finite State Machine
+(HFSM) model. As BTs are the newer model, and have
+received a great deal of attention in recent years (1-18). this
+paper is partly a defense of HFSM, but only with the aim of
+encouraging the proper use of both BT and HFSM according
+to their relative strengths. This paper takes inspiration for
+its title from a 2017 Game Developers Conference talk by
+Bobby Anguelov, in which he discusses similar ideas in the
+realm of video games, and advocates somewhat humorously
+for “the mythical HFSM BT hybrid (HFSMBTH)” (9).
+
+After comparing the BT and HFSM models, and dis-
+cussing some potential issues, we introduce our open-source
+ROS 2 package for enabling a HFSMBT hybrid within the
+existing open-source Flexible Behavior Engine (FlexBH!p.
+The package, dubbed flexible_behavior_trees, al-
+lows the user to incorporate the execution and supervision
+of a BT within a HFSM, while preserving the concept of
+Collaborative Autonomy that the authors of FlexBE describe
+in 10}, (11]. Fig. [I] shows the results of running a demon-
+stration of the FlexBE-based HFSMBT hybrid.
+
+Section |II} provides an overview of recent research in
+applications of BTs to robotics, including a number of open-
+source BT packages, as well as an overview of a specific
+HFSM behavior engine called FlexBE [10], [IT]. Section [I]
+compares BT with simple Finite State Machine (FSM) and
+Hierarchical FSM, and highlights some potential issues that
+
++ Capable Humanitarian Robotics and Intelligent Systems Lab
+(CHRISLab),Department of Physics, Computer Science and Engi-
+neering, Christopher Newport University, Newport News, VA 23606
+{joshua.zutell.18, david.conner}@cnu.edu
+
+* Bosch Center for Artificial Intelligence, Robert-Bosch-Campus 1, 71272
+ilipp.schillinger@de.bosch.com
+
+ 
+ 
+
+David C. Conner‘
+
+Philipp Schillinger*
+
+“urs was oa)
+
+\
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 1. | Flexible Behavior Trees demonstration (top): FlexBE states that
+supervise BT execution, (middle) - demonstration with Turtlebot3 in Gazebo
+simulation, (bottom) - demonstration on Turtlebot2 hardware.
+
+favor HFSM. Section[IV]describes anew ROS 2 package that
+allows a user to incoporate FlexBE state implementations
+that control execution of a BT in a separate process. Sec-
+tion [V] presents simulation and hardware demonstrations of
+robot control using an example HFSMBT hybrid. Section [V]]
+summarizes the contributions.
+
+II. RELATED WORK
+A. Behavior Trees
+
+Behavior Trees were first developed in the computer
+gaming industry as a way to increase code reusability, incre-
+mental design of functionality, and efficiently test function-
+ality  (4). In particular, BTs are a model of computation
+used to define control structures for in-game non-player
+characters (NPC). These NPC are hybrid dynamical systems
+(HDS), which have both a continuous part like movement
+and discrete part like decision making; the BT models this
+by switching between different controllers. As such BTs are
+a middle layer between high-level AI planning systems and
+low-level continuous controllers (i).
+
+ 
+
+
+--- Page 2 ---
+ 
+
+Fig. 2. A Fallback node that returns Success if “Not Hungry” condition
+returns Success, or chooses an action that will change world state to "Not
+Hungry". Either “Eat Sandwich” or “Eat Apple” will satisfy the condition.
+
+Moreover, as a general model of computation BTs offer
+the benefits of combining the functionalities of sequential
+behavior compositions, the subsumption architecture, and
+decision trees to form robust controllers 回， (4). Having the
+same capabilities as decision trees, BTs have the potential to
+be used in machine learning applications [4], (5).
+
+To provide the benefits of these vastly different structures,
+the main structure of a basic BT is a directed acyclic graph
+(i.e. a tree) [2], [4]. BTs start at the root node which
+periodically emits signals called ticks that are sent depth
+first down the highest priority branch (the leftmost branch
+by graphical convention). Once a child node receives a
+tick, it transitions from being idle to executing, and the
+tick propagates down to its children, until a subsequent
+node returns either Success, Failure, or Running. Leaf nodes
+are either Actions or Conditions. Actions may change the
+world state and may return Success, Failure, or Running;
+Conditions only report on world state by returning either
+Success or Failure. These return values are then propagated
+back up the BT branch to the parent nodes according to
+specific rules defined by the three basic interior control flow
+nodes: Fallback, Sequence, and Parallel nodes.
+
+Fallback nodes, which are graphically marked as “?” in the
+BT, are used when there are multiple ways to achieve a goal
+as illustrated in Fig. [2] Fallback nodes succeed if one of its
+children succeeds. If the first child of the Fallback node fails
+(i.e. the "Not Hungry" condition), then the next child will be
+ticked to execute in sequence until a child returns Success
+or Running, or all children have returned Failure
+
+For example, in Fig. 2 if hungry, we will first ty to
+eat a sandwich. While this is in process, the Fallback node
+returns Running. On Successful completion, the node returns
+Success. If the “Eat Sandwich” action fails (e.g. no sandwich
+in refrigerator), then the Fallback node will tick the “Eat
+Apple” action. The Fallback will only return Failure if both
+“Eat Sandwich” and “Eat Apple” fail.
+
+Sequence nodes, which are denoted graphically with “—
+are used when actions need to be completed sequentially
+as displayed in Fig.     ， (4). Each action is ticked in
+sequence after the prior action returns Success. A Sequence
+node returns Running or Failure as soon as any child returns
+Running or Failure. For a Sequence to return Success, all of
+
+ 
+
+ 
+
+Consume
+Sandwich
+
+Unwrap
+Sandwich
+
+Dispose
+Wrapper
+
+Fig. 3. To successfully eat the sandwich we must unwrap it, consume the
+sandwich, and as a good citizen properly dispose of the waste.
+
+its children must return Success.
+
+Lastly, Parallel nodes, displayed as “=” arrows, are used
+for executing multiple actions simultaneously        The
+Parallel node ticks all its children simultaneously. If AM
+children out of the total number of children N succeed, then
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+the node returns Success. If less than the WV children succeed,
+that is more than N — M children return Failure, then the
+Parallel node returns Failure.
+Table [I] shows the different node types           (4).
+Node                  Success                               Failure                          Running         ]
+Action            Upon completion                   Unable to complete               During execution |
+Condition                 Tf true                                If false                           ‘Never          |
+Fallback         A child retums Success              All children retum Failure          A child returns Running  |
+Sequence       All children return Success               A child retums Failure’           A child returns Running  |
+Parallel_| M or more children return Success | More than N - M children return Failure            else’
+TABLE I
+
+SUMMARY OF EACH TYPE OF BT NODE AND RETURN CONDITIONS
+
+The basic BT design says that on each tick of the root
+node, the BT traverses the highest priority nodes first. In the-
+ory, this allows the BT to be highly reactive, but requires re-
+peated checking of conditions. To avoid large computational
+burdens of repeated sensor checks, the concept of a “belief
+vector” that is updated asynchronously is maintained [1
+
+The common alternative to regular ticking is to use event-
+driven ticking where a new tick is generated when an action
+returns Success or Failure, but not when an action is Running,
+or ticking when an external system triggers an event based
+on a condition change       This approach reduces reactivity
+of the BT, and “complexifies” the BT concept, requiring
+additional tools for monitoring events and analyzing trees.
+In spite of these drawbacks, event-driven BTs are said to
+be the most common and de facto standard approach in the
+video game industry [[13}.
+
+A powerful concept in designing BTs is the concept of
+backchaining modular sub-trees from an overall goal (4). (6).
+(14). Goal conditions are iteratively expanded with sub-trees
+that achieve those conditions. This concept applies as both
+an engineering design approach and algorithm for automated
+building of a BT. BTs have also been synthesized from
+Linear Temporal Logic (LTL) specifications (15).
+
+There have been several BT libraries created to im-
+plement BTs in C++, Python, and the gaming frame-
+work Unity; examples include the BehaviorTree.CP
+
+https: //github.com/BehaviorTree/BehaviorTree.CPP
+
+ 
+
+ 
+
+ 
+
+
+--- Page 3 ---
+ 
+
+py_trees}| and NPBehav      . The C++ BT frame-
+work BehaviorTree.CPP is widely used in robotics,
+and provides the creation of BTs using XML files with
+classical nodes and nodes with memory. To create nodes
+with memory, each XML file defines input and output ports
+that are accessed by a centralized shared memory called
+blackboard. Using these ports, the blackboard passes data
+between different BT nodes where one node’s output data
+can become another node’s input (16). In addition to passing
+data between nodes, there are decorator nodes such as a
+RepeatNode and RetryNode to execute a node multiple times.
+The RepeatNode will continue to tick a child node until
+the child fails. Meanwhile, a RetryNode will continue to
+tick a child node until the child succeeds. These decorator
+nodes allow for creating cyclic or partially cyclic behaviors
+to compensate for an inherently acyclic data structure.
+
+BTs have also made their way into the popular Robot
+Operating System (ROS), maintained by Open Robotics?
+(17). The Move Base Flex navigation system uses Behavior
+Trees instead of HFSM as a replacement for ROS 1’s
+navigation package       With the introduction of
+ROS 2, the navigation| package uses behavior trees
+for task orchestration [19]. It should be noted that both have
+implicit FSM in their handling of receipt of goals via ROS
+messages, and transition to execution of the BT.
+
+ 
+
+  
+
+B. HFSM and the Flexible Behavior Engine
+
+Prior to the advent of BT, many modern robot systems
+used Hierarchical Finite State Machines (HFSM) to define
+a high-level system behavior used to coordinate between
+subsystems {10}. An early ROS 1 package called SMACH||
+(State MACHine) allowed users to define such HFSM and
+execute them on a robot.
+
+In the DARPA Robotics Challenge (2012-15), it was
+desired for the robot to be a member of a team and not
+purely autonomous; thus, there was a need for a supervisor
+to preempt behaviors and reconfigure the robot behaviors
+in response to changing conditions encountered during a
+disaster response   . This ability to interact with the
+robot system was dubbed Collaborative Autonomy (i). As
+SMACH was not designed for collaborative autonomy, Team
+ViGIR developed the Flexible Behavior Engine (FlexBE) as a
+major extension to SMACH. FlexBE supports adjustable au-
+tonomy, preemptive state transitions, and online adjustments
+to behaviors that support collaborative autonomy. FlexBE
+was released as an open-source ROS package {10}.
+
+Fig. [4] shows the four parts of the FlexBE system:
+
+e Onboard (robot) Behavior Executive (OBE)
+e OCS User Interface (FlexBE UI)
+
+e OCS HFSM “mirror”
+
+« Various Python-based state implementations
+
+‘neups:/ /qithub..con/splintered=reality/py_trees|
+https: //www.openrobotics.org/compan
+q        ://github.com/ros-planning/navigation2
+http://wiki.ros.org/smach
+
+ 
+
+                                                                                                                                                                                                                                                                   
+  
+
+                                                                                                
+ 
+                                                                                                                                                                                                                                                                 
+
+ 
+
+ 
+
+ 
+
+FlexBE UI
+Le一
+
+ 
+
+Onboard HSFM
+
+ 
+
+ 
+
+ 
+
+publish / subscribe
+了
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+一一一一|)                                   State                     |                    State
+
+State
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+State
+
+ 
+
+State
+
+ 
+
+ 
+
+ 
+
+ 
+
+HSFM Mirror
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Fig. 4. FlexBE system architecture (from [20]).
+
+On a robot onboard computer, the Onboard Behavior Exec-
+utive coordinates execution of the Python-based state imple-
+mentations and handles coordination of the publish/subscribe
+to various topics             . On a separate computer, FlexBE
+provides a desktop graphical user interface for the OCS that
+enables easier development of HFSMs and for monitoring
+their execution in realtime. The OCS mirror node acts as
+a bridge between the FlexBE UI and OBE by “mirroring”
+the status of the onboard state machine without actually
+executing the states. The mirror communicates with the
+OBE using standard ROS messaging, and with the FlexBE
+UI using a JavaScript ROS messaging wrapper. Lastly, the
+Python-based state implementations encode the HFSM state
+nodes, and are actions that interact with the robot system
+processes (e.g. path planning, sensor processing, navigation
+control). Like SMACH, FlexBE enables the passing of user
+data from one state to the next. This paper builds upon recent
+work that has upgraded FlexBE to work with ROS 2 (20).
+
+FSM can be defined using correct-by-construction formal
+methods techniques, including synthesis of reactive automata
+from LTL specifications (21). These techniques have been
+applied to generating a realized FlexBE-specific HFSM for
+direct execution of robot control (22).
+
+In this paper we introduce a new ROS 2 package that
+enables a user to execute a BT from within a FlexBE HFSM.
+This realizes the HFSMBTH concept, and enables modular
+BT sub-trees to be directly incorporated into a reactive
+HFSM that enables collaborative autonomy.
+
+ 
+
+Ill. BT AND HFSM COMPARISON
+
+In this section we discuss the advantages and limitations
+of both BTs and HFSMs. Following (9). we advocate for a
+hybrid combination of BT and HFSM that is greater than
+the sum of their parts. We address three specific claims for
+benefits of BTs — modularity, two-way data flow, and lack of
+hidden state — along with their limitation of being acyclic.
+
+While BTs and HFSMs are both equivalent in their com-
+puting power, one of the claimed benefits of BTs is their
+modularity given the weak interdependence between nodes
+due to the simplified Success, Failure, and Running return
+values     ]. One can substitute a sub-tree that achieves
+a pre-condition, or expand an action with a BT that achieves
+the desired outcome. It is clear however, that this modularity
+is not absolute and is not free from unintended or emergent
+impacts on overall system behavior.
+
+ 
+
+
+--- Page 4 ---
+Consider the simple examples from Fig 2] and B] Using
+backchaining, the sequence node subtree in Fig. [3] achieves
+the “Eat Sandwich” action required in Fig. 2 Under normal
+circumstances , this will satisfy the Fallback node and
+achieve the condition “Not Hungry.” However, consider a
+case when disposal of the sandwich wrapper fails because
+the garbage can is full.
+
+In this case, the “Eat Sandwich” action fails, and the
+Fallback ticks “Eat Apple,” which leads to a case of overeat-
+ing that was not the desired behavior. One could add a
+“Blackboard” condition that recognizes the sandwich was
+already consumed, but this introduces a hidden state into
+the BT. A good designer might recognize this pitfall, but
+they do not have control over how the subtrees may be used
+in the future. It is not always possible to know the best
+design a priori. One could backchain an action that empties
+the trash can if it is full before attempting to dispose of
+wrapper, but that introduces what could be a relatively low
+priority task that preempts continuation of an actually higher
+priority task. We are not arguing that a good BT design
+cannot overcome this example, only that the modularity is
+not absolute. Solutions may require ad hoc engineering that
+violate the basic computational model of the BT, and result
+in the introduction of hidden control state into the system.
+
+In contrast, a comparable HFSM design would treat the
+sequence node in Fig. [3] as a simple FSM with multiple
+labeled outcomes. The overall Success would be the primary
+outcome, with potential Failure on the separate child actions
+with unique labels. Making these additional connections
+is additional work, but the choice becomes explicit. Fur-
+thermore, the potential transitions are amenable to formal
+analysis and correct-by-construction synthesis (22).
+
+In addition to modularity, BTs are considered favorable
+over HFSMs due to BTs having two way transitions while
+HFSMs only have one way transitions [2], [4]. BTs are able
+to transition up and down the tree using function calls while
+HFSMs can only transition to the next state sequentially
+analogous to a Goto statement [4]. Although HFSMs only
+have one way transitions, HFSMs in both SMACH and
+FlexBE allow for user data to be defined that is passed
+along from state to state. While not two-way data flow in the
+sense that BT have, this concept increases the adaptability of
+the FSM. As illustrated above, the basic two-way data flow
+in BTs does not address some conditions without requiring
+shared data and the introduction of hidden state.
+
+The BT is fundamentally an acyclic directed graph (13).
+This has two implications that we highlight here. First, this
+structure imposes a total order on the resulting behavioral
+system with an implicit priority that is defined by the pre-
+conditions. Functionally, the BT is equivalent to a large
+collection of ordered i f-elif-else blocks [13]. While
+the priority total ordering is implicit in the structure, it is
+not readily apparent for larger trees (13).
+
+The second significant implication is that BTs are often
+using a fundamentally acyclic data structure to control fun-
+damentally cyclic behaviors 回， (13). In contrast, defining
+looping behaviors within an HFSM is natural and readily ap-
+
+parent from the graphical structure of the HFSM. Generating
+cyclical behaviors using a BT paradigm is clearly possible,
+but does so via external triggers and decorators; the cyclical
+behavior is not obvious from the graphical structure of the
+BT.
+
+Finally, the FlexBE system supports collaborative au-
+tonomy ， (Uy). HFSM are a natural representation for
+humans to follow, and the transitions readily encode the
+expected transitions and contingency plans in the form of a
+script (Uy. FlexBE HFSM support adjustable autonomy and
+operator interactions via preemption and blocked transitions.
+
+The remainder of this paper describes a system for in-
+corporating BT subtrees into a FlexBE HFSM to support
+cyclic behaviors and the best use of BTs according to their
+relative strengths. The work enables the “mythical HFSMBT
+hybrid” that builds upon the strengths of both BT and HFSM
+to achieve something greater than either alone (9).
+
+ 
+
+IV. FLEXIBLE BEHAVIOR TREES
+
+To combine the benefits of HFSMs and BTs, we devel-
+oped the flexible_behavior_treeq}] ROS package
+to enable embedding BTs into FlexBE HFSMs. The pack-
+age contains a BT server node derived from the ROS 2
+navigation2 nav2_behavior_tree package, which
+is based on the BehaviorTree.CPP framework. Follow-
+ing the ROS 2 navigation2 BT server format, the BTs
+are encoded as XML files, which are parsed and loaded
+into the BT server where they are stored by behavior name.
+The flexible_behavior_trees package defines cus-
+tom ROS Actions — BtLoad and BtExecute — and cor-
+responding FlexBE state implementations Bt LoadState,
+BtExecuteState, and BtExecuteGoalState.
+
+FlexBE initiates BT execution by sending a BLExecute
+action goal to the BT server node with a designated behavior
+name to execute. To monitor progress of executing a BT,
+the BT server sends BtExecute action feedback messages
+containing which BT nodes are active, current location of
+the robot, and how long the BT has been executing. Once a
+BT has finished executing, the BT server will respond to the
+BtExecute result message that indicated whether the BT
+returned Success, Failure, or if execution was canceled due
+to a BtExecute cancel messsage.
+
+The flexible_behavior_trees package also de-
+fines three states: Bt LoaderState, BtExecuteState,
+and BtExecuteGoalState that interface with the BT
+server node. The BtLoaderState creates and sends a
+custom Bt Load goal message containing a list of BT XML
+files for the BT server to load. The motivation for this
+BtLoaderState is to allow a user to load relevant BTs
+prior to execution. Next, the BLExecuteState sends a
+goal message to the BT server to execute a specified BT
+by name. The BtExecuteGoalState works similarly,
+but adds either one or multiple PoseStamped message
+to the BtExcute goal for basic navigation behaviors and
+
+https: //github.com/FlexBE/flexible_behavior_
+
+
+--- Page 5 ---
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+   
+
+L    ——
+Clear All
+Environment | | Sin | | Walt
+>   TEB  Clear Local
+Controller | | Environment
+
+Clear Global
+Environment
+
+ 
+
+ 
+
+ 
+
+A* Planner
+
+ 
+
+ 
+
+Fig. 5. ROS 2 Navigation2 Stack example navigation BT from (19).
+
+‘Turieot Fee Nav ST ot)
+
+ 
+
+ 
+
+a
+
+*|__ca + @#
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+@*
+
+Fig. 6. Simple navigation HFSMBTH behavior in FlexBE.
+
+other behaviors requiring user defined goals. After sending
+the goal to the BT server and receiving the result back
+from the BT server, the FlexBE BT state implementations
+return transitions labeled done, failed, or canceled
+corresponding to the BT results.
+
+Using FlexBE and flexible_behavior_trees
+states, larger BTs can be deconstructed into smaller sub-trees,
+while using FlexBe’s collaborative autonomy benefits by
+adding more FlexBE states to the HFSM. This allows more
+user intervention while preserving the modularity benefits of
+BTs. These sub-trees on the BT server are able to share data
+through BehaviorTree.CPP’s blackboard.
+
+V. DEMONSTRATION
+
+In this section we will discuss two demonstrations of the
+Flexible Behavior Trees. The first demonstration loaded a
+BT similar to the ROS 2 navigation2 BT in Fig.
+and executed from a FlexBE HFSM shown in Fig. {6 this
+makes the FSM that is implicit in the navigation2 explict
+to support collaborative autonomy. Meanwhile, the second
+demonstration split the BT from Fig. |5| into separate sub-
+trees — global planner, controller, and recovery behaviors —
+interfaced by separate FlexBE state implementations shown
+in Fig    The complete setup for both the simulation and
+
+hardware demo strations are pri vided?           Lo.
+In the first demonstration, the HFSMBTH behavior in
+
+Fig. (6 gets a goal from the user and sends it to the BT
+server to navigate independently to the goal. This is similar
+to operation of the ROS 2 Navigation2 Stack with additional
+collaborative autonomy that allows the user to cancel and
+re-enter another goal if they do not like the selected target.
+After navigating to the goal, the HFSMBTH loops to ask the
+user for another goal. The HFSMBTH returns failed if the
+BT result returns failure.
+
+The second demonstrated HFSMBTH behavior, as shown
+splits the first demonstration BT into sub-trees
+
+https: //github.com/FlexBE/flexbt_turtlebot 3_demo
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+  
+
+Fig. 7. During the hardware demonstration of the Fig. |1] behavior, the
+FlexBE UI is set to require high autonomy level transitions. After planning
+is successful, the FlexBE behavior pauses and requires the user to confirm
+acceptance of the plan to the designated goal that is displayed in the RViz
+UL In this collaborative autonomy mode, the user can select done to allow
+navigation, or canceled to return to GetGoal state to allow input of another
+goal to re-trigger the planning phase, or failed to trigger a recovery behavior.
+
+providing for more user intervention. The behavior first loads
+all the BTs that will be executed and then asks the user
+for a target goal. After receiving this goal, the HFSMBTH
+behavior transitions into creating a global plan to the goal.
+Using the adjustable autonomy feature of FlexBE, the user
+can first view the returned path (using RViz in this example),
+and either accept the plan as is by allowing the HFSM
+transition, or choose the canceled outcome to require input
+of another target goal as illustrated in Fig. [7 Upon accepting
+the plan, the HFSMBTH transitions into navigating towards
+the goal using a controller. The BT action controller is
+able to receive the plan from the global planner through
+the BehaviorTree.CPP’s blackboard. During navigation,
+the user is able to monitor the execution and preempt the
+navigation state via the FlexBE UI. Moreover, both the global
+planner and navigation states allow the user to manually
+stop execution or force transition into performing recovery
+behaviors in case of an emergency. The recovery behaviors
+state will perform the specified recovery actions in the BT,
+and upon successful completion transitions to ask the user
+for another goal. In this simple example, if the recovery
+behaviors return Failure, the state return failed transition and
+the HFSMBTH ends navigation.
+
+These HFSMBTH behaviors were tested in Gazebo-based
+simulation using a TurtleBot3 model, and on hardware with
+a TurtleBot2 as shown in Fig.|1| The software runs under
+Ubuntu 20.04 using the ROS 2 “Foxy Fitzroy” distribution.
+The demonstrations use the ROS 2 versions of FlexBE,
+Gazebo, RViz2, and navigation2 software, in addition to
+standard sensor drivers. Complete directions are provided.
+
+VI. CONCLUSIONS
+
+This paper advocates for a hybrid model of computation
+that combines the strengths of the newer Behavior Trees
+(BT) with the venerable Hierarchical Finite State Machine
+(HFSM) model. After discussing the relative strengths and
+weaknesses of BT and HFSM, we introduce a new open-
+source ROS 2 package flexible_behavior_treeq
+that enables a user to provide supervisory control of a
+behavior tree from within a FlexBE state machine. This
+
+ 
+
+ 
+
+
+--- Page 6 ---
+enables collaborative autonomy, while leveraging the relative
+strengths of both BT and HFSM as the appropriate level
+of abstraction. Simulation and hardware demonstrations are
+presented and released open-source.
+
+(1)
+
+[2]
+
+[3]
+
+[4]
+
+[5]
+
+[6]
+
+[7]
+
+[8]
+
+[9]
+
+[10]
+
+REFERENCES
+
+A. Marzinotto et al., “Towards a unified behavior
+trees framework for robot control,’ in 20/4 IEEE
+International Conference on Robotics and Automation
+(ICRA), 2014, pp. 5420-5427. pol: 10 . 1109 /
+M. Colledanchise and P. Ogren, “How Behavior Trees
+Modularize Hybrid Control Systems and Generalize
+Sequential Behavior Compositions, the Subsumption
+Architecture, and Decision Trees,” in JEEE Transac-
+tions on Robotics, Apr. 2017, pp. 372-389. DOI: |10 .|
+1109/TRO.2016.2633567
+
+F. Rovida, B. Grossmann, and V. Kriiger, “Extended
+behavior trees for quick definition of flexible robotic
+tasks,” in 2017 IEEE/RSJ International Conference
+on Intelligent Robots and Systems (IROS), Sep. 2017,
+pp. 6793-6800. Dor: [10 . 1109/7 IROS . 2017.
+8206598
+
+M. Colledanchise and P. Ogren, Behavior Trees
+in Robotics and AI: An_ Introduction. Jul.
+2018, ISBN: 9781138593732. DOI: |10 . 1201 /
+9780429489105
+
+M. Colledanchise, R. Parasuraman, and P. Ogren,
+“Learning of behavior trees for autonomous agents,”
+IEEE Transactions on Games, vol. 11, no. 2, pp. 183-
+189, 2019. Dol:
+M. Colledanchise, D. Almeida, and P. Ogren, “To-
+wards blended reactive planning and acting using
+behavior trees,” in 2019 International Conference on
+Robotics and Automation (ICRA), 2019, pp. 8839-
+8845. Dot: [10.1109/ICRA.2019.8794128]
+
+P. Ogren, “Convergence analysis of hybrid control
+systems in the form of backward chained behavior
+trees,” IEEE Robotics and Automation Letters, vol. 5,
+no. 4, pp. 6073-6080, 2020. DoT:
+2020.3010747
+
+F. H. Francisco Garcia Rosas and F. E. Schneider,
+“Autonomous Robot Exploration and Measuring in
+Disaster Scenarios using Behavior Trees,” in 2020
+IEEE 10th International Conference on Intelligent
+Systems (IS), Aug. 2020, pp. 469-474. DoI: 10 .
+(1109/1S48319.2020.9199973|
+
+B. Anguelov. (2019). “AI Arborist: Proper Cultivation
+and Care for Your Behavior Trees,” Youtube, [Online].
+
+Available: https : / / www . youtube . com /
+watch? v=Qq_xXl1JCrelI &t=1159s (visited on
+
+02/16/2022).
+
+P. Schillinger, S. Kohlbrecher, and O. von Stryk,
+“Human-robot collaborative high-level control with
+application to rescue robotics,’ in 20/6 IEEE In-
+ternational Conference on Robotics and Automation
+
+ 
+
+11]
+
+[12]
+
+[13]
+
+[14]
+
+[15]
+
+[16]
+
+[17]
+
+[18]
+
+[19]
+
+[20]
+
+[21]
+
+[22]
+
+(ICRA), May 2016, pp. 2796-2802. Dol: |10.1109/|
+A. Romay et al., “Collaborative autonomy between
+high-level behaviors and human operators for remote
+manipulation tasks using different humanoid robots,”
+Journal of Field Robotics, n/a-n/a, 2016, ISSN: 1556-
+4967. DOI: [10. 1002/rob .21671|
+
+P. Ogren. (2021). “Behavior Trees that avoid check-
+ing All conditions All the time (BT intro part 5),”
+
+Youtube, [Online]. Available:
+
+[yout ube.. con/wat ch?v-UHUBYF a1 0DM| visited
+on 02/16/2022).
+
+B. Anguelov. (Jan. 2020). “Behavior Trees: Breaking
+the Cycle of Misuse,” [Online]. Available:
+(visited on 02/16/2022).
+
+P. Ogren. (2019). “How to create Behavior Trees using
+Backward Chaining (BT intro part 2),” Youtube, [On-
+
+line]. Available: [nttps: //wuw. youtube . con/|
+wat ch?v=dB728z8 90cw (visited on 02/16/2022).
+
+M. Colledanchise, R. M. Murray, and P. Ogren, “Syn-
+thesis of correct-by-construction behavior trees,” in
+2017 IEEE/RSJ International Conference on Intelli-
+gent Robots and Systems (IROS), 2017, pp. 6039-
+6046. Dor: /10.1109/TROS .2017.8206502|
+
+M. Colledanchise and L. Natale, “On the implemen-
+tation of behavior trees in robotics,’ IEEE Robotics
+and Automation Letters, vol. 6, no. 3, pp. 5929-5936,
+2021. DOF:
+
+M. Quigley et al., “ROS: an Open-source Robot Op-
+erating System,” in ICRA Workshop on Open Source
+Software, vol. 3, May 2009, p. 5.
+
+S. Piitz, J. Santos Sim6n, and J. Hertzberg, “Move
+Base Flex A Highly Flexible Navigation Framework
+for Mobile Robots,” in 2018 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS),
+2018, pp. 3416-3421. DOI:|10.1109/TROS.2018.)
+8593829
+
+S. Macenski ef al., “The marathon 2: A navigation
+system,” in 2020 IEEE/RSJ International Conference
+on Intelligent Robots and Systems (IROS), 2020,
+pp. 2718-2725. por: [10 . 1109 7 IROS45743 .
+2020.9341207
+
+J. M. Zutell, D. C. Conner, and P. Schillinger, “
+ROS 2-Based Flexible Behavior Engine for Flexible
+Navigation,” in to appear IEEE SoutheastCon 2022,
+Apr. 2022, pp. 1-8.
+
+H. Kress-Gazit, G. E. Fainekos, and G. J. Pappas,
+“Where’s waldo? sensor-based temporal logic mo-
+tion planning,” in Proceedings 2007 IEEE Interna-
+tional Conference on Robotics and Automation, 2007,
+pp. 3116-3121. Dor:
+363946
+
+S. Maniatopoulos et al., “Reactive high-level behavior
+synthesis for an atlas humanoid robot,” in 2016 IEEE
+International Conference on Robotics and Automation
+
+
+--- Page 7 ---
+(ICRA), 2016, pp. 4192-4199. por: [10 . 1109 /
+
