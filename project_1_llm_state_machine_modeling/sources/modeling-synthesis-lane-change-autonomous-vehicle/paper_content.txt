@@ -1,0 +1,676 @@
+--- Page 1 ---
+Modeling andSynthesis oftheLaneChangeFunction ofanAutonomous
+Vehicle
+Downloaded from:https://research.chalmers.se, 2026-04-08 06:53UTC
+Citationfortheoriginalpublished paper(version ofrecord):
+Krook,J.,Zita,A.,Kianfar,R.etal(2018).Modeling andSynthesis oftheLaneChangeFunction of
+anAutonomous Vehicle.IFAC-PapersOnLine, 51(7):133-138.
+http://dx.doi.org/10.1016/j.ifacol.2018.06.291
+N.B.Whencitingthiswork,citetheoriginalpublished paper.
+research.chalmers.se offersthepossibility ofretrieving research publications produced atChalmers University ofTechnology. It
+coversallkindofresearch output:articles,dissertations, conference papers,reportsetc.since2004.research.chalmers.se is
+administrated andmaintained byChalmers Library
+(articlestartsonnextpage)
+
+--- Page 2 ---
+Modeling and Synthesis of the Lane Change
+Function of an Autonomous Vehicle
+Jonas Krook∗Anton Zita Roozbeh Kianfar∗
+Sahar Mohajerani∗∗Martin Fabian∗∗
+∗Zenuity, G¨ oteborg, Sweden
+(e-mail:firstname.lastname@zenuity.com )
+∗∗Department of Electrical Engineering, Chalmers Universit y of
+Technology, G¨ oteborg, Sweden
+(e-mail:{mohajera,fabian }@chalmers.se )
+Abstract: Unexpected incorrect behavior of autonomous vehicles can h ave catastrophic
+outcomes. But, as with any large-scale software developmen t, correctness of the system is not
+easily guaranteed. As the system is made up of multiple sub-m odules that interact with each
+other, unexpected behavior can arise from incorrect intera ctions between the modules. In a
+previous paper, formal veriﬁcation was applied to the lane c hange module of the decision and
+control software (under development) for an autonomous veh icle. This revealed incorrectness in
+the model, which could also be shown to exist in the actual sof tware. Manual changes to the
+modeldidnotresultinabsenceoftheincorrectness,andsoi nthispaperweaimtopatchtheerror
+by applying synthesis. The synthesized result is correct by construction, but it is not obvious
+what part of the functionality is disabled by the synthesis. Though diﬀerent synthesis techniques
+wereabletogeneratesupervisorsforthemodel,onlywhenth esupervisorwasexpressedasguard
+conditions on the events was it possible to interpret the eﬀe ct of the synthesis. However, the
+supervisors put constraints on how the input data to the lane change module might change, so
+in the end the supervisors put behavioral requirements on th e modules that generate the input
+to the lane change module.
+Keywords: Extended ﬁnite-state machines, Synthesis, Supervisory co ntrol theory, Discrete
+event systems.
+1. INTRODUCTION
+The automotive industry is currently on a road towards
+autonomous vehicles that will maneuver themselves with-
+out human supervision or intervention, referred to as Level
+4andLevel 5 automation according to the SAE stan-
+dard (On-Road Automated Driving (Orad) Committee,
+2016). These vehicles will operate in real traﬃc situa-
+tions, together with other cars — both manually and
+autonomously driven — pedestrians, cyclists and all kinds
+of road users. Thus, their correct behavior is of utmost
+importance.
+In order to deploy Level 4automation and beyond on pub-
+lic roads, the automotive industry is required to follow the
+process recommended by ISO standard 26262 (ISO/TC
+22/SC 32, 2012) to achieve functional safety. This in
+practice means that for certain safety requirements the
+probability of failure should be less than 10−9. Breaking
+down such requirements to a decision-making module, no
+morethan1wrongdecisionshouldbemadein109hoursof
+operation.Achievingsuchlevelofintegrityandcorrectne ss
+makes any approach only based on simulation, ﬁeld testing
+1This work was partially supported by the Wallenberg Artiﬁcial
+Intelligence, Autonomous Systems and Software Program (WASP)
+funded by Knut and Alice Wallenberg Foundation.
+2Supported by the Swedish Research Council (VR 2016-00529).and statistical data inadequate and unrealistic. As noted
+by (KalraandPaddock, 2016), ifaﬂeetof 100autonomous
+vehicles drives 24 hours/day, 365 days/year, at an average
+speed of 25 mph, it takes 400 years to demonstrate with
+95% conﬁdence that their failure rate is 20% better than
+the human driver failure rate of 1.09 fatalities per 100
+million miles (US, 2013).
+Though system testing is still necessary, formal veriﬁca-
+tion(Baier and Katoen, 2008) is a complementary tool,
+where a formal model of the system is subjected to math-
+ematically proven methods to ﬁnd counter-examples that
+show if and how the speciﬁed behavior is broken. The
+power of formal veriﬁcation is that not only presence of
+counter-examples can be shown, but also absence of them
+and in that case the model has been exhaustively searched
+and is guaranteed to under no circumstances to break
+the speciﬁcation. Assuming that the model is accurate in
+enoughdetail,thiscanthenbesaidalsoaboutthemodeled
+implementation.
+One of the companies leading in development of software
+for autonomous driving is Zenuity. In a recent paper (Zita
+et al., 2017), we reported an application of formal veri-
+ﬁcation to a small part of the software for autonomous
+driving being developed at Zenuity. The existing MAT-
+LAB (MathWorks, 2013) code was manually translated
+intoExtended Finite State Machines (EFSM) (Cheng and
+
+--- Page 3 ---
+Krishnakumar, 1993; Sk¨ oldstam et al., 2007), which were
+then loaded into the formal veriﬁcation and synthesis
+toolSupremica (˚Akesson et al., 2006; Malik et al., 2011;
+˚Akesson, 2016). Some basic speciﬁcations were added, and
+existing veriﬁcation techniques (Mohajerani et al., 2016)
+were used to check for counter-examples, the presence of
+which would signify non-fulﬁllment of the given speciﬁca-
+tions. As it turned out, such counter-examples were found.
+Formal synthesis (Ramadge and Wonham, 1989; Moha-
+jerani et al., 2014, 2017) can automatically remove all
+counter-examples related to a given plant with speciﬁ-
+cation. Whereas formal veriﬁcation points out a single
+counter-example, which the user can then contemplate,
+understand,andmanuallycorrect,synthesisautomaticall y
+removes all counter-examples (using repeated veriﬁcation
+and correction) in a structured but still “black-box” kind
+of way. Though the result will be correct by construction,
+it is not always clear what parts of the functionality that
+gets removed; for complex industrial systems the synthesis
+result might be highly complex and diﬃcult to analyze.
+A designer might easily be fooled by the notion of proven
+correctnessintobelievingthatasuccessfulsynthesismea ns
+that the speciﬁcations are sound and that the synthesis
+results in a good system behavior. It is not obvious at
+all times how modeling and choice of synthesis method
+aﬀect the possibility to eﬀectively analyze the result, or
+the feasibility of the synthesis.
+In this paper, we report a continuation of the work begun
+in Zita et al. (2017); Petersson and Zita (2016). Since
+the counter-example was not easily removed manually,
+we explore the feasibility of using formal synthesis to
+automatically remove allcounter-examples related to the
+given speciﬁcation. By doing this we hope to be able to
+patch the code, without having to model all speciﬁcations
+and implement the code anew. The system is complex (the
+system treated in this paper has more than 9 .2·105states
+and 1.3·106transitions), so it is not trivial to ﬁnd out if
+any useful behavior, such as in this case being able to turn
+both right and left, is removed. This is further accentuated
+by some synthesis methods that, to be able to cope with
+systemsofhugecomplexity,employabstractionstoremove
+information redundant for the synthesis task, thus making
+the result next to impossible to relate back to the original
+system.
+This paper reports the results of some synthesis experi-
+ments with the system modeled in Zita et al. (2017); Pe-
+tersson and Zita (2016). Both the monolithic and the com-
+positional abstraction-based synthesis of Supremica (Mo-
+hajerani et al., 2014, 2017) can indeed synthesize correct
+models, but the result is practically incomprehensible due
+to the size of the result in the former case, and due to the
+abstractions in the latter case. The BDD-based synthe-
+sis implemented in Supremica (Fei et al., 2014), though
+working on the monolithic model, can also synthesize a
+correct model, and since the result is returned as Boolean
+constraints on controllable events, the result is much more
+easily comprehended. However, the result puts constraints
+on how the input data to the lane change module might
+change, thus placing behavioral requirements on the mod-
+ules that generate the input to the lane change module.The paper is structured as follows. Section 2 collects
+the preliminary background of EFSMs, controllability,
+BDD-based synthesis, and compositional synthesis. Then,
+Section 3 gives an overview of the overall system together
+withthemodelofit.Section4thenpresentsaspeciﬁcation
+thatthesystemsshouldfulﬁll,butwasinZitaetal.(2017);
+Petersson and Zita (2016) shown not to. The synthesis is
+thendescribedinSection5,whichalsodiscussestheresult .
+The paper concludes with Section 6 where key ﬁndings are
+summed up and some future works are suggested.
+2. PRELIMINARIES
+The logical behavior considered in this paper can be
+modeled in terms of statesandevents; where states
+represent situations where certain properties hold, and
+eventsareassociatedtotransitionsbetweenthestatestha t
+aﬀect changes of those properties. A typical formalism
+for this is ﬁnite-state machines (FSM) (Ramadge and
+Wonham, 1989; Cassandras and Lafortune, 2010). FSMs
+are a suitable formalism in this case, since continuous
+dynamics can be disregarded and ﬂoating point data is
+used mainly for comparisons.
+Supremica implements several diﬀerent synthesis algo-
+rithms for FSMs,among them ordinary monolithic synthe-
+sis, as well as synthesis based on binary decision diagrams
+(BDDs), and compositional abstraction-based synthesis.
+These all have diﬀerent properties, some of which are
+investigated in the following sections.
+2.1 Extended Finite-State Machines
+Extended ﬁnite-state machines (EFSM) are similar to con-
+ventional ﬁnite-state machines, but augmented with up-
+datesassociated to the transitions (Cheng and Krishnaku-
+mar, 1993; Sk¨ oldstam et al., 2007); formulas constructed
+from variables, integer constants, the Boolean literals true
+(T) andfalse(F), propositional logic connectives, and
+discrete arithmetic operators.
+Avariablevisanentityassociatedwithaboundeddiscrete
+domain dom( v) and an initial value v◦∈dom(v). Let
+V={v0,...,v n}be the set of variables with domain
+dom(V) = dom( v0)×···×dom(vn).Anelementofdom( V)
+is called a valuation and is denoted by ˆ v= (ˆv0,...,ˆvn)
+with ˆvi∈dom(vi), and the value associated to variable
+vi∈Vis denoted ˆ v[vi] = ˆvi. Theinitial valuation is
+v◦= (v◦
+0,...,v◦
+n).
+A second set of variables, called next-state variables , de-
+noted by V′={v′|v∈V}with dom( V′) = dom( V), is
+used to describe the values of the variables after execution
+of a transition. Variables in Vare referred to as current-
+state variables to diﬀerentiate them from the next-state
+variables in V′. The set of all update formulas using
+variables in VandV′is denoted by Π V.
+For an update p∈ΠV, the terms vars( p) and vars′(p)
+denotethesetsofallvariables,andallnext-statevariabl es,
+respectively, that occur in p. For example, if p≡x′=y+1
+then vars( p) ={x,y}and vars′(p) ={x}. Here and in
+the following, the relation ≡denotes syntactic identity of
+updates to avoid ambiguity when an update contains the
+equality symbol =.
+
+--- Page 4 ---
+With slight abuse of notation, updates p∈ΠVare also
+interpreted as predicates over their variables, and they
+evaluate to TorF, i.e.,p: dom(V)×dom(V′)→ {T,F}.
+For example, if V={x}with dom( x) ={0,1}, then
+the update p≡x′=x+ 1 means that the value of the
+variable xin the next state will be increased by 1 over
+its current-state value. Its predicate p(x,x′) evaluates as
+p(0,1) =Tandp(1,1) =p(0,0) =p(1,0) =F
+Deﬁnition 1. Anextended ﬁnite-state machine (EFSM)
+is a tuple E=/a\}bracketle{tΣ,Q,→,Q◦,Qω/a\}bracketri}ht, where Σ is a set of
+events, the alphabet;Qis a ﬁnite set of locations ;→ ⊆
+Q×Σ×ΠV×Qis theconditional transition relation ;
+Q◦⊆Qis the set of initial locations ; andQω⊆Qis the
+set ofmarked locations .
+The expression q0σ:p→q1denotes the presence of a transi-
+tion inE, from location q0to location q1with event σand
+updatep. Such a transition can occur if the EFSM is in
+location q0and the update pevaluates to T, and when the
+transition occurs, the EFSM changes its location from q0
+toq1whileupdatingthevariablesinvars′(p)inaccordance
+withp; variables not contained in vars′(p) are unchanged.
+Given an EFSM E=/a\}bracketle{tΣ,Q,→,Q◦,Qω/a\}bracketri}ht, itsvariable set
+is vars(E) =/uniontext
+(q0,σ,p,q 1)∈→vars(p), and it contains all the
+variables that appear on some transitions of E.
+Deﬁnition 2. Given two EFSMs E1=/a\}bracketle{tΣ1,Q1,→1,Q◦
+1,
+Qω
+1/a\}bracketri}htandE2=/a\}bracketle{tΣ2,Q2,→2,Q◦
+2,Qω
+2/a\}bracketri}ht, thesynchronous
+composition ofE1andE2isE1/bardblE2=/a\}bracketle{tΣ1∪Σ2,Q1×Q2,
+→,Q◦
+1×Q◦
+2,Qω
+1×Qω
+2/a\}bracketri}ht, where:
+(x1,x2)σ:p1∧p2− −−−− → (y1,y2) ifσ∈Σ1∩Σ2, x1σ:p1− −− →1y1,
+andx2σ:p2− −− →2y2;
+(x1,x2)σ:p1− −− →(y1,x2) ifσ∈Σ1\Σ2andx1σ:p1− −− →1y1;
+(x1,x2)σ:p2− −− →(x1,y2) ifσ∈Σ2\Σ1andx2σ:p2− −− →2y2.
+In an EFSM, the current state of the system is given by
+the current location together with the current values of all
+thevariables.Sincethevariablesarediscreteandbounded ,
+the EFSM can be ﬂattened, which introduces states for the
+combinations of locations and variable values (Baier and
+Katoen, 2008).
+Deﬁnition 3. LetE=/a\}bracketle{tΣ,Q,→,Q◦,Qω/a\}bracketri}htbe an EFSM
+with variable set vars( E) =V. Themonolithic ﬂattening
+ofEisU(E) =/a\}bracketle{tΣ,QU,→U,Q◦
+U,Qω
+U/a\}bracketri}htwhere
+•QU=Q×dom(V);
+•(x,ˆv)σ→U(y,ˆw) ifEcontains a transition xσ:p→y
+such that p(ˆv,ˆw) =T;
+•Q◦
+U=Q◦×{v◦};
+•Qω
+U=Qω×dom(V).
+U(E) is the FSM representation of the EFSM, where
+all the variables have been removed and their values ˆ v
+embedded into the state set QU. This ensures the correct
+sequencing of transitions in the FSM.
+2.2 Controllability
+A key property when it comes to synthesis is the no-
+tion ofcontrollability . Synthesis removes states that are
+considered “bad” in the sense that they break the givenspeciﬁcation, and transitions to bad states must also be
+removed to make the bad states unreachable in the model.
+However, some of these transitions are labeled by events
+that are considered uncontrollable in the sense that if the
+source-state of such a transition is reached then there is
+no way to guarantee that the event labeling the transition
+willnotoccurtakingthesystemtothebadstate.Atypical
+example is an event representing some input; if at some
+state this input may occur, the system must be ready
+to transit on that event, or not have that state at all
+reachable. This is expressed as the synthesis result must
+becontrollable (Ramadge and Wonham, 1989; Cassandras
+and Lafortune, 2010) with respect to the uncontrollable
+events. Controllability guarantees that the synthesized
+model can always remain within the speciﬁed behavior.
+2.3 BDD-based Synthesis
+ABinary Decision Diagram (BDDs) is a data structure
+that can eﬃciently store huge state-spaces and transition
+sets encoded as Boolean functions. The computational
+complexity of synthesis using BDDs does not depend on
+the number of states or transitions, but on the number
+of nodes in the BDD, as the computations are performed
+symbolically rather than explicitly; synthesis is performed
+on sets of states and transitions rather than single such
+elements. So even though the BDD-based synthesis works
+on a monolithic model, it can handle systems of consid-
+erable sizes. The approach presented in (Fei et al., 2014)
+uses partitioning techniques to further stretch the abilit y
+of the synthesis procedure.
+The BDD-based synthesis works directly on the EFSM
+model, encoding the transition relation and the guards
+as Boolean expressions. The synthesis then results in a
+partitioning of the state-space into allowedandforbidden
+states, and then guarantees that only controllable events
+take the system from the allowed into the forbidden states.
+From this is then generated guards that represent the
+controlactionsofthesupervisor.TheseguardsareBoolean
+expressions over values of variables and state labels, that
+deﬁne when the particular event is enabled.
+2.4 Compositional Synthesis
+The compositional abstraction-based synthesis works on
+the ﬂattened EFSM model by gradually abstracting sys-
+tem components and collecting partial supervisors at each
+step. Abstraction means merging states or removing tran-
+sitions. Moreover, sometimes it can be determined that
+some states must eventually be removed by the synthesis.
+It is then possible to remove those states at an early stage
+and add the reﬁned components as a partial supervisor
+to the supervisor set (Mohajerani et al., 2014, 2017). At
+the ﬁrst step, the compositional synthesis abstracts each
+component and collects possible partial results. When no
+more abstraction is possible, some components are com-
+posed and the result is abstracted again. This procedure
+is continued until one single component is obtained. The
+ﬁnal component has, due to the abstractions, less states
+or transitions compared to the original system. Monolithic
+synthesisisappliedonthisabstractedﬁnalcomponentand
+the result is added to the supervisor set (Mohajerani et al.,
+2014, 2017).
+
+--- Page 5 ---
+Planner
+Lateral State
+ManagerPath PlannerLaneChangeRequest
+TraﬃcState
+VehicleStateChangeLane
+Direction
+TurnIndicatorPath
+Acceleration
+Fig. 1. Lane change module system overview with signal
+ﬂow. The Planner,lateral state manager , andpath
+plannerare depicted as boxes.
+3. SYSTEM DESCRIPTION AND MODELING
+This paper focuses on a part of the lane change module
+called the lateral state manager (LSM). The lane change
+module is implemented with the use of several classes,
+all with diﬀerent responsibilities. The interactions be-
+tween three of these classes, Planner,LSM, and the Path
+Planner, are considered (see Fig. 1). The implementation
+of the lane change module is written in object oriented
+MATLAB-code. The lane change module is cyclically up-
+dated at a high frequency with the current status of the
+vehicle,surroundingtraﬃcsituation,andcurrentreferen ce
+signals.
+Planner has the responsibility to decide in which lane to
+drive, and when. Based on the vehicle’s current position,
+it sends lane change requests to the LSM. These are
+three valued signals that can take the values NoRequest ,
+ChangeLeft , andChangeRight . The request reﬂects which
+lane is the desired lane, not that a lane change can or may
+be done right now.
+TheLSMreceivesthelanechangerequestsignalandissues
+commands to the Path Planner to safely change lanes, if
+Planner requests it. LSMhas to keep track of where in
+the process of the lane change the car currently is, and
+thus it is implemented as a state machine.
+Based on the commands from the Planner and theLSM,
+thePath Planner creates a path and required control
+signals to make a lane change in a safe and eﬃcient
+manner. This is then executed by lower level controllers.
+Since the task of the Path Planner is to calculate a path
+for the current inputs there is no need to use data from
+previous updates. States are hence completely handled
+withinLSM.
+The implementation of LSMis done with a set of methods
+and variables, where the current state is one of the vari-
+ables. The LSMcode is called once every execution cycle,
+and it goes through three diﬀerent stages during each call:
+(i) All of the inputs are updated according to the func-
+tion call arguments. This step is associated to the
+eventupdatein the model.
+(ii) A code snippet associated to the current state is
+executed. This code assigns output and persistent
+variables, and decides whether the system should
+transition into a new state.
+(iii) If a transition occurs, then the third stage executes
+speciﬁc code connected to entering a certain state.
+This code assigns output and persistent variables.
+A small example of this is shown in Fig. 2. The four
+locationstotheleftcorrespondtothehighlevel LSMstate
+calledS0, and the four locations to the right correspond
+to the high level LSMstate called S1. After an updatecall
+to theS1 state, the input variable requestis ﬁrst assigneda value. The internal code for the state is run during event
+S1update. In the end, the requestvariable is checked to
+determine whether to stay in S1 or to transition into S0.
+Fig. 2 is a minimal working example of the LSMand the
+properties that are relevant in this treatise. We will use it
+for illustrative purposes for the rest of the paper.
+Modeling LSM’s 223 lines of MATLAB-code in Supremica
+was done manually, as described in Zita et al. (2017). This
+resulted in a single EFSM with 75 locations, 86 events, 123
+transitions, and 17 variables (14 Boolean, 2 three-valued,
+and one 7-valued variable holding the current location).
+UsingSupremica ’s normalizing compiler, the ﬂattening of
+this EFSM plant model has 370864 states, 105 events, and
+528394 transitions.
+These numbers are lower than what is quoted in Zita
+et al. (2017), because for veriﬁcation the variables’ initi al
+values could be left undetermined, whereas the synthesis
+algorithms implemented in Supremica can only handle
+deterministic systems, and so the initial values of the
+variables were set to falsefor the Booleans, and 0 for the
+others. These initial values matches the default values of
+thevariablesinthesourcecode.Moreover,aswillbestated
+later, this simpliﬁcation does not aﬀect the result of the
+veriﬁcation.
+Although a systematic approach was used in the modeling
+of the MATLAB code, manual translation always has the
+chance of introducing modeling errors. However, since the
+conﬂicts found in the model were possible to reproduce
+by simulations of the code, there is at least some level of
+correspondence.
+4. SPECIFICATION
+Zita et al. (2017) speciﬁes a property that the LSMshall
+always do a lane change to the same lane as is requested by
+thePlanner. This was shown not to hold. A good manual
+ﬁxwaselusive,sosynthesisisperformedtotrytopatchthe
+issue. The property states that the LSMinternal variable
+direction and the incoming requestfromPlanner may not
+diﬀer during more than one updateevent; when a lane
+change is performed, it needs to accord with the currently
+activerequest. Fig. 3 shows R, the EFSM model of the
+lane change request speciﬁcation.
+If two consecutive updates occur where direction and
+requestdiﬀers, then Rof Fig. 3 will transition from the
+initial location s0through location s1to location s2. If
+the variables would be equal during one of the events, R
+would transition back from s1tos0, or do a self loop in
+s0. Froms2it is not possible to come back to the initial
+state, and so Rblocks in s2. Veriﬁcation showed that this
+blocking state is indeed reachable from the initial state in
+the global system of LSM||R. As described by Zita et al.
+(2017), a counter-example was given and it could beshown
+that this faulty behavior was also present in the actual
+code and could lead to collision.
+Even with the initial values of the variables set to distinct
+values,theproblemdescribedbyZitaetal.(2017)persists .
+The same problem can be shown to exist in the minimal
+example of Fig. 2.
+
+--- Page 6 ---
+update
+updatee1 :request′=ChangeLefte1 :request′=ChangeLeft
+e2 :request′=NoRequest e2 :request′=NoRequest
+e3 :request′=ChangeRight e3 :request′=ChangeRightS1updateS0update :direction′=requeste4 :request =NoRequest
+e4 :request =NoRequeste5 :request /negationslash=NoRequest
+e5 :request /negationslash=NoRequest
+S0 S1 S2
+Fig. 2. A minimal working example of the veriﬁed code. This si mpliﬁed model is used for illustrative purposes.
+R
+s0
+s1update :direction /negationslash=requestupdate :direction /negationslash=requestupdate :direction =request
+update :direction =requests2
+Fig. 3. Speciﬁcation describing that the direction variable
+should always on each updatebe equal to the input
+parameter request.
+5. SYNTHESIS
+The monolithic model of the original plant and the spec-
+iﬁcation in Fig. 3 has in total 923854 states, 1274732
+transitions, and 105 events. Given enough memory, mono-
+lithic synthesis can be done, and in roughly 10 seconds
+(usingSupremica ’s “Monolithic (Waters)” algorithm) this
+removes 406684 blocking states, resulting in a supervisor
+with 517170 states, and 715594 transitions.
+The compositional synthesis (using Supremica ’s “Compo-
+sitional (Waters)” algorithm) produces in roughly 0 .5 sec-
+onds three supervisors, the largest of which has 346 states
+and1446transitions.Synchronizingthosesupervisorswit h
+the plant conﬁrms that the compositional result has the
+same behavior as the monolithic one, as the number of
+states and transitions are identical.
+The models obtained by monolithic and compositional
+synthesis are correct by construction, but describe restri c-
+tions of the original model, and due to their sheer size it is
+impossibletointerprettheeﬀectofthesynthesis,likewha t
+behavior of the model that becomes disabled; for instance,
+it could be that the synthesis removes the possibility to
+ever turn left, which is clearly unsatisfactory. Morevoer,
+due to the abstractions used by the compositional synthe-
+sis, it is practically impossible to map the states of that
+supervisortotheplantstates.Itseemsthattoﬁndouthow
+the monolithic or the compositional supervisors aﬀect the
+plant and what behavior is removed, the only option is
+to simulate the supervisors together with the plant and
+see what paths that are not generated anymore. This is a
+tedious task, and is as daunting as the exhaustive testing
+that the formal methods attempt to circumvent. In a while
+we will see why the ease of analyzing is important.
+The BDD-based synthesis on the other hand, produces
+a list of guards which are attached to the events of the
+original model. Analyses reveal that the generated guards
+all concern the requestinput signal from the Planner and
+the internal variable direction . In principle, the guardsdo not allow the input signal requestto take any other
+value than the current value of direction , if those two have
+already been unequal. For the event e1 in Fig. 2, this
+corresponds to having the additional guard
+(request=ChangeRight )∨(direction =ChangeLeft )
+So, if the Planner issues a requestwhich is unequal to
+direction and diﬀers from the previous request, then the
+guard will block the e1 event. This means that Planner
+may not issue a request to the left. However, the aim was
+to patch LSM, not to put new requirements on Planner.
+Sincerequestis an input from Planner, eventse1,e2, and
+e3 must always be enabled after an update. Thus, these
+three events should be uncontrollable forLSM.
+By making e1uncontrollable , the guards cannot disable
+its occurrence, but then they cannot prevent requestand
+direction from being unequal either, so the synthesis fails
+in this case; the result is the null supervisor which signiﬁe s
+that no solution exists.
+Forthesynthesistobecomemeaningful,theoriginalmodel
+mustbechanged.Theoriginalmodelisadirecttranslation
+of the code, so every line of code is represented, but for
+synthesis what matters is how the inputs behave, how
+that aﬀects the state, and how the outputs should be set
+based on the inputs and the state. What is immediately
+apparent when investigating the plant in Fig. 2 is that
+there is only one event, S0update, which is associated
+with an assignment of direction , and then it is only by
+settingdirection to the same value as request. Hence,
+a supervisor has no possibility to change the value of
+direction during any transition between locations S1 and
+S2. Having identiﬁed this, it is possible to add the plant
+shown in Fig. 4 to the model. Now, a supervisor has access
+to acontrollable event,outputupdate, between e4 ore5
+andupdate, where the supervisor has the possibility to
+choose the value of the variable direction . Synthesis of the
+plants in Fig. 2 and 4, and the speciﬁcation in Fig. 3
+produces a supervisor that assigns requesttodirection
+when Fig. 2 is in location S1 and if requestanddirection
+diﬀered during the last update event.
+The resulting supervisor makes sure to update direction
+such that it matches requestsuﬃciently often. However,
+when analyzing the original model it becomes clear that
+this is not the behavior sought for. The values of direction
+andrequestshould not diﬀer during more than one update
+event, but if this is enforced only by letting direction
+mimicrequestwe have only achieved a copy of the request
+variable. Instead, the intention is that if in location S2
+in Fig. 2, direction diﬀers from request, then event e4
+
+--- Page 7 ---
+updateS0update
+S1update
+e4e5
+output update :direction′=NoRequestoutput update :direction′=ChangeRight
+output update :direction′=ChangeLeft
+Fig. 4. An additional EFSM to get feasible synthesis.
+should be ﬁred; otherwise e5. Thus, by changing the
+guards for the e4 ande5 events, originating from location
+S2, torequest /\e}atio\slash=direction andrequest =direction ,
+respectively, we can verify that the plant in Fig. 2 complies
+with the speciﬁcation in Fig. 3; no need at all for the plant
+in Fig. 4 or any synthesis. However, this way of correcting
+a model is not within the scope of synthesis, as synthesis
+can only remove behavior.
+6. CONCLUSION
+An EFSM model of a part of the lane change module
+for an autonomous vehicle with known incorrect and pos-
+sibly dangerous behavior was examined and subjected
+to synthesis in an attempt to automatically adjust the
+modeltofulﬁllthegivenspeciﬁcation.Thestandardmono-
+lithic supervisor synthesis, the compositional abstracti on-
+based synthesis, and BDD-based synthesis were tried on
+the model and all three approaches managed to generate
+identical supervisors but only the BDD-based supervisor,
+which comes as a set of guards on the events, was useful
+for determining the behavior of the supervisor.
+As it turned out, the supervisor synthesized from the orig-
+inal model put restrictions on how the input data might
+change, which basically means that the synthesis result
+places requirements on another module in the system. It
+seems that, in general, it is very diﬃcult to patch legacy
+code with the technique attempted in this paper.
+The results show that the possibility to eﬀectively ana-
+lyze the synthesized supervisor is crucial. Otherwise one
+cannot know whether the resulting constrained system is
+a plausible solution to the problem at hand. Although
+the synthesis did not produce usable supervisors, in this
+particularcasethemethodhighlightedanerrorinthecode
+and a missing requirement.
+Research is currently ongoing regarding how to incorpo-
+rate these types of formal techniques into the daily en-
+gineering work ﬂow. With existing legacy code, the main
+obstacles include how to get the model from the code, and
+ﬁnding the speciﬁcations, many of which are not written
+down explicitly, plus useful means to understand what
+behavior gets removed by synthesis. For these types of
+techniques to get industrial acceptance these obstacles
+must be overcome.
+REFERENCES
+˚Akesson, K. (2016). Supremica. http://www.supremica.
+org/. Online, accessed 2016-04-29.
+˚Akesson, K., Fabian, M., Flordal, H., and Malik, R.
+(2006). Supremica - an integrated environment forveriﬁcation, synthesis and simulation of discrete event
+systems. In Proceeding of the 8th Workshop on Discrete
+Event Systems (WODES’06), Ann Arbor, MI, USA ,
+384–385.
+Baier, C. and Katoen, J.P. (2008). Principles of Model
+Checking (Representation and Mind Series) . The MIT
+Press.
+Cassandras, C.G. and Lafortune, S. (2010). Introduction
+to Discrete Event Systems, 2nd Edition . Springer.
+Cheng, K.T. and Krishnakumar, A.S. (1993). Automatic
+functionaltestgenerationusingtheextendedﬁnitestate
+machine model. In Proceedings of the 30th International
+Design Automation Conference , DAC ’93, 86–91. ACM,
+New York, NY, USA.
+Fei, Z., Miremadi, S., ˚Akesson, K., and Lennartson, B.
+(2014). Eﬃcient symbolic supervisor synthesis for ex-
+tended ﬁnite automata. IEEE Transactions on Control
+Systems Technology , 22, 2368–2375.
+ISO/TC 22/SC 32 (2012). ISO 26262: Road vehicles
+– functional safety. Technical report, International
+Organization for Standardization.
+Kalra, N. and Paddock, S.M. (2016). Driving to Safety:
+How Many Miles of Driving Would It Take to Demon-
+strate Autonomous Vehicle Reliability? RAND Corpo-
+ration.
+Malik, R., Fabian, M., and ˚Akesson, K. (2011). Mod-
+elling large-scale discrete-event systems using modules,
+aliases, and extended ﬁnite-state automata. In IFAC
+Proceedings Volumes. 18th IFAC World Congress, Mi-
+lano, 28 August - 2 September 2011 , 7000–7005.
+MathWorks (2013). https://www.mathworks.com/
+products/matlab.html .
+Mohajerani, S., Malik, R., and Fabian, M. (2014). A
+framework for compositional synthesis of modular non-
+blocking supervisors. IEEE Transactions on Automatic
+Control, 59, 150–162.
+Mohajerani, S., Malik, R., and Fabian, M. (2016). A
+framework for compositional nonblocking veriﬁcation of
+extended ﬁnite-state machines. Discrete Event Dynamic
+Systems: Theory and Applications , 26, 33–84. doi:
+10.1007/s10626-015-0217-y.
+Mohajerani, S., Malik, R., and Fabian, M. (2017). Com-
+positional synthesis of supervisors in the form of state
+machines and state maps. Automatica , 76, 277–281.
+On-Road Automated Driving (Orad) Committee (2016).
+SAE J3016: Taxonomy and deﬁnitions for terms related
+to on-road motor vehicle automated driving systems.
+Technical report, SAE International.
+Petersson, P. and Zita, A. (2016). Logical modelling and
+formal veriﬁcation of decision and control functions
+for autonomous vehicles . Master’s thesis, Chalmers
+University of Technology, Gothenburg, Sweden.
+Ramadge, P.J.G. and Wonham, W.M. (1989). The control
+of discrete event systems. Proceedings of the IEEE ,
+77(1), 81–98.
+Sk¨ oldstam, M., ˚Akesson, K., and Fabian, M. (2007). Mod-
+eling of discrete event systems using automata with
+variables. In Proceedings of the 46th IEEE Conference
+on Decision and Control , 3387–3392.
+Zita, A., Mohajerani, S., and Fabian, M. (2017). Appli-
+cation of formal veriﬁcation to the lane change module
+of an autonomous vehicle. In 13th IEEE Conference on
+Automation Science and Engineering .
